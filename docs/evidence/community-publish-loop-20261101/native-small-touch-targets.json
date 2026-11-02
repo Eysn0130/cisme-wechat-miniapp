@@ -1,0 +1,42 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "window": {
+          "pixelRatio": 3,
+          "safeArea": {
+            "top": 35,
+            "left": 0,
+            "right": 361,
+            "bottom": 804,
+            "width": 361,
+            "height": 769
+          },
+          "screenWidth": 361,
+          "screenHeight": 804,
+          "screenTop": 0,
+          "windowWidth": 361,
+          "windowHeight": 804,
+          "statusBarHeight": 35
+        },
+        "rects": [
+          [],
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 361,
+            "top": 704,
+            "bottom": 804,
+            "width": 361,
+            "height": 100
+          }
+        ]
+      }
+    }
+  }
+}

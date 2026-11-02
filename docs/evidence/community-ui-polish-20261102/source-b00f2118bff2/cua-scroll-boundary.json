@@ -1,0 +1,14 @@
+{
+  "scope": "bounded CUA window-location attempt; no pointer action",
+  "appBindingObserved": "original project s0, identified before action",
+  "originalProjectClickedOrScrolled": false,
+  "fixturePopupTool": "simulator_popup /tmp/cisme-compose-native-20261101",
+  "fixturePopupResult": {
+    "success": false,
+    "message": "编辑器与调试器布局不允许弹出模拟器"
+  },
+  "forcedLayoutOrWindowCycling": false,
+  "coordinateCDPRetried": false,
+  "ordinarySwipeAndDynamicCatchPropagation": "not verified; safe isolated UI target was unavailable",
+  "physicalDeviceTouch": "not verified"
+}

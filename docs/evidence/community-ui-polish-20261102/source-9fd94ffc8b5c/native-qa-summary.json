@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "9fd94ffc8b5c0431e5cdce16d190e7e2613703afa5804ff3f3c98c6bb3d9d830",
+  "currentSource": true,
+  "result": "scoped 390 static and navigation-command cleanup pass only",
+  "evidenceDirectory": ".",
+  "sourceProof": "source-proof.json",
+  "sourceByteIdenticalFiles": 24,
+  "reviewedScreenshotCount": 3,
+  "screenshots": [
+    {
+      "file": "native-text-input-390.png",
+      "sha256": "64db5eca83c3e7c4ec501218c05731f3cf3b5208f81d9f484d2e14ddd19784a4",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-publisher-public-390.png",
+      "sha256": "5f609db9651e34a2c44a612e547b66064a17727ea5e03b6a80ccfbd56fccdfde",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-templates-390.png",
+      "sha256": "9be97f85684b082105815976947f4387cd54bd64540b01e59616c5c7cef5f625",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    }
+  ],
+  "currentPackageRetested": [
+    "390 input/templates/publisher actual PNG three frames; publisher title/body empty",
+    "unknown create response then explicit mocked confirm-leave to list clears local entry/pending/import/resume/context/handoff",
+    "reopen controlled existing draft can edit text card while preserving original body",
+    "controlled loadDraft changes scope during create pending; late create response cannot take over current post/content; zero media writes"
+  ],
+  "navigationCleanup": {
+    "scope": "controlled unknown response; official showModal mock explicitly confirms leave; fake existing draft read",
+    "unknown": {
+      "postId": "",
+      "sent": true,
+      "hasCandidate": true,
+      "hasHandoff": true
+    },
+    "list": {
+      "pendingCleared": true,
+      "entryCleared": true,
+      "importCleared": true,
+      "resumeCleared": true,
+      "contextCleared": true,
+      "handoffCleared": true
+    },
+    "reopened": {
+      "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      "canEditCard": true,
+      "originalBodyPreserved": true,
+      "pendingCommandAbsent": true,
+      "error": ""
+    }
+  },
+  "lateResponse": {
+    "scope": "controlled programmatic loadDraft changes scope during pending create; not a touch or permission test",
+    "oldCandidateInvalidated": true,
+    "before": {
+      "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      "title": "已有草稿",
+      "body": "保留原正文",
+      "files": 0,
+      "epoch": 1
+    },
+    "after": {
+      "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      "title": "已有草稿",
+      "body": "保留原正文",
+      "files": 0,
+      "epoch": 1
+    },
+    "unchanged": true,
+    "handoffCleared": true,
+    "textContextCleared": true,
+    "uploadCalls": 0,
+    "error": ""
+  },
+  "notRepeatedOnThisPackage": [
+    {
+      "packageSourceSha256": "c4ee3924127555e022a0ed4f73a9bf09d58690d894cbb5738d9e352075e9ae63",
+      "evidence": "../source-c4ee39241275/native-qa-summary.json",
+      "scopes": [
+        "361/430 and full three-size static set",
+        "390 create pending picture/spinner, release once, error and same-key retry"
+      ],
+      "evidenceInheritedAsNewAcceptance": false
+    },
+    {
+      "packageSourceSha256": "31270c2469a83a899674f9e042003506c920e11fb4209b1b884926e7180d7f45",
+      "evidence": "../source-31270c2469a8/native-qa-summary.json",
+      "scopes": [
+        "generation cancel/delayed export/cache switch/native navigation hide-show"
+      ],
+      "evidenceInheritedAsNewAcceptance": false
+    }
+  ],
+  "knownHistoricalFailure": {
+    "evidence": "../text-card-handoff-audit-eba9/review.json",
+    "scope": "eba9 blank pending frame is retained as failure; no relabeling"
+  },
+  "openBoundaries": [
+    "SDK clickCheckTask error retained in native-console.json; no zero-console claim",
+    "tiny top-left clipped line source unresolved, physical phone pending; not investigated or declared fixed",
+    "physical keyboard/OS background/finger gestures/VoiceOver/camera permissions not verified",
+    "photo tool/drag/edge states not re-tested in current text scope",
+    "real account/backend105/moderation/deployment/upload outside offline fixture",
+    "full40route and real-device matrix blocked"
+  ],
+  "apiMocksCreatedThisRun": [
+    "showModal: controlled explicit confirm leave only"
+  ],
+  "apiRestoreReceipts": [
+    "native-restore-showModal.json",
+    "native-restore-chooseMedia.json",
+    "native-restore-requirePrivacyAuthorize.json"
+  ],
+  "cleanup": {
+    "route": "pages/community/index",
+    "width": 390,
+    "posts": 0,
+    "writeCalls": 0,
+    "publicEnabled": false,
+    "publishEntryOpen": false,
+    "latencyAbsent": true,
+    "realAccountDataAccessed": false,
+    "persistentStorage": false
+  },
+  "full40RouteAndRealDeviceMatrix": "blocked",
+  "realBackend105AccountDeploymentUpload": false
+}

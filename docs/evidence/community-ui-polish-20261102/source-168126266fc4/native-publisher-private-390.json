@@ -1,0 +1,42 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "private draft and offline service adapter",
+        "saved": true,
+        "state": "draft",
+        "publicEnabled": false,
+        "publicVersionActive": false,
+        "settingsDataPresent": false,
+        "rightsDataPresent": false,
+        "consentDataPresent": false,
+        "geometry": [
+          null,
+          null,
+          {
+            "id": "",
+            "dataset": {},
+            "left": 22,
+            "right": 368,
+            "top": 748,
+            "bottom": 798,
+            "width": 346,
+            "height": 50
+          },
+          null
+        ],
+        "savePayloadKeys": [
+          "title",
+          "body",
+          "mediaIds",
+          "expectedVersion"
+        ],
+        "error": ""
+      }
+    }
+  }
+}

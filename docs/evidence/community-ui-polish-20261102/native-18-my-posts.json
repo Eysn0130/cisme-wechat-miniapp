@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled in-memory state list",
+        "count": 6,
+        "statuses": [
+          "审核中",
+          "草稿",
+          "待修改",
+          "待发布复核",
+          "已发布",
+          "已下架"
+        ],
+        "error": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "official picker/privacy mocks only",
+        "albumCancelledId": "bbbbbbbb-bbbb-4bbb-8bbb-000000000002",
+        "albumState": "deleted",
+        "cameraPost": "bbbbbbbb-bbbb-4bbb-8bbb-000000000003",
+        "cameraStage": true,
+        "cameraFiles": [
+          {
+            "path": "/assets/cisme/cisme-scalp-lab-avatar-v1.jpg",
+            "size": 92465
+          }
+        ],
+        "error": "",
+        "authorizeCalls": 0
+      }
+    }
+  }
+}

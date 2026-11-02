@@ -188,7 +188,21 @@ Page({
       if(!current())return;
       await request({ path: `/v1/me/ugc/posts/${postId}`, method: "DELETE", data: { expectedVersion: post.version } });
       if(current())wx.navigateBack({ fail: () => wx.switchTab({ url: "/pages/community/index" }) });
-    } catch (error) { if(current())this.setData({ error: titleOf(error, "删除未完成，请重试。") }); }
+    } catch (error) {
+      if(!current())return;
+      const status=(error as {status?:number})?.status;
+      if(!status||status>=500){
+        this.setData({error:"删除结果待确认，正在核对本人内容状态。"});
+        try{
+          const own=await pageRead<{id:string;ownerId:string;state:string}>(this,{path:`/v1/me/ugc/posts/${postId}`});
+          if(!current())return;
+          if(own.id===postId&&own.ownerId===post.authorId&&own.state==="deleted"){
+            wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/community/index"})});return;
+          }
+        }catch{/* An unavailable or mismatched own record cannot confirm deletion. */}
+        if(current())this.setData({error:"删除结果待确认，请稍后刷新核对。"});
+      }else this.setData({error:titleOf(error,"当前无法删除，请刷新内容状态后重试。")});
+    }
     finally { if(current())this.setData({ busy: false }); }
   },
   previewImage(event: WechatMiniprogram.TouchEvent) {

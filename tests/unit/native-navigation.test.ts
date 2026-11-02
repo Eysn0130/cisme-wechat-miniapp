@@ -83,4 +83,62 @@ describe("native tab lens", () => {
     expect(target.data.communityFabMounted).toBe(false);
   });
 
+  it("mounts an entry without a queued frame that can revive it after leaving", () => {
+    route = "pages/community/index";
+    const target = instance(); definition.lifetimes.attached.call(target);
+    const frames: Array<() => void> = [];
+    wxMock.nextTick.mockImplementation((cb: () => void) => frames.push(cb));
+    target.setCommunityPublisherAvailable(true);
+    expect(target.data).toMatchObject({ communityFabMounted: true, communityFabVisible: true });
+    target.switchTab(tap(3));
+    frames.forEach(frame => frame());
+    expect(target.data).toMatchObject({ active: 3, communityFabMounted: false, communityFabVisible: false });
+  });
+
+  it("does not remount on repeat community taps or scroll recovery", () => {
+    route = "pages/community/index";
+    const target = instance(); definition.lifetimes.attached.call(target);
+    target.setCommunityPublisherAvailable(true);
+    const render = vi.spyOn(target, "setData");
+    target.enterCommunityFab();
+    target.setCommunityPublisherAvailable(true);
+    target.switchTab(tap(2));
+    expect(render).not.toHaveBeenCalled();
+    expect(wxMock.pageScrollTo).toHaveBeenCalledWith({ scrollTop: 0, duration: 0 });
+    target.setPresentation("community-scroll", true);
+    target.setPresentation("community-scroll", false);
+    expect(target.data).toMatchObject({ communityFabMounted: true, communityFabVisible: true, chromeHidden: false });
+    expect(render.mock.calls.every(([patch]) => !Object.prototype.hasOwnProperty.call(patch, "communityFabMounted"))).toBe(true);
+  });
+
+  it("restores the publish action on failed navigation only while publication remains available", () => {
+    route = "pages/community/index";
+    currentPage.openPublisher = vi.fn();
+    const target = instance(); definition.lifetimes.attached.call(target);
+    target.setCommunityPublisherAvailable(true);
+    target.switchTab(tap(3));
+    expect(target.data.communityFabMounted).toBe(false);
+    wxMock.switchTab.mock.calls[0][0].fail();
+    expect(target.data).toMatchObject({ active: 2, communityFabMounted: true, communityFabVisible: true });
+    target.activateCommunityFab();
+    expect(currentPage.openPublisher).toHaveBeenCalledTimes(1);
+    target.switchTab(tap(3));
+    target.setCommunityPublisherAvailable(false);
+    wxMock.switchTab.mock.calls[1][0].fail();
+    expect(target.data).toMatchObject({ active: 2, communityFabMounted: false, communityFabVisible: false });
+    target.activateCommunityFab();
+    expect(currentPage.openPublisher).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects reduced motion and never mounts a publish action on other tabs", () => {
+    reduced.value = true;
+    const source = instance(); definition.lifetimes.attached.call(source);
+    source.setCommunityPublisherAvailable(true);
+    expect(source.data.communityFabMounted).toBe(false);
+    route = "pages/community/index";
+    const target = instance(); definition.lifetimes.attached.call(target);
+    target.setCommunityPublisherAvailable(true);
+    expect(target.data).toMatchObject({ communityFabMounted: true, communityFabVisible: true, reducedMotion: true });
+  });
+
 });

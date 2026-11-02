@@ -1,0 +1,61 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "files": [
+          {
+            "id": "dddddddd-dddd-4ddd-8ddd-000000000002",
+            "localPath": "http://tmp/TFlAgxnppmTN1f3933eeaaa9928a14672f2806b9ff7d.png",
+            "previewUrl": "/assets/cisme/cisme-scalp-lab-avatar-v1.jpg",
+            "size": 125540,
+            "state": "uploaded",
+            "progress": 100,
+            "error": ""
+          }
+        ],
+        "actualBytes": 125540,
+        "signature": [
+          137,
+          80,
+          78,
+          71,
+          13,
+          10,
+          26,
+          10,
+          0,
+          0,
+          0,
+          13
+        ],
+        "body": "今天认真完成了护理。\n把每一次真实感受记下来 💜",
+        "uploadBusy": false,
+        "error": "",
+        "calls": [
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts",
+            "dataKeys": []
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/authorize",
+            "dataKeys": [
+              "mimeType",
+              "maxBytes"
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/dddddddd-dddd-4ddd-8ddd-000000000002/complete",
+            "dataKeys": []
+          }
+        ]
+      }
+    }
+  }
+}

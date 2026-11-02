@@ -1,0 +1,46 @@
+{
+  "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+  "copiedSources": [
+    {
+      "file": "custom-tab-bar/index.ts",
+      "sha256": "72907a7d078d3abf8f95fcfb9cafd9d24a5bd89bafa575f1744fc2afb8f7e529",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxml",
+      "sha256": "095c08b44fcb16d73ba1e6f54af9624d21a6166b70f45113baf4a57790f4ca7d",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxss",
+      "sha256": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.ts",
+      "sha256": "a84d25cc7d9e6a4ef9999501ec17613c946cbb63d5c430744b21c099e1c69b58",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "sha256": "d7174c47ef000ddf0fb3d3ed363fa0dbc3bc3d4c070660a775b64c39b66bea23",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "sha256": "0f8449b40414fd2a1b47fdf347fa3f60f5267e5af8dfe65696e2f86bec6c7b69",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.json",
+      "sha256": "e02be76b6f3b9d9c15c6a5c8c6ec0b1c6cdbcd016d8e9654f20945ebffbfee4f",
+      "fixtureByteIdentical": true
+    }
+  ],
+  "scope": "Offline fixtures replace network, authentication, persistent backup storage and public-detail return stimulus only. Real-account and physical-device flows remain unverified."
+}

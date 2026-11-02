@@ -1,0 +1,7 @@
+# 中间handoff等待修复（历史c4ee）
+
+对应包c4ee3924127555e022a0ed4f73a9bf09d58690d894cbb5738d9e352075e9ae63。24fixture源文件复核一致；11张原生图逐张查看，包含三尺寸输入／模板／publisher与390创建等待／错误。
+
+真实PNG等待时保图和spinner；释放只create1/authorize1/complete1。unknowncreate错误保图停spinner且可重试；重试保同candidate/createKey，fake服务端投稿数未增，authorize/complete各1。三尺寸publisher标题正文空。
+
+随后根发现显式去列表／另稿仍残留pendingLocalText命令，另行最小修；该分支未在本包宣称通过。本目录保原hash，不复标后续源码。所有API均离线，待响应是受控刺激非性能。原adapter已恢复，精确内存样本清除+fresh runtime投稿0/写调用0/模拟公开关闭。SDK错误与真机边界保留。

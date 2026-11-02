@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4",
+  "result": "confirmed native loading handoff gap",
+  "scope": "Independent actual PNG final confirm followed by releasable isolated mock POST-create response; no product latency or real backend",
+  "screenshot": {
+    "file": "native-create-response-pending-blank-390.png",
+    "sha256": "6dced727389315235e2b3c6c5e88adeb2760f4c19256b26d4dc54c9342a4630c",
+    "pixels": {
+      "width": 390,
+      "height": 844
+    },
+    "visuallyReviewed": true
+  },
+  "pending": {
+    "scope": "confirmed real PNG; isolated POST create response held after fake server write",
+    "componentStage": "templates",
+    "componentVisible": false,
+    "busy": true,
+    "operation": "creating",
+    "loading": false,
+    "listMode": false,
+    "postId": "",
+    "error": "",
+    "files": 0,
+    "candidateHasPng": true,
+    "mockServerPosts": 1,
+    "writes": [
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts",
+        "dataKeys": []
+      }
+    ],
+    "geometry": [
+      {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 390,
+        "top": 0,
+        "bottom": 844,
+        "width": 390,
+        "height": 844
+      },
+      null,
+      []
+    ]
+  },
+  "afterRelease": {
+    "postId": "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
+    "files": [
+      {
+        "state": "uploaded",
+        "path": "http://tmp/yOlVGNILvANf70d71dff30a27d3c06ab1aa6716f6db2.png"
+      }
+    ],
+    "title": "",
+    "body": "",
+    "error": "",
+    "releaseFunctionCleared": true
+  },
+  "cleanup": {
+    "route": "pages/community/index",
+    "posts": 0,
+    "writeCalls": 0,
+    "publicEnabled": false,
+    "latencyAbsent": true
+  },
+  "productSourceChangedByReviewer": false,
+  "originalEba9StaticScreenshotsRelabeled": false,
+  "recommendation": "Keep verified PNG plus lightweight waiting feedback while awaiting canonical post; only valid canonical owner/post hands over to publisher. Preserve candidate/createKey/error retry and context clearing; body/save without PNG still show busy feedback."
+}

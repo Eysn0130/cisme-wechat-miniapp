@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "discardedWithoutChangingSource": true,
+        "appliedNewFile": true,
+        "dirty": false,
+        "busy": false,
+        "error": "",
+        "signature": [
+          255,
+          216,
+          255
+        ]
+      }
+    }
+  }
+}

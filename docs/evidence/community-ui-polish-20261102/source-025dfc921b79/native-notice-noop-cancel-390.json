@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "savedNotice": "草稿已保存。",
+        "noop": {
+          "notice": "草稿已保存。",
+          "dirty": false,
+          "sameOrder": true
+        },
+        "cancel": {
+          "notice": "草稿已保存。",
+          "dirty": false,
+          "sameOrder": true,
+          "timersStopped": true
+        }
+      }
+    }
+  }
+}

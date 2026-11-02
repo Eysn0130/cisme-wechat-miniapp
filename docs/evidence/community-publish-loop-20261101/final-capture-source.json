@@ -1,0 +1,40 @@
+{
+  "packageSourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+  "fixture": "/tmp/cisme-compose-native-20261101",
+  "network": false,
+  "persistentStorage": false,
+  "files": {
+    "pages/community-compose/index.ts": {
+      "sameBytes": true,
+      "sha256": "41ff6c4e0c577e8ec264a0dd61bd92258c6f54dfa6f8c13764ca395dfd8016c0"
+    },
+    "pages/community-compose/index.wxml": {
+      "sameBytes": true,
+      "sha256": "b120fdde6fdb10cfba53232a4dbc5feb7dbe1e103a2d3ac7a2a727709662eb60"
+    },
+    "pages/community-compose/index.wxss": {
+      "sameBytes": true,
+      "sha256": "12ae29ccfbcc721ab3ead872dcf5cad75f3cf4a7ccf5b8783495bdd270d1e9ff"
+    },
+    "pages/community-compose/index.json": {
+      "sameBytes": true,
+      "sha256": "e02be76b6f3b9d9c15c6a5c8c6ec0b1c6cdbcd016d8e9654f20945ebffbfee4f"
+    },
+    "custom-tab-bar/index.ts": {
+      "sameBytes": true,
+      "sha256": "72907a7d078d3abf8f95fcfb9cafd9d24a5bd89bafa575f1744fc2afb8f7e529"
+    },
+    "custom-tab-bar/index.wxml": {
+      "sameBytes": true,
+      "sha256": "095c08b44fcb16d73ba1e6f54af9624d21a6166b70f45113baf4a57790f4ca7d"
+    },
+    "custom-tab-bar/index.wxss": {
+      "sameBytes": true,
+      "sha256": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756"
+    },
+    "custom-tab-bar/index.json": {
+      "sameBytes": true,
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    }
+  }
+}

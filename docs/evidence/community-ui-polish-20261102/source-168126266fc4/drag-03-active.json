@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "target": 2,
+        "dragging": true,
+        "left": 212,
+        "top": 127,
+        "offsets": [
+          0,
+          -98,
+          -98,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "canonicalUnchanged": true,
+        "dirty": false
+      }
+    }
+  }
+}

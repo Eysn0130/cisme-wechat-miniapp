@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled text input and direct-body event; hardware keyboard not tested",
+        "body": "今天的护理感受，直接写在正文里。",
+        "files": 0,
+        "bodyFocused": false,
+        "dirty": true,
+        "error": ""
+      }
+    }
+  }
+}

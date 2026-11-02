@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-02",
+  "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54",
+  "unit": {
+    "files": 178,
+    "passed": 2922,
+    "skipped": 1
+  },
+  "buildAndTypes": "passed",
+  "packageGate": "passed",
+  "ugcIsolatedIntegration": {
+    "files": 4,
+    "passed": 27,
+    "runId": "2d3182909256058b0f9a3920",
+    "postgresRemoved": true,
+    "objectStorageRemoved": true
+  },
+  "trialUpdateGuardOffline": {
+    "passed": 34
+  },
+  "newProductFunctionality": false,
+  "newDependencies": false,
+  "physicalDeviceAcceptance": "not_completed",
+  "full40RouteMatrix": "blocked"
+}

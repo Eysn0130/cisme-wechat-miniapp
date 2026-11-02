@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community/index",
+        "width": 390,
+        "posts": 0,
+        "writeCalls": 0,
+        "publicEnabled": false,
+        "publishEntryOpen": false,
+        "latencyAbsent": true,
+        "realAccountDataAccessed": false,
+        "persistentStorage": false
+      }
+    }
+  }
+}

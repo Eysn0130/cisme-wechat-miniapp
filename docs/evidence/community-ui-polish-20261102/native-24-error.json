@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "offline read failure, no live network",
+        "loading": false,
+        "error": "离线场景：读取暂未确认"
+      }
+    }
+  }
+}

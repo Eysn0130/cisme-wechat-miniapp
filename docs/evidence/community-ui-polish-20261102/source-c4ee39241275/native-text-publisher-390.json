@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "offline API and controlled public gate only",
+        "width": 390,
+        "title": "",
+        "body": "",
+        "textCardText": "护理慢慢来，\n感受每天的小变化。",
+        "template": "border",
+        "files": [
+          {
+            "state": "uploaded",
+            "preview": "http://tmp/7cZd9y0y8xTmf15075f0a82621fb1a8ba79b408a7711.png"
+          }
+        ],
+        "posts": 1,
+        "writes": [
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts",
+            "dataKeys": []
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/authorize",
+            "dataKeys": [
+              "mimeType",
+              "maxBytes"
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/dddddddd-dddd-4ddd-8ddd-000000000002/complete",
+            "dataKeys": []
+          }
+        ],
+        "publicEnabled": true,
+        "error": ""
+      }
+    }
+  }
+}

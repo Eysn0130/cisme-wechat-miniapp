@@ -42,6 +42,8 @@ it('requires an owned revision and rejects cross-member media attachment',async(
   }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
   await expect(pool.query("INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,body) VALUES($1,2,$2,'越权修订')",[postId,secondMember])).rejects.toMatchObject({code:'23514'});
   await expect(pool.query("UPDATE ugc_post_revision SET body='原地篡改' WHERE post_id=$1 AND revision=1",[postId])).rejects.toMatchObject({code:'55000'});
+  await expect(pool.query("UPDATE ugc_post_revision SET rights_confirmed=true WHERE post_id=$1 AND revision=1",[postId])).rejects.toMatchObject({code:'55000'});
+  await expect(pool.query("UPDATE ugc_post_revision SET public_consent_confirmed=true WHERE post_id=$1 AND revision=1",[postId])).rejects.toMatchObject({code:'55000'});
   await expect(pool.query("UPDATE ugc_post SET state='published',visibility='public',published_at=now() WHERE id=$1",[postId])).rejects.toMatchObject({code:'23514'});
   await pool.query("UPDATE ugc_post_revision SET moderation_state='pending' WHERE post_id=$1 AND revision=1",[postId]);
   await pool.query("UPDATE ugc_post_revision SET moderation_state='approved' WHERE post_id=$1 AND revision=1",[postId]);

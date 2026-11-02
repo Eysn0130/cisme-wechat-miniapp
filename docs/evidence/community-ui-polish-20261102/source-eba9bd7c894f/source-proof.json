@@ -1,0 +1,169 @@
+{
+  "packageSourceSha256": "eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4",
+  "copiedSources": [
+    {
+      "file": "custom-tab-bar/index.ts",
+      "sha256": "72907a7d078d3abf8f95fcfb9cafd9d24a5bd89bafa575f1744fc2afb8f7e529",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxml",
+      "sha256": "095c08b44fcb16d73ba1e6f54af9624d21a6166b70f45113baf4a57790f4ca7d",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxss",
+      "sha256": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.ts",
+      "sha256": "b0df369a0cc0a438b653d43e349dafbb3288e39a1649836511f07527ef34d7ad",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxml",
+      "sha256": "0cea6128a91da33ec59c4204ebb523fd047efc2a8f8b89f76eb8c79633674af0",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "sha256": "b2ed9fd7e0640c64133799f43979095672f4a86cb6ef011319b894d5781d9190",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.json",
+      "sha256": "4537cd5e88f68bcaf370434fb26da6a85b2114f2f7c73c69887ab0b027a00b94",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.ts",
+      "sha256": "6bf00f088cf0d415594ff4cad8d3da0cecc0677b3357d0e87b5a9edf531084bd",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "sha256": "072af5f7cb0c19671b962e724580d1fa5b08b12f4bb8976bd676130224dcc90f",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "sha256": "02d6d11656c1344f7227c4fb089db59cd17e74cbd9b743cddcaf8ed9ef17f747",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.json",
+      "sha256": "be6707488347f0aef68b79002bd50550822466f6bf49cde4a6f226f3c4ccf56a",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.ts",
+      "sha256": "8a1ae0248021e3f65eb43f7c0c68d7f51e9812348d2a38a169701cb2e8e47e90",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxml",
+      "sha256": "6b8d6087b6eb6f4df4ec5c4ab3de4e03a597581970c91978f9e23cbc9d1802e0",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxss",
+      "sha256": "cdf19bbbe27934f1efbd0961bc624c443ebca61bcbfa150b5619394cf9240197",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.ts",
+      "sha256": "9381b93d86e70d96cbc208ad16eeed363a50f7295fce35155c6c5e423d264a1e",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxml",
+      "sha256": "57a0527587a091078a2f1b2ea9e7ce6e19472e8e4afb2e4759c9633a515f6ca6",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxss",
+      "sha256": "82f392a9e892ac89fb3b5a8e8c42e45a6396586a340f2201feb39fa485a2c9dc",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/community-compose-intent.ts",
+      "sha256": "f255f69f8a4aa5ec64d70b296f779ef0a77f8193368a5caf1b25ada2174536c5",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-image-edit.ts",
+      "sha256": "b1d284adbf735da86ef72887fe7908d1bed2c943f4ff2783f6e16c0adb24ae0f",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-text-card-layout.ts",
+      "sha256": "99e1fe35713a6593eca21e387280221e9a5834afe5e9fe1fe3af473f4f7a95e6",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-photo-effects.ts",
+      "sha256": "9cc83aece637d7ea947e01b55d6cb63187f4e79f232e1ee83d9ac102a3be03f1",
+      "fixtureByteIdentical": true
+    }
+  ],
+  "sourceByteIdenticalFiles": 24,
+  "fixturePath": "/tmp/cisme-compose-native-20261101",
+  "network": false,
+  "persistentStorage": false,
+  "scope": "24 actual native page/tab/component/helper files byte-identical. Offline auth/API/storage/editorial/public-detail adapters; controlled state stimuli. Native Canvas and local FS actual official simulator. Not physical keyboard, permissions, hardware camera, real account/backend or deployment acceptance.",
+  "currentSource": false,
+  "result": "source provenance only; scoped native evidence below",
+  "recheckedAfterNative": true,
+  "full40RouteAndRealDeviceMatrix": "blocked",
+  "evidenceDirectory": ".",
+  "offlineAdapterFiles": [
+    {
+      "file": "app.ts",
+      "sha256": "9abac89bdf81bda468f76abaa3d793e40c21a2fb972ceb8cf54444297de5a168"
+    },
+    {
+      "file": "app.json",
+      "sha256": "b197593224a0029d750c7d85ea68832278ea667c23b3f74c2ccb396931ec9d03"
+    },
+    {
+      "file": "services/api.ts",
+      "sha256": "64a299c655e69f5f56c63fc345d2e3a45995939c38ff5f1d0a1069d0a6c66f14"
+    },
+    {
+      "file": "services/page-requests.ts",
+      "sha256": "9127d4e5c402a1cef0a3c9f2af3190ce486dfb221358d1c6ba2a58ef5b04c42f"
+    },
+    {
+      "file": "services/commerce-command-store.ts",
+      "sha256": "2f3ff1e17aead0bf7a871275f575de91bb4905fe7ebcfa37d56da9906094e547"
+    },
+    {
+      "file": "services/ugc-local-backup.ts",
+      "sha256": "6674ec72889715a29ca52a397a1dbb5f2bfeba6d2e1cc6207a2e202801d2acd1"
+    },
+    {
+      "file": "services/editorial.ts",
+      "sha256": "a4713e0a9e22474dba4f85be5351c8ea8e03215bbf4c317bc9dea7c028e53f21"
+    },
+    {
+      "file": "services/member-identity.ts",
+      "sha256": "d983e53d0e17a0fdd38fef40072525d583153053f7601751440e7664e917a0b5"
+    }
+  ]
+}

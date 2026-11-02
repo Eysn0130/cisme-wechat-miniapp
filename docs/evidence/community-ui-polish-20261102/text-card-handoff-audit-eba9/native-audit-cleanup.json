@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "onlyExactOfflineFixtureIds": [
+          "bbbbbbbb-bbbb-4bbb-8bbb-000000000001"
+        ],
+        "posts": 0,
+        "writeCalls": 0,
+        "latencyCleared": true
+      }
+    }
+  }
+}

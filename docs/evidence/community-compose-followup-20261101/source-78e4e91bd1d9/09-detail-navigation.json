@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "stimulus": "Offline stub detail route, no real public post"
+      }
+    }
+  }
+}

@@ -1078,7 +1078,7 @@ describe("mini-program page behavior", () => {
     expect(context.data).toMatchObject({ title: "草稿标题", body: "已写的正文", uploadBusy: false });
   });
 
-  it("drops community chooser results after page hide or session switch", async () => {
+  it("drops community chooser results after page unload or session switch", async () => {
     const app = { globalData: { sessionToken: "community-member-a" } };
     (globalThis as any).getApp = () => app;
     wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => success());
@@ -1093,7 +1093,7 @@ describe("mini-program page behavior", () => {
     context.flushLocalBackup = vi.fn();
     const hidden = page.chooseImages.call(context);
     await vi.waitFor(() => expect(wxMock.chooseMedia).toHaveBeenCalledTimes(1));
-    page.onHide.call(context);
+    page.onUnload.call(context);
     resolveChosen({ tempFiles: [{ tempFilePath: "/synthetic/private.jpg", size: 100 }] });
     await hidden;
     expect(context.data.files).toEqual([]);
@@ -1102,6 +1102,8 @@ describe("mini-program page behavior", () => {
     expect(uploadAuthorizedMock).not.toHaveBeenCalled();
 
     context.mediaVisible = true;
+    context.pageAlive = true;
+    context.data.uploadBusy = false;
     let allow!: () => void;
     wxMock.chooseMedia!.mockClear();
     wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => { allow = success; });

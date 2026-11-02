@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled programmatic loadDraft changes scope during pending create; not a touch or permission test",
+        "oldCandidateInvalidated": true,
+        "before": {
+          "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "title": "已有草稿",
+          "body": "保留原正文",
+          "files": 0,
+          "epoch": 1
+        },
+        "after": {
+          "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "title": "已有草稿",
+          "body": "保留原正文",
+          "files": 0,
+          "epoch": 1
+        },
+        "unchanged": true,
+        "handoffCleared": true,
+        "textContextCleared": true,
+        "uploadCalls": 0,
+        "error": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "postId": "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
+        "files": 1,
+        "title": "",
+        "body": "",
+        "error": "",
+        "handoffCleared": true,
+        "createCalls": 1,
+        "authorizeCalls": 1,
+        "completeCalls": 1
+      }
+    }
+  }
+}

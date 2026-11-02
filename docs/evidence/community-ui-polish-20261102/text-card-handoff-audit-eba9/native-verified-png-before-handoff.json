@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "stage": "templates",
+        "canExport": true,
+        "selectedPng": "http://tmp/yOlVGNILvANf70d71dff30a27d3c06ab1aa6716f6db2.png",
+        "pngCount": 6,
+        "postId": "",
+        "writes": []
+      }
+    }
+  }
+}

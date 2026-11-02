@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "pages": [
+          "pages/home/index"
+        ],
+        "width": 361
+      }
+    }
+  }
+}

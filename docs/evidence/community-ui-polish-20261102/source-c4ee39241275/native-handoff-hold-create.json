@@ -1,0 +1,43 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "real verified PNG, controlled offline create response pending",
+        "selectedPng": "http://tmp/N7pX0NaUsQPV70d71dff30a27d3c06ab1aa6716f6db2.png",
+        "handoffSamePng": true,
+        "busy": true,
+        "operation": "creating",
+        "loading": false,
+        "postId": "",
+        "error": "",
+        "componentVisible": false,
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 22,
+            "right": 368,
+            "top": 113,
+            "bottom": 574.328125,
+            "width": 346,
+            "height": 461.328125
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 149.4375,
+            "right": 240.5546875,
+            "top": 592.328125,
+            "bottom": 614.7265625,
+            "width": 91.1171875,
+            "height": 22.3984375
+          }
+        ]
+      }
+    }
+  }
+}

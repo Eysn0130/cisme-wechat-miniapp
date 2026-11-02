@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "exact isolated sample IDs only",
+        "removedFixtureIds": [
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
+          "bbbbbbbb-bbbb-4bbb-8bbb-000000000002"
+        ],
+        "posts": 0,
+        "writeCalls": 0,
+        "latencyAbsent": true
+      }
+    }
+  }
+}

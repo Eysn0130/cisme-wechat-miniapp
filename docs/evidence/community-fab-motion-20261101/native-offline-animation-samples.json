@@ -1,0 +1,225 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "offline": true,
+        "samples": [
+          {
+            "requested": 1,
+            "returned": 26,
+            "styles": [
+              {
+                "width": 14.8800048828125,
+                "height": 14.8800048828125,
+                "transform": "matrix(0.24, 0, 0, 0.24, -31, 24)",
+                "opacity": "0",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "matrix(0.72, 0, 0, 0.72, 0, 3)",
+                "opacity": "0",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 32,
+            "returned": 53,
+            "styles": [
+              {
+                "width": 40.32545471191406,
+                "height": 40.32550048828125,
+                "transform": "matrix(0.650411, 0, 0, 0.650411, -31, 10.9296)",
+                "opacity": "0.972589",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "matrix(0.72, 0, 0, 0.72, 0, 3)",
+                "opacity": "0",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 63,
+            "returned": 84,
+            "styles": [
+              {
+                "width": 41.14363098144531,
+                "height": 41.14361572265625,
+                "transform": "matrix(0.663607, 0, 0, 0.663607, -31, 10.5093)",
+                "opacity": "0.9776",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "matrix(0.72, 0, 0, 0.72, 0, 3)",
+                "opacity": "0",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 102,
+            "returned": 123,
+            "styles": [
+              {
+                "width": 56.93092346191406,
+                "height": 56.930908203125,
+                "transform": "matrix(0.918241, 0, 0, 0.918241, -31, 2.39998)",
+                "opacity": "1",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "matrix(0.880325, 0, 0, 0.880325, 0, 1.28223)",
+                "opacity": "0.57259",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 152,
+            "returned": 173,
+            "styles": [
+              {
+                "width": 60.04460144042969,
+                "height": 60.04461669921875,
+                "transform": "matrix(0.968461, 0, 0, 0.968461, -31, 0.800597)",
+                "opacity": "1",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "matrix(0.951655, 0, 0, 0.951655, 0, 0.517985)",
+                "opacity": "0.827338",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 213,
+            "returned": 233,
+            "styles": [
+              {
+                "width": 62.79631042480469,
+                "height": 62.79632568359375,
+                "transform": "matrix(1.01284, 0, 0, 1.01284, -31, -0.612856)",
+                "opacity": "1",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "matrix(0.994167, 0, 0, 0.994167, 0, 0.0624949)",
+                "opacity": "0.979168",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 283,
+            "returned": 303,
+            "styles": [
+              {
+                "width": 63.44953918457031,
+                "height": 63.4495849609375,
+                "transform": "matrix(1.02338, 0, 0, 1.02338, -31, -0.948396)",
+                "opacity": "1",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "matrix(0.99945, 0, 0, 0.99945, 0, 0.00589154)",
+                "opacity": "0.998036",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 342,
+            "returned": 362,
+            "styles": [
+              {
+                "width": 62.188720703125,
+                "height": 62.188720703125,
+                "transform": "matrix(1.00304, 0, 0, 1.00304, -31, -0.121756)",
+                "opacity": "1",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "none",
+                "opacity": "1",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 422,
+            "returned": 440,
+            "styles": [
+              {
+                "width": 62.00013732910156,
+                "height": 62.0001220703125,
+                "transform": "matrix(1, 0, 0, 1, -31, -8.71409e-05)",
+                "opacity": "1",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "none",
+                "opacity": "1",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          },
+          {
+            "requested": 501,
+            "returned": 520,
+            "styles": [
+              {
+                "width": 62,
+                "height": 62,
+                "transform": "matrix(1, 0, 0, 1, -31, 0)",
+                "opacity": "1",
+                "animation-name": "community-fab-grow",
+                "animation-duration": "0.42s"
+              },
+              {
+                "transform": "none",
+                "opacity": "1",
+                "animation-name": "community-fab-symbol",
+                "animation-duration": "0.24s",
+                "animation-delay": "0.08s"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

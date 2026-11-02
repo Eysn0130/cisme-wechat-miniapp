@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "errorType": "MCP_TOOL_ERROR",
+  "message": "timeout waiting for automator response",
+  "source": "mcp_business",
+  "detail": {
+    "rawResult": {
+      "success": false,
+      "error": "timeout waiting for automator response"
+    }
+  },
+  "reason": "mcp_business_fail",
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "suggestions": "查看该工具完整参数, wechatide -c Codex automation_evaluate -h"
+}

@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "post": "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
+        "visible": true,
+        "size": 92465
+      }
+    }
+  }
+}

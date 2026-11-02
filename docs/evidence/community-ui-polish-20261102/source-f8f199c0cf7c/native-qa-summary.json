@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459",
+  "currentSource": true,
+  "result": "scoped-native-simulator-pass-after-explicit-ui-removals",
+  "evidenceDirectory": ".",
+  "sourceProof": "source-proof.json",
+  "sourceByteIdenticalFiles": 24,
+  "officialSkillVersion": "0.3.14",
+  "libraryVersion": "3.15.2",
+  "fixtureProject": "/tmp/cisme-compose-native-20261101",
+  "sourceArchive": "../source-26f1682e09e7/ARCHIVE-INDEX.json",
+  "screenshots": [
+    {
+      "file": "native-direct-submit-390.png",
+      "sha256": "e8107df1bae4fd7ef2bb1fbede330ef47e08a9672e18eec441d3accd230b2dd8",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-photo-overview-361.png",
+      "sha256": "4f71a1b1e5cadb2a91d945d99a812a63a0931300c99ec49847901fd26d9cbe2c",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-photo-overview-390.png",
+      "sha256": "b8cacff3965b202193ae14a6043772061bba5166e8838ec8da01c3f550a249ca",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-photo-overview-430.png",
+      "sha256": "3c3742725148f0af2351636500174e174c0be40dd659813c2b55fafb7f872d2f",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-photo-tool-361.png",
+      "sha256": "712bf57bb6d8f7a0c0e31f9a38eb6e2002b32c920ec59741683dc24536bcaf18",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-photo-tool-390.png",
+      "sha256": "7fd4a3ba5fedda7e10ae0b7863e9e72eceda8dc2bdc9c2ca9e9ebb932564af94",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-photo-tool-430.png",
+      "sha256": "acd0178b3c83ac7f5905e443c9de0ae645644a3dbe28082262b39eff94795de1",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-publisher-private-361.png",
+      "sha256": "ed93a407a424fdbf4f207628883ac7611d15c77966b953ad81cabe2d83e100c4",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-publisher-private-390.png",
+      "sha256": "402feb13fd7b25411cc3d9a663b8321c8ec1bbd11a3914e8a8d32548c927e660",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-publisher-private-430.png",
+      "sha256": "775f4b75bfdf32a4ea8431a35ed8058bdcdeeedaef47e26d3c1c1ef1dd40c46e",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-publisher-public-361.png",
+      "sha256": "d3f082a0b34f858f683f57218904eb7c61cc36904c4437c642268089506981d1",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-publisher-public-390.png",
+      "sha256": "a1a44a9d9b4fa6f834863b1f90c26b6697abf3f171a8adcc3008629d9d7f0621",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-publisher-public-430.png",
+      "sha256": "313e4bc5271cd0dbef1cfd1175ef9e166d8f3872349475ad81d651b1df6a066b",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    },
+    {
+      "file": "native-text-card-390.png",
+      "sha256": "f5f689b4711e7e1ab6f23ec628a85fe258ce6d56794c5835962ac774a766c6f6",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "f8f199c0cf7ce69fbb7ff754e4050e6966f5e9c53730c1d043a4b7dc895bf459"
+    }
+  ],
+  "flows": [
+    {
+      "viewportWidth": 361,
+      "toolShowsOnlyDone": true,
+      "toolDoneEnabledWhileDirty": true,
+      "toolThumbAndRemovedRowAbsent": true,
+      "toolCancelPreservesOriginal": true,
+      "doneExportsJpegAndStaysInOverview": true,
+      "overviewNextImportsToParent": true,
+      "privateOnlySave": true,
+      "publisherSettingsEntryAndSheetAbsent": true,
+      "publicSaveWidth": 112.3359375,
+      "publicPublishWidth": 202.6640625,
+      "savePayloadKeys": [
+        "title",
+        "body",
+        "mediaIds",
+        "expectedVersion"
+      ]
+    },
+    {
+      "viewportWidth": 390,
+      "toolShowsOnlyDone": true,
+      "toolDoneEnabledWhileDirty": true,
+      "toolThumbAndRemovedRowAbsent": true,
+      "toolCancelPreservesOriginal": true,
+      "doneExportsJpegAndStaysInOverview": true,
+      "overviewNextImportsToParent": true,
+      "privateOnlySave": true,
+      "publisherSettingsEntryAndSheetAbsent": true,
+      "publicSaveWidth": 121.3359375,
+      "publicPublishWidth": 212.6640625,
+      "savePayloadKeys": [
+        "title",
+        "body",
+        "mediaIds",
+        "expectedVersion"
+      ]
+    },
+    {
+      "viewportWidth": 430,
+      "toolShowsOnlyDone": true,
+      "toolDoneEnabledWhileDirty": true,
+      "toolThumbAndRemovedRowAbsent": true,
+      "toolCancelPreservesOriginal": true,
+      "doneExportsJpegAndStaysInOverview": true,
+      "overviewNextImportsToParent": true,
+      "privateOnlySave": true,
+      "publisherSettingsEntryAndSheetAbsent": true,
+      "publicSaveWidth": 134.6640625,
+      "publicPublishWidth": 239.3359375,
+      "savePayloadKeys": [
+        "title",
+        "body",
+        "mediaIds",
+        "expectedVersion"
+      ]
+    }
+  ],
+  "nativeCanvas": {
+    "pngSignature": [
+      137,
+      80,
+      78,
+      71,
+      13,
+      10,
+      26,
+      10
+    ],
+    "jpegSignature": [
+      255,
+      216,
+      255
+    ],
+    "actualLocalExports": true,
+    "uploadAdapter": "offline FS-check adapter; no business network upload"
+  },
+  "directSubmit": {
+    "scope": "fixture submit creates a review revision; not real backend105 acceptance",
+    "state": "pending_review",
+    "publicVersionActive": false,
+    "version": 4,
+    "revision": 4,
+    "writePayloads": [
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts",
+        "keys": []
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/authorize",
+        "keys": [
+          "mimeType",
+          "maxBytes"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/dddddddd-dddd-4ddd-8ddd-000000000002/complete",
+        "keys": []
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/authorize",
+        "keys": [
+          "mimeType",
+          "maxBytes"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/dddddddd-dddd-4ddd-8ddd-000000000003/complete",
+        "keys": []
+      },
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/draft",
+        "keys": [
+          "title",
+          "body",
+          "mediaIds",
+          "expectedVersion"
+        ]
+      },
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/draft",
+        "keys": [
+          "title",
+          "body",
+          "mediaIds",
+          "expectedVersion"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/submit",
+        "keys": [
+          "expectedVersion"
+        ]
+      }
+    ],
+    "error": "",
+    "notice": "已提交审核，审核与发布复核完成后公开。"
+  },
+  "cleanup": {
+    "scope": "fresh runtime after isolated cleanup refresh; no real data accessed",
+    "route": "pages/community/index",
+    "width": 430,
+    "posts": 0,
+    "writeCalls": 0,
+    "publicEnabled": false,
+    "publishEntryOpen": false,
+    "freshRuntimeMarkerAbsent": true,
+    "realAccountDataAccessed": false,
+    "persistentStorage": false
+  },
+  "apiMocksCreatedThisRun": [],
+  "apiRestoreReceipts": [
+    "native-restore-chooseMedia.json",
+    "native-restore-requirePrivacyAuthorize.json"
+  ],
+  "console": {
+    "file": "native-console-all.json",
+    "sdkClickCheckTaskErrorPresent": true,
+    "zeroErrorClaim": false
+  },
+  "coordinateTap": {
+    "attempted": false,
+    "reason": "Previously confirmed App.CDPEnable unimplemented; no repeat",
+    "historicalReceipt": "../source-26f1682e09e7/native-binding-02-fab-tap.json"
+  },
+  "boundaries": {
+    "controlledPageAndComponentCalls": true,
+    "realAccountBackendOrSchema105Acceptance": false,
+    "physicalTouchKeyboardPermissionsCamera": false,
+    "publicGateOpenedOutsideFixture": false,
+    "deployedOrUploaded": false,
+    "full40RoutesOrRealDevice": "blocked; no old screenshot inherited"
+  },
+  "scope": "Only current requested removals and existing two-stage image completion/publish path; no new product source changes."
+}

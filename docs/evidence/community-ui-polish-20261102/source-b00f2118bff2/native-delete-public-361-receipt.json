@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_screenshot",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/community-ui-polish-20261102/source-b00f2118bff2/native-delete-public-361.png",
+    "imageWidth": 362,
+    "imageHeight": 804
+  }
+}

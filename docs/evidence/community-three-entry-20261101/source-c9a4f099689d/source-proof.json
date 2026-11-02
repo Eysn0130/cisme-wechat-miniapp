@@ -1,0 +1,126 @@
+{
+  "packageSourceSha256": "c9a4f099689defeb193cac798cfb681814dfddae1f873fdf8191c9a6c915a439",
+  "copiedSources": [
+    {
+      "file": "custom-tab-bar/index.ts",
+      "sha256": "72907a7d078d3abf8f95fcfb9cafd9d24a5bd89bafa575f1744fc2afb8f7e529",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxml",
+      "sha256": "095c08b44fcb16d73ba1e6f54af9624d21a6166b70f45113baf4a57790f4ca7d",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxss",
+      "sha256": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.ts",
+      "sha256": "b0df369a0cc0a438b653d43e349dafbb3288e39a1649836511f07527ef34d7ad",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxml",
+      "sha256": "ad87f2a48e6072ef673fefcf1ca4476591491005687f1854c2fd6a585c809d31",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "sha256": "3e97d31938c7be8499fa9f06812002d1d3569c9330fa9991f5084b48dd5c347a",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.json",
+      "sha256": "4537cd5e88f68bcaf370434fb26da6a85b2114f2f7c73c69887ab0b027a00b94",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.ts",
+      "sha256": "1b50bcc1741988ffc2d5341fec287f0d555675833f3366df682b14f328953855",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "sha256": "6c744b3cabf5f47053389a88c4323e39e3bd9cf47a6eb11bbcc46552fa555bcc",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "sha256": "56b07572728e12592f4d59dcb18019582455999b31deb2bcd92661566c53bf65",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.json",
+      "sha256": "be6707488347f0aef68b79002bd50550822466f6bf49cde4a6f226f3c4ccf56a",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.ts",
+      "sha256": "0ea355ada059dd4499c8d32e4718d12d4c9217cea982c813cc3de1284884a8c2",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxml",
+      "sha256": "e1b7fb9f8172810f3070950cd9a18bc580e2d941a0281d7a7c8f0ea3bacf3a40",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxss",
+      "sha256": "23a2d374f9bb52a66e870b9a4d2d04f30bd8d8d8610206f66c25eeafcb29357b",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.ts",
+      "sha256": "f35b3317aa3f7f97fe46ce99c842190f255ee20864c6fe937d73e36d14c43aac",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxml",
+      "sha256": "4b761870f16029e517cb2b61b23f3c6b594449853b6e14f5204362697007fd3f",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxss",
+      "sha256": "83ec70719f7c2c334d68daaebd18f41dd43fa0d49df8de59b9c33192a3d13a18",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/community-compose-intent.ts",
+      "sha256": "f255f69f8a4aa5ec64d70b296f779ef0a77f8193368a5caf1b25ada2174536c5",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-image-edit.ts",
+      "sha256": "b1d284adbf735da86ef72887fe7908d1bed2c943f4ff2783f6e16c0adb24ae0f",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-text-card-layout.ts",
+      "sha256": "9cc4ceb439b2fe56f51f241c895b4be0c76f440946291c46c07b48b829183783",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-photo-effects.ts",
+      "sha256": "9cc83aece637d7ea947e01b55d6cb63187f4e79f232e1ee83d9ac102a3be03f1",
+      "fixtureByteIdentical": true
+    }
+  ],
+  "scope": "Actual native Community/composer/tab bar/components/helpers, unchanged byte copies. Offline adapters replace auth, API, local-backup storage, editorial sample and public-detail return stimulus. Controlled Page/component invocation and explicitly mocked native picker/edit callbacks are not physical touch, permission, camera or real-account evidence."
+}

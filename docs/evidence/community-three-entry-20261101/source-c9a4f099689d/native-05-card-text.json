@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-compose/index",
+        "visible": true,
+        "component": true,
+        "body": "今天认真完成了护理。\n把每一次真实感受记下来 💜"
+      }
+    }
+  }
+}

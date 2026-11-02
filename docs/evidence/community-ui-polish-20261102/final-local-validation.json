@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "9fd94ffc8b5c0431e5cdce16d190e7e2613703afa5804ff3f3c98c6bb3d9d830",
+  "unit": {
+    "files": 179,
+    "passed": 3019,
+    "skipped": 1,
+    "log": "unit-final-navigation-scope.log",
+    "command": "npm test -- --maxWorkers=2",
+    "exitCode": 0
+  },
+  "build": {
+    "includes": "root and mini typecheck, API/worker/admin builds",
+    "log": "build-final-navigation-scope.log",
+    "exitCode": 0
+  },
+  "contracts": {
+    "registeredV1Methods": 284,
+    "documentedWithHealth": 286,
+    "typedEvents": 32,
+    "log": "contracts-final-text-flow.log",
+    "exitCode": 0
+  },
+  "miniPackage": {
+    "files": 298,
+    "routes": 40,
+    "globalStyleBytes": 8190,
+    "errors": [],
+    "log": "package-final-navigation-scope.log"
+  },
+  "isolatedIntegration": {
+    "fullSuite": {
+      "passed": 1143,
+      "failed": 2,
+      "log": "integration-all-user-refinement.log"
+    },
+    "privacyFailureResolved": "privacy-ops-review-validation.json",
+    "focusedPublishIntent": {
+      "files": 5,
+      "passed": 30,
+      "receipt": "publish-intent-validation.json"
+    },
+    "performance": "Local current and baseline both exceed unchanged threshold; not passed. See performance-local-comparison.json."
+  },
+  "deploymentSafety": {
+    "offlinePassed": 38,
+    "receipt": "ops-review.md"
+  },
+  "nativeEvidence": {
+    "current": "native-qa-summary.json",
+    "scope": "Current9fd:24 byte-equal files,390 input/templates/publisher3 reviewed frames plus scoped unknown-create navigation cleanup and late-response protection. c4ee three-size11frames and waiting/error/same-key retry remain historical separate package evidence.",
+    "historical": "c4ee3-size/waiting/retry, eba9 sixPNG and3127 cancel/hide/cache; b00 photo drag/Canvas all retain original hashes, no new acceptance inherited.",
+    "limits": "SDK clickCheckTask and tiny top-left simulator clipping retained; real phone/touch/keyboard/VoiceOver/full40 matrix unverified."
+  },
+  "realAccountWrites": false,
+  "realDeviceAcceptance": false,
+  "full40RouteMatrix": "blocked",
+  "ciAndDeploymentAcceptance": "pending actual exact-source receipts",
+  "nativeScrollFix": "Historical source-b00f2118bff2/drag-06-edge-scroll.json and drag-07-edge-drop.json verify scroll-x true, native actual offset536/target8/drop. Not repeated or relabelled as eba9 acceptance.",
+  "lastChange": "Input -> six real local PNGs -> template choice -> existing publisher; card text separate from body; initial draft creation delayed until confirmed verified PNG (or explicit save/direct-body); short explicit paragraphs fit actual measured width. Confirmed PNG remains visible during create wait/error; explicit navigation clears local pending commands and prevents late replies from taking over another draft.",
+  "historicalLocalTimingEvidence": "performance-local-comparison.json and local-validation-pre-text-025.json retain initial local timing failures; no threshold or HTTP backend changed."
+}

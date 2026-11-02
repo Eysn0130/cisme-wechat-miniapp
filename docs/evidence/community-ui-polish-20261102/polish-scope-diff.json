@@ -1,0 +1,64 @@
+{
+  "baselinePackage": "3011a8c5b585324235766ac64b486e068971b75eeb9dbfcdb4ccecc905fdb7a0",
+  "files": [
+    {
+      "file": "pages/community/index.wxml",
+      "beforeSha256": "ad87f2a48e6072ef673fefcf1ca4476591491005687f1854c2fd6a585c809d31",
+      "afterSha256": "0cea6128a91da33ec59c4204ebb523fd047efc2a8f8b89f76eb8c79633674af0",
+      "eventBindingsUnchanged": true,
+      "disabledConditionsUnchanged": true
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "beforeSha256": "3e97d31938c7be8499fa9f06812002d1d3569c9330fa9991f5084b48dd5c347a",
+      "afterSha256": "b2ed9fd7e0640c64133799f43979095672f4a86cb6ef011319b894d5781d9190"
+    },
+    {
+      "file": "pages/community-compose/index.ts",
+      "beforeSha256": "1b50bcc1741988ffc2d5341fec287f0d555675833f3366df682b14f328953855",
+      "afterSha256": "bd52c4db69dab1d4fac35efc6f163ad1416c01cca38927e1731a4bb40d6758d1",
+      "scope": "existing display strings only"
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "beforeSha256": "6c744b3cabf5f47053389a88c4323e39e3bd9cf47a6eb11bbcc46552fa555bcc",
+      "afterSha256": "1b91a3a079f37c6e6d2ccedf38dc25521920c9f3fceb62377898bdd369877124",
+      "eventBindingsUnchanged": true,
+      "disabledConditionsUnchanged": true
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "beforeSha256": "56b07572728e12592f4d59dcb18019582455999b31deb2bcd92661566c53bf65",
+      "afterSha256": "ffc810280db1739b02128f6b2b00e2c1ee787496e167e970ac1a7d37f2e8da2d"
+    },
+    {
+      "file": "components/community-text-card/index.wxml",
+      "beforeSha256": "e1b7fb9f8172810f3070950cd9a18bc580e2d941a0281d7a7c8f0ea3bacf3a40",
+      "afterSha256": "484042cc55bb1119f5a909a50f911baf932726ae75d6215c64fd90261c3ca90b",
+      "eventBindingsUnchanged": true,
+      "disabledConditionsUnchanged": true
+    },
+    {
+      "file": "components/community-text-card/index.wxss",
+      "beforeSha256": "23a2d374f9bb52a66e870b9a4d2d04f30bd8d8d8610206f66c25eeafcb29357b",
+      "afterSha256": "16749715beea82eb9467ab7212b68f3be35d3bbeb91f7374188bac53e9e5e54a"
+    },
+    {
+      "file": "components/community-image-editor/index.wxml",
+      "beforeSha256": "a5411271ce87427e07a7daac20e0c6fea07b7a137783ec5e417ebd2029abac83",
+      "afterSha256": "9ae79fd95b4fd7ed80f6cd3ded507825c111d882f12739f0034d0b2ea885081b",
+      "eventBindingsUnchanged": true,
+      "disabledConditionsUnchanged": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxss",
+      "beforeSha256": "83ec70719f7c2c334d68daaebd18f41dd43fa0d49df8de59b9c33192a3d13a18",
+      "afterSha256": "939f6b2e16a9fd108b438ebcb33fff8364178e7095713e6df0496dc6f5785b6d"
+    }
+  ],
+  "noNewProductFunctionality": true,
+  "noNewDependencies": true,
+  "customTabBarPreserved": true,
+  "historical": true,
+  "historicalScope": "Initial 26f1682e09e7 polish; superseded by explicit tool-action/settings removals and photo drag correction. Not current-source acceptance."
+}

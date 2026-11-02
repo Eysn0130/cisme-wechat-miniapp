@@ -8,6 +8,29 @@ import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { currentChromeStyle } from "../../services/layout";
 import { memberIdentity } from "../../services/member-identity";
 import { consumerTaskEntries } from "../../services/task-entry";
+import { commerceContextRevision } from "../../services/commerce-command-store";
+import { createComposeMediaIntent,discardComposeMediaIntent,revokeComposeMediaIntents,type ComposeMediaIntentPayload } from "../../services/community-compose-intent";
+
+type PublisherOwner={token:string;revision:number;epoch:number};
+const publisherRouteCurrent=()=>{try{const pages=getCurrentPages();return !pages.length||pages[pages.length-1]?.route==="pages/community/index";}catch{return false;}};
+const mediaPermissionFailure=(error:unknown)=>/(deny|denied|auth|permission|scope)/i.test(String((error as {errMsg?:string;code?:string})?.errMsg||(error as {code?:string})?.code||""));
+async function validatePublisherFiles(files:Array<{tempFilePath:string;size:number}>,source:"album"|"camera"){
+  if(!files.length||files.length>(source==="camera"?1:9))throw {title:"请选择有效图片后继续。"};
+  const selected:ComposeMediaIntentPayload["files"]=[];
+  for(const file of files){
+    if(!Number.isSafeInteger(file.size)||file.size<1||file.size>10*1024*1024)throw {title:"单张图片需小于10MB，请重新选择。"};
+    let bytes:Uint8Array;
+    try{bytes=await new Promise<Uint8Array>((resolve,reject)=>wx.getFileSystemManager().readFile({filePath:file.tempFilePath,position:0,length:12,
+      success:value=>resolve(new Uint8Array(value.data as ArrayBuffer)),fail:reject}));}
+    catch{throw {title:"图片暂时无法读取，请重新选择。"};}
+    const jpeg=bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff;
+    const png=bytes.length>=8&&bytes.slice(0,8).every((value,index)=>value===[0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a][index]);
+    const webp=String.fromCharCode(...bytes.slice(0,4))==="RIFF"&&String.fromCharCode(...bytes.slice(8,12))==="WEBP";
+    if(!jpeg&&!png&&!webp)throw {title:"仅支持JPG、PNG或WEBP图片，请重新选择。"};
+    selected.push({path:file.tempFilePath,size:file.size});
+  }
+  return selected;
+}
 
 const feedModels = new WeakMap<object, { feed: any[]; following: any[]; editorial: PublishedEditorialCard[] }>();
 const initialEditorialStories = editorialStoriesForRuntime();
@@ -27,32 +50,44 @@ let scrollTravel = 0;
 
 Page({
   readVisible:true,
-  data: { reportCategoryLabels:{spam:'垃圾信息',harassment:'骚扰',unsafe_advice:'不安全建议',illegal:'违法内容',intellectual_property:'知识产权',privacy:'隐私',other:'其他'},mode: "featured", ugcFeedEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", searchInput:"", appliedSearch:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  publisherAlive:true,publisherEpoch:0,publisherOwner:null as PublisherOwner|null,
+  publisherNative:"" as ""|"privacy"|"picker"|"settings",publisherReturn:null as (()=>void)|null,
+  publisherIntentId:"",publisherTransferActive:false,publisherNavigationEpoch:0,
+  data: { publishEntryOpen:false,publishEntryBusy:false,publishEntryError:"",publishEntryRecovery:"" as ""|"privacy"|"settings",publishEntrySource:"" as ""|"album"|"camera", reportCategoryLabels:{spam:'垃圾信息',harassment:'骚扰',unsafe_advice:'不安全建议',illegal:'违法内容',intellectual_property:'知识产权',privacy:'隐私',other:'其他'},mode: "featured", ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", searchInput:"", appliedSearch:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.readVisible=true;
+    this.publisherAlive=true;
+    const nativePublisherReturn=Boolean(this.publisherNative&&this.publisherOwner&&this.publisherCurrent(this.publisherOwner,false)&&this.data.publishEntryOpen);
+    if(this.publisherTransferActive&&!this.publisherOwner)this.clearPublisherWork(false);
+    if(this.publisherOwner&&!this.publisherCurrent(this.publisherOwner,false))this.clearPublisherWork(false);
+    this.publisherReturn?.();this.publisherReturn=null;
     this.resetChromeMotion();
     this.setData({ navigating: false, chromeHidden: false, signedIn: Boolean(getApp<IAppOption>().globalData.sessionToken) });
     const tab = this.getTabBar?.();
     if (tab) tab.setData({ active: 2, externalBusy: false });
     tab?.syncActive?.(2);
     tab?.setPresentation?.("community-scroll", false);
-    tab?.setCommunityPublisherAvailable?.(false);
-    void this.load();
+    tab?.setPresentation?.("community-publisher",this.data.publishEntryOpen);
+    if(!nativePublisherReturn)tab?.setCommunityPublisherAvailable?.(false);
+    void this.load(nativePublisherReturn);
   },
   onHide() {
     this.readVisible=false;
+    const nativeReturn=Boolean(this.publisherNative&&this.publisherOwner&&this.publisherCurrent(this.publisherOwner,false));
+    if(!nativeReturn)this.clearPublisherWork(this.publisherTransferActive);
     cancelPageReads(this);
     this.data.feedAttempt += 1;
     this.data.tasksAttempt += 1;
     this.resetChromeMotion();
     const tab = this.getTabBar?.();
     tab?.setPresentation?.("community-scroll", false);
-    tab?.setCommunityPublisherAvailable?.(false);
+    if(!nativeReturn)tab?.setCommunityPublisherAvailable?.(false);
     this.setData({ chromeHidden: false, canReview: false, reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [],formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:"",reviewNotice:"" });
   },
   onUnload() {
     this.readVisible=false;
+    this.publisherAlive=false;this.clearPublisherWork(false);
     cancelPageReads(this); feedModels.delete(this);
     this.data.feedAttempt += 1;
     this.data.tasksAttempt += 1;
@@ -114,16 +149,120 @@ Page({
     }
   },
   openPublisher() {
-    if (this.data.navigating || !this.data.ugcFeedEnabled) return;
+    if (this.data.navigating||this.data.publishEntryBusy||!this.readVisible||!this.data.ugcDraftsEnabled||this.data.mode==="review") return;
     if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication("/pages/community/index"); return; }
-    this.setData({ navigating: true });
-    wx.navigateTo({ url: "/pages/community-compose/index?new=1", fail: () => { this.setData({ navigating: false }); wx.showToast({ title: "创作页暂时无法打开", icon: "none" }); } });
+    if(this.data.publishEntryOpen)return;
+    this.clearPublisherWork(false);
+    this.publisherOwner={token:getApp<IAppOption>().globalData.sessionToken,revision:commerceContextRevision(),epoch:++this.publisherEpoch};
+    this.setData({publishEntryOpen:true,publishEntryError:"",publishEntryRecovery:"",publishEntrySource:""});
+    this.getTabBar?.()?.setPresentation?.("community-publisher",true);
+  },
+  syncPublisherEntry() {
+    if(this.publisherOwner&&(!getApp<IAppOption>().globalData.sessionToken||this.data.mode==="review"))this.clearPublisherWork(false);
+    this.getTabBar?.()?.setCommunityPublisherAvailable?.(
+      this.readVisible && Boolean(getApp<IAppOption>().globalData.sessionToken) && this.data.ugcDraftsEnabled && this.data.mode !== "review",
+      this.data.ugcFeedEnabled ? "创作护理故事" : "写仅自己可见的草稿"
+    );
   },
   openMyPosts() {
-    if (this.data.navigating) return;
+    if (this.data.navigating||this.data.publishEntryBusy) return;
     if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication("/pages/community/index"); return; }
+    this.clearPublisherWork(false);
     this.setData({ navigating: true });
     wx.navigateTo({ url: "/pages/community-compose/index", fail: () => { this.setData({ navigating: false }); wx.showToast({ title: "我的内容暂时无法打开", icon: "none" }); } });
+  },
+  publisherCurrent(owner:PublisherOwner,visible=true){return this.publisherAlive&&this.publisherOwner===owner&&owner.epoch===this.publisherEpoch&&
+    owner.token===getApp<IAppOption>().globalData.sessionToken&&owner.revision===commerceContextRevision()&&publisherRouteCurrent()&&(!visible||this.readVisible);},
+  clearPublisherWork(preserveIntent:boolean){
+    this.publisherOwner=null;this.publisherEpoch+=1;this.publisherNative="";
+    this.publisherReturn?.();this.publisherReturn=null;
+    if(!preserveIntent){this.publisherNavigationEpoch+=1;this.publisherTransferActive=false;
+      if(this.publisherIntentId)discardComposeMediaIntent(this.publisherIntentId);this.publisherIntentId="";revokeComposeMediaIntents();}
+    this.setData({publishEntryOpen:false,publishEntryBusy:false,publishEntryError:"",publishEntryRecovery:"",publishEntrySource:""});
+    this.getTabBar?.()?.setPresentation?.("community-publisher",false);
+  },
+  closePublisherEntry(){if(!this.data.ugcDraftsEnabled)this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);this.clearPublisherWork(false);},
+  holdPublisherEntry(){},
+  async waitPublisherReturn(owner:PublisherOwner){
+    while(this.publisherCurrent(owner,false)&&!this.readVisible)await new Promise<void>(resolve=>{this.publisherReturn=resolve;});
+    return this.publisherCurrent(owner);
+  },
+  async recheckPublisherDrafts(owner:PublisherOwner){
+    const status=await pageRead<{draftsEnabled?:boolean;publicEnabled?:boolean}>(this,{path:"/v1/ugc/status",authMode:"public"});
+    if(!this.publisherCurrent(owner))return false;
+    this.setData({ugcDraftsEnabled:status.draftsEnabled===true,ugcFeedEnabled:status.publicEnabled===true});
+    if(status.draftsEnabled!==true){this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);throw {title:"当前暂不能新建草稿，请稍后再试。"};}
+    return true;
+  },
+  async choosePublisherSource(event:WechatMiniprogram.TouchEvent){
+    const source=String(event.currentTarget.dataset.source||"");
+    if(source==="text"){await this.openPublisherText();return;}
+    if(source==="album"||source==="camera")await this.selectPublisherMedia(source);
+  },
+  async selectPublisherMedia(source:"album"|"camera"){
+    const owner=this.publisherOwner;
+    if(!owner||this.data.publishEntryBusy||this.data.navigating)return;
+    if(!this.publisherCurrent(owner)){this.clearPublisherWork(false);return;}
+    this.setData({publishEntryBusy:true,publishEntrySource:source,publishEntryError:"",publishEntryRecovery:""});
+    let phase:"status"|"privacy"|"picker"|"files"|"handoff"="status";
+    try{
+      if(!await this.recheckPublisherDrafts(owner))return;
+      phase="privacy";this.publisherNative="privacy";
+      await new Promise<void>((resolve,reject)=>wx.requirePrivacyAuthorize({success:()=>resolve(),fail:reject}));
+      if(!await this.waitPublisherReturn(owner))return;
+      phase="picker";this.publisherNative="picker";
+      const chosen=await wx.chooseMedia({count:source==="camera"?1:9,mediaType:["image"],sourceType:[source],sizeType:["compressed","original"]});
+      if(!await this.waitPublisherReturn(owner))return;
+      this.publisherNative="";
+      if(!chosen.tempFiles.length)return;
+      phase="files";const files=await validatePublisherFiles(chosen.tempFiles,source);
+      if(!this.publisherCurrent(owner)||!await this.recheckPublisherDrafts(owner))return;
+      phase="handoff";const id=await createComposeMediaIntent({source,files},{sessionToken:owner.token,revision:owner.revision});
+      if(!this.publisherCurrent(owner)){discardComposeMediaIntent(id);return;}
+      this.navigatePublisherComposer(owner,id);
+    }catch(error){
+      if(this.publisherNative&&!this.readVisible&&!await this.waitPublisherReturn(owner))return;
+      if(!this.publisherCurrent(owner))return;
+      if(/cancel/i.test(String((error as {errMsg?:string})?.errMsg||"")))return;
+      const permission=mediaPermissionFailure(error),recovery=phase==="privacy"?"privacy":phase==="picker"&&permission?"settings":"";
+      const title=phase==="privacy"?"需要先完成微信隐私授权，才能选择图片。":phase==="picker"&&permission?
+        source==="camera"?"相机权限暂不可用，请前往设置允许相机后重试。":"相册权限暂不可用，请前往设置允许访问照片后重试。":
+        (error as {title?:string})?.title||"图片暂时无法选择，请重试。";
+      this.setData({publishEntryError:title,publishEntryRecovery:recovery});
+    }finally{if(this.publisherOwner===owner){this.publisherNative="";if(!this.publisherCurrent(owner,false))this.clearPublisherWork(false);else if(this.readVisible)this.setData({publishEntryBusy:false});}}
+  },
+  async retryPublisherMedia(){const source=this.data.publishEntrySource;if(source==="album"||source==="camera")await this.selectPublisherMedia(source);},
+  async openPublisherMediaSettings(){
+    const owner=this.publisherOwner,source=this.data.publishEntrySource;
+    if(!owner||!this.publisherCurrent(owner)||this.data.publishEntryBusy||this.data.publishEntryRecovery!=="settings")return;
+    if(typeof wx.openSetting!=="function"){this.setData({publishEntryError:"设置暂时无法打开，请在微信设置中检查相册或相机权限。"});return;}
+    this.setData({publishEntryBusy:true});this.publisherNative="settings";
+    try{await new Promise<void>((resolve,reject)=>wx.openSetting({success:()=>resolve(),fail:reject}));
+      if(!await this.waitPublisherReturn(owner))return;this.publisherNative="";
+      if(!await this.recheckPublisherDrafts(owner))return;
+      this.setData({publishEntryRecovery:"",publishEntryError:source==="camera"?"请再次选择相机，确认是否已允许拍照。":"请再次选择相册，确认是否已允许访问照片。"});
+    }catch(error){if(this.publisherNative&&!this.readVisible&&!await this.waitPublisherReturn(owner))return;
+      if(this.publisherCurrent(owner))this.setData({publishEntryError:(error as {title?:string})?.title||"设置暂时无法打开，请重试。"});}
+    finally{if(this.publisherOwner===owner){this.publisherNative="";if(!this.publisherCurrent(owner,false))this.clearPublisherWork(false);else if(this.readVisible)this.setData({publishEntryBusy:false});}}
+  },
+  async openPublisherText(){
+    const owner=this.publisherOwner;if(!owner||this.data.publishEntryBusy||this.data.navigating)return;
+    if(!this.publisherCurrent(owner)){this.clearPublisherWork(false);return;}
+    this.setData({publishEntryBusy:true,publishEntryError:"",publishEntryRecovery:"",publishEntrySource:""});
+    try{if(await this.recheckPublisherDrafts(owner))this.navigatePublisherComposer(owner,"");}
+    catch(error){if(this.publisherCurrent(owner))this.setData({publishEntryError:(error as {title?:string})?.title||"暂时无法确认草稿能力，请重试。"});}
+    finally{if(this.publisherOwner===owner){if(!this.publisherCurrent(owner,false))this.clearPublisherWork(false);else if(this.readVisible)this.setData({publishEntryBusy:false});}}
+  },
+  navigatePublisherComposer(owner:PublisherOwner,intentId:string){
+    if(!this.publisherCurrent(owner)){if(intentId)discardComposeMediaIntent(intentId);return;}
+    const navigation=++this.publisherNavigationEpoch;this.publisherIntentId=intentId;this.publisherTransferActive=true;
+    this.setData({navigating:true,publishEntryOpen:false});
+    wx.navigateTo({url:intentId?`/pages/community-compose/index?new=1&intent=${encodeURIComponent(intentId)}`:"/pages/community-compose/index?new=1&entry=text",
+      success:()=>{},
+      fail:()=>{if(intentId)discardComposeMediaIntent(intentId);if(navigation!==this.publisherNavigationEpoch)return;
+        this.publisherTransferActive=false;this.publisherIntentId="";
+        if(this.publisherAlive&&this.readVisible&&publisherRouteCurrent()&&owner.token===getApp<IAppOption>().globalData.sessionToken&&owner.revision===commerceContextRevision()){
+          this.clearPublisherWork(false);this.setData({navigating:false});this.openPublisher();this.setData({publishEntryError:"创作页暂时无法打开，请重新选择。"});}}});
   },
   onSearchInput(event:{detail:{value:string}}){this.setData({searchInput:event.detail.value});},
   submitSearch(){
@@ -183,6 +322,7 @@ Page({
     cancelPageReads(this);
     this.data.feedAttempt += 1; // A → B → A must not revive an older pagination result.
     this.setData({ mode, formalLoadingMore:false, moreError:"" });
+    this.syncPublisherEntry();
     if (mode === "review") await this.loadReview();
     else if (mode === "following") await this.loadFollowing();
     else this.renderFeed();
@@ -405,24 +545,26 @@ Page({
   },
   recoverExpiredEditorialRead(attempt:number,token:string,error:unknown){
     if(!this.readVisible||attempt!==this.data.feedAttempt||!expiredEditorialRead(error,token))return false;
+    this.clearPublisherWork(false);
     this.data.feedAttempt+=1;this.data.tasksAttempt+=1;
     const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];
-    this.setData({signedIn:false,mode:"featured",loading:false,ugcFeedEnabled:false,socialPreviewEnabled:false,canReview:false,follows:[],
+    this.setData({signedIn:false,mode:"featured",loading:false,ugcFeedEnabled:false,ugcDraftsEnabled:false,socialPreviewEnabled:false,canReview:false,follows:[],
       reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],formalReportQueue:[],reportNextCursor:null,reportTotal:0,
       formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reportLoadingMore:false,appealLoadingMore:false,reviewActorId:"",reviewNotice:"",reviewBusy:false,
       tasks:[],tasksLoading:false,tasksError:"",editorialNextCursor:null,formalNextCursor:null,followingNextCursor:null,formalLoadingMore:false,
       moreError:"",teamError:"",error:"登录状态已失效，请重新加载社区内容。"});
     this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);this.renderFeed();return true;
   },
-  async load() {
+  async load(preservePublisherMount?:unknown) {
     cancelPageReads(this);
-    this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);
+    const preservePublisher=preservePublisherMount===true&&Boolean(this.publisherNative)&&this.data.publishEntryOpen&&this.publisherOwner!==null&&this.publisherCurrent(this.publisherOwner);
+    if(!preservePublisher)this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);
     const session = getApp<IAppOption>().globalData.sessionToken;
     feedModel(this).following = [];
     feedModel(this).editorial = [];
     const attempt = this.data.feedAttempt + 1;
     const privateMode=this.data.mode==="following"||this.data.mode==="review";
-    this.setData({ feedAttempt: attempt, loading: true, ugcFeedEnabled:false, editorialNextCursor:null, formalNextCursor:null, followingNextCursor:null,
+    this.setData({ feedAttempt: attempt, loading: true, ugcFeedEnabled:false, ugcDraftsEnabled:false, editorialNextCursor:null, formalNextCursor:null, followingNextCursor:null,
       follows:[],canReview:false,reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],
       formalLoadingMore:false, moreError:"", reviewBusy: false, teamError: "", error: "",
       ...(privateMode?{feedColumns:[[],[]] as [any[],any[]],displayFeedCount:0}:{}) });
@@ -430,9 +572,9 @@ Page({
     const tasksPromise = this.loadTasks((error:unknown)=>{this.recoverExpiredEditorialRead(attempt,session,error);});
     const editorialPromise=publishedEditorialArticles(this).then(feed=>({feed}),failedRead);
     const capabilityPromise = Promise.all([request<{ communityPreviewEnabled?: boolean }>({ path: "/v1/capabilities", authMode: "public" }),
-      request<{ publicEnabled?: boolean }>({ path: "/v1/ugc/status", authMode: "public" })])
-      .then(([health,ugc]) => ({ ugcFeedEnabled: ugc.publicEnabled === true, socialPreviewEnabled: health.communityPreviewEnabled === true }))
-      .catch(error => {failedRead(error);return { ugcFeedEnabled: false, socialPreviewEnabled: false };});
+      request<{ publicEnabled?: boolean; draftsEnabled?: boolean }>({ path: "/v1/ugc/status", authMode: "public" })])
+      .then(([health,ugc]) => ({ ugcFeedEnabled: ugc.publicEnabled === true, ugcDraftsEnabled: ugc.draftsEnabled === true, socialPreviewEnabled: health.communityPreviewEnabled === true }))
+      .catch(error => {failedRead(error);return { ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false };});
     const feedPromise = request<{items:any[];authors?:Record<string,any>}>({ path: "/v1/feed/page?limit=30", authMode: "public" }).then(feed => ({ feed }), failedRead);
     const formalQuery=this.data.appliedSearch?`&q=${encodeURIComponent(this.data.appliedSearch)}`:"";
     const formalPromise = request<{items:any[];nextCursor:string|null}>({ path: `/v1/ugc/posts?limit=30${formalQuery}`, authMode: getApp<IAppOption>().globalData.sessionToken ? "optional" : "public" })
@@ -445,7 +587,7 @@ Page({
       ? "featured"
       : this.data.mode;
     this.setData({ ...capabilities, mode: availableMode });
-    this.getTabBar?.()?.setCommunityPublisherAvailable?.(capabilities.ugcFeedEnabled);
+    this.syncPublisherEntry();
     const token = getApp<IAppOption>().globalData.sessionToken;
     if (token) {
       try {
@@ -455,6 +597,7 @@ Page({
         ]);
         if (this.data.feedAttempt !== attempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
         this.setData({ canReview: access.canReview === true, follows, mode: this.data.mode === "review" && !access.canReview ? "featured" : this.data.mode });
+        this.syncPublisherEntry();
       } catch(error) { failedRead(error);if (this.data.feedAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ canReview: false, mode: "featured" }); }
     } else this.setData({ mode: "featured" });
     try {

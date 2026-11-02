@@ -1,0 +1,16 @@
+[
+  {
+    "file": "native-exported-text-card.png",
+    "runtimePath": "http://tmp/TFlAgxnppmTN1f3933eeaaa9928a14672f2806b9ff7d.png",
+    "bytes": 125540,
+    "sha256": "55e025be2a4717161d725039cff724bcc55e481c84ee609a0f9b0eee1dd3f477",
+    "source": "Actual native Canvas export, read by official runtime wx filesystem in bounded chunks"
+  },
+  {
+    "file": "native-exported-photo-effects.jpg",
+    "runtimePath": "http://tmp/1lTGiBXWHuu90e902df55ff406472557d205cbf9793b.jpg",
+    "bytes": 103572,
+    "sha256": "597f7c83ef4b5e96aaff8cabb8d11dcf4118aa2005d9fab9de4c5cbe78715510",
+    "source": "Actual native Canvas export, read by official runtime wx filesystem in bounded chunks"
+  }
+]

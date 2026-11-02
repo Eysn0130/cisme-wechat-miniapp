@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "cancelled": {
+          "stage": "input",
+          "text": "护理慢慢来，\n感受每天的小变化。",
+          "busy": false,
+          "visible": true,
+          "posts": 0
+        },
+        "afterLateRelease": {
+          "stage": "templates",
+          "text": "从容护理，记下每一天。",
+          "template": "lilac",
+          "pngCount": 6,
+          "canExport": true
+        },
+        "runtimeWrapperRestored": true,
+        "posts": 0,
+        "writeCalls": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "stage": "templates",
+        "template": "border",
+        "pngCount": 6,
+        "canExport": true,
+        "posts": 0,
+        "writes": [],
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {
+              "path": "http://tmp/0lkdutEVcsCnf15075f0a82621fb1a8ba79b408a7711.png",
+              "revision": 4
+            },
+            "left": 22,
+            "right": 368,
+            "top": 123.96766662597656,
+            "bottom": 584.9676666259766,
+            "width": 346,
+            "height": 461
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 256,
+            "right": 368,
+            "top": 750,
+            "bottom": 798,
+            "width": 112,
+            "height": 48
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 620.9676513671875,
+            "bottom": 748.9676513671875,
+            "width": 390,
+            "height": 128
+          }
+        ]
+      }
+    }
+  }
+}

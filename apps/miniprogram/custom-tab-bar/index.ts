@@ -27,6 +27,7 @@ Component({
     chromeHidden: false,
     hiddenSources: [] as string[],
     communityPublisherAvailable: false,
+    communityPublisherLabel: "创作护理故事",
     communityFabMounted: false,
     communityFabVisible: false,
     reducedMotion: shouldReduceMotion(),
@@ -78,22 +79,18 @@ Component({
       if (chromeHidden === this.data.chromeHidden && hiddenSources.length === current.length) return;
       this.setData({ hiddenSources, chromeHidden });
     },
-    setCommunityPublisherAvailable(available: boolean) {
-      if (this.data.communityPublisherAvailable === available) return;
-      this.setData({ communityPublisherAvailable: available });
+    setCommunityPublisherAvailable(available: boolean, label = "创作护理故事") {
+      if (this.data.communityPublisherAvailable === available && this.data.communityPublisherLabel === label) return;
+      this.setData({ communityPublisherAvailable: available, communityPublisherLabel: label });
       if (available) this.enterCommunityFab();
       else this.leaveCommunityFab();
     },
     enterCommunityFab() {
       if (this.data.active !== 2 || !this.data.communityPublisherAvailable) return;
       if (this.data.communityFabMounted && this.data.communityFabVisible) return;
-      const reducedMotion = shouldReduceMotion();
-      this.setData({ communityFabMounted: true, communityFabVisible: reducedMotion, reducedMotion }, () => {
-        if (reducedMotion) return;
-        wx.nextTick(() => {
-          if (this.data.active === 2 && this.data.communityFabMounted) this.setData({ communityFabVisible: true });
-        });
-      });
+      // A mount animation supplies its own first frame; nextTick can otherwise
+      // coalesce the hidden and visible styles before WeChat paints either.
+      this.setData({ communityFabMounted: true, communityFabVisible: true, reducedMotion: shouldReduceMotion() });
     },
     leaveCommunityFab() {
       if (!this.data.communityFabMounted && !this.data.communityFabVisible) return;
@@ -127,7 +124,13 @@ Component({
       wx.switchTab({
         url: item.path,
         success: () => this.setData({ switching: false }),
-        fail: () => { pendingLens = null; this.setData({ active: previous, lensIndex: previous, switching: false }, () => wx.showToast({ title: "页面切换失败，请重试", icon: "none" })); }
+        fail: () => {
+          pendingLens = null;
+          this.setData({ active: previous, lensIndex: previous, switching: false }, () => {
+            this.enterCommunityFab();
+            wx.showToast({ title: "页面切换失败，请重试", icon: "none" });
+          });
+        }
       });
     }
   }

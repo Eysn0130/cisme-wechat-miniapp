@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "scope": "Read-only review record updated after main-thread native observation; only this JSON changed.",
+  "historicalReviews": [
+    {
+      "sourceLabel": "source168, as identified by main thread",
+      "status": "Historical static review; original contents retained below. Its empty findings did not establish native edge scrolling and are superseded by the observed scroll-x defect.",
+      "review": {
+        "schemaVersion": 1,
+        "scope": "Independent read-only review of frozen photo long-press reorder; no source edits or native/device actions by reviewer.",
+        "sourceHashes": {
+          "apps/miniprogram/pages/community-compose/index.ts": "9d358944d4f67530b9e76b1aeb06002ca78854afcdc903eeed37fde1750637a4",
+          "apps/miniprogram/pages/community-compose/index.wxml": "13dc0eac3041cee45f74dde4b8d0e3408e0300585cddb99b43002e87fd043c0f",
+          "apps/miniprogram/pages/community-compose/index.wxss": "02d6d11656c1344f7227c4fb089db59cd17e74cbd9b743cddcaf8ed9ef17f747"
+        },
+        "openFindings": [],
+        "resolvedFindings": [
+          {
+            "issue": "Cancelled drag suppression covered only photo menu, leaving late media remove/add/editor handlers active.",
+            "resolution": "Shared mediaTapIsBlocked guard now protects media actions after drag cancellation; focused late tap regression present."
+          },
+          {
+            "issue": "Deferred photo action sheet did not bind post/owner/version/files signature and reused old file object for cover.",
+            "resolution": "Exact captured scope is checked after answer; media tap/drag guards rechecked; file re-read from current array. Four parameterized scope regressions present."
+          }
+        ],
+        "confirmed": [
+          "Canonical order changes once at completed drop; save/submit blocked until then.",
+          "Exact pointer/account/post/version/signature scopes and interruption cancellation prevent late writes.",
+          "Viewport/scroll offsets counted once; actual native scroll feedback controls hit-testing; touchend flushes final coordinates."
+        ],
+        "implementationReportedValidation": {
+          "focusedFiles": 5,
+          "testsPassed": 274,
+          "typecheck": "passed",
+          "reportedBy": "implementation agent and root; reviewer did not repeat the suite"
+        },
+        "reviewerVerification": "All three frozen source SHA256 values independently matched current files.",
+        "limits": [
+          "Source review and unit contracts do not establish native gesture recognition, keyboard/layout movement, actual frame rate, phone feel or screen-reader acceptance.",
+          "No native or physical-device PASS claimed; main thread owns new native evidence and package/CI provenance."
+        ]
+      }
+    }
+  ],
+  "currentReview": {
+    "packageSourceSha256": "b00f2118bff2d8ffd0e2e99b39ec133159b300ee8deb6bddf7ccdc8f59322ae8",
+    "sourceHashes": {
+      "apps/miniprogram/pages/community-compose/index.ts": "9d358944d4f67530b9e76b1aeb06002ca78854afcdc903eeed37fde1750637a4",
+      "apps/miniprogram/pages/community-compose/index.wxml": "0af5fc03d0d94bc4461a4ee27362328267c073abdfee1a272005eb4a9a66c5f9",
+      "apps/miniprogram/pages/community-compose/index.wxss": "02d6d11656c1344f7227c4fb089db59cd17e74cbd9b743cddcaf8ed9ef17f747"
+    },
+    "sourceCorrection": {
+      "file": "apps/miniprogram/pages/community-compose/index.wxml",
+      "line": 61,
+      "before": "scroll-x=\"{{!mediaDragging}}\"",
+      "after": "scroll-x=\"{{true}}\"",
+      "scope": "One WXML binding reviewed. TS and WXSS hashes remain identical to historical review. Dynamic catchtouchmove remains responsible for blocking finger default scrolling while native programmatic scroll-left stays enabled."
+    },
+    "nativeFinding": {
+      "reportedBy": "Main thread native validation of source168",
+      "observed": "During drag, scroll-x=false prevented programmatic scroll-left; actual native offset remained0 and later photo slots were unreachable.",
+      "sourceFixReviewed": true,
+      "actualEdgeOffsetAfterFix": "not yet verified; awaiting UX native receipt",
+      "status": "Source correction present; native acceptance pending"
+    },
+    "validation": {
+      "reviewerHashChecks": "All three current source hashes matched actual files.",
+      "previous274TestResultReusedAsCurrent": false,
+      "rootSuiteRerun": "pending main-thread result",
+      "nativeEdgeAcceptance": "pending UX actual offset/scroll feedback evidence",
+      "physicalDeviceAcceptance": "not claimed",
+      "screenReaderAcceptance": "not claimed"
+    },
+    "limits": [
+      "Static coordinate reasoning and mocked scroll callbacks did not reveal the native scroll-x behavior. Historical no-findings and274-unit totals are not native PASS.",
+      "The new WXML enables the intended native programmatic path, but actual edge offset, last-slot reachability and current-package acceptance require the new UX receipt.",
+      "Reviewer did not modify product source, run native interactions or re-run suites in this update."
+    ]
+  },
+  "rootFinalEvidenceReconciliation": {
+    "packageSourceSha256": "b00f2118bff2d8ffd0e2e99b39ec133159b300ee8deb6bddf7ccdc8f59322ae8",
+    "nativeReceipt": "native-qa-summary.json",
+    "sourceProof": "source-proof.json",
+    "controlledEdgeScrollObserved": [
+      156,
+      536
+    ],
+    "finalTargetIndex": 8,
+    "dropOrderAndCancellationVerified": true,
+    "unitPassed": 2954,
+    "unitSkipped": 1,
+    "unitLog": "unit-final-native-scroll.log",
+    "boundaries": "Review-time pending fields are historical to that review. Later root checked the independently recorded native receipt; ordinary physical swipe propagation, phone and screen reader remain unverified; top-left simulator clipped text unresolved."
+  },
+  "latestNoticeOnlySourceReview": {
+    "packageSourceSha256": "025dfc921b79fadadb054afd36393dbad09454953f43699884913614916f96d2",
+    "typescriptSha256": "4eb1ac47e3f7a2c7782086238eac106b54eb216d68884da9efb4a5610e5b9ad1",
+    "change": "queueLocalBackup clears only exact stale saved-success notice when dirty. WXML/CSS and gesture logic are unchanged.",
+    "unitPassed": 2959,
+    "unitSkipped": 1,
+    "unitLog": "unit-final-notice-bounded.log",
+    "nativeEvidence": "source-025dfc921b79; notice and publisher only. Prior b00 gesture/Canvas frames retain original source scope."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "only exact isolated fixture in-memory samples, no real backend",
+        "removedFixtureIds": [
+          "bbbbbbbb-bbbb-4bbb-8bbb-000000000001"
+        ],
+        "posts": 0,
+        "writeCalls": 0,
+        "runtimeWrapperAbsent": true
+      }
+    }
+  }
+}

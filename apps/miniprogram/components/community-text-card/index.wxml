@@ -1,0 +1,33 @@
+<view wx:if="{{visible}}" class="text-card-overlay {{stage === 'input' || stage === 'generating' ? 'text-card-overlay--writing' : ''}}" style="{{chromeStyle}}" catchtouchmove="holdOverlay">
+  <view class="text-card-header">
+    <button class="text-card-button text-card-back" hover-class="text-card-pressed" hover-start-time="0" hover-stay-time="80" bindtap="back" aria-label="{{stage === 'input' ? '取消文字卡片' : '返回文字输入'}}"><image class="text-card-back__icon" src="{{stage === 'input' ? '/assets/icons/close-plum.svg' : '/assets/icons/arrow-left-ink.svg'}}" mode="aspectFit" aria-hidden="true"/></button>
+    <text wx:if="{{stage === 'templates'}}" class="text-card-title">选择配图</text>
+    <button wx:if="{{stage === 'input'}}" class="text-card-button text-card-next {{!canProceed ? 'text-card-button--disabled' : ''}}" hover-class="text-card-pressed" hover-start-time="0" hover-stay-time="80" bindtap="confirm" disabled="{{!canProceed}}" aria-label="生成文字卡片，下一步">下一步</button>
+  </view>
+  <scroll-view wx:if="{{stage === 'input' || stage === 'generating'}}" class="text-card-input-body" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+    <view class="text-card-input-content">
+      <view class="text-card-writing-card">
+        <text class="text-card-quote" aria-hidden="true">“</text>
+        <view class="text-card-writing-copy"><text class="text-card-writing-title">写想法</text><textarea class="text-card-input" value="{{text}}" bindinput="editText" bindkeyboardheightchange="keyboardChange" disabled="{{busy}}" maxlength="-1" auto-height="{{true}}" show-confirm-bar="{{true}}" adjust-position="{{true}}" cursor-spacing="20" placeholder="记录此刻的护理感受…" placeholder-class="text-card-placeholder" aria-label="文字卡片内容，最多300字"/></view>
+        <text class="text-card-count {{count > 300 ? 'text-card-count--error' : ''}}" aria-label="已输入{{count}}字，最多300字">{{count}}/300</text>
+      </view>
+      <text wx:if="{{error}}" class="text-card-error" aria-live="assertive">{{error}}</text>
+      <button wx:if="{{renderFailed && !busy}}" class="text-card-button text-card-retry" hover-class="text-card-pressed" hover-stay-time="80" bindtap="retryPreview">重新生成</button>
+      <button class="text-card-button text-card-write-body {{busy ? 'text-card-button--disabled' : ''}}" hover-class="text-card-pressed" hover-stay-time="80" bindtap="writeBody" disabled="{{busy}}">直接写正文<text class="text-card-write-body__arrow" aria-hidden="true">›</text></button>
+    </view>
+  </scroll-view>
+  <view wx:if="{{stage === 'templates'}}" class="text-card-template-stage">
+    <view class="text-card-preview-area">
+      <image wx:if="{{previewPath}}" class="text-card-preview-image" src="{{previewPath}}" style="width:{{previewWidth}}px;height:{{previewHeight}}px" mode="aspectFit" data-path="{{previewPath}}" data-revision="{{previewRevision}}" binderror="previewImageFailed" aria-label="当前模板生成的文字卡片预览"/>
+      <view wx:else class="text-card-preview-placeholder" style="width:{{previewWidth}}px;height:{{previewHeight}}px" aria-live="polite">{{previewPending ? '正在生成配图…' : '配图暂未生成'}}</view>
+      <text wx:if="{{error}}" class="text-card-error" aria-live="assertive">{{error}}</text>
+      <button wx:if="{{renderFailed && !busy}}" class="text-card-button text-card-retry" hover-class="text-card-pressed" hover-stay-time="80" bindtap="retryPreview">重新生成</button>
+    </view>
+    <scroll-view class="text-card-template-scroll" scroll-x="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" aria-label="选择文字卡片模板，可左右滑动">
+      <view class="text-card-templates"><button wx:for="{{templates}}" wx:key="value" class="text-card-button text-card-template {{template === item.value ? 'text-card-template--selected' : ''}} {{busy ? 'text-card-button--disabled' : ''}}" hover-class="text-card-pressed" hover-start-time="0" hover-stay-time="80" data-template="{{item.value}}" bindtap="selectTemplate" disabled="{{busy}}" aria-label="{{item.label}}模板" aria-pressed="{{template === item.value}}"><view class="text-card-swatch text-card-swatch--{{item.value}}"><image wx:if="{{item.previewPath}}" src="{{item.previewPath}}" mode="aspectFit" data-template="{{item.value}}" data-path="{{item.previewPath}}" binderror="thumbnailFailed" aria-hidden="true"/><text wx:else class="text-card-swatch__fallback" aria-hidden="true">{{item.label}}</text></view><text class="text-card-template__label">{{item.label}}</text></button></view>
+    </scroll-view>
+  </view>
+  <view wx:if="{{stage === 'templates'}}" class="text-card-footer"><button class="text-card-button text-card-confirm {{busy || !canExport ? 'text-card-button--disabled' : ''}}" hover-class="text-card-pressed" hover-start-time="0" hover-stay-time="80" bindtap="confirm" disabled="{{busy || !canExport}}" loading="{{busy}}" aria-label="使用当前配图，进入内容编辑">下一步</button></view>
+  <view wx:if="{{stage === 'generating'}}" class="text-card-generating" catchtouchmove="holdOverlay"><view class="text-card-generating__panel" aria-role="alert" aria-live="polite"><view class="text-card-spinner" aria-hidden="true"/><text>图片生成中</text><button class="text-card-button text-card-generating__cancel" hover-class="text-card-pressed" hover-stay-time="80" bindtap="cancelGeneration">取消</button></view></view>
+  <canvas type="2d" id="communityTextCardCanvas" class="text-card-canvas" aria-hidden="{{true}}"/>
+</view>

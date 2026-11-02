@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "state": "pending_review",
+        "files": [
+          {
+            "id": "cccccccc-cccc-4ccc-8ccc-000000000001",
+            "localPath": "/assets/cisme/cisme-scalp-lab-avatar-v1.jpg",
+            "previewUrl": "",
+            "size": 0,
+            "state": "uploaded",
+            "progress": 100,
+            "error": ""
+          }
+        ]
+      }
+    }
+  }
+}

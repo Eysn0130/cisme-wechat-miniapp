@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "sorting": true,
+        "first": "cccccccc-cccc-4ccc-8ccc-000000000002",
+        "expected": "cccccccc-cccc-4ccc-8ccc-000000000002"
+      }
+    }
+  }
+}

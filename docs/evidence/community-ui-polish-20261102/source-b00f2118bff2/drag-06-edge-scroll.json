@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "actual native scrollOffset after controlled edge input; no invented onMediaScroll",
+        "nativeOffset": 156,
+        "dragOffset": 156,
+        "requested": 156,
+        "target": 5
+      }
+    }
+  }
+}

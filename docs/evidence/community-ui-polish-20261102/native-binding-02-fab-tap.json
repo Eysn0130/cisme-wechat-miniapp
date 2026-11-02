@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "errorType": "MCP_TOOL_ERROR",
+  "message": "appservice App.CDPEnable unimplemented",
+  "source": "mcp_business",
+  "detail": {
+    "rawResult": {
+      "success": false,
+      "error": "appservice App.CDPEnable unimplemented"
+    }
+  },
+  "reason": "mcp_business_fail",
+  "tool": "automation_element_action",
+  "clientName": "Codex",
+  "suggestions": "查看该工具完整参数, wechatide -c Codex automation_element_action -h"
+}

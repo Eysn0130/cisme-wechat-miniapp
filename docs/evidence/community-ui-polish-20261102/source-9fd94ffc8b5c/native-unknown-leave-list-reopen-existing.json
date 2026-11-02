@@ -1,0 +1,34 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled unknown response; official showModal mock explicitly confirms leave; fake existing draft read",
+        "unknown": {
+          "postId": "",
+          "sent": true,
+          "hasCandidate": true,
+          "hasHandoff": true
+        },
+        "list": {
+          "pendingCleared": true,
+          "entryCleared": true,
+          "importCleared": true,
+          "resumeCleared": true,
+          "contextCleared": true,
+          "handoffCleared": true
+        },
+        "reopened": {
+          "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "canEditCard": true,
+          "originalBodyPreserved": true,
+          "pendingCommandAbsent": true,
+          "error": ""
+        }
+      }
+    }
+  }
+}

@@ -40,6 +40,11 @@ describe('personal-data inventory gate',()=>{
       // openBusinessView is an optional SDK member and is called through the
       // explicitly typed wx alias after a runtime capability check.
       if(/\bapi\.openBusinessView\b/.test(source)&&/\bconst api=wx as\b/.test(source))apiSet.add('wx.openBusinessView');
+      // The injectable native image wrapper calls these callback-only SDK
+      // methods through its explicit WeChat API type after capability checks.
+      if(/type UgcImageEditApi=Partial<Pick<WechatMiniprogram\.Wx/.test(source)){
+        for(const name of ['editImage','cropImage'])if(source.includes(`api!.${name}!`))apiSet.add(`wx.${name}`);
+      }
     }
     expect([...apiSet].sort()).toEqual([...manifest.wechatApis].sort());
 

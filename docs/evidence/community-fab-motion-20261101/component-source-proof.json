@@ -1,0 +1,21 @@
+{
+  "fixture": "/tmp/cisme-community-motion-20261101",
+  "files": {
+    "custom-tab-bar/index.ts": {
+      "sameBytes": true,
+      "sha256": "5c0db1debeadbd40b6a2fac2848dfa213f145bfb0ffcc46ec3a820cb5a537b8f"
+    },
+    "custom-tab-bar/index.wxss": {
+      "sameBytes": true,
+      "sha256": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756"
+    },
+    "custom-tab-bar/index.wxml": {
+      "sameBytes": true,
+      "sha256": "cd1e67aaf0214d3aae02f38d861e1e161338b9011d87903711dc3305bad7d839"
+    },
+    "custom-tab-bar/index.json": {
+      "sameBytes": true,
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+    }
+  }
+}

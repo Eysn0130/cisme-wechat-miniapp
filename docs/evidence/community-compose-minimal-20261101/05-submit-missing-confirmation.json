@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "settingsExpanded": true,
+        "error": "请先确认内容权利和公开展示范围。"
+      }
+    }
+  }
+}

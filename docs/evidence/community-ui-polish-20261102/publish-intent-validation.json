@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "scope": "K.11 consumer publication intent, optional retired draft metadata, immutable submit snapshot,105 trigger-only migration and historical preservation. Isolated synthetic interfaces only; no real account, remote deployment or public gate enabled.",
+  "command": "node scripts/disposable-test.mjs npx vitest run tests/integration/formal-ugc-publication-lifecycle.test.ts tests/integration/formal-ugc-editor.test.ts tests/integration/ugc-safety.test.ts tests/integration/formal-ugc-foundation.test.ts tests/integration/migration-lifecycle.test.ts --pool=forks --maxWorkers=1",
+  "workingDirectory": "/Users/mini/CISME",
+  "testFiles": [
+    "tests/integration/formal-ugc-publication-lifecycle.test.ts",
+    "tests/integration/formal-ugc-editor.test.ts",
+    "tests/integration/ugc-safety.test.ts",
+    "tests/integration/formal-ugc-foundation.test.ts",
+    "tests/integration/migration-lifecycle.test.ts"
+  ],
+  "result": {
+    "exitCode": 0,
+    "testFilesPassed": 5,
+    "testsPassed": 30,
+    "reportedStartTime": "02:21:14",
+    "durationSeconds": 40.98
+  },
+  "rawLog": "integration-publish-intent-verified.log",
+  "rawLogSha256": "dea999d3ce54b9bb3dcc035e946da3395fa64afbed0f68e5e4a5fb02ee952da1",
+  "firstAttempt": {
+    "rawLog": "integration-publish-intent.log",
+    "testFilesPassed": 3,
+    "testsPassed": 28,
+    "testsFailed": 2,
+    "scope": "Two stale fixtures: expected report revision3 instead of new submit snapshot4; historical migration rollback loop included105 already removed for its104 boundary. Only fixtures changed before verified rerun. Original log retained."
+  },
+  "disposableRun": {
+    "runId": "e44a51f9618452ab57c38cc3",
+    "postgresImage": "postgres:18.4-alpine",
+    "purpose": "disposable-synthetic",
+    "databaseContainer": "7473af5df600f64951eb1b63541556268e14ad60e48b9b64c5af3bd537d0f937",
+    "objectContainer": "ddab40465898cbbdf5383abb5e3524d805094b652421d2e15a60dd144337798a",
+    "databaseDestroyed": true,
+    "objectStorageDestroyed": true,
+    "productionDataAccessed": false
+  },
+  "sourceHashes": [
+    {
+      "path": "services/api/src/formalUgc.ts",
+      "sha256": "46a4a15c1b948ccf975bc8129c70309f802ec081fc11f245b74dad15291f9a9d"
+    },
+    {
+      "path": "services/api/src/server.ts",
+      "sha256": "f7761410b99003cbf435d735f40bc26c46a8e27871eae8cd76b05606d0f4f9e6"
+    },
+    {
+      "path": "db/migrations/202611020001_ugc_publish_intent.sql",
+      "sha256": "8b9fd5aed32f0583161f1be6de867eb59bb1c7b3a6ac33fcea2d30d9104d6eb8"
+    }
+  ],
+  "schemaContract": "publish-intent-schema-contract.json",
+  "otherChecks": [
+    {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0
+    },
+    {
+      "command": "npx vitest run tests/unit/privacy-inventory-gate.test.ts",
+      "exitCode": 0,
+      "testFilesPassed": 1,
+      "testsPassed": 4
+    },
+    {
+      "command": "git diff --check -- relevant backend, SQL, tests, PRD and privacy files",
+      "exitCode": 0
+    }
+  ],
+  "limitations": [
+    "Exact current source hashes are captured at archival; raw runner logs carry their actual run results.",
+    "No remote services, real member data, WeChat account, client components or ops helper changed by this backend subtask.",
+    "Existing public gating and independent moderation remain; this is not live public UGC approval."
+  ]
+}

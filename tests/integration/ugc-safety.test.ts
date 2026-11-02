@@ -226,7 +226,27 @@ it("requires a WeChat text result before a human can publish a comment",async()=
     ?{access_token:"synthetic-token",expires_in:7200}:{errcode:0,result:{suggest:"pass"}}),{status:200})) as typeof fetch;
   const safety=new UgcSafetyService(pool,config,createApiGatewayStorage(config),fake);
   expect(await safety.scanComment(comment)).toMatchObject({state:"safe"});
-  expect(await formal.reviewComment(reviewer,comment,{decision:"approve",reason:"合成评论安全复核"})).toMatchObject({state:"published"});
+  await expect(formal.reviewComment(reviewer,comment,{decision:"approve",reason:"检测通过仍须公开门禁"}))
+    .rejects.toMatchObject({code:"UGC_GO_LIVE_GATE_CLOSED"});
+  const gated=new FormalUgcService(pool,{...config,env:"production",ugcGoLiveGate:true},
+    createApiGatewayStorage(config),new AuthorityService(pool,"test"));
+  await expect(gated.reviewComment(reviewer,comment,{decision:"approve",reason:"未签字不能批准公开"}))
+    .rejects.toMatchObject({code:"UGC_GO_LIVE_GATE_CLOSED"});
+  await expect(pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'"))
+    .rejects.toMatchObject({code:"23514"});
+  try{
+    await pool.query(`INSERT INTO ugc_go_live_approval(approval_reference,signed_by,evidence,signed_at,expires_at)
+      VALUES('isolated-safety-comment-approval','synthetic scanner fixture',
+        '{"scope":"isolated comment safety integration only"}',clock_timestamp(),clock_timestamp()+interval '1 hour')`);
+    await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'");
+    await expect(formal.reviewComment(reviewer,comment,{decision:"approve",reason:"签字不替代运行时开关"}))
+      .rejects.toMatchObject({code:"UGC_GO_LIVE_GATE_CLOSED"});
+    expect(await gated.reviewComment(reviewer,comment,{decision:"approve",reason:"合成评论安全与门禁均已复核"}))
+      .toMatchObject({state:"published"});
+  }finally{
+    await pool.query("UPDATE emergency_switch SET enabled=false WHERE key='community'");
+    await pool.query("UPDATE ugc_go_live_approval SET revoked_at=clock_timestamp() WHERE approval_reference='isolated-safety-comment-approval'");
+  }
 });
 
 it("claims a comment scan before two workers can both call the provider",async()=>{

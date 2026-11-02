@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-compose/index",
+        "width": 390,
+        "stage": "input",
+        "postId": "",
+        "calls": [
+          {
+            "method": "GET",
+            "path": "/v1/ugc/status",
+            "dataKeys": []
+          }
+        ],
+        "posts": 0,
+        "visible": true
+      }
+    }
+  }
+}

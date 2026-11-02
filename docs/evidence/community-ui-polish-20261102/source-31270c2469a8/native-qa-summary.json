@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "31270c2469a83a899674f9e042003506c920e11fb4209b1b884926e7180d7f45",
+  "currentSource": false,
+  "result": "scoped 390 intermediate text wizard only",
+  "screenshots": [
+    {
+      "file": "native-generation-capture-arrived-templates-390.png",
+      "sha256": "38941c94204f106ef9fd0976afc94db47761ae772090239dc25cd95169fbe5b7",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-generating-controlled-pending-390.png",
+      "sha256": "186e257aa03a62b50f1a118812a57aa10b23d6cc86d3c37db6ca3c3a4f765b82",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-input-empty-390.png",
+      "sha256": "13c9d79e4146289eabb0b80c69c2c212d72bfd1649c2c0d694ac6e9487b7525a",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-publisher-private-390.png",
+      "sha256": "186ca5c6bc1086d23331a1c10755a18b63331e776c1b4b272377874da560a052",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-publisher-public-390.png",
+      "sha256": "c77814c57fa1e87061148301524641d7d54031100418be9aa299218b218d47f6",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-template-lilac-390.png",
+      "sha256": "85fce18f0b7b1f2069472c2151d2bac3397127f552e7fa3bd0a53ab432846ee0",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-templates-390.png",
+      "sha256": "38941c94204f106ef9fd0976afc94db47761ae772090239dc25cd95169fbe5b7",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    }
+  ],
+  "reviewedScreenshotCount": 7,
+  "sourceByteIdenticalFiles": 24,
+  "scope": [
+    "390 actual six PNG Canvas/FS exports and cache switch",
+    "390 controlled latency after actual export, cancel, stale return then fresh batch; wrapper restored",
+    "390 native navigation hide/show returns input with new key/text retained and old event rejected",
+    "390 input/generation/templates zero POST; only final confirm creates/upload; publisher blank title/body",
+    "390 private/public controlled gate layouts, settings absent"
+  ],
+  "notAccepted": [
+    "short explicit paragraph orphan discovered and fixed in later eba9 source",
+    "361 first post-device automation timeout: no 361 screenshots accepted",
+    "native-generation-start-390.json is a harness syntax error, retained",
+    "native-generation-capture-arrived-templates-390.png arrived after generation; not generating-state evidence"
+  ],
+  "currentPackageRetested": false,
+  "evidenceInheritedAsNewAcceptance": false,
+  "full40RouteAndRealDeviceMatrix": "blocked",
+  "realAccountDataAccessed": false
+}

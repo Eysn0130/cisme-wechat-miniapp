@@ -106,7 +106,8 @@ describe("PERF-01/03: native Home progressive, session-bound facts", () => {
 describe("PERF-02/09: native Profile consistent core, independent auxiliary states", () => {
   it("keeps interaction history, personal posts and invitation activities as distinct My-page entries",()=>{
     const community=readFileSync("apps/miniprogram/pages/community/index.wxml","utf8"),profile=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
-    expect(community).not.toContain('bindtap="openMyPosts"');expect(community).not.toContain("我的投稿与草稿");
+    // K.10 adds one contextual draft shortcut inside the creation chooser.
+    expect(community.match(/bindtap="openMyPosts"/g)).toHaveLength(1);expect(community).toContain('wx:if="{{publishEntryOpen}}"');expect(community).not.toContain("我的投稿与草稿");
     for(const [handler,label]of [["openCommunityActivity","我的社区"],["openMyPosts","投稿与草稿"],["openTasks","我的活动"]]){
       expect(profile.match(new RegExp(`bindtap="${handler}"`,"g"))).toHaveLength(1);expect(profile).toContain(`<strong>${label}</strong>`);
     }

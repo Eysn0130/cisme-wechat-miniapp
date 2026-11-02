@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 430,
+        "stage": "input",
+        "text": "护理慢慢来，\n感受每天的小变化。",
+        "postId": "",
+        "posts": 0,
+        "writes": [],
+        "menu": {
+          "width": 87,
+          "height": 32,
+          "left": 336,
+          "top": 58,
+          "right": 423,
+          "bottom": 90
+        },
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 252,
+            "right": 316,
+            "top": 54,
+            "bottom": 98,
+            "width": 64,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 10,
+            "right": 54,
+            "top": 54,
+            "bottom": 98,
+            "width": 44,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 48,
+            "right": 382,
+            "top": 212,
+            "bottom": 722,
+            "width": 334,
+            "height": 510
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 22,
+            "right": 408,
+            "top": 122,
+            "bottom": 784,
+            "width": 386,
+            "height": 662
+          }
+        ]
+      }
+    }
+  }
+}

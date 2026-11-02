@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "local fixture image, not hardware camera",
+        "width": 361,
+        "dirty": true,
+        "refusedDirtyNext": true,
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 361,
+            "top": 647.203125,
+            "bottom": 732,
+            "width": 361,
+            "height": 84.796875
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 361,
+            "top": 732,
+            "bottom": 804,
+            "width": 361,
+            "height": 72
+          },
+          {
+            "left": 229,
+            "right": 341,
+            "top": 744,
+            "bottom": 790,
+            "disabled": true
+          }
+        ],
+        "error": ""
+      }
+    }
+  }
+}

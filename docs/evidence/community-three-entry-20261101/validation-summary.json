@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-02",
+  "packageSourceSha256": "3011a8c5b585324235766ac64b486e068971b75eeb9dbfcdb4ccecc905fdb7a0",
+  "sourceByteIdenticalFiles": 24,
+  "unit": {
+    "filesPassed": 178,
+    "testsPassed": 2922,
+    "testsSkipped": 1,
+    "log": "unit-tests.log"
+  },
+  "typecheck": "passed",
+  "packageGate": "passed",
+  "nativeScreenshots": [
+    {
+      "file": "native-02-three-choices-390.png",
+      "sha256": "ebe177ccf1b5aec07269f97137fac3cb78f6330a104c8942382b66aa536e422f",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    },
+    {
+      "file": "native-04-text-card-390.png",
+      "sha256": "dfc240fcedb1370f6603afaeb8a420966481fecde46531ec6473751da07aa4f8",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    },
+    {
+      "file": "native-07-photo-editor-390.png",
+      "sha256": "b2453dc4270d628caeabf133117215d67eedc82e8fac05ce41cd6c4bd61d2b1a",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    },
+    {
+      "file": "native-09-private-composer-390.png",
+      "sha256": "208d485205723d72736647744deea89b330bedc58bc929cfae0282bd0b26d3cf",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    },
+    {
+      "file": "native-12-pending-review-390.png",
+      "sha256": "243694385635577dc866a5d613e7b37c639bd53373dce0df186c7064dca0ffe8",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    },
+    {
+      "file": "native-photo-editor-361.png",
+      "sha256": "61c9fd43180daba2f9d4dfb5a608c76b8bce29251b2b7f94ac48529be20a5e26",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    },
+    {
+      "file": "native-photo-editor-430.png",
+      "sha256": "7b73cf7f662c7ccdda905b444a2bd73f87dd943e429db150ac46b570097e7467",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    },
+    {
+      "file": "native-text-card-361.png",
+      "sha256": "3a06d6b995425ede6f26b7a947bf9bf8e37327d30810f8b850c2c545671baddc",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    },
+    {
+      "file": "native-text-card-430.png",
+      "sha256": "69df91612abd7b287e05666abbf214e97849ea86c65a11179f4fe36372253f19",
+      "viewed": true,
+      "scope": "official simulator actual source, offline adapters and controlled component/Page calls; not physical device"
+    }
+  ],
+  "nativeSizes": [
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 361,
+      "height": 804
+    },
+    {
+      "width": 430,
+      "height": 932
+    }
+  ],
+  "backendIsolatedEvidence": {
+    "tests": 27,
+    "repeatedThisRound": false,
+    "hashesMatched": true,
+    "record": "backend-evidence-reuse.json"
+  },
+  "realDevice": "not_verified",
+  "productionAccount": "not_verified",
+  "deployment": "not_performed",
+  "publicUGCChange": "none",
+  "full40RouteAcceptance": "blocked",
+  "console": "SDK clickCheckTask errors retained, unresolved; not a zero-error claim",
+  "referencePreviewOnly": true,
+  "finalFixtureReset": {
+    "posts": 0,
+    "writeCalls": 0,
+    "evidence": "native-final-empty-baseline.json",
+    "realAccountDataAccessed": false
+  }
+}

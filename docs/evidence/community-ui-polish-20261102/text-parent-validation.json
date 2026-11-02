@@ -1,0 +1,31 @@
+{
+  "observedAt": "2026-11-02T11:45:49.265755+00:00",
+  "scope": "Parent page / exact local backup integration for text input → local generation → six templates → publisher; no server/schema/public gate/ops changes",
+  "validation": {
+    "command": "npx vitest run tests/unit/community-compose-text-entry.test.ts tests/unit/community-compose-entry-media.test.ts tests/unit/privacy-inventory-gate.test.ts",
+    "exitCode": 0,
+    "filesPassed": 3,
+    "testsPassed": 171,
+    "rawLog": "text-parent-validation.log",
+    "typecheckCommand": "npm run typecheck",
+    "typecheckExitCode": 0,
+    "typecheckRawLog": "text-parent-typecheck.log",
+    "diffCheckExitCode": 0
+  },
+  "sha256": {
+    "apps/miniprogram/pages/community-compose/index.ts": "6bf00f088cf0d415594ff4cad8d3da0cecc0677b3357d0e87b5a9edf531084bd",
+    "apps/miniprogram/pages/community-compose/index.wxml": "072af5f7cb0c19671b962e724580d1fa5b08b12f4bb8976bd676130224dcc90f",
+    "apps/miniprogram/services/ugc-local-backup.ts": "a18d33d1817951350fbf80afdd72724554baee833dbe2564a3432d3e8b3d41ee",
+    "apps/miniprogram/services/ugc-text-card-layout.ts": "184d3a445131fdfd61d481e680ceae3f5659a112e360c3f6c54a9a52e31443fe",
+    "tests/unit/community-compose-text-entry.test.ts": "5960c83e0ba6428cdfcf9dba8b00816a313776cbc79296bfee9a9818dbdaf3d8",
+    "tests/unit/community-compose-entry-media.test.ts": "57b5c4cb0e412d4443c76a35b4bd67256edfd4a8e76497da89557d6567682f06",
+    "docs/product/CISME-产品需求文档-PRD-V2.1-R4.md": "fec67a7af5b93bfa0cc7623d0fa42abbe953b28437ee05b719aecbeb43457f7a",
+    "docs/privacy/miniprogram-personal-data-inventory.json": "2e400ec25e174540d0f28ba2c53a244292f52accf12130f5a618fa3977a8454c"
+  },
+  "limits": [
+    "Controlled Page callbacks and synthetic filesystem/API responses only; not an actual Canvas, HTTP integration, production-data, native-layout, phone-keyboard or touch pass.",
+    "New initial text stages are memory-only before a canonical server draft exists. No cross-restart restoration promise.",
+    "The component/layout and current native package have independent evidence; previous notice or photo-drag screenshots do not establish this new text flow.",
+    "No build, deployment, upload, merge or remote operation performed by this integration task."
+  ]
+}

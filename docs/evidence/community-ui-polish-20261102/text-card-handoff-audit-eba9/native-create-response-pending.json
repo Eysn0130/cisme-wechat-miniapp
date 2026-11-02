@@ -1,0 +1,45 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "confirmed real PNG; isolated POST create response held after fake server write",
+        "componentStage": "templates",
+        "componentVisible": false,
+        "busy": true,
+        "operation": "creating",
+        "loading": false,
+        "listMode": false,
+        "postId": "",
+        "error": "",
+        "files": 0,
+        "candidateHasPng": true,
+        "mockServerPosts": 1,
+        "writes": [
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts",
+            "dataKeys": []
+          }
+        ],
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 844,
+            "width": 390,
+            "height": 844
+          },
+          null,
+          []
+        ]
+      }
+    }
+  }
+}

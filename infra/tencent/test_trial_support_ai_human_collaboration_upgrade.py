@@ -10,7 +10,7 @@ RUNNER=M.RUNNERS/('1'*12)/'trial-support-ai-human-collaboration-upgrade.py'
 PROFILE={'name':'trial','root':str(M.ROOT),'units':('cisme-trial-api.service','cisme-trial-worker.service'),'database':'cisme_trial','user':'cisme-trial'}
 
 def fixture():
- names=sorted(p.name for p in (ROOT/'db/migrations').glob('*.sql') if p.name!=M.MIGRATION)
+ names=sorted(p.name for p in (ROOT/'db/migrations').glob('*.sql') if p.name<M.MIGRATION)
  assert len(names)==103
  files={name:(ROOT/path).read_bytes() for name,path in [('migrate.mjs','scripts/release-migrate.mjs'),('package.json','package.json'),('package-lock.json','package-lock.json')]}
  files.update({'db/migrations/'+name:(ROOT/'db/migrations'/name).read_bytes() for name in names})

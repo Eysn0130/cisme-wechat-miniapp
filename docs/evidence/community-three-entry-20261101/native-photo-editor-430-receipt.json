@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_screenshot",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/community-three-entry-20261101/native-photo-editor-430.png",
+    "imageWidth": 430,
+    "imageHeight": 932
+  }
+}

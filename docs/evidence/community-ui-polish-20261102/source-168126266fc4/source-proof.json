@@ -1,0 +1,130 @@
+{
+  "packageSourceSha256": "168126266fc4e663c36c174884548e264dfd8621af8a63e536edcda03e23b536",
+  "copiedSources": [
+    {
+      "file": "custom-tab-bar/index.ts",
+      "sha256": "72907a7d078d3abf8f95fcfb9cafd9d24a5bd89bafa575f1744fc2afb8f7e529",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxml",
+      "sha256": "095c08b44fcb16d73ba1e6f54af9624d21a6166b70f45113baf4a57790f4ca7d",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxss",
+      "sha256": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.ts",
+      "sha256": "b0df369a0cc0a438b653d43e349dafbb3288e39a1649836511f07527ef34d7ad",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxml",
+      "sha256": "0cea6128a91da33ec59c4204ebb523fd047efc2a8f8b89f76eb8c79633674af0",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "sha256": "b2ed9fd7e0640c64133799f43979095672f4a86cb6ef011319b894d5781d9190",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.json",
+      "sha256": "4537cd5e88f68bcaf370434fb26da6a85b2114f2f7c73c69887ab0b027a00b94",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.ts",
+      "sha256": "9d358944d4f67530b9e76b1aeb06002ca78854afcdc903eeed37fde1750637a4",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "sha256": "13dc0eac3041cee45f74dde4b8d0e3408e0300585cddb99b43002e87fd043c0f",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "sha256": "02d6d11656c1344f7227c4fb089db59cd17e74cbd9b743cddcaf8ed9ef17f747",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.json",
+      "sha256": "be6707488347f0aef68b79002bd50550822466f6bf49cde4a6f226f3c4ccf56a",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.ts",
+      "sha256": "0ea355ada059dd4499c8d32e4718d12d4c9217cea982c813cc3de1284884a8c2",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxml",
+      "sha256": "484042cc55bb1119f5a909a50f911baf932726ae75d6215c64fd90261c3ca90b",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxss",
+      "sha256": "16749715beea82eb9467ab7212b68f3be35d3bbeb91f7374188bac53e9e5e54a",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.ts",
+      "sha256": "9381b93d86e70d96cbc208ad16eeed363a50f7295fce35155c6c5e423d264a1e",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxml",
+      "sha256": "57a0527587a091078a2f1b2ea9e7ce6e19472e8e4afb2e4759c9633a515f6ca6",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxss",
+      "sha256": "82f392a9e892ac89fb3b5a8e8c42e45a6396586a340f2201feb39fa485a2c9dc",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/community-compose-intent.ts",
+      "sha256": "f255f69f8a4aa5ec64d70b296f779ef0a77f8193368a5caf1b25ada2174536c5",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-image-edit.ts",
+      "sha256": "b1d284adbf735da86ef72887fe7908d1bed2c943f4ff2783f6e16c0adb24ae0f",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-text-card-layout.ts",
+      "sha256": "9cc4ceb439b2fe56f51f241c895b4be0c76f440946291c46c07b48b829183783",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-photo-effects.ts",
+      "sha256": "9cc83aece637d7ea947e01b55d6cb63187f4e79f232e1ee83d9ac102a3be03f1",
+      "fixtureByteIdentical": true
+    }
+  ],
+  "sourceByteIdenticalFiles": 24,
+  "fixturePath": "/tmp/cisme-compose-native-20261101",
+  "network": false,
+  "persistentStorage": false,
+  "scope": "24 actual native page/tab/component/helper files byte-identical. Offline auth/API/storage/editorial/public-detail adapters; controlled state stimuli. Native Canvas and local FS actual official simulator. Not physical keyboard, permissions, hardware camera, real account/backend or deployment acceptance."
+}

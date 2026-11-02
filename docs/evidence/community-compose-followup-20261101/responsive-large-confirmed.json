@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "path": "pages/community-compose/index",
+        "width": 430,
+        "postId": "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
+        "state": "draft",
+        "dirty": false
+      }
+    }
+  }
+}

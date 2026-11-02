@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "Done actually renders JPEG and returns to image overview only",
+        "editorStillOpen": true,
+        "activeTool": "",
+        "dirty": false,
+        "newPath": true,
+        "error": "",
+        "uploadAuthorizeCount": 1,
+        "parentFiles": 1,
+        "signature": [
+          255,
+          216,
+          255
+        ]
+      }
+    }
+  }
+}

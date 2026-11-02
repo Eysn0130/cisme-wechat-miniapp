@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "tool": "simulator_set_device",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "changed": true,
+    "name": "iPhone 14/15 Pro Max",
+    "model": "iPhone 14/15 Pro Max",
+    "index": 3
+  }
+}

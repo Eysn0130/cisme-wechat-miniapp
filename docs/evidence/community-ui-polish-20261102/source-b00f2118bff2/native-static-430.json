@@ -1,0 +1,132 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 430,
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 22,
+            "right": 408,
+            "top": 144.3984375,
+            "bottom": 256.3984375,
+            "width": 386,
+            "height": 112
+          },
+          [
+            {
+              "id": "",
+              "dataset": {
+                "id": "ffffffff-ffff-4fff-8fff-000000000001"
+              },
+              "left": 22,
+              "right": 110,
+              "top": 156.3984375,
+              "bottom": 244.3984375,
+              "width": 88,
+              "height": 88
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "ffffffff-ffff-4fff-8fff-000000000002"
+              },
+              "left": 122,
+              "right": 210,
+              "top": 156.3984375,
+              "bottom": 244.3984375,
+              "width": 88,
+              "height": 88
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "ffffffff-ffff-4fff-8fff-000000000003"
+              },
+              "left": 222,
+              "right": 310,
+              "top": 156.3984375,
+              "bottom": 244.3984375,
+              "width": 88,
+              "height": 88
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 76,
+              "right": 120,
+              "top": 146.3984375,
+              "bottom": 190.3984375,
+              "width": 44,
+              "height": 44
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 176,
+              "right": 220,
+              "top": 146.3984375,
+              "bottom": 190.3984375,
+              "width": 44,
+              "height": 44
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 276,
+              "right": 320,
+              "top": 146.3984375,
+              "bottom": 190.3984375,
+              "width": 44,
+              "height": 44
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 86,
+              "right": 110,
+              "top": 156.3984375,
+              "bottom": 180.3984375,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 186,
+              "right": 210,
+              "top": 156.3984375,
+              "bottom": 180.3984375,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 286,
+              "right": 310,
+              "top": 156.3984375,
+              "bottom": 180.3984375,
+              "width": 24,
+              "height": 24
+            }
+          ],
+          null,
+          null
+        ],
+        "publicEnabled": false,
+        "files": 3,
+        "error": ""
+      }
+    }
+  }
+}
