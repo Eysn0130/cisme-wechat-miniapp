@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "packageSourceSha256": "eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4",
-  "currentSource": true,
+  "currentSource": false,
   "result": "scoped native text wizard static/PNG pass only",
   "evidenceDirectory": ".",
   "sourceProof": "source-proof.json",

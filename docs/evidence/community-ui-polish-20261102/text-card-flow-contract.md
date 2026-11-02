@@ -53,6 +53,7 @@
 - 组件事件保持 change(text, template, contextKey)、confirm(tempFilePath, size, text, template, contextKey)、cancel(contextKey, 可选 mode: body)。进度和缩略渲染不发业务事件，组件无网络请求或后端写入。
 - 根代理裁决为生成确认前零 POST：parent 维护隔离的临时文字；最终确认才创建／核对 canonical 草稿并上传。取消时若用户显式选存草稿，可将原始文字保存为私稿；请求结果未知沿既有精确核对，不假称撤销已发送操作。
 - parent 独立 textCardText，不把 card change 写进 body。新 entry 的 PNG 成功后 publisher 标题／正文留空；“直接写正文”是显式转换。暂不增加 publisher 返回模板替换已有媒体的能力。
+- 最终PNG已验证但canonical草稿回执仍等待时，parent保留该真实图的3:4预览与轻量“正在准备…”反馈，不出现header下空白，也不称已创建。失败停止spinner，保同候选／同createKey／原图和既有错误重试；无图body／save至少有等待反馈。只有有效canonical归属确认才交publisher。显式进入列表、另稿或新稿时统一清旧entry／pending／import／resume／context／handoff，迟到旧create不能接管新scope；不能把离开称为撤销已发送的新建请求。
 - 已有 post 的备份可选 textCardText 和 6-key template 同样受 owner／post／version 和 7 日保留限制；未 post 输入只在当前隔离内存。不能存令牌，不能把旧账号或旧版本文字恢复到新账号。
 - composer 类型、事件、备份和模板 normalizer 必须同步 6 键，不能让有效的新模板静默回落 plain；旧 plain／lilac／memo 继续可读。
 

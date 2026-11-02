@@ -1,5 +1,5 @@
 {
-  "packageSourceSha256": "eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4",
+  "packageSourceSha256": "9fd94ffc8b5c0431e5cdce16d190e7e2613703afa5804ff3f3c98c6bb3d9d830",
   "copiedSources": [
     {
       "file": "custom-tab-bar/index.ts",
@@ -43,17 +43,17 @@
     },
     {
       "file": "pages/community-compose/index.ts",
-      "sha256": "6bf00f088cf0d415594ff4cad8d3da0cecc0677b3357d0e87b5a9edf531084bd",
+      "sha256": "34b63f62a177c2d56d1080a7871678c0e1a1c57eba5704bb4b1d6185d1569bd9",
       "fixtureByteIdentical": true
     },
     {
       "file": "pages/community-compose/index.wxml",
-      "sha256": "072af5f7cb0c19671b962e724580d1fa5b08b12f4bb8976bd676130224dcc90f",
+      "sha256": "1b6f7914f1298d7007b8d396de95052e6b4d167a99796993c799895506fad3fe",
       "fixtureByteIdentical": true
     },
     {
       "file": "pages/community-compose/index.wxss",
-      "sha256": "02d6d11656c1344f7227c4fb089db59cd17e74cbd9b743cddcaf8ed9ef17f747",
+      "sha256": "39a357ff2361e9a30f94086f609cea458654628d347c926c60f1e572f4ca14be",
       "fixtureByteIdentical": true
     },
     {
@@ -128,10 +128,25 @@
   "persistentStorage": false,
   "scope": "24 actual native page/tab/component/helper files byte-identical. Offline auth/API/storage/editorial/public-detail adapters; controlled state stimuli. Native Canvas and local FS actual official simulator. Not physical keyboard, permissions, hardware camera, real account/backend or deployment acceptance.",
   "currentSource": true,
-  "result": "source provenance only; scoped native evidence below",
+  "result": "source provenance only; scoped current-native evidence, not full matrix",
   "recheckedAfterNative": true,
+  "evidenceDirectory": "source-9fd94ffc8b5c",
   "full40RouteAndRealDeviceMatrix": "blocked",
-  "evidenceDirectory": "source-eba9bd7c894f",
+  "unchangedDisplayFilesComparedWithC4ee": [
+    "custom-tab-bar/index.wxml",
+    "custom-tab-bar/index.wxss",
+    "pages/community/index.wxml",
+    "pages/community/index.wxss",
+    "pages/community-compose/index.wxml",
+    "pages/community-compose/index.wxss",
+    "components/community-text-card/index.ts",
+    "components/community-text-card/index.wxml",
+    "components/community-text-card/index.wxss",
+    "components/community-text-card/index.json",
+    "components/community-image-editor/index.wxml",
+    "components/community-image-editor/index.wxss",
+    "services/ugc-text-card-layout.ts"
+  ],
   "offlineAdapterFiles": [
     {
       "file": "app.ts",
@@ -166,5 +181,5 @@
       "sha256": "d983e53d0e17a0fdd38fef40072525d583153053f7601751440e7664e917a0b5"
     }
   ],
-  "sourceProof": "source-eba9bd7c894f/source-proof.json"
+  "sourceProof": "source-9fd94ffc8b5c/source-proof.json"
 }

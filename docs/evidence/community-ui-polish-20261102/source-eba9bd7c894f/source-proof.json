@@ -127,7 +127,7 @@
   "network": false,
   "persistentStorage": false,
   "scope": "24 actual native page/tab/component/helper files byte-identical. Offline auth/API/storage/editorial/public-detail adapters; controlled state stimuli. Native Canvas and local FS actual official simulator. Not physical keyboard, permissions, hardware camera, real account/backend or deployment acceptance.",
-  "currentSource": true,
+  "currentSource": false,
   "result": "source provenance only; scoped native evidence below",
   "recheckedAfterNative": true,
   "full40RouteAndRealDeviceMatrix": "blocked",

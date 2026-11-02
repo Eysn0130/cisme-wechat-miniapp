@@ -7,6 +7,13 @@
 .composer-notice { margin:0 0 12px; padding:0; border-radius:0; background:transparent; color:var(--cisme-muted); font-size:var(--cisme-text-body); }
 .composer-status,.composer-recovery,.composer-result { margin:0 0 20px; padding:18px; border-radius:14px; background:#f7f4f9; color:var(--cisme-ink); font-size:var(--cisme-text-body); line-height:1.6; }
 .composer-recovery { background:#faf3f5; }
+.composer-handoff { display:flex; flex-direction:column; align-items:center; gap:18px; max-width:390px; margin:10px auto 20px; }
+.composer-handoff__card { width:calc(75vh - 225px); min-width:150px; max-width:100%; }
+.composer-handoff__frame { position:relative; width:100%; height:0; padding-top:133.333333%; overflow:hidden; border-radius:12px; background:#f7f4f9; }
+.composer-handoff__image { position:absolute; top:0; left:0; width:100%; height:100%; }
+.composer-handoff__waiting { display:flex; align-items:center; gap:8px; color:var(--cisme-muted); font-size:var(--cisme-text-body); line-height:1.6; }
+.composer-handoff__spinner { width:16px; height:16px; border:2px solid var(--cisme-line); border-top-color:var(--cisme-plum); border-radius:50%; animation:composer-handoff-spin 900ms linear infinite; }
+@keyframes composer-handoff-spin { to { transform:rotate(360deg); } }
 .composer-result__title,.composer-recovery__title { display:block; color:var(--cisme-ink-deep); font-size:18px; font-weight:500; }
 .composer-page .text-button { min-width:var(--cisme-hit-target); min-height:var(--cisme-hit-target); padding:8px 14px; font-size:var(--cisme-text-body); line-height:1.5; white-space:normal; word-break:break-word; }
 .composer-result__actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:14px; }
@@ -74,4 +81,4 @@
 .control--disabled { opacity:.45; }
 @media (max-width:374px) { .composer-media-scroll { --composer-media-size:82px; } .composer-actions { padding-right:18px; padding-left:18px; } .composer-actions__buttons { gap:10px; } .composer-actions__buttons button { padding:12px 10px; } }
 @media (min-width:420px) { .composer-media-scroll { --composer-media-size:88px; } }
-@media (prefers-reduced-motion: reduce) { .composer-media--shifting,.composer-drag-photo--dropping { transition:none; } }
+@media (prefers-reduced-motion: reduce) { .composer-media--shifting,.composer-drag-photo--dropping { transition:none; } .composer-handoff__spinner { animation:none; } }

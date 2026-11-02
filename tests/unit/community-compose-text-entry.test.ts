@@ -1,4 +1,5 @@
 import {afterEach,beforeEach,expect,it,vi} from "vitest";
+import {readFile} from "node:fs/promises";
 const m=vi.hoisted(()=>({request:vi.fn(),upload:vi.fn(),token:"member-a",revision:1}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,uploadAuthorized:m.upload,resumeAuthentication:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
@@ -54,7 +55,7 @@ it.each(["size","mime","missing","empty","over300"])("does not create or upload 
   if(boundary==="missing")fs.getFileInfo.mockImplementationOnce(({fail}:any)=>fail({errMsg:"not found"}));
   const event=confirmation(page,boundary==="empty"?{text:"\u200b   "}:boundary==="over300"?{text:"护".repeat(301)}:{});
   await page.confirmTextCard(event);expect(writes()).toHaveLength(0);expect(m.upload).not.toHaveBeenCalled();
-  expect(page.data).toMatchObject({postId:"",ownerId:"",body:"",textCardText:"需要保留的输入",textCardTemplate:"memo",textCardVisible:true,busy:false});
+  expect(page.data).toMatchObject({postId:"",ownerId:"",body:"",textCardText:"需要保留的输入",textCardTemplate:"memo",textCardVisible:true,busy:false,textCardHandoffPath:""});
   expect(page.data.error).toContain("输入仍保留");
 });
 it.each(["account","environment","version","epoch","unload"])("rejects a file-info result arriving after the %s scope changed",async boundary=>{
@@ -67,7 +68,7 @@ it("requires an explicit same-key retry after an unknown create and never upload
   const page=await entry();changed(page);let calls=0;
   m.request.mockImplementation((options:any)=>{if(options.path==="/v1/me/ugc/posts"&&options.method==="POST"){calls+=1;return calls===1?Promise.reject({status:503}):Promise.resolve(draft());}return defaultRequest(options);});
   await page.confirmTextCard(confirmation(page));const key=creates()[0]![0].idempotencyKey;
-  expect(page.pendingLocalText).toMatchObject({text:"卡片里的可编辑文字",sent:true});expect(m.upload).not.toHaveBeenCalled();expect(page.data.body).toBe("");
+  expect(page.pendingLocalText).toMatchObject({text:"卡片里的可编辑文字",sent:true});expect(m.upload).not.toHaveBeenCalled();expect(page.data).toMatchObject({body:"",busy:false,operation:"idle",textCardHandoffPath:"/synthetic/card.png"});
   page.onHide();page.onShow();await flush();expect(creates()).toHaveLength(1);
   page.retryLoad();await flush();expect(creates()).toHaveLength(2);expect(creates()[1]![0].idempotencyKey).toBe(key);
   expect(m.upload).toHaveBeenCalledOnce();expect(page.pendingLocalText).toBeNull();expect(page.data).toMatchObject({body:"",textCardText:"卡片里的可编辑文字",ownerId:owner});
@@ -77,14 +78,14 @@ it.each(["account","environment","unload"])("does not adopt an old owner's creat
   m.request.mockImplementation((options:any)=>options.path==="/v1/me/ugc/posts"&&options.method==="POST"?creation.promise:defaultRequest(options));
   const confirming=page.confirmTextCard(confirmation(page));await flush();expect(creates()).toHaveLength(1);
   if(boundary==="account"){m.token="member-b";page.onShow();}else if(boundary==="environment"){m.revision+=1;page.onShow();}else page.onUnload();
-  creation.resolve(draft());await confirming;expect(page.data.postId).toBe("");expect(m.upload).not.toHaveBeenCalled();
+  creation.resolve(draft());await confirming;expect(page.data).toMatchObject({postId:"",textCardHandoffPath:""});expect(m.upload).not.toHaveBeenCalled();
 });
 it("adopts a known create success on return without retrying POST or uploading while hidden",async()=>{
   const creation=deferred(),page=await entry();changed(page);
   m.request.mockImplementation((options:any)=>options.path==="/v1/me/ugc/posts"&&options.method==="POST"?creation.promise:defaultRequest(options));
   const confirming=page.confirmTextCard(confirmation(page));await flush();page.onHide();creation.resolve(draft());await confirming;
-  expect(page.pendingLocalText?.draft).toMatchObject({id:post});expect(page.data.postId).toBe("");expect(m.upload).not.toHaveBeenCalled();
-  page.onShow();await flush();expect(creates()).toHaveLength(1);expect(m.upload).toHaveBeenCalledOnce();expect(page.data.body).toBe("");
+  expect(page.pendingLocalText?.draft).toMatchObject({id:post});expect(page.data).toMatchObject({postId:"",textCardHandoffPath:"/synthetic/card.png"});expect(m.upload).not.toHaveBeenCalled();
+  page.onShow();await flush();expect(creates()).toHaveLength(1);expect(m.upload).toHaveBeenCalledOnce();expect(page.data).toMatchObject({body:"",textCardHandoffPath:""});
 });
 it("refuses a newly closed private-draft capability before creating, while retaining the accepted card for explicit retry",async()=>{
   const page=await entry();changed(page);
@@ -202,4 +203,61 @@ it("reopens an independently edited short card while preserving a later long pub
   const page=editor({body:"最初的短正文"});page.openTextCard();changed(page,"独立保存的短卡文字","care");
   page.cancelTextCard({detail:{contextKey:page.data.textCardContext}});const body="护".repeat(1000);page.editBody({detail:{value:body}});page.openTextCard();
   expect(page.data).toMatchObject({body,textCardText:"独立保存的短卡文字",textCardTemplate:"care",textCardVisible:true});expect(writes()).toHaveLength(0);
+});
+it("keeps the verified card visible with real creating feedback until its canonical draft response arrives",async()=>{
+  const page=await entry(),creation=deferred();changed(page,"服务器响应前仍能看到这张卡","memo");
+  m.request.mockImplementation((options:any)=>options.path==="/v1/me/ugc/posts"&&options.method==="POST"?creation.promise:defaultRequest(options));
+  const confirming=page.confirmTextCard(confirmation(page));await flush();
+  expect(page.data).toMatchObject({textCardVisible:false,textCardHandoffPath:"/synthetic/card.png",busy:true,operation:"creating",loading:false,postId:"",ownerId:""});expect(m.upload).not.toHaveBeenCalled();
+  const markup=await readFile("apps/miniprogram/pages/community-compose/index.wxml","utf8");
+  expect(markup).toContain("!postId && !loading && !listMode && (textCardHandoffPath || (busy && operation === 'creating'))");
+  expect(markup).toMatch(/<image\b[^>]*src="\{\{textCardHandoffPath\}\}"[^>]*mode="aspectFit"/);expect(markup).toContain("正在准备…");
+  creation.resolve(draft());await confirming;
+  expect(page.data).toMatchObject({postId:post,ownerId:owner,textCardHandoffPath:"",busy:false,operation:"idle",body:""});expect(m.upload).toHaveBeenCalledOnce();
+});
+it("shows an explicit same-candidate continuation after backgrounding interrupts the pre-create status read",async()=>{
+  const page=await entry(),status=deferred();changed(page);const key=page.data.createKey;
+  m.request.mockImplementation((options:any)=>options.path==="/v1/ugc/status"?status.promise:defaultRequest(options));
+  const confirming=page.confirmTextCard(confirmation(page));await flush();expect(page.pendingLocalText?.sent).toBe(false);expect(page.data).toMatchObject({busy:true,operation:"creating",loading:false,textCardHandoffPath:"/synthetic/card.png"});
+  page.onHide();status.resolve({draftsEnabled:true,publicEnabled:false});await confirming;
+  expect(creates()).toHaveLength(0);expect(page.data).toMatchObject({busy:false,operation:"idle",loading:false,textCardHandoffPath:"/synthetic/card.png"});
+  page.onShow();await flush();expect(creates()).toHaveLength(0);expect(page.data.error).toContain("重试继续");expect(page.data.textCardHandoffPath).toBe("/synthetic/card.png");
+  m.request.mockImplementation(defaultRequest);page.retryLoad();await flush();expect(creates()).toHaveLength(1);expect(creates()[0]![0].idempotencyKey).toBe(key);expect(m.upload).toHaveBeenCalledOnce();expect(page.data.textCardHandoffPath).toBe("");
+});
+it.each(["body","save"])("shows real creating feedback for a no-image %s handoff and clears it after the response",async kind=>{
+  const page=await entry(),creation=deferred();changed(page,"没有生成PNG的原始文字");
+  m.request.mockImplementation((options:any)=>options.path==="/v1/me/ugc/posts"&&options.method==="POST"?creation.promise:defaultRequest(options));
+  if(kind==="save")wxMock.showActionSheet.mockResolvedValue({tapIndex:0});
+  page.cancelTextCard({detail:{contextKey:page.data.textCardContext,...(kind==="body"?{mode:"body"}:{})}});await flush();
+  expect(page.data).toMatchObject({postId:"",textCardVisible:false,busy:true,operation:"creating",loading:false,textCardHandoffPath:""});expect(m.upload).not.toHaveBeenCalled();
+  creation.resolve(draft());await flush();expect(page.data).toMatchObject({postId:post,busy:false,operation:"idle",textCardHandoffPath:"",body:"没有生成PNG的原始文字"});
+});
+it("clears an unknown local create command after explicitly leaving for My posts, so an existing draft can make a card",async()=>{
+  const other="dddddddd-dddd-4ddd-8ddd-dddddddddddd",page=await entry();changed(page,"已经确认离开的旧本机卡片");const oldEvent=confirmation(page);
+  m.request.mockImplementation((options:any)=>options.path==="/v1/me/ugc/posts"&&options.method==="POST"?Promise.reject({status:503}):options.path===`/v1/me/ugc/posts/${other}`?Promise.resolve(draft({id:other,version:4,body:"本人已有稿正文"})):defaultRequest(options));
+  await page.confirmTextCard(oldEvent);expect(page.pendingLocalText?.sent).toBe(true);
+  wxMock.showModal.mockResolvedValue({confirm:true});await page.showMyPosts();await flush();
+  expect(page.localTextEntry).toBeNull();expect(page.pendingLocalText).toBeNull();expect(page.pendingTextImport).toBeNull();expect(page.resumeTextCard).toBeNull();expect(page.textCardOpenContext).toBeNull();
+  expect(page.data).toMatchObject({listMode:true,textCardVisible:false,textCardHandoffPath:""});
+  await page.loadDraft(other);page.openTextCard();expect(page.data).toMatchObject({postId:other,ownerId:owner,version:4,textCardVisible:true,textCardText:"本人已有稿正文"});
+  await page.confirmTextCard(oldEvent);expect(m.upload).not.toHaveBeenCalled();expect(creates()).toHaveLength(1);
+  page.retryLoad();await flush();expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:`/v1/me/ugc/posts/${other}`}));expect(creates()).toHaveLength(1);expect(m.request.mock.calls.some(([options])=>options.method==="DELETE")).toBe(false);
+});
+it("invalidates an in-flight text-entry create when explicitly loading another draft, without adopting or uploading its late response",async()=>{
+  const other="dddddddd-dddd-4ddd-8ddd-dddddddddddd",creation=deferred(),page=await entry();changed(page,"旧创作输入");
+  m.request.mockImplementation((options:any)=>options.path==="/v1/me/ugc/posts"&&options.method==="POST"?creation.promise:options.path===`/v1/me/ugc/posts/${other}`?Promise.resolve(draft({id:other,version:7,title:"另一篇本人草稿",body:"另一篇真实正文"})):defaultRequest(options));
+  const confirming=page.confirmTextCard(confirmation(page));await flush();expect(page.data.busy).toBe(true);
+  await page.loadDraft(other);expect(page.pendingLocalText).toBeNull();expect(page.localTextEntry).toBeNull();expect(page.pendingTextImport).toBeNull();expect(page.resumeTextCard).toBeNull();
+  expect(page.data).toMatchObject({postId:other,version:7,title:"另一篇本人草稿",body:"另一篇真实正文",busy:false,operation:"idle",textCardVisible:false,textCardHandoffPath:""});
+  page.openTextCard();expect(page.data.textCardVisible).toBe(true);const currentKey=page.data.textCardContext;
+  creation.resolve(draft());await confirming;expect(page.data).toMatchObject({postId:other,version:7,body:"另一篇真实正文",textCardVisible:true,textCardContext:currentKey});
+  expect(m.upload).not.toHaveBeenCalled();expect(m.request.mock.calls.some(([options])=>options.path.endsWith("/authorize")||options.method==="DELETE")).toBe(false);
+});
+it("clears an explicitly abandoned local entry command before a distinct new creation intent",async()=>{
+  const page=await entry();changed(page);m.request.mockImplementation((options:any)=>options.path==="/v1/me/ugc/posts"&&options.method==="POST"?Promise.reject({status:503}):defaultRequest(options));
+  await page.confirmTextCard(confirmation(page));const key=page.data.createKey;wxMock.showModal.mockResolvedValue({confirm:true});expect(await page.confirmLeave()).toBe(true);
+  page.openNewIfAvailable=vi.fn().mockResolvedValue(undefined);page.startNew();
+  expect(page.pendingLocalText).toBeNull();expect(page.localTextEntry).toBeNull();expect(page.pendingTextImport).toBeNull();expect(page.resumeTextCard).toBeNull();expect(page.textCardOpenContext).toBeNull();
+  expect(page.data).toMatchObject({textCardVisible:false,textCardContext:"",textCardText:"",textCardHandoffPath:"",requestedNew:true});expect(page.data.createKey).not.toBe(key);expect(page.openNewIfAvailable).toHaveBeenCalledOnce();
+  expect(creates()).toHaveLength(1);expect(m.upload).not.toHaveBeenCalled();expect(m.request.mock.calls.some(([options])=>options.method==="DELETE")).toBe(false);
 });

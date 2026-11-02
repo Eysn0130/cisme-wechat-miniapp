@@ -1,0 +1,43 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled unknown create response after fake in-memory commit",
+        "busy": false,
+        "operation": "idle",
+        "postId": "",
+        "error": "离线场景：新建回执暂未确认",
+        "handoffPngRetained": true,
+        "pendingSent": true,
+        "newMockPostCount": 1,
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 22,
+            "right": 368,
+            "top": 163.1953125,
+            "bottom": 624.5234375,
+            "width": 346,
+            "height": 461.328125
+          },
+          null,
+          {
+            "id": "",
+            "dataset": {},
+            "left": 22,
+            "right": 368,
+            "top": 644.5234375,
+            "bottom": 694.5234375,
+            "width": 346,
+            "height": 50
+          }
+        ]
+      }
+    }
+  }
+}

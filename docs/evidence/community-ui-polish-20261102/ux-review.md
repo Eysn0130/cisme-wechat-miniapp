@@ -1,6 +1,6 @@
 # 社区发布交互复核：最新用户修订
 
-2026-11-02。范围为原生微信小程序的社区发布。当前最终文字流程包为eba9bd7c894f，9张新原生截图覆盖三尺寸输入、模板与publisher；24个实际源码文件逐字节一致，六张真实PNG及短句两行排版已核对。图片工具、删除与拖排分别保留此前原包证据，不继承成当前验收；普通短划真实传播与左上截线异常仍有明确边界，不能据此宣布完整新包或真机通过。
+2026-11-02。范围为原生微信小程序的社区发布。当前最终包为9fd94ffc8b5c，24个实际源码文件逐字节一致，390输入／模板／publisher三帧及离开后清理旧文字命令已核对。三尺寸和保图等待／失败重试保留c4ee原包证据，生成取消等保留3127原包证据，不合并成当前全状态通过。图片工具、删除与拖排也只保此前原包范围；普通短划真实传播与左上截线异常仍有明确边界，不能据此宣布完整新包或真机通过。
 
 最初关于“固定应用行、未应用时禁用下一步”的报告已按原字节归档为 [ux-review-initial-historical.md](ux-review-initial-historical.md)，SHA-256 为 33c633e2ebdcde8d4a578a4df42f72803e88bf131d154e3f430f25fbe936a4c3，不再代表当前要求。旧26f的24张图和报告见[历史目录](source-26f1682e09e7/README.md)。
 
@@ -71,10 +71,20 @@
 
 最后仅queueLocalBackup增加严格dirty且保存成功文案清除；[7张小范围新原生证据](source-025dfc921b79/README.md)确认三尺寸publisher和390 saved→changed清提示、noop/cancel保提示／原顺序。Canvas、edge、完整工具流程本包未重复，b00原始17图仍保留原hash，不改标或继承。用户新要求的分步文字流程不在此baseline内，需待下一冻结源码独立验收。
 
-## 当前eba9文字流程原生结果
+## 历史eba9文字流程原生结果
 
 按[分步流程contract](text-card-flow-contract.md)，输入大卡片→实际本地生成→六模板大预览／横向缩略→现有publisher。输入取消为X、模板返回为chevron；模板页“下一步”右对齐112×48px。短输入居中留白，系统字与CISME紫保留。≤24字且2–3个显式非空段落按实际Canvas宽度缩字号（下限46），本轮例文两段各一行；长文的300字和溢出保护不变。
 
-[当前9张原生截图、源码证明与结果](source-eba9bd7c894f/README.md)对应eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4。361／390／430头部下一步与胶囊空隙24／20／20px，主预览与底部操作无重叠。390六张真实PNG为1440×1920、签名正确、完整内容6个不同。三个尺寸在输入和模板时均为0投稿／0写调用；最终确认才创建并上传图片，进入publisher的标题和正文均空，卡片原文独立保留。
+[当时9张原生截图、源码证明与结果](source-eba9bd7c894f/README.md)对应eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4。361／390／430头部下一步与胶囊空隙24／20／20px，主预览与底部操作无重叠。390六张真实PNG为1440×1920、签名正确、完整内容6个不同。三个尺寸在输入和模板时均为0投稿／0写调用；最终确认才创建并上传图片，进入publisher的标题和正文均空，卡片原文独立保留。
 
 取消生成、释放迟到回执后新批次不被覆盖、缓存快速选择及native导航hide/show换scope保字，仅在历史3127包核对，本包未重复，不改标。生成中截图为真实PNG完成后暂缓回执的受控pending，不是性能证明。当前SDK clickCheckTask错误原样保留；390模板页0,0极小截线仍存在，精确来源未确认，手机待核。真实键盘、OS后台、手指手势、读屏、相机、真实后端审核／公开及全40路由继续未验／blocked。两项wx API已restore，精确离线样本清除并刷新后投稿0／写调用0／模拟公开关闭，无临时wrapper；UI已交还根代理。
+
+### 后续独立等待态检查：eba9确定缺口
+
+[原生等待态回执](text-card-handoff-audit-eba9/README.md)确认：真实PNG最终确认后，若新建草稿回执暂未返回，组件已隐藏且publisher因无postId未显示，只有禁用header和白页。九张静态图没有覆盖此等待态，不据其宣布全流程通过。最小修订应保已验证PNG与轻量等待反馈，canonical归属确认后才进入publisher；同候选、createKey与错误重试沿既有保护。回执释放后导图正常，刺激adapter完整还原、24fixture仍匹配eba9、最终内存投稿0／写调用0。修后须以新包独立验证这条，不改标eba9原图。
+
+## 当前9fd最终有限复核
+
+[c4ee历史11图与回执](source-c4ee39241275/README.md)已重新验证三尺寸与390保图等待／错误同键重试：真实PNG在创建回执等待中显示3:4预览和“正在准备…”；失败停spinner、保图及重试。释放后仅create1／authorize1／complete1；unknowncreate同candidate／同createKey重试，fake服务端投稿数未增，媒体仅上传一次。此后发现显式转列表或另稿时旧pending命令仍可能残留，最后仅改TS统一清scope；c4ee图不改标到新包。
+
+[9fd当前三帧与scope回执](source-9fd94ffc8b5c/README.md)确认390输入／模板／publisher布局与空标题正文。unknowncreate后受控确认离开到列表，entry／pending／import／resume／context／handoff均清；再开受控既有草稿能编辑卡片，原正文保留。programmatic loadDraft在等待中换scope后，释放旧回执不改变当前post／title／body／files／epoch，媒体写入0。以上为隔离mock服务与原生方法验证，不代表真实后端、账户权限或手指触摸。最终restore三项wx API、完整还原adapter并fresh runtime核对投稿0／写调用0／公开与入口关闭，UI交还根代理。全40路由、真机与既有SDK／截线边界继续保留。

@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "c4ee3924127555e022a0ed4f73a9bf09d58690d894cbb5738d9e352075e9ae63",
+  "currentSource": false,
+  "role": "intermediate handoff UI before explicit-navigation pending-command cleanup",
+  "result": "scoped three-size static and handoff pending/error/retry pass only",
+  "sourceByteIdenticalFiles": 24,
+  "reviewedScreenshotCount": 11,
+  "screenshots": [
+    {
+      "file": "native-handoff-create-error-390.png",
+      "sha256": "e9b472be1b855e0653e4d58ccb66d14466c4f1af813b4b46c3b89f6c24b94321",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-handoff-create-pending-390.png",
+      "sha256": "6082b1629e3cf24378b2ae844b956b8717ef6669757b5e1c8648471dfa27f72c",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-input-361.png",
+      "sha256": "f2dcabb8cf4f31299bdfa3ce08fbcc7ea384ea443b58e9060587244e342fcdd5",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-input-390.png",
+      "sha256": "8414656d885316c22a24f9e89f203c6b9d1dcc656d0ffeda97b1890e14f48356",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-input-430.png",
+      "sha256": "47825b66a0a13e3a307b03d0730bd8ca31aa5095265249b7c7b368f90107528e",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-publisher-public-361.png",
+      "sha256": "72c120f6b6c632313b214085a028e9871a9d25adec1bd46dbbff5550093549a6",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-publisher-public-390.png",
+      "sha256": "3263b23792c22ed6273ea8ad97c41caea1abfd7b8b88c1d0174700d301af5866",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-publisher-public-430.png",
+      "sha256": "e2ddd5b610a4bb429e3a80466c1724c7963c49cb16f379fda4b260ff96527173",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-templates-361.png",
+      "sha256": "82b09e7e8be82df33c400210fa26e2300c97605ab2b30dbd94da69dc2c905c6b",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-templates-390.png",
+      "sha256": "53577074d4e8c2994ed1f2c80d0c5b0d193105faad87a590c982c2214aec0a69",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-text-templates-430.png",
+      "sha256": "5ebe142a7d3e9a60868d124b4ee2eb74bc224228a22d97639069ce1e8d420a72",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true
+    }
+  ],
+  "handoff": {
+    "native-handoff-hold-create": {
+      "scope": "real verified PNG, controlled offline create response pending",
+      "selectedPng": "http://tmp/N7pX0NaUsQPV70d71dff30a27d3c06ab1aa6716f6db2.png",
+      "handoffSamePng": true,
+      "busy": true,
+      "operation": "creating",
+      "loading": false,
+      "postId": "",
+      "error": "",
+      "componentVisible": false,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 368,
+          "top": 113,
+          "bottom": 574.328125,
+          "width": 346,
+          "height": 461.328125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 149.4375,
+          "right": 240.5546875,
+          "top": 592.328125,
+          "bottom": 614.7265625,
+          "width": 91.1171875,
+          "height": 22.3984375
+        }
+      ]
+    },
+    "native-handoff-release-once": {
+      "postId": "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
+      "files": 1,
+      "title": "",
+      "body": "",
+      "error": "",
+      "handoffCleared": true,
+      "createCalls": 1,
+      "authorizeCalls": 1,
+      "completeCalls": 1
+    },
+    "native-handoff-create-error": {
+      "scope": "controlled unknown create response after fake in-memory commit",
+      "busy": false,
+      "operation": "idle",
+      "postId": "",
+      "error": "离线场景：新建回执暂未确认",
+      "handoffPngRetained": true,
+      "pendingSent": true,
+      "newMockPostCount": 1,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 368,
+          "top": 163.1953125,
+          "bottom": 624.5234375,
+          "width": 346,
+          "height": 461.328125
+        },
+        null,
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 368,
+          "top": 644.5234375,
+          "bottom": 694.5234375,
+          "width": 346,
+          "height": 50
+        }
+      ]
+    },
+    "native-handoff-same-key-retry": {
+      "sameCandidateBeforeRetry": true,
+      "sameKeyBeforeRetry": true,
+      "serverPostCountUnchanged": true,
+      "postId": "bbbbbbbb-bbbb-4bbb-8bbb-000000000003",
+      "handoffCleared": true,
+      "files": 1,
+      "title": "",
+      "body": "",
+      "error": "",
+      "retryCreateCalls": 1,
+      "authorizeCalls": 1,
+      "completeCalls": 1
+    }
+  },
+  "cleanup": {
+    "route": "pages/community/index",
+    "posts": 0,
+    "writeCalls": 0,
+    "publicEnabled": false,
+    "latencyAbsent": true,
+    "realAccountDataAccessed": false,
+    "persistentStorage": false
+  },
+  "notAccepted": [
+    "explicit navigation to list/different draft with pendingLocalText retained; fixed by later source, not accepted here"
+  ],
+  "notRepeated": [
+    "3127 generation cancel/cache/native hide-show",
+    "photo drag/edge/tool controls",
+    "physical touch/keyboard/VoiceOver/OSbackground"
+  ],
+  "full40RouteAndRealDeviceMatrix": "blocked",
+  "realAccountDataAccessed": false
+}

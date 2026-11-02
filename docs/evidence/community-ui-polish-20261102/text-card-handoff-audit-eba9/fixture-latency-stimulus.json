@@ -1,0 +1,9 @@
+{
+  "packageSourceSha256": "eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4",
+  "scope": "Only isolated offline API adapter delayed POST-create response after its fake in-memory draft; product source unchanged. Releasable, not product latency or performance.",
+  "adapterBeforeSha256": "64a299c655e69f5f56c63fc345d2e3a45995939c38ff5f1d0a1069d0a6c66f14",
+  "adapterStimulusSha256": "e58175b03227f32c895595aa66d819d5cff82e9a3604a0f55c27dea244445f00",
+  "insertedStatement": "if(fixture.holdCreateResponse)await new Promise<void>(resolve=>{fixture.releaseCreateResponse=resolve;});",
+  "adapterRestoredSha256": "64a299c655e69f5f56c63fc345d2e3a45995939c38ff5f1d0a1069d0a6c66f14",
+  "productFixture24FilesMatchEba9": true
+}

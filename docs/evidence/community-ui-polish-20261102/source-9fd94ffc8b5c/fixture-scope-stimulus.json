@@ -1,0 +1,7 @@
+{
+  "scope": "isolated offline fake create unknown response and releasable late response; controlled existing-draft seed; no product delay/network",
+  "adapterBeforeSha256": "64a299c655e69f5f56c63fc345d2e3a45995939c38ff5f1d0a1069d0a6c66f14",
+  "adapterStimulusSha256": "38c223df59361d57ea2c0afc8339e74dafd20dae580c81d1de8f41e084da391c",
+  "inserted": "fixture.posts[id]=draft;fixture.keys[options.idempotencyKey]=id;if(fixture.failCreateAfterCommitOnce){fixture.failCreateAfterCommitOnce=false;throw {status:0,title:\"离线场景：新建回执暂未确认\"};}if(fixture.holdCreateResponse)await new Promise<void>(resolve=>{fixture.releaseCreateResponse=resolve;});return clone(draft);",
+  "adapterRestoredSha256": "64a299c655e69f5f56c63fc345d2e3a45995939c38ff5f1d0a1069d0a6c66f14"
+}

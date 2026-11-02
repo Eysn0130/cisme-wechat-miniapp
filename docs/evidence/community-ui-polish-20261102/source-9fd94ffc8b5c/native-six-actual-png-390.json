@@ -1,0 +1,120 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "text": "护理慢慢来，\n感受每天的小变化。",
+        "files": [
+          {
+            "template": "plain",
+            "path": "http://tmp/pn6DTB9hBChe08ae204f56b2fbe686fcfbc71326ae9a.png",
+            "size": 111033,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "minimal",
+            "path": "http://tmp/pDsr5dGnejRZ41cbd2c8c8e3c6df92435fe41991bf57.png",
+            "size": 108377,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "care",
+            "path": "http://tmp/xSGf4OWfb3Kk325c18ca1f88d733622b0f2c85a5685c.png",
+            "size": 109351,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "memo",
+            "path": "http://tmp/InDisyRgEiyFfcb0a5129344d9b8657e9281fd44c758.png",
+            "size": 113619,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "lilac",
+            "path": "http://tmp/R5ua5pIcT86Ade1261bfa84a2cfdbf7a4c2722685e13.png",
+            "size": 349900,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "border",
+            "path": "http://tmp/R9Lh2kxZCPUAf15075f0a82621fb1a8ba79b408a7711.png",
+            "size": 131748,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          }
+        ],
+        "uniqueContents": 6,
+        "selected": "border",
+        "canExport": true
+      }
+    }
+  }
+}

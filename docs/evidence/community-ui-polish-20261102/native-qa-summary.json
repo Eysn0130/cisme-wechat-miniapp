@@ -1,25 +1,16 @@
 {
   "schemaVersion": 1,
-  "packageSourceSha256": "eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4",
+  "packageSourceSha256": "9fd94ffc8b5c0431e5cdce16d190e7e2613703afa5804ff3f3c98c6bb3d9d830",
   "currentSource": true,
-  "result": "scoped native text wizard static/PNG pass only",
-  "evidenceDirectory": "source-eba9bd7c894f",
-  "sourceProof": "source-eba9bd7c894f/source-proof.json",
+  "result": "scoped 390 static and navigation-command cleanup pass only",
+  "evidenceDirectory": "source-9fd94ffc8b5c",
+  "sourceProof": "source-9fd94ffc8b5c/source-proof.json",
   "sourceByteIdenticalFiles": 24,
-  "reviewedScreenshotCount": 9,
+  "reviewedScreenshotCount": 3,
   "screenshots": [
     {
-      "file": "source-eba9bd7c894f/native-text-input-361.png",
-      "sha256": "d19ac3c65bd74a4031f3b0caa47a80423514fe6a04e0d8b104a5aa249db02f71",
-      "pixels": {
-        "width": 362,
-        "height": 804
-      },
-      "visuallyReviewed": true
-    },
-    {
-      "file": "source-eba9bd7c894f/native-text-input-390.png",
-      "sha256": "9b743877e833df35930143c4d1ddbc8a3c613bcb7583601b5dc5612358553819",
+      "file": "source-9fd94ffc8b5c/native-text-input-390.png",
+      "sha256": "64db5eca83c3e7c4ec501218c05731f3cf3b5208f81d9f484d2e14ddd19784a4",
       "pixels": {
         "width": 390,
         "height": 844
@@ -27,26 +18,8 @@
       "visuallyReviewed": true
     },
     {
-      "file": "source-eba9bd7c894f/native-text-input-430.png",
-      "sha256": "8d1227edb726ed472aef2ab96404419e850538f3719228a5f337233a11d91231",
-      "pixels": {
-        "width": 430,
-        "height": 932
-      },
-      "visuallyReviewed": true
-    },
-    {
-      "file": "source-eba9bd7c894f/native-text-publisher-public-361.png",
-      "sha256": "20d946d339c93a334f85769ab966e31670a963ece5136e2d20e250da2adfcefe",
-      "pixels": {
-        "width": 362,
-        "height": 804
-      },
-      "visuallyReviewed": true
-    },
-    {
-      "file": "source-eba9bd7c894f/native-text-publisher-public-390.png",
-      "sha256": "bfa0818489041a6fd8bd6821c153bbe8751ccd05e3adce8bf93446b8aad4dadb",
+      "file": "source-9fd94ffc8b5c/native-text-publisher-public-390.png",
+      "sha256": "5f609db9651e34a2c44a612e547b66064a17727ea5e03b6a80ccfbd56fccdfde",
       "pixels": {
         "width": 390,
         "height": 844
@@ -54,197 +27,118 @@
       "visuallyReviewed": true
     },
     {
-      "file": "source-eba9bd7c894f/native-text-publisher-public-430.png",
-      "sha256": "869d5a2a2924f04cc5fbc2a8f06adb3c179e1ed9172ae6d01ff18b7a15d6e10b",
-      "pixels": {
-        "width": 430,
-        "height": 932
-      },
-      "visuallyReviewed": true
-    },
-    {
-      "file": "source-eba9bd7c894f/native-text-templates-361.png",
-      "sha256": "d02a44e448b05a5f35821db10df36d543783aa0b7e8ea502ea5d86d245e769c2",
-      "pixels": {
-        "width": 362,
-        "height": 804
-      },
-      "visuallyReviewed": true
-    },
-    {
-      "file": "source-eba9bd7c894f/native-text-templates-390.png",
-      "sha256": "ab16e9e1ca16c0b6b9798be7bbcb6b77a5f2e092156f72498545ef8688a0d1ad",
+      "file": "source-9fd94ffc8b5c/native-text-templates-390.png",
+      "sha256": "9be97f85684b082105815976947f4387cd54bd64540b01e59616c5c7cef5f625",
       "pixels": {
         "width": 390,
         "height": 844
-      },
-      "visuallyReviewed": true
-    },
-    {
-      "file": "source-eba9bd7c894f/native-text-templates-430.png",
-      "sha256": "21d0119e505eb0842828ecf631aea22b0ba69c3c6fce2e52cb47d545e66fa430",
-      "pixels": {
-        "width": 430,
-        "height": 932
       },
       "visuallyReviewed": true
     }
   ],
   "currentPackageRetested": [
-    "361/390/430 input/templates/publisher with actual Canvas PNG and blank publisher title/body",
-    "short explicit two-paragraph sample displays two intact lines; header Next capsule clearance 24/20/20px; footer Next112x48",
-    "390 six native PNGs with six distinct full byte contents, actual PNG signatures,1440x1920",
-    "input/templates had zero posts and writes in each fresh size run; final confirm then create/authorize/complete only"
+    "390 input/templates/publisher actual PNG three frames; publisher title/body empty",
+    "unknown create response then explicit mocked confirm-leave to list clears local entry/pending/import/resume/context/handoff",
+    "reopen controlled existing draft can edit text card while preserving original body",
+    "controlled loadDraft changes scope during create pending; late create response cannot take over current post/content; zero media writes"
   ],
-  "sixActualPng": {
-    "text": "护理慢慢来，\n感受每天的小变化。",
-    "files": [
-      {
-        "template": "plain",
-        "path": "http://tmp/fU2c1xJjVon908ae204f56b2fbe686fcfbc71326ae9a.png",
-        "size": 111033,
-        "signature": [
-          137,
-          80,
-          78,
-          71,
-          13,
-          10,
-          26,
-          10
-        ],
-        "width": 1440,
-        "height": 1920
-      },
-      {
-        "template": "minimal",
-        "path": "http://tmp/PShp9qBNoQmO41cbd2c8c8e3c6df92435fe41991bf57.png",
-        "size": 108377,
-        "signature": [
-          137,
-          80,
-          78,
-          71,
-          13,
-          10,
-          26,
-          10
-        ],
-        "width": 1440,
-        "height": 1920
-      },
-      {
-        "template": "care",
-        "path": "http://tmp/R7IeSMVEwHuZ325c18ca1f88d733622b0f2c85a5685c.png",
-        "size": 109351,
-        "signature": [
-          137,
-          80,
-          78,
-          71,
-          13,
-          10,
-          26,
-          10
-        ],
-        "width": 1440,
-        "height": 1920
-      },
-      {
-        "template": "memo",
-        "path": "http://tmp/uTjNSQHwsFrjfcb0a5129344d9b8657e9281fd44c758.png",
-        "size": 113619,
-        "signature": [
-          137,
-          80,
-          78,
-          71,
-          13,
-          10,
-          26,
-          10
-        ],
-        "width": 1440,
-        "height": 1920
-      },
-      {
-        "template": "lilac",
-        "path": "http://tmp/c6mUVKXzT6pcde1261bfa84a2cfdbf7a4c2722685e13.png",
-        "size": 349900,
-        "signature": [
-          137,
-          80,
-          78,
-          71,
-          13,
-          10,
-          26,
-          10
-        ],
-        "width": 1440,
-        "height": 1920
-      },
-      {
-        "template": "border",
-        "path": "http://tmp/0lkdutEVcsCnf15075f0a82621fb1a8ba79b408a7711.png",
-        "size": 131748,
-        "signature": [
-          137,
-          80,
-          78,
-          71,
-          13,
-          10,
-          26,
-          10
-        ],
-        "width": 1440,
-        "height": 1920
-      }
-    ],
-    "uniqueContents": 6,
-    "selected": "border",
-    "canExport": true
+  "navigationCleanup": {
+    "scope": "controlled unknown response; official showModal mock explicitly confirms leave; fake existing draft read",
+    "unknown": {
+      "postId": "",
+      "sent": true,
+      "hasCandidate": true,
+      "hasHandoff": true
+    },
+    "list": {
+      "pendingCleared": true,
+      "entryCleared": true,
+      "importCleared": true,
+      "resumeCleared": true,
+      "contextCleared": true,
+      "handoffCleared": true
+    },
+    "reopened": {
+      "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      "canEditCard": true,
+      "originalBodyPreserved": true,
+      "pendingCommandAbsent": true,
+      "error": ""
+    }
   },
-  "notRepeatedOnThisPackage": {
-    "priorPackageSha256": "31270c2469a83a899674f9e042003506c920e11fb4209b1b884926e7180d7f45",
-    "priorEvidence": "../source-31270c2469a8/native-qa-summary.json",
-    "scopes": [
-      "generation cancellation and delayed callback/new batch",
-      "cached six-template fast switch without export",
-      "navigation hide/show scope replacement and stale event rejection",
-      "390 private single-CTA screenshot"
-    ],
-    "evidenceInheritedAsNewAcceptance": false
+  "lateResponse": {
+    "scope": "controlled programmatic loadDraft changes scope during pending create; not a touch or permission test",
+    "oldCandidateInvalidated": true,
+    "before": {
+      "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      "title": "已有草稿",
+      "body": "保留原正文",
+      "files": 0,
+      "epoch": 1
+    },
+    "after": {
+      "postId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      "title": "已有草稿",
+      "body": "保留原正文",
+      "files": 0,
+      "epoch": 1
+    },
+    "unchanged": true,
+    "handoffCleared": true,
+    "textContextCleared": true,
+    "uploadCalls": 0,
+    "error": ""
+  },
+  "notRepeatedOnThisPackage": [
+    {
+      "packageSourceSha256": "c4ee3924127555e022a0ed4f73a9bf09d58690d894cbb5738d9e352075e9ae63",
+      "evidence": "../source-c4ee39241275/native-qa-summary.json",
+      "scopes": [
+        "361/430 and full three-size static set",
+        "390 create pending picture/spinner, release once, error and same-key retry"
+      ],
+      "evidenceInheritedAsNewAcceptance": false
+    },
+    {
+      "packageSourceSha256": "31270c2469a83a899674f9e042003506c920e11fb4209b1b884926e7180d7f45",
+      "evidence": "../source-31270c2469a8/native-qa-summary.json",
+      "scopes": [
+        "generation cancel/delayed export/cache switch/native navigation hide-show"
+      ],
+      "evidenceInheritedAsNewAcceptance": false
+    }
+  ],
+  "knownHistoricalFailure": {
+    "evidence": "../text-card-handoff-audit-eba9/review.json",
+    "scope": "eba9 blank pending frame is retained as failure; no relabeling"
   },
   "openBoundaries": [
-    "template390 tiny clipped top-left line remains visible; precise source unconfirmed, physical phone check pending",
-    "SDK clickCheckTask TypeError remains in current native-console.json; no claim of zero console errors",
+    "SDK clickCheckTask error retained in native-console.json; no zero-console claim",
+    "tiny top-left clipped line source unresolved, physical phone pending; not investigated or declared fixed",
     "physical keyboard/OS background/finger gestures/VoiceOver/camera permissions not verified",
-    "image tool and photo drag/edge states not re-tested by this text-only package scope",
-    "real account/backend105/moderation/deployment/upload not tested by offline adapter",
-    "full40route and real-device matrix remain blocked"
+    "photo tool/drag/edge states not re-tested in current text scope",
+    "real account/backend105/moderation/deployment/upload outside offline fixture",
+    "full40route and real-device matrix blocked"
   ],
-  "apiMocksCreatedThisRun": [],
+  "apiMocksCreatedThisRun": [
+    "showModal: controlled explicit confirm leave only"
+  ],
   "apiRestoreReceipts": [
+    "native-restore-showModal.json",
     "native-restore-chooseMedia.json",
     "native-restore-requirePrivacyAuthorize.json"
   ],
   "cleanup": {
-    "scope": "fresh isolated runtime after cleanup",
     "route": "pages/community/index",
-    "width": 430,
+    "width": 390,
     "posts": 0,
     "writeCalls": 0,
     "publicEnabled": false,
     "publishEntryOpen": false,
-    "runtimeWrapperAbsent": true,
+    "latencyAbsent": true,
     "realAccountDataAccessed": false,
     "persistentStorage": false
   },
-  "toolErrors": [
-    "native-final-empty-baseline-refresh-readiness-error.json retains wx-not-defined immediately after refresh; bounded readiness retry succeeded"
-  ],
   "full40RouteAndRealDeviceMatrix": "blocked",
   "realBackend105AccountDeploymentUpload": false
 }

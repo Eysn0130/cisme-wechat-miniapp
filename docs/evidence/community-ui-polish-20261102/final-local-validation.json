@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "packageSourceSha256": "eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4",
+  "packageSourceSha256": "9fd94ffc8b5c0431e5cdce16d190e7e2613703afa5804ff3f3c98c6bb3d9d830",
   "unit": {
     "files": 179,
-    "passed": 3012,
+    "passed": 3019,
     "skipped": 1,
-    "log": "unit-final-font-fit.log",
+    "log": "unit-final-navigation-scope.log",
     "command": "npm test -- --maxWorkers=2",
     "exitCode": 0
   },
   "build": {
     "includes": "root and mini typecheck, API/worker/admin builds",
-    "log": "build-final-font-fit.log",
+    "log": "build-final-navigation-scope.log",
     "exitCode": 0
   },
   "contracts": {
@@ -26,7 +26,7 @@
     "routes": 40,
     "globalStyleBytes": 8190,
     "errors": [],
-    "log": "package-final-font-fit.log"
+    "log": "package-final-navigation-scope.log"
   },
   "isolatedIntegration": {
     "fullSuite": {
@@ -48,8 +48,8 @@
   },
   "nativeEvidence": {
     "current": "native-qa-summary.json",
-    "scope": "9 final native frames across361/390/430 input/templates/publisher plus actual six PNGs and final create/upload path;24byte-equal files.",
-    "historical": "3127 controlled pending/cancel/hide/cache and b00 photo drag/Canvas retain original hashes; not relabelled as final frames.",
+    "scope": "Current9fd:24 byte-equal files,390 input/templates/publisher3 reviewed frames plus scoped unknown-create navigation cleanup and late-response protection. c4ee three-size11frames and waiting/error/same-key retry remain historical separate package evidence.",
+    "historical": "c4ee3-size/waiting/retry, eba9 sixPNG and3127 cancel/hide/cache; b00 photo drag/Canvas all retain original hashes, no new acceptance inherited.",
     "limits": "SDK clickCheckTask and tiny top-left simulator clipping retained; real phone/touch/keyboard/VoiceOver/full40 matrix unverified."
   },
   "realAccountWrites": false,
@@ -57,6 +57,6 @@
   "full40RouteMatrix": "blocked",
   "ciAndDeploymentAcceptance": "pending actual exact-source receipts",
   "nativeScrollFix": "Historical source-b00f2118bff2/drag-06-edge-scroll.json and drag-07-edge-drop.json verify scroll-x true, native actual offset536/target8/drop. Not repeated or relabelled as eba9 acceptance.",
-  "lastChange": "Input -> six real local PNGs -> template choice -> existing publisher; card text separate from body; initial draft creation delayed until confirmed verified PNG (or explicit save/direct-body); short explicit paragraphs fit actual measured width.",
+  "lastChange": "Input -> six real local PNGs -> template choice -> existing publisher; card text separate from body; initial draft creation delayed until confirmed verified PNG (or explicit save/direct-body); short explicit paragraphs fit actual measured width. Confirmed PNG remains visible during create wait/error; explicit navigation clears local pending commands and prevents late replies from taking over another draft.",
   "historicalLocalTimingEvidence": "performance-local-comparison.json and local-validation-pre-text-025.json retain initial local timing failures; no threshold or HTTP backend changed."
 }
