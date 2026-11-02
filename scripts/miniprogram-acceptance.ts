@@ -162,7 +162,7 @@ async function seedFixtures() {
     const makePost=async(key:string,publish:boolean)=>{
       const draft=body<any>(await app!.inject({method:"POST",url:"/v1/me/ugc/posts",headers:{...authorAuth,"idempotency-key":`native-${key}-0001`},payload:{}}),"UGC_CREATE");
       const saved=body<any>(await app!.inject({method:"PUT",url:`/v1/me/ugc/posts/${draft.id}/draft`,headers:authorAuth,
-        payload:{expectedVersion:draft.version,title:`合成护理故事 · ${key}`,body:"仅用于本轮隔离原生验收。记录护理步骤与本人感受，不构成商品功效或医疗承诺。",mediaIds:[],aiUsage:"none",rightsConfirmed:true,publicConsentConfirmed:true}}),"UGC_SAVE");
+        payload:{expectedVersion:draft.version,title:`合成护理故事 · ${key}`,body:"仅用于本轮隔离原生验收。记录护理步骤与本人感受，不构成商品功效或医疗承诺。",mediaIds:[],rightsConfirmed:true,publicConsentConfirmed:true}}),"UGC_SAVE");
       const submitted=body<any>(await app!.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/submit`,headers:authorAuth,payload:{expectedVersion:saved.version}}),"UGC_SUBMIT");
       if(!publish)return submitted;
       const reviewed=body<any>(await app!.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/review`,headers:auth,payload:{expectedVersion:submitted.version,decision:"approve",reason:"本地合成文本验收",ruleVersion:"synthetic-native-v1"}}),"UGC_REVIEW");

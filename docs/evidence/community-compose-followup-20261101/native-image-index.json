@@ -1,0 +1,120 @@
+{
+  "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+  "images": [
+    {
+      "file": "native-01-empty.png",
+      "sha256": "8118ca8d2fdf6d373ceb8673ee74226afce320aa68407ae23b3f8030ae1ffddd",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-02-nine-strip.png",
+      "sha256": "041e9413671780b4a38e6c384c25fee4af0db2e7c5d02f6bb4977ac5e313d45e",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-03-sorting.png",
+      "sha256": "0aff85629381879b39874eac113eb2c19c39b7c68c19de68d2346fbd6bb02abe",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-04-declarations.png",
+      "sha256": "0950619d9e7027c803feded356bebb15a4ce27b99d79b473561d7fa0e7aa50e4",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-05-readonly-local-fallback.png",
+      "sha256": "40c34c7ab892923d4ef26bdad9df2a7a520d9c42f1f6e958ef045cef384153f7",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-06-readonly-preview-restored.png",
+      "sha256": "40c34c7ab892923d4ef26bdad9df2a7a520d9c42f1f6e958ef045cef384153f7",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-07-deleted-dirty.png",
+      "sha256": "141a7b733d36d6442d7bf6aad5431ab0de66746eaa23ddaa39f756592bff5977",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-08-deleted-exit-warning.png",
+      "sha256": "02e5149aa19482c9ee5d90d73ed6f052d906c88d93bbf49f1b498eee48beb171",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-large-430-empty.png",
+      "sha256": "f012dc4b7c76ef9d920e4539d0026ed5e179ea21c042e8294a2c4b7fd95bc93f",
+      "width": 430,
+      "height": 932,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-small-361-hidden-dirty.png",
+      "sha256": "a8577ab66f2b01e41899ae7481133c00fff46043655c6be10cb6057371a35b6a",
+      "width": 362,
+      "height": 804,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-small-361-public-nine.png",
+      "sha256": "62974491c6b50aa781b09164f163fc3aa6231d08d97acd3cd0a7e88671e11530",
+      "width": 362,
+      "height": 804,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    },
+    {
+      "file": "native-small-361-sorting.png",
+      "sha256": "db80284d16ead2bb0e633d44142d7b12b1ba8abd4c18671995f413958ec29f4f",
+      "width": 362,
+      "height": 804,
+      "packageSourceSha256": "e8be96d428bf49d50e2a7a6cb7222f33c03891356e75280770739a937a31e59b",
+      "scope": "Actual WeChat simulator renderer, source-identical composer, isolated in-memory service fixtures; not physical-device/real-account acceptance",
+      "visualReview": "inspected"
+    }
+  ],
+  "referenceImages": [
+    "rednote-native-publish.png",
+    "rednote-native-content-statement.png",
+    "safari-mobile-publish-not-supported.png"
+  ],
+  "historicalSourceDirectory": "source-78e4e91bd1d9",
+  "transientToolFailure": "responsive-large-community.json retains a timeout immediately after device restart; after runtime confirmed ready, native-large-430-empty-receipt.json and responsive-large-confirmed.json record the successful explicit recovery."
+}

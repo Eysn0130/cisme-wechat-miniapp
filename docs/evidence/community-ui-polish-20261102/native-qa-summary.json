@@ -1,0 +1,347 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54",
+  "result": "scoped-simulator-visual-pass-with-stated-boundaries",
+  "sourceProof": "source-proof.json",
+  "sourceByteIdenticalFiles": 24,
+  "officialSkillVersion": "0.3.14",
+  "libraryVersion": "3.15.2",
+  "project": "/tmp/cisme-compose-native-20261101",
+  "viewports": [
+    {
+      "width": 390,
+      "height": 844,
+      "device": "iPhone 12/13 (Pro)"
+    },
+    {
+      "width": 361,
+      "height": 804,
+      "device": "HUAWEI nova 13"
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "device": "iPhone 14/15 Pro Max"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "native-02-three-choices-390.png",
+      "sha256": "2c3d10592bba38cc2ec88d87232d9430de324d6c4cb933236c679280af528f9f",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-04-text-card-390.png",
+      "sha256": "45bbfce34ba3962a4635a19547884bddeed9d5d99718bd788561c55e0cf0fcee",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-07-photo-dirty-390.png",
+      "sha256": "239086a8acaa6fe0f4fa5e4317471e4add4b968e855016fa1e5067b0e0409b46",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-09-photo-applied-390.png",
+      "sha256": "e5da006e0b469490a956686734268414b4403c72442f5219ab05cc9c0160bf28",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-11-private-composer-390.png",
+      "sha256": "6db26ceead2d762a967784284c3d28583603a82da959cce5b2df45469ca4f3bd",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-13-publish-settings-390.png",
+      "sha256": "9b773e9a7355b801a1ef033e9a4fc4605501a897c214af7210d603a196a5d84b",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-15-public-composer-390.png",
+      "sha256": "c1bbf939752dcf650a44559bfaf550e30a0537610a8002142aa80fb8a428eab6",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-17-pending-review-390.png",
+      "sha256": "59ab30c22305d0fc9e4a7aad006625d088caba5e42b217f3f6fddff9466d7c49",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-19-my-posts-390.png",
+      "sha256": "881fe340012d8de48dc4be7bce5fe4a55b3100c26e0f606087bb70940619a363",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-21-empty-390.png",
+      "sha256": "89165b458b1dc7a96d3715da057f4bcb9085e7e1c77b1adec94e5c2860fe5d1c",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-23-loading-390.png",
+      "sha256": "398b3a7677a535a5e35c8dfb858ff42205e2bfc99697b8fffabeb5ac01c3bb86",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-25-list-error-390.png",
+      "sha256": "cca2dc0abb2053bf5f8933d3cd8629a0a71c64f1c7c6ca055b4381e88680a9ff",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-27-list-recovered-390.png",
+      "sha256": "881fe340012d8de48dc4be7bce5fe4a55b3100c26e0f606087bb70940619a363",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-29-direct-body-390.png",
+      "sha256": "e3cf74a45fcc72de7080956440e05723f409372f36c607c88d8e1dad5c3b745f",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-photo-applied-361.png",
+      "sha256": "783ac27c18af9077106743d9a63e04db095b326cbee59bbe30cd572e661b17cc",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-photo-applied-430.png",
+      "sha256": "d3a9c3294d304325c5dad30a18426e530b799535c6e8f45a5bf4afc1be98a5b4",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-photo-dirty-361.png",
+      "sha256": "ee05940516c6a57cc60896d12fd2b3a9bac5fef388053cc1c993ad13cf6bc634",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-photo-dirty-430.png",
+      "sha256": "55ad9a0a0ec03b27c59dba80d70e8f5da9d1a3724507965087da68276f745f9a",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-private-composer-361.png",
+      "sha256": "92d231c78cca71687ec56ee742f972f1490f73183fa26275f2d7316975224c05",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-private-composer-430.png",
+      "sha256": "0b7531354333c4b5621e788081266d89acc32bd6f2ab031e4f4f050b4c52d177",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-public-composer-361.png",
+      "sha256": "80540bd358a7d19c135204a91cfaf08d1eb6bae52bc2df471b34bab3bf3c35b5",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-public-composer-430.png",
+      "sha256": "843d4638f359492def89e25621ce464e0d1f0244cc6bbea9aab37d0c7ff4aa75",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-text-card-361.png",
+      "sha256": "5f0118895f4e8e7166a140dcf3ad30024c8e0a60d8f69074a80f8dd206e926c3",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    },
+    {
+      "file": "native-text-card-430.png",
+      "sha256": "8dbffee4c948ef174937acc23b8618112a949bcbe4eaba4f99175b9b0e753e7b",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true,
+      "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54"
+    }
+  ],
+  "fixedActionGeometry": [
+    {
+      "viewportWidth": 390,
+      "fixedActionsBottom": 738,
+      "footerTop": 738,
+      "nextDisabledProperty": true,
+      "overlap": false
+    },
+    {
+      "viewportWidth": 361,
+      "fixedActionsBottom": 732,
+      "footerTop": 732,
+      "nextDisabledProperty": true,
+      "overlap": false
+    },
+    {
+      "viewportWidth": 430,
+      "fixedActionsBottom": 826,
+      "footerTop": 826,
+      "nextDisabledProperty": true,
+      "overlap": false
+    }
+  ],
+  "covered": [
+    "community three choices and my-posts entry display",
+    "text-card Next and direct body via controlled component events",
+    "native Canvas PNG export and local FS signature",
+    "image dirty fixed apply/discard and native disabled Next property",
+    "discard preserves original; apply exports new JPEG; Next advances to composer",
+    "private only save; controlled open-gate save/publish 1:2 actions",
+    "publish settings bottom sheet and rights/consent display",
+    "pending-review read-only result",
+    "controlled 6-state my-posts list",
+    "controlled empty/loading/read-error/recovery display"
+  ],
+  "nativeApiMocksCreatedThisRun": [],
+  "inheritedMockRestore": {
+    "chooseMedia": "native-restore-chooseMedia.json",
+    "requirePrivacyAuthorize": "native-restore-requirePrivacyAuthorize.json"
+  },
+  "diagnostics": {
+    "currentConsole": "native-console-all.json",
+    "sdkErrorPreserved": "clickCheckTask err: TypeError Cannot read properties of null (reading 0), WAServiceMainContext.js",
+    "officialCoordinateTap": "native-binding-02-fab-tap.json",
+    "officialCoordinateTapResult": "blocked: appservice App.CDPEnable unimplemented; stopped at first tap, later binding script steps did not run",
+    "harnessStartupError": "native-size-card-361-device-restart-stimulus-error.json: changing device reset in-memory fixture; harness corrected and reran successfully; not product-source failure"
+  },
+  "cleanup": {
+    "scope": "fresh official simulator runtime after cleanup refresh; offline adapters only",
+    "route": "pages/community/index",
+    "width": 430,
+    "posts": 0,
+    "writeCalls": 0,
+    "publicEnabled": false,
+    "publishEntryOpen": false,
+    "componentBackupsResetByFreshRuntime": true,
+    "realAccountDataAccessed": false,
+    "persistentStorage": false
+  },
+  "boundaries": {
+    "realBusinessBackend": false,
+    "realAuthentication": false,
+    "physicalDevice": false,
+    "hardwareKeyboard": false,
+    "actualAlbumCameraPermissions": false,
+    "touchAcceptance": false,
+    "publicUGCOpened": false,
+    "deploymentOrUpload": false,
+    "global40RouteAcceptance": "blocked; all 40 route matrix entries remain incomplete; no old screenshot inheritance"
+  },
+  "recorders": [
+    "prepare-native-polish.py",
+    "run-native-polish-flow.py",
+    "run-native-polish-size.py",
+    "run-native-binding-check.py",
+    "run-native-cleanup.py",
+    "run-native-final-baseline.py"
+  ]
+}

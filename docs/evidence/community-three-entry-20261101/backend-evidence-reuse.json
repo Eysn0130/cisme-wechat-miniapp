@@ -1,0 +1,17 @@
+{
+  "sourceRecord": "docs/evidence/community-compose-minimal-20261101/integration-validation.json",
+  "scope": "27 isolated backend checks from prior run; not repeated and not a production/API callback/device acceptance",
+  "files": [
+    {
+      "file": "services/api/src/formalUgc.ts",
+      "sha256": "c7e9bed8b2bfc385fc544ae4948cd0b36851697d459d43ae44427361291b1c53",
+      "matchesArchivedSource": true
+    },
+    {
+      "file": "services/api/src/server.ts",
+      "sha256": "1e0a0f126c5501237331b6b4eadef5293adc8272be781563a7feeb72c9bd9189",
+      "matchesArchivedSource": true
+    }
+  ],
+  "productionDataAccessedThisRound": false
+}

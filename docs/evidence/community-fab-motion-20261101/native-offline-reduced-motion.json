@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "offline": true,
+        "reducedMotionStyles": [
+          {
+            "animation-name": "none",
+            "animation-duration": "0s",
+            "transform": "matrix(1, 0, 0, 1, -31, 0)"
+          },
+          {
+            "animation-name": "none",
+            "animation-duration": "0s",
+            "transform": "none"
+          }
+        ],
+        "restored": true
+      }
+    }
+  }
+}

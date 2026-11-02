@@ -69,4 +69,15 @@
   <view wx:if="{{formalLoadingMore}}" class="community-loading" aria-live="polite">正在加载更多内容…</view>
   <view wx:if="{{mode === 'recommend' && appliedSearch && !loading && !displayFeedCount}}" class="state">没有找到相关护理故事或作者。试试其他关键词。</view>
   </block>
+  <view wx:if="{{publishEntryOpen}}" class="community-publisher-mask" catchtap="closePublisherEntry" catchtouchmove="holdPublisherEntry">
+    <view class="community-publisher-sheet" catchtap="holdPublisherEntry" aria-role="dialog" aria-modal="{{true}}" aria-label="选择创作方式">
+      <view class="community-publisher-handle" aria-hidden="true"></view>
+      <view class="community-publisher-head"><button class="community-publisher-drafts {{publishEntryBusy ? 'control--disabled' : ''}}" bindtap="openMyPosts" disabled="{{publishEntryBusy}}">我的投稿</button></view>
+      <button class="community-publisher-option {{publishEntryBusy || !ugcDraftsEnabled ? 'control--disabled' : ''}}" data-source="album" bindtap="choosePublisherSource" disabled="{{publishEntryBusy || !ugcDraftsEnabled}}" loading="{{publishEntryBusy && publishEntrySource === 'album'}}" aria-label="从相册选择，最多9张图片"><text>从相册选择</text></button>
+      <button class="community-publisher-option {{publishEntryBusy || !ugcDraftsEnabled ? 'control--disabled' : ''}}" data-source="camera" bindtap="choosePublisherSource" disabled="{{publishEntryBusy || !ugcDraftsEnabled}}" loading="{{publishEntryBusy && publishEntrySource === 'camera'}}" aria-label="相机，拍摄一张照片"><text>相机</text></button>
+      <button class="community-publisher-option {{publishEntryBusy || !ugcDraftsEnabled ? 'control--disabled' : ''}}" data-source="text" bindtap="choosePublisherSource" disabled="{{publishEntryBusy || !ugcDraftsEnabled}}" aria-label="写文字，无需相册或相机权限"><text>写文字</text></button>
+      <view wx:if="{{publishEntryError}}" class="community-publisher-status" aria-live="polite"><text>{{publishEntryError}}</text><button wx:if="{{publishEntryRecovery === 'settings'}}" class="community-publisher-recovery {{publishEntryBusy ? 'control--disabled' : ''}}" bindtap="openPublisherMediaSettings" disabled="{{publishEntryBusy}}">去设置</button><button wx:if="{{publishEntryRecovery === 'privacy'}}" class="community-publisher-recovery {{publishEntryBusy ? 'control--disabled' : ''}}" bindtap="retryPublisherMedia" disabled="{{publishEntryBusy}}">重新授权</button></view>
+      <button class="community-publisher-cancel" bindtap="closePublisherEntry">取消</button>
+    </view>
+  </view>
 </view>

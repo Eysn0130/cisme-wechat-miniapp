@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "state": "pending_review",
+        "dirty": false,
+        "publicGateEnabled": true
+      }
+    }
+  }
+}

@@ -1,0 +1,1 @@
+修复过程诊断，非最终源码验收：暴露canvas.type.2d返回false导致工具隐藏。文字卡片旧Canvas遮挡截图另位于source-3b743624cdf5。

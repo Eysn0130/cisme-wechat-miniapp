@@ -1,0 +1,106 @@
+{
+  "final-01-private-empty.png": {
+    "sha256": "d30d027f211571f5abe05b108e980bb03ec31cf6de429a5c097d87d04cb7a95c",
+    "bytes": 45922,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-02-private-saved.png": {
+    "sha256": "68ada428435bea34eecd00762321456c387e2ae985af0e4710ec7a5ed367b0fa",
+    "bytes": 52369,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-03-nine-images.png": {
+    "sha256": "f9c7e59625039dce71246c03ce5f601b5a9cf3a29636bc0110acc14735d8507a",
+    "bytes": 298395,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-04-sorting.png": {
+    "sha256": "f1ccd289306047af77d3da619634cb5c4d9c703db4b274bcce306d0156a8726a",
+    "bytes": 191398,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-05-declarations.png": {
+    "sha256": "60e5c2cffa2e0087df4235111573ab3e700883ec5c57dd603595e2e858fe24fe",
+    "bytes": 73600,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-06-pending-review.png": {
+    "sha256": "d36d88ca1d31e2baa47a453c04d5cdb662a4f737db5f80734f9e6454b53a51c5",
+    "bytes": 301438,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-07-awaiting-publication.png": {
+    "sha256": "1b8d19d11a00e6b318455adaa0867924604f2d76c255e7e65cf872b7f6aad857",
+    "bytes": 300766,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-08-my-posts.png": {
+    "sha256": "5ec0ea7c1f1c7acaed3f19f12abf54bbe8a2611321c5645dee7e3d323923c0b3",
+    "bytes": 36081,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-09-unknown-result.png": {
+    "sha256": "166acb92098e0476a618e58666fd2f1a892d2cd3946e59876595ef97c9722269",
+    "bytes": 56873,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-10-result-reconciled.png": {
+    "sha256": "ec656d32265e3d77a59bff493ca7b802b6c26509177e4fdfde1018fc1f12c4a9",
+    "bytes": 48895,
+    "width": 390,
+    "height": 844,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-large-430-empty.png": {
+    "sha256": "6d6778db87f9c063fe41d798fa33e012a0871a687b8b039c7121edf9fa393da5",
+    "bytes": 53947,
+    "width": 430,
+    "height": 932,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  },
+  "final-small-361-font-stress.png": {
+    "sha256": "2dc60073f1c5b0fda919c709438738f18e8534faab3f3e9396e2872cc829c9a6",
+    "bytes": 85071,
+    "width": 362,
+    "height": 804,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture with synthetic body18/small16/action20 typography-token overrides; not system-font or physical-device evidence"
+  },
+  "final-small-361-sorting.png": {
+    "sha256": "b667ad0c9e7372097321fc89eb5f8cfd83284e3b30f66127ff3989652811d7c8",
+    "bytes": 324262,
+    "width": 362,
+    "height": 804,
+    "sourceSha256": "6893d140f268cd69f0a2462ca3cc460b625c41effda5702d578fb357238af217",
+    "scope": "native offline fixture, not live-account or physical-device acceptance"
+  }
+}

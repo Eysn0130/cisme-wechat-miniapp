@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "stimulus": "explicit offline local selection; not device album",
+        "visible": true,
+        "previousUploadedFiles": 1
+      }
+    }
+  }
+}

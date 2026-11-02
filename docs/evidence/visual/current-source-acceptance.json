@@ -257,16 +257,16 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "bbc4c6e312ecb52a32565eeae91e79e6b63d7e917c58ac46d625fbfb5f9e67b7",
+  "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "Current source uses the user-authorized editorial publisher avatar in the three native editorial entry points. Full40-route state and physical-device matrices remain incomplete."
+      "reason": "Scoped Community composer validation does not complete the existing full40-route state or physical-device matrices."
     }
   ],
-  "note": "Current source removes the editorial composer cancel button and dismisses on an instance-bound outside tap while preserving draft and in-flight send ownership. Scoped native validation is separate; full40-route and physical-device matrices remain blocked, with historical evidence retaining original hashes.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-dcf10bb83d80.json",
+  "note": "Current source aligns album/camera/text entry, true local PNG text cards and JPEG photo effects, scoped new-asset replacement/retry and exact fresh-draft cancellation. Scoped current-source native evidence: docs/evidence/community-three-entry-20261101. Offline simulator and isolated tests do not complete physical-device, current production account, deployment or full40-route matrices.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-c9a4f099689d.json",
   "pendingSourceRebind": false
 }

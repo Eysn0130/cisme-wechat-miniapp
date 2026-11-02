@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "target": "dddddddd-dddd-4ddd-8ddd-000000000003",
+        "visible": true,
+        "origin": "single",
+        "uploadedFilesUnchanged": [
+          "dddddddd-dddd-4ddd-8ddd-000000000002",
+          "dddddddd-dddd-4ddd-8ddd-000000000003"
+        ]
+      }
+    }
+  }
+}

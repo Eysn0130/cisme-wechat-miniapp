@@ -1,0 +1,25 @@
+{
+  "observedOn": "2026-11-01 America/Los_Angeles",
+  "method": "User-authorized native app interaction through Computer Use",
+  "app": "rednote / com.xingin.discover, installed iOS app running on macOS",
+  "scope": "Actual local app UI, not browser mobile emulation and not an iPhone device test",
+  "screenshots": ["rednote-native-publish.png", "rednote-native-content-statement.png"],
+  "observations": [
+    "Center + opens a menu with album, camera and text entries.",
+    "Text entry generates a card, then opens the final publisher.",
+    "Final publisher puts small image thumbnails and Add image in a horizontal row, followed by title and body.",
+    "Auxiliary rows are below the body; a content statement opens a bottom sheet.",
+    "Save draft is a smaller secondary action; Post is the wider primary action fixed at the bottom.",
+    "Exiting offers explicit discard or save draft choices."
+  ],
+  "temporaryInput": "界面样式查看",
+  "cleanup": "Discard content at final publisher, Discard at image selection, Discard at text editor, then close the now-empty text entry. Returned to app Home.",
+  "notPerformed": ["Post", "Save draft", "Select personal album files", "Change content statements", "Change account or permissions"],
+  "earlierSafariObservation": {
+    "screenshot": "safari-mobile-publish-not-supported.png",
+    "officialPublisherUrl": "https://creator.xiaohongshu.com/publish/publish?source=official",
+    "mobileWebMessage": "移动端暂不支持网页发布",
+    "meaning": "Mobile web publisher is not evidence of the app editor; actual installed app observation above replaces that gap."
+  },
+  "adaptation": "Use the observed content order, compact media strip and action proportions. Keep native WeChat components, CISME tokens, explicit declarations, server capability gates and review workflow. Do not add unsupported location, mentions, polls, AI image generation or commercial authorization."
+}

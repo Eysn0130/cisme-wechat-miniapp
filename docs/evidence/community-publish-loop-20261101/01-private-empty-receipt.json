@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_screenshot",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/community-publish-loop-20261101/01-private-empty.png",
+    "imageWidth": 390,
+    "imageHeight": 844
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community/index",
+        "open": true,
+        "draftsEnabled": true,
+        "postCount": 0,
+        "error": ""
+      }
+    }
+  }
+}

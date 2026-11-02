@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "scope": "Isolated backend integration validation after removing consumer composer AI declaration inputs and requirements. Existing identity, media, content rights, public consent, public gate, and moderation checks remain in place.",
+  "command": "node scripts/disposable-test.mjs npx vitest run tests/integration/formal-ugc-publication-lifecycle.test.ts tests/integration/formal-ugc-editor.test.ts tests/integration/ugc-safety.test.ts tests/integration/formal-ugc-foundation.test.ts --pool=forks --maxWorkers=1",
+  "workingDirectory": "/Users/mini/CISME",
+  "testFiles": [
+    "tests/integration/formal-ugc-publication-lifecycle.test.ts",
+    "tests/integration/formal-ugc-editor.test.ts",
+    "tests/integration/ugc-safety.test.ts",
+    "tests/integration/formal-ugc-foundation.test.ts"
+  ],
+  "result": {
+    "exitCode": 0,
+    "testFilesPassed": 4,
+    "testFilesTotal": 4,
+    "testsPassed": 27,
+    "testsTotal": 27,
+    "durationSeconds": 17.39,
+    "reportedStartTime": "21:47:44",
+    "reportedStartTimeZone": "not specified by the test runner output"
+  },
+  "provenance": {
+    "source": "Previously returned exec_command/write_stdin tool execution results in this chat. The run was not repeated for archival.",
+    "rawLogAvailable": false,
+    "rawLogNote": "No raw log file was captured during that run. This JSON transcribes the reported results and cleanup events; it is not a reconstructed raw log."
+  },
+  "disposableRun": {
+    "runId": "8c40ad1b8e13a6d0e20cf421",
+    "purpose": "disposable-synthetic",
+    "database": {
+      "containerId": "f479ca9851b4cb5ab21e406cef0ef22a3f0e5722b30d0bcc4bb702372e1d4b94",
+      "postgresImage": "postgres:18.4-alpine",
+      "databaseName": "cisme_test_8c40ad1b8e13a6d0e20cf421",
+      "createdEventReported": true,
+      "destroyedEventReported": true,
+      "destructionEvent": "synthetic-target-removed"
+    },
+    "objectStorage": {
+      "containerId": "ffcadec82165bc8ba7ed169d88dc0b729060d724bd3f5e2a047f5c971075b770",
+      "createdEventReported": true,
+      "destroyedEventReported": true,
+      "destructionEvent": "synthetic-object-target-removed"
+    },
+    "productionDataAccessed": false
+  },
+  "currentBackendSourceHashes": {
+    "algorithm": "SHA-256",
+    "hashScope": "Current source files at archival time; these are not independently captured per-run source hashes.",
+    "files": [
+      {
+        "path": "services/api/src/formalUgc.ts",
+        "sha256": "c7e9bed8b2bfc385fc544ae4948cd0b36851697d459d43ae44427361291b1c53"
+      },
+      {
+        "path": "services/api/src/server.ts",
+        "sha256": "1e0a0f126c5501237331b6b4eadef5293adc8272be781563a7feeb72c9bd9189"
+      }
+    ]
+  },
+  "otherCompletedChecks": [
+    {
+      "command": "npx tsc --noEmit",
+      "exitCode": 0,
+      "source": "Previously returned tool execution result"
+    },
+    {
+      "command": "git diff --check -- services/api/src/formalUgc.ts services/api/src/server.ts tests/integration/formal-ugc-publication-lifecycle.test.ts tests/integration/formal-ugc-editor.test.ts scripts/miniprogram-acceptance.ts",
+      "exitCode": 0,
+      "source": "Previously returned tool execution result"
+    }
+  ],
+  "limitations": [
+    "This run validates isolated backend interfaces. It does not establish current miniprogram visual or real-device acceptance.",
+    "No production database or production/public deployment configuration was modified. Synthetic fixtures exercised their isolated gates; historical evidence was not changed."
+  ]
+}

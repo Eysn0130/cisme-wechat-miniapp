@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "stageClosed": true,
+        "files": [
+          {
+            "id": "dddddddd-dddd-4ddd-8ddd-000000000002",
+            "localPath": "http://tmp/94jTUEaeq3y31f3933eeaaa9928a14672f2806b9ff7d.png",
+            "previewUrl": "http://tmp/94jTUEaeq3y31f3933eeaaa9928a14672f2806b9ff7d.png",
+            "size": 125540,
+            "state": "uploaded",
+            "progress": 100,
+            "error": ""
+          }
+        ],
+        "signature": [
+          137,
+          80,
+          78,
+          71,
+          13,
+          10,
+          26,
+          10,
+          0,
+          0,
+          0,
+          13
+        ],
+        "error": "",
+        "scope": "real native Canvas export/local FS; offline upload adapter"
+      }
+    }
+  }
+}

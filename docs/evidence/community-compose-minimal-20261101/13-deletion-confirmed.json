@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "state": "deleted",
+        "dirty": true,
+        "files": 1
+      }
+    }
+  }
+}

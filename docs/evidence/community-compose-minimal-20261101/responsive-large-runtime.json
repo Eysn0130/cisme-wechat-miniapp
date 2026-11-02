@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "tool": "automation_runtime_info",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "currentPage": {}
+  }
+}

@@ -407,7 +407,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     reply.type("text/plain").send(ugcSafety.verifyChallenge(request.query)));
   app.post<{Querystring:{signature?:string;msg_signature?:string;timestamp?:string;nonce?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
     reply.type("text/plain").send(await ugcSafety.receiveCallback(request.query,(request.body??{}) as never)));
-  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/ugc/posts", async request => formalUgc.myPosts(request.memberId,request.query));
+  app.get<{Querystring:{limit?:string;cursor?:string;state?:string}}>("/v1/me/ugc/posts", async request => formalUgc.myPosts(request.memberId,request.query));
   app.get<{Params:{section:string};Querystring:{limit?:string;cursor?:string;postId?:string}}>("/v1/me/ugc/activity/:section",
     async request => formalUgc.myActivity(request.memberId,request.params.section,request.query));
   app.post("/v1/me/ugc/posts", async request => formalUgc.createDraft(request.memberId,idempotencyKey(request)));
@@ -416,7 +416,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     formalUgc.submitAppeal(request.memberId,request.params.postId,(request.body??{}) as never));
   app.put<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/draft", async request => formalUgc.saveDraft(request.memberId,request.params.postId,(request.body??{}) as never));
   app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/submit", async request => {
-    const saved=await formalUgc.submit(request.memberId,request.params.postId,(request.body as {expectedVersion?:unknown})?.expectedVersion);
+    const input=(request.body??{}) as {expectedVersion?:unknown};
+    const saved=await formalUgc.submit(request.memberId,request.params.postId,input.expectedVersion);
     return {...saved,scan:{state:config.media.ugcScanBaseUrl?"queued":"unavailable",retryRequired:!config.media.ugcScanBaseUrl}};
   });
   app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/scan", async request => {

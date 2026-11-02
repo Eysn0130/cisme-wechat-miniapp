@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "stimulus": "explicit fixture local image, not actual album/camera",
+        "newFile": true,
+        "result": {
+          "path": "http://tmp/aQnehWgxsik364cec25b16ada137e7446a559107ac68.jpg",
+          "size": 105265
+        },
+        "signature": [
+          255,
+          216,
+          255,
+          224,
+          0,
+          16,
+          74,
+          70,
+          73,
+          70,
+          0,
+          1
+        ],
+        "canCanvas": true,
+        "canEdit": true,
+        "canCrop": true,
+        "error": "",
+        "dirty": false
+      }
+    }
+  }
+}

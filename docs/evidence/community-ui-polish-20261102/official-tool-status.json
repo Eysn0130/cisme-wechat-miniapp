@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "check_wechatide_status",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "loginExpired": false,
+    "skillVersion": "0.3.14",
+    "skillPath": "/Applications/wechatwebdevtools.app/Contents/Resources/app.asar.unpacked/wechatide-skill",
+    "tokenRequired": false,
+    "cliTokenRequired": false,
+    "mcpTokenRequired": true,
+    "versionRelation": "equal",
+    "developerLoginPresent": true,
+    "loginUserDetailsOmitted": true
+  }
+}

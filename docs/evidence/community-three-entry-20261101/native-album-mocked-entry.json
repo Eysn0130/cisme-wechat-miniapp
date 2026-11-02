@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "official mock chooseMedia/privacy; no OS permission or real album",
+        "before": 1,
+        "route": "pages/community/index",
+        "after": 1
+      }
+    }
+  }
+}

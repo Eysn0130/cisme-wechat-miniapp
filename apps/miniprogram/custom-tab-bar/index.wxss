@@ -55,14 +55,32 @@
   pointer-events: none;
   transform: translate3d(-50%, 18px, 0) scale(.58);
   transform-origin: 50% 100%;
-  transition: transform 360ms cubic-bezier(.2, 1.28, .32, 1), opacity 180ms ease-out;
+  transition: transform 120ms ease-out;
 }
 .community-fab::after { border: 0; }
-.community-fab--visible { opacity: 1; pointer-events: auto; transform: translate3d(-50%, 0, 0) scale(1); }
+.community-fab--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(-50%, 0, 0) scale(1);
+  animation: community-fab-grow 420ms cubic-bezier(.22, .8, .3, 1) backwards;
+}
 .community-fab--visible:active { transform: translate3d(-50%, 1px, 0) scale(.94); }
 .community-fab.control--disabled { opacity: .48; pointer-events: none; }
 .community-fab__halo { position:absolute; inset:-9rpx; border:1rpx solid rgba(255,255,255,.5); border-radius:50%; }
 .community-fab__icon { position:relative; z-index:1; width:31px; height:31px; }
+.community-fab--visible .community-fab__icon {
+  animation: community-fab-symbol 240ms cubic-bezier(.22, 1, .36, 1) 80ms backwards;
+}
+@keyframes community-fab-grow {
+  0% { opacity:0; transform:translate3d(-50%, 24px, 0) scale(.24); }
+  18% { opacity:1; }
+  72% { opacity:1; transform:translate3d(-50%, -1px, 0) scale(1.025); }
+  100% { opacity:1; transform:translate3d(-50%, 0, 0) scale(1); }
+}
+@keyframes community-fab-symbol {
+  from { opacity:0; transform:translate3d(0, 3px, 0) scale(.72); }
+  to { opacity:1; transform:translate3d(0, 0, 0) scale(1); }
+}
 .bar__lens {
   position: absolute;
   z-index: 0;
@@ -93,9 +111,13 @@
 .chrome--reduced-motion .community-fab,
 .bar--reduced-motion .bar__lens, .bar--reduced-motion .bar__icon { transition:none; }
 .bar--reduced-motion .bar__item--pressed .bar__icon { transform:none; }
+.chrome--reduced-motion .community-fab,
+.chrome--reduced-motion .community-fab__icon { animation:none; }
 
 @media (prefers-reduced-motion: reduce) {
   .chrome,
   .community-fab,
   .bar__lens { transition:none; }
+  .community-fab,
+  .community-fab--visible .community-fab__icon { animation:none; }
 }

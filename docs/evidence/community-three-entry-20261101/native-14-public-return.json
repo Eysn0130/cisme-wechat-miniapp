@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "stub public detail route; real composer exact-owner refresh",
+        "returned": "pages/community-compose/index",
+        "post": "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
+        "samePost": true,
+        "state": "published",
+        "error": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "before": [
+          "dddddddd-dddd-4ddd-8ddd-000000000002",
+          "dddddddd-dddd-4ddd-8ddd-000000000003"
+        ],
+        "after": [
+          "dddddddd-dddd-4ddd-8ddd-000000000002",
+          "dddddddd-dddd-4ddd-8ddd-000000000004"
+        ],
+        "sameCount": true,
+        "firstUnchanged": true,
+        "secondReplaced": true,
+        "recovery": false,
+        "error": ""
+      }
+    }
+  }
+}

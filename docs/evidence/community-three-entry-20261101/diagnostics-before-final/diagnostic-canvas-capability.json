@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "sdk": "3.15.2",
+        "type": true,
+        "type2d": false,
+        "canvas": true,
+        "exportApi": "function"
+      }
+    }
+  }
+}

@@ -5,8 +5,10 @@ const legacyKey="cisme.ugcComposerBackup.v1";
 const prefix="cisme.ugcDraftBackup.v2.";
 const ttlMs=7*24*60*60_000;
 const id=/^[0-9a-f-]{36}$/i;
-export type UgcLocalBackup={ownerId:string;postId:string;baseVersion:number;title:string;body:string;aiUsage:string;
-  rightsConfirmed:boolean;publicConsentConfirmed:boolean;mediaIds:string[];savedAt:number};
+export type UgcLocalBackup={ownerId:string;postId:string;baseVersion:number;title:string;body:string;
+  rightsConfirmed:boolean;publicConsentConfirmed:boolean;mediaIds:string[];savedAt:number;
+  textCardTemplate?:"plain"|"lilac"|"memo";
+  mediaItems?:Array<{id:string;localPath:string;size:number;state:"uploaded"|"failed";error:string}>};
 const keyFor=(ownerId:string,postId:string,version:number)=>{
   if(!id.test(ownerId)||!id.test(postId)||!Number.isSafeInteger(version)||version<1)throw new Error("UGC_BACKUP_SCOPE_INVALID");
   return `${prefix}${ownerId}.${postId}.${version}`;

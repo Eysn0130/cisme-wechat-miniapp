@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "original": "/assets/cisme/cisme-scalp-lab-avatar-v1.jpg",
+        "files": [
+          {
+            "path": "http://tmp/1lTGiBXWHuu90e902df55ff406472557d205cbf9793b.jpg",
+            "size": 103572
+          }
+        ],
+        "canvas": true,
+        "edit": true,
+        "crop": true,
+        "error": "",
+        "dirty": false,
+        "busy": false
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "stimulus": "explicit fixture local image, not actual album/camera",
+        "dirty": true,
+        "nextDisabled": true,
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 653.203125,
+            "bottom": 738,
+            "width": 390,
+            "height": 84.796875
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 738,
+            "bottom": 844,
+            "width": 390,
+            "height": 106
+          },
+          {
+            "left": 258,
+            "right": 370,
+            "top": 750,
+            "bottom": 796,
+            "disabled": true,
+            "background-color": "rgb(68, 54, 78)",
+            "color": "rgb(173, 153, 184)"
+          }
+        ],
+        "error": ""
+      }
+    }
+  }
+}

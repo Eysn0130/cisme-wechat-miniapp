@@ -59,7 +59,7 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect((await app.inject({method:"GET",url:`/v1/me/ugc/posts/${draft.id}/media/${upload.mediaId}/preview-url`,headers:auth(other)})).statusCode).toBe(404);
   expect((await app.inject({method:"GET",url:`/v1/me/ugc/posts/${other.memberId}/media/${upload.mediaId}/preview-url`,headers:auth(owner)})).statusCode).toBe(404);
 
-  const imageOnly={title:"",body:"",mediaIds:[upload.mediaId],aiUsage:"none",rightsConfirmed:true,publicConsentConfirmed:true};
+  const imageOnly={title:"",body:"",mediaIds:[upload.mediaId],rightsConfirmed:true,publicConsentConfirmed:true};
   const saved=await app.inject({method:"PUT",url:`/v1/me/ugc/posts/${draft.id}/draft`,headers:auth(owner),payload:{...imageOnly,expectedVersion:1}});
   expect(saved.statusCode).toBe(200);expect(saved.json()).toMatchObject({version:2,revision:2,body:""});
   expect((await app.inject({method:"GET",url:`/v1/me/ugc/media/${upload.mediaId}/preview-url`,headers:auth(other)})).statusCode).toBe(404);

@@ -1,0 +1,94 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "fixture public gate only",
+        "state": "pending_review",
+        "version": 4,
+        "busy": false,
+        "error": "",
+        "writePayloadKeys": [
+          {
+            "path": "/v1/me/ugc/posts",
+            "method": "POST",
+            "keys": []
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/authorize",
+            "method": "POST",
+            "keys": [
+              "mimeType",
+              "maxBytes"
+            ]
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/dddddddd-dddd-4ddd-8ddd-000000000002/complete",
+            "method": "POST",
+            "keys": []
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/authorize",
+            "method": "POST",
+            "keys": [
+              "mimeType",
+              "maxBytes"
+            ]
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/dddddddd-dddd-4ddd-8ddd-000000000003/complete",
+            "method": "POST",
+            "keys": []
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/draft",
+            "method": "PUT",
+            "keys": [
+              "title",
+              "body",
+              "mediaIds",
+              "rightsConfirmed",
+              "publicConsentConfirmed",
+              "expectedVersion"
+            ]
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/authorize",
+            "method": "POST",
+            "keys": [
+              "mimeType",
+              "maxBytes"
+            ]
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/media/dddddddd-dddd-4ddd-8ddd-000000000004/complete",
+            "method": "POST",
+            "keys": []
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/draft",
+            "method": "PUT",
+            "keys": [
+              "title",
+              "body",
+              "mediaIds",
+              "rightsConfirmed",
+              "publicConsentConfirmed",
+              "expectedVersion"
+            ]
+          },
+          {
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000001/submit",
+            "method": "POST",
+            "keys": [
+              "expectedVersion"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

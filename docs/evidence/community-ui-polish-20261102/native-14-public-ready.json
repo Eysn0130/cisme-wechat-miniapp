@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "isolated fixture gate only; real public UGC remains closed",
+        "publicEnabled": true,
+        "rights": true,
+        "consent": true
+      }
+    }
+  }
+}

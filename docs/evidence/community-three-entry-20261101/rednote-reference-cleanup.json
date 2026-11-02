@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-02",
+  "brandSource": "/Users/mini/CISME/apps/miniprogram/assets/cisme/cisme-scalp-lab-avatar-v1.jpg",
+  "rednote": {
+    "observed": [
+      "album",
+      "camera-preview",
+      "text-card",
+      "photo-editor",
+      "crop",
+      "adjust",
+      "filters",
+      "text",
+      "stickers",
+      "photo-publish"
+    ],
+    "posted": false,
+    "savedDraft": false,
+    "exit": "Returned through image editor and album to Explore"
+  },
+  "photos": {
+    "baseline": "Empty library before import",
+    "imported": "One exact authorized brand file",
+    "cleanup": "Selected same imported brand thumbnail, confirmed Photos recoverable deletion (30 days), no permanent deletion",
+    "originalSourceUnchanged": true
+  }
+}

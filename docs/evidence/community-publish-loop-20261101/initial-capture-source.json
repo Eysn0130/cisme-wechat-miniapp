@@ -1,0 +1,14 @@
+{
+  "packageSourceSha256": "3fa23738c320bf2418cc59bb0a7d9b970adf55b053ba84688355459b108eccb6",
+  "scope": "initial 01..10 captures, before the final notice de-duplication and published-revision deletion guard",
+  "files": {
+    "pages/community-compose/index.ts": "b2ae2f5568ae08232d85809caae137326125782c771caf685363bad969b65b41",
+    "pages/community-compose/index.wxml": "6755e80776f3b9f6d2c1337c42a5e7fe2d0c1adc8a4f97fd02c75d5329d42963",
+    "pages/community-compose/index.wxss": "12ae29ccfbcc721ab3ead872dcf5cad75f3cf4a7ccf5b8783495bdd270d1e9ff",
+    "pages/community-compose/index.json": "e02be76b6f3b9d9c15c6a5c8c6ec0b1c6cdbcd016d8e9654f20945ebffbfee4f",
+    "custom-tab-bar/index.ts": "72907a7d078d3abf8f95fcfb9cafd9d24a5bd89bafa575f1744fc2afb8f7e529",
+    "custom-tab-bar/index.wxml": "095c08b44fcb16d73ba1e6f54af9624d21a6166b70f45113baf4a57790f4ca7d",
+    "custom-tab-bar/index.wxss": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756",
+    "custom-tab-bar/index.json": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+  "images": [
+    {
+      "file": "native-01-editor-empty.png",
+      "sha256": "908da765a0dbda0fcca820d8109df1701b99cac1d503ae02ec0078b3d467a9bd",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-02-editor-one-photo.png",
+      "sha256": "6f9f9324b46a93da9817d004a1e8a3b8c919584241be955c47c06d1eeac3b519",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-03-settings-required.png",
+      "sha256": "079fca0d4801ed7e00929727cb7aea4971091888b947ca2f4c29fed3b04259fc",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-04-settings-confirmed.png",
+      "sha256": "ed0a5efb0a19860f84804dfe47ec3d2ee4b0ea615362d1cbe38454789fe98757",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-05-review-pending.png",
+      "sha256": "83be8ab519ac6f422671fb5b6f8990377e8a9c8690f8e8995aa07e4212283d05",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-06-my-posts.png",
+      "sha256": "fa69aea1bcbc0fc5f15ad9f897d7bf16b81c612ebead0de1531bc1b8168b6a2f",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-07-awaiting-publication.png",
+      "sha256": "6f75ed8da7af427f9f4d6eebeb87b0c78d9618645a93341dee043795b4253fa0",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-08-published-readback.png",
+      "sha256": "50e608350b42fb69cc83b06a814c8bf1d025253132cb29673c646e0293e4aef9",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-09-deleted-retained.png",
+      "sha256": "30b7193465d65a23e45634a4d05a50fedb84a5702eef63285c2e116df1af557c",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-10-deleted-exit-warning.png",
+      "sha256": "5ea92fb3234cbd6802533f8ac99e7a45f981f1ec9c58a4ee430d8cf7b92c9e52",
+      "width": 390,
+      "height": 844,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-large-430-empty.png",
+      "sha256": "b93f5f3793e575c41bbb4e74eb5758f327fa064de9a5153fea669460a2e4ce3f",
+      "width": 430,
+      "height": 932,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-small-361-hidden-dirty.png",
+      "sha256": "9d67f2c29ac62a415fe9959c7f2a99d9c4bf446ad04965423a0b199edc7a46f6",
+      "width": 362,
+      "height": 804,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-small-361-public-nine.png",
+      "sha256": "86f54e2615119e5e86ddc077f23a06d41d9b1fafb357a9c5fe529ec18d3f12b8",
+      "width": 362,
+      "height": 804,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    },
+    {
+      "file": "native-small-361-sorting.png",
+      "sha256": "12d639de2440879d671cd829221450649a4ec9916f5bf3936266495bcf739411",
+      "width": 362,
+      "height": 804,
+      "packageSourceSha256": "091120bb397500a865104089f1da5c7f7b1155dc68119364685664da0b7acd20",
+      "visualReview": "inspected",
+      "scope": "Actual native simulator renderer with byte-identical page sources and isolated fixtures. Capability/review/publication/detail transitions are synthetic stimuli, not formal account or public release."
+    }
+  ],
+  "realAppReference": "../community-compose-followup-20261101/reference-observation.json",
+  "physicalDeviceVerified": false
+}

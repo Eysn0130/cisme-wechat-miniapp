@@ -1,0 +1,101 @@
+{
+  "packageSourceSha256": "3b743624cdf5d15866f3f6e3ef187dd2d890fa1111cb83954fb3ef918e1dba16",
+  "copiedSources": [
+    {
+      "file": "custom-tab-bar/index.ts",
+      "sha256": "72907a7d078d3abf8f95fcfb9cafd9d24a5bd89bafa575f1744fc2afb8f7e529",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxml",
+      "sha256": "095c08b44fcb16d73ba1e6f54af9624d21a6166b70f45113baf4a57790f4ca7d",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxss",
+      "sha256": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.ts",
+      "sha256": "b0df369a0cc0a438b653d43e349dafbb3288e39a1649836511f07527ef34d7ad",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxml",
+      "sha256": "ad87f2a48e6072ef673fefcf1ca4476591491005687f1854c2fd6a585c809d31",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "sha256": "3e97d31938c7be8499fa9f06812002d1d3569c9330fa9991f5084b48dd5c347a",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.json",
+      "sha256": "4537cd5e88f68bcaf370434fb26da6a85b2114f2f7c73c69887ab0b027a00b94",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.ts",
+      "sha256": "67aa6c1b28999358d2d45f18badc5469b5785afd9fedf466de91bffd19ec3436",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "sha256": "53e115f84a5b4b35fc71291f35ea7fc70dd07cb2d2d4fd9e59f4da9e456465c8",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "sha256": "56b07572728e12592f4d59dcb18019582455999b31deb2bcd92661566c53bf65",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.json",
+      "sha256": "df464b6c36569be083b735360ce6d81a55e1a09a7122ee0900f85b0e04318955",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.ts",
+      "sha256": "e819871efe5c7bdadb549894c827742517291c8b2d5f85d63f60c7dbee1fbd47",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxml",
+      "sha256": "7ece27d2b83f8e9f99c55ab75a93f559903ccb87e24b12bb1fa80889ea276084",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxss",
+      "sha256": "67cd505303596abdb38ad532d801f75a96aee08feddec21ea431f5fc78cf4384",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/community-compose-intent.ts",
+      "sha256": "f255f69f8a4aa5ec64d70b296f779ef0a77f8193368a5caf1b25ada2174536c5",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-image-edit.ts",
+      "sha256": "b1d284adbf735da86ef72887fe7908d1bed2c943f4ff2783f6e16c0adb24ae0f",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-text-card-layout.ts",
+      "sha256": "9cc4ceb439b2fe56f51f241c895b4be0c76f440946291c46c07b48b829183783",
+      "fixtureByteIdentical": true
+    }
+  ],
+  "scope": "Actual community/composer/card/entry/image-edit sources. Offline adapters replace authentication, APIs, storage, editorial samples, and public-detail return stimulus. Native media picker/edit callbacks may be explicit mocks and are labelled separately."
+}

@@ -1,15 +1,18 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-10-31",
+  "inventoryDate": "2026-11-02",
   "wechatApis": [
     "wx.canIUse",
+    "wx.canvasToTempFilePath",
     "wx.chooseAddress",
     "wx.chooseMedia",
     "wx.compressImage",
     "wx.createSelectorQuery",
     "wx.createVideoContext",
+    "wx.cropImage",
     "wx.disableAlertBeforeUnload",
     "wx.downloadFile",
+    "wx.editImage",
     "wx.enableAlertBeforeUnload",
     "wx.env",
     "wx.getAccountInfoSync",
@@ -20,6 +23,7 @@
     "wx.getImageInfo",
     "wx.getMenuButtonBoundingClientRect",
     "wx.getPerformance",
+    "wx.getRandomValues",
     "wx.getStorageSync",
     "wx.getWindowInfo",
     "wx.hideKeyboard",
@@ -44,6 +48,7 @@
     "wx.requestPayment",
     "wx.requirePrivacyAuthorize",
     "wx.setClipboardData",
+    "wx.setNavigationBarColor",
     "wx.setStorageSync",
     "wx.shareFileMessage",
     "wx.showActionSheet",
@@ -149,10 +154,10 @@
     {
       "surface": "wx.chooseMedia",
       "informationType": "用户选中的图片/摄像头拍摄图片",
-      "purpose": "用户主动选择护理故事、旧投稿审核证据或客服会话图片",
-      "activation": "本人进入相应入口并完成微信隐私授权后；正式护理故事还须有私有上传能力",
+      "purpose": "用户主动从相册或相机选择护理故事图片，或选择旧投稿审核证据、客服会话图片；社区三入口分别限定来源",
+      "activation": "本人明确选择相册或相机并完成微信隐私授权后；正式护理故事还须有私有上传能力，设置返回不自动重新选择",
       "serverStorage": "本地验收由受控上传网关保存；正式/当前 staging COS 尚未启用；客服草稿对象 24 小时到期且未绑定对象进入清理队列",
-      "currentGate": "CISME API 授权与所属会员绑定；故事最多 9 张，客服最多 3 张；公开前需内容安全检测和人工审核"
+      "currentGate": "CISME API 授权与所属会员绑定；故事最多 9 张，相机单次 1 张，客服最多 3 张；图片选择和本地编辑不等于上传或公开，公开前需内容安全检测和人工审核"
     },
     {
       "surface": "wx.compressImage",
@@ -164,11 +169,11 @@
     },
     {
       "surface": "wx.downloadFile",
-      "informationType": "当前会话内、已验证并绑定到客服消息的私有图片",
-      "purpose": "下载到微信临时文件后供会话所属会员或具备 support.read 的客服预览",
-      "activation": "用户或客服主动点击消息图片后",
+      "informationType": "当前会话内已验证的客服私有图片，或当前会员本人护理故事的受控媒体预览",
+      "purpose": "在用户明确预览或编辑后下载到微信临时文件；护理故事仅为本人的原生编辑或本地Canvas图片效果提供输入",
+      "activation": "当前会话所属会员/具备support.read客服明确预览，或故事作者明确点击编辑本人图片后",
       "serverStorage": "不新增服务端副本；临时本地文件由微信管理，响应 private, no-store",
-      "currentGate": "authenticated owner/capability check plus conversation/message binding; object key never exposed"
+      "currentGate": "authenticated conversation/message or exact UGC owner/post/media binding; scoped expiring URL, no object-key exposure; account/page epochs rechecked"
     },
     {
       "surface": "wx.getDeviceInfo",
@@ -188,8 +193,8 @@
     },
     {
       "surface": "wx.uploadFile",
-      "informationType": "用户主动选择的护理故事、旧投稿审核或客服会话图片",
-      "purpose": "上传用户自己选择的内容；护理故事原图仅私有存储，公开展示由服务端产生去元数据派生图",
+      "informationType": "用户主动选择的护理故事、旧投稿审核或客服会话图片；护理故事也包括本人确认的本地文字卡片PNG和编辑结果JPEG等新图片",
+      "purpose": "上传用户确认的图片内容；文字制卡及图片效果导出仍作为新素材授权上传，不覆盖旧素材；护理故事原图仅私有存储，公开展示由服务端产生去元数据派生图",
       "activation": "服务端授权成功后",
       "serverStorage": "本地验收可走受控网关；当前 staging 上传开关关闭且正式 COS 未启用",
       "currentGate": "短期上传授权、所有权/MIME/字节校验；正式故事原图不得作为公共响应"
@@ -345,10 +350,10 @@
     },
     {
       "surface": "ugc_post_revision",
-      "informationType": "作者文字、图片引用、AI 使用声明、内容权利和公开许可",
+      "informationType": "作者文字、图片引用、内容权利和公开许可；历史AI使用元数据保留，普通站内消费者投稿不再要求AI选择或伪造缺省事实",
       "purpose": "保存本人社区草稿、版本和审核历史",
       "activation": "登录用户在编辑器输入时会自动在本机暂存；主动保存或提交后才写入服务端版本事实",
-      "serverStorage": "CISME PostgreSQL 版本事实；原图为私有对象，审核后生成去元数据 WebP 派生图；未保存的标题、正文、声明和图片 ID 另存本机微信存储，不含会话令牌",
+      "serverStorage": "CISME PostgreSQL 版本事实；原图为私有对象，审核后生成去元数据 WebP 派生图；未保存的标题、正文、权利/公开确认、文字卡片模板偏好和图片 ID 另存本机微信存储，不含会话令牌；本地滤镜/调节/贴字参数不成为新服务端字段，确认导出并上传完成后仅沿用新图片引用",
       "currentGate": "本人写入；恢复图片仅发放 5 分钟签名预览链接；内容安全扫描与双人复核前不可公开",
       "retention": "本机未保存编辑备份 7 日；每次小程序启动、前台恢复或进入编辑器清理过期项，登出或切换会话清空；服务端版本 POLICY PENDING，删除公开内容不等于立即销毁依法需保留的治理事实"
     },
@@ -604,11 +609,11 @@
     },
     {
       "surface": "wx.getImageInfo",
-      "informationType": "已发布文章同源受控图片及其尺寸和旋转方向",
-      "purpose": "展示完整图片并固定同组画布，避免正文位置跳动",
-      "activation": "打开公开文章首图时",
-      "serverStorage": "沿用原受控公开媒体，微信管理本机图片缓存；不新增用户上传或服务器资料",
-      "currentGate": "2500ms预检有界，迟到结果忽略；未声称可取消微信底层下载"
+      "informationType": "已发布文章同源受控图片的尺寸和旋转方向；或本人选择/受控下载的本地护理故事图片尺寸",
+      "purpose": "公开文章展示完整图片并固定同组画布；本地图片编辑按真实宽高等比绘入Canvas并导出最长边不超过1440px的新JPEG",
+      "activation": "打开公开文章首图，或本人明确应用本地图片效果时",
+      "serverStorage": "公开文章沿用原受控媒体和微信本机缓存；本地编辑读取临时文件尺寸，本身不上传或新增服务端资料，确认结果后才走既有新素材上传",
+      "currentGate": "文章首图2500ms预检有界且忽略迟到结果，未声称可取消微信底层下载；本地效果独立检测Canvas2D并校验账号/稿件/组件上下文、文件大小和MIME"
     },
     {
       "surface": "editorial_comment",
@@ -641,6 +646,46 @@
       "activation": "已登录会员完成四步并选择感受后明确提交",
       "serverStorage": "Owner daily current record plus version history; one live Asia/Shanghai day. Deleted, superseded and suppressed records excluded from current lists. Recoverable owner deletion uses exact visibility marker; closure/holds include history copies.",
       "currentGate": "源码新增待测试与实际部署，不声明已在现网可用或真机验收"
+    },
+    {
+      "surface": "wx.getRandomValues",
+      "informationType": "本机安全随机字节生成的一次性素材交付编号",
+      "purpose": "相册/相机选择到编辑器之间的本机一次性交付",
+      "activation": "用户明确选择有效本地图片并继续编辑后",
+      "serverStorage": "不上传；素材路径与会话scope仅在内存中，两分钟有效，一次消费，切号或失败撤销",
+      "currentGate": "仅同账号同环境的新建意图可消费；URL仅有随机编号，不含路径或会话"
+    },
+    {
+      "surface": "wx.canvasToTempFilePath",
+      "informationType": "本人输入文字及静态模板形成的PNG；或本人本地图片经非AI滤镜/调节、文字与内置Unicode贴纸合成的新JPEG",
+      "purpose": "按本人确认导出文字卡片，或应用本地图片效果，生成独立的本机临时图片；不改原始文件或写入系统相册",
+      "activation": "用户点击使用文字卡片或明确应用图片效果后",
+      "serverStorage": "导出本身不发送；图片效果配置仅在当前本机编辑上下文内存；本人确认后复用已授权UGC新素材上传与审核链，不新增接收方或长期非破坏编辑参数历史",
+      "currentGate": "文字卡片300字/一页/10MB；图片效果original/warm/mono/vivid、亮度/对比/饱和度[-100,100]，叠字最多30个可见字形/上中下三位置/白墨紫三色/三种内置贴纸；新JPEG最长边1440、质量0.9、透明区合成白底，导出后真实字节/MIME校验；账号/稿件/页面/组件scope及未应用修改保护，不增加AI或第三方处理"
+    },
+    {
+      "surface": "wx.editImage",
+      "informationType": "本人选择或受控下载的本地护理故事图片",
+      "purpose": "用户主动调用微信原生本地图片编辑",
+      "activation": "作者明确选择编辑图片且基础库能力可用后",
+      "serverStorage": "不覆盖旧素材；新文件重新校验并授权上传完成后才替换本机草稿引用，仍须后续保存/审核",
+      "currentGate": "取消、失败或迟到结果保留原图；账号/页面/稿件/mediaId精确归属，不自动申请权限"
+    },
+    {
+      "surface": "wx.cropImage",
+      "informationType": "本人护理故事本地图片的方形裁剪输出",
+      "purpose": "作者明确裁剪图片并可将首图用于封面",
+      "activation": "作者选择裁剪且原生能力可用后",
+      "serverStorage": "与editImage相同，创建新素材，不改旧公开修订或原始资产",
+      "currentGate": "本机新文件验证、按稿件所有权重新授权上传，取消或失败不替换原图"
+    },
+    {
+      "surface": "wx.setNavigationBarColor",
+      "informationType": "固定导航栏前景与背景颜色；不读取用户或设备资料",
+      "purpose": "本地图片编辑器打开时切换为白字黑底，关闭或离开时恢复当前页面默认配色",
+      "activation": "当前有效图片编辑器上下文打开或释放时，且运行时方法可用",
+      "serverStorage": "不发送、不存储，仅改变本机界面外观",
+      "currentGate": "组件上下文与导航配色归属校验；不申请媒体权限，不新增第三方处理或业务事实"
     }
   ],
   "runtimeDataEgress": [
@@ -1217,5 +1262,12 @@
     "deployed": false,
     "nativeAcceptance": false,
     "physicalAcceptance": false
+  },
+  "communityCreation20261102Review": {
+    "source": "PRD K.10 / COMPOSE-ENTRY-01, COMPOSE-HANDOFF-01, COMPOSE-CARD-01, COMPOSE-IMAGE-01, COMPOSE-PHOTO-01/02/03",
+    "scope": "Three explicit creation paths, scoped in-memory media handoff, deterministic local text-card export, native photo editing/cropping, and Canvas2D filters/adjustments/text/stickers exported as new local images. No new third-party recipient, AI inference, public gate or retention period.",
+    "deployment": "Current source only; pure pixel tests, mocked component contracts, native simulator evidence, isolated API/database validation, real-account flows and physical-device acceptance remain distinct. This inventory review adds no deployment or physical acceptance claim.",
+    "localProcessing": "Pixel transforms copy input and preserve alpha; JPEG export flattens transparency onto white. Effect settings remain in current editor memory; confirmed output follows existing new-media authorization/upload/complete and revision ownership rules. A failed single-image upload retains an exact account/post/media/version-scoped local candidate for explicit retry or discard in current page memory only; old asset reference remains until completion. This is not restart recovery or a new retention period.",
+    "notApplicable": "Consumer video/live streaming/music/topics/@mentions/polls/location/link tags are outside this image/text scope; 5000-character body is not a Rednote long-form implementation, whose downstream branch remains unaccepted."
   }
 }

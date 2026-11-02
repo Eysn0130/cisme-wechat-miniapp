@@ -5,7 +5,7 @@ import sharp from "sharp";
 import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
 import { transaction, type DbClient } from "./db.js";
-import { AuthorityService } from "./authority.js";
+import { AuthorityService, requireActiveMemberWithClient } from "./authority.js";
 import { communityAuthors } from "./memberProfile.js";
 import { validateGatewayUpload, type ObjectStorage } from "./storage.js";
 import { pendingReviewRevisionSql, reviewableRevisionSql } from "./ugcVisibility.js";
@@ -32,6 +32,21 @@ function mediaIds(value:unknown):string[]{
   const ids=value.map(uuid);if(new Set(ids).size!==ids.length)throw new DomainError("UGC_MEDIA_INVALID","请移除重复图片",422);return ids;
 }
 type DraftInput={title?:unknown;body?:unknown;mediaIds?:unknown;aiUsage?:unknown;rightsConfirmed?:unknown;publicConsentConfirmed?:unknown;expectedVersion?:unknown};
+function ownWorkflowState(post:{state:string;published_revision:number|null;current_revision:number;moderation_state:string}):string{
+  if(post.state==="hidden"||post.state==="deleted")return post.state;
+  if(post.current_revision!==post.published_revision){
+    if(post.moderation_state==="approved")return "awaiting_publication";
+    if(post.moderation_state==="pending")return "pending_review";
+    if(post.moderation_state==="rejected")return "rejected";
+    return "draft";
+  }
+  return post.state;
+}
+const ownWorkflowStateSql=`CASE WHEN p.state IN ('hidden','deleted') THEN p.state
+  WHEN p.current_revision IS DISTINCT FROM p.published_revision THEN
+    CASE r.moderation_state WHEN 'approved' THEN 'awaiting_publication' WHEN 'pending' THEN 'pending_review'
+      WHEN 'rejected' THEN 'rejected' ELSE 'draft' END
+  ELSE p.state END`;
 
 export class FormalUgcService{
   constructor(private readonly pool:pg.Pool,private readonly config:AppConfig,private readonly storage:ObjectStorage,private readonly authority:AuthorityService){}
@@ -42,12 +57,17 @@ export class FormalUgcService{
       AND EXISTS(SELECT 1 FROM ugc_go_live_approval a WHERE a.revoked_at IS NULL AND a.signed_at<=now() AND a.expires_at>now())`);
     return Boolean(result.rowCount);
   }
-  private async requirePublicGate(client?:DbClient){
+  private async requirePublicGate(client:DbClient){
     if(!this.config.ugcGoLiveGate)throw new DomainError("UGC_GO_LIVE_GATE_CLOSED","社区公开发布尚未开放，可先保存草稿",503);
-    const db=client??this.pool;
-    const ready=await db.query(`SELECT 1 FROM emergency_switch s WHERE s.key='community' AND s.enabled
-      AND EXISTS(SELECT 1 FROM ugc_go_live_approval a WHERE a.revoked_at IS NULL AND a.signed_at<=now() AND a.expires_at>now())`);
-    if(!ready.rowCount)throw new DomainError("UGC_GO_LIVE_GATE_CLOSED","社区公开发布尚未开放，可先保存草稿",503);
+    // Acquire content/authority locks first, then the switch and one approval.
+    // Gate changes can complete while a writer is waiting for its post; once
+    // validated, these share locks serialize revocation until this write ends.
+    const enabled=(await client.query("SELECT enabled FROM emergency_switch WHERE key='community' FOR SHARE")).rows[0]?.enabled;
+    const approval=enabled?(await client.query<{expires_at:Date}>(`SELECT expires_at FROM ugc_go_live_approval
+      WHERE revoked_at IS NULL AND signed_at<=clock_timestamp() AND expires_at>clock_timestamp()
+      ORDER BY expires_at DESC,id LIMIT 1 FOR SHARE`)).rows[0]:null;
+    const current=approval&&(await client.query<{valid:boolean}>("SELECT $1::timestamptz>clock_timestamp() AS valid",[approval.expires_at])).rows[0]?.valid;
+    if(!current)throw new DomainError("UGC_GO_LIVE_GATE_CLOSED","社区公开发布尚未开放，可先保存草稿",503);
   }
 
   async createDraft(memberId:string|undefined,requestKey:unknown){
@@ -58,7 +78,12 @@ export class FormalUgcService{
       const existing=(await client.query("SELECT id FROM ugc_post WHERE author_member_id=$1 AND client_request_key=$2",[owner,clientKey])).rows[0];
       if(existing)return this.readOwnWithClient(client,owner,existing.id);
       const id=randomUUID();
-      await client.query(`INSERT INTO ugc_post(id,author_member_id,client_request_key) VALUES($1,$2,$3)`,[id,owner,clientKey]);
+      const inserted=await client.query(`INSERT INTO ugc_post(id,author_member_id,client_request_key) VALUES($1,$2,$3)
+        ON CONFLICT(author_member_id,client_request_key) DO NOTHING RETURNING id`,[id,owner,clientKey]);
+      if(!inserted.rowCount){
+        const replay=(await client.query("SELECT id FROM ugc_post WHERE author_member_id=$1 AND client_request_key=$2",[owner,clientKey])).rows[0];
+        return this.readOwnWithClient(client,owner,replay.id);
+      }
       await client.query(`INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body,ai_usage,rights_confirmed,public_consent_confirmed)
         VALUES($1,1,$2,NULL,NULL,'unknown',false,false)`,[id,owner]);
       return this.readOwnWithClient(client,owner,id);
@@ -68,14 +93,22 @@ export class FormalUgcService{
   async saveDraft(memberId:string|undefined,postId:string,input:DraftInput){
     const owner=member(memberId),id=uuid(postId),expected=positiveVersion(input.expectedVersion);
     const title=cleanText(input.title,120,"标题"),body=cleanText(input.body,5000,"正文"),images=mediaIds(input.mediaIds??[]);
-    const aiUsage=input.aiUsage;
-    if(!["none","assisted","generated","unknown"].includes(String(aiUsage)))throw new DomainError("UGC_AI_DECLARATION_INVALID","请选择 AI 内容声明",422);
+    // Older clients may still supply this immutable revision metadata. The
+    // consumer editor no longer collects an AI declaration; omission must not
+    // become a fabricated 'none' choice or erase a previously stored value.
+    if(input.aiUsage!==undefined&&!["none","assisted","generated","unknown"].includes(String(input.aiUsage)))
+      throw new DomainError("UGC_METADATA_INVALID","内容元数据无效，请刷新后重试",422);
     if(typeof input.rightsConfirmed!=="boolean"||typeof input.publicConsentConfirmed!=="boolean")throw new DomainError("UGC_DECLARATION_INVALID","请确认内容权利与公开范围",422);
     return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
       const post=(await client.query("SELECT * FROM ugc_post WHERE id=$1 AND author_member_id=$2 FOR UPDATE",[id,owner])).rows[0];
       if(!post)throw new DomainError("UGC_POST_NOT_FOUND","草稿不存在或不属于当前账号",404);
       if(!["draft","rejected","published"].includes(post.state))throw new DomainError("UGC_POST_LOCKED","当前审核状态不能编辑",409);
       if(post.version!==expected)throw new DomainError("UGC_VERSION_CONFLICT","草稿已更新，请重新加载后核对",409);
+      const current=(await client.query("SELECT moderation_state,ai_usage FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
+      if(post.current_revision!==post.published_revision&&["pending","approved"].includes(current?.moderation_state))
+        throw new DomainError("UGC_POST_LOCKED","当前版本已提交审核，审核完成前不能修改",409);
+      const aiUsage=input.aiUsage??current?.ai_usage??"unknown";
       if(images.length){const owned=await client.query(`SELECT id FROM ugc_media_asset WHERE id=ANY($1::uuid[]) AND owner_member_id=$2
         AND source_post_id=$3 AND state IN ('uploaded','scanning','approved')
         AND (bound_post_id IS NULL OR bound_post_id=$3) FOR UPDATE`,[images,owner,id]);
@@ -96,16 +129,24 @@ export class FormalUgcService{
   async submit(memberId:string|undefined,postId:string,expectedVersion:unknown){
     const owner=member(memberId),id=uuid(postId),expected=positiveVersion(expectedVersion);
     return transaction(this.pool,async client=>{
-      await this.requirePublicGate(client);
+      await requireActiveMemberWithClient(client,owner);
       const post=(await client.query("SELECT * FROM ugc_post WHERE id=$1 AND author_member_id=$2 FOR UPDATE",[id,owner])).rows[0];
       if(!post)throw new DomainError("UGC_POST_NOT_FOUND","草稿不存在或不属于当前账号",404);
       if(!["draft","published"].includes(post.state)||post.version!==expected||post.current_revision===post.published_revision)
         throw new DomainError("UGC_VERSION_CONFLICT","草稿或审核状态已变化，请刷新后重试",409);
-      const revision=(await client.query("SELECT moderation_state FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
+      const revision=(await client.query(`SELECT moderation_state,title,body,rights_confirmed,public_consent_confirmed
+        FROM ugc_post_revision WHERE post_id=$1 AND revision=$2`,[id,post.current_revision])).rows[0];
       if(revision?.moderation_state!=="unreviewed")throw new DomainError("UGC_VERSION_CONFLICT","当前版本已进入审核，请刷新后重试",409);
-      const media=await client.query(`SELECT a.state FROM ugc_post_media b JOIN ugc_media_asset a ON a.id=b.media_asset_id
+      const media=await client.query(`SELECT a.state,a.owner_member_id,a.source_post_id,a.bound_post_id FROM ugc_post_media b JOIN ugc_media_asset a ON a.id=b.media_asset_id
         WHERE b.post_id=$1 AND b.revision=$2 FOR SHARE OF a`,[id,post.current_revision]);
+      if(!revision.body?.trim()&&!media.rowCount)throw new DomainError("UGC_CONTENT_REQUIRED","请填写正文或添加至少一张图片",422);
+      if((media.rowCount??0)>9)throw new DomainError("UGC_MEDIA_INVALID","最多选择 9 张图片",422);
+      if(revision.rights_confirmed!==true||revision.public_consent_confirmed!==true)
+        throw new DomainError("UGC_DECLARATION_REQUIRED","请确认内容权利与社区公开展示范围",422);
+      if(media.rows.some(row=>row.owner_member_id!==owner||row.source_post_id!==id||row.bound_post_id!==id))
+        throw new DomainError("UGC_MEDIA_NOT_READY","有图片不属于这篇内容，请重新核对",409);
       if(media.rows.some(row=>!["uploaded","scanning","approved"].includes(row.state)))throw new DomainError("UGC_MEDIA_NOT_READY","图片尚未完成上传，请稍后重试",409);
+      await this.requirePublicGate(client);
       await client.query(`UPDATE ugc_post_revision SET moderation_state='pending' WHERE post_id=$1 AND revision=$2`,[id,post.current_revision]);
       await client.query(`UPDATE ugc_post SET state=CASE WHEN published_revision IS NULL THEN 'pending_review' ELSE 'published' END,
         version=version+1,updated_at=now() WHERE id=$1`,[id]);
@@ -122,6 +163,7 @@ export class FormalUgcService{
     if(typeof mimeType!=="string"||!mediaMimes.has(mimeType)||!Number.isInteger(size)||size<1||size>10*1024*1024)
       throw new DomainError("UGC_MEDIA_INVALID","请选择小于 10MB 的 JPG、PNG 或 WEBP 图片",422);
     return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
       const post=(await client.query("SELECT state FROM ugc_post WHERE id=$1 AND author_member_id=$2 FOR SHARE",[id,owner])).rows[0];
       if(!post||!["draft","rejected","published"].includes(post.state))throw new DomainError("UGC_POST_LOCKED","当前内容不能添加图片",409);
       const switchRow=await client.query("SELECT 1 FROM emergency_switch WHERE key='uploads' AND enabled");
@@ -214,6 +256,7 @@ export class FormalUgcService{
   async completeMedia(memberId:string|undefined,postId:string,mediaId:string){
     const owner=member(memberId),id=uuid(postId),assetId=uuid(mediaId);
     return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
       const post=await client.query("SELECT 1 FROM ugc_post WHERE id=$1 AND author_member_id=$2 AND state IN ('draft','rejected','published') FOR SHARE",[id,owner]);
       if(!post.rowCount)throw new DomainError("UGC_POST_LOCKED","当前内容不能完成图片上传",409);
       const asset=(await client.query(`SELECT * FROM ugc_media_asset WHERE id=$1 AND owner_member_id=$2
@@ -247,13 +290,11 @@ export class FormalUgcService{
       WHERE post_id=$1 AND revision=$2`,[id,post.published_revision])).rows[0]:null;
     const appeal=post.state==="hidden"?(await client.query(`SELECT id,state,reason,decision_code,decision_reason,created_at,decided_at
       FROM ugc_post_appeal WHERE post_id=$1 AND post_version=$2`,[id,post.version])).rows[0]:null;
-    const workflowState=post.state==="hidden"?"hidden":post.published_revision && post.current_revision!==post.published_revision
-      ? post.moderation_state==="unreviewed"?"draft":post.moderation_state==="pending"?"pending_review":post.moderation_state==="rejected"?"rejected":post.state
-      : post.state;
+    const workflowState=ownWorkflowState(post);
     return {id:post.id,ownerId:owner,state:workflowState,publicVersionActive:post.state==="published"&&Boolean(post.published_revision),
       visibility:post.visibility,revision:post.current_revision,publishedRevision:post.published_revision,version:post.version,
       title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,rightsConfirmed:post.rights_confirmed,
-      publicConsentConfirmed:post.public_consent_confirmed,moderationState:post.moderation_state,updatedAt:post.updated_at,
+      publicConsentConfirmed:post.public_consent_confirmed,moderationState:post.moderation_state,revisionState:post.moderation_state,updatedAt:post.updated_at,
       media:media.rows.map(row=>({id:row.id,state:row.state,position:row.position})),
       reviewNote:review.rows[0]?.reason??null,reviewedAt:review.rows[0]?.created_at??null,
       hiddenReason:hidden?.reason??null,hiddenAt:hidden?.created_at??null,
@@ -263,19 +304,25 @@ export class FormalUgcService{
   }
   async readOwn(memberId:string|undefined,postId:string){const owner=member(memberId),id=uuid(postId);
     return transaction(this.pool,client=>this.readOwnWithClient(client,owner,id),"REPEATABLE READ");}
-  async myPosts(memberId:string|undefined,input:{limit?:unknown;cursor?:unknown}={}){const owner=member(memberId);
-    const limit=pageLimit(input.limit,30,50),scope=pageScope(["my-ugc",owner]),cursor=readPageCursor(input.cursor,scope);
+  async myPosts(memberId:string|undefined,input:{limit?:unknown;cursor?:unknown;state?:unknown}={}){const owner=member(memberId);
+    const state=input.state??"all";
+    if(typeof state!=="string"||!["all","draft","pending_review","awaiting_publication","rejected","published","hidden"].includes(state))
+      throw new DomainError("UGC_POST_STATE_INVALID","请选择有效的投稿状态",422);
+    const limit=pageLimit(input.limit,30,50),scope=pageScope(["my-ugc",owner,state]),cursor=readPageCursor(input.cursor,scope);
     const result=await this.pool.query(`SELECT p.id,p.state,p.published_revision,p.current_revision,p.version,p.updated_at,p.updated_at::text AS cursor_at,r.title,r.body,r.moderation_state,
       (SELECT count(*)::int FROM ugc_post_media b WHERE b.post_id=p.id AND b.revision=p.current_revision) AS image_count
       FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
       WHERE p.author_member_id=$1 AND p.state<>'deleted'
+        AND ($5='all' OR (${ownWorkflowStateSql})=$5)
         AND ($2::timestamptz IS NULL OR (p.updated_at,p.id)<($2::timestamptz,$3::uuid))
-      ORDER BY p.updated_at DESC,p.id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
-    const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,state:row.state==="hidden"?"hidden":row.published_revision&&row.current_revision!==row.published_revision
-      ? row.moderation_state==="unreviewed"?"draft":row.moderation_state==="pending"?"pending_review":row.moderation_state==="rejected"?"rejected":row.state
-      : row.state,publicVersionActive:row.state==="published"&&Boolean(row.published_revision),version:row.version,updatedAt:row.updated_at,
+      ORDER BY p.updated_at DESC,p.id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1,state]);
+    const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,state:ownWorkflowState(row),
+      revision:row.current_revision,publishedRevision:row.published_revision,moderationState:row.moderation_state,revisionState:row.moderation_state,
+      publicVersionActive:row.state==="published"&&Boolean(row.published_revision),version:row.version,updatedAt:row.updated_at,
       title:row.title||row.body?.slice(0,30)||"图片护理故事",imageCount:row.image_count})),limit,scope);
-    const total=(await this.pool.query(`SELECT count(*)::int AS total FROM ugc_post WHERE author_member_id=$1 AND state<>'deleted'`,[owner])).rows[0]?.total??0;
+    const total=(await this.pool.query(`SELECT count(*)::int AS total FROM ugc_post p
+      JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
+      WHERE p.author_member_id=$1 AND p.state<>'deleted' AND ($2='all' OR (${ownWorkflowStateSql})=$2)`,[owner,state])).rows[0]?.total??0;
     return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};}
 
   async feed(memberId:string|undefined,input:{q?:unknown;authorId?:unknown;limit?:unknown;cursor?:unknown;following?:unknown}={}){
@@ -658,6 +705,8 @@ export class FormalUgcService{
       const revision=(await client.query("SELECT moderation_state,title,body FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
       if(revision?.moderation_state!=="pending")throw new DomainError("UGC_REVIEW_CONFLICT","当前版本已完成审核，请刷新",409);
       if(decision==="approve"){
+        const author=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[post.author_member_id]);
+        if(!author.rowCount)throw new DomainError("UGC_AUTHOR_INACTIVE","作者账号状态已变化，当前内容不能通过审核",409);
         const scanText=[revision.title,revision.body].filter(Boolean).join("\n").trim();
         if(scanText&&this.config.env!=="test"){
           const fingerprint=createHash("sha256").update(scanText).digest("hex");
@@ -685,17 +734,19 @@ export class FormalUgcService{
     const publisher=member(memberId),id=uuid(postId),expected=positiveVersion(expectedVersion);
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,publisher,"community.moderate");
-      await this.requirePublicGate(client);
       const post=(await client.query("SELECT * FROM ugc_post WHERE id=$1 FOR UPDATE",[id])).rows[0];
       if(!post)throw new DomainError("UGC_POST_NOT_FOUND","内容不存在",404);
       if(post.author_member_id===publisher)throw new DomainError("UGC_SELF_REVIEW_FORBIDDEN","不能发布自己的内容",403);
       if(!["pending_review","published"].includes(post.state)||post.version!==expected||post.current_revision===post.published_revision)
         throw new DomainError("UGC_REVIEW_CONFLICT","内容已变化，请刷新后重试",409);
+      const author=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[post.author_member_id]);
+      if(!author.rowCount)throw new DomainError("UGC_AUTHOR_INACTIVE","作者账号状态已变化，当前内容不能公开",409);
       const revision=(await client.query("SELECT moderation_state FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
       if(revision?.moderation_state!=="approved")throw new DomainError("UGC_SECOND_REVIEW_REQUIRED","当前版本尚未通过内容审核",409);
       const approval=(await client.query(`SELECT reviewer_member_id FROM ugc_post_review_action
         WHERE post_id=$1 AND revision=$2 AND decision='approve' ORDER BY created_at DESC LIMIT 1`,[id,post.current_revision])).rows[0];
       if(!approval||approval.reviewer_member_id===publisher)throw new DomainError("UGC_SECOND_REVIEW_REQUIRED","需要另一名审核员确认公开",403);
+      await this.requirePublicGate(client);
       await client.query(`UPDATE ugc_post SET state='published',visibility='public',published_revision=current_revision,published_at=now(),version=version+1,updated_at=now()
         WHERE id=$1`,[id]);
       await client.query(`INSERT INTO ugc_post_review_action(post_id,revision,reviewer_member_id,decision,reason,rule_version,evidence)
@@ -707,6 +758,7 @@ export class FormalUgcService{
   async deleteOwn(memberId:string|undefined,postId:string,expectedVersion:unknown){
     const owner=member(memberId),id=uuid(postId),expected=positiveVersion(expectedVersion);
     return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
       const post=(await client.query("SELECT * FROM ugc_post WHERE id=$1 AND author_member_id=$2 FOR UPDATE",[id,owner])).rows[0];
       if(!post)throw new DomainError("UGC_POST_NOT_FOUND","内容不存在或不属于当前账号",404);
       if(post.state==="deleted")return {id,state:"deleted",version:post.version};
@@ -721,13 +773,13 @@ export class FormalUgcService{
     if(kind!=="like"&&kind!=="save"||typeof input.active!=="boolean")throw new DomainError("UGC_REACTION_INVALID","操作无效",422);
     return transaction(this.pool,async client=>{
       if(input.active){
-        await this.requirePublicGate(client);
         const post=await client.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id
           AND author.status='active' WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
           AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE
             (b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id) OR
             (b.blocker_member_id=p.author_member_id AND b.blocked_member_id=$2)) FOR SHARE OF p`,[id,owner]);
         if(!post.rowCount)throw new DomainError("UGC_POST_NOT_FOUND","内容已下架",404);
+        await this.requirePublicGate(client);
         await client.query(`INSERT INTO ugc_post_reaction(post_id,member_id,kind) VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,[id,owner,kind]);
       }else await client.query("DELETE FROM ugc_post_reaction WHERE post_id=$1 AND member_id=$2 AND kind=$3",[id,owner,kind]);
       const count=await client.query("SELECT count(*)::int AS value FROM ugc_post_reaction WHERE post_id=$1 AND kind=$2",[id,kind]);
@@ -760,7 +812,6 @@ export class FormalUgcService{
     if(!body)throw new DomainError("UGC_COMMENT_EMPTY","请输入评论内容",422);
     const parentId=input.parentId?uuid(input.parentId):null,replyToId=input.replyToId?uuid(input.replyToId):null;
     return transaction(this.pool,async client=>{
-      await this.requirePublicGate(client);
       const previous=(await client.query(`SELECT id,state,post_id,body,parent_id,reply_to_id FROM ugc_comment
         WHERE author_member_id=$1 AND operation_id=$2`,[owner,op])).rows[0];
       if(previous){
@@ -778,6 +829,7 @@ export class FormalUgcService{
         if(!parent||parent.post_id!==id||parent.state!=="published")throw new DomainError("UGC_COMMENT_PARENT_INVALID","回复对象已不可见",409);}
       if(replyToId){const reply=(await client.query("SELECT post_id,state FROM ugc_comment WHERE id=$1",[replyToId])).rows[0];
         if(!reply||reply.post_id!==id||reply.state!=="published")throw new DomainError("UGC_COMMENT_PARENT_INVALID","回复对象已不可见",409);}
+      await this.requirePublicGate(client);
       const created=await client.query(`INSERT INTO ugc_comment(post_id,author_member_id,parent_id,reply_to_id,body,operation_id)
         VALUES($1,$2,$3,$4,$5,$6) RETURNING id,state`,[id,owner,parentId,replyToId,body,op]);
       return created.rows[0];
@@ -805,6 +857,8 @@ export class FormalUgcService{
       if(comment.author_member_id===reviewer)throw new DomainError("UGC_SELF_REVIEW_FORBIDDEN","不能审核自己的评论",403);
       if(comment.state!=="pending_review")throw new DomainError("UGC_REVIEW_CONFLICT","评论审核状态已变化",409);
       if(decision==="approve"){
+        const author=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[comment.author_member_id]);
+        if(!author.rowCount)throw new DomainError("UGC_AUTHOR_INACTIVE","评论作者账号状态已变化，当前评论不能公开",409);
         if(this.config.env!=="test"){
           const fingerprint=createHash("sha256").update(comment.body).digest("hex");
           const latest=(await client.query<{body_sha256:string;provider:string;state:string}>(
@@ -813,10 +867,18 @@ export class FormalUgcService{
           if(latest?.body_sha256!==fingerprint||latest.provider!=="wechat_v2"||latest.state!=="safe")
             throw new DomainError("UGC_TEXT_SCAN_REQUIRED","评论最近一次安全检测尚未通过",409);
         }
-        const post=await client.query("SELECT 1 FROM ugc_post WHERE id=$1 AND state='published' AND visibility='public'",[comment.post_id]);
+        const post=await client.query(`SELECT p.id FROM ugc_post p JOIN member author ON author.id=p.author_member_id AND author.status='active'
+          WHERE p.id=$1 AND p.state='published' AND p.visibility='public' FOR SHARE OF p,author`,[comment.post_id]);
         if(!post.rowCount)throw new DomainError("UGC_POST_NOT_FOUND","内容已下架，评论不能公开",409);
-        if(comment.parent_id){const parent=await client.query("SELECT 1 FROM ugc_comment WHERE id=$1 AND state='published'",[comment.parent_id]);
+        if(comment.parent_id){const parent=await client.query(`SELECT parent.id FROM ugc_comment parent
+          JOIN member author ON author.id=parent.author_member_id AND author.status='active'
+          WHERE parent.id=$1 AND parent.post_id=$2 AND parent.state='published' FOR SHARE OF parent,author`,[comment.parent_id,comment.post_id]);
           if(!parent.rowCount)throw new DomainError("UGC_COMMENT_PARENT_INVALID","上级评论已不可见",409);}
+        if(comment.reply_to_id){const reply=await client.query(`SELECT reply.id FROM ugc_comment reply
+          JOIN member author ON author.id=reply.author_member_id AND author.status='active'
+          WHERE reply.id=$1 AND reply.post_id=$2 AND reply.state='published' FOR SHARE OF reply,author`,[comment.reply_to_id,comment.post_id]);
+          if(!reply.rowCount)throw new DomainError("UGC_COMMENT_PARENT_INVALID","回复对象已不可见",409);}
+        await this.requirePublicGate(client);
       }
       await client.query(`UPDATE ugc_comment SET state=$2,was_public=$3,version=version+1,updated_at=now() WHERE id=$1`,
         [id,decision==="approve"?"published":"rejected",decision==="approve"]);
@@ -844,6 +906,7 @@ export class FormalUgcService{
   async deleteOwnMedia(memberId:string|undefined,mediaId:string){
     const owner=member(memberId),id=uuid(mediaId);
     return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
       const asset=(await client.query("SELECT * FROM ugc_media_asset WHERE id=$1 AND owner_member_id=$2 FOR UPDATE",[id,owner])).rows[0];
       if(!asset)throw new DomainError("UGC_MEDIA_NOT_FOUND","图片不存在或不属于当前账号",404);
       if(asset.state==="deleted")return {id,state:"deleted"};
