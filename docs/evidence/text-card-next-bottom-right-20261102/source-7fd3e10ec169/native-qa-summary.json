@@ -1,0 +1,377 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "7fd3e10ec169581684ff01f5161e82c62fd065f74d3b16560dcb894ce2d8a6f2",
+  "result": "scoped native bottom-right input Next placement pass only",
+  "currentSource": true,
+  "stableAcceptanceId": "COMPOSE-TEXT-CTA-01",
+  "sourceProof": "source-proof.json",
+  "sourceByteIdenticalFiles": 24,
+  "reviewedScreenshotCount": 5,
+  "screenshots": [
+    {
+      "file": "native-input-bottom-next-361.png",
+      "sha256": "44bcaa6711dd6a68ec38ae7800ac97a75cc5fb236920af03c15fc4052e8c69d8",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-input-bottom-next-430.png",
+      "sha256": "2fca1bd20cf81953df411f697dd52a0b0b00b0a0a3a4f75f8001e8b4e9604e30",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-input-bottom-next-empty-390.png",
+      "sha256": "9749458907ced5f0f1b9d0dc80db33a578b0b31a321bda9ccacf24d76009fc06",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-input-bottom-next-filled-390.png",
+      "sha256": "dc6853fb882039453c71d7fae7137113183434b3cf0bc5e3f41c820381954c98",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-templates-next-390.png",
+      "sha256": "9dac86df0325f75fdc4f8a7da24de0ac5100c0e60809d1ec63c1dfe70c44460f",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    }
+  ],
+  "scope": [
+    "361/390/430 input CTA112x48,22px right inset, safe-bottom footer; old header CTA absent",
+    "390 empty gray disabled binding and generation guard reject empty input",
+    "390 input enabled CTA and templates CTA retain x256..368/y750..798",
+    "long input native content1289px exceeds651px viewport; reserved footer unaffected",
+    "controlled keyboardChange300 hides footer;0 restores exact original button geometry",
+    "actual bound confirm handler generates six local Canvas PNGs then templates, without canonical draft or POST"
+  ],
+  "inputGeometry": {
+    "361": {
+      "width": 361,
+      "height": 804,
+      "canProceed": true,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 227,
+          "right": 339,
+          "top": 744,
+          "bottom": 792,
+          "width": 112,
+          "height": 48
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 18,
+          "right": 343,
+          "top": 103,
+          "bottom": 632,
+          "width": 325,
+          "height": 529
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 18,
+          "right": 343,
+          "top": 652,
+          "bottom": 716,
+          "width": 325,
+          "height": 64
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 361,
+          "top": 79,
+          "bottom": 736,
+          "width": 361,
+          "height": 657
+        },
+        null
+      ],
+      "postId": "",
+      "writes": []
+    },
+    "430": {
+      "width": 430,
+      "height": 932,
+      "canProceed": true,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 296,
+          "right": 408,
+          "top": 838,
+          "bottom": 886,
+          "width": 112,
+          "height": 48
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 408,
+          "top": 122,
+          "bottom": 726,
+          "width": 386,
+          "height": 604
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 408,
+          "top": 746,
+          "bottom": 810,
+          "width": 386,
+          "height": 64
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 430,
+          "top": 98,
+          "bottom": 830,
+          "width": 430,
+          "height": 732
+        },
+        null
+      ],
+      "postId": "",
+      "writes": []
+    },
+    "390": {
+      "text": "护理慢慢来，\n感受每天的小变化。",
+      "canProceed": true,
+      "keyboardVisible": false,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 256,
+          "right": 368,
+          "top": 750,
+          "bottom": 798,
+          "width": 112,
+          "height": 48
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 368,
+          "top": 658,
+          "bottom": 722,
+          "width": 346,
+          "height": 64
+        }
+      ]
+    }
+  },
+  "emptyInput": {
+    "width": 390,
+    "height": 844,
+    "canProceed": false,
+    "stageAfterEmptyConfirm": "input",
+    "postId": "",
+    "writes": [],
+    "geometry": [
+      {
+        "id": "",
+        "dataset": {},
+        "left": 256,
+        "right": 368,
+        "top": 750,
+        "bottom": 798,
+        "width": 112,
+        "height": 48
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 390,
+        "top": 742,
+        "bottom": 844,
+        "width": 390,
+        "height": 102
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 22,
+        "right": 368,
+        "top": 115,
+        "bottom": 638,
+        "width": 346,
+        "height": 523
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 22,
+        "right": 368,
+        "top": 658,
+        "bottom": 722,
+        "width": 346,
+        "height": 64
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 390,
+        "top": 91,
+        "bottom": 742,
+        "width": 390,
+        "height": 651
+      },
+      null
+    ]
+  },
+  "controlledKeyboardAndOverflow": {
+    "scope": "controlled keyboardChange height only; not physical keyboard or finger scroll",
+    "count": 209,
+    "longGeometry": [
+      {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 390,
+        "top": 91,
+        "bottom": 742,
+        "width": 390,
+        "height": 651
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 390,
+        "top": 91,
+        "bottom": 1379.8984375,
+        "width": 390,
+        "height": 1288.8984375
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 0,
+        "scrollWidth": 390,
+        "scrollHeight": 1289
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 256,
+        "right": 368,
+        "top": 750,
+        "bottom": 798,
+        "width": 112,
+        "height": 48
+      }
+    ],
+    "footerHidden": true,
+    "footerRestored": true,
+    "restored": {
+      "id": "",
+      "dataset": {},
+      "left": 256,
+      "right": 368,
+      "top": 750,
+      "bottom": 798,
+      "width": 112,
+      "height": 48
+    }
+  },
+  "realTemplateGeneration": {
+    "scope": "actual bound confirm handler and Canvas; no physical tap claim",
+    "stage": "templates",
+    "pngCount": 6,
+    "canExport": true,
+    "postId": "",
+    "writes": [],
+    "geometry": [
+      {
+        "id": "",
+        "dataset": {},
+        "left": 256,
+        "right": 368,
+        "top": 750,
+        "bottom": 798,
+        "width": 112,
+        "height": 48
+      },
+      {
+        "id": "",
+        "dataset": {
+          "path": "http://tmp/HIFQoKluesEz08ae204f56b2fbe686fcfbc71326ae9a.png",
+          "revision": 4
+        },
+        "left": 22,
+        "right": 368,
+        "top": 125,
+        "bottom": 586,
+        "width": 346,
+        "height": 461
+      }
+    ]
+  },
+  "physicalTapClaim": false,
+  "physicalKeyboardClaim": false,
+  "physicalScrollClaim": false,
+  "scrollEvidence": "native content/body geometry only; actual finger scroll or programmatic scrollTo not exercised",
+  "apiMocksCreatedThisRun": [],
+  "apiRestoreReceipts": [
+    "native-restore-showModal.json",
+    "native-restore-chooseMedia.json",
+    "native-restore-requirePrivacyAuthorize.json"
+  ],
+  "cleanup": {
+    "route": "pages/community/index",
+    "width": 430,
+    "posts": 0,
+    "writeCalls": 0,
+    "publicEnabled": false,
+    "publishEntryOpen": false,
+    "realAccountDataAccessed": false,
+    "persistentStorage": false
+  },
+  "toolErrorsPreserved": [
+    "native-input-empty-390-startup-race-error.json",
+    "native-input-geometry-430-startup-timeout.json"
+  ],
+  "currentConsoleContainsSdkClickCheckError": false,
+  "openBoundaries": [
+    "physical keyboard/Done/adjust-position movement not verified; keyboard test is controlled state only",
+    "native finger tap/scroll not claimed; known unsupported App.CDPEnable path was not retried",
+    "tiny top-left line in390 captures not investigated; prior phone-check boundary remains",
+    "backend/upload/fulltext flow and all40route/device matrix are outside this position correction scope"
+  ],
+  "full40RouteAndRealDeviceMatrix": "blocked",
+  "previousEvidenceInheritedAsCurrentAcceptance": false
+}

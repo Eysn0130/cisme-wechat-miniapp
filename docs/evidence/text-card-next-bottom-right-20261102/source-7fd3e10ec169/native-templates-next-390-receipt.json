@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_screenshot",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/text-card-next-bottom-right-20261102/source-7fd3e10ec169/native-templates-next-390.png",
+    "imageWidth": 390,
+    "imageHeight": 844
+  }
+}

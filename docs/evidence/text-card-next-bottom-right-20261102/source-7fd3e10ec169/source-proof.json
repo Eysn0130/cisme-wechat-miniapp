@@ -1,0 +1,160 @@
+{
+  "packageSourceSha256": "7fd3e10ec169581684ff01f5161e82c62fd065f74d3b16560dcb894ce2d8a6f2",
+  "copiedSources": [
+    {
+      "file": "custom-tab-bar/index.ts",
+      "sha256": "72907a7d078d3abf8f95fcfb9cafd9d24a5bd89bafa575f1744fc2afb8f7e529",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxml",
+      "sha256": "095c08b44fcb16d73ba1e6f54af9624d21a6166b70f45113baf4a57790f4ca7d",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.wxss",
+      "sha256": "9069590821875ca58de2dedd0e7c271923c3f7e1a4f64a6e806bbdc4343db756",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "custom-tab-bar/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.ts",
+      "sha256": "b0df369a0cc0a438b653d43e349dafbb3288e39a1649836511f07527ef34d7ad",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxml",
+      "sha256": "0cea6128a91da33ec59c4204ebb523fd047efc2a8f8b89f76eb8c79633674af0",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "sha256": "b2ed9fd7e0640c64133799f43979095672f4a86cb6ef011319b894d5781d9190",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community/index.json",
+      "sha256": "4537cd5e88f68bcaf370434fb26da6a85b2114f2f7c73c69887ab0b027a00b94",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.ts",
+      "sha256": "34b63f62a177c2d56d1080a7871678c0e1a1c57eba5704bb4b1d6185d1569bd9",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "sha256": "1b6f7914f1298d7007b8d396de95052e6b4d167a99796993c799895506fad3fe",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "sha256": "39a357ff2361e9a30f94086f609cea458654628d347c926c60f1e572f4ca14be",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "pages/community-compose/index.json",
+      "sha256": "be6707488347f0aef68b79002bd50550822466f6bf49cde4a6f226f3c4ccf56a",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.ts",
+      "sha256": "8a1ae0248021e3f65eb43f7c0c68d7f51e9812348d2a38a169701cb2e8e47e90",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxml",
+      "sha256": "928142237562c4fb1cf1812b488e170214021afcf99c68e490aea41e9fc11a32",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.wxss",
+      "sha256": "8ed089e2ceb8c3e46f8fb96bb970e051a4d988080f6b8c410e60f8e7a3a8a626",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-text-card/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.ts",
+      "sha256": "9381b93d86e70d96cbc208ad16eeed363a50f7295fce35155c6c5e423d264a1e",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxml",
+      "sha256": "57a0527587a091078a2f1b2ea9e7ce6e19472e8e4afb2e4759c9633a515f6ca6",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.wxss",
+      "sha256": "82f392a9e892ac89fb3b5a8e8c42e45a6396586a340f2201feb39fa485a2c9dc",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "components/community-image-editor/index.json",
+      "sha256": "6bcc2e9e536384851fcfbdd823aee8ae4331243636adc4a656a64a44d9cf9318",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/community-compose-intent.ts",
+      "sha256": "f255f69f8a4aa5ec64d70b296f779ef0a77f8193368a5caf1b25ada2174536c5",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-image-edit.ts",
+      "sha256": "b1d284adbf735da86ef72887fe7908d1bed2c943f4ff2783f6e16c0adb24ae0f",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-text-card-layout.ts",
+      "sha256": "99e1fe35713a6593eca21e387280221e9a5834afe5e9fe1fe3af473f4f7a95e6",
+      "fixtureByteIdentical": true
+    },
+    {
+      "file": "services/ugc-photo-effects.ts",
+      "sha256": "9cc83aece637d7ea947e01b55d6cb63187f4e79f232e1ee83d9ac102a3be03f1",
+      "fixtureByteIdentical": true
+    }
+  ],
+  "sourceByteIdenticalFiles": 24,
+  "fixturePath": "/tmp/cisme-compose-native-20261101",
+  "network": false,
+  "persistentStorage": false,
+  "scope": "24 actual files byte-identical. Only this input Next placement, controlled keyboard state, input overflow geometry and actual local Canvas template generation are covered. Offline auth/API/storage adapters; no real account/backend, physical touch or physical keyboard acceptance.",
+  "currentSource": true,
+  "sourceByteIdenticalFilesRecheckedAfterNative": 24,
+  "result": "source provenance only; native position evidence is bounded",
+  "full40RouteAndRealDeviceMatrix": "blocked",
+  "offlineAdapterFiles": [
+    {
+      "file": "app.ts",
+      "sha256": "9abac89bdf81bda468f76abaa3d793e40c21a2fb972ceb8cf54444297de5a168"
+    },
+    {
+      "file": "app.json",
+      "sha256": "b197593224a0029d750c7d85ea68832278ea667c23b3f74c2ccb396931ec9d03"
+    },
+    {
+      "file": "services/api.ts",
+      "sha256": "64a299c655e69f5f56c63fc345d2e3a45995939c38ff5f1d0a1069d0a6c66f14"
+    },
+    {
+      "file": "services/page-requests.ts",
+      "sha256": "9127d4e5c402a1cef0a3c9f2af3190ce486dfb221358d1c6ba2a58ef5b04c42f"
+    },
+    {
+      "file": "services/commerce-command-store.ts",
+      "sha256": "2f3ff1e17aead0bf7a871275f575de91bb4905fe7ebcfa37d56da9906094e547"
+    },
+    {
+      "file": "services/ugc-local-backup.ts",
+      "sha256": "6674ec72889715a29ca52a397a1dbb5f2bfeba6d2e1cc6207a2e202801d2acd1"
+    }
+  ]
+}

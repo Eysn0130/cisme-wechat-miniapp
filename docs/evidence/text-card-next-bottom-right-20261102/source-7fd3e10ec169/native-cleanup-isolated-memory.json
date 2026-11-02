@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "isolated fixture memory only; no real data",
+        "removedFixtureIds": [],
+        "posts": 0,
+        "writeCalls": 0
+      }
+    }
+  }
+}

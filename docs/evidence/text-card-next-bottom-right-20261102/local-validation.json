@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "7fd3e10ec169581684ff01f5161e82c62fd065f74d3b16560dcb894ce2d8a6f2",
+  "scope": "Input Next placement correction only; component TypeScript, API, migrations, rendering and upload logic unchanged",
+  "unit": {
+    "files": 1,
+    "passed": 29,
+    "command": "npx vitest run tests/unit/community-text-card-component.test.ts --maxWorkers=2",
+    "exitCode": 0,
+    "log": "/Users/mini/CISME/tmp/community-ui-polish-20261102/next-bottom-right-components.log"
+  },
+  "typecheck": {
+    "command": "npm run typecheck",
+    "exitCode": 0,
+    "log": "/Users/mini/CISME/tmp/community-ui-polish-20261102/next-bottom-right-typecheck.log"
+  },
+  "packageGate": {
+    "command": "npm run miniprogram:package-gate",
+    "errors": [],
+    "files": 298,
+    "routes": 40,
+    "globalStyleBytes": 8190,
+    "log": "/Users/mini/CISME/tmp/community-ui-polish-20261102/next-bottom-right-package.log"
+  },
+  "native": "source-7fd3e10ec169/native-qa-summary.json (scoped results only)",
+  "realAccountTestWrites": false,
+  "realDeviceAcceptance": false,
+  "backendDeploymentRequired": false,
+  "experienceUpload": "pending concrete official0.1.26 receipt"
+}
