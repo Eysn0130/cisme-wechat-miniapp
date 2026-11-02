@@ -353,7 +353,7 @@
       "informationType": "作者文字、图片引用、历史权利/公开许可元数据，以及本人发布动作产生的当前提交修订公开意图；历史AI元数据保留，普通站内消费者不再输入这些开关或AI选择",
       "purpose": "保存本人社区草稿、版本和审核历史",
       "activation": "登录用户输入时在本机暂存；主动保存写入私稿。本人对当前预期版本点击发布且服务端全部校验和末端门禁通过后，才同事务追加待审公开快照及publish_action来源审计",
-      "serverStorage": "CISME PostgreSQL不可变修订事实；私稿缺省rights/public两元数据false，不继承上次确认或伪造rights=true；成功提交追加同内容/有序图片引用的新pending修订，publicConsent=true且rights沿用源快照原值，ugc.post_submitted审计记录sourceRevision/newRevision/publicConsentSource=publish_action；旧修订和历史审计不重写。原图私有，审核后生成去元数据WebP；本机备份仅本人标题、正文、卡片模板偏好和图片ID，不含会话令牌；本地效果参数不成为新服务端字段",
+      "serverStorage": "CISME PostgreSQL不可变修订事实；私稿缺省rights/public两元数据false，不继承上次确认或伪造rights=true；成功提交追加同内容/有序图片引用的新pending修订，publicConsent=true且rights沿用源快照原值，ugc.post_submitted审计记录sourceRevision/newRevision/publicConsentSource=publish_action；旧修订和历史审计不重写。原图私有，审核后生成去元数据WebP；本机备份沿用本人/稿件/基础版本，包含标题、正文、独立可编辑卡片文字、卡片模板偏好和图片ID，不含会话令牌；首次文字入口未建稿前仅当前页内存保留，不新增持久化备份。卡片输入不自动写入正文，PNG交付后复用既有媒体链；本地效果参数不成为新服务端字段",
       "currentGate": "本人/有效身份/版本/内容/媒体归属和真实公开门禁全部通过才记录发布意图；失败或仅保存不记公开意图。内容安全与不同审核员复核前不可公开，rights历史勾选不再是提交或公开前置；恢复图片仍为5分钟签名预览",
       "retention": "本机未保存编辑备份 7 日；每次小程序启动、前台恢复或进入编辑器清理过期项，登出或切换会话清空；服务端版本 POLICY PENDING，删除公开内容不等于立即销毁依法需保留的治理事实"
     },
@@ -659,7 +659,7 @@
       "surface": "wx.canvasToTempFilePath",
       "informationType": "本人输入文字及静态模板形成的PNG；或本人本地图片经非AI滤镜/调节、文字与内置Unicode贴纸合成的新JPEG",
       "purpose": "按本人确认导出文字卡片，或应用本地图片效果，生成独立的本机临时图片；不改原始文件或写入系统相册",
-      "activation": "用户点击使用文字卡片或明确应用图片效果后",
+      "activation": "用户明确生成文字卡片时在本机排版并导出6款预设预览，确认当前模板后才进入既有创作与素材上传链；或明确应用图片效果后",
       "serverStorage": "导出本身不发送；图片效果配置仅在当前本机编辑上下文内存；本人确认后复用已授权UGC新素材上传与审核链，不新增接收方或长期非破坏编辑参数历史",
       "currentGate": "文字卡片300字/一页/10MB；图片效果original/warm/mono/vivid、亮度/对比/饱和度[-100,100]，叠字最多30个可见字形/上中下三位置/白墨紫三色/三种内置贴纸；新JPEG最长边1440、质量0.9、透明区合成白底，导出后真实字节/MIME校验；账号/稿件/页面/组件scope及未应用修改保护，不增加AI或第三方处理"
     },

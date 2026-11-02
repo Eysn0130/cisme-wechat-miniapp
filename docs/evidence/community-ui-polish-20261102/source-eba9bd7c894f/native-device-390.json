@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "tool": "simulator_set_device",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "changed": true,
+    "name": "iPhone 12/13 (Pro)",
+    "model": "iPhone 12/13 (Pro)",
+    "index": 1
+  }
+}

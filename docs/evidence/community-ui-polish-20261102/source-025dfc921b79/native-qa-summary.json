@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "025dfc921b79fadadb054afd36393dbad09454953f43699884913614916f96d2",
+  "currentSource": false,
+  "role": "pre-text-redesign completed baseline",
+  "result": "scoped native static-and-notice-state pass only",
+  "evidenceDirectory": ".",
+  "sourceProof": "source-proof.json",
+  "sourceByteIdenticalFiles": 24,
+  "reviewedScreenshotCount": 7,
+  "screenshots": [
+    {
+      "file": "native-delete-private-361.png",
+      "sha256": "e8de5a9f5daf9182e514bc338f6e1c1a17ddea0086ce5d18f958e96f2964943e",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-delete-private-390.png",
+      "sha256": "b42f02831315ed6f2ba1d4bea759b73ce78aaeea1cc12148e3734996d4bd0bb1",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-delete-private-430.png",
+      "sha256": "39e6f9f7bbd9110340d2d28fcf7c221a476b95f16b6b05b04259c743ebdac7e3",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-delete-public-361.png",
+      "sha256": "092e9b3fa1c6b3be1306d423a0d212e627e44af807ce4d04db635e32101dacc3",
+      "pixels": {
+        "width": 362,
+        "height": 804
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-delete-public-390.png",
+      "sha256": "bec6c330f3f8efabaf67c21755022dbd7300b3178cd971037db6179d3f63f4bf",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-delete-public-430.png",
+      "sha256": "8266c0847eda70287cb3ca8f20e51e150927027f727c1910c7259ca4db9b67e7",
+      "pixels": {
+        "width": 430,
+        "height": 932
+      },
+      "visuallyReviewed": true
+    },
+    {
+      "file": "native-notice-after-changed-drag-390.png",
+      "sha256": "57efe03769c120da19d3cf2d0d9566e111569ea13207e656325150c62c422d70",
+      "pixels": {
+        "width": 390,
+        "height": 844
+      },
+      "visuallyReviewed": true
+    }
+  ],
+  "currentPackageRetested": [
+    "361/390/430 publisher private/public static and delete layout",
+    "390 actual fixture save then changed drag clears exact saved notice",
+    "390 noop drop and cancelled drag preserve saved notice, clean state and ID order"
+  ],
+  "noticeChanged": {
+    "scope": "controlled changed drag after actual fixture save",
+    "savedNotice": "草稿已保存。",
+    "notice": "",
+    "dirty": true,
+    "dragging": false,
+    "error": ""
+  },
+  "noticeNoopCancel": {
+    "savedNotice": "草稿已保存。",
+    "noop": {
+      "notice": "草稿已保存。",
+      "dirty": false,
+      "sameOrder": true
+    },
+    "cancel": {
+      "notice": "草稿已保存。",
+      "dirty": false,
+      "sameOrder": true,
+      "timersStopped": true
+    }
+  },
+  "notRepeatedOnThisPackage": {
+    "priorPackageSha256": "b00f2118bff2d8ffd0e2e99b39ec133159b300ee8deb6bddf7ccdc8f59322ae8",
+    "priorEvidence": "../source-b00f2118bff2/native-qa-summary.json",
+    "scopes": [
+      "Canvas PNG/JPEG exports",
+      "9-photo edge scroll and full drag stages",
+      "tool Done/overview",
+      "CUA ordinary swipe",
+      "header clipped-glyph diagnosis"
+    ],
+    "evidenceInheritedAsNewAcceptance": false
+  },
+  "priorOpenBoundariesRemainUnresolved": [
+    "ordinary swipe/dynamic catch real gesture propagation unverified",
+    "image tool top-left clipped white glyph: cause unconfirmed, phone check pending",
+    "physical touch/keyboard/VoiceOver/camera permissions not verified"
+  ],
+  "newTextWizard": "not implemented or accepted by this baseline",
+  "apiMocksCreatedThisRun": [],
+  "apiRestoreReceipts": [
+    "native-restore-chooseMedia.json",
+    "native-restore-requirePrivacyAuthorize.json"
+  ],
+  "cleanup": {
+    "scope": "fresh runtime after isolated cleanup refresh; no real data accessed",
+    "route": "pages/community/index",
+    "width": 430,
+    "posts": 0,
+    "writeCalls": 0,
+    "publicEnabled": false,
+    "publishEntryOpen": false,
+    "freshRuntimeMarkerAbsent": true,
+    "realAccountDataAccessed": false,
+    "persistentStorage": false
+  },
+  "full40RouteAndRealDeviceMatrix": "blocked",
+  "realBackend105AccountDeploymentUpload": false
+}

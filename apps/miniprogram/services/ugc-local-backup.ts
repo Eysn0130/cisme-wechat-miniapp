@@ -1,3 +1,4 @@
+import type { TextCardTemplate } from "./ugc-text-card-layout";
 // An unsaved editor snapshot is only opened after the server confirms the
 // authenticated owner of the same post. No bearer token is stored with it.
 const indexKey="cisme.ugcDraftBackupIndex.v2";
@@ -8,7 +9,7 @@ const id=/^[0-9a-f-]{36}$/i;
 export type UgcLocalBackup={ownerId:string;postId:string;baseVersion:number;title:string;body:string;
   // Legacy snapshots may contain these facts; the composer no longer writes or restores them.
   rightsConfirmed?:boolean;publicConsentConfirmed?:boolean;mediaIds:string[];savedAt:number;
-  textCardTemplate?:"plain"|"lilac"|"memo";
+  textCardText?:string;textCardTemplate?:TextCardTemplate;
   mediaItems?:Array<{id:string;localPath:string;size:number;state:"uploaded"|"failed";error:string}>};
 const keyFor=(ownerId:string,postId:string,version:number)=>{
   if(!id.test(ownerId)||!id.test(postId)||!Number.isSafeInteger(version)||version<1)throw new Error("UGC_BACKUP_SCOPE_INVALID");

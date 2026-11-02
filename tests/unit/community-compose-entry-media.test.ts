@@ -45,7 +45,7 @@ beforeEach(async()=>{
   vi.resetModules();m.request.mockReset().mockImplementation(defaultRequest);m.upload.mockReset().mockResolvedValue(undefined);
   m.edit.mockReset();m.capabilities.mockReset().mockReturnValue({edit:true,crop:true});m.token='member-a';m.revision=1;
   storage=new Map();pages=[];randomSeed=0;
-  const fs={readFile:vi.fn(({success}:any)=>success({data:new Uint8Array([255,216,255]).buffer})),
+  const fs={readFile:vi.fn(({filePath,success}:any)=>success({data:new Uint8Array(filePath.endsWith('.png')?[137,80,78,71,13,10,26,10]:[255,216,255]).buffer})),
     getFileInfo:vi.fn(({success}:any)=>success({size:120}))};
   wxMock={getStorageSync:(key:string)=>storage.get(key),setStorageSync:(key:string,value:unknown)=>storage.set(key,structuredClone(value)),
     removeStorageSync:(key:string)=>storage.delete(key),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),hideKeyboard:vi.fn(),
@@ -371,12 +371,12 @@ it('sets the selected first image by changing the same persisted media order',as
 it('backs up current text-card input and passes an accepted exported card to the existing image importer',async()=>{
   const page=editor({body:'原始正文'});page.openTextCard();const contextKey=page.data.textCardContext;
   page.textCardChanged({detail:{contextKey,text:'卡片里的最新正文'}});page.flushLocalBackup();
-  expect(backups.readUgcBackup(owner,post,1)?.body).toBe('卡片里的最新正文');
+  expect(backups.readUgcBackup(owner,post,1)).toMatchObject({body:'原始正文',textCardText:'卡片里的最新正文'});
   const importing=vi.fn().mockResolvedValue(undefined);page.importLocalImages=importing;
   await page.confirmTextCard({detail:{contextKey,text:'已确认的文字卡片',tempFilePath:'/synthetic/card.png',size:120}});page.flushLocalBackup();
   expect(importing).toHaveBeenCalledWith([{path:'/synthetic/card.png',size:120}]);
-  expect(page.data).toMatchObject({body:'已确认的文字卡片',dirty:true,textCardVisible:false});
-  expect(backups.readUgcBackup(owner,post,1)?.body).toBe('已确认的文字卡片');
+  expect(page.data).toMatchObject({body:'原始正文',textCardText:'已确认的文字卡片',dirty:true,textCardVisible:false});
+  expect(backups.readUgcBackup(owner,post,1)).toMatchObject({body:'原始正文',textCardText:'已确认的文字卡片'});
 });
 it.each(['old_context','account','epoch','post','unload'])('rejects text-card changes and exports owned by an %s boundary',async boundary=>{
   const page=editor({body:'当前真实正文'});page.openTextCard();const oldKey=page.data.textCardContext;
@@ -457,40 +457,38 @@ it('retains the album choice across the native privacy hide/show and never opens
   expect(m.upload).toHaveBeenCalledOnce();expect(page.data.files).toEqual([expect.objectContaining({id:replacement,localPath:'/synthetic/after-privacy.jpg',state:'uploaded'})]);
   expect(page.data.uploadBusy).toBe(false);
 });
-it('ignores an old write-body event and preserves current card text before focusing the body on the next tick',()=>{
+it('ignores an old write-body event and preserves current card text before an explicit body replacement and next-tick focus',async()=>{
   const page=editor({body:'原始正文'});page.openTextCard();const oldKey=page.data.textCardContext;
   page.cancelTextCard({detail:{contextKey:oldKey}});page.openTextCard();const currentKey=page.data.textCardContext;
   page.textCardChanged({detail:{contextKey:currentKey,text:'文字卡片中尚未导出的最新正文'}});
   page.cancelTextCard({detail:{contextKey:oldKey,mode:'body'}});
   expect(page.data).toMatchObject({textCardVisible:true,bodyFocused:false});expect(wxMock.nextTick).not.toHaveBeenCalled();
+  wxMock.showModal.mockResolvedValue({confirm:true});
   page.cancelTextCard({detail:{contextKey:currentKey,mode:'body'}});
+  await flush();
   expect(page.data).toMatchObject({textCardVisible:false,body:'文字卡片中尚未导出的最新正文',dirty:true,bodyFocused:false});
   expect(wxMock.nextTick).toHaveBeenCalledOnce();wxMock.nextTick.mock.calls[0][0]();expect(page.data.bodyFocused).toBe(true);
   page.flushLocalBackup();expect(backups.readUgcBackup(owner,post,1)?.body).toBe('文字卡片中尚未导出的最新正文');
   expect(m.upload).not.toHaveBeenCalled();expect(m.request.mock.calls.some(([options])=>options.method)).toBe(false);
 });
-it('returns from an empty initial text-card entry only after deleting its exact freshly created draft',async()=>{
+it('returns from an empty initial text-card entry without creating or deleting a server draft',async()=>{
   const page=instance();page.onLoad({new:'1',entry:'text'});page.onShow();await flush();
-  expect(page.textCardOpenContext).toMatchObject({origin:'entry',postId:post,ownerId:owner});
+  expect(page.textCardOpenContext).toMatchObject({origin:'entry',postId:'',ownerId:'',version:0});
   expect(page.data.textCardVisible).toBe(true);const contextKey=page.data.textCardContext;
   m.request.mockClear();page.cancelTextCard({detail:{contextKey}});await flush();
-  expect(m.request).toHaveBeenCalledExactlyOnceWith({path:`/v1/me/ugc/posts/${post}`,method:'DELETE',data:{expectedVersion:1}});
+  expect(m.request.mock.calls.some(([options])=>options.method)).toBe(false);
   expect(wxMock.navigateBack).toHaveBeenCalledOnce();expect(wxMock.showActionSheet).not.toHaveBeenCalled();
   expect(page.createdHerePostId).toBe('');expect(page.data.textCardVisible).toBe(false);
 });
-it('reopens an initial text entry on continue-editing with a new context and the exact memo preference backup',async()=>{
+it('reopens a local initial text entry on continue-editing without claiming a server-scoped backup',async()=>{
   const page=instance();page.onLoad({new:'1',entry:'text'});page.onShow();await flush();const firstKey=page.data.textCardContext;
   page.textCardChanged({detail:{contextKey:firstKey,text:'尚未导出的护理备忘',template:'memo'}});page.flushLocalBackup();
   wxMock.showActionSheet.mockResolvedValue({tapIndex:1});m.request.mockClear();
   page.cancelTextCard({detail:{contextKey:firstKey}});await flush();
-  expect(page.data).toMatchObject({textCardVisible:true,textCardText:'尚未导出的护理备忘',textCardTemplate:'memo',body:'尚未导出的护理备忘',dirty:true});
+  expect(page.data).toMatchObject({textCardVisible:true,textCardText:'尚未导出的护理备忘',textCardTemplate:'memo',body:'',dirty:true,postId:'',ownerId:'',version:0});
   expect(page.data.textCardContext).not.toBe(firstKey);expect(page.textCardOpenContext.origin).toBe('entry');
   expect(m.request.mock.calls.some(([options])=>options.method)).toBe(false);expect(wxMock.navigateBack).not.toHaveBeenCalled();
-  expect(backups.readUgcBackup(owner,post,1)).toMatchObject({body:'尚未导出的护理备忘',textCardTemplate:'memo'});
-  const restored=instance();restored.mediaVisible=true;restored.applyDraft(draft());
-  expect(restored.data).toMatchObject({body:'尚未导出的护理备忘',textCardTemplate:'memo',dirty:true});
-  const otherVersion=instance();otherVersion.mediaVisible=true;otherVersion.applyDraft(draft({version:2}));
-  expect(otherVersion.data).toMatchObject({body:'',textCardTemplate:'plain',dirty:false});
+  expect(storage.size).toBe(0);expect(backups.readUgcBackup(owner,post,1)).toBeNull();
 });
 it('explicitly discards a new unsaved image-and-text draft instead of leaving an empty saved row',async()=>{
   const page=instance();page.onLoad({new:'1'});page.onShow();await flush();
@@ -625,4 +623,18 @@ it.each(['version','signature','post','owner'])('ignores a late photo menu choic
   else if(boundary==='post')page.data.postId=otherPost;else page.data.ownerId=otherPost;
   const retained=structuredClone(page.data.files);answer.resolve({tapIndex:2});await opening;
   expect(page.data).toMatchObject({files:retained,dirty:false});expect(m.request).not.toHaveBeenCalled();expect(m.upload).not.toHaveBeenCalled();
+});
+it.each(['changed','noop','cancel'])('keeps the saved notice truthful after a %s photo drag following a successful save',async outcome=>{
+  vi.useFakeTimers();const files=[image(first),image(middle),image(last)],page=editor({files,dirty:true});
+  m.request.mockImplementation((options:any)=>options.method==='PUT'?Promise.resolve(draft({version:2,media:files.map(file=>({id:file.id,state:'uploaded'}))})):defaultRequest(options));
+  await page.saveDraft();expect(page.data).toMatchObject({dirty:false,notice:'草稿已保存。',version:2});m.request.mockClear();dragGeometry(page);beginDrag(page);
+  if(outcome==='cancel'){page.moveMediaDrag(dragTouch(first,250));page.cancelMediaDrag();}
+  else {page.endMediaTouch(dragEnd(first,outcome==='changed'?250:42));vi.advanceTimersByTime(180);}
+  expect(page.data.notice).toBe(outcome==='changed'?'':'草稿已保存。');expect(page.data.dirty).toBe(outcome==='changed');
+  expect(m.request).not.toHaveBeenCalled();expect(m.upload).not.toHaveBeenCalled();
+});
+it.each(['已恢复未提交的修改；若有图片未显示，请检查后保存草稿。','本次修改尚未保存，请点击“存草稿”。'])('retains the existing recovery notice when media changes: %s',notice=>{
+  vi.useFakeTimers();const page=editor({files:[image(first),image(middle),image(last)],notice});dragGeometry(page);beginDrag(page);
+  page.endMediaTouch(dragEnd(first,250));vi.advanceTimersByTime(180);
+  expect(page.data).toMatchObject({dirty:true,notice});
 });

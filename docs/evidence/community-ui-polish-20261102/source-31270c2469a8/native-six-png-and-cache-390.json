@@ -1,0 +1,168 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "files": [
+          {
+            "template": "plain",
+            "path": "http://tmp/Jpy6ZlwdugS2b110948b20fe07be8c849178e74555c9.png",
+            "size": 138545,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "minimal",
+            "path": "http://tmp/f9MXL3cNdcbhdfc4e4b36db6f227a2b2f2b0a26c202f.png",
+            "size": 138023,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "care",
+            "path": "http://tmp/0cDmwjtoH6wvf511b1ef81af55f770f44020d7b2240f.png",
+            "size": 138385,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "memo",
+            "path": "http://tmp/HhX7iMscjR3B50c3572f5b69e3f159f3f2d132512bd5.png",
+            "size": 144474,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "lilac",
+            "path": "http://tmp/LRGwhIHK58bNb66740c746fbc10117bc3832d92f35d5.png",
+            "size": 378507,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          },
+          {
+            "template": "border",
+            "path": "http://tmp/jTbio2XN8jYg31058d5ac8cc843b16f55598ef120eb2.png",
+            "size": 160657,
+            "signature": [
+              137,
+              80,
+              78,
+              71,
+              13,
+              10,
+              26,
+              10
+            ],
+            "width": 1440,
+            "height": 1920
+          }
+        ],
+        "uniqueContents": 6,
+        "additionalExportCalls": 0,
+        "template": "lilac",
+        "previewMatches": true,
+        "canExport": true,
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 742,
+            "bottom": 844,
+            "width": 390,
+            "height": 102
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 256,
+            "right": 368,
+            "top": 750,
+            "bottom": 798,
+            "width": 112,
+            "height": 48
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 10,
+            "right": 54,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "path": "http://tmp/LRGwhIHK58bNb66740c746fbc10117bc3832d92f35d5.png",
+              "revision": 4
+            },
+            "left": 22,
+            "right": 368,
+            "top": 117,
+            "bottom": 578,
+            "width": 346,
+            "height": 461
+          }
+        ],
+        "posts": 0,
+        "writeCalls": 0
+      }
+    }
+  }
+}

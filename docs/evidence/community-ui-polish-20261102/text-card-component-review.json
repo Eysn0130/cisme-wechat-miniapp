@@ -1,0 +1,131 @@
+{
+  "observedAt": "2026-11-02T11:52:26.081983+00:00",
+  "reviewMode": "Independent read-only source review; no product edits and no test execution in this review task",
+  "status": "final_frozen_source_review_no_new_determinate_findings",
+  "sha256": {
+    "apps/miniprogram/components/community-text-card/index.ts": "cafd734150ad266c5e6ce848778e178d04a3a2270af8b0be5efad58410a5557c",
+    "apps/miniprogram/components/community-text-card/index.wxml": "6b8d6087b6eb6f4df4ec5c4ab3de4e03a597581970c91978f9e23cbc9d1802e0",
+    "apps/miniprogram/components/community-text-card/index.wxss": "cdf19bbbe27934f1efbd0961bc624c443ebca61bcbfa150b5619394cf9240197",
+    "apps/miniprogram/services/ugc-text-card-layout.ts": "184d3a445131fdfd61d481e680ceae3f5659a112e360c3f6c54a9a52e31443fe",
+    "tests/unit/community-text-card-component.test.ts": "907706070ada43acd9dd32d00b1c9e2adc64fe8f4755763b81a69336a79eb954",
+    "tests/unit/ugc-text-card-layout.test.ts": "e2b53cabd17fa924c52a498db6fff681ef10febbeb33102aab600d2518c56e41"
+  },
+  "newDeterminateFindings": [],
+  "knownIssueReportedByAnotherReviewer": {
+    "id": "TEXT-INPUT-PRECHECK",
+    "status": "resolved_in_reviewed_frozen_source",
+    "location": "apps/miniprogram/components/community-text-card/index.ts:10",
+    "fact": "Input Next now checks meaningful content and visible-grapheme count only. Actual overflow remains enforced by renderCard using native Canvas measureText before export. Independently read the added 299-grapheme narrow-Latin regression and actual multiline-overflow test; no rerun performed by this reviewer."
+  },
+  "checkedContracts": [
+    {
+      "scope": "Single Canvas, six complete PNG batch",
+      "evidence": "generate lines46–55 awaits renderCard → exportCard → checked file info for each template in the same captured normalized text/revision. Templates only become visible after all six finish. Partial failure returns input and clears the cache."
+    },
+    {
+      "scope": "Latest batch wins",
+      "evidence": "generation, renderRevision, contextKey, active session and normalized text are rechecked around selector query, native frame, export and file info. stopRendering/back/hide/invalidate invalidate old callbacks before a new batch can become current."
+    },
+    {
+      "scope": "Correct selected image",
+      "evidence": "selectTemplate lines41–44 reads the six-template map by validated template key and checks text/revision. It selects that verified PNG without redrawing or mixing another batch."
+    },
+    {
+      "scope": "Cancel, background and account",
+      "evidence": "Generating cancel returns to input, keeps text and emits no whole-flow cancel. Hide clears files and invalidates generation; identity mismatch clears text. New context initializes only from current parent input."
+    },
+    {
+      "scope": "Final confirm once",
+      "evidence": "confirm lines85–90 requires templates stage, current selected text/template/revision and verified size, blocks while busy, then marks runtime closed/finished before emitting once. Late final file checks after back/hide cannot confirm."
+    },
+    {
+      "scope": "No server facts from invalid local output",
+      "evidence": "Component performs only Canvas/filesystem/local UI calls and no network writes. Export size must be an integer from1 through10MiB; parent independently validates current owner/version or local-entry scope, real size, local path and PNG signature before create/import. Parent invalid-file regression coverage is separate in text-parent-validation.json."
+    },
+    {
+      "scope": "Layout and scope",
+      "evidence": "Shared six template keys preserve old plain/lilac/memo. Actual layout uses Canvas measureText, bounded card dimensions, complete visible graphemes and explicit overflow error, with no silent truncation."
+    },
+    {
+      "scope": "Final bounded visual changes, source only",
+      "evidence": "WXML back/cancel uses existing local SVG assets and explicit labels; placeholder class is defined; input writing-copy flex centers content; final footer is aligned right with112px action. These source observations do not establish rendered geometry, keyboard or phone accessibility."
+    }
+  ],
+  "limits": [
+    "No native Canvas/keyboard/layout/phone/accessibility, HTTP, deployment, upload or public-UGC result is asserted.",
+    "Read existing test source for intended coverage only; reported103 tests and typecheck belong to the implementing agent, not a new run by this review.",
+    "The previous notice/photo-drag package and prior screenshots are historical evidence and do not prove the new text flow."
+  ],
+  "implementingAgentReportedValidation": {
+    "testsPassed": 103,
+    "filesPassed": 4,
+    "typecheck": "reported passed by implementation agent",
+    "independentlyRerun": false
+  },
+  "pendingFinalScope": [],
+  "historicalReviews": [
+    {
+      "observedAt": "2026-11-02T11:50:34.743145+00:00",
+      "reviewMode": "Independent read-only source review; no product edits and no test execution in this review task",
+      "status": "reviewed_snapshot_with_known_input_precheck_fix_pending",
+      "sha256": {
+        "apps/miniprogram/components/community-text-card/index.ts": "395aa2674749162aec7bacfea4d1d78d4d234ec5b33f866da6a2dde6d4a12e5e",
+        "apps/miniprogram/components/community-text-card/index.wxml": "66fa20ef5a4930febb4ec0402c0f5dbf8fc27ddc0b5e42a2294475ac54ef9872",
+        "apps/miniprogram/components/community-text-card/index.wxss": "6d9cea63ec3b0775d3415c772c46f0d83c7158d8bc7f4862e14695e8a573ac97",
+        "apps/miniprogram/services/ugc-text-card-layout.ts": "184d3a445131fdfd61d481e680ceae3f5659a112e360c3f6c54a9a52e31443fe",
+        "tests/unit/community-text-card-component.test.ts": "39a57024599b3b3a9dc0b0e9c010ada44a411084654448426bd914976b5b672a",
+        "tests/unit/ugc-text-card-layout.test.ts": "e2b53cabd17fa924c52a498db6fff681ef10febbeb33102aab600d2518c56e41"
+      },
+      "newDeterminateFindings": [],
+      "knownIssueReportedByAnotherReviewer": {
+        "id": "TEXT-INPUT-PRECHECK",
+        "status": "pending in this reviewed snapshot",
+        "location": "apps/miniprogram/components/community-text-card/index.ts:10",
+        "fact": "inputFacts uses grapheme_count × font_size as approximate text width and gates Next on estimated layout validity; UX has already reported false rejection of content that real Canvas can fit. Root requested actual content/count-only input precheck, leaving overflow to real Canvas. This reviewer did not duplicate or change that fix."
+      },
+      "checkedContracts": [
+        {
+          "scope": "Single Canvas, six complete PNG batch",
+          "evidence": "generate lines46–55 awaits renderCard → exportCard → checked file info for each template in the same captured normalized text/revision. Templates only become visible after all six finish. Partial failure returns input and clears the cache."
+        },
+        {
+          "scope": "Latest batch wins",
+          "evidence": "generation, renderRevision, contextKey, active session and normalized text are rechecked around selector query, native frame, export and file info. stopRendering/back/hide/invalidate invalidate old callbacks before a new batch can become current."
+        },
+        {
+          "scope": "Correct selected image",
+          "evidence": "selectTemplate lines41–44 reads the six-template map by validated template key and checks text/revision. It selects that verified PNG without redrawing or mixing another batch."
+        },
+        {
+          "scope": "Cancel, background and account",
+          "evidence": "Generating cancel returns to input, keeps text and emits no whole-flow cancel. Hide clears files and invalidates generation; identity mismatch clears text. New context initializes only from current parent input."
+        },
+        {
+          "scope": "Final confirm once",
+          "evidence": "confirm lines85–90 requires templates stage, current selected text/template/revision and verified size, blocks while busy, then marks runtime closed/finished before emitting once. Late final file checks after back/hide cannot confirm."
+        },
+        {
+          "scope": "No server facts from invalid local output",
+          "evidence": "Component performs only Canvas/filesystem/local UI calls and no network writes. Export size must be an integer from1 through10MiB; parent independently validates current owner/version or local-entry scope, real size, local path and PNG signature before create/import. Parent invalid-file regression coverage is separate in text-parent-validation.json."
+        },
+        {
+          "scope": "Layout and scope",
+          "evidence": "Shared six template keys preserve old plain/lilac/memo. Actual layout uses Canvas measureText, bounded card dimensions, complete visible graphemes and explicit overflow error, with no silent truncation."
+        },
+        {
+          "scope": "Final bounded visual changes, source only",
+          "evidence": "WXML back/cancel uses existing local SVG assets and explicit labels; placeholder class is defined; input writing-copy flex centers content; final footer is aligned right with112px action. These source observations do not establish rendered geometry, keyboard or phone accessibility."
+        }
+      ],
+      "pendingFinalScope": [
+        "Known inputFacts precheck fix must be reread and pinned after implementation.",
+        "Pure visual footer112/right placement/icons/placeholder adjustments are being handled by the main implementation path, outside this snapshot."
+      ],
+      "limits": [
+        "No native Canvas/keyboard/layout/phone/accessibility, HTTP, deployment, upload or public-UGC result is asserted.",
+        "Read existing test source for intended coverage only; reported103 tests and typecheck belong to the implementing agent, not a new run by this review.",
+        "The previous notice/photo-drag package and prior screenshots are historical evidence and do not prove the new text flow."
+      ]
+    }
+  ]
+}

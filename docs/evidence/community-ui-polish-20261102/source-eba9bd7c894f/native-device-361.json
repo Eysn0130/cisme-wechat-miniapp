@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "tool": "simulator_set_device",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "changed": false,
+    "name": "HUAWEI nova 13",
+    "model": "HUAWEI nova 13",
+    "index": 19
+  }
+}

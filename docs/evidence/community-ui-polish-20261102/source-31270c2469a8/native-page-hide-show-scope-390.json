@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "actual native navigate hide/show to offline detail stimulus, not OS background or real detail acceptance",
+        "hidden": {
+          "visible": false,
+          "resume": true,
+          "sameText": true
+        },
+        "keyChanged": true,
+        "textPreserved": true,
+        "stage": "input",
+        "oldEventRejected": true,
+        "posts": 0,
+        "writeCalls": 0
+      }
+    }
+  }
+}

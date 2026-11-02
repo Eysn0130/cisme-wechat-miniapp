@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "stage": "templates",
+        "pngCount": 6,
+        "paths": [
+          {
+            "template": "plain",
+            "path": "http://tmp/Jpy6ZlwdugS2b110948b20fe07be8c849178e74555c9.png"
+          },
+          {
+            "template": "minimal",
+            "path": "http://tmp/f9MXL3cNdcbhdfc4e4b36db6f227a2b2f2b0a26c202f.png"
+          },
+          {
+            "template": "care",
+            "path": "http://tmp/0cDmwjtoH6wvf511b1ef81af55f770f44020d7b2240f.png"
+          },
+          {
+            "template": "memo",
+            "path": "http://tmp/HhX7iMscjR3B50c3572f5b69e3f159f3f2d132512bd5.png"
+          },
+          {
+            "template": "lilac",
+            "path": "http://tmp/LRGwhIHK58bNb66740c746fbc10117bc3832d92f35d5.png"
+          },
+          {
+            "template": "border",
+            "path": "http://tmp/jTbio2XN8jYg31058d5ac8cc843b16f55598ef120eb2.png"
+          }
+        ],
+        "preview": "http://tmp/Jpy6ZlwdugS2b110948b20fe07be8c849178e74555c9.png",
+        "text": "护理慢慢来，\n感受每天的小变化。",
+        "postId": "",
+        "posts": 0,
+        "writeCalls": 0,
+        "canExport": true
+      }
+    }
+  }
+}

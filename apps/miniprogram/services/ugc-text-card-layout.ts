@@ -1,4 +1,10 @@
-export type TextCardTemplate = "plain" | "lilac" | "memo";
+export const TEXT_CARD_TEMPLATES = [
+  {value:"plain",label:"基础"},{value:"minimal",label:"简约"},{value:"care",label:"护理"},
+  {value:"memo",label:"笔记"},{value:"lilac",label:"渐变"},{value:"border",label:"边框"}
+] as const;
+export type TextCardTemplate = typeof TEXT_CARD_TEMPLATES[number]["value"];
+export function isTextCardTemplate(value:unknown):value is TextCardTemplate {return TEXT_CARD_TEMPLATES.some(template=>template.value===value);}
+export function normalizeTextCardTemplate(value:unknown):TextCardTemplate {return isTextCardTemplate(value)?value:"plain";}
 export const textCardWidth = 720;
 export const textCardHeight = 960;
 export const textCardCharacterLimit = 300;
@@ -39,7 +45,15 @@ export function hasTextCardContent(text: string): boolean {
 
 export function textCardFontSize(text: string): number {
   const count = textCardGraphemes(normalizeTextCardText(text)).length;
-  return count <= 60 ? 46 : count <= 130 ? 38 : count <= 220 ? 32 : 28;
+  return count <= 8 ? 112 : count <= 24 ? 84 : count <= 60 ? 46 : count <= 130 ? 38 : count <= 220 ? 32 : 28;
+}
+
+/** Preserve short, intentional lines using widths measured at the base font. */
+export function textCardParagraphFontSize(text:string,measureAtBase:(line:string)=>number):number {
+  const normalized=normalizeTextCardText(text),base=textCardFontSize(normalized),paragraphs=normalized.split("\n").filter(hasTextCardContent);
+  if(textCardGraphemes(normalized).length>24||paragraphs.length<2||paragraphs.length>3)return base;
+  const longest=Math.max(...paragraphs.map(measureAtBase));
+  return Number.isFinite(longest)&&longest>0?Math.max(46,Math.min(base,Math.floor(base*(textCardWidth-128)/longest))):base;
 }
 
 export type TextCardLayout = {

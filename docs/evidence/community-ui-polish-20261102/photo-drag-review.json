@@ -92,5 +92,14 @@
     "unitSkipped": 1,
     "unitLog": "unit-final-native-scroll.log",
     "boundaries": "Review-time pending fields are historical to that review. Later root checked the independently recorded native receipt; ordinary physical swipe propagation, phone and screen reader remain unverified; top-left simulator clipped text unresolved."
+  },
+  "latestNoticeOnlySourceReview": {
+    "packageSourceSha256": "025dfc921b79fadadb054afd36393dbad09454953f43699884913614916f96d2",
+    "typescriptSha256": "4eb1ac47e3f7a2c7782086238eac106b54eb216d68884da9efb4a5610e5b9ad1",
+    "change": "queueLocalBackup clears only exact stale saved-success notice when dirty. WXML/CSS and gesture logic are unchanged.",
+    "unitPassed": 2959,
+    "unitSkipped": 1,
+    "unitLog": "unit-final-notice-bounded.log",
+    "nativeEvidence": "source-025dfc921b79; notice and publisher only. Prior b00 gesture/Canvas frames retain original source scope."
   }
 }

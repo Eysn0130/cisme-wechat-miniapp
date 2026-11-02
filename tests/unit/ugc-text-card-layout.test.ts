@@ -1,7 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
-import { hasTextCardContent, layoutTextCard, normalizeTextCardText, textCardFontSize, textCardGraphemes } from "../../apps/miniprogram/services/ugc-text-card-layout";
+import { hasTextCardContent, isTextCardTemplate, layoutTextCard, normalizeTextCardTemplate, normalizeTextCardText, TEXT_CARD_TEMPLATES, textCardFontSize, textCardGraphemes } from "../../apps/miniprogram/services/ugc-text-card-layout";
 
 describe("local text card layout",()=>{
+  it("shares six real template keys while preserving legacy selections and rejecting unknown values",()=>{
+    expect(TEXT_CARD_TEMPLATES.map(item=>item.value)).toEqual(["plain","minimal","care","memo","lilac","border"]);
+    for(const item of TEXT_CARD_TEMPLATES){expect(isTextCardTemplate(item.value)).toBe(true);expect(normalizeTextCardTemplate(item.value)).toBe(item.value);}
+    expect(normalizeTextCardTemplate("unsupported")).toBe("plain");expect(isTextCardTemplate(null)).toBe(false);
+  });
+  it("gives short phrases visibly larger type without clipping the card, while retaining explicit lines",()=>{
+    expect(textCardFontSize("测试")).toBe(112);expect(textCardFontSize("今天给自己一段认真护理的时间")).toBe(84);
+    for(const text of ["测试","护理\n记录","认真护理也是照顾自己"]){const size=textCardFontSize(text),layout=layoutTextCard(text,value=>textCardGraphemes(value).length*size);expect(layout.valid).toBe(true);expect(layout.lines.join("")).toBe(text.replace(/\n/g,""));}
+    expect(textCardFontSize("护".repeat(300))).toBe(28);
+  });
   it("wraps Chinese without dropping or duplicating characters",()=>{
     const input="每天认真记录护理感受".repeat(9);
     const layout=layoutTextCard(input,value=>textCardGraphemes(value).length*28,{fontSize:28});

@@ -11,10 +11,11 @@
     <button wx:if="{{mediaRecovery === 'settings'}}" class="text-button {{busy || uploadBusy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" bindtap="openComposerMediaSettings" disabled="{{busy || uploadBusy || recoveryBusy || writeRecovery}}">去设置</button>
     <button wx:if="{{mediaRecovery === 'privacy' || mediaRecovery === 'retry'}}" class="text-button {{busy || uploadBusy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" bindtap="retryChoosingMedia" disabled="{{busy || uploadBusy || recoveryBusy || writeRecovery}}">{{mediaRecovery === 'privacy' ? '重新授权' : '重新选择'}}</button>
     <view wx:if="{{notice && state !== 'pending_review' && state !== 'awaiting_publication' && !((state === 'deleted' || state === 'hidden') && dirty)}}" class="state composer-notice" aria-live="polite">{{notice}}</view>
-    <button wx:if="{{error && !loading && !postId && !writeRecovery}}" class="secondary composer-retry {{busy ? 'secondary--disabled' : ''}}" bindtap="retryLoad" disabled="{{busy}}">重试加载</button>
+    <button wx:if="{{error && !loading && !postId && !writeRecovery}}" class="secondary composer-retry {{busy ? 'secondary--disabled' : ''}}" bindtap="retryLoad" disabled="{{busy}}">{{requestedNew ? '重试继续' : '重试加载'}}</button>
     <view wx:if="{{writeRecovery}}" class="composer-recovery" aria-live="polite">
       <text class="composer-recovery__title">{{writeRecovery === 'conflict' ? '这篇内容已有更新' : '正在核对上次操作结果'}}</text>
       <text class="composer-help">{{writeRecovery === 'conflict' ? '保留当前修改，核对后再决定使用哪个版本。' : '你的输入仍保留，确认结果后再继续，避免重复提交。'}}</text>
+      <text wx:if="{{writeRecovery === 'conflict' && textCardText}}" class="composer-help" selectable="{{true}}">本机卡片文字：{{textCardText}}</text>
       <view class="composer-result__actions"><button class="text-button composer-action--primary {{recoveryBusy ? 'control--disabled' : ''}}" bindtap="verifyWriteResult" disabled="{{recoveryBusy}}" loading="{{recoveryBusy}}">核对最新状态</button>
       <button wx:if="{{writeRecovery === 'conflict'}}" class="text-button composer-action--quiet {{recoveryBusy ? 'control--disabled' : ''}}" bindtap="reloadRemoteDraft" disabled="{{recoveryBusy}}">重新加载内容</button></view>
     </view>

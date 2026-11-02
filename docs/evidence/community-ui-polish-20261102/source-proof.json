@@ -1,5 +1,5 @@
 {
-  "packageSourceSha256": "b00f2118bff2d8ffd0e2e99b39ec133159b300ee8deb6bddf7ccdc8f59322ae8",
+  "packageSourceSha256": "eba9bd7c894fae4f46f05f10ad89c4cc65ff135213235d528ca3f24b93360df4",
   "copiedSources": [
     {
       "file": "custom-tab-bar/index.ts",
@@ -43,12 +43,12 @@
     },
     {
       "file": "pages/community-compose/index.ts",
-      "sha256": "9d358944d4f67530b9e76b1aeb06002ca78854afcdc903eeed37fde1750637a4",
+      "sha256": "6bf00f088cf0d415594ff4cad8d3da0cecc0677b3357d0e87b5a9edf531084bd",
       "fixtureByteIdentical": true
     },
     {
       "file": "pages/community-compose/index.wxml",
-      "sha256": "0af5fc03d0d94bc4461a4ee27362328267c073abdfee1a272005eb4a9a66c5f9",
+      "sha256": "072af5f7cb0c19671b962e724580d1fa5b08b12f4bb8976bd676130224dcc90f",
       "fixtureByteIdentical": true
     },
     {
@@ -63,17 +63,17 @@
     },
     {
       "file": "components/community-text-card/index.ts",
-      "sha256": "0ea355ada059dd4499c8d32e4718d12d4c9217cea982c813cc3de1284884a8c2",
+      "sha256": "8a1ae0248021e3f65eb43f7c0c68d7f51e9812348d2a38a169701cb2e8e47e90",
       "fixtureByteIdentical": true
     },
     {
       "file": "components/community-text-card/index.wxml",
-      "sha256": "484042cc55bb1119f5a909a50f911baf932726ae75d6215c64fd90261c3ca90b",
+      "sha256": "6b8d6087b6eb6f4df4ec5c4ab3de4e03a597581970c91978f9e23cbc9d1802e0",
       "fixtureByteIdentical": true
     },
     {
       "file": "components/community-text-card/index.wxss",
-      "sha256": "16749715beea82eb9467ab7212b68f3be35d3bbeb91f7374188bac53e9e5e54a",
+      "sha256": "cdf19bbbe27934f1efbd0961bc624c443ebca61bcbfa150b5619394cf9240197",
       "fixtureByteIdentical": true
     },
     {
@@ -113,7 +113,7 @@
     },
     {
       "file": "services/ugc-text-card-layout.ts",
-      "sha256": "9cc4ceb439b2fe56f51f241c895b4be0c76f440946291c46c07b48b829183783",
+      "sha256": "99e1fe35713a6593eca21e387280221e9a5834afe5e9fe1fe3af473f4f7a95e6",
       "fixtureByteIdentical": true
     },
     {
@@ -128,11 +128,43 @@
   "persistentStorage": false,
   "scope": "24 actual native page/tab/component/helper files byte-identical. Offline auth/API/storage/editorial/public-detail adapters; controlled state stimuli. Native Canvas and local FS actual official simulator. Not physical keyboard, permissions, hardware camera, real account/backend or deployment acceptance.",
   "currentSource": true,
-  "evidenceDirectory": "source-b00f2118bff2",
-  "priorEvidenceArchives": [
-    "source-26f1682e09e7/ARCHIVE-INDEX.json",
-    "source-f8f199c0cf7c/HISTORICAL.json",
-    "source-168126266fc4/FAILED-NATIVE-EDGE.json"
+  "result": "source provenance only; scoped native evidence below",
+  "recheckedAfterNative": true,
+  "full40RouteAndRealDeviceMatrix": "blocked",
+  "evidenceDirectory": "source-eba9bd7c894f",
+  "offlineAdapterFiles": [
+    {
+      "file": "app.ts",
+      "sha256": "9abac89bdf81bda468f76abaa3d793e40c21a2fb972ceb8cf54444297de5a168"
+    },
+    {
+      "file": "app.json",
+      "sha256": "b197593224a0029d750c7d85ea68832278ea667c23b3f74c2ccb396931ec9d03"
+    },
+    {
+      "file": "services/api.ts",
+      "sha256": "64a299c655e69f5f56c63fc345d2e3a45995939c38ff5f1d0a1069d0a6c66f14"
+    },
+    {
+      "file": "services/page-requests.ts",
+      "sha256": "9127d4e5c402a1cef0a3c9f2af3190ce486dfb221358d1c6ba2a58ef5b04c42f"
+    },
+    {
+      "file": "services/commerce-command-store.ts",
+      "sha256": "2f3ff1e17aead0bf7a871275f575de91bb4905fe7ebcfa37d56da9906094e547"
+    },
+    {
+      "file": "services/ugc-local-backup.ts",
+      "sha256": "6674ec72889715a29ca52a397a1dbb5f2bfeba6d2e1cc6207a2e202801d2acd1"
+    },
+    {
+      "file": "services/editorial.ts",
+      "sha256": "a4713e0a9e22474dba4f85be5351c8ea8e03215bbf4c317bc9dea7c028e53f21"
+    },
+    {
+      "file": "services/member-identity.ts",
+      "sha256": "d983e53d0e17a0fdd38fef40072525d583153053f7601751440e7664e917a0b5"
+    }
   ],
-  "businessNetworkOnly": true
+  "sourceProof": "source-eba9bd7c894f/source-proof.json"
 }
