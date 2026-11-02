@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled touch callbacks, not physical input",
+        "dragging": true,
+        "left": 22,
+        "top": 115,
+        "size": 86,
+        "dirty": false,
+        "ids": [
+          "eeeeeeee-eeee-4eee-8eee-000000000001",
+          "eeeeeeee-eeee-4eee-8eee-000000000002",
+          "eeeeeeee-eeee-4eee-8eee-000000000003",
+          "eeeeeeee-eeee-4eee-8eee-000000000004",
+          "eeeeeeee-eeee-4eee-8eee-000000000005",
+          "eeeeeeee-eeee-4eee-8eee-000000000006",
+          "eeeeeeee-eeee-4eee-8eee-000000000007",
+          "eeeeeeee-eeee-4eee-8eee-000000000008",
+          "eeeeeeee-eeee-4eee-8eee-000000000009"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "b00f2118bff2d8ffd0e2e99b39ec133159b300ee8deb6bddf7ccdc8f59322ae8",
+  "unit": {
+    "files": 178,
+    "passed": 2954,
+    "skipped": 1,
+    "log": "unit-final-native-scroll.log",
+    "exitCode": 0
+  },
+  "build": {
+    "includes": "root and mini typecheck, API/worker/admin builds",
+    "log": "build-final-native-scroll.log",
+    "exitCode": 0
+  },
+  "contracts": {
+    "registeredV1Methods": 284,
+    "documentedWithHealth": 286,
+    "typedEvents": 32,
+    "log": "contracts-final-drag.log",
+    "exitCode": 0
+  },
+  "miniPackage": {
+    "files": 298,
+    "routes": 40,
+    "globalStyleBytes": 8190,
+    "errors": [],
+    "log": "package-final-native-scroll.log"
+  },
+  "isolatedIntegration": {
+    "fullSuite": {
+      "passed": 1143,
+      "failed": 2,
+      "log": "integration-all-user-refinement.log"
+    },
+    "privacyFailureResolved": "privacy-ops-review-validation.json",
+    "focusedPublishIntent": {
+      "files": 5,
+      "passed": 30,
+      "receipt": "publish-intent-validation.json"
+    },
+    "performance": "Local current and baseline both exceed unchanged threshold; not passed. See performance-local-comparison.json."
+  },
+  "deploymentSafety": {
+    "offlinePassed": 38,
+    "receipt": "ops-review.md"
+  },
+  "nativeEvidence": "separate native-qa-summary.json with scope and exact hash; not implied by automated checks",
+  "realAccountWrites": false,
+  "realDeviceAcceptance": false,
+  "full40RouteMatrix": "blocked",
+  "ciAndDeploymentAcceptance": "pending actual exact-source receipts",
+  "nativeScrollFix": "scroll-x remains true during catch-handled drag; actual scrollOffset and index9 drop verified independently in native summary. Prior168 failed edge remains historical."
+}

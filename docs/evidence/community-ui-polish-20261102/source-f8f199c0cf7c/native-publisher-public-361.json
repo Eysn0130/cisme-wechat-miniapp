@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled open gate for visual stimulus only; real public gate unchanged",
+        "publicEnabled": true,
+        "geometry": [
+          null,
+          {
+            "id": "",
+            "dataset": {},
+            "left": 18,
+            "right": 130.3359375,
+            "top": 742,
+            "bottom": 792,
+            "width": 112.3359375,
+            "height": 50
+          },
+          {
+            "id": "",
+            "dataset": {},
+            "left": 140.3359375,
+            "right": 343,
+            "top": 742,
+            "bottom": 792,
+            "width": 202.6640625,
+            "height": 50
+          }
+        ],
+        "error": ""
+      }
+    }
+  }
+}

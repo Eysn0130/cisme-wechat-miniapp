@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "helperSha256": "cefbe7fc98d4918e649b21db41816e65253207c67708f31f9d221d326a0057ce",
+  "historicalReviewSha256": "f048be16544c3f432c0026033c52df9810033a0035494dbb4d636b0e1a5bda94",
+  "historicalReviewBytesPreserved": true,
+  "subjectMapChange": "migrationSetSha256 only; all policy/retention/export/recipient fields unchanged",
+  "subjectMapMigrationSetSha256": "464250be95a7f63a8d1656a23c938dbe75b57171960dd618d9947e600b7a272d",
+  "combinedCommand": "node scripts/disposable-test.mjs npx tsx tmp/community-ui-polish-20261102/ops-catalog-smoke.ts",
+  "privacyIntegration": {
+    "file": "tests/integration/privacy-schema-inventory.test.ts",
+    "testsPassed": 1,
+    "durationSeconds": 1.73
+  },
+  "catalogSmoke": {
+    "postgresVersion": "18.4",
+    "states": [
+      104,
+      105
+    ],
+    "bothExactGuardChecksPassed": true,
+    "syntheticOwnerFixture": true,
+    "querySha256": "9c032a9582d0268928187e768aa13f8987d9d388fb000ddd91c4980e9252431d",
+    "details": "ops-catalog-smoke.json"
+  },
+  "offline": {
+    "command": "python3 -I -B infra/tencent/test_trial_community_compose_update.py",
+    "testsPassed": 38,
+    "log": "ops-offline-schema105.log"
+  },
+  "privacyUnit": {
+    "command": "npx vitest run tests/unit/privacy-inventory-gate.test.ts",
+    "testsPassed": 4,
+    "log": "privacy-inventory-verified.log"
+  },
+  "runId": "428fc903d1f6e58e3454fdea",
+  "databaseDestroyed": true,
+  "objectStorageDestroyed": true,
+  "rawLog": "privacy-and-ops-catalog-smoke.log",
+  "remoteOperations": false,
+  "performanceAcceptanceClaimed": false
+}

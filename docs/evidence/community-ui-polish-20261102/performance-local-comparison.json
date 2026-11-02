@@ -1,0 +1,70 @@
+{
+  "fullSuite": {
+    "log": "integration-all-user-refinement.log",
+    "performance": {
+      "scenario": "100 isolated first messages",
+      "samples": 100,
+      "failures": 0,
+      "p50Ms": 2089.96,
+      "p95Ms": 2191.64,
+      "p99Ms": 2193.82,
+      "maxMs": 2194.03,
+      "queue100Ms": 530.42,
+      "queueStatus": 200,
+      "thresholdsMs": {
+        "firstMessageP95": 1000,
+        "queue100": 1000
+      }
+    },
+    "thresholdPassed": false,
+    "syntheticTargetCleanupConfirmed": true
+  },
+  "serialCandidate": {
+    "log": "integration-performance-serial-valid.log",
+    "performance": {
+      "scenario": "100 isolated first messages",
+      "samples": 100,
+      "failures": 0,
+      "p50Ms": 1407.51,
+      "p95Ms": 1457.84,
+      "p99Ms": 1460.51,
+      "maxMs": 1461.8,
+      "queue100Ms": 522.57,
+      "queueStatus": 200,
+      "thresholdsMs": {
+        "firstMessageP95": 1000,
+        "queue100": 1000
+      }
+    },
+    "thresholdPassed": false,
+    "syntheticTargetCleanupConfirmed": true
+  },
+  "serialMainBaseline": {
+    "log": "integration-performance-main-baseline.log",
+    "performance": {
+      "scenario": "100 isolated first messages",
+      "samples": 100,
+      "failures": 0,
+      "p50Ms": 1331.44,
+      "p95Ms": 1383.66,
+      "p99Ms": 1386.17,
+      "maxMs": 1387.8,
+      "queue100Ms": 656.86,
+      "queueStatus": 200,
+      "thresholdsMs": {
+        "firstMessageP95": 1000,
+        "queue100": 1000
+      }
+    },
+    "thresholdPassed": false,
+    "syntheticTargetCleanupConfirmed": true
+  },
+  "schemaVersion": 1,
+  "baselineHead": "18c673ecc9e8df1a4a278701b293a23397593ce0",
+  "candidateScope": "user refinement, package f8f199 before drag correction",
+  "conclusion": "The local main baseline also fails the unchanged 1000ms threshold; local performance is not a pass. Await exact Linux CI acceptance.",
+  "productOrThresholdChanged": false,
+  "realAccountDataAccessed": false,
+  "invalidAttemptLog": "integration-performance-serial.log (vitest ENOENT, isolated targets cleaned, not a performance result)",
+  "dependencyContext": "Baseline committed source archive uses the same installed dependencies on this host; not a reproduction of historical hardware or dependencies."
+}

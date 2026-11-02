@@ -7,11 +7,10 @@ const owner="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",post="bbbbbbbb-bbbb-4bbb-8bbb
 let definition:any,wxMock:any,storage:Map<string,unknown>,pages:any[];
 const deferred=()=>{let resolve!:(value:any)=>void,reject!:(error:any)=>void;return{promise:new Promise<any>((yes,no)=>{resolve=yes;reject=no;}),resolve,reject};};
 const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
-const draft=(patch:Record<string,unknown>={})=>({id:post,ownerId:owner,state:"draft",version:1,revision:1,title:"",body:"",aiUsage:"unknown",rightsConfirmed:false,publicConsentConfirmed:false,publicVersionActive:false,media:[],...patch});
+const draft=(patch:Record<string,unknown>={})=>({id:post,ownerId:owner,state:"draft",version:1,revision:1,title:"",body:"",publicVersionActive:false,media:[],...patch});
 function instance(patch:Record<string,unknown>={}){const page={...definition,data:{...structuredClone(definition.data),...patch},readRevision:1,lastSessionToken:m.token,
   setData(value:Record<string,unknown>,callback?:()=>void){Object.assign(this.data,value);callback?.();}};pages.push(page);return page;}
-function editor(patch:Record<string,unknown>={}){return instance({postId:post,ownerId:owner,version:1,loading:false,body:"本次真实感受",dirty:true,publicGateEnabled:true,draftsEnabled:true,
-  rightsConfirmed:true,publicConsentConfirmed:true,...patch});}
+function editor(patch:Record<string,unknown>={}){return instance({postId:post,ownerId:owner,version:1,loading:false,body:"本次真实感受",dirty:true,publicGateEnabled:true,draftsEnabled:true,...patch});}
 beforeEach(async()=>{
   vi.resetModules();m.request.mockReset();m.upload.mockReset().mockResolvedValue(undefined);m.token="member-a";storage=new Map();pages=[];
   wxMock={getStorageSync:(key:string)=>storage.get(key),setStorageSync:(key:string,value:unknown)=>storage.set(key,structuredClone(value)),removeStorageSync:(key:string)=>storage.delete(key),
@@ -48,8 +47,8 @@ describe("community composer command ownership",()=>{
     expect(m.request.mock.calls.filter(([value])=>value.method==="PUT")).toHaveLength(1);
   });
   it("confirms an unknown submission from the server state without resubmitting",async()=>{
-    const page=editor();page.mediaVisible=true;const content={body:page.data.body,rightsConfirmed:true,publicConsentConfirmed:true};
-    m.request.mockImplementation(async({path,method}:any)=>{if(method==="PUT")return draft({...content,version:2});if(method==="POST")throw {code:"NETWORK_TIMEOUT"};return draft({...content,state:"pending_review",version:3});});
+    const page=editor();page.mediaVisible=true;const content={body:page.data.body};
+    m.request.mockImplementation(async({path,method}:any)=>{if(method==="PUT")return draft({...content,version:2});if(method==="POST")throw {code:"NETWORK_TIMEOUT"};return draft({...content,publicConsentConfirmed:true,state:"pending_review",version:3,revision:3});});
     await page.submit();expect(page.data).toMatchObject({state:"pending_review",version:3,writeRecovery:"",busy:false});
     const submit=m.request.mock.calls.map(([value])=>value).filter(value=>value.path.endsWith("/submit"));expect(submit).toHaveLength(1);expect(submit[0].data).not.toHaveProperty("aiDeclarationChosen");
   });
@@ -63,31 +62,38 @@ describe("community composer command ownership",()=>{
     const pending=page.submit();page.onUnload();save.resolve(draft({version:2}));await pending;
     expect(m.request.mock.calls.map(([value])=>value.method)).toEqual(["PUT"]);
   });
-  it("saves and submits without sending AI inputs while preserving explicit rights and public-consent checks",async()=>{
-    const page=editor({rightsConfirmed:false,publicConsentConfirmed:false});page.mediaVisible=true;let version=1;
-    m.request.mockImplementation(async({method,data}:any)=>method==="PUT"?draft({...data,version:++version}):draft({state:"pending_review",version:++version}));
-    await page.saveDraft();expect(m.request).toHaveBeenCalledOnce();
-    await page.submit();expect(m.request).toHaveBeenCalledOnce();expect(page.data.error).toContain("内容权利和公开展示范围");expect(page.data.settingsExpanded).toBe(true);
-    page.changeRights({detail:{value:true}});page.changeConsent({detail:{value:true}});await page.submit();
-    expect(page.data).toMatchObject({state:"pending_review",settingsExpanded:false});
-    for(const [request] of m.request.mock.calls){expect(request.data).not.toHaveProperty("aiUsage");expect(request.data).not.toHaveProperty("aiDeclarationChosen");}
-    expect(page.data).not.toHaveProperty("aiOptions");expect(page.data).not.toHaveProperty("aiDeclarationChosen");expect(page.changeAi).toBeUndefined();
+  it("saves a private draft without rights, public-consent or public-intent facts",async()=>{
+    const page=editor({publicGateEnabled:false});page.mediaVisible=true;
+    page.flushLocalBackup();const backup=[...storage.entries()].find(([key])=>key.startsWith("cisme.ugcDraftBackup.v2."))?.[1];
+    expect(backup).toMatchObject({ownerId:owner,body:page.data.body});
+    expect(backup).not.toHaveProperty("rightsConfirmed");expect(backup).not.toHaveProperty("publicConsentConfirmed");
+    m.request.mockResolvedValue(draft({body:page.data.body,version:2}));
+    const saved=await page.saveDraft();expect(saved?.version).toBe(2);expect(m.request).toHaveBeenCalledOnce();
+    expect(m.request.mock.calls[0]![0]).toMatchObject({method:"PUT",path:`/v1/me/ugc/posts/${post}/draft`,data:{title:"",body:page.data.body,mediaIds:[],expectedVersion:1}});
+    expect(Object.keys(m.request.mock.calls[0]![0].data).sort()).toEqual(["body","expectedVersion","mediaIds","title"]);
+    expect(page.data).toMatchObject({state:"draft",publicVersionActive:false,dirty:false,notice:"草稿已保存。"});
   });
-  it("only toggles publish settings while editing is available and folds them for a loaded draft",()=>{
-    const page=editor({keyboardVisible:true});page.mediaVisible=true;page.togglePublishSettings();expect(page.data).toMatchObject({settingsExpanded:true,keyboardVisible:false});expect(wxMock.hideKeyboard).toHaveBeenCalledOnce();
-    page.data.uploadBusy=true;page.togglePublishSettings();expect(page.data.settingsExpanded).toBe(true);
-    page.data.uploadBusy=false;page.data.writeRecovery="save";page.togglePublishSettings();expect(page.data.settingsExpanded).toBe(true);
-    page.data.writeRecovery="";page.togglePublishSettings();expect(page.data.settingsExpanded).toBe(false);expect(wxMock.hideKeyboard).toHaveBeenCalledOnce();
-    page.data.settingsExpanded=true;page.applyDraft(draft());expect(page.data.settingsExpanded).toBe(false);
-    page.data.settingsExpanded=true;page.onHide();expect(page.data.settingsExpanded).toBe(false);
+  it("publishes directly through save and submit without a settings step or legacy flags",async()=>{
+    const page=editor();page.mediaVisible=true;
+    m.request.mockImplementation(async({method,data}:any)=>method==="PUT"?draft({...data,version:2}):draft({body:page.data.body,state:"pending_review",version:3,revision:3,publicConsentConfirmed:true}));
+    await page.submit();
+    expect(m.request.mock.calls.map(([request])=>({method:request.method,path:request.path}))).toEqual([
+      {method:"PUT",path:`/v1/me/ugc/posts/${post}/draft`},{method:"POST",path:`/v1/me/ugc/posts/${post}/submit`}]);
+    expect(m.request.mock.calls[1]![0].data).toEqual({expectedVersion:2});
+    expect(page.data).toMatchObject({state:"pending_review",publicVersionActive:false,busy:false,writeRecovery:""});
+    expect(page.data.notice).toContain("已提交审核");
+    for(const [request] of m.request.mock.calls)for(const field of ["rightsConfirmed","publicConsentConfirmed","publicIntent","aiUsage","aiDeclarationChosen"])expect(request.data).not.toHaveProperty(field);
   });
-  it("clears only the exact consent error once both confirmations are present",()=>{
-    const consentError="请先确认内容权利和公开展示范围。",page=editor({rightsConfirmed:false,publicConsentConfirmed:false,error:consentError});
-    page.changeRights({detail:{value:true}});expect(page.data.error).toBe(consentError);
-    page.changeConsent({detail:{value:true}});expect(page.data.error).toBe("");
-    page.data.error="提交结果暂未确认，请稍后核对。";page.data.writeRecovery="submit";
-    page.changeRights({detail:{value:false}});page.changeRights({detail:{value:true}});page.changeConsent({detail:{value:true}});
-    expect(page.data).toMatchObject({error:"提交结果暂未确认，请稍后核对。",writeRecovery:"submit"});
+  it("keeps the public gate authoritative without turning a publish tap into public consent or a write",async()=>{
+    const page=editor({publicGateEnabled:false});page.mediaVisible=true;await page.submit();
+    expect(m.request).not.toHaveBeenCalled();expect(page.data).toMatchObject({state:"draft",publicVersionActive:false,dirty:true});
+    expect(page.data.error).toContain("仍可保存仅自己可见的草稿");
+  });
+  it("keeps a saved draft private when direct submission fails",async()=>{
+    const page=editor();page.mediaVisible=true;
+    m.request.mockImplementation(async({method,data}:any)=>{if(method==="PUT")return draft({...data,version:2});throw {status:422,title:"本次提交未完成，请重试。"};});
+    await page.submit();expect(page.data).toMatchObject({state:"draft",version:2,publicVersionActive:false,busy:false,writeRecovery:"",error:"本次提交未完成，请重试。"});
+    expect(page.data.notice).not.toContain("公开");expect(page.data.notice).not.toContain("已发布");
   });
   it("retains a genuine chooser result across native hide/show without uploading in the background",async()=>{
     const chosen=deferred(),page=editor({files:[]});page.mediaVisible=true;wxMock.chooseMedia.mockReturnValue(chosen.promise);
@@ -110,14 +116,20 @@ describe("community composer command ownership",()=>{
     expect(restored.data.files).toEqual([expect.objectContaining({state:"failed",localPath:"/synthetic/picture.jpg"})]);
     await restored.saveDraft();expect(m.request).not.toHaveBeenCalled();
   });
-  it("ignores retired AI values in old backups and omits them from every new backup",()=>{
+  it("restores legacy text without replaying retired consent facts or crossing owner/version scope",()=>{
     const page=editor();page.mediaVisible=true;page.flushLocalBackup();
     const key=[...storage.keys()].find(value=>value.startsWith("cisme.ugcDraftBackup.v2."))!;
-    storage.set(key,{...(storage.get(key) as Record<string,unknown>),aiUsage:"generated",aiDeclarationChosen:true});
+    storage.set(key,{...(storage.get(key) as Record<string,unknown>),aiUsage:"generated",aiDeclarationChosen:true,rightsConfirmed:true,publicConsentConfirmed:true});
     const restored=instance();restored.mediaVisible=true;restored.applyDraft(draft({aiUsage:"assisted"}));
     expect(restored.data).toMatchObject({body:"本次真实感受",dirty:true});
-    expect(restored.data).not.toHaveProperty("aiUsage");expect(restored.data).not.toHaveProperty("aiIndex");expect(restored.data).not.toHaveProperty("aiDeclarationChosen");
-    restored.flushLocalBackup();const rewritten=storage.get(key);expect(rewritten).not.toHaveProperty("aiUsage");expect(rewritten).not.toHaveProperty("aiDeclarationChosen");
+    for(const field of ["aiUsage","aiIndex","aiDeclarationChosen","rightsConfirmed","publicConsentConfirmed"])expect(restored.data).not.toHaveProperty(field);
+    restored.flushLocalBackup();const rewritten=storage.get(key);
+    for(const field of ["aiUsage","aiDeclarationChosen","rightsConfirmed","publicConsentConfirmed"])expect(rewritten).not.toHaveProperty(field);
+    const nextVersion=instance();nextVersion.mediaVisible=true;nextVersion.applyDraft(draft({version:2,body:"服务端较新版本"}));
+    expect(nextVersion.data).toMatchObject({body:"服务端较新版本",dirty:false});
+    m.token="member-b";const anotherOwner=instance();anotherOwner.mediaVisible=true;
+    anotherOwner.applyDraft(draft({ownerId:"dddddddd-dddd-4ddd-8ddd-dddddddddddd",body:"另一账号的内容"}));
+    expect(anotherOwner.data).toMatchObject({body:"另一账号的内容",dirty:false});
   });
   it("does not navigate away when an asynchronous exit save returns after unload",async()=>{
     const save=deferred(),page=editor();page.mediaVisible=true;wxMock.showActionSheet.mockResolvedValue({tapIndex:0});m.request.mockReturnValue(save.promise);

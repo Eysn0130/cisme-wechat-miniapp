@@ -98,7 +98,9 @@ export class FormalUgcService{
     // become a fabricated 'none' choice or erase a previously stored value.
     if(input.aiUsage!==undefined&&!["none","assisted","generated","unknown"].includes(String(input.aiUsage)))
       throw new DomainError("UGC_METADATA_INVALID","内容元数据无效，请刷新后重试",422);
-    if(typeof input.rightsConfirmed!=="boolean"||typeof input.publicConsentConfirmed!=="boolean")throw new DomainError("UGC_DECLARATION_INVALID","请确认内容权利与公开范围",422);
+    if((input.rightsConfirmed!==undefined&&typeof input.rightsConfirmed!=="boolean")
+      ||(input.publicConsentConfirmed!==undefined&&typeof input.publicConsentConfirmed!=="boolean"))
+      throw new DomainError("UGC_METADATA_INVALID","内容元数据无效，请刷新后重试",422);
     return transaction(this.pool,async client=>{
       await requireActiveMemberWithClient(client,owner);
       const post=(await client.query("SELECT * FROM ugc_post WHERE id=$1 AND author_member_id=$2 FOR UPDATE",[id,owner])).rows[0];
@@ -115,7 +117,7 @@ export class FormalUgcService{
         if(owned.rowCount!==images.length)throw new DomainError("UGC_MEDIA_NOT_READY","有图片尚未上传完成或不属于这篇内容",409);}
       const revision=post.current_revision+1;
       await client.query(`INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body,ai_usage,rights_confirmed,public_consent_confirmed)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,[id,revision,owner,title,body,aiUsage,input.rightsConfirmed,input.publicConsentConfirmed]);
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,[id,revision,owner,title,body,aiUsage,input.rightsConfirmed??false,input.publicConsentConfirmed??false]);
       for(let position=0;position<images.length;position+=1)await client.query(`INSERT INTO ugc_post_media(post_id,revision,media_asset_id,position)
         VALUES($1,$2,$3,$4)`,[id,revision,images[position],position]);
       await client.query(`UPDATE ugc_post SET current_revision=$2,version=version+1,
@@ -141,17 +143,27 @@ export class FormalUgcService{
         WHERE b.post_id=$1 AND b.revision=$2 FOR SHARE OF a`,[id,post.current_revision]);
       if(!revision.body?.trim()&&!media.rowCount)throw new DomainError("UGC_CONTENT_REQUIRED","请填写正文或添加至少一张图片",422);
       if((media.rowCount??0)>9)throw new DomainError("UGC_MEDIA_INVALID","最多选择 9 张图片",422);
-      if(revision.rights_confirmed!==true||revision.public_consent_confirmed!==true)
-        throw new DomainError("UGC_DECLARATION_REQUIRED","请确认内容权利与社区公开展示范围",422);
       if(media.rows.some(row=>row.owner_member_id!==owner||row.source_post_id!==id||row.bound_post_id!==id))
         throw new DomainError("UGC_MEDIA_NOT_READY","有图片不属于这篇内容，请重新核对",409);
       if(media.rows.some(row=>!["uploaded","scanning","approved"].includes(row.state)))throw new DomainError("UGC_MEDIA_NOT_READY","图片尚未完成上传，请稍后重试",409);
       await this.requirePublicGate(client);
-      await client.query(`UPDATE ugc_post_revision SET moderation_state='pending' WHERE post_id=$1 AND revision=$2`,[id,post.current_revision]);
+      // The authenticated submit action records this version's public intent.
+      // Append a new snapshot instead of rewriting immutable draft/history
+      // declarations or inventing a rights confirmation.
+      const submittedRevision=post.current_revision+1;
+      await client.query(`INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body,content_warning,
+        ai_usage,rights_confirmed,public_consent_confirmed,moderation_state)
+        SELECT post_id,$2,created_by_member_id,title,body,content_warning,ai_usage,rights_confirmed,true,'pending'
+        FROM ugc_post_revision WHERE post_id=$1 AND revision=$3`,[id,submittedRevision,post.current_revision]);
+      await client.query(`INSERT INTO ugc_post_media(post_id,revision,media_asset_id,position,alt_text)
+        SELECT post_id,$2,media_asset_id,position,alt_text FROM ugc_post_media WHERE post_id=$1 AND revision=$3`,
+        [id,submittedRevision,post.current_revision]);
       await client.query(`UPDATE ugc_post SET state=CASE WHEN published_revision IS NULL THEN 'pending_review' ELSE 'published' END,
-        version=version+1,updated_at=now() WHERE id=$1`,[id]);
+        current_revision=$2,version=version+1,updated_at=now() WHERE id=$1`,[id,submittedRevision]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
-        VALUES($1,'ugc.post_submitted','ugc_post',$2,'USER_SUBMITTED',$3,gen_random_uuid()::text)`,[`member:${owner}`,id,{revision:post.current_revision}]);
+        VALUES($1,'ugc.post_submitted','ugc_post',$2,'USER_SUBMITTED',$3,gen_random_uuid()::text)`,[`member:${owner}`,id,
+        {revision:submittedRevision,sourceRevision:post.current_revision,newRevision:submittedRevision,
+          publicConsentConfirmed:true,publicConsentSource:"publish_action"}]);
       return this.readOwnWithClient(client,owner,id);
     });
   }
@@ -702,9 +714,11 @@ export class FormalUgcService{
       if(post.author_member_id===reviewer)throw new DomainError("UGC_SELF_REVIEW_FORBIDDEN","不能审核自己的内容",403);
       if(!["pending_review","published"].includes(post.state)||post.version!==expected||post.current_revision===post.published_revision)
         throw new DomainError("UGC_REVIEW_CONFLICT","内容已变化，请刷新后重试",409);
-      const revision=(await client.query("SELECT moderation_state,title,body FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
+      const revision=(await client.query("SELECT moderation_state,title,body,public_consent_confirmed FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
       if(revision?.moderation_state!=="pending")throw new DomainError("UGC_REVIEW_CONFLICT","当前版本已完成审核，请刷新",409);
       if(decision==="approve"){
+        if(revision.public_consent_confirmed!==true)
+          throw new DomainError("UGC_PUBLIC_INTENT_REQUIRED","当前版本尚未由作者提交公开，请先退回修改",409);
         const author=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[post.author_member_id]);
         if(!author.rowCount)throw new DomainError("UGC_AUTHOR_INACTIVE","作者账号状态已变化，当前内容不能通过审核",409);
         const scanText=[revision.title,revision.body].filter(Boolean).join("\n").trim();
@@ -741,8 +755,10 @@ export class FormalUgcService{
         throw new DomainError("UGC_REVIEW_CONFLICT","内容已变化，请刷新后重试",409);
       const author=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[post.author_member_id]);
       if(!author.rowCount)throw new DomainError("UGC_AUTHOR_INACTIVE","作者账号状态已变化，当前内容不能公开",409);
-      const revision=(await client.query("SELECT moderation_state FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
+      const revision=(await client.query("SELECT moderation_state,public_consent_confirmed FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
       if(revision?.moderation_state!=="approved")throw new DomainError("UGC_SECOND_REVIEW_REQUIRED","当前版本尚未通过内容审核",409);
+      if(revision.public_consent_confirmed!==true)
+        throw new DomainError("UGC_PUBLIC_INTENT_REQUIRED","当前版本尚未由作者提交公开，请先退回修改",409);
       const approval=(await client.query(`SELECT reviewer_member_id FROM ugc_post_review_action
         WHERE post_id=$1 AND revision=$2 AND decision='approve' ORDER BY created_at DESC LIMIT 1`,[id,post.current_revision])).rows[0];
       if(!approval||approval.reviewer_member_id===publisher)throw new DomainError("UGC_SECOND_REVIEW_REQUIRED","需要另一名审核员确认公开",403);

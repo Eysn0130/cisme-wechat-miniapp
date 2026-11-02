@@ -46,7 +46,7 @@
 
 ## 发布、权限与公开门禁
 
-`services/api/src/formalUgc.ts`的`createDraft/saveDraft/submit`保留本人归属、有效账号、版本、媒体引用及禁止隐式覆盖待审修订。提交要求正文或至少一张图、内容权利和审核后公开分别确认。按PRD K.9移除普通消费者AI控件及强制提交条件，历史字段/审计事实保留，新客户端不虚构主动选择。
+`services/api/src/formalUgc.ts`的`createDraft/saveDraft/submit`保留本人归属、有效账号、版本、媒体引用及禁止隐式覆盖待审修订。按后续PRD K.11，私稿不要求内容权利／公开开关，缺省新私稿两项元数据为false；本人对当前版本提交且内容、媒体及末端真实门禁通过后，原子追加publicConsent=true的待审不可变快照及publish_action来源审计，rights原值不伪造，旧修订不改。提交仍要求正文或至少一张图，公开仍经内容安全与独立复核。K.9移除的普通消费者AI控件及强制条件不恢复，历史字段/审计事实保留。
 
 对应`services/api/src/server.ts`的创建、保存、授权/完成媒体、提交、本人列表/详情、审核及独立复核路由均沿用。`authorizeMedia`只接受JPEG/PNG/WebP并写`kind=image`；基础表预留video和video/mp4不代表消费者视频链路可用。后台`reviewMedia`自动旋转、缩放、转WebP、生成详情和缩略图属于审核衍生处理，不能冒充消费者编辑器。图片编辑和文字制卡复用现有新素材链，不需要新增后端内容类型；独立编辑参数、原输入/结果长期关联仍没有专用接口契约。
 

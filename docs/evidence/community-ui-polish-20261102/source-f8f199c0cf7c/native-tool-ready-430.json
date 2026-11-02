@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "controlled component calls/local fixture image; no hardware album or touch",
+        "width": 430,
+        "cancelledOnlyTool": true,
+        "activeTool": "text",
+        "dirty": true,
+        "geometry": [
+          null,
+          null,
+          null,
+          {
+            "left": 298,
+            "right": 410,
+            "top": 838,
+            "bottom": 884,
+            "disabled": false
+          }
+        ],
+        "uploadAuthorizeCount": 0,
+        "parentFiles": 0,
+        "error": ""
+      }
+    }
+  }
+}

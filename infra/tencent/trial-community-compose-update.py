@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Exact deployed 6123/schema104 -> reviewed community composer/schema104 update.
+"""Exact deployed 6123/schema104 -> reviewed publish-intent/schema105 update.
 
 Trial only; the default preflight is read-only. Never changes environment,
-credentials, authority or database facts, and never migrates or restores.
-Only the existing two trial units may switch to the bound candidate. Any
-cutover failure stops trial services for explicit forward review; no rollback.
+credentials, authority or original business facts. Only the pinned105 function
+migration may run after an authenticated encrypted snapshot and writer drain.
+Only the existing two trial units switch; any failure requires forward recovery.
 """
 import argparse
 import base64
@@ -42,7 +42,15 @@ NODE = '/opt/node-v24.14.0-linux-x64/bin/node'
 IMDS = {'instance-id': 'ins-l9utqwxv', 'local-ipv4': '10.0.0.10', 'public-ipv4': '124.223.74.198'}
 HISTORY_ROOT = ('dependency-active-release.json', 'application-active-release.json', 'editorial-comments-active-release.json',
                 'ownership.json', 'empty-database.json', 'migration-complete.json')
-H = C = D = None
+MIGRATION = '202611020001_ugc_publish_intent.sql'
+MIGRATION_SHA = '8b9fd5aed32f0583161f1be6de867eb59bb1c7b3a6ac33fcea2d30d9104d6eb8'
+POST_GUARD_104_SHA = '21aea3c71b6c2053fb22a9d0cb723d9190e346ee1920b9c6bfeda186e18f7669'
+POST_GUARD_105_SHA = '2b12016e0aa44aed7322d2922b2319e64964eac88980b1a83825239cec433256'
+REVISION_GUARD_SHA = '6725e8839be8893b2c6d399e37479e790041221cfde058af9f85297fbb6d6dd8'
+SNAPSHOT_RUNNER = ROOT / 'daily-day-runners' / 'a4afe72b4b3a'
+SNAPSHOT_HELPER_SHA = '5394c9f4719319b0ca534c63ca65bcb3b003c6331585901ddea0aee348c3d8e2'
+CLEAN = {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'LANG': 'C.UTF-8'}
+H = C = D = S = K = None
 
 
 class Refused(RuntimeError):
@@ -161,12 +169,31 @@ def load_baseline(active=True):
         C, D = H.C, H.D
         need(current['release'] == ROOT / 'releases' / ('tencent-release-' + BASELINE_HEAD[:12]),
              'COMMUNITY_COMPOSE_BASELINE_RELEASE_REQUIRED')
+        load_upgrade_primitives()
         return current, old_binding
     # After our switch, load only pinned lower primitives. Never invoke the old
     # active guard, which correctly requires its original6123 unit paths.
     H.load_baseline(False)
     C, D = H.C, H.D
+    load_upgrade_primitives()
     return None, old_binding
+
+
+def load_upgrade_primitives():
+    global K, S
+    # H is the exact6123 closure guard; its H is the pinned104 collaboration
+    # guard, and H.H.S is its already-reviewed encrypted snapshot primitive.
+    K = H.H
+    path = H.BASELINE_RUNNER / 'trial-support-ai-human-collaboration-upgrade.py'
+    need(Path(K.__file__) == path and sha(read(path, 128 * 1024)) == H.BASELINE_HELPER_SHA,
+         'COMMUNITY_COMPOSE_PINNED_SCHEMA104_PRIMITIVE_REQUIRED')
+    S = K.S
+    snapshot_path = SNAPSHOT_RUNNER / 'trial-daily-day-upgrade.py'
+    need(S is K.B.B and Path(S.__file__) == snapshot_path and K.B.BASELINE_RUNNER == SNAPSHOT_RUNNER
+         and K.B.BASELINE_HELPER_SHA == SNAPSHOT_HELPER_SHA
+         and sha(read(snapshot_path, 128 * 1024)) == SNAPSHOT_HELPER_SHA
+         and all(callable(getattr(S, name, None)) for name in ('snapshot', 'validate_snapshot', 'schema101')),
+         'COMMUNITY_COMPOSE_PINNED_SNAPSHOT_PRIMITIVE_REQUIRED')
 
 def validate_binding(b):
     need(b.get('schemaVersion') == 1 and b.get('kind') == 'trial-community-compose-update'
@@ -181,12 +208,12 @@ def validate_binding(b):
              for key in ('helperSha256', 'manifestSha256', 'archiveSha256'))
          and type(b.get('archiveBytes')) is int and 0 < b['archiveBytes'] <= 512 * 1024 ** 2,
          'COMMUNITY_COMPOSE_EXACT_ARTIFACT_REQUIRED')
-    need(b.get('dependenciesSha256') == DEPENDENCIES and type(b.get('migrations')) is int and b['migrations'] == 104
+    need(b.get('dependenciesSha256') == DEPENDENCIES and type(b.get('migrations')) is int and b['migrations'] == 105
          and b.get('applicationRollbackAllowed') is False and isinstance(b.get('migrationSha256'), dict)
-         and len(b['migrationSha256']) == 104
+         and len(b['migrationSha256']) == 105 and b['migrationSha256'].get(MIGRATION) == MIGRATION_SHA
          and all(isinstance(name, str) and re.fullmatch(r'\d+_[A-Za-z0-9_-]+\.sql', name)
                  and isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value) for name, value in b['migrationSha256'].items()),
-         'COMMUNITY_COMPOSE_UNCHANGED_SCHEMA104_REQUIRED')
+         'COMMUNITY_COMPOSE_ONLY_SCHEMA105_REQUIRED')
     archive = Path(b.get('archivePath', ''))
     need(archive.name == 'archive.tar.gz' and archive.parent.parent == STAGES
          and re.fullmatch(r'community-compose-' + b['sourceHead'][:12] + r'-[a-z0-9_-]{8,40}', archive.parent.name),
@@ -221,12 +248,13 @@ def artifact_contract(old, candidate, b):
          'COMMUNITY_COMPOSE_EXACT_LINUX_ARTIFACT_REQUIRED')
     sql = before.get('migrations', [])
     need(len(sql) == 104 and sql == sorted(set(sql)) and sql[-1] == '202610310001_support_ai_human_collaboration.sql'
-         and after.get('migrations') == sql and set(b['migrationSha256']) == set(sql),
-         'COMMUNITY_COMPOSE_NO_SQL_DELTA_REQUIRED')
+         and after.get('migrations') == sql + [MIGRATION] and set(b['migrationSha256']) == set(sql + [MIGRATION])
+         and b['migrationSha256'].get(MIGRATION) == MIGRATION_SHA,
+         'COMMUNITY_COMPOSE_ONLY_MIGRATION105_REQUIRED')
     names = ['migrate.mjs', 'package.json', 'package-lock.json'] + ['db/migrations/' + name for name in sql]
     need(all(old['files'].get(name) and old['files'][name] == candidate['files'].get(name) for name in names),
          'COMMUNITY_COMPOSE_SQL_MIGRATOR_OR_PACKAGE_CHANGED')
-    need(all(sha(candidate['files']['db/migrations/' + name]) == b['migrationSha256'][name] for name in sql),
+    need(all(sha(candidate['files']['db/migrations/' + name]) == b['migrationSha256'][name] for name in sql + [MIGRATION]),
          'COMMUNITY_COMPOSE_SQL_BINDING_HASH_MISMATCH')
     need(old['dependenciesSha256'] == candidate['dependenciesSha256'] == DEPENDENCIES,
          'COMMUNITY_COMPOSE_FULL_DEPENDENCY_TREE_CHANGED')
@@ -299,7 +327,7 @@ def source_permit(b, candidate):
     # verify checks the immutable artifact only; it does not open a database.
     verified = parse(D.command([NODE, str(Path(candidate['directory']) / 'migrate.mjs'), 'verify']))
     need(verified.get('verified') is True and verified.get('sourceHead') == b['sourceHead']
-         and verified.get('sourceTree') == b['sourceTree'] and verified.get('migrations') == 104,
+         and verified.get('sourceTree') == b['sourceTree'] and verified.get('migrations') == 105,
          'COMMUNITY_COMPOSE_COMPLETE_CANDIDATE_REQUIRED')
 
 
@@ -373,18 +401,69 @@ def verify_context(plan, candidate_allowed=False, allowed=(), exact_pids=True):
          'COMMUNITY_COMPOSE_PRIVATE_ARCHIVE_DRIFT')
 
 
-def journal(plan, drain=False):
-    # Keep the full deployed104 guard, including all four collaboration fields.
-    return H.journal(plan, drain)
+def ugc_guards(profile, upgraded, baseline=None):
+    functions = []
+    for label, name in (('post', 'guard_ugc_post_update'), ('revision', 'guard_ugc_revision_mutation')):
+        functions.append("'" + label + "',(SELECT jsonb_build_object('prosrcSha256',encode(digest(p.prosrc,'sha256'),'hex'),"
+            "'definitionSha256',encode(digest(pg_get_functiondef(p.oid),'sha256'),'hex'),'owner',pg_get_userbyid(p.proowner),"
+            "'language',(SELECT lanname FROM pg_language WHERE oid=p.prolang),'securityDefiner',p.prosecdef,'config',p.proconfig,"
+            "'returnsTrigger',p.prorettype='trigger'::regtype,'kind',p.prokind,'volatile',p.provolatile,'strict',p.proisstrict,"
+            "'leakproof',p.proleakproof) FROM pg_proc p WHERE p.oid='public." + name + "()'::regprocedure)")
+    triggers = []
+    for label, table, name, function in (('postTrigger', 'ugc_post', 'ugc_post_update_guard', 'guard_ugc_post_update'),
+            ('revisionTrigger', 'ugc_post_revision', 'ugc_post_revision_mutation', 'guard_ugc_revision_mutation')):
+        triggers.append("'" + label + "',(SELECT jsonb_build_object('enabled',t.tgenabled,'type',t.tgtype,"
+            "'functionMatches',t.tgfoid='public." + function + "()'::regprocedure,'internal',t.tgisinternal,'args',t.tgnargs,"
+            "'when',pg_get_expr(t.tgqual,t.tgrelid),'columns',(SELECT coalesce(jsonb_agg(a.attname ORDER BY u.ordinality),'[]'::jsonb) "
+            "FROM unnest(t.tgattr::smallint[]) WITH ORDINALITY u(attnum,ordinality) JOIN pg_attribute a ON a.attrelid=t.tgrelid "
+            "AND a.attnum=u.attnum),'definitionSha256',encode(digest(pg_get_triggerdef(t.oid),'sha256'),'hex')) "
+            "FROM pg_trigger t WHERE t.tgrelid='public." + table + "'::regclass AND t.tgname='" + name + "')")
+    value = D.query(profile, 'SELECT jsonb_build_object(' + ','.join(functions + triggers) + ')')
+    need(isinstance(value, dict) and set(value) == {'post', 'revision', 'postTrigger', 'revisionTrigger'},
+         'COMMUNITY_COMPOSE_UGC_GUARD_FACTS_REQUIRED')
+    for label, expected_sha in (('post', POST_GUARD_105_SHA if upgraded else POST_GUARD_104_SHA), ('revision', REVISION_GUARD_SHA)):
+        facts = value.get(label)
+        expected = {'prosrcSha256': expected_sha, 'owner': 'cisme_trial', 'language': 'plpgsql', 'securityDefiner': False,
+                    'config': None, 'returnsTrigger': True, 'kind': 'f', 'volatile': 'v', 'strict': False, 'leakproof': False}
+        need(isinstance(facts, dict) and set(facts) == set(expected) | {'definitionSha256'}
+             and all(facts.get(key) == item for key, item in expected.items())
+             and isinstance(facts.get('definitionSha256'), str) and re.fullmatch(r'[0-9a-f]{64}', facts['definitionSha256']),
+             'COMMUNITY_COMPOSE_EXACT_UGC_FUNCTION_REQUIRED')
+    for label, trigger_type, columns in (('postTrigger', 23, ['author_member_id', 'client_request_key', 'state', 'current_revision', 'published_revision']),
+                                         ('revisionTrigger', 27, [])):
+        facts = value.get(label)
+        expected = {'enabled': 'O', 'type': trigger_type, 'functionMatches': True, 'internal': False, 'args': 0, 'when': None, 'columns': columns}
+        need(isinstance(facts, dict) and set(facts) == set(expected) | {'definitionSha256'}
+             and all(facts.get(key) == item for key, item in expected.items())
+             and isinstance(facts.get('definitionSha256'), str) and re.fullmatch(r'[0-9a-f]{64}', facts['definitionSha256']),
+             'COMMUNITY_COMPOSE_EXACT_UGC_TRIGGER_REQUIRED')
+    if baseline is not None:
+        need(all(value[label] == baseline.get(label) for label in ('revision', 'revisionTrigger', 'postTrigger')),
+             'COMMUNITY_COMPOSE_IMMUTABLE_REVISION_OR_TRIGGER_DRIFT')
+    return value
+
+
+def journal(plan, allowed, drain=False):
+    old_sql, new_sql = plan['old']['manifest']['migrations'], plan['candidate']['manifest']['migrations']
+    value = C.database_guard(plan['profile'], plan['config'], plan['ownership'], allowed, drain)
+    need(value in allowed and value in (old_sql, new_sql), 'COMMUNITY_COMPOSE_EXACT_MIGRATION_JOURNAL_REQUIRED')
+    S.schema101(plan['profile'])
+    K.B.schema103(plan['profile'])
+    #105 replaces only the UGC post function. All104 collaboration fields,
+    #constraints, trigger bodies and indexes remain required at both counts.
+    K.schema104(plan['profile'], True)
+    ugc_guards(plan['profile'], value == new_sql, plan['ugcGuardBaseline'])
+    return value
 
 def business_fence(profile):
-    # Whole-row hashes include schema_migration/applied_at and all live104
-    # generation, anchor and reply-link fields. No row contents are exported.
+    # Every existing104 journal row (including applied_at) and every complete
+    #business row stays exact. Exclude only the one authorized105 journal row.
     names = D.query(profile, "SELECT coalesce(json_agg(tablename ORDER BY tablename),'[]'::json) FROM pg_tables WHERE schemaname='public'")
     need(isinstance(names, list) and 'schema_migration' in names and names == sorted(set(names))
          and all(isinstance(name, str) and re.fullmatch(r'[a-z][a-z0-9_]*', name) for name in names),
          'COMMUNITY_COMPOSE_BUSINESS_TABLE_SET_REQUIRED')
-    parts = ["SELECT '" + name + "'::text AS name,jsonb_build_object('count',count(*),'sha256',encode(digest(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text)::text,'[]'),'sha256'),'hex')) AS fact FROM " + name + " t" for name in names]
+    parts = ["SELECT '" + name + "'::text AS name,jsonb_build_object('count',count(*),'sha256',encode(digest(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text)::text,'[]'),'sha256'),'hex')) AS fact FROM " + name + " t"
+             + (" WHERE version<>'" + MIGRATION + "'" if name == 'schema_migration' else '') for name in names]
     value = D.query(profile, 'SELECT jsonb_object_agg(name,fact ORDER BY name) FROM (' + ' UNION ALL '.join(parts) + ') snapshot')
     need(isinstance(value, dict) and set(value) == set(names) and all(isinstance(row, dict)
          and type(row.get('count')) is int and row['count'] >= 0 and isinstance(row.get('sha256'), str)
@@ -430,9 +509,10 @@ def preflight(b):
         'environmentMetadata': D.environment_metadata(profile), 'privateInputs': D.private_inputs(profile, config),
         'old': old, 'candidate': candidate, 'units': units, 'dropIns': dropins, 'unitDefinitions': definitions,
         'ownership': ownership, 'initialRecords': {name: history[str(ROOT / name)] for name in HISTORY_ROOT[-3:]},
-        'history': history, 'protectedBaselineInputs': protected, 'production': production, 'binding': b, 'versions': versions}
+        'history': history, 'protectedBaselineInputs': protected, 'production': production, 'binding': b, 'versions': versions,
+        'ugcGuardBaseline': ugc_guards(profile, False)}
     verify_context(plan)
-    journal(plan)
+    journal(plan, [old['manifest']['migrations']])
     return plan
 
 
@@ -460,6 +540,27 @@ def backup_inputs(plan, state):
                 D.general.store(directory / Path(path).name, data)
 
 
+def snapshot_binding(plan, state, approval, backup):
+    # Preserve the authenticated primitive's historical AAD label honestly;
+    #separately bind the snapshot to the actual reviewed6123/schema104 source.
+    return {'schemaVersion': 1, 'kind': 'trial-community-compose-snapshot-current-release',
+        'snapshotReceiptSha256': sha(read(state / 'predeploy-database' / 'snapshot-private.json', 65536)),
+        'actualBaselineHead': BASELINE_HEAD, 'actualBaselineTree': BASELINE_TREE,
+        'actualBaselineManifestSha256': plan['old']['manifestSha256'], 'actualMigrationCount': 104,
+        'candidateHead': plan['binding']['sourceHead'], 'candidateTree': plan['binding']['sourceTree'],
+        'backupReference': backup['backupReference'], 'operationReference': approval,
+        'cryptoAadBaselineLabel': S.BASELINE_HEAD, 'aadClaimsCurrentBaseline': False}
+
+
+def verify_snapshot(plan, state):
+    backup = parse(read(state / 'predeploy-database' / 'snapshot-private.json', 65536))
+    S.validate_snapshot(backup, state, plan['operationReference'])
+    raw = read(state / 'snapshot-current-release.json', 65536)
+    need(sha(raw) == plan['snapshotBindingSha256']
+         and parse(raw) == snapshot_binding(plan, state, plan['operationReference'], backup),
+         'COMMUNITY_COMPOSE_ACTUAL_BASELINE_SNAPSHOT_BINDING_DRIFT')
+
+
 def active_record(plan, state, plan_sha):
     selected = plan['candidate']
     return (json.dumps({'schemaVersion': 1, 'kind': 'trial-community-compose-active-release',
@@ -467,10 +568,12 @@ def active_record(plan, state, plan_sha):
         'sourceHead': selected['manifest']['sourceHead'], 'sourceTree': selected['manifest']['sourceTree'],
         'ciRunId': plan['binding']['ciRunId'], 'ciVerifyJobId': plan['binding']['ciVerifyJobId'],
         'directory': selected['directory'], 'manifestSha256': selected['manifestSha256'],
-        'dependenciesSha256': DEPENDENCIES, 'migrationCount': 104, 'baselineHead': BASELINE_HEAD,
+        'dependenciesSha256': DEPENDENCIES, 'migrationCount': 105, 'baselineHead': BASELINE_HEAD,
         'ownershipId': plan['ownership']['ownershipId'], 'upgradeState': str(state), 'privatePlanSha256': plan_sha,
         'drainedBusinessFenceSha256': sha((json.dumps(plan['drainedBusinessFence'], sort_keys=True) + '\n').encode()),
-        'schemaChanged': False, 'configurationChanged': False, 'databaseRestored': False, 'drainedFull104FactsPreserved': True,
+        'snapshotBindingSha256': plan['snapshotBindingSha256'], 'snapshotAuthenticated': True,
+        'schemaChanged': True, 'configurationChanged': False, 'databaseRestored': False, 'drainedFull104FactsPreserved': True,
+        'publishIntentGuard105Verified': True, 'immutableRevisionGuardPreserved': True,
         'applicationRollbackAllowed': False, 'applicationRollbackExecuted': False,
         'commentLoginEnforced': True, 'guestCommentReadExposureRestored': False,
         'humanHandoffPolicy': 'user-request-only', 'questionScopedCollaborationPreserved': True,
@@ -482,39 +585,56 @@ def cutover(plan, state, approval):
     try:
         backup_inputs(plan, state)
         verify_context(plan)
-        journal(plan)
+        old_sql, new_sql = plan['old']['manifest']['migrations'], plan['candidate']['manifest']['migrations']
+        journal(plan, [old_sql])
         source_permit(plan['binding'], plan['candidate'])
         halted = True
         D.command(['systemctl', 'stop', *plan['profile']['units']], timeout=90)
         D.stopped(plan['profile'])
         verify_context(plan)
-        journal(plan, True)
+        journal(plan, [old_sql], True)
         facts = business_fence(plan['profile'])
         D.general.store(state / 'drained-business-fence.json', (json.dumps(facts, sort_keys=True) + '\n').encode())
-        receipt_plan = {**plan, 'drainedBusinessFence': facts}
+        backup = S.snapshot(plan, state, approval)
+        S.validate_snapshot(backup, state, approval)
+        snapshot_raw = (json.dumps(snapshot_binding(plan, state, approval, backup), sort_keys=True) + '\n').encode()
+        D.general.store(state / 'snapshot-current-release.json', snapshot_raw)
+        receipt_plan = {**plan, 'drainedBusinessFence': facts, 'operationReference': approval,
+                        'snapshotBindingSha256': sha(snapshot_raw)}
         plan_sha = save_plan(receipt_plan, state)
+        verify_context(plan)
+        journal(plan, [old_sql], True)
+        D.command(['/usr/sbin/runuser', '-u', 'cisme-trial', '--', NODE,
+            str(Path(plan['candidate']['directory']) / 'migrate.mjs'), 'up'],
+            env={**CLEAN, **plan['config'], 'CISME_MIGRATION_APPROVAL_REF': approval,
+                 'CISME_PREDEPLOY_BACKUP_REF': backup['backupReference']}, cwd=ROOT, timeout=180)
+        journal(plan, [new_sql], True)
+        need(business_fence(plan['profile']) == facts, 'COMMUNITY_COMPOSE_EXISTING104_BUSINESS_FACTS_CHANGED')
+        verify_context(plan)
         D.switch(plan, plan['candidate']['directory'])
         D.verify_units(plan, allow_candidate=True)
         verify_history(plan)
         verify_context(plan, candidate_allowed=True)
-        journal(plan, True)
+        journal(plan, [new_sql], True)
         need(business_fence(plan['profile']) == facts, 'COMMUNITY_COMPOSE_STOPPED_BUSINESS_FACTS_CHANGED')
         started = time.time()
         D.command(['systemctl', 'start', *plan['profile']['units']], timeout=60)
         versions = D.healthy(plan, plan['candidate']['directory'], started, True)
         public_contract(plan)
         verify_context(plan, candidate_allowed=True)
-        journal(plan)
+        journal(plan, [new_sql])
         published = active_record(receipt_plan, state, plan_sha)
         D.atomic_bytes(ACTIVE, published)
         verify_context(plan, candidate_allowed=True, allowed=(published,))
-        journal(plan)
+        journal(plan, [new_sql])
         report = {'deployed': True, 'environment': 'trial', 'sourceHead': plan['binding']['sourceHead'],
-            'migrationCountBefore': 104, 'migrationCountAfter': 104, 'schemaChanged': False,
+            'migrationCountBefore': 104, 'migrationCountAfter': 105, 'schemaChanged': True,
             'commentLoginEnforced': True, 'publicArticleReadable': True, 'guestCommentStatus': 401,
             'humanHandoffPolicy': 'user-request-only', 'questionScopedCollaborationPreserved': True, 'liveChatProbePerformed': False,
             'configurationChanged': False, 'credentialsChanged': False, 'authorityGranted': False,
-            'businessDataSeeded': False, 'databaseRestored': False, 'databaseSnapshotCreated': False, 'drainedFull104FactsPreserved': True,
+            'businessDataSeeded': False, 'databaseRestored': False, 'databaseSnapshotCreated': True, 'drainedFull104FactsPreserved': True,
+            'snapshotAuthenticated': True, 'snapshotScope': 'same-host-database-only', 'fullRecoveryQualified': False,
+            'publishIntentGuard105Verified': True, 'immutableRevisionGuardPreserved': True,
             'applicationRollbackExecuted': False, 'previousActiveHistoryPreserved': True, 'productionChanged': False,
             'versions': versions, 'ciRunId': plan['binding']['ciRunId'], 'ciVerifyJobId': plan['binding']['ciVerifyJobId']}
         D.general.store(state / 'deployed.json', (json.dumps(report, sort_keys=True) + '\n').encode())
@@ -533,7 +653,7 @@ def cutover(plan, state, approval):
             D.general.store(state / 'manual-recovery-required.json', (json.dumps({'servicesStopped': stopped,
                 'unknownInputsOverwritten': False, 'databaseRestored': False, 'configurationChanged': False,
                 'applicationRollbackExecuted': False, 'forwardRecoveryRequired': True,
-                'sameSchemaApplicationOnly': True}) + '\n').encode())
+                'previousApplicationRollbackForbidden': True, 'schemaMayHaveChanged': True}) + '\n').encode())
         except Exception:
             pass
         raise Refused('COMMUNITY_COMPOSE_FAILED_FENCED_FORWARD_REVIEW_REQUIRED') from None
@@ -555,6 +675,7 @@ def active_context(b):
     need(isinstance(plan.get('drainedBusinessFence'), dict) and plan['drainedBusinessFence']
          and parse(read(state / 'drained-business-fence.json', 8 * 1024 ** 2)) == plan['drainedBusinessFence'],
          'COMMUNITY_COMPOSE_ACTIVE_DRAINED_FACT_FENCE_DRIFT')
+    verify_snapshot(plan, state)
     for label in ('old', 'candidate'):
         plan[label] = D.artifact(plan[label]['directory'], ROOT)
     artifact_contract(plan['old'], plan['candidate'], b)
@@ -567,7 +688,7 @@ def active_context(b):
         need(D.unit_entry(D.read_owned(D.unit_path(unit)), entry, plan['profile']) == Path(selected['directory']),
              'COMMUNITY_COMPOSE_ACTIVE_UNIT_PATH_REQUIRED')
     D.running(plan['profile'], selected['directory'], plan['config'])
-    journal(plan)
+    journal(plan, [selected['manifest']['migrations']])
     public_contract(plan)
     return {'profile': plan['profile'], 'config': plan['config'], 'release': Path(selected['directory']),
             'sourceHead': selected['manifest']['sourceHead'], 'commentLoginEnforced': True}
@@ -621,12 +742,12 @@ def main():
         elif args.action == 'active':
             value = active_context(b)
             result = {'readOnly': True, 'activeVerified': True, 'sourceHead': value['sourceHead'],
-                'migrationCount': 104, 'commentLoginEnforced': value['commentLoginEnforced'], 'ciRunId': b['ciRunId'], 'ciVerifyJobId': b['ciVerifyJobId']}
+                'migrationCount': 105, 'commentLoginEnforced': value['commentLoginEnforced'], 'ciRunId': b['ciRunId'], 'ciVerifyJobId': b['ciVerifyJobId']}
         else:
             plan = preflight(b)
             result = {'readOnly': True, 'deployed': False, 'sourceHead': plan['binding']['sourceHead'],
-                'migrationCountBefore': 104, 'migrationCountAfter': 104, 'schemaChanged': False,
-                'configurationChanged': False, 'productionPreserved': True, 'databaseSnapshotRequired': False,
+                'migrationCountBefore': 104, 'migrationCountAfter': 105, 'schemaChanged': True,
+                'configurationChanged': False, 'productionPreserved': True, 'databaseSnapshotRequired': True,
                 'ciRunId': b['ciRunId'], 'ciVerifyJobId': b['ciVerifyJobId']}
         print(json.dumps({**result, 'privateValuesExported': False}, sort_keys=True))
         return 0

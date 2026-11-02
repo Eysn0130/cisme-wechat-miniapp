@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "fresh runtime after isolated cleanup refresh; no real data accessed",
+        "route": "pages/community/index",
+        "width": 430,
+        "posts": 0,
+        "writeCalls": 0,
+        "publicEnabled": false,
+        "publishEntryOpen": false,
+        "freshRuntimeMarkerAbsent": true,
+        "realAccountDataAccessed": false,
+        "persistentStorage": false
+      }
+    }
+  }
+}

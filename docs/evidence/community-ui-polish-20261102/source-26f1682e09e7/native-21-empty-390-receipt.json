@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_screenshot",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/community-ui-polish-20261102/native-21-empty-390.png",
+    "imageWidth": 390,
+    "imageHeight": 844
+  }
+}

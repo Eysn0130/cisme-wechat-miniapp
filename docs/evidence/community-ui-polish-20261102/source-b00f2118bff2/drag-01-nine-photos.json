@@ -1,0 +1,240 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "nine local fixture assets, no upload",
+        "geometry": [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 22,
+            "right": 368,
+            "top": 103,
+            "bottom": 213,
+            "width": 346,
+            "height": 110
+          },
+          [
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000001"
+              },
+              "left": 22,
+              "right": 108,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000002"
+              },
+              "left": 120,
+              "right": 206,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000003"
+              },
+              "left": 218,
+              "right": 304,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000004"
+              },
+              "left": 316,
+              "right": 402,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000005"
+              },
+              "left": 414,
+              "right": 500,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000006"
+              },
+              "left": 512,
+              "right": 598,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000007"
+              },
+              "left": 610,
+              "right": 696,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000008"
+              },
+              "left": 708,
+              "right": 794,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            },
+            {
+              "id": "",
+              "dataset": {
+                "id": "eeeeeeee-eeee-4eee-8eee-000000000009"
+              },
+              "left": 806,
+              "right": 892,
+              "top": 115,
+              "bottom": 201,
+              "width": 86,
+              "height": 86
+            }
+          ],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 84,
+              "right": 108,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 182,
+              "right": 206,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 280,
+              "right": 304,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 378,
+              "right": 402,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 476,
+              "right": 500,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 574,
+              "right": 598,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 672,
+              "right": 696,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 770,
+              "right": 794,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 868,
+              "right": 892,
+              "top": 115,
+              "bottom": 139,
+              "width": 24,
+              "height": 24
+            }
+          ]
+        ],
+        "ids": [
+          "eeeeeeee-eeee-4eee-8eee-000000000001",
+          "eeeeeeee-eeee-4eee-8eee-000000000002",
+          "eeeeeeee-eeee-4eee-8eee-000000000003",
+          "eeeeeeee-eeee-4eee-8eee-000000000004",
+          "eeeeeeee-eeee-4eee-8eee-000000000005",
+          "eeeeeeee-eeee-4eee-8eee-000000000006",
+          "eeeeeeee-eeee-4eee-8eee-000000000007",
+          "eeeeeeee-eeee-4eee-8eee-000000000008",
+          "eeeeeeee-eeee-4eee-8eee-000000000009"
+        ],
+        "dirty": false
+      }
+    }
+  }
+}

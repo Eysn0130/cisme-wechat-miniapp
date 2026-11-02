@@ -1,0 +1,84 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "fixture submit creates a review revision; not real backend105 acceptance",
+        "state": "pending_review",
+        "publicVersionActive": false,
+        "version": 4,
+        "revision": 4,
+        "writePayloads": [
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts",
+            "keys": []
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts",
+            "keys": []
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000002/media/authorize",
+            "keys": [
+              "mimeType",
+              "maxBytes"
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000002/media/dddddddd-dddd-4ddd-8ddd-000000000003/complete",
+            "keys": []
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000002/media/authorize",
+            "keys": [
+              "mimeType",
+              "maxBytes"
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000002/media/dddddddd-dddd-4ddd-8ddd-000000000004/complete",
+            "keys": []
+          },
+          {
+            "method": "PUT",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000002/draft",
+            "keys": [
+              "title",
+              "body",
+              "mediaIds",
+              "expectedVersion"
+            ]
+          },
+          {
+            "method": "PUT",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000002/draft",
+            "keys": [
+              "title",
+              "body",
+              "mediaIds",
+              "expectedVersion"
+            ]
+          },
+          {
+            "method": "POST",
+            "path": "/v1/me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-000000000002/submit",
+            "keys": [
+              "expectedVersion"
+            ]
+          }
+        ],
+        "error": "",
+        "notice": "已提交审核，审核与发布复核完成后公开。"
+      }
+    }
+  }
+}

@@ -116,8 +116,6 @@ Component({
     changeOverlayPosition(event:WechatMiniprogram.TouchEvent){const position=String(event.currentTarget.dataset.value||"");if(["top","center","bottom"].includes(position))this.updateEffects({overlayPosition:position});},
     changeOverlayColor(event:WechatMiniprogram.TouchEvent){const color=String(event.currentTarget.dataset.value||"");if(["#ffffff","#352a3a","#6b417b"].includes(color))this.updateEffects({overlayColor:color});},
     changeSticker(event:WechatMiniprogram.TouchEvent){const sticker=String(event.currentTarget.dataset.value||"");if(["","✨","💜","🌼"].includes(sticker))this.updateEffects({sticker});},
-    resetEffects(){this.updateEffects({filter:"original",brightness:0,contrast:0,saturation:0,overlayText:"",overlayPosition:"top",overlayColor:"#ffffff",sticker:""});},
-    discardEffects(){if(this.data.busy||!this.current(state(this).generation))return;this.loadEffects();this.setData({error:""});},
     async applyEffects(){
       const runtime=state(this),generation=runtime.generation,index=this.data.selected,original=this.data.files[index];
       if(this.data.busy||!this.data.effectDirty||!this.data.canCanvas||!original||!this.current(generation))return;
@@ -148,12 +146,19 @@ Component({
       }catch(error){if(this.current(generation))this.setData({error:error instanceof Error&&/[\u4e00-\u9fff]/.test(error.message)?error.message:"图片效果未生成成功，原图仍保留，请重试。"});}
       finally{if(this.current(generation))this.setData({busy:false});}
     },
-    async confirm(){const runtime=state(this),generation=runtime.generation;if(this.data.busy||this.data.effectDirty||!this.data.files.length||this.data.files.length>9||!this.current(generation))return;const snapshot=copyFiles(this.data.files);this.setData({busy:true,error:""});
+    async confirm(){const runtime=state(this),generation=runtime.generation,tool=this.data.activeTool,selected=this.data.selected;
+      if(this.data.busy||!this.data.files.length||this.data.files.length>9||!this.current(generation))return;
+      this.setData({error:""});
+      if(this.data.effectDirty)await this.applyEffects();
+      if(!this.current(generation)||this.data.busy||this.data.effectDirty||this.data.error||this.data.activeTool!==tool||this.data.selected!==selected)return;
+      if(tool){this.setData({activeTool:""});return;}
+      const snapshot=copyFiles(this.data.files);this.setData({busy:true,error:""});
       try{const files:LocalFile[]=[];for(const file of snapshot){files.push(await checkedFile(file.path));if(!this.current(generation))return;}
         this.releaseNavigationChrome();runtime.open=false;runtime.finished=true;this.setData({files,busy:false});this.triggerEvent("confirm",{files:copyFiles(files),contextKey:runtime.contextKey});
       }catch(error){if(this.current(generation))this.setData({busy:false,error:message(error)});}finally{if(this.current(generation))this.setData({busy:false});}
     },
     async cancel(){const runtime=state(this),generation=runtime.generation;if(this.data.busy||!this.current(generation))return;
+      if(this.data.activeTool){this.loadEffects();this.setData({activeTool:"",error:""});if(typeof wx.hideKeyboard==="function")wx.hideKeyboard();return;}
       if(this.data.effectDirty||JSON.stringify(this.data.files)!==runtime.baseline){this.setData({busy:true});let confirmed=false;try{confirmed=await new Promise<boolean>(resolve=>wx.showModal({title:"放弃图片修改？",content:"本次调整还未用于发布，放弃后将返回上一页。",confirmText:"放弃修改",cancelText:"继续编辑",success:result=>resolve(result.confirm),fail:()=>resolve(false)}));}finally{if(this.current(generation))this.setData({busy:false});}if(!confirmed||!this.current(generation))return;}
       const contextKey=runtime.contextKey;this.invalidate();runtime.finished=true;this.setData({busy:false});this.triggerEvent("cancel",{contextKey});
     }

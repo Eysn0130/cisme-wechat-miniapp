@@ -417,6 +417,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.put<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/draft", async request => formalUgc.saveDraft(request.memberId,request.params.postId,(request.body??{}) as never));
   app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/submit", async request => {
     const input=(request.body??{}) as {expectedVersion?:unknown};
+    // This authenticated, version-bound action is the public submission
+    // intent; draft metadata and retired UI switches are not prerequisites.
     const saved=await formalUgc.submit(request.memberId,request.params.postId,input.expectedVersion);
     return {...saved,scan:{state:config.media.ugcScanBaseUrl?"queued":"unavailable",retryRequired:!config.media.ugcScanBaseUrl}};
   });

@@ -212,7 +212,7 @@ describe("native mini program boundary", () => {
       "community-activity": ["back", "selectSource", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
-      "community-compose": ["back", "showMyPosts", "retryPendingImageEdit", "discardPendingImageEdit", "openComposerMediaSettings", "retryChoosingMedia", "retryLoad", "verifyWriteResult", "reloadRemoteDraft", "startNew", "selectDraftFilter", "openDraft", "deleteListDraft", "loadMoreList", "showMyPosts", "returnToCommunity", "openPublishedPost", "submitAppeal", "retryPreview", "retryImage", "retryPreview", "moveImage", "moveImage", "removeImage", "addContent", "toggleSorting", "togglePublishSettings", "showMyPosts", "returnToCommunity", "saveDraft", "submit", "togglePublishSettings"],
+      "community-compose": ["back", "showMyPosts", "retryPendingImageEdit", "discardPendingImageEdit", "openComposerMediaSettings", "retryChoosingMedia", "retryLoad", "verifyWriteResult", "reloadRemoteDraft", "startNew", "selectDraftFilter", "openDraft", "deleteListDraft", "loadMoreList", "showMyPosts", "returnToCommunity", "openPublishedPost", "submitAppeal", "retryPreview", "retryImage", "retryPreview", "removeImage", "addContent", "showMyPosts", "returnToCommunity", "saveDraft", "submit"],
       "community-post": ["back", "back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "openMyComments", "chooseReply", "loadMoreComments", "cancelReply", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
       "community-review": ["back", "back", "load", "back", "selectEditorialQueue", "openEditorialArticle", "reviewEditorial", "reviewEditorial", "reviewEditorial", "deleteEditorial", "loadMoreEditorialQueue", "reviewMedia", "reviewMedia", "reviewPost", "reviewPost", "publish"],
       community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "copyPostUrl", "reviewSubmission", "reviewSubmission", "reviewSubmission", "copyPostUrl", "publishSubmission", "openFormalReview", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "load", "loadTasks", "openInvite", "openPost", "onReachBottom", "openMyPosts", "choosePublisherSource", "choosePublisherSource", "choosePublisherSource", "openPublisherMediaSettings", "retryPublisherMedia", "closePublisherEntry"],
@@ -322,6 +322,8 @@ describe("native mini program boundary", () => {
     const profile = await readFile(resolve("apps/miniprogram/pages/profile/index.wxss"), "utf8");
     const points = await readFile(resolve("apps/miniprogram/pages/points/index.wxss"), "utf8");
     const customTab = await readFile(resolve("apps/miniprogram/custom-tab-bar/index.wxss"), "utf8");
+    const communityCompose = await readFile(resolve("apps/miniprogram/pages/community-compose/index.wxss"), "utf8");
+    const communityComposeMarkup = await readFile(resolve("apps/miniprogram/pages/community-compose/index.wxml"), "utf8");
 
     expect(appStyle).toMatch(/button\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;[^}]*font-weight:\s*400;[^}]*line-height:\s*1\.25;/s);
     expect(appStyle).toMatch(/\.primary,\s*\.secondary\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*min-height:\s*50px;[^}]*font-family:\s*-apple-system[^}]*font-size:\s*var\(--cisme-text-action\);[^}]*line-height:\s*1\.25;/s);
@@ -365,6 +367,10 @@ describe("native mini program boundary", () => {
     expect(profile).toContain(".profile-row__copy strong{color:#403545;font-size:27rpx;font-weight:500}");
     expect(points).toMatch(/\.points-shop \{[^}]*display:flex;[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:44px;[^}]*font-size:var\(--cisme-text-small\);/);
     expect(customTab).toContain(".bar__item.control--disabled { color:#746979; background:transparent; opacity:.58; }");
+    expect(communityCompose).toMatch(/\.composer-media__actions button\s*\{[^}]*width:44px;[^}]*height:44px;/);
+    expect(communityCompose).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{\s*\.composer-media--shifting,\.composer-drag-photo--dropping\s*\{\s*transition:none;/);
+    expect(communityComposeMarkup).toMatch(/<scroll-view class="composer-media-scroll" scroll-x="\{\{true\}\}" scroll-left="\{\{mediaScrollLeft\}\}" bindscroll="onMediaScroll"/);
+    expect(communityComposeMarkup).toContain('catchtouchmove="{{mediaDragging ? \'moveMediaDrag\' : \'\'}}"');
     expect(submitMarkup).toMatch(/bindtap="retryDraftSave"\s+loading="\{\{savingDraft\}\}"\s+disabled="\{\{savingDraft\}\}"/);
     expect(submitMarkup).toMatch(/class="primary submit-action__button[^>]*loading="\{\{working\}\}"\s+disabled="\{\{!canSubmit\}\}"/);
     expect(submitMarkup).not.toContain('loading="{{working || savingDraft}}"');

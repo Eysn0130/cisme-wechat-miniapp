@@ -1,0 +1,8 @@
+{
+  "packageSourceSha256": "168126266fc4e663c36c174884548e264dfd8621af8a63e536edcda03e23b536",
+  "accepted": false,
+  "reason": "native edge program scroll blocked while scroll-x=false; requested12 actual0",
+  "receipt": "drag-06-edge-scroll.json",
+  "timerCleanup": "native-failed-edge-cancel.json",
+  "headerArtifact": "native-photo-tool-390.png top-left clipped white glyph requires fresh-state diagnosis"
+}

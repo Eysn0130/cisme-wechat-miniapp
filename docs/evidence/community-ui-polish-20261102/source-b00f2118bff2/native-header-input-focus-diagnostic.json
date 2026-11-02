@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "record geometry; does not prove exact upstream artifact cause",
+        "pageKeyboardVisible": false,
+        "bodyFocused": false,
+        "textCardVisible": false,
+        "photoEditorVisible": true,
+        "geometry": [
+          {
+            "left": 258,
+            "right": 370,
+            "top": 750,
+            "bottom": 796,
+            "disabled": false,
+            "font-size": "15px",
+            "color": "rgb(48, 33, 58)",
+            "position": "relative"
+          },
+          {
+            "left": 20,
+            "right": 370,
+            "top": 478.40625,
+            "bottom": 522.40625,
+            "focus": 0,
+            "font-size": "15px"
+          },
+          {
+            "left": "-2000px",
+            "right": -1999,
+            "top": "0px",
+            "bottom": 1,
+            "opacity": "0"
+          }
+        ]
+      }
+    }
+  }
+}

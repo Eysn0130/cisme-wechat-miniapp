@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "scope": "Independent read-only review of ignored local025 build/prepare/stage/transfer scripts after root adaptation to sole105 and cef helper; no script imported or executed.",
+  "findings": [],
+  "conclusion": "No deterministic source/namespace/schema-delta or execution-boundary defect found in the four reviewed scripts.",
+  "files": [
+    {
+      "path": "/Users/mini/CISME/tmp/community-ui-polish-20261102/release-025/build-release.py",
+      "sha256": "622e99168bb5bc060af768057ad11aa6f18377ef63e11f0ad4c8dc08a4c4f32b",
+      "bytes": 14111
+    },
+    {
+      "path": "/Users/mini/CISME/tmp/community-ui-polish-20261102/release-025/stage-template.py",
+      "sha256": "bef966500de13e58f90fb3b29d10b17aef998a9d8670008c1abdd0ae6be99e01",
+      "bytes": 10641
+    },
+    {
+      "path": "/Users/mini/CISME/tmp/community-ui-polish-20261102/release-025/prepare-stage.py",
+      "sha256": "bb3c8baa71376f9a4809d937b7e236803380e88a25b69d6a5376133b2d594491",
+      "bytes": 9994
+    },
+    {
+      "path": "/Users/mini/CISME/tmp/community-ui-polish-20261102/release-025/transfer-stage.py",
+      "sha256": "414010b7cf9747c45a2761208c547345c89cb6cc7b7f390afcd72cbc76271a17",
+      "bytes": 6457
+    }
+  ],
+  "helperSha256": "cefbe7fc98d4918e649b21db41816e65253207c67708f31f9d221d326a0057ce",
+  "migration105Sha256": "8b9fd5aed32f0583161f1be6de867eb59bb1c7b3a6ac33fcea2d30d9104d6eb8",
+  "checks": {
+    "syntaxCompileOnly": "passed",
+    "templateHelperMigrationTarPins": "matched actual bytes",
+    "collectMigrationDelta": "exact old104 ordered SQL list plus only202611020001_ugc_publish_intent.sql; candidate list105, unique and sorted",
+    "oldProtectedFiles": "all107 old SQL/migrate/package/lock bytes compared exactly to pinned6123 archive; full dependency digest fixed",
+    "buildIdentity": "exact supplied40-hex HEAD/tree against clean current Git, committed helper pin and unchanged standard packager; root must provide actual final main",
+    "buildIsolation": "fixed Linux amd64 image, Node24.14, network none, no mounts/privileged/extra env keys, fixed public cache digests",
+    "ciIdentity": "positive exact run/job IDs propagate summary/binding/meta/plan; registered cef source_permit in stager independently checks current main/latest matching push/successful verify",
+    "transport": "fixed ubuntu@124.223.74.198 + existing identity/known_hosts + StrictHostKeyChecking=yes + BatchMode=yes; sudo bootstrap authenticates6123 closure0ec/binding41256",
+    "stageBoundary": "new contained candidate/runner/stage only; calls pinned migrator verify and native dependency smoke; no up/down/DB mutation/service switch",
+    "noOverwrite": "exclusive files, absent new remote candidate/runner/stage/upload, prior pending transfer receipts block repeat",
+    "failureOutput": "raw transport failures private0600 only; no automatic retry"
+  },
+  "historicalReference": {
+    "path": "/Users/mini/CISME/docs/evidence/community-ui-polish-20261102/linux-build-plan.md",
+    "sha256": "f5b442d2df42578aaa73a00867c8f8f7e95b4efe18c0d0eec75a92db9c489b2d",
+    "modified": false
+  },
+  "buildExecuted": false,
+  "stageExecuted": false,
+  "sshExecuted": false,
+  "containerCommandsExecuted": false,
+  "limitations": [
+    "Review is static plus Python compile; no real artifact, candidate HEAD/tree, CI identity, container install or remote stage result was produced.",
+    "Historical025 README/preparation-validation may retain pre-K11/3501 scope; actual script hashes in this record identify the reviewed versions.",
+    "Generated stage-candidate.py and immutable binding/plan still require their own review once actual metadata exists."
+  ]
+}

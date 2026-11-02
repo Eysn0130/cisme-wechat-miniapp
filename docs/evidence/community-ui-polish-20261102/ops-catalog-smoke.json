@@ -1,0 +1,122 @@
+{
+  "scope": "Owned disposable PostgreSQL catalog SQL smoke; exact cef helper function extracted via AST. Synthetic cisme_trial role models the function owner; no real trial identity or service execution.",
+  "helperSha256": "cefbe7fc98d4918e649b21db41816e65253207c67708f31f9d221d326a0057ce",
+  "querySha256": "9c032a9582d0268928187e768aa13f8987d9d388fb000ddd91c4980e9252431d",
+  "postgresVersion": "18.4",
+  "runId": "428fc903d1f6e58e3454fdea",
+  "migrationCounts": [
+    104,
+    105
+  ],
+  "bothExactGuardsAccepted": true,
+  "before": {
+    "post": {
+      "kind": "f",
+      "owner": "cisme_trial",
+      "config": null,
+      "strict": false,
+      "language": "plpgsql",
+      "volatile": "v",
+      "leakproof": false,
+      "prosrcSha256": "21aea3c71b6c2053fb22a9d0cb723d9190e346ee1920b9c6bfeda186e18f7669",
+      "returnsTrigger": true,
+      "securityDefiner": false,
+      "definitionSha256": "ed43c1196fb2a1be044662c11a5487a7fe29c635e034594a8bb8e1801a975fb4"
+    },
+    "revision": {
+      "kind": "f",
+      "owner": "cisme_trial",
+      "config": null,
+      "strict": false,
+      "language": "plpgsql",
+      "volatile": "v",
+      "leakproof": false,
+      "prosrcSha256": "6725e8839be8893b2c6d399e37479e790041221cfde058af9f85297fbb6d6dd8",
+      "returnsTrigger": true,
+      "securityDefiner": false,
+      "definitionSha256": "35fcf8626bc72a6eac2d9c7362efee5a6886ca7516f82c7c16d969d1bd60d578"
+    },
+    "postTrigger": {
+      "args": 0,
+      "type": 23,
+      "when": null,
+      "columns": [
+        "author_member_id",
+        "client_request_key",
+        "state",
+        "current_revision",
+        "published_revision"
+      ],
+      "enabled": "O",
+      "internal": false,
+      "functionMatches": true,
+      "definitionSha256": "117a85f613828f39ece5b50257d609f5d14b3d9885906f5a9e7a287e674e1f47"
+    },
+    "revisionTrigger": {
+      "args": 0,
+      "type": 27,
+      "when": null,
+      "columns": [],
+      "enabled": "O",
+      "internal": false,
+      "functionMatches": true,
+      "definitionSha256": "884905631ac5aa64351d94e92a8adaa317f6076a07a638cd8ccf5ed485db1beb"
+    }
+  },
+  "after": {
+    "post": {
+      "kind": "f",
+      "owner": "cisme_trial",
+      "config": null,
+      "strict": false,
+      "language": "plpgsql",
+      "volatile": "v",
+      "leakproof": false,
+      "prosrcSha256": "2b12016e0aa44aed7322d2922b2319e64964eac88980b1a83825239cec433256",
+      "returnsTrigger": true,
+      "securityDefiner": false,
+      "definitionSha256": "86fd1c7d7f8a149ded380f5d166a4967ef5e0f15af633fb8207d9b786b41b929"
+    },
+    "revision": {
+      "kind": "f",
+      "owner": "cisme_trial",
+      "config": null,
+      "strict": false,
+      "language": "plpgsql",
+      "volatile": "v",
+      "leakproof": false,
+      "prosrcSha256": "6725e8839be8893b2c6d399e37479e790041221cfde058af9f85297fbb6d6dd8",
+      "returnsTrigger": true,
+      "securityDefiner": false,
+      "definitionSha256": "35fcf8626bc72a6eac2d9c7362efee5a6886ca7516f82c7c16d969d1bd60d578"
+    },
+    "postTrigger": {
+      "args": 0,
+      "type": 23,
+      "when": null,
+      "columns": [
+        "author_member_id",
+        "client_request_key",
+        "state",
+        "current_revision",
+        "published_revision"
+      ],
+      "enabled": "O",
+      "internal": false,
+      "functionMatches": true,
+      "definitionSha256": "117a85f613828f39ece5b50257d609f5d14b3d9885906f5a9e7a287e674e1f47"
+    },
+    "revisionTrigger": {
+      "args": 0,
+      "type": 27,
+      "when": null,
+      "columns": [],
+      "enabled": "O",
+      "internal": false,
+      "functionMatches": true,
+      "definitionSha256": "884905631ac5aa64351d94e92a8adaa317f6076a07a638cd8ccf5ed485db1beb"
+    }
+  },
+  "realAccountDataAccessed": false,
+  "remoteOperations": false
+}

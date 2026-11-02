@@ -21,5 +21,7 @@
   "newProductFunctionality": false,
   "newDependencies": false,
   "physicalDeviceAcceptance": "not_completed",
-  "full40RouteMatrix": "blocked"
+  "full40RouteMatrix": "blocked",
+  "historical": true,
+  "historicalScope": "Initial 26f1682e09e7 polish; superseded by explicit tool-action/settings removals and photo drag correction. Not current-source acceptance."
 }

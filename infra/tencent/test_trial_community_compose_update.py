@@ -1,4 +1,4 @@
-"""Offline exact6123/schema104 application-only guards. No network, SSH or database."""
+"""Offline exact6123/schema104 -> sole105 guards. No network, SSH or database."""
 import base64
 import copy
 import importlib.util
@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import ssl
 import tempfile
 import types
@@ -25,7 +26,7 @@ RUNNER = M.RUNNERS / ('1' * 12) / 'trial-community-compose-update.py'
 
 
 def fixtures():
-    names = sorted(p.name for p in (REPO / 'db/migrations').glob('*.sql'))
+    names = sorted(p.name for p in (REPO / 'db/migrations').glob('*.sql') if p.name <= '202610310001_support_ai_human_collaboration.sql')
     assert len(names) == 104 and names[-1] == '202610310001_support_ai_human_collaboration.sql'
     files = {name: (REPO / path).read_bytes() for name, path in [('migrate.mjs', 'scripts/release-migrate.mjs'),
         ('package.json', 'package.json'), ('package-lock.json', 'package-lock.json')]}
@@ -36,15 +37,17 @@ def fixtures():
     candidate = copy.deepcopy(old)
     candidate.update(directory=str(M.ROOT / 'releases' / ('tencent-release-' + '1' * 12)), manifestSha256='a' * 64)
     candidate['manifest'].update(sourceHead='1' * 40, sourceTree='2' * 40, sourceLockSha256=M.SOURCE_LOCK,
+        migrations=names + [M.MIGRATION],
         node='v24.14.0', buildPlatform={'os': 'linux', 'arch': 'x64', 'libc': 'glibc'},
         configurationIncluded=False, deployed=False, releaseReady=False)
+    candidate['files']['db/migrations/' + M.MIGRATION] = (REPO / 'db/migrations' / M.MIGRATION).read_bytes()
     helper, archive = b'synthetic-closure-helper', b'synthetic-archive'
     binding = {'schemaVersion': 1, 'kind': 'trial-community-compose-update', 'baselineHead': M.BASELINE_HEAD,
         'baselineTree': M.BASELINE_TREE, 'sourceHead': '1' * 40, 'sourceTree': '2' * 40, 'ciRunId': 123, 'ciVerifyJobId': 456,
         'helperSha256': M.sha(helper), 'manifestSha256': 'a' * 64, 'archiveSha256': M.sha(archive),
         'archiveBytes': len(archive), 'archivePath': str(M.STAGES / ('community-compose-' + '1' * 12 + '-synthetic123') / 'archive.tar.gz'),
-        'dependenciesSha256': M.DEPENDENCIES, 'migrations': 104, 'applicationRollbackAllowed': False,
-        'migrationSha256': {name: M.sha(files['db/migrations/' + name]) for name in names}}
+        'dependenciesSha256': M.DEPENDENCIES, 'migrations': 105, 'applicationRollbackAllowed': False,
+        'migrationSha256': {name: M.sha(candidate['files']['db/migrations/' + name]) for name in names + [M.MIGRATION]}}
     return old, candidate, binding, helper, archive
 
 
@@ -68,6 +71,84 @@ def inherited_fixture():
         B=types.SimpleNamespace(binding=Mock(return_value={'deepseekKeyFile': key})),
         P=types.SimpleNamespace(P=types.SimpleNamespace(P=types.SimpleNamespace(A=original_support))))
     return binding, history, prior, private, h, helper, old_binding
+
+
+def guard_facts(upgraded=False):
+    common = {'owner': 'cisme_trial', 'language': 'plpgsql', 'securityDefiner': False, 'config': None,
+              'returnsTrigger': True, 'kind': 'f', 'volatile': 'v', 'strict': False, 'leakproof': False}
+    trigger = {'enabled': 'O', 'functionMatches': True, 'internal': False, 'args': 0, 'when': None}
+    return {'post': {**common, 'prosrcSha256': M.POST_GUARD_105_SHA if upgraded else M.POST_GUARD_104_SHA, 'definitionSha256': '1' * 64},
+        'revision': {**common, 'prosrcSha256': M.REVISION_GUARD_SHA, 'definitionSha256': '2' * 64},
+        'postTrigger': {**trigger, 'type': 23, 'columns': ['author_member_id', 'client_request_key', 'state', 'current_revision', 'published_revision'], 'definitionSha256': '3' * 64},
+        'revisionTrigger': {**trigger, 'type': 27, 'columns': [], 'definitionSha256': '4' * 64}}
+
+
+class UpgradeContractTests(unittest.TestCase):
+    def test_exact_frozen105_and_original_post_and_immutable_revision_bodies_are_pinned(self):
+        old_sql = (REPO / 'db/migrations/202609120003_formal_ugc_editor.sql').read_text().split('-- migrate:down')[0]
+        new_sql = (REPO / 'db/migrations' / M.MIGRATION).read_bytes()
+        self.assertEqual(M.sha(new_sql), M.MIGRATION_SHA)
+        for text, name, expected in ((old_sql, 'guard_ugc_post_update', M.POST_GUARD_104_SHA),
+                (old_sql, 'guard_ugc_revision_mutation', M.REVISION_GUARD_SHA),
+                (new_sql.decode().split('-- migrate:down')[0], 'guard_ugc_post_update', M.POST_GUARD_105_SHA)):
+            body = re.search(r'CREATE OR REPLACE FUNCTION ' + name + r'\(\).*?AS \$\$(.*?)\$\$;', text, re.S).group(1)
+            self.assertEqual(M.sha(body.encode()), expected)
+        self.assertNotIn('guard_ugc_revision_mutation', new_sql.decode())
+
+    def test_snapshot_primitive_must_be_the_exact_inherited_module_path_bytes_and_object(self):
+        collaboration = b'pinned-collaboration'; snapshot = (HERE / 'trial-daily-day-upgrade.py').read_bytes()
+        path = M.ROOT / 'support-ai-human-collaboration-runners/6c90079f25cf/trial-support-ai-human-collaboration-upgrade.py'
+        for changed in ('none', 'identity', 'path', 'bytes', 'method'):
+            s = types.SimpleNamespace(__file__=str(M.SNAPSHOT_RUNNER / 'trial-daily-day-upgrade.py'), snapshot=Mock(), validate_snapshot=Mock(), schema101=Mock())
+            k = types.SimpleNamespace(__file__=str(path), S=s, B=types.SimpleNamespace(B=s, BASELINE_RUNNER=M.SNAPSHOT_RUNNER, BASELINE_HELPER_SHA=M.SNAPSHOT_HELPER_SHA))
+            h = types.SimpleNamespace(H=k, BASELINE_RUNNER=path.parent, BASELINE_HELPER_SHA=M.sha(collaboration))
+            if changed == 'identity': k.B.B = object()
+            if changed == 'path': s.__file__ = '/tmp/untrusted.py'
+            if changed == 'method': s.snapshot = None
+            reader = lambda p, limit: collaboration if p == path else snapshot + (b'drift' if changed == 'bytes' else b'')
+            with self.subTest(changed=changed), patch.object(M, 'H', h), patch.object(M, 'read', side_effect=reader):
+                if changed == 'none': M.load_upgrade_primitives(); self.assertIs(M.S, s); self.assertIs(M.K, k)
+                else:
+                    with self.assertRaises(M.Refused): M.load_upgrade_primitives()
+
+    def test_actual105_function_owner_and_both_enabled_trigger_contracts_are_checked(self):
+        baseline = guard_facts()
+        for upgraded in (False, True):
+            facts = guard_facts(upgraded); query = Mock(return_value=facts)
+            with patch.object(M, 'D', types.SimpleNamespace(query=query)):
+                self.assertEqual(M.ugc_guards(PROFILE, upgraded, baseline), facts)
+            self.assertIn('p.prosrc', query.call_args.args[1]); self.assertIn('pg_get_functiondef', query.call_args.args[1]); self.assertIn('pg_get_triggerdef', query.call_args.args[1])
+        for change in ('old-post', 'owner', 'security', 'revision-body', 'revision-definition', 'disabled', 'function', 'trigger-columns', 'revision-trigger'):
+            facts = guard_facts(True)
+            if change == 'old-post': facts['post']['prosrcSha256'] = M.POST_GUARD_104_SHA
+            elif change == 'owner': facts['post']['owner'] = 'postgres'
+            elif change == 'security': facts['post']['securityDefiner'] = True
+            elif change == 'revision-body': facts['revision']['prosrcSha256'] = 'f' * 64
+            elif change == 'revision-definition': facts['revision']['definitionSha256'] = 'f' * 64
+            elif change == 'disabled': facts['postTrigger']['enabled'] = 'D'
+            elif change == 'function': facts['postTrigger']['functionMatches'] = False
+            elif change == 'trigger-columns': facts['postTrigger']['columns'].remove('published_revision')
+            else: facts['revisionTrigger']['definitionSha256'] = 'f' * 64
+            with self.subTest(change=change), patch.object(M, 'D', types.SimpleNamespace(query=Mock(return_value=facts))), self.assertRaises(M.Refused):
+                M.ugc_guards(PROFILE, True, baseline)
+
+    def test_snapshot_authentication_and_actual6123_binding_are_rechecked_by_active_audit(self):
+        old, _, b, _, _ = fixtures(); state = M.STATE_PARENT / ('commit-' + b['sourceHead'][:12] + '-123')
+        backup = {'backupReference': 'TRIAL-SNAPSHOT-' + state.name, 'authenticated': True}; receipt = json.dumps(backup).encode()
+        plan = {'old': old, 'binding': b, 'operationReference': 'SYNTHETIC-ONLY'}
+        s = types.SimpleNamespace(BASELINE_HEAD='historical-aad-label', validate_snapshot=Mock())
+        with patch.object(M, 'S', s), patch.object(M, 'read', return_value=receipt):
+            value = M.snapshot_binding(plan, state, plan['operationReference'], backup)
+        self.assertEqual(value['actualBaselineHead'], M.BASELINE_HEAD); self.assertEqual(value['actualBaselineTree'], M.BASELINE_TREE)
+        self.assertEqual(value['actualBaselineManifestSha256'], M.BASELINE_MANIFEST); self.assertEqual(value['actualMigrationCount'], 104)
+        self.assertFalse(value['aadClaimsCurrentBaseline']); self.assertNotEqual(value['cryptoAadBaselineLabel'], value['actualBaselineHead'])
+        raw = (json.dumps(value, sort_keys=True) + '\n').encode(); plan['snapshotBindingSha256'] = M.sha(raw)
+        def reader(path, limit): return receipt if path.name == 'snapshot-private.json' else raw
+        with patch.object(M, 'S', s), patch.object(M, 'read', side_effect=reader): M.verify_snapshot(plan, state)
+        s.validate_snapshot.assert_called_once_with(backup, state, 'SYNTHETIC-ONLY')
+        with patch.object(M, 'S', s), patch.object(M, 'read', side_effect=lambda p, limit: receipt if p.name == 'snapshot-private.json' else raw + b' '), self.assertRaises(M.Refused): M.verify_snapshot(plan, state)
+        s.validate_snapshot.side_effect = RuntimeError('synthetic authentication failure')
+        with patch.object(M, 'S', s), patch.object(M, 'read', side_effect=reader), self.assertRaises(RuntimeError): M.verify_snapshot(plan, state)
 
 
 class ResponseTests(unittest.TestCase):
@@ -257,7 +338,7 @@ class ArtifactTests(unittest.TestCase):
         with patch.object(M, '__file__', str(RUNNER)), patch.object(M, 'read', return_value=helper):
             self.assertEqual(M.validate_binding(b), b)
         M.artifact_contract(old, candidate, b)
-        for change in [{'migrations': 103}, {'migrations': True}, {'sourceHead': M.BASELINE_HEAD}, {'applicationRollbackAllowed': True},
+        for change in [{'migrations': 103}, {'migrations': 104}, {'migrations': True}, {'sourceHead': M.BASELINE_HEAD}, {'applicationRollbackAllowed': True},
                        {'archivePath': '/tmp/archive.tar.gz'}, {'archiveBytes': True}, {'helperSha256': '0' * 64},
                        {'ciRunId': True}, {'ciRunId': 0}, {'ciVerifyJobId': True}, {'ciVerifyJobId': 0}]:
             with self.subTest(change=change), patch.object(M, '__file__', str(RUNNER)), patch.object(M, 'read', return_value=helper), self.assertRaises(M.Refused):
@@ -284,7 +365,7 @@ class ArtifactTests(unittest.TestCase):
                  **{p: raw for p, raw in candidate['files'].items() if p.startswith('db/migrations/')}}
         tree = {'sha': b['sourceTree'], 'truncated': False, 'tree': [{'path': p, 'type': 'blob', 'mode': '100644', 'sha': M.git_blob(raw)} for p, raw in files.items()]}
         commit = {'sha': b['sourceHead'], 'tree': {'sha': b['sourceTree']}}
-        command = Mock(return_value=json.dumps({'verified': True, 'sourceHead': b['sourceHead'], 'sourceTree': b['sourceTree'], 'migrations': 104}).encode())
+        command = Mock(return_value=json.dumps({'verified': True, 'sourceHead': b['sourceHead'], 'sourceTree': b['sourceTree'], 'migrations': 105}).encode())
         def run(value):
             with patch.object(M, 'candidate_ci'), patch.object(M, 'response', side_effect=[json.dumps(commit).encode(), json.dumps(value).encode()]), patch.object(M, 'read', return_value=helper), \
                  patch.object(M, 'D', types.SimpleNamespace(command=command)), patch.object(M, 'source_bytes', side_effect=lambda p, head: (REPO / p).read_bytes()):
@@ -339,7 +420,8 @@ class BaselineTests(unittest.TestCase):
         with patch.object(M, 'D', d), patch.object(M, 'C', c), patch.object(M, 'load_baseline', return_value=({'profile': PROFILE, 'config': config, 'release': Path(old['directory'])}, {})) as loader, \
              patch.object(M, 'optional_active', return_value=None), patch.object(M, 'read', return_value=archive), patch.object(M, 'source_permit'), \
              patch.object(M, 'capture_history', return_value=history), patch.object(M, 'protected_baseline_inputs', return_value={}), \
-             patch.object(M, 'verify_context'), patch.object(M, 'journal'), patch.object(Path, 'mkdir', side_effect=AssertionError('preflight mkdir')):
+             patch.object(M, 'verify_context'), patch.object(M, 'journal'), patch.object(M, 'ugc_guards', return_value={'original': True}), \
+             patch.object(M, 'S', types.SimpleNamespace(snapshot=Mock(side_effect=AssertionError('preflight snapshot')))), patch.object(Path, 'mkdir', side_effect=AssertionError('preflight mkdir')):
             value = M.preflight(b)
         loader.assert_called_once_with(True); self.assertEqual(value['profile'], PROFILE); self.assertEqual(value['config'], config); self.assertEqual(value['env'], env)
         self.assertEqual(d.native_smoke.call_args_list[0].args, (PROFILE, candidate['directory'], True))
@@ -349,7 +431,7 @@ class BaselineTests(unittest.TestCase):
     def test_active_recheck_binds_saved_full_fence_and_allows_later_production_restart_only(self):
         old, candidate, b, _, _ = fixtures(); state = M.STATE_PARENT / ('commit-' + b['sourceHead'][:12] + '-123')
         facts = {'schema_migration': {'count': 104, 'sha256': 'e' * 64}}
-        plan = {'binding': b, 'old': old, 'candidate': candidate, 'profile': PROFILE, 'config': {}, 'ownership': {'ownershipId': 'synthetic'}, 'drainedBusinessFence': facts}
+        plan = {'binding': b, 'old': old, 'candidate': candidate, 'profile': PROFILE, 'config': {}, 'ownership': {'ownershipId': 'synthetic'}, 'drainedBusinessFence': facts, 'snapshotBindingSha256': 'c' * 64}
         saved = b'{}'; raw = M.active_record(plan, state, M.sha(saved)); fence = (json.dumps(facts, sort_keys=True) + '\n').encode()
         d = types.SimpleNamespace(artifact=lambda p, root: old if p == old['directory'] else candidate, unit_path=lambda u: Path('/synthetic') / u,
             read_owned=lambda *a: b'unit', unit_entry=lambda *a: Path(candidate['directory']), running=Mock())
@@ -357,10 +439,10 @@ class BaselineTests(unittest.TestCase):
             def reader(p, limit): return raw if p == M.ACTIVE else fence_bytes if p.name == 'drained-business-fence.json' else saved
             with patch.object(M, 'D', d), patch.object(M, 'C', types.SimpleNamespace(decode_private=lambda p: plan)), patch.object(M, 'validate_binding'), \
                  patch.object(M, 'load_baseline') as loader, patch.object(M, 'target'), patch.object(M, 'read', side_effect=reader), \
-                 patch.object(M, 'source_permit', side_effect=AssertionError('active must not re-run source/main/CI gate')), patch.object(M, 'verify_context') as context, patch.object(M, 'journal') as journal, patch.object(M, 'public_contract') as public:
+                 patch.object(M, 'source_permit', side_effect=AssertionError('active must not re-run source/main/CI gate')), patch.object(M, 'verify_context') as context, patch.object(M, 'journal') as journal, patch.object(M, 'public_contract') as public, patch.object(M, 'verify_snapshot') as snapshot:
                 result = M.active_context(b)
             loader.assert_called_once_with(False); context.assert_called_once_with(plan, candidate_allowed=True, allowed=(raw,), exact_pids=False)
-            journal.assert_called_once_with(plan); public.assert_called_once_with(plan); return result
+            journal.assert_called_once_with(plan, [candidate['manifest']['migrations']]); snapshot.assert_called_once_with(plan, state); public.assert_called_once_with(plan); return result
         self.assertEqual(run(fence)['release'], Path(candidate['directory']))
         with self.assertRaisesRegex(M.Refused, 'ACTIVE_DRAINED_FACT_FENCE_DRIFT'): run(b'{}')
 
@@ -382,9 +464,10 @@ class BaselineTests(unittest.TestCase):
         raw = ("from pathlib import Path\nC=object()\nD=object()\ncalled=[]\ndef binding(path, expected):\n called.append('binding')\n return " + repr(values) +
             "\ndef active_context(b):\n called.append('active104')\n return {'release':Path('" + str(M.ROOT / 'releases' / ('tencent-release-' + M.BASELINE_HEAD[:12])) +
             "')}\ndef load_baseline(value):\n called.append(('primitives',value))\n").encode()
-        with patch.object(M, 'target'), patch.object(M, 'read', return_value=raw), patch.object(M, 'BASELINE_HELPER_SHA', M.sha(raw)):
+        with patch.object(M, 'target'), patch.object(M, 'read', return_value=raw), patch.object(M, 'BASELINE_HELPER_SHA', M.sha(raw)), patch.object(M, 'load_upgrade_primitives') as primitives:
             M.load_baseline(True); self.assertEqual(M.H.called, ['binding', 'active104']); self.assertIs(M.C, M.H.C); self.assertIs(M.D, M.H.D)
             M.load_baseline(False); self.assertEqual(M.H.called, ['binding', ('primitives', False)])
+            self.assertEqual(primitives.call_count, 2)
 
     def test_full_original_private_key_chain_is_preserved_and_current_layer_added(self):
         b, history, prior, private, h, helper, binding = inherited_fixture(); before = copy.deepcopy(prior)
@@ -411,11 +494,16 @@ class BaselineTests(unittest.TestCase):
                  patch.object(M, 'read', side_effect=lambda p, limit: private[str(p)]), self.assertRaises(M.Refused):
                 M.protected_baseline_inputs(b, history)
 
-    def test_journal_delegates_the_entire104_chain_and_drain(self):
-        old, _, _, _, _ = fixtures(); plan = {'old': old}; journal = Mock(return_value=old['manifest']['migrations'])
-        with patch.object(M, 'H', types.SimpleNamespace(journal=journal)):
-            self.assertEqual(M.journal(plan, True), old['manifest']['migrations'])
-        journal.assert_called_once_with(plan, True)
+    def test_journal_keeps_schema101_103_and104_at_both104_and105_counts(self):
+        old, candidate, _, _, _ = fixtures(); plan = {'old': old, 'candidate': candidate, 'profile': PROFILE, 'config': {}, 'ownership': {}, 'ugcGuardBaseline': {'baseline': True}}
+        for upgraded, sql in ((False, old['manifest']['migrations']), (True, candidate['manifest']['migrations'])):
+            c = types.SimpleNamespace(database_guard=Mock(return_value=sql)); s = types.SimpleNamespace(schema101=Mock())
+            k = types.SimpleNamespace(schema104=Mock(), B=types.SimpleNamespace(schema103=Mock()))
+            with patch.multiple(M, C=c, S=s, K=k), patch.object(M, 'ugc_guards') as guard:
+                self.assertEqual(M.journal(plan, [sql], True), sql)
+            c.database_guard.assert_called_once_with(PROFILE, {}, {}, [sql], True)
+            s.schema101.assert_called_once_with(PROFILE); k.B.schema103.assert_called_once_with(PROFILE); k.schema104.assert_called_once_with(PROFILE, True)
+            guard.assert_called_once_with(PROFILE, upgraded, plan['ugcGuardBaseline'])
 
     def test_stopped_fence_contains_every104_column_and_entire_migration_journal(self):
         names = ['schema_migration', 'support_conversation', 'support_message']
@@ -423,6 +511,7 @@ class BaselineTests(unittest.TestCase):
         with patch.object(M, 'D', types.SimpleNamespace(query=query)): self.assertEqual(M.business_fence(PROFILE), facts)
         sql = query.call_args.args[1]; self.assertIn('to_jsonb(t)', sql); self.assertIn('schema_migration t', sql)
         self.assertNotIn('-ARRAY', sql); self.assertNotIn("-'reply_to_message_id'", sql)
+        self.assertEqual(sql.count("WHERE version<>'" + M.MIGRATION + "'"), 1)
         for bad in ([], ['support_message'], ['schema_migration', 'bad;select']):
             with patch.object(M, 'D', types.SimpleNamespace(query=Mock(return_value=bad))), self.assertRaises(M.Refused): M.business_fence(PROFILE)
 
@@ -440,14 +529,19 @@ class CutoverTests(unittest.TestCase):
     def exercise(self, failure=None):
         old, candidate, b, _, _ = fixtures()
         plan = {'profile': PROFILE, 'old': old, 'candidate': candidate, 'binding': b, 'ownership': {'ownershipId': 'synthetic'}, 'env': b'original-private', 'config': {}}
-        original = copy.deepcopy(plan); events, records = [], {}; switched = False
+        original = copy.deepcopy(plan); events, records = [], {}; switched = migrated = False
         def hit(name):
             events.append(name)
             if failure == name:
                 if name in ('backup', 'context-old', 'journal', 'source'): raise M.Refused('COMMUNITY_COMPOSE_PRE_STOP_SYNTHETIC')
                 raise RuntimeError('synthetic-private-error')
         def command(args, **kw):
-            self.assertEqual(args[0], 'systemctl'); self.assertEqual(tuple(args[2:]), PROFILE['units']); hit(args[1]); return b''
+            nonlocal migrated
+            if args[0] == 'systemctl':
+                self.assertEqual(tuple(args[2:]), PROFILE['units']); hit(args[1]); return b''
+            self.assertEqual(args, ['/usr/sbin/runuser', '-u', 'cisme-trial', '--', M.NODE, candidate['directory'] + '/migrate.mjs', 'up'])
+            self.assertEqual(kw, {'env': {**M.CLEAN, 'CISME_MIGRATION_APPROVAL_REF': 'SYNTHETIC-ONLY', 'CISME_PREDEPLOY_BACKUP_REF': 'TRIAL-SNAPSHOT-synthetic'}, 'cwd': M.ROOT, 'timeout': 180})
+            hit('migrate'); migrated = True; return b''
         def switch(p, directory):
             nonlocal switched
             self.assertEqual(directory, candidate['directory']); switched = True; hit('switch-new')
@@ -455,16 +549,23 @@ class CutoverTests(unittest.TestCase):
         def store(path, raw): hit('deployed' if path.name == 'deployed.json' else 'store'); records[str(path)] = raw
         facts = {'schema_migration': {'count': 104, 'sha256': 'f' * 64}}
         def fence(p):
-            hit('fence-after' if switched else 'fence-before')
-            return {} if failure == 'fact-drift' and switched else facts
+            hit('fence-after' if switched else 'fence-migrated' if migrated else 'fence-before')
+            return {} if failure == 'fact-drift' and migrated else facts
         d = types.SimpleNamespace(command=command, stopped=lambda p: hit('stopped'), switch=switch, verify_units=lambda *a, **kw: hit('units'),
             healthy=lambda *a: (hit('healthy'), {'native': 'exact'})[1], atomic_bytes=lambda p, raw: (hit('publish'), records.__setitem__(str(p), raw)), general=types.SimpleNamespace(store=store))
         def protect(value, state):
-            self.assertEqual(value['drainedBusinessFence'], facts); hit('protect'); return 'b' * 64
+            self.assertEqual(value['drainedBusinessFence'], facts); self.assertEqual(value['operationReference'], 'SYNTHETIC-ONLY')
+            self.assertEqual(len(value['snapshotBindingSha256']), 64); hit('protect'); return 'b' * 64
+        def journal(p, allowed, drain=False):
+            self.assertEqual(allowed, [candidate['manifest']['migrations'] if migrated else old['manifest']['migrations']])
+            hit('drain' if drain else 'journal')
+        s = types.SimpleNamespace(BASELINE_HEAD='historical-aad-only',
+            snapshot=lambda *args: (hit('snapshot'), {'backupReference': 'TRIAL-SNAPSHOT-synthetic'})[1],
+            validate_snapshot=lambda *args: hit('validate-snapshot'))
         with patch.object(M, 'D', d), patch.object(M, 'save_plan', side_effect=protect), patch.object(M, 'backup_inputs', side_effect=lambda *a: hit('backup')), \
              patch.object(M, 'source_permit', side_effect=lambda *a: hit('source')), patch.object(M, 'verify_context', side_effect=context), patch.object(M, 'verify_history', side_effect=lambda *a: hit('history')), \
-             patch.object(M, 'journal', side_effect=lambda p, drain=False: hit('drain' if drain else 'journal')), patch.object(M, 'business_fence', side_effect=fence), \
-             patch.object(M, 'public_contract', side_effect=lambda *a: hit('public')):
+             patch.object(M, 'journal', side_effect=journal), patch.object(M, 'business_fence', side_effect=fence), patch.object(M, 'S', s), \
+             patch.object(M, 'read', return_value=b'protected-snapshot-receipt'), patch.object(M, 'public_contract', side_effect=lambda *a: hit('public')):
             try: result = M.cutover(plan, M.STATE_PARENT / 'commit-synthetic-123', 'SYNTHETIC-ONLY')
             except M.Refused as error: result = str(error)
         self.assertEqual(plan, original)
@@ -475,21 +576,29 @@ class CutoverTests(unittest.TestCase):
         events, records, result = self.exercise()
         self.assertTrue(result['deployed']); self.assertTrue(result['drainedFull104FactsPreserved'])
         self.assertLess(events.index('stop'), events.index('drain')); self.assertLess(events.index('drain'), events.index('fence-before'))
-        self.assertLess(events.index('fence-before'), events.index('switch-new')); self.assertLess(events.index('fence-after'), events.index('start'))
-        active = json.loads(records[str(M.ACTIVE)]); self.assertEqual(active['migrationCount'], 104); self.assertFalse(active['schemaChanged'])
+        self.assertLess(events.index('fence-before'), events.index('snapshot')); self.assertLess(events.index('validate-snapshot'), events.index('migrate'))
+        self.assertLess(events.index('migrate'), events.index('fence-migrated')); self.assertLess(events.index('fence-migrated'), events.index('switch-new')); self.assertLess(events.index('fence-after'), events.index('start'))
+        self.assertLess(events.index('source'), events.index('stop'))
+        active = json.loads(records[str(M.ACTIVE)]); self.assertEqual(active['migrationCount'], 105); self.assertTrue(active['schemaChanged'])
         self.assertEqual(active['drainedBusinessFenceSha256'], M.sha(records[str(M.STATE_PARENT / 'commit-synthetic-123' / 'drained-business-fence.json')]))
-        for flag in ('databaseRestored', 'databaseSnapshotCreated', 'configurationChanged', 'credentialsChanged', 'authorityGranted', 'businessDataSeeded', 'productionChanged', 'applicationRollbackExecuted'):
+        snapshot = next(json.loads(raw) for path, raw in records.items() if path.endswith('snapshot-current-release.json'))
+        self.assertEqual(snapshot['actualBaselineHead'], M.BASELINE_HEAD); self.assertEqual(snapshot['actualMigrationCount'], 104)
+        self.assertFalse(snapshot['aadClaimsCurrentBaseline']); self.assertEqual(snapshot['cryptoAadBaselineLabel'], 'historical-aad-only')
+        self.assertTrue(result['snapshotAuthenticated']); self.assertTrue(result['databaseSnapshotCreated'])
+        for flag in ('databaseRestored', 'configurationChanged', 'credentialsChanged', 'authorityGranted', 'businessDataSeeded', 'productionChanged', 'applicationRollbackExecuted'):
             self.assertIs(result[flag], False)
         self.assertEqual(events.count('start'), 1); self.assertEqual(result['liveChatProbePerformed'], False)
 
     def test_every_cutover_failure_fences_services_and_preserves_for_manual_review(self):
-        for failure in ('stop', 'drain', 'fence-before', 'protect', 'switch-new', 'units', 'history', 'fence-after', 'fact-drift', 'start', 'healthy', 'public', 'context-new', 'publish', 'deployed'):
+        for failure in ('stop', 'drain', 'fence-before', 'snapshot', 'validate-snapshot', 'protect', 'migrate', 'fence-migrated', 'switch-new', 'units', 'history', 'fence-after', 'fact-drift', 'start', 'healthy', 'public', 'context-new', 'publish', 'deployed'):
             with self.subTest(failure=failure):
                 events, records, result = self.exercise(failure)
                 self.assertEqual(result, 'COMMUNITY_COMPOSE_FAILED_FENCED_FORWARD_REVIEW_REQUIRED')
                 recovery = next(json.loads(raw) for p, raw in records.items() if p.endswith('manual-recovery-required.json'))
                 self.assertTrue(recovery['forwardRecoveryRequired']); self.assertFalse(recovery['databaseRestored']); self.assertFalse(recovery['applicationRollbackExecuted'])
                 self.assertLessEqual(events.count('start'), 1); self.assertNotIn('synthetic-private', json.dumps(recovery))
+                if failure in ('snapshot', 'validate-snapshot', 'migrate', 'fence-migrated', 'fact-drift'):
+                    self.assertNotIn('switch-new', events); self.assertNotIn('start', events)
 
     def test_pre_stop_backup_context_and_journal_refusals_leave_running_old_services_alone(self):
         for failure in ('backup', 'context-old', 'journal', 'source'):
@@ -514,9 +623,9 @@ class CutoverTests(unittest.TestCase):
             self.assertEqual(M.main(), 1)
         apply.assert_not_called(); self.assertNotIn('synthetic-private', output.getvalue())
 
-    def test_source_has_no_schema_application_snapshot_restore_config_rewrite_or_chat_probe(self):
+    def test_source_only_uses_pinned_snapshot_and_candidate_up_without_restore_config_rewrite_or_chat_probe(self):
         source = (HERE / 'trial-community-compose-update.py').read_text()
-        for forbidden in ('SNAPSHOT_JS', 'neutral_initial_fields(', "'up'", "'down'", 'pg_dump', 'pg_restore', 'psql', 'npm install', 'npm ci', 'authority_grant', 'replaySupport', 'liveChatProbePerformed\': True'):
+        for forbidden in ('SNAPSHOT_JS', 'neutral_initial_fields(', "'down'", 'pg_dump', 'pg_restore', 'psql', 'npm install', 'npm ci', 'authority_grant', 'replaySupport', 'liveChatProbePerformed\': True'):
             self.assertNotIn(forbidden, source)
 
 

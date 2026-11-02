@@ -25,7 +25,7 @@ RUNNER = M.RUNNERS / ('1' * 12) / 'trial-support-closure-update.py'
 
 
 def fixtures():
-    names = sorted(p.name for p in (REPO / 'db/migrations').glob('*.sql'))
+    names = sorted(p.name for p in (REPO / 'db/migrations').glob('*.sql') if p.name <= '202610310001_support_ai_human_collaboration.sql')
     assert len(names) == 104 and names[-1] == '202610310001_support_ai_human_collaboration.sql'
     files = {name: (REPO / path).read_bytes() for name, path in [('migrate.mjs', 'scripts/release-migrate.mjs'),
         ('package.json', 'package.json'), ('package-lock.json', 'package-lock.json')]}

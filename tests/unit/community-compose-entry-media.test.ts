@@ -57,7 +57,7 @@ beforeEach(async()=>{
   backups=await import('../../apps/miniprogram/services/ugc-local-backup');
   await import('../../apps/miniprogram/pages/community-compose/index');
 });
-afterEach(()=>{for(const page of pages)if(page.backupTimer)clearTimeout(page.backupTimer);});
+afterEach(()=>{for(const page of pages){page.cancelMediaDrag();if(page.backupTimer)clearTimeout(page.backupTimer);}vi.useRealTimers();});
 
 it('consumes one authorized selection, creates once, and uploads only after the current photo editor confirms Next',async()=>{
   const intent=await selectedIntent(),page=instance();page.onLoad({new:'1',intent});page.onShow();await flush();
@@ -362,7 +362,7 @@ it('ignores a completed native edit after the page is unloaded',async()=>{
   expect(page.data.files).toEqual(files);expect(m.request.mock.calls.some(([options])=>options.method)).toBe(false);expect(m.upload).not.toHaveBeenCalled();
 });
 it('sets the selected first image by changing the same persisted media order',async()=>{
-  m.capabilities.mockReturnValue({edit:false,crop:false});wxMock.showActionSheet.mockResolvedValue({tapIndex:1});
+  m.capabilities.mockReturnValue({edit:false,crop:false});wxMock.showActionSheet.mockResolvedValue({tapIndex:2});
   const page=editor({files:[image(first),image(middle),image(last)]});await page.openImageActions(event(middle));page.flushLocalBackup();
   expect(page.data.files.map((file:any)=>file.id)).toEqual([middle,first,last]);
   expect(backups.readUgcBackup(owner,post,1)?.mediaIds).toEqual([middle,first,last]);expect(m.upload).not.toHaveBeenCalled();
@@ -503,4 +503,126 @@ it('explicitly discards a new unsaved image-and-text draft instead of leaving an
   deletion.resolve({id:post,state:'deleted',version:2});await leaving;
   expect(wxMock.navigateBack).toHaveBeenCalledOnce();expect(page.createdHerePostId).toBe('');expect(page.data.dirty).toBe(false);
   expect(backups.readUgcBackup(owner,post,1)).toBeNull();expect(backups.readUgcBackup(owner,otherPost,1)?.body).toBe('明确放弃本轮未保存的图文');
+});
+
+function dragGeometry(page:any,options:{lefts?:number[];scrollLeft?:number;viewportWidth?:number;scrollWidth?:number;deferred?:boolean}={}){
+  const lefts=options.lefts??[22,123,230],scrollLeft=options.scrollLeft??0;
+  const results=[{left:22,top:140,width:options.viewportWidth??346,height:110},
+    {scrollLeft,scrollWidth:options.scrollWidth??400},lefts.map(left=>({left,top:152,width:86,height:86}))];
+  let deliver:(()=>void)|undefined;
+  const query:any={select:()=>query,selectAll:()=>query,boundingClientRect:()=>query,fields:()=>query,
+    exec:(callback:(value:any[])=>void)=>{deliver=()=>callback(results);if(!options.deferred)deliver();}};
+  wxMock.createSelectorQuery=vi.fn(()=>query);page.mediaScrollPosition=scrollLeft;
+  return ()=>deliver?.();
+}
+const dragTouch=(id:string,x:number,y=180,pointer=7)=>({currentTarget:{dataset:{id}},touches:[{identifier:pointer,clientX:x,clientY:y,pageX:x,pageY:y}],changedTouches:[]});
+const dragEnd=(id:string,x:number,y=180)=>({...dragTouch(id,x,y),touches:[],changedTouches:[{identifier:7,clientX:x,clientY:y,pageX:x,pageY:y}]});
+function beginDrag(page:any,id=first,x=42){const touch=dragTouch(id,x);page.startMediaTouch(touch);page.longPressMedia(touch);}
+
+it('drags measured photo slots without writing or changing canonical order until one completed drop',async()=>{
+  vi.useFakeTimers();const files=[image(first),image(middle),image(last)],page=editor({files});dragGeometry(page);
+  const backup=vi.spyOn(page,'queueLocalBackup'),updates=vi.spyOn(page,'setData');beginDrag(page);
+  expect(page.data).toMatchObject({mediaDragging:true,mediaDragId:first,mediaDragLeft:22,mediaDragTop:152});
+  page.moveMediaDrag(dragTouch(first,245));page.moveMediaDrag(dragTouch(first,250));
+  expect(updates.mock.calls.filter(([value])=>'mediaDragLeft' in (value as Record<string,unknown>))).toHaveLength(1);
+  vi.advanceTimersByTime(16);expect(page.data.mediaDragOffsets).toEqual([0,-101,-107]);expect(page.data.mediaDragLeft).toBe(230);
+  const offsetUpdates=updates.mock.calls.filter(([value])=>'mediaDragOffsets' in (value as Record<string,unknown>)).length;
+  page.moveMediaDrag(dragTouch(first,252));vi.advanceTimersByTime(16);
+  expect(updates.mock.calls.filter(([value])=>'mediaDragOffsets' in (value as Record<string,unknown>))).toHaveLength(offsetUpdates);
+  expect(page.data.files).toEqual(files);expect(page.data.dirty).toBe(false);expect(backup).not.toHaveBeenCalled();
+  page.endMediaTouch(dragEnd(first,250));expect(page.data.mediaDragDropping).toBe(true);expect(page.data.files).toEqual(files);
+  await page.saveDraft();await page.submit();await page.addContent();page.removeImage(event(middle));page.editBody({detail:{value:'late keyboard input'}});
+  expect(page.data.body).toBe('');expect(m.request).not.toHaveBeenCalled();expect(wxMock.showActionSheet).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(180);expect(page.data.files.map((file:any)=>file.id)).toEqual([middle,last,first]);expect(page.data.dirty).toBe(true);
+  expect(backup).toHaveBeenCalledOnce();expect(updates.mock.calls.filter(([value])=>'files' in (value as Record<string,unknown>))).toHaveLength(1);
+  expect(page.data.mediaDragging).toBe(false);expect(page.mediaDrag).toBeNull();expect(page.mediaEdgeTimer).toBeNull();
+  page.flushLocalBackup();expect(backups.readUgcBackup(owner,post,1)?.mediaIds).toEqual([middle,last,first]);
+  await page.openImageActions(event(first));expect(wxMock.showActionSheet).not.toHaveBeenCalled();expect(m.upload).not.toHaveBeenCalled();
+});
+it.each([false,true])('keeps unchanged order and previous dirty=%s on a no-op drop or touch cancellation',dirty=>{
+  vi.useFakeTimers();const files=[image(first),image(middle),image(last)],page=editor({files,dirty});dragGeometry(page);
+  const backup=vi.spyOn(page,'queueLocalBackup');beginDrag(page);page.endMediaTouch(dragEnd(first,42));vi.advanceTimersByTime(180);
+  expect(page.data).toMatchObject({files,dirty,mediaDragging:false});expect(backup).not.toHaveBeenCalled();
+  beginDrag(page);page.moveMediaDrag(dragTouch(first,250));vi.advanceTimersByTime(16);page.cancelMediaDrag();vi.runOnlyPendingTimers();
+  expect(page.data).toMatchObject({files,dirty,mediaDragging:false});expect(backup).not.toHaveBeenCalled();expect(m.request).not.toHaveBeenCalled();
+});
+it.each(['account','revision','epoch','post','owner','version','files','busy','recovery','multiple_fingers','wrong_pointer'])('rejects a late drop across %s without persisting reordered media',boundary=>{
+  vi.useFakeTimers();const files=[image(first),image(middle),image(last)],page=editor({files,dirty:true});dragGeometry(page);beginDrag(page);
+  page.moveMediaDrag(dragTouch(first,250));vi.advanceTimersByTime(16);
+  if(boundary==='account')m.token='member-b';else if(boundary==='revision')m.revision++;
+  else if(boundary==='epoch')page.data.epoch++;else if(boundary==='post')page.data.postId=otherPost;else if(boundary==='owner')page.data.ownerId=otherPost;
+  else if(boundary==='version')page.data.version++;else if(boundary==='files')page.data.files=[image(first),image(middle)];
+  else if(boundary==='busy')page.data.busy=true;else if(boundary==='recovery')page.data.writeRecovery='save';
+  else if(boundary==='multiple_fingers')page.guardMediaDragTouch({...dragTouch(first,250),touches:[...dragTouch(first,250).touches,...dragTouch(first,250,180,8).touches]});
+  else page.moveMediaDrag(dragTouch(first,250,180,8));
+  const retained=structuredClone(page.data.files);page.endMediaTouch(dragEnd(first,250));vi.runOnlyPendingTimers();
+  expect(page.data).toMatchObject({files:retained,dirty:true,mediaDragging:false});expect(page.mediaDrag).toBeNull();
+  expect(page.backupTimer).toBeNull();expect(m.request).not.toHaveBeenCalled();expect(m.upload).not.toHaveBeenCalled();
+});
+it.each(['hide','unload','resize'])('cancels a pending drop on %s, releasing all gesture timers without changing media',boundary=>{
+  vi.useFakeTimers();const files=[image(first),image(middle),image(last)],page=editor({files,dirty:true});dragGeometry(page);beginDrag(page);
+  page.moveMediaDrag(dragTouch(first,355));vi.advanceTimersByTime(16);page.endMediaTouch(dragEnd(first,355));
+  if(boundary==='hide')page.onHide();else if(boundary==='unload')page.onUnload();else page.onResize();
+  vi.runOnlyPendingTimers();expect(page.data).toMatchObject({files,dirty:true,mediaDragging:false});
+  expect(page.mediaDragTimer).toBeNull();expect(page.mediaMoveTimer).toBeNull();expect(page.mediaEdgeTimer).toBeNull();expect(m.request).not.toHaveBeenCalled();
+});
+it('keeps ordinary swipes and delete touches out of drag, including a late geometry callback',()=>{
+  const files=[image(first),image(middle),image(last)],page=editor({files});const deliver=dragGeometry(page,{deferred:true});
+  page.startMediaTouch(dragTouch(first,42));page.trackMediaTouch(dragTouch(first,60));deliver();page.longPressMedia(dragTouch(first,60));
+  expect(page.data.mediaDragging).toBe(false);expect(page.mediaPress).toBeNull();
+  const late=dragGeometry(page,{deferred:true});page.startMediaTouch(dragTouch(first,42));page.longPressMedia(dragTouch(first,42));page.endMediaTouch(dragEnd(first,42));late();
+  expect(page.data.mediaDragging).toBe(false);expect(page.mediaDrag).toBeNull();
+  dragGeometry(page);page.startMediaTouch(dragTouch(first,42));page.holdMediaControl();page.removeImage(event(middle));
+  expect(page.data.files.map((file:any)=>file.id)).toEqual([first,last]);expect(page.mediaPress).toBeNull();expect(wxMock.showActionSheet).not.toHaveBeenCalled();
+});
+it('advances a nine-photo edge drag only after real scroll feedback and drops into the visible last slot',()=>{
+  vi.useFakeTimers();const files=Array.from({length:9},(_,index)=>image(`photo-${index}`)),page=editor({files});
+  dragGeometry(page,{lefts:files.map((_,index)=>22+index*98),viewportWidth:346,scrollWidth:882});beginDrag(page,'photo-0',42);
+  page.moveMediaDrag(dragTouch('photo-0',350));vi.advanceTimersByTime(64);
+  expect(page.data.mediaScrollLeft).toBe(12);expect(page.mediaDrag.scrollLeft).toBe(0);expect(page.mediaDrag.target).toBe(3);
+  page.onMediaScroll({detail:{scrollLeft:536}});vi.advanceTimersByTime(16);expect(page.mediaDrag.target).toBe(8);
+  page.endMediaTouch(dragEnd('photo-0',300));expect(page.data.mediaDragLeft).toBe(270);vi.advanceTimersByTime(180);
+  expect(page.data.files.map((file:any)=>file.id)).toEqual([...files.slice(1).map(file=>file.id),'photo-0']);
+  expect(page.mediaEdgeTimer).toBeNull();expect(m.request).not.toHaveBeenCalled();
+});
+it('offers at most six real photo actions, including equivalent movement and a cancel that changes nothing',async()=>{
+  const files=[image(first),image(middle),image(last),image(replacement)],page=editor({files});wxMock.showActionSheet.mockRejectedValueOnce({errMsg:'cancel'});
+  await page.openImageActions(event(last));expect(page.data).toMatchObject({files,dirty:false});
+  expect(wxMock.showActionSheet.mock.calls[0][0].itemList).toEqual(['预览图片','编辑图片','设为首图','向前移动','向后移动','移除图片']);
+  wxMock.showActionSheet.mockResolvedValueOnce({tapIndex:3});await page.openImageActions(event(last));expect(page.data.files.map((file:any)=>file.id)).toEqual([first,last,middle,replacement]);
+  wxMock.showActionSheet.mockResolvedValueOnce({tapIndex:1});await page.openImageActions(event(first));expect(page.data.photoEditorVisible).toBe(true);
+  expect(m.upload).not.toHaveBeenCalled();expect(m.request.mock.calls.some(([options])=>options.method)).toBe(false);
+});
+it('starts at a nonzero native scroll offset without a lift jump and can drop last-to-first',()=>{
+  vi.useFakeTimers();const files=[image(first),image(middle),image(last)],page=editor({files});
+  dragGeometry(page,{lefts:[-128,-27,80],scrollLeft:150,scrollWidth:550});beginDrag(page,last,100);
+  expect(page.data).toMatchObject({mediaDragLeft:80,mediaDragTop:152});expect(page.mediaDrag.originScroll).toBe(150);
+  page.onMediaScroll({detail:{scrollLeft:0}});page.moveMediaDrag(dragTouch(last,42));vi.advanceTimersByTime(16);
+  expect(page.mediaDrag.target).toBe(0);expect(page.data.mediaDragOffsets).toEqual([101,107,0]);
+  page.endMediaTouch(dragEnd(last,42));expect(page.data.mediaDragLeft).toBe(22);vi.advanceTimersByTime(180);
+  expect(page.data.files.map((file:any)=>file.id)).toEqual([last,first,middle]);
+});
+it('blocks late media taps after a cancelled lift, then permits a fresh action after the suppression interval',async()=>{
+  vi.useFakeTimers();const files=[image(first),image(middle),image(last)],page=editor({files});dragGeometry(page);beginDrag(page);page.cancelMediaDrag();
+  page.removeImage(event(middle));await page.addContent();await page.openPhotoEditorForImage(event(first));await page.openImageActions(event(first));
+  expect(page.data).toMatchObject({files,dirty:false,photoEditorVisible:false});expect(wxMock.showActionSheet).not.toHaveBeenCalled();expect(m.request).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(401);page.removeImage(event(middle));expect(page.data.files.map((file:any)=>file.id)).toEqual([first,last]);
+});
+it.each(['missing_rect','changed_state'])('does not lift or modify media after %s during layout measurement',boundary=>{
+  const files=[image(first),image(middle),image(last)],page=editor({files});
+  if(boundary==='missing_rect'){
+    const query:any={select:()=>query,selectAll:()=>query,boundingClientRect:()=>query,fields:()=>query,exec:(callback:(value:any[])=>void)=>callback([null,null,[]])};
+    wxMock.createSelectorQuery=()=>query;page.startMediaTouch(dragTouch(first,42));page.longPressMedia(dragTouch(first,42));
+  }else{
+    const deliver=dragGeometry(page,{deferred:true});page.startMediaTouch(dragTouch(first,42));page.longPressMedia(dragTouch(first,42));page.data.state='hidden';deliver();
+  }
+  expect(page.data).toMatchObject({files,dirty:false,mediaDragging:false});expect(page.mediaDrag).toBeNull();expect(m.request).not.toHaveBeenCalled();
+});
+it.each(['version','signature','post','owner'])('ignores a late photo menu choice after its %s scope changes',async boundary=>{
+  const files=[image(first),image(middle),image(last)],page=editor({files}),answer=deferred();wxMock.showActionSheet.mockReturnValueOnce(answer.promise);
+  const opening=page.openImageActions(event(middle));
+  if(boundary==='version')page.data.version++;else if(boundary==='signature')page.data.files=[image(first),{...image(middle),localPath:'/synthetic/new-source.jpg'},image(last)];
+  else if(boundary==='post')page.data.postId=otherPost;else page.data.ownerId=otherPost;
+  const retained=structuredClone(page.data.files);answer.resolve({tapIndex:2});await opening;
+  expect(page.data).toMatchObject({files:retained,dirty:false});expect(m.request).not.toHaveBeenCalled();expect(m.upload).not.toHaveBeenCalled();
 });

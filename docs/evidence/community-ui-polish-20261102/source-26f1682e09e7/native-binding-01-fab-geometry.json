@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "id": "",
+        "dataset": {},
+        "left": 207.55999755859375,
+        "right": 222.44000244140625,
+        "top": 857.1199951171875,
+        "bottom": 872,
+        "width": 14.8800048828125,
+        "height": 14.8800048828125
+      }
+    }
+  }
+}

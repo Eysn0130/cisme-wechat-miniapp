@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { promisify } from "node:util";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -110,6 +110,32 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //105 changes only the post guard. It preserves immutable historical
+    // declarations and refuses down once a publish-action fact would be lost.
+    expect(migrationTip).toBe('202611020001_ugc_publish_intent.sql');
+    const publicationGuard=async()=>String((await pool.query("SELECT pg_get_functiondef('guard_ugc_post_update()'::regprocedure) AS definition")).rows[0].definition);
+    expect(await publicationGuard()).not.toContain('rights_ok');
+    expect(await publicationGuard()).toContain('consent_ok IS DISTINCT FROM true');
+    const immutableGuard=String((await pool.query("SELECT pg_get_functiondef('guard_ugc_revision_mutation()'::regprocedure) AS definition")).rows[0].definition);
+    expect(immutableGuard).toContain('NEW.public_consent_confirmed');
+    const intentClient=await pool.connect();
+    try{
+      await intentClient.query('BEGIN');
+      await intentClient.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+        VALUES('synthetic-105','ugc.post_submitted','ugc_post',$1,'SYNTHETIC_FIXTURE',$2,gen_random_uuid()::text)`,
+        [randomUUID(),{publicConsentSource:'publish_action'}]);
+      const down=(await readFile('db/migrations/202611020001_ugc_publish_intent.sql','utf8')).split('-- migrate:down')[1]!;
+      await expect(intentClient.query(down)).rejects.toMatchObject({message:'UGC_PUBLISH_INTENT_ROLLBACK_REQUIRES_DATA_PRESERVATION'});
+    }finally{await intentClient.query('ROLLBACK');intentClient.release();}
+    await closePool(pool);await migrate('down');pool=migrationPool();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
+    expect(await publicationGuard()).toContain('rights_ok IS DISTINCT FROM true');
+    await closePool(pool);await migrate('up');pool=migrationPool();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
+    expect(await publicationGuard()).not.toContain('rights_ok');
+    await closePool(pool);await migrate('down');pool=migrationPool();
+    migrationCount-=1;extensionCount-=1;migrationTip='202610310001_support_ai_human_collaboration.sql';
+
     // Latest104 adds question-scoped collaboration metadata without changing prior rows.
     expect(migrationTip).toBe('202610310001_support_ai_human_collaboration.sql');
     const supportGuard=async()=>String((await pool.query("SELECT pg_get_functiondef('enforce_support_conversation_transition()'::regprocedure) AS definition")).rows[0].definition);
@@ -142,8 +168,9 @@ describe("empty and N-1 database lifecycle", () => {
       authorization_ref,rights_evidence,content_sha256,status,published_by,published_principal_id)
       VALUES('synthetic-migration-preservation',$1,'合成测试作者','合成测试标题','','合成测试正文','synthetic-test','{}',$2,'draft',$1,'synthetic-test') RETURNING id`,
       [evidenceOwner,'a'.repeat(64)])).rows[0].id;
+    const rollbackFrom=migrationTip;
     migrationTip='202610300001_daily_care_daily_latest.sql';
-    for(const newer of migrationFiles.filter(name=>name>migrationTip).reverse()){
+    for(const newer of migrationFiles.filter(name=>name>migrationTip&&name<=rollbackFrom).reverse()){
       await closePool(pool);const rolled=await migrate('down');pool=migrationPool();
       expect(rolled.stdout).toContain(`rolled back ${newer}`);
       migrationCount-=1;extensionCount-=1;

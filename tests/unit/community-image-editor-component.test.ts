@@ -29,17 +29,18 @@ beforeEach(async()=>{
 afterEach(()=>{definition.lifetimes.detached.call(component);vi.unstubAllGlobals();});
 
 describe("local community image-editor component",()=>{
-  it("keeps effect and final actions outside vertically scrolling tools while allowing the preview to shrink on short screens",async()=>{
+  it("keeps one footer action outside vertically scrolling tools and hides thumbnails while a tool is open",async()=>{
     const [markup,styles]=await Promise.all([readFile(resolve("apps/miniprogram/components/community-image-editor/index.wxml"),"utf8"),readFile(resolve("apps/miniprogram/components/community-image-editor/index.wxss"),"utf8")]);
-    const ancestors:string[]=[];let footerParents:string[]|null=null,effectParents:string[]|null=null;
-    for(const match of markup.matchAll(/<(\/?)(view|scroll-view)\b[^>]*>/g)){const tag=match[0];if(match[1])ancestors.pop();else{if(/class="image-editor-footer"/.test(tag))footerParents=[...ancestors];if(/class="image-editor-fixed-actions"/.test(tag))effectParents=[...ancestors];if(!tag.endsWith("/>"))ancestors.push(match[2]!);}}
+    const ancestors:string[]=[];let footerParents:string[]|null=null;
+    for(const match of markup.matchAll(/<(\/?)(view|scroll-view)\b[^>]*>/g)){const tag=match[0];if(match[1])ancestors.pop();else{if(/class="image-editor-footer"/.test(tag))footerParents=[...ancestors];if(!tag.endsWith("/>"))ancestors.push(match[2]!);}}
     expect(footerParents).toEqual(["view"]);
-    expect(effectParents).toEqual(["view"]);
+    expect(markup).not.toMatch(/image-editor-fixed-actions|image-editor-pending|bindtap="(?:applyEffects|resetEffects|discardEffects)"/);
+    expect(markup).toMatch(/<scroll-view\b[^>]*wx:if="\{\{!activeTool\}\}"[^>]*class="image-editor-strip"/);
+    expect(markup).toMatch(/bindtap="confirm" disabled="\{\{busy \|\| !files.length\}\}"/);
     expect(markup).toMatch(/<scroll-view\b[^>]*class="image-editor-lower\b[^>]*scroll-y="\{\{true\}\}"/);
     expect(styles).toMatch(/\.image-editor-preview\{[^}]*min-height:0;[^}]*height:0/);
     expect(styles).toMatch(/\.image-editor-lower--expanded\{height:40vh\}/);
     expect(styles).toMatch(/\.image-editor-footer\{[^}]*z-index:2;flex:none/);
-    expect(styles).toMatch(/\.image-editor-fixed-actions\{[^}]*z-index:2;flex:none/);
     expect(styles).toMatch(/\.image-editor-tool\{[^}]*min-height:44px/);
   });
   it("checks actual file size and MIME before a single confirmation without uploading",async()=>{
@@ -135,17 +136,34 @@ describe("local community image-editor component",()=>{
   it("retains chosen order across an ordinary background return",()=>{
     component.removeImage();definition.pageLifetimes.hide.call(component);definition.pageLifetimes.show.call(component);expect(component.data.files).toEqual([{path:"/synthetic/two.jpg",size:100}]);
   });
-  it("renders real filtered pixels and text into a bounded new JPEG only on explicit apply",async()=>{
+  it("completes a tool with a real bounded JPEG and only hands the images to the parent on the later Next",async()=>{
+    component.toggleTool({currentTarget:{dataset:{tool:"filters"}}});
     component.changeFilter({currentTarget:{dataset:{value:"mono"}}});component.changeAdjustment({currentTarget:{dataset:{field:"brightness"}},detail:{value:10}});
     component.changeOverlayText({detail:{value:"真实图片文字"}});component.changeSticker({currentTarget:{dataset:{value:"✨"}}});
     expect(component.data.effectDirty).toBe(true);expect(wxMock.canvasToTempFilePath).not.toHaveBeenCalled();expect(context.drawImage).not.toHaveBeenCalled();
-    await component.confirm();expect(events("confirm")).toHaveLength(0);await component.applyEffects();
+    await component.confirm();expect(events("confirm")).toHaveLength(0);expect(component.data.activeTool).toBe("");
     expect(canvas).toMatchObject({width:1440,height:1080});expect(context.drawImage).toHaveBeenCalledWith(expect.anything(),0,0,1440,1080);
     const pixels=context.putImageData.mock.calls[0][0].data;expect(pixels[0]).toBe(pixels[1]);expect(pixels[1]).toBe(pixels[2]);expect(pixels[0]).not.toBe(10);expect(pixels[3]).toBe(255);
     expect(context.fillText).toHaveBeenCalledWith("真实图片文字",720,expect.any(Number));expect(context.fillText).toHaveBeenCalledWith("✨",720,expect.any(Number));
     expect(wxMock.canvasToTempFilePath).toHaveBeenCalledWith(expect.objectContaining({canvas,fileType:"jpg",quality:.9,destWidth:1440,destHeight:1080}),component);
     expect(component.data).toMatchObject({busy:false,effectDirty:false});expect(component.data.files[0]).toEqual({path:"/synthetic/effect.jpg",size:450});expect(events("change")).toHaveLength(1);
     await component.confirm();expect(events("confirm")[0][1].files[0]).toEqual({path:"/synthetic/effect.jpg",size:450});
+  });
+  it("returns from an unchanged tool without exporting or confirming the batch",async()=>{
+    component.toggleTool({currentTarget:{dataset:{tool:"text"}}});await component.confirm();
+    expect(component.data.activeTool).toBe("");expect(wxMock.canvasToTempFilePath).not.toHaveBeenCalled();expect(events("confirm")).toHaveLength(0);expect(events("cancel")).toHaveLength(0);
+    expect(wxMock.setNavigationBarColor).toHaveBeenLastCalledWith({frontColor:"#ffffff",backgroundColor:"#101010"});
+  });
+  it("applies a pending overview adjustment before Next validates and confirms the batch",async()=>{
+    component.toggleTool({currentTarget:{dataset:{tool:"filters"}}});component.changeFilter({currentTarget:{dataset:{value:"warm"}}});component.toggleTool({currentTarget:{dataset:{tool:"filters"}}});
+    expect(component.data).toMatchObject({activeTool:"",effectDirty:true});await component.confirm();
+    expect(wxMock.canvasToTempFilePath).toHaveBeenCalledTimes(1);expect(events("change")).toHaveLength(1);expect(events("confirm")[0][1].files[0]).toEqual({path:"/synthetic/effect.jpg",size:450});
+  });
+  it("cancels only the current unapplied tool settings while preserving previously applied images",async()=>{
+    component.toggleTool({currentTarget:{dataset:{tool:"filters"}}});component.changeFilter({currentTarget:{dataset:{value:"warm"}}});await component.confirm();
+    component.toggleTool({currentTarget:{dataset:{tool:"text"}}});component.changeOverlayText({detail:{value:"这次尚未应用"}});await component.cancel();
+    expect(component.data).toMatchObject({activeTool:"",effectDirty:false,overlayText:"",filter:"warm",error:""});expect(component.data.files[0]).toEqual({path:"/synthetic/effect.jpg",size:450});
+    expect(events("cancel")).toHaveLength(0);expect(events("confirm")).toHaveLength(0);expect(wxMock.showModal).not.toHaveBeenCalled();expect(wxMock.canvasToTempFilePath).toHaveBeenCalledTimes(1);
   });
   it("restores original pixels from the pre-effect file instead of stacking an original preset onto the filtered output",async()=>{
     component.changeFilter({currentTarget:{dataset:{value:"warm"}}});await component.applyEffects();
@@ -160,31 +178,32 @@ describe("local community image-editor component",()=>{
     expect(component.data.files[0].path).toBe("/synthetic/effect.jpg");
   });
   it.each(["export","mime","same","canvas"])("keeps the original and pending settings after %s rendering failure, then permits retry",async condition=>{
-    component.changeFilter({currentTarget:{dataset:{value:"warm"}}});
+    component.toggleTool({currentTarget:{dataset:{tool:"filters"}}});component.changeFilter({currentTarget:{dataset:{value:"warm"}}});
     if(condition==="export")wxMock.canvasToTempFilePath.mockImplementationOnce((options:any)=>options.fail({errMsg:"synthetic export failure"}));
     if(condition==="mime"){files.set("/synthetic/effect.jpg",{size:450,bytes:[71,73,70]});}
     if(condition==="same")wxMock.canvasToTempFilePath.mockImplementationOnce((options:any)=>options.success({tempFilePath:"/synthetic/one.jpg"}));
     if(condition==="canvas")context.getImageData.mockImplementationOnce(()=>{throw new Error("synthetic canvas error");});
-    await component.applyEffects();expect(component.data.files[0].path).toBe("/synthetic/one.jpg");expect(component.data).toMatchObject({busy:false,effectDirty:true});expect(component.data.error).not.toBe("");expect(events("change")).toHaveLength(0);
-    files.set("/synthetic/effect.jpg",{size:450,bytes:jpeg});await component.applyEffects();expect(component.data.files[0].path).toBe("/synthetic/effect.jpg");expect(events("change")).toHaveLength(1);
+    await component.confirm();expect(component.data.files[0].path).toBe("/synthetic/one.jpg");expect(component.data).toMatchObject({busy:false,effectDirty:true,activeTool:"filters"});expect(component.data.error).not.toBe("");expect(events("change")).toHaveLength(0);expect(events("confirm")).toHaveLength(0);
+    files.set("/synthetic/effect.jpg",{size:450,bytes:jpeg});await component.confirm();expect(component.data.files[0].path).toBe("/synthetic/effect.jpg");expect(component.data.activeTool).toBe("");expect(events("change")).toHaveLength(1);expect(events("confirm")).toHaveLength(0);
   });
   it("rejects overlong overlay text without truncating or exporting it",async()=>{
-    component.changeOverlayText({detail:{value:"字".repeat(31)}});await component.applyEffects();expect(component.data.overlayText).toHaveLength(31);expect(component.data.error).toContain("最多30字");expect(wxMock.canvasToTempFilePath).not.toHaveBeenCalled();
-    component.discardEffects();expect(component.data).toMatchObject({effectDirty:false,overlayText:""});
+    component.toggleTool({currentTarget:{dataset:{tool:"text"}}});component.changeOverlayText({detail:{value:"字".repeat(31)}});await component.confirm();expect(component.data.overlayText).toHaveLength(31);expect(component.data.error).toContain("最多30字");expect(wxMock.canvasToTempFilePath).not.toHaveBeenCalled();
+    await component.cancel();expect(component.data).toMatchObject({activeTool:"",effectDirty:false,overlayText:""});expect(events("cancel")).toHaveLength(0);
   });
   it.each(["account","revision","context","background"])("does not replace any image when a Canvas callback arrives after %s",async condition=>{
-    let exportCallback:any;wxMock.canvasToTempFilePath.mockImplementationOnce((options:any)=>{exportCallback=options;});component.changeFilter({currentTarget:{dataset:{value:"vivid"}}});const applying=component.applyEffects();await flush();expect(exportCallback).toBeDefined();
+    let exportCallback:any;wxMock.canvasToTempFilePath.mockImplementationOnce((options:any)=>{exportCallback=options;});component.toggleTool({currentTarget:{dataset:{tool:"filters"}}});component.changeFilter({currentTarget:{dataset:{value:"vivid"}}});const applying=component.confirm();await flush();expect(exportCallback).toBeDefined();
     if(condition==="account")token="another-owner";
     if(condition==="revision")revision++;
     if(condition==="background")definition.pageLifetimes.hide.call(component);
-    if(condition==="context"){Object.assign(component.data,{contextKey:"owner-image-2",initialFiles:[{path:"/synthetic/two.jpg",size:300}]});definition.observers["visible, contextKey"].call(component);}
-    exportCallback.success({tempFilePath:"/synthetic/effect.jpg"});await applying;expect(events("change")).toHaveLength(0);expect(component.data.files.some((file:any)=>file.path==="/synthetic/effect.jpg")).toBe(false);
+    if(condition==="context"){Object.assign(component.data,{contextKey:"owner-image-2",initialFiles:[{path:"/synthetic/two.jpg",size:300}]});definition.observers["visible, contextKey"].call(component);component.toggleTool({currentTarget:{dataset:{tool:"text"}}});}
+    exportCallback.success({tempFilePath:"/synthetic/effect.jpg"});await applying;expect(events("change")).toHaveLength(0);expect(events("confirm")).toHaveLength(0);expect(component.data.files.some((file:any)=>file.path==="/synthetic/effect.jpg")).toBe(false);
+    if(condition==="context")expect(component.data.activeTool).toBe("text");
     if(condition==="background"){definition.pageLifetimes.show.call(component);expect(component.data).toMatchObject({busy:false,effectDirty:true});}
   });
   it("requires applying or undoing pending effects before changing the selected batch",async()=>{
-    component.changeFilter({currentTarget:{dataset:{value:"warm"}}});component.selectImage({currentTarget:{dataset:{index:1}}});component.removeImage();component.setCover();await component.editImage();
+    component.toggleTool({currentTarget:{dataset:{tool:"filters"}}});component.changeFilter({currentTarget:{dataset:{value:"warm"}}});component.selectImage({currentTarget:{dataset:{index:1}}});component.removeImage();component.setCover();await component.editImage();
     expect(component.data.selected).toBe(0);expect(component.data.files).toHaveLength(2);expect(wxMock.editImage).not.toHaveBeenCalled();
-    component.discardEffects();component.selectImage({currentTarget:{dataset:{index:1}}});expect(component.data.selected).toBe(1);
+    await component.cancel();component.selectImage({currentTarget:{dataset:{index:1}}});expect(component.data.selected).toBe(1);
   });
   it("asks before discarding unapplied effects without exporting a replacement",async()=>{
     component.changeFilter({currentTarget:{dataset:{value:"warm"}}});await component.cancel();expect(wxMock.showModal).toHaveBeenCalledWith(expect.objectContaining({title:"放弃图片修改？"}));expect(events("cancel")).toHaveLength(1);expect(wxMock.canvasToTempFilePath).not.toHaveBeenCalled();

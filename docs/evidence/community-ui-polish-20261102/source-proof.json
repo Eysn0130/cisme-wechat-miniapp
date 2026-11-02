@@ -1,5 +1,5 @@
 {
-  "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54",
+  "packageSourceSha256": "b00f2118bff2d8ffd0e2e99b39ec133159b300ee8deb6bddf7ccdc8f59322ae8",
   "copiedSources": [
     {
       "file": "custom-tab-bar/index.ts",
@@ -43,17 +43,17 @@
     },
     {
       "file": "pages/community-compose/index.ts",
-      "sha256": "bd52c4db69dab1d4fac35efc6f163ad1416c01cca38927e1731a4bb40d6758d1",
+      "sha256": "9d358944d4f67530b9e76b1aeb06002ca78854afcdc903eeed37fde1750637a4",
       "fixtureByteIdentical": true
     },
     {
       "file": "pages/community-compose/index.wxml",
-      "sha256": "1b91a3a079f37c6e6d2ccedf38dc25521920c9f3fceb62377898bdd369877124",
+      "sha256": "0af5fc03d0d94bc4461a4ee27362328267c073abdfee1a272005eb4a9a66c5f9",
       "fixtureByteIdentical": true
     },
     {
       "file": "pages/community-compose/index.wxss",
-      "sha256": "ffc810280db1739b02128f6b2b00e2c1ee787496e167e970ac1a7d37f2e8da2d",
+      "sha256": "02d6d11656c1344f7227c4fb089db59cd17e74cbd9b743cddcaf8ed9ef17f747",
       "fixtureByteIdentical": true
     },
     {
@@ -83,17 +83,17 @@
     },
     {
       "file": "components/community-image-editor/index.ts",
-      "sha256": "f35b3317aa3f7f97fe46ce99c842190f255ee20864c6fe937d73e36d14c43aac",
+      "sha256": "9381b93d86e70d96cbc208ad16eeed363a50f7295fce35155c6c5e423d264a1e",
       "fixtureByteIdentical": true
     },
     {
       "file": "components/community-image-editor/index.wxml",
-      "sha256": "77ac40d5c2a303b83e67b909ff9deecee723b56059e2fc7f7080dbd3282b402d",
+      "sha256": "57a0527587a091078a2f1b2ea9e7ce6e19472e8e4afb2e4759c9633a515f6ca6",
       "fixtureByteIdentical": true
     },
     {
       "file": "components/community-image-editor/index.wxss",
-      "sha256": "f19eb058a57c66a08f7f71779501d13bba9058e2d0f42c253d26037099e4ba2c",
+      "sha256": "82f392a9e892ac89fb3b5a8e8c42e45a6396586a340f2201feb39fa485a2c9dc",
       "fixtureByteIdentical": true
     },
     {
@@ -126,5 +126,13 @@
   "fixturePath": "/tmp/cisme-compose-native-20261101",
   "network": false,
   "persistentStorage": false,
-  "scope": "24 actual native page/tab/component/helper files byte-identical. Offline auth/API/storage/editorial/public-detail adapters; controlled state stimuli. Native Canvas and local FS actual official simulator. Not physical keyboard, permissions, hardware camera, real account/backend or deployment acceptance."
+  "scope": "24 actual native page/tab/component/helper files byte-identical. Offline auth/API/storage/editorial/public-detail adapters; controlled state stimuli. Native Canvas and local FS actual official simulator. Not physical keyboard, permissions, hardware camera, real account/backend or deployment acceptance.",
+  "currentSource": true,
+  "evidenceDirectory": "source-b00f2118bff2",
+  "priorEvidenceArchives": [
+    "source-26f1682e09e7/ARCHIVE-INDEX.json",
+    "source-f8f199c0cf7c/HISTORICAL.json",
+    "source-168126266fc4/FAILED-NATIVE-EDGE.json"
+  ],
+  "businessNetworkOnly": true
 }

@@ -58,5 +58,7 @@
   ],
   "noNewProductFunctionality": true,
   "noNewDependencies": true,
-  "customTabBarPreserved": true
+  "customTabBarPreserved": true,
+  "historical": true,
+  "historicalScope": "Initial 26f1682e09e7 polish; superseded by explicit tool-action/settings removals and photo drag correction. Not current-source acceptance."
 }

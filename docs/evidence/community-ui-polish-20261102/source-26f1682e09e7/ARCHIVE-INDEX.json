@@ -1,0 +1,391 @@
+{
+  "packageSourceSha256": "26f1682e09e75bc8df65a94d552554d1cc0f341109e51a3b38483f570a644c54",
+  "status": "historical-only-settings-ui-removed-after-capture",
+  "files": [
+    {
+      "file": "build.log",
+      "sha256": "7c1df8d7291d0dad89a968e6d7dd517a3af62e22382978075228fbd2cc6a70cd"
+    },
+    {
+      "file": "final-package-gate.json",
+      "sha256": "65fa051847c6090f517b90ca8120ad44f1684ec8b651e99b032f3e038a372b73"
+    },
+    {
+      "file": "local-validation.json",
+      "sha256": "fb36aaac517469718e007ade2c6f84c5ea5722bfe3f3b524f778346bc59acc0b"
+    },
+    {
+      "file": "native-01-community.json",
+      "sha256": "3fc69c6085588341f3c129b8c5a87d8878344fa6753cec2777f1fce55d11f844"
+    },
+    {
+      "file": "native-02-three-choices-390-receipt.json",
+      "sha256": "a5fb71f1640564c9d9c3e96a2504ed85c1a7d13ac619eaac0d1e436a116fe5fd"
+    },
+    {
+      "file": "native-02-three-choices-390.png",
+      "sha256": "2c3d10592bba38cc2ec88d87232d9430de324d6c4cb933236c679280af528f9f"
+    },
+    {
+      "file": "native-03-text-entry.json",
+      "sha256": "9001329214dc2a7eb7ac96f9991c216b966d1db4d5227301ce8f1e0441aef3e2"
+    },
+    {
+      "file": "native-04-text-card-390-receipt.json",
+      "sha256": "34fc7fc676df698a6d55f962ae56146754429f04c688333e1b2b943c5d5c10a5"
+    },
+    {
+      "file": "native-04-text-card-390.png",
+      "sha256": "45bbfce34ba3962a4635a19547884bddeed9d5d99718bd788561c55e0cf0fcee"
+    },
+    {
+      "file": "native-05-text-next.json",
+      "sha256": "92df2b40119115f7bcc396aff23113edb9443aa8ed3e26a3183254c71efae8ad"
+    },
+    {
+      "file": "native-06-photo-dirty.json",
+      "sha256": "7e6660a42be43c4340b337ad447a7f111ed06def3a634f86098e6160cde5132e"
+    },
+    {
+      "file": "native-07-photo-dirty-390-receipt.json",
+      "sha256": "5ab9fb7d954faee13e81c144807b1e659658402e915b6a50bf20f3fbefb3d5ed"
+    },
+    {
+      "file": "native-07-photo-dirty-390.png",
+      "sha256": "239086a8acaa6fe0f4fa5e4317471e4add4b968e855016fa1e5067b0e0409b46"
+    },
+    {
+      "file": "native-08-photo-apply.json",
+      "sha256": "4cd68ac14b1350c5f442a4bf4956b0093d1626a28eb2d53db984d382ce07e2a2"
+    },
+    {
+      "file": "native-09-photo-applied-390-receipt.json",
+      "sha256": "85fe337c1c5453c8a5ccb9258e802e866c6acdce247aaca5fe710d6f786bdcb7"
+    },
+    {
+      "file": "native-09-photo-applied-390.png",
+      "sha256": "e5da006e0b469490a956686734268414b4403c72442f5219ab05cc9c0160bf28"
+    },
+    {
+      "file": "native-10-private-save.json",
+      "sha256": "ebefff572abeb93081b70d72c1b634342a635f652d8c6714677642c23b60a768"
+    },
+    {
+      "file": "native-11-private-composer-390-receipt.json",
+      "sha256": "e07178d688674c813d23e463935ade8969bd8f0cd4cccfcae16a9fe4a46b21b3"
+    },
+    {
+      "file": "native-11-private-composer-390.png",
+      "sha256": "6db26ceead2d762a967784284c3d28583603a82da959cce5b2df45469ca4f3bd"
+    },
+    {
+      "file": "native-12-settings.json",
+      "sha256": "62ffdfbd6324111f457a71cee6daab4968ac66acfe346b9c0aa6da36c41e4594"
+    },
+    {
+      "file": "native-13-publish-settings-390-receipt.json",
+      "sha256": "53f224ffb1bf941da1c1e721158d287b307ad95ef217f812308d6f575175d5eb"
+    },
+    {
+      "file": "native-13-publish-settings-390.png",
+      "sha256": "9b773e9a7355b801a1ef033e9a4fc4605501a897c214af7210d603a196a5d84b"
+    },
+    {
+      "file": "native-14-public-ready.json",
+      "sha256": "c4f32b23aaf837bfb4884c0385fa3e0b2e1c882bace7e7fec533cd636c7f37fd"
+    },
+    {
+      "file": "native-15-public-composer-390-receipt.json",
+      "sha256": "477da6e1f612c68d4efa169f343320711c61eed474a9b6b49722b288ca456229"
+    },
+    {
+      "file": "native-15-public-composer-390.png",
+      "sha256": "c1bbf939752dcf650a44559bfaf550e30a0537610a8002142aa80fb8a428eab6"
+    },
+    {
+      "file": "native-16-submit.json",
+      "sha256": "9f6513f7dccb6079fc4ef09d8696769b53e2ec60f8d4566871eba9d36fece5ec"
+    },
+    {
+      "file": "native-17-pending-review-390-receipt.json",
+      "sha256": "f80fe5288ae66539adaee113733e3258f1d98f68ba0b9947c842a190e042c276"
+    },
+    {
+      "file": "native-17-pending-review-390.png",
+      "sha256": "59ab30c22305d0fc9e4a7aad006625d088caba5e42b217f3f6fddff9466d7c49"
+    },
+    {
+      "file": "native-18-my-posts.json",
+      "sha256": "06cfa11f79b5be8c22909a7036173e18741c1b833ecae69af789e3d0241702b7"
+    },
+    {
+      "file": "native-19-my-posts-390-receipt.json",
+      "sha256": "fe92ebfe0f15b28cea5fb04637d84b5ba9861614356168aee0aaacf6be44075c"
+    },
+    {
+      "file": "native-19-my-posts-390.png",
+      "sha256": "881fe340012d8de48dc4be7bce5fe4a55b3100c26e0f606087bb70940619a363"
+    },
+    {
+      "file": "native-20-empty.json",
+      "sha256": "b087bab13308ab4aa936f4e502c434d78fdab5815a3e1571ed11f8a06ca79964"
+    },
+    {
+      "file": "native-21-empty-390-receipt.json",
+      "sha256": "36fa24e841c6d1986ca06e4a787d1be6e4bab6b1b28adb765e45821b5e57688e"
+    },
+    {
+      "file": "native-21-empty-390.png",
+      "sha256": "89165b458b1dc7a96d3715da057f4bcb9085e7e1c77b1adec94e5c2860fe5d1c"
+    },
+    {
+      "file": "native-22-loading.json",
+      "sha256": "fc8ec044419ed4d52b5f00f793f091847f12b1f07e7205c493a35e9f25b14efe"
+    },
+    {
+      "file": "native-23-loading-390-receipt.json",
+      "sha256": "20110c9c8693f324620cbf0badafce2ff5eefd6acff9e61e79e714ac70eb509b"
+    },
+    {
+      "file": "native-23-loading-390.png",
+      "sha256": "398b3a7677a535a5e35c8dfb858ff42205e2bfc99697b8fffabeb5ac01c3bb86"
+    },
+    {
+      "file": "native-24-error.json",
+      "sha256": "9b5dd85aced609bfe400ae2fd25bd805a0b1bcc38249c2cf8be397f32505a845"
+    },
+    {
+      "file": "native-25-list-error-390-receipt.json",
+      "sha256": "84061866d10d98bd69a3e66705f6f24f4a1eded9d45835a48b55eaa1cb5ef2df"
+    },
+    {
+      "file": "native-25-list-error-390.png",
+      "sha256": "cca2dc0abb2053bf5f8933d3cd8629a0a71c64f1c7c6ca055b4381e88680a9ff"
+    },
+    {
+      "file": "native-26-error-recovery.json",
+      "sha256": "b34b73905fde1266af682a99e0ac7918b4699fd7882e905232623f05c1e5d19d"
+    },
+    {
+      "file": "native-27-list-recovered-390-receipt.json",
+      "sha256": "358a6aa21010ea7657b2a076d886f77caf2bfba6a5ebcafd62e655a20c182a06"
+    },
+    {
+      "file": "native-27-list-recovered-390.png",
+      "sha256": "881fe340012d8de48dc4be7bce5fe4a55b3100c26e0f606087bb70940619a363"
+    },
+    {
+      "file": "native-28-direct-body.json",
+      "sha256": "e9d6505123d02fc6e3d28c09ef810ae27c74a45ba9cdceba6ec279dbc95ec260"
+    },
+    {
+      "file": "native-29-direct-body-390-receipt.json",
+      "sha256": "7b152b5ab754fb963e7adf0348b004c6491d9bad191a522c46fe25991124c9ae"
+    },
+    {
+      "file": "native-29-direct-body-390.png",
+      "sha256": "e3cf74a45fcc72de7080956440e05723f409372f36c607c88d8e1dad5c3b745f"
+    },
+    {
+      "file": "native-binding-01-fab-geometry.json",
+      "sha256": "3f6fdc031787ba1a9c113fb1188384239ac6cc75adb47e368945683858729ab1"
+    },
+    {
+      "file": "native-binding-02-fab-tap.json",
+      "sha256": "62b2aa55e78eca070d6152de146017407b1e9ed8f7926dbf057fca10ddac934c"
+    },
+    {
+      "file": "native-cleanup-before-refresh.json",
+      "sha256": "419f8c996e541759e41241dbc46d5df840d51fdb914cd65ddbb1290652dbe7bc"
+    },
+    {
+      "file": "native-console-all.json",
+      "sha256": "3e947b54a8a84511de2ea076e40e9cab918ac8ea16b68521dfccb508ecb08dcd"
+    },
+    {
+      "file": "native-final-empty-baseline.json",
+      "sha256": "c0a3ea6c69bbd628b1ead952d6871261a9ad8b6f7e3447a67c415750e96f18b5"
+    },
+    {
+      "file": "native-photo-applied-361-receipt.json",
+      "sha256": "7598e9144501d04477192eeb9a6170b77423502556ca67378f02d98414d1403a"
+    },
+    {
+      "file": "native-photo-applied-361.png",
+      "sha256": "783ac27c18af9077106743d9a63e04db095b326cbee59bbe30cd572e661b17cc"
+    },
+    {
+      "file": "native-photo-applied-430-receipt.json",
+      "sha256": "6655a1e28f7fafcc6e4dfff3d744f810dff39b753bc8e8b5430fa323e06e3d65"
+    },
+    {
+      "file": "native-photo-applied-430.png",
+      "sha256": "d3a9c3294d304325c5dad30a18426e530b799535c6e8f45a5bf4afc1be98a5b4"
+    },
+    {
+      "file": "native-photo-dirty-361-receipt.json",
+      "sha256": "30a8d06bf1ada093ea819f076657de20ea8eadf7361d3aa1b002191f1cf21c86"
+    },
+    {
+      "file": "native-photo-dirty-361.png",
+      "sha256": "ee05940516c6a57cc60896d12fd2b3a9bac5fef388053cc1c993ad13cf6bc634"
+    },
+    {
+      "file": "native-photo-dirty-430-receipt.json",
+      "sha256": "7e251cbabd13e7e69229d3385f1bc8e974306a8eb5bd96575bc16aa48b50c797"
+    },
+    {
+      "file": "native-photo-dirty-430.png",
+      "sha256": "55ad9a0a0ec03b27c59dba80d70e8f5da9d1a3724507965087da68276f745f9a"
+    },
+    {
+      "file": "native-private-composer-361-receipt.json",
+      "sha256": "afb0bdb515bf44e62e3dc4158366f6b0db6167720555344e40356e6d8608fab9"
+    },
+    {
+      "file": "native-private-composer-361.png",
+      "sha256": "92d231c78cca71687ec56ee742f972f1490f73183fa26275f2d7316975224c05"
+    },
+    {
+      "file": "native-private-composer-430-receipt.json",
+      "sha256": "30a8bde5adfd7ae44fbc347bc03b75f2635687b0b156d4e552f83a538a79ecba"
+    },
+    {
+      "file": "native-private-composer-430.png",
+      "sha256": "0b7531354333c4b5621e788081266d89acc32bd6f2ab031e4f4f050b4c52d177"
+    },
+    {
+      "file": "native-public-composer-361-receipt.json",
+      "sha256": "f76d2f5032502b286565a908fd2a00f037b8c0baccba2e81da0dee081beb1223"
+    },
+    {
+      "file": "native-public-composer-361.png",
+      "sha256": "80540bd358a7d19c135204a91cfaf08d1eb6bae52bc2df471b34bab3bf3c35b5"
+    },
+    {
+      "file": "native-public-composer-430-receipt.json",
+      "sha256": "9eee46e28873c5d62a07dc38d776e04c958ac94675670032702545962ee1d7d0"
+    },
+    {
+      "file": "native-public-composer-430.png",
+      "sha256": "843d4638f359492def89e25621ce464e0d1f0244cc6bbea9aab37d0c7ff4aa75"
+    },
+    {
+      "file": "native-qa-summary.json",
+      "sha256": "42b7074c3eaf3b176854455ca5d85a17b9ba5cef01fb59064a2e42847b378a3c"
+    },
+    {
+      "file": "native-recorder.py",
+      "sha256": "834fac06612ffc1832c9b0bb92b76fd38ee676411b756f80b5f29befdb3338a6"
+    },
+    {
+      "file": "native-restore-chooseMedia.json",
+      "sha256": "322ce362c8966a8c0ee6489883dfcfb5281578746a65df15471be07b24328704"
+    },
+    {
+      "file": "native-restore-requirePrivacyAuthorize.json",
+      "sha256": "322ce362c8966a8c0ee6489883dfcfb5281578746a65df15471be07b24328704"
+    },
+    {
+      "file": "native-size-card-361-device-restart-stimulus-error.json",
+      "sha256": "d6d9e79c2287a457fc1936c83f80d9cd0d7333ff0f2506c22b9729e08df865d7"
+    },
+    {
+      "file": "native-size-card-361.json",
+      "sha256": "ca8ab4472dd83c86c30f8a38624595a0f05254bbdc3ac12b7237df2a1ce33bfc"
+    },
+    {
+      "file": "native-size-card-430.json",
+      "sha256": "0def7a1043d67a7c8aa4fa5cf9846baea4159a8102efb02ad8450c2494de29c1"
+    },
+    {
+      "file": "native-size-photo-apply-361.json",
+      "sha256": "59d50d409e32148abe8765a9bd17ee1f730c39b0f041fa590cb8a403cc1729af"
+    },
+    {
+      "file": "native-size-photo-apply-430.json",
+      "sha256": "59d50d409e32148abe8765a9bd17ee1f730c39b0f041fa590cb8a403cc1729af"
+    },
+    {
+      "file": "native-size-photo-dirty-361.json",
+      "sha256": "d5a0e04089bf2d923d7bcd80bcdc05e3be765f048349b31b8a1f76d0a6f4959a"
+    },
+    {
+      "file": "native-size-photo-dirty-430.json",
+      "sha256": "2087688c4ef102caee395c195a8c8508fca9d1cf54c4d7fabfcc30171d88df71"
+    },
+    {
+      "file": "native-size-private-361.json",
+      "sha256": "84bb6c9eeb212dcd6bc3d169eabfe575028d09273872d8b0f56a8be076889238"
+    },
+    {
+      "file": "native-size-private-430.json",
+      "sha256": "84bb6c9eeb212dcd6bc3d169eabfe575028d09273872d8b0f56a8be076889238"
+    },
+    {
+      "file": "native-size-public-361.json",
+      "sha256": "55dfa200ed2a98612115dcf9c90f18ba91050ac0795172fc81001c79c3425204"
+    },
+    {
+      "file": "native-size-public-430.json",
+      "sha256": "55dfa200ed2a98612115dcf9c90f18ba91050ac0795172fc81001c79c3425204"
+    },
+    {
+      "file": "native-text-card-361-receipt.json",
+      "sha256": "bc0e575dca45c206e60d4d11bdae72af19b3e76a13a219cdde8415f07251c465"
+    },
+    {
+      "file": "native-text-card-361.png",
+      "sha256": "5f0118895f4e8e7166a140dcf3ad30024c8e0a60d8f69074a80f8dd206e926c3"
+    },
+    {
+      "file": "native-text-card-430-receipt.json",
+      "sha256": "ac18101b4cee41b8496e0f84fdc72b712c75e80dfaae95b752327c8f9fa90eb9"
+    },
+    {
+      "file": "native-text-card-430.png",
+      "sha256": "8dbffee4c948ef174937acc23b8618112a949bcbe4eaba4f99175b9b0e753e7b"
+    },
+    {
+      "file": "package-gate.json",
+      "sha256": "945c45ceb2bd7afa4954e0d6143d8c2125b546097bec158f0cabfae92e97fa96"
+    },
+    {
+      "file": "prepare-native-polish.py",
+      "sha256": "1efff7a37ebd8d3a965f94d1d7f79e3d0cd611d68c7c1fb20c9ad9c633e8e988"
+    },
+    {
+      "file": "run-native-binding-check.py",
+      "sha256": "cf2975f2b2b0f33478e9282d301a1abb67923842f73cfe22507b5abdc5b22fc4"
+    },
+    {
+      "file": "run-native-cleanup.py",
+      "sha256": "f4e8105ef61d7bcf8bd3bf5ccbd9e67f08213e3a367c2572a5031645651c9db7"
+    },
+    {
+      "file": "run-native-final-baseline.py",
+      "sha256": "a8559de5fdd667f9224c89f9aa7331ff077153ce8938692a8fa791443ba06d84"
+    },
+    {
+      "file": "run-native-polish-flow.py",
+      "sha256": "ef8e86a110606e5d1d001c23d3c1fa89a5b32a1a3b757bd3f395196fb1c7796b"
+    },
+    {
+      "file": "run-native-polish-size.py",
+      "sha256": "53249603d00011b1316a02f6f40363c9cf9ae4772cf0747f57bfa3ecb44f85d4"
+    },
+    {
+      "file": "source-proof.json",
+      "sha256": "02acc6962e639070092b50e5a101c0910606b8979bf660015dcc418b335da43d"
+    },
+    {
+      "file": "ugc-isolated-integration.log",
+      "sha256": "f5ad5d98b403eb9daf087f83fc97dd83d14cba7314eea55e421d174f6e800fba"
+    },
+    {
+      "file": "unit-tests.log",
+      "sha256": "d277d8b829b022d24592186c3402f3c1f412b4e4edbad4673a3252b20c7e3786"
+    }
+  ],
+  "scope": "Original native screenshots, raw receipts, source proof, recorder scripts and validation records copied byte-identically before the new source is revalidated. No old screenshot is acceptance for the source without publish settings."
+}

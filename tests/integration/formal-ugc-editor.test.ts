@@ -59,7 +59,7 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect((await app.inject({method:"GET",url:`/v1/me/ugc/posts/${draft.id}/media/${upload.mediaId}/preview-url`,headers:auth(other)})).statusCode).toBe(404);
   expect((await app.inject({method:"GET",url:`/v1/me/ugc/posts/${other.memberId}/media/${upload.mediaId}/preview-url`,headers:auth(owner)})).statusCode).toBe(404);
 
-  const imageOnly={title:"",body:"",mediaIds:[upload.mediaId],rightsConfirmed:true,publicConsentConfirmed:true};
+  const imageOnly={title:"",body:"",mediaIds:[upload.mediaId]};
   const saved=await app.inject({method:"PUT",url:`/v1/me/ugc/posts/${draft.id}/draft`,headers:auth(owner),payload:{...imageOnly,expectedVersion:1}});
   expect(saved.statusCode).toBe(200);expect(saved.json()).toMatchObject({version:2,revision:2,body:""});
   expect((await app.inject({method:"GET",url:`/v1/me/ugc/media/${upload.mediaId}/preview-url`,headers:auth(other)})).statusCode).toBe(404);
@@ -83,6 +83,11 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   openApp=await createApp({config:openConfig,pool,storage:createApiGatewayStorage(openConfig)});
   const submitted=await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/submit`,headers:auth(owner),payload:{expectedVersion:3}});
   expect(submitted.statusCode).toBe(200);
+  expect(submitted.json()).toMatchObject({revision:4,rightsConfirmed:false,publicConsentConfirmed:true});
+  expect((await pool.query('SELECT revision,media_asset_id,position,alt_text FROM ugc_post_media WHERE post_id=$1 AND revision IN (3,4) ORDER BY revision,position',[draft.id])).rows)
+    .toEqual([{revision:3,media_asset_id:upload.mediaId,position:0,alt_text:null},{revision:4,media_asset_id:upload.mediaId,position:0,alt_text:null}]);
+  expect((await pool.query('SELECT rights_confirmed,public_consent_confirmed,moderation_state FROM ugc_post_revision WHERE post_id=$1 AND revision=3',[draft.id])).rows[0])
+    .toEqual({rights_confirmed:false,public_consent_confirmed:false,moderation_state:'unreviewed'});
   const reviewPreview=await openApp.inject({method:"GET",url:`/v1/management/ugc/media/${upload.mediaId}/preview-url`,headers:auth(reviewer)});
   expect(reviewPreview.statusCode).toBe(200);
   const reviewPreviewPath=new URL(reviewPreview.json().url).pathname+new URL(reviewPreview.json().url).search;
@@ -171,7 +176,7 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect(report.statusCode).toBe(200);
   const queue=await openApp.inject({method:"GET",url:"/v1/management/ugc/reports",headers:auth(reviewer)});
   expect(queue.statusCode).toBe(200);
-  expect(queue.json().items).toContainEqual(expect.objectContaining({id:report.json().id,version:1,targetType:"post",reportedRevision:3}));
+  expect(queue.json().items).toContainEqual(expect.objectContaining({id:report.json().id,version:1,targetType:"post",reportedRevision:4}));
   expect((await openApp.inject({method:"GET",url:"/v1/management/ugc/reports",headers:auth(owner)})).statusCode).toBe(403);
   await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
     VALUES($1,'community.moderate','fixture','Conflicted report reviewer','test','integration_fixture')`,[owner.memberId]);
@@ -219,7 +224,7 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect((await pool.query("SELECT count(*)::int AS n FROM ugc_author_follow WHERE follower_member_id=$1",[other.memberId])).rows[0].n).toBe(0);
   const edited=await openApp.inject({method:"PUT",url:`/v1/me/ugc/posts/${draft.id}/draft`,headers:auth(owner),
     payload:{...imageOnly,title:"未审核标题",body:"新版尚未审核",expectedVersion:6}});
-  expect(edited.statusCode).toBe(200);expect(edited.json()).toMatchObject({state:"draft",version:7,publicVersionActive:true,publishedRevision:3});
+  expect(edited.statusCode).toBe(200);expect(edited.json()).toMatchObject({state:"draft",version:7,publicVersionActive:true,publishedRevision:4});
   const privateAuthorization=await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/media/authorize`,headers:auth(owner),
     payload:{mimeType:"image/png",maxBytes:100}});
   expect(privateAuthorization.statusCode).toBe(200);
@@ -300,7 +305,7 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
     VALUES($1,'community.moderate','fixture','Independent appeal review','test','integration_fixture')`,[other.memberId]);
   const independentQueue=(await openApp.inject({method:"GET",url:"/v1/management/ugc/appeals",headers:auth(other)})).json();
   const independentRow=independentQueue.items.find((item:{id:string})=>item.id===appeal.json().id);
-  expect(independentRow).toMatchObject({postVersion:11,publishedRevision:3,hiddenByMemberId:reviewer.memberId,
+  expect(independentRow).toMatchObject({postVersion:11,publishedRevision:4,hiddenByMemberId:reviewer.memberId,
     hideReporterMemberId:publisher.memberId});
   expect(JSON.stringify(independentRow)).not.toContain("未提交私人版本");
   const restored=await openApp.inject({method:"POST",url:`/v1/management/ugc/appeals/${appeal.json().id}/decision`,

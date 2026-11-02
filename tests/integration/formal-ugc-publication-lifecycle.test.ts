@@ -29,8 +29,7 @@ const create=async(actor=owner):Promise<OwnPost>=>{
 };
 const save=async(post:OwnPost,changes:Record<string,unknown>={},actor=owner):Promise<OwnPost>=>{
   const response=await app.inject({method:'PUT',url:`/v1/me/ugc/posts/${post.id}/draft`,headers:auth(actor),
-    payload:{title:'真实护理记录',body:'这是首次公开的使用感受',mediaIds:[],rightsConfirmed:true,
-      publicConsentConfirmed:true,expectedVersion:post.version,...changes}});
+    payload:{title:'真实护理记录',body:'这是首次公开的使用感受',mediaIds:[],expectedVersion:post.version,...changes}});
   expect(response.statusCode,JSON.stringify(response.json())).toBe(200);return response.json();
 };
 const submit=async(post:OwnPost)=>app.inject({method:'POST',url:`/v1/me/ugc/posts/${post.id}/submit`,headers:auth(owner),
@@ -60,25 +59,59 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await closed?.close();await app?.close();await pool.end();});
 
-it('returns explicit validation errors before submission for both new posts and edits of public posts',async()=>{
+it('rejects empty publication without creating an intent snapshot for new posts or edits',async()=>{
   for(const original of [await create(),await publishedPost()]){
-    let post=await save(original,{body:'',mediaIds:[]});
-    let response=await submit(post);expect(response.statusCode).toBe(422);expect(response.json().code).toBe('UGC_CONTENT_REQUIRED');
-    for(const flag of ['rightsConfirmed','publicConsentConfirmed']){
-      post=await save(post,{[flag]:false});response=await submit(post);
-      expect(response.statusCode).toBe(422);expect(response.json().code).toBe('UGC_DECLARATION_REQUIRED');
-    }
+    const post=await save(original,{body:'',mediaIds:[]});
+    const count=(await pool.query('SELECT count(*)::int n FROM ugc_post_revision WHERE post_id=$1',[post.id])).rows[0].n;
+    const response=await submit(post);expect(response.statusCode).toBe(422);expect(response.json().code).toBe('UGC_CONTENT_REQUIRED');
     const current=await readOwn(post.id);expect(current.state).toBe('draft');expect(current.version).toBe(post.version);
+    expect((await pool.query('SELECT count(*)::int n FROM ugc_post_revision WHERE post_id=$1',[post.id])).rows[0].n).toBe(count);
   }
 });
 
-it('saves and submits without removed AI controls and never fabricates an active declaration',async()=>{
+it('saves without retired flags and submits an immutable public-intent snapshot without fabricating rights',async()=>{
   const post=await save(await create());
-  expect((await pool.query('SELECT ai_usage FROM ugc_post_revision WHERE post_id=$1 AND revision=$2',[post.id,post.revision])).rows[0].ai_usage)
-    .toBe('unknown');
-  expect((await submit(post)).statusCode).toBe(200);
+  const source=(await pool.query('SELECT to_jsonb(r) AS row FROM ugc_post_revision r WHERE post_id=$1 AND revision=$2',[post.id,post.revision])).rows[0].row;
+  expect(source).toMatchObject({ai_usage:'unknown',rights_confirmed:false,public_consent_confirmed:false,moderation_state:'unreviewed'});
+  const result=await submit(post);expect(result.statusCode).toBe(200);
+  const submitted=result.json();expect(submitted).toMatchObject({state:'pending_review',version:post.version+1,revision:post.revision+1,
+    rightsConfirmed:false,publicConsentConfirmed:true});
+  expect((await pool.query('SELECT to_jsonb(r) AS row FROM ugc_post_revision r WHERE post_id=$1 AND revision=$2',[post.id,post.revision])).rows[0].row).toEqual(source);
+  expect((await pool.query('SELECT rights_confirmed,public_consent_confirmed,moderation_state FROM ugc_post_revision WHERE post_id=$1 AND revision=$2',
+    [post.id,submitted.revision])).rows[0]).toEqual({rights_confirmed:false,public_consent_confirmed:true,moderation_state:'pending'});
   expect((await pool.query("SELECT after_state FROM audit_log WHERE action='ugc.post_submitted' AND object_id=$1",[post.id])).rows[0].after_state)
-    .toEqual({revision:post.revision});
+    .toEqual({revision:submitted.revision,sourceRevision:post.revision,newRevision:submitted.revision,publicConsentConfirmed:true,publicConsentSource:'publish_action'});
+  await expect(pool.query('UPDATE ugc_post_revision SET public_consent_confirmed=true WHERE post_id=$1 AND revision=$2',[post.id,post.revision]))
+    .rejects.toMatchObject({code:'55000'});
+  expect((await review(submitted)).statusCode).toBe(200);
+  const approved=await readOwn(post.id);expect((await publish(approved)).statusCode).toBe(200);
+  expect((await readOwn(post.id)).state).toBe('published');
+});
+
+it('preserves old checkbox facts but never carries their confirmation into a new private revision',async()=>{
+  const legacy=await save(await create(),{rightsConfirmed:true,publicConsentConfirmed:true});
+  const before=(await pool.query('SELECT to_jsonb(r) AS row FROM ugc_post_revision r WHERE post_id=$1 AND revision=$2',[legacy.id,legacy.revision])).rows[0].row;
+  const privateEdit=await save(legacy,{body:'新内容只保存私稿，不能借用旧确认'});
+  expect(privateEdit).toMatchObject({rightsConfirmed:false,publicConsentConfirmed:false});
+  expect((await pool.query('SELECT to_jsonb(r) AS row FROM ugc_post_revision r WHERE post_id=$1 AND revision=$2',[legacy.id,legacy.revision])).rows[0].row).toEqual(before);
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE object_id=$1 AND action='ugc.post_submitted'",[legacy.id])).rows[0].n).toBe(0);
+  for(const flag of ['rightsConfirmed','publicConsentConfirmed']){
+    const invalid=await app.inject({method:'PUT',url:`/v1/me/ugc/posts/${legacy.id}/draft`,headers:auth(owner),
+      payload:{expectedVersion:privateEdit.version,body:'不得接受伪布尔',mediaIds:[],[flag]:'true'}});
+    expect(invalid.statusCode).toBe(422);expect(invalid.json().code).toBe('UGC_METADATA_INVALID');
+  }
+});
+
+it('creates no public intent on closed gates, stale versions or wrong ownership',async()=>{
+  const post=await save(await create());
+  const rowsBefore=(await pool.query('SELECT to_jsonb(r) AS row FROM ugc_post_revision r WHERE post_id=$1 ORDER BY revision',[post.id])).rows;
+  for(const [instance,actor,expectedVersion,status] of [[closed,owner,post.version,503],[app,owner,post.version-1,409],[app,other,post.version,404]] as const){
+    const failed=await instance.inject({method:'POST',url:`/v1/me/ugc/posts/${post.id}/submit`,headers:auth(actor),payload:{expectedVersion}});
+    expect(failed.statusCode).toBe(status);
+  }
+  expect((await pool.query('SELECT to_jsonb(r) AS row FROM ugc_post_revision r WHERE post_id=$1 ORDER BY revision',[post.id])).rows).toEqual(rowsBefore);
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE object_id=$1 AND action='ugc.post_submitted'",[post.id])).rows[0].n).toBe(0);
+  expect((await readOwn(post.id))).toMatchObject({version:post.version,revision:post.revision,publicConsentConfirmed:false,rightsConfirmed:false});
 });
 
 it('accepts optional legacy AI metadata while retaining existing revision values and old audit facts',async()=>{
@@ -95,7 +128,7 @@ it('accepts optional legacy AI metadata while retaining existing revision values
   expect(submitted.statusCode).toBe(200);
   expect((await pool.query('SELECT after_state FROM audit_log WHERE id=$1',[audit])).rows[0].after_state).toEqual(legacyFact);
   const current=(await pool.query("SELECT after_state FROM audit_log WHERE action='ugc.post_submitted' AND object_id=$1 AND id<>$2",[legacy.id,audit])).rows[0].after_state;
-  expect(current).toEqual({revision:revised.revision});
+  expect(current).toEqual({revision:revised.revision+1,sourceRevision:revised.revision,newRevision:revised.revision+1,publicConsentConfirmed:true,publicConsentSource:'publish_action'});
   const previousClient=await save(await create(),{aiUsage:'none'});
   expect((await app.inject({method:'POST',url:`/v1/me/ugc/posts/${previousClient.id}/submit`,headers:auth(owner),
     payload:{expectedVersion:previousClient.version,aiDeclarationChosen:true}})).statusCode).toBe(200);
