@@ -4,7 +4,7 @@
     <button wx:if="{{!listMode}}" class="composer-drafts-shortcut {{busy || uploadBusy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="showMyPosts" disabled="{{busy || uploadBusy || recoveryBusy}}">我的投稿</button>
     <text wx:if="{{listMode}}" class="topbar__title">我的投稿</text>
   </view>
-  <view class="page page--stack composer-page {{!listMode ? 'composer-page--editing' : ''}}">
+  <view class="page page--stack composer-page {{!listMode ? 'composer-page--editing' : ''}} {{!listMode && publicGateUnknown ? 'composer-page--status-retry' : ''}}">
     <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在加载投稿"><view class="page-read-loading__indicator"/></view>
     <view wx:if="{{error}}" class="state state--error" aria-live="assertive">{{error}}</view>
     <view wx:if="{{!postId && !loading && !listMode && (textCardHandoffPath || (busy && operation === 'creating'))}}" class="composer-handoff">
@@ -86,9 +86,15 @@
       <view wx:if="{{state === 'hidden' || state === 'deleted'}}" class="composer-result__actions"><button class="text-button composer-action--primary" bindtap="showMyPosts">我的投稿</button><button class="text-button composer-action--quiet" bindtap="returnToCommunity">返回社区</button></view>
     </block>
   </view>
-  <view wx:if="{{!listMode && !loading && postId && (state === 'draft' || state === 'rejected' || state === 'published') && !keyboardVisible}}" class="composer-actions {{!publicGateEnabled ? 'composer-actions--private' : ''}}">
-    <view class="composer-actions__buttons"><button class="secondary composer-actions__save {{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery || imageEditRecovery ? 'secondary--disabled' : ''}}" bindtap="saveDraft" disabled="{{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery || imageEditRecovery}}" loading="{{operation === 'saving'}}">存草稿</button><button wx:if="{{publicGateEnabled}}" class="primary composer-actions__submit {{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery || imageEditRecovery || !publicGateEnabled ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery || imageEditRecovery || !publicGateEnabled}}" loading="{{operation === 'submitting'}}">发布</button></view>
-    <text wx:if="{{uploadBusy || writeRecovery || imageEditRecovery}}" class="composer-actions__hint">{{uploadBusy ? '图片上传中' : writeRecovery ? '请先核对上次操作结果' : '请先重试或放弃本次图片修改'}}</text>
+  <view wx:if="{{!listMode && !loading && postId && (state === 'draft' || state === 'rejected' || state === 'published') && !keyboardVisible}}" class="composer-actions">
+    <view class="composer-actions__status">
+      <text wx:if="{{mediaDragging || uploadBusy || writeRecovery || imageEditRecovery || (!publicGateEnabled && !publicGateUnknown)}}" class="composer-actions__hint" aria-live="polite">{{mediaDragging ? '请完成图片排序后继续' : uploadBusy ? '图片上传中' : writeRecovery ? '请先核对上次操作结果' : imageEditRecovery ? '请先重试或放弃本次图片修改' : !publicGateLoaded ? '正在确认发布状态…' : '公开发布暂未开放，草稿仅自己可见。'}}</text>
+      <button wx:if="{{publicGateUnknown && !mediaDragging && !uploadBusy && !writeRecovery && !imageEditRecovery}}" class="composer-actions__gate-retry {{busy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="refreshPublicGate" disabled="{{busy || recoveryBusy}}" aria-label="发布状态暂无法确认，重新检查发布状态">发布状态待确认，点此重试</button>
+    </view>
+    <view class="composer-actions__buttons">
+      <button class="secondary composer-actions__save {{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery || imageEditRecovery ? 'secondary--disabled' : ''}}" bindtap="saveDraft" disabled="{{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery || imageEditRecovery}}" loading="{{operation === 'saving'}}" aria-label="存草稿，仅自己可见">存草稿</button>
+      <button class="primary composer-actions__submit {{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery || imageEditRecovery || !publicGateEnabled ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery || imageEditRecovery || !publicGateEnabled}}" loading="{{operation === 'submitting'}}" aria-label="{{!publicGateEnabled ? (publicGateUnknown ? '发布状态暂无法确认，请重新检查' : !publicGateLoaded ? '正在确认发布状态' : '公开发布暂未开放，可先存草稿') : '去发布当前内容'}}">去发布</button>
+    </view>
   </view>
   <view wx:if="{{mediaDragging}}" class="composer-drag-layer" aria-hidden="true"><view class="composer-drag-photo {{mediaDragDropping ? 'composer-drag-photo--dropping' : ''}}" style="width:{{mediaDragSize}}px;height:{{mediaDragSize}}px;transform:translate3d({{mediaDragLeft}}px,{{mediaDragTop}}px,0) scale({{mediaDragDropping ? 1 : 1.04}})"><image wx:if="{{mediaDragSource}}" src="{{mediaDragSource}}" mode="aspectFill"/><view wx:else class="composer-drag-photo__empty">照片</view></view></view>
   <community-text-card id="communityTextCard" visible="{{textCardVisible}}" initial-text="{{textCardText}}" initial-template="{{textCardTemplate}}" context-key="{{textCardContext}}" bind:change="textCardChanged" bind:confirm="confirmTextCard" bind:cancel="cancelTextCard"/>

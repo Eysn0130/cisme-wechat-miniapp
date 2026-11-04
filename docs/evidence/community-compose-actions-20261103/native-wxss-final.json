@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "tool": "compile_wxss",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "files": 2,
+    "fileList": [
+      "comm",
+      "page"
+    ],
+    "totalCodeLength": 20755
+  }
+}

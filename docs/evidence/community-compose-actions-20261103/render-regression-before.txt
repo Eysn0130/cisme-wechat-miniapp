@@ -1,0 +1,89 @@
+
+ RUN  v4.1.12 /Users/mini/CISME
+
+ ❯ tests/unit/community-compose-actions.test.ts (14 tests | 6 failed) 26ms
+   × keeps separate draft and publish actions visible for editable draft content 13ms
+   × keeps separate draft and publish actions visible for editable rejected content 2ms
+   × keeps separate draft and publish actions visible for editable published content 1ms
+   × keeps both controls mounted when publication availability changes 1ms
+   × offers a retry when publication availability cannot be checked 1ms
+   × explains mediaDragging while preventing duplicate actions 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/community-compose-actions.test.ts > keeps separate draft and publish actions visible for editable draft content
+ FAIL  tests/unit/community-compose-actions.test.ts > keeps separate draft and publish actions visible for editable rejected content
+ FAIL  tests/unit/community-compose-actions.test.ts > keeps separate draft and publish actions visible for editable published content
+AssertionError: expected undefined to be '去发布' // Object.is equality
+
+- Expected:
+"去发布"
+
++ Received:
+undefined
+
+ ❯ tests/unit/community-compose-actions.test.ts:24:76
+     22|   const page = render({ state, publicGateEnabled: false });
+     23|   expect(page.querySelector(".composer-actions__save").dom.textContent…
+     24|   expect(page.querySelector(".composer-actions__submit")?.dom.textCont…
+       |                                                                            ^
+     25|   expect(page.querySelector(".composer-actions__submit").dom.className…
+     26|   expect(page.dom.textContent).toContain("公开发布暂未开放");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/unit/community-compose-actions.test.ts > keeps both controls mounted when publication availability changes
+AssertionError: expected undefined to be truthy
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ tests/unit/community-compose-actions.test.ts:32:19
+     30|   const page = render({ publicGateEnabled: false });
+     31|   const save = page.querySelector(".composer-actions__save").dom, publ…
+     32|   expect(publish).toBeTruthy();
+       |                   ^
+     33|   page.setData({ publicGateEnabled: true });
+     34|   expect(page.querySelector(".composer-actions__save").dom).toBe(save);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/unit/community-compose-actions.test.ts > offers a retry when publication availability cannot be checked
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/unit/community-compose-actions.test.ts:43:80
+     41| it("offers a retry when publication availability cannot be checked", (…
+     42|   const page = render({ publicGateEnabled: false, publicGateUnknown: t…
+     43|   expect(page.querySelector(".composer-actions__gate-retry")?.dom.text…
+       |                                                                                ^
+     44|   expect(page.querySelector(".composer-actions__save").dom.className).…
+     45| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/unit/community-compose-actions.test.ts > explains mediaDragging while preventing duplicate actions
+AssertionError: expected undefined to be truthy
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ tests/unit/community-compose-actions.test.ts:51:81
+     49|   expect(page.querySelector(".composer-actions__save").dom.className).…
+     50|   expect(page.querySelector(".composer-actions__submit").dom.className…
+     51|   expect(page.querySelector(".composer-actions__hint")?.dom.textConten…
+       |                                                                                 ^
+     52| });
+     53|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 8 passed (14)
+   Start at  18:52:57
+   Duration  649ms (transform 31ms, setup 53ms, import 99ms, tests 26ms, environment 387ms)
