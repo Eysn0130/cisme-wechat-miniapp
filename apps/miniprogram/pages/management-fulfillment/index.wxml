@@ -2,7 +2,7 @@
  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">发货与履约</text></view>
  <view class="page page--stack">
   <view class="page-title">先核对，再登记物流</view><text class="subtitle">用于整单一次发货。可导出 Excel 拣货，发货结果请以已保存的订单记录为准。</text>
-  <view wx:if="{{loading}}" class="state">正在核验权限与订单…</view>
+  <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在核验权限与订单…"><view class="page-read-loading__indicator"/></view>
   <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button bindtap="retry" disabled="{{busy}}" class="text-button {{busy ? 'control--disabled' : ''}}">重新核验</button></view>
   <view wx:if="{{coreReady}}" class="section-card">
    <picker range="{{states}}" value="{{stateIndex}}" bindchange="onState" disabled="{{busy}}"><view class="filter-choice">物流状态 · {{states[stateIndex]}}　⌄</view></picker>

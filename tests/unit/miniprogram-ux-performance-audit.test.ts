@@ -18,7 +18,7 @@ describe("mini program user-perceived performance guardrails", () => {
 
   it("starts Profile secondary tasks without waiting for bootstrap and avatar file work", async () => {
     const profile = await source("apps/miniprogram/pages/profile/index.ts");
-    const tasks = profile.indexOf("void this.loadTasks(attempt)");
+    const tasks = profile.indexOf("this.loadAuxiliary(attempt, token)");
     const bootstrap = profile.indexOf('pageRead<any>(this, { path: "/v1/bootstrap/profile"');
     const avatar = profile.indexOf("void this.loadAvatar", bootstrap);
     expect(tasks).toBeGreaterThan(0);
@@ -43,7 +43,7 @@ describe("mini program user-perceived performance guardrails", () => {
     expect(privacy).toContain("busy:false,replyBusy:false,exportBusy:false,exportRequestId:'',supportOpening:false");
     expect(privacy).toContain("...(changed?{selected:0,deleteScopeIndex:0,consentGrantIndex:0,message:'',replyFor:'',replyDraft:'',replyKey:'',notice:'',error:''}:{}),");
     expect(privacy).toMatch(/this\.data\.alive\s*&&\s*attempt===this\.data\.loadAttempt\s*&&\s*token===privacyToken\(\)/);
-    expect(community).toContain("token !== getApp<IAppOption>().globalData.sessionToken || attempt !== this.data.feedAttempt");
-    expect(community).toContain("const current = () => token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.feedAttempt");
+    expect(community).toContain("token!==getApp<IAppOption>().globalData.sessionToken || attempt!==this.data.feedAttempt");
+    expect(community).toContain("const current=()=>this.readVisible&&attempt===this.data.feedAttempt");
   });
 });

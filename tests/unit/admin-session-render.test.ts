@@ -7,10 +7,10 @@ const edit=(value:string)=>{token().value=value;token().dispatchEvent(new Event(
 beforeEach(()=>{vi.resetModules();localStorage.clear();sessionStorage.clear();document.body.innerHTML='<div id="app"></div>';});
 afterEach(()=>vi.unstubAllGlobals());
 it('does not combine earlier fulfilled queue data with a newly entered operator while remaining reads finish',async()=>{
- const reads=Array.from({length:4},()=>later()),network=vi.fn();let index=0;
+ const reads=Array.from({length:2},()=>later()),network=vi.fn();let index=0;
  network.mockImplementation(()=>reads[index++]!.promise);vi.stubGlobal('fetch',network);
  await import('../../apps/admin/src/main');edit('synthetic-a');document.querySelector<HTMLButtonElement>('#load')!.click();
- reads[0]!.resolve({ok:true,json:async()=>[{id:'old-record',platform_account:'OLD_OPERATOR_RECORD',status:'pending',version:1}]});await flush();
+ reads[0]!.resolve({ok:true,json:async()=>[{id:'old-record',member_id:'OLD_OPERATOR_RECORD',amount:1,state:'available',version:1}]});await flush();
  edit('synthetic-b');for(const item of reads.slice(1))item.resolve({ok:true,json:async()=>[]});await flush();
  expect(document.body.textContent).not.toContain('OLD_OPERATOR_RECORD');expect(token().value).toBe('synthetic-b');
  expect(document.querySelector('[data-export]')).toBeNull();

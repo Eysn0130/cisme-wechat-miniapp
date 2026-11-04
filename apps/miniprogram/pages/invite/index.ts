@@ -1,3 +1,4 @@
+import { retainReadPresentation } from "../../services/read-presentation";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
@@ -10,13 +11,13 @@ const dateLabel = (value: string) => {
 };
 
 Page({
-  data: { chromeStyle: currentChromeStyle(), loading: true, preparing: false, leaving: false, pageAlive: true, attempt: 0, displayName: "CISME 会员", shareId: "", shareCode: "待生成", expiresAt: "", commercialEligible:false, referralAvailable:false, referralCode:"", referralError:"", history: [] as Array<ShareLink & { code: string; date: string; label: string }>, error: "" },
+  data: { invitationReady:false,chromeStyle: currentChromeStyle(), loading: true, preparing: false, leaving: false, pageAlive: true, attempt: 0, displayName: "CISME 会员", shareId: "", shareCode: "待生成", expiresAt: "", commercialEligible:false, referralAvailable:false, referralCode:"", referralError:"", history: [] as Array<ShareLink & { code: string; date: string; label: string }>, error: "" },
   onLoad() { wx.hideShareMenu(); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.data.pageAlive = true;
     if (!retainMemberSnapshot(this)) {
-      this.setData({ attempt: this.data.attempt + 1, loading: true, preparing: false, displayName: "CISME 会员", shareId: "", shareCode: "待生成",
+      this.setData({ invitationReady:false,attempt: this.data.attempt + 1, loading: true, preparing: false, displayName: "CISME 会员", shareId: "", shareCode: "待生成",
         expiresAt: "", commercialEligible: false, referralAvailable:false, referralCode: "", referralError: "", history: [], error: "" });
       wx.hideShareMenu();
     }
@@ -30,8 +31,9 @@ Page({
     if (event?.type) clearAuthenticationRedirectSuppression();
     const attempt = this.data.attempt + 1;
     const token = getApp<IAppOption>().globalData.sessionToken;
-    this.setData({ attempt, loading: true, preparing: false, error: "", referralError:"", displayName: "CISME 会员", shareId: "", shareCode: "待生成",
-      expiresAt: "", commercialEligible: false, referralAvailable:false, referralCode: "", history: [] });
+    const preserve = retainReadPresentation(this);
+    this.setData({ attempt, loading: true, preparing: false, error: "", referralError:"", ...(!preserve ? { invitationReady:false, displayName: "CISME 会员", shareId: "", shareCode: "待生成",
+      expiresAt: "", commercialEligible: false, referralAvailable:false, referralCode: "", history: [] } : {}) });
     wx.hideShareMenu();
     try {
       const [member, links, commercial] = await Promise.all([request<{ display_name: string }>({ path: "/v1/me" }), request<ShareLink[]>({ path: "/v1/me/shares?targetType=invite" }),
@@ -40,17 +42,17 @@ Page({
       const invitations = links.filter((link) => link.targetType === "invite" && link.targetRef === "home");
       const active = invitations.find((link) => link.state === "active");
       const referralAvailable=commercial.eligible&&commercial.referralAvailable===true;
-      this.setData({ displayName: member.display_name || "CISME 会员", shareId: active?.shareId ?? "", shareCode: active ? shortCode(active.shareId) : "待生成", expiresAt: active?.expiresAt ?? "", commercialEligible:commercial.eligible&&(referralAvailable||Boolean(commercial.referralCode)||commercial.referralCodeDisabled),referralAvailable,referralCode:commercial.referralCode||"", referralError:commercial.referralCodeDisabled?"推荐码已停用，请联系客服。":!referralAvailable&&commercial.referralCode?"推荐功能暂不可用。":"", history: invitations.slice(0, 5).map((link) => ({ ...link, code: shortCode(link.shareId), date: dateLabel(link.createdAt), label: link.state === "active" ? "可分享" : link.state === "expired" ? "已过期" : "已失效" })), loading: false });
+      this.setData({ invitationReady:true,displayName: member.display_name || "CISME 会员", shareId: active?.shareId ?? "", shareCode: active ? shortCode(active.shareId) : "待生成", expiresAt: active?.expiresAt ?? "", commercialEligible:commercial.eligible&&(referralAvailable||Boolean(commercial.referralCode)||commercial.referralCodeDisabled),referralAvailable,referralCode:commercial.referralCode||"", referralError:commercial.referralCodeDisabled?"推荐码已停用，请联系客服。":!referralAvailable&&commercial.referralCode?"推荐功能暂不可用。":"", history: invitations.slice(0, 5).map((link) => ({ ...link, code: shortCode(link.shareId), date: dateLabel(link.createdAt), label: link.state === "active" ? "可分享" : link.state === "expired" ? "已过期" : "已失效" })), loading: false });
       if (referralAvailable && !commercial.referralCode) void this.prepareReferralCode(attempt);
       if (active || (referralAvailable && commercial.referralCode)) wx.showShareMenu({ menus: ["shareAppMessage"] });
     } catch {
-      if (this.data.pageAlive && attempt === this.data.attempt) this.setData({ loading: false, error: "暂时无法加载邀请记录，请重试。" });
+      if (this.data.pageAlive && attempt === this.data.attempt) this.setData({ invitationReady:false,shareId:"",shareCode:"待生成",referralCode:"",commercialEligible:false,referralAvailable:false,history:[],loading: false, error: "暂时无法加载邀请记录，请重试。" });
     }
   },
   async prepareReferralCode(attempt:number){try{const result=await request<{code:string}>({path:"/v1/me/commercial-membership/code",method:"POST"});
       if(this.data.pageAlive&&attempt===this.data.attempt){this.setData({referralCode:result.code});wx.showShareMenu({menus:["shareAppMessage"]});}}
     catch(error){if(this.data.pageAlive&&attempt===this.data.attempt)this.setData({referralError:(error as {title?:string}).title||"暂时无法查询推荐码，请稍后重试。"});}},
-  copyReferralCode(){if(this.data.referralCode)wx.setClipboardData({data:this.data.referralCode});},
+  copyReferralCode(){if(!this.data.loading&&this.data.referralCode)wx.setClipboardData({data:this.data.referralCode});},
   openReferralConfirm(){wx.navigateTo({url:"/pages/referral/index",fail:()=>wx.showToast({title:"推荐码页面暂时无法打开",icon:"none"})});},
   async prepare() {
     if (this.data.loading || this.data.preparing || this.data.leaving || !this.data.pageAlive) return;

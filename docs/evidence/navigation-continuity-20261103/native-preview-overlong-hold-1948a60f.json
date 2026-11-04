@@ -1,0 +1,276 @@
+{
+  "sourceSha256": "1948a60f1815d42d2fdabfbab7701b464f0c6b0404f3f3896eb10091907b1877",
+  "scope": "Actual native image preview round trip on an existing public editorial post; only GETs forwarded.",
+  "baseline": {
+    "route": "pages/post/index",
+    "rects": [
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 390,
+          "top": 91,
+          "bottom": 611,
+          "width": 390,
+          "height": 520
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 390,
+          "top": 611,
+          "bottom": 667,
+          "width": 390,
+          "height": 56
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 16,
+          "right": 374,
+          "top": 667,
+          "bottom": 723,
+          "width": 358,
+          "height": 56
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 16,
+          "right": 226.5078125,
+          "top": 760,
+          "bottom": 804,
+          "width": 210.5078125,
+          "height": 44
+        }
+      ],
+      []
+    ],
+    "loading": false,
+    "mediaIndex": 0,
+    "galleryHeight": 1000,
+    "hasImage": true,
+    "previewBusy": false
+  },
+  "armed": {
+    "held": true
+  },
+  "samples": [
+    {
+      "route": "pages/post/index",
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 91,
+            "bottom": 611,
+            "width": 390,
+            "height": 520
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 611,
+            "bottom": 667,
+            "width": 390,
+            "height": 56
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 374,
+            "top": 667,
+            "bottom": 723,
+            "width": 358,
+            "height": 56
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 226.5078125,
+            "top": 760,
+            "bottom": 804,
+            "width": 210.5078125,
+            "height": 44
+          }
+        ],
+        []
+      ],
+      "loading": true,
+      "mediaIndex": 0,
+      "galleryHeight": 1000,
+      "hasImage": true,
+      "previewBusy": false
+    },
+    {
+      "route": "pages/post/index",
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 91,
+            "bottom": 611,
+            "width": 390,
+            "height": 520
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 611,
+            "bottom": 667,
+            "width": 390,
+            "height": 56
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 374,
+            "top": 667,
+            "bottom": 723,
+            "width": 358,
+            "height": 56
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 226.5078125,
+            "top": 760,
+            "bottom": 804,
+            "width": 210.5078125,
+            "height": 44
+          }
+        ],
+        []
+      ],
+      "loading": true,
+      "mediaIndex": 0,
+      "galleryHeight": 1000,
+      "hasImage": true,
+      "previewBusy": false
+    },
+    {
+      "route": "pages/post/index",
+      "rects": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "loading": false,
+      "mediaIndex": 0,
+      "galleryHeight": 1000,
+      "hasImage": false,
+      "previewBusy": false
+    },
+    {
+      "route": "pages/post/index",
+      "rects": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "loading": false,
+      "mediaIndex": 0,
+      "galleryHeight": 1000,
+      "hasImage": false,
+      "previewBusy": false
+    },
+    {
+      "route": "pages/post/index",
+      "rects": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "loading": false,
+      "mediaIndex": 0,
+      "galleryHeight": 1000,
+      "hasImage": false,
+      "previewBusy": false
+    },
+    {
+      "route": "pages/post/index",
+      "rects": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "loading": false,
+      "mediaIndex": 0,
+      "galleryHeight": 1000,
+      "hasImage": false,
+      "previewBusy": false
+    }
+  ],
+  "geometryMatchesBaseline": false,
+  "observedUI": {
+    "imagePreviewOpened": true,
+    "imagePreviewClosed": true,
+    "openedBy": "Native tap on .post-cover",
+    "closedBy": "Click on visible preview image via CUA; Escape did not close it",
+    "source": "Observed DevTools AX state and screenshot; 1 / 1 preview visible, then post returned with disabled comment-checking entry"
+  },
+  "cleanup": {
+    "readCount": 3,
+    "blockedWriteAttempts": [],
+    "forwardedServerWrites": 0,
+    "requestRestored": true,
+    "sessionUnchanged": true,
+    "final": {
+      "route": "pages/post/index",
+      "rects": [
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      "loading": false,
+      "mediaIndex": 0,
+      "galleryHeight": 1000,
+      "hasImage": false,
+      "previewBusy": false
+    }
+  }
+}

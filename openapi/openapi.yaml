@@ -487,6 +487,13 @@ paths:
       operationId: followingFeed
       security: [{session: []}]
       responses: {'200': {description: Latest published content by followed authors; publication gate remains enforced}}
+  /v1/me/community/following:
+    get:
+      operationId: communityFollowingTimeline
+      security: [{session: []}]
+      description: Current canonical WeChat member's followed-author timeline. Shared author identity across curated and ordinary posts; only published active-author content, with blocks and public UGC gates enforced. Sorted by publication time, source and UUID; owner-bound cursor. New posts appear on a fresh first page. No new legal consent is required for this read.
+      parameters: [{name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 30}}, {name: cursor, in: query, schema: {type: string, maxLength: 1000}}]
+      responses: {'200': {description: CommunityFollowingPage with source-tagged public cards and nextCursor; private no-store}, '401': {description: Active canonical WeChat member required}, '422': {description: Invalid page or cursor belonging to a different member}}
   /v1/me/following/page:
     get:
       operationId: followingFeedPage
@@ -504,32 +511,15 @@ paths:
         content: {application/json: {schema: {type: object, required: [active], properties: {active: {type: boolean}}}}}
       responses: {'200': {description: Saved following state}, '422': {description: Invalid state or self follow}}
   /v1/team/reviews:
-    get:
-      operationId: nativeReviewQueue
-      security: [{session: []}]
-      description: Requires current database team membership and review role; client role headers are ignored.
-      responses: {'200': {description: Pending submissions}, '403': {description: Team access denied}}
+    get: {"operationId":"nativeReviewQueue","security":[{"session":[]}],"description":"Removed pre-publication workflow. Authorized legacy clients receive an empty list; no new review or task is offered.","responses":{"200":{"description":"Pending submissions"},"403":{"description":"Team access denied"}},"deprecated":true}
   /v1/team/publications:
-    get:
-      operationId: nativePublicationQueue
-      security: [{session: []}]
-      responses: {'200': {description: Approved submissions awaiting publication review}, '403': {description: Team access denied}}
+    get: {"operationId":"nativePublicationQueue","security":[{"session":[]}],"responses":{"200":{"description":"Approved submissions awaiting publication review"},"403":{"description":"Team access denied"}},"deprecated":true,"description":"Removed pre-publication workflow. Authorized legacy clients receive an empty list; no new review or task is offered."}
   /v1/team/submissions/{submissionId}/review:
     parameters: [{name: submissionId, in: path, required: true, schema: {type: string, format: uuid}}]
-    post:
-      operationId: nativeReviewSubmission
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
-      description: Same versioned evidence review as admin endpoint; only approve, reject or request_changes are accepted.
-      responses: {'200': {description: Reviewed state}, '403': {description: Team access denied}, '409': {description: Version or state conflict}}
+    post: {"operationId":"nativeReviewSubmission","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/IdempotencyKey"}],"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points.","responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true}
   /v1/team/submissions/{submissionId}/publish:
     parameters: [{name: submissionId, in: path, required: true, schema: {type: string, format: uuid}}]
-    post:
-      operationId: nativePublishSubmission
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
-      description: Requires another review lead, active public-display consent, UGC gate and publication title/excerpt/AI declaration/evidence. Queues an audited publication event.
-      responses: {'200': {description: Publication queued or already published}, '403': {description: Team access denied}, '409': {description: Four-eyes or consent conflict}, '503': {description: Publication gate closed}}
+    post: {"operationId":"nativePublishSubmission","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/IdempotencyKey"}],"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points.","responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true}
   /v1/uploads/{mediaId}/chunks:
     parameters: [{name: mediaId, in: path, required: true, schema: {type: string, format: uuid}}]
     post:
@@ -709,24 +699,13 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CareMilestoneCommandInput'}}}}
       responses: {'200': {description: Versioned milestone record and optional task, or exact command replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /v1/me/tasks:
-    get: {tags: [Read models], operationId: getEligibleTasks, security: [{session: []}], responses: {'200': {description: Member-owned effective invitations}}}
+    get: {"tags":["Read models"],"operationId":"getEligibleTasks","security":[{"session":[]}],"responses":{"200":{"description":"Member-owned effective invitations"}},"deprecated":true,"description":"Removed pre-publication workflow. Authorized legacy clients receive an empty list; no new review or task is offered."}
   /v1/tasks/{taskId}:
-    get: {tags: [Read models], operationId: getTask, security: [{session: []}], parameters: [{$ref: '#/components/parameters/TaskId'}], responses: {'200': {description: Member-owned task}, '404': {$ref: '#/components/responses/Problem'}}}
+    get: {"tags":["Read models"],"operationId":"getTask","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/TaskId"}],"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/tasks/{taskId}/claim:
-    post:
-      tags: [Submission]
-      operationId: claimTask
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/TaskId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
-      responses: {'200': {description: Same claim and submission for every replay}, '409': {$ref: '#/components/responses/Problem'}}
+    post: {"tags":["Submission"],"operationId":"claimTask","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/TaskId"},{"$ref":"#/components/parameters/IdempotencyKey"}],"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/submissions/{submissionId}/media/authorize:
-    post:
-      tags: [Submission]
-      operationId: authorizeMedia
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [kind, mimeType], properties: {kind: {type: string, enum: [original, screenshot]}, mimeType: {type: string}, maxBytes: {type: integer, maximum: 10485760}}}}}}
-      responses: {'200': {description: Controlled gateway POST or feature-gated 10-minute single-object COS PUT authorization; completion always revalidates bytes, type and hash}, '503': {$ref: '#/components/responses/Problem'}}
+    post: {"tags":["Submission"],"operationId":"authorizeMedia","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"},{"$ref":"#/components/parameters/IdempotencyKey"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["kind","mimeType"],"properties":{"kind":{"type":"string","enum":["original","screenshot"]},"mimeType":{"type":"string"},"maxBytes":{"type":"integer","maximum":10485760}}}}}},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/uploads/{mediaId}:
     post:
       tags: [Submission]
@@ -737,41 +716,19 @@ paths:
       requestBody: {required: true, content: {multipart/form-data: {schema: {type: object, required: [token, file], properties: {token: {type: string}, file: {type: string, format: binary}}}}}}
       responses: {'200': {description: Object persisted}, '401': {$ref: '#/components/responses/Problem'}}
   /v1/submissions/{submissionId}/media/{mediaId}/complete:
-    post:
-      tags: [Submission]
-      operationId: completeMedia
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {name: mediaId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
-      responses: {'200': {description: HEAD and checksum recorded}, '409': {$ref: '#/components/responses/Problem'}}
+    post: {"tags":["Submission"],"operationId":"completeMedia","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"},{"name":"mediaId","in":"path","required":true,"schema":{"$ref":"#/components/schemas/Uuid"}}],"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/submissions/{submissionId}/media/{mediaId}:
-    delete:
-      tags: [Submission]
-      operationId: deleteMedia
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {name: mediaId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
-      responses: {'200': {description: Media is removed from the active read model and durable object cleanup is queued}}
+    delete: {"tags":["Submission"],"operationId":"deleteMedia","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"},{"name":"mediaId","in":"path","required":true,"schema":{"$ref":"#/components/schemas/Uuid"}}],"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/submissions/{submissionId}/draft:
-    put:
-      tags: [Submission]
-      operationId: saveSubmissionDraft
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/SubmissionId'}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubmissionInput'}}}}
-      responses: {'200': {description: Versioned server-side draft saved}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+    put: {"tags":["Submission"],"operationId":"saveSubmissionDraft","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/SubmissionInput"}}}},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/submissions/{submissionId}/submit:
-    post:
-      tags: [Submission]
-      operationId: submitEvidence
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubmissionInput'}}}}
-      responses: {'200': {description: Submitted or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+    post: {"tags":["Submission"],"operationId":"submitEvidence","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"},{"$ref":"#/components/parameters/IdempotencyKey"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/SubmissionInput"}}}},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/submissions/{submissionId}:
-    get: {tags: [Read models], operationId: getSubmission, security: [{session: []}], parameters: [{$ref: '#/components/parameters/SubmissionId'}], responses: {'200': {description: Object-owned submission view including authoritative media_uploads_enabled kill-switch state}, '404': {$ref: '#/components/responses/Problem'}}}
+    get: {"tags":["Read models"],"operationId":"getSubmission","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"}],"responses":{"200":{"description":"Object-owned submission view including authoritative media_uploads_enabled kill-switch state"},"404":{"$ref":"#/components/responses/Problem"}},"description":"Read-only historical proof record. The workflow is removed and media_uploads_enabled is false. Consent withdrawal, privacy rights and historical points remain available."}
   /v1/submissions/{submissionId}/appeal:
-    post: {tags: [Submission], operationId: appeal, security: [{session: []}], parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: Versioned appeal created or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
+    post: {"tags":["Submission"],"operationId":"appeal","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"},{"$ref":"#/components/parameters/IdempotencyKey"}],"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/admin/reviews:
-    get: {tags: [Admin], operationId: reviewQueue, security: [{session: []}], responses: {'200': {description: RBAC-filtered queue}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {"tags":["Admin"],"operationId":"reviewQueue","security":[{"session":[]}],"responses":{"200":{"description":"RBAC-filtered queue"},"403":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed pre-publication workflow. Authorized legacy clients receive an empty list; no new review or task is offered."}
   /v1/admin/tester-enrollments:
     post:
       tags: [Admin]
@@ -797,24 +754,11 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [active, capacity, startsAt, endsAt, expectedVersion, reasonCode, evidence], properties: {active: {type: boolean}, capacity: {type: integer, minimum: 1, maximum: 100000}, startsAt: {type: string, format: date-time}, endsAt: {type: string, format: date-time}, expectedVersion: {type: integer, minimum: 1}, reasonCode: {type: string, minLength: 1}, evidence: {type: object, minProperties: 1}}}}}}
       responses: {'200': {description: Versioned audited update or exact replay}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /v1/admin/submissions/{submissionId}/review:
-    post:
-      tags: [Admin]
-      operationId: reviewSubmission
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ReviewInput'}}}}
-      responses: {'200': {description: Versioned reward/evidence review; when finance-approved rules are enabled, approval creates at most one frozen grant; it never publishes content}, '409': {$ref: '#/components/responses/Problem'}}
+    post: {"tags":["Admin"],"operationId":"reviewSubmission","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"},{"$ref":"#/components/parameters/IdempotencyKey"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ReviewInput"}}}},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points."}
   /v1/admin/publications:
-    get: {tags: [Admin], operationId: publicationQueue, security: [{session: []}], responses: {'200': {description: Approved submissions awaiting a separate public-content decision; review lead or auditor only}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {"tags":["Admin"],"operationId":"publicationQueue","security":[{"session":[]}],"responses":{"200":{"description":"Approved submissions awaiting a separate public-content decision; review lead or auditor only"},"403":{"$ref":"#/components/responses/Problem"}},"deprecated":true,"description":"Removed pre-publication workflow. Authorized legacy clients receive an empty list; no new review or task is offered."}
   /v1/admin/submissions/{submissionId}/publish:
-    post:
-      tags: [Admin]
-      operationId: approveSubmissionPublication
-      description: Requires the UGC go-live gate, an active feed consent, a review-lead principal different from the reward reviewer, structured AI-use declaration and auditable evidence. Queues publication; the worker revalidates before visibility.
-      security: [{session: []}]
-      parameters: [{$ref: '#/components/parameters/SubmissionId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PublicationInput'}}}}
-      responses: {'200': {description: Idempotent publication decision queued or already published}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+    post: {"tags":["Admin"],"operationId":"approveSubmissionPublication","description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points.","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/SubmissionId"},{"$ref":"#/components/parameters/IdempotencyKey"}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PublicationInput"}}}},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true}
   /v1/admin/points/actions:
     get: {tags: [Admin], operationId: pointsActionQueue, security: [{session: []}], responses: {'200': {description: Finance-operator, finance-approver or auditor action queue}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/admin/points/grants:
@@ -1555,9 +1499,9 @@ paths:
   /v1/me/ugc/posts/{postId}/appeals:
     post: {operationId: submitFormalUgcAppeal, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Author-only appeal for a hidden published version, independent of privacy-rights requests; same reason replays by post version., requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reason, expectedVersion], properties: {reason: {type: string, minLength: 4, maxLength: 1000}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Appeal received or exact replay}, '409': {$ref: '#/components/responses/Problem'}}}
   /v1/me/ugc/posts/{postId}/draft:
-    put: {operationId: saveFormalUgcDraft, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], requestBody: {$ref: '#/components/requestBodies/UgcDraft'}, responses: {'200': {description: Version-guarded private revision; previously published revision stays public}, '409': {$ref: '#/components/responses/Problem'}}}
+    put: {"operationId":"saveFormalUgcDraft","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/FormalPostId"}],"requestBody":{"$ref":"#/components/requestBodies/UgcDraft"},"responses":{"200":{"description":"Version-guarded private revision; previously published revision stays public"},"409":{"$ref":"#/components/responses/Problem"}},"description":"Save a private revision. Editing a pending publication supersedes its revision, so late checks cannot publish the old intent. A prior public revision remains until a new version is safely published."}
   /v1/me/ugc/posts/{postId}/submit:
-    post: {operationId: submitFormalUgcPost, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], requestBody: {$ref: '#/components/requestBodies/UgcExpectedVersion'}, responses: {'200': {description: Submitted current revision and scan availability; never publishes}, '409': {$ref: '#/components/responses/Problem'}}}
+    post: {"operationId":"submitFormalUgcPost","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/FormalPostId"}],"requestBody":{"$ref":"#/components/requestBodies/UgcExpectedVersion"},"responses":{"200":{"description":"Submitted current revision and scan availability; never publishes"},"409":{"$ref":"#/components/responses/Problem"}},"description":"Author publication action. Captures immutable public intent, runs automatic WeChat safety checks, and publishes automatically after current text and images pass. No human approval or second publisher. Async images remain pending_review internally until the signed callback. Failed checks stay private and editable. Public gate, account, ownership and version checks still apply."}
   /v1/me/ugc/posts/{postId}/scan:
     post: {operationId: requestFormalUgcScan, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], responses: {'200': {description: Text and image safety scan status for submitted revision}, '503': {$ref: '#/components/responses/Problem'}}}
   /v1/me/ugc/posts/{postId}/media/authorize:
@@ -1579,7 +1523,7 @@ paths:
   /v1/ugc/reports/{targetType}/{targetId}:
     post: {operationId: reportFormalUgcTarget, security: [{session: []}], parameters: [{name: targetType, in: path, required: true, schema: {type: string, enum: [post, comment, member]}}, {name: targetId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], requestBody: {$ref: '#/components/requestBodies/UgcReport'}, responses: {'200': {description: Audited own report receipt; no automatic takedown}, '422': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/review-queue:
-    get: {operationId: formalUgcReviewQueue, security: [{session: []}], description: Requires community.moderate and returns only submitted pending or approved candidate revisions., responses: {'200': {description: Reviewer queue}, '403': {$ref: '#/components/responses/Problem'}}}
+    get: {"operationId":"formalUgcReviewQueue","security":[{"session":[]}],"description":"Removed pre-publication workflow. Authorized legacy clients receive an empty list; no new review or task is offered.","responses":{"200":{"description":"Reviewer queue"},"403":{"$ref":"#/components/responses/Problem"}},"deprecated":true}
   /v1/management/ugc/reports:
     get: {operationId: formalUgcReportQueue, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}], description: Requires community.moderate; received and triaged reports only., responses: {'200': {description: Pending report keyset page with exact total}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/reports/{reportId}/decision:
@@ -1591,15 +1535,15 @@ paths:
   /v1/management/ugc/posts/{postId}:
     get: {operationId: formalUgcReviewCandidate, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires community.moderate; unsubmitted newer revisions are excluded even if an older revision is public., responses: {'200': {description: Eligible private review candidate with version}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/posts/{postId}/review:
-    post: {operationId: reviewFormalUgcPost, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires community.moderate; author cannot self-review; text and image safety evidence required before approval., requestBody: {$ref: '#/components/requestBodies/UgcReview'}, responses: {'200': {description: Audited approval or rejection for changes}, '409': {$ref: '#/components/responses/Problem'}}}
+    post: {"operationId":"reviewFormalUgcPost","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/FormalPostId"}],"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points.","requestBody":{"$ref":"#/components/requestBodies/UgcReview"},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true}
   /v1/management/ugc/posts/{postId}/publish:
-    post: {operationId: publishFormalUgcPost, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires independent publisher, explicit gate and current approved revision; old public revision remains until this succeeds., requestBody: {$ref: '#/components/requestBodies/UgcExpectedVersion'}, responses: {'200': {description: Current approved revision publicly selected}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}}
+    post: {"operationId":"publishFormalUgcPost","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/FormalPostId"}],"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points.","explicit gate and current approved revision; old public revision remains until this succeeds.":null,"requestBody":{"$ref":"#/components/requestBodies/UgcExpectedVersion"},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true}
   /v1/management/ugc/posts/{postId}/hide:
     post: {operationId: hideFormalUgcPost, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires community.moderate; audit reason and expected version are mandatory., requestBody: {$ref: '#/components/requestBodies/UgcHide'}, responses: {'200': {description: Public post hidden with retained facts}, '409': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/media/{mediaId}/preview-url:
     get: {operationId: formalUgcReviewPreviewUrl, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MediaId'}], description: Requires community.moderate and eligible submitted revision; token is bound to reviewer, post, revision and media., responses: {'200': {description: Five-minute signed private preview URL}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/media/{mediaId}/review:
-    post: {operationId: reviewFormalUgcMedia, security: [{session: []}], parameters: [{$ref: '#/components/parameters/MediaId'}], description: Requires community.moderate and safe WeChat scan result for approved media., requestBody: {$ref: '#/components/requestBodies/UgcMediaReview'}, responses: {'200': {description: Audited media review result}, '409': {$ref: '#/components/responses/Problem'}}}
+    post: {"operationId":"reviewFormalUgcMedia","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/MediaId"}],"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points.","requestBody":{"$ref":"#/components/requestBodies/UgcMediaReview"},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true}
   /v1/management/ugc/comments/{commentId}/review:
     post: {operationId: reviewFormalUgcComment, security: [{session: []}], parameters: [{$ref: '#/components/parameters/CommentId'}], description: Requires community.moderate and safe text scan before approval., requestBody: {$ref: '#/components/requestBodies/UgcCommentReview'}, responses: {'200': {description: Audited pending comment decision}, '409': {$ref: '#/components/responses/Problem'}}}
   /v1/me/commercial-membership:

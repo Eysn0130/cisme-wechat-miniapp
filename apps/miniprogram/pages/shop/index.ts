@@ -1,3 +1,4 @@
+import { retainReadPresentation } from "../../services/read-presentation";
 import { nativeCatalogImage } from "../../services/catalog";
 import { catalogList } from "../../services/commerce";
 import { currentChromeStyle } from "../../services/layout";
@@ -12,7 +13,8 @@ Page({
   onUnload() { this.data.pageAlive = false; this.data.loadAttempt += 1; },
   async load() {
     const attempt = this.data.loadAttempt + 1;
-    this.setData({ loadAttempt: attempt, catalog: null, featured: null, purchaseAvailable:false, loading: true, error: "" });
+    const preserve = retainReadPresentation(this);
+    this.setData({ loadAttempt: attempt, ...(!preserve ? { catalog: null, featured: null, purchaseAvailable:false } : {}), loading: true, error: "" });
     try {
       const catalog = await catalogList();
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;

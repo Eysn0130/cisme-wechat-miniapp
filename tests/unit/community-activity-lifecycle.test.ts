@@ -17,12 +17,15 @@ function fixture(sourceName:"editorial"|"ugc"="ugc"){
     options.registerAbort?.(()=>{call.aborted+=1;});calls.push(call);
   });
   const helpers=runInNewContext(source("apps/miniprogram/services/page-requests.ts")+"\n;({pageRead,cancelPageReads});",{request});
+  const presentation=runInNewContext(source("apps/miniprogram/services/read-presentation.ts")+"\n;({retainReadPresentation});",{
+    commerceContextRevision:()=>state.revision,getApp:()=>({globalData:{sessionToken:state.token}})
+  });
   const navigation:any[]=[],accessUrls:string[]=[];
   const wx={showModal:()=>new Promise((resolve,reject)=>modals.push({resolve,reject})),showToast:()=>{},navigateTo:(options:any)=>navigation.push(options)};
   const editorial=runInNewContext(source("apps/miniprogram/services/editorial.ts")+"\n;({editorialIdentifier});",{...helpers,request});
   const editorialCommands=runInNewContext(source("apps/miniprogram/services/editorial-comments.ts")+"\n;({deleteEditorialComment,setEditorialBlock});",{...helpers,...editorial,request});
   runInNewContext(source("apps/miniprogram/pages/community-activity/index.ts"),{
-    ...helpers,...editorialCommands,request,requireMemberAccess:(url:string)=>{accessUrls.push(url);return state.access;},currentChromeStyle:()=>"",shouldReduceMotion:()=>false,
+    ...helpers,...presentation,...editorialCommands,request,requireMemberAccess:(url:string)=>{accessUrls.push(url);return state.access;},currentChromeStyle:()=>"",shouldReduceMotion:()=>false,
     commerceContextRevision:()=>state.revision,getApp:()=>({globalData:{sessionToken:state.token}}),
     wx,Page:(value:any)=>{definition=value;}
   });
@@ -75,7 +78,7 @@ describe("community activity editorial and submission sources",()=>{
   it("paginates only the selected source and rejects malformed editorial pagination rather than showing a false empty state",async()=>{
     const f=fixture("editorial"),load=f.page.load();f.calls[0].resolve(editorialPage([editorialRow],"next",2));await load;
     const more=f.page.load(false);assert.equal(f.calls[1].path,"/v1/me/editorial/activity/comments?limit=30&cursor=next");f.calls[1].resolve(editorialPage([{...editorialRow,id:"second"}],null,2));await more;assert.equal(f.page.data.items.length,2);
-    const broken=f.page.load();f.calls[2].resolve({items:[],matchingTotal:0,nextCursor:null});await broken;assert.equal(f.page.data.loading,false);assert.ok(f.page.data.error);assert.equal(f.page.data.items.length,0);
+    const broken=f.page.load();f.calls[2].resolve({items:[],matchingTotal:0,nextCursor:null});await broken;assert.equal(f.page.data.loading,false);assert.ok(f.page.data.error);assert.deepEqual(Array.from(f.page.data.items,(item:any)=>item.id),[editorialRow.id,"second"]);
   });
   it("opens visible editorial rows in the editorial detail and preserves the submission route",()=>{
     const f=fixture("editorial");f.page.data.items=[editorialRow];f.page.openPost(event("id",editorialRow.postId,"editorial"));assert.equal(f.navigation[0].url,`/pages/post/index?id=${editorialRow.postId}&source=editorial`);
@@ -231,7 +234,8 @@ describe("community activity request and mutation ownership",()=>{
   it("an old account's completion cannot unlock a newer account's operation",async()=>{
     const f=fixture();f.page.data.items=[row];const first=f.page.deleteComment(event("id",row.id));
     f.modals[0].resolve({confirm:true});await flush();const oldWrite=f.calls[0];
-    f.state.token="synthetic-b";f.state.revision+=1;f.page.onShow();f.page.data.items=[row];
+    f.state.token="synthetic-b";f.state.revision+=1;f.page.onShow();
+    f.calls.find((call:any)=>!call.method).resolve({items:[row],nextCursor:null,matchingTotal:1});await flush();
     const second=f.page.deleteComment(event("id",row.id));f.modals[1].resolve({confirm:true});await flush();
     oldWrite.resolve({});await first;assert.equal(f.page.data.busy,true);
     f.calls.find((call:any)=>call.method&&call!==oldWrite).resolve({});await second;assert.equal(f.page.data.busy,false);

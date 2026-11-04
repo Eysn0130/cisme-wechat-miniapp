@@ -1,0 +1,132 @@
+{
+  "baselineSourceSha256": "7fd3e10ec169581684ff01f5161e82c62fd065f74d3b16560dcb894ce2d8a6f2",
+  "sourceSha256": "e627214bfdff6520d9febd04ad984e61849425e810511eae21d9da62881fbc29",
+  "baseCommit": "a2b9bd769f5a6be65fc0f82dd15c8d26daa52c51",
+  "files": [
+    {
+      "path": "apps/miniprogram/pages/community/index.ts",
+      "sha256": "4c564822c69f00263986c31c6038ffc9548ddd622e1dab1d1462ea9579e9b254"
+    },
+    {
+      "path": "apps/miniprogram/pages/community/index.wxml",
+      "sha256": "6b3b713613d43431e36ecc74924080126621545f90d48665d79103169ffa3a13"
+    },
+    {
+      "path": "apps/miniprogram/pages/home/index.ts",
+      "sha256": "160a33272b2b6067d845ab1ad13df153f1dd987ab7072495893019e1dde3c0e6"
+    },
+    {
+      "path": "apps/miniprogram/pages/home/index.wxml",
+      "sha256": "cfbfeea42083e4ca0f12129dfe91ab991f13335c4fe9bef2fea82370151c4035"
+    },
+    {
+      "path": "apps/miniprogram/pages/profile/index.ts",
+      "sha256": "c2dfeef11783324e1f98d28099e1234960898534b0b7a95fe2cba34e387502d9"
+    },
+    {
+      "path": "apps/miniprogram/pages/profile/index.wxml",
+      "sha256": "c51cf54cfb5eecdedbcc8811be018eba548f7265583e71f223b018a7db494c06"
+    },
+    {
+      "path": "apps/miniprogram/pages/records/index.wxml",
+      "sha256": "afabb29950699b09dd10ea854ef36bd521625b616519f6a32320a8c0f4d2af28"
+    }
+  ],
+  "package": {
+    "ok": true,
+    "internalBudgets": {
+      "mainPackageBytes": 1800000,
+      "subpackageBytes": 400000,
+      "globalWxssBytes": 8192,
+      "singleAssetBytes": 200000
+    },
+    "actual": {
+      "files": 298,
+      "routes": 40,
+      "totalBytes": 2166075,
+      "mainPackageBytes": 946132,
+      "subpackageBytes": {
+        "pages/task": 17022,
+        "pages/submit": 43708,
+        "pages/progress": 24005,
+        "pages/points": 12037,
+        "pages/post": 105725,
+        "pages/shop": 9153,
+        "pages/product": 16772,
+        "pages/checkout": 28515,
+        "pages/orders": 8815,
+        "pages/order-detail": 84876,
+        "pages/settings": 76104,
+        "pages/invite": 15195,
+        "pages/legal": 3645,
+        "pages/privacy-rights": 53288,
+        "pages/support": 104068,
+        "pages/management": 19133,
+        "pages/management-catalog": 7814,
+        "pages/management-product": 21770,
+        "pages/management-orders": 8747,
+        "pages/management-order-detail": 17478,
+        "pages/management-support": 10700,
+        "pages/management-support-chat": 87836,
+        "pages/management-members": 33998,
+        "pages/management-member": 34624,
+        "pages/referral": 6863,
+        "pages/community-compose": 136720,
+        "pages/community-post": 27022,
+        "pages/community-author": 14501,
+        "pages/community-review": 33404,
+        "pages/community-activity": 24034,
+        "pages/management-finance": 29932,
+        "pages/commission": 36445,
+        "pages/management-privacy": 17783,
+        "pages/aftersale": 33344,
+        "pages/management-fulfillment": 14867
+      },
+      "globalStyleBytes": 8190,
+      "sourceSha256": "e627214bfdff6520d9febd04ad984e61849425e810511eae21d9da62881fbc29"
+    },
+    "routes": [
+      "pages/account/index",
+      "pages/home/index",
+      "pages/records/index",
+      "pages/community/index",
+      "pages/profile/index",
+      "pages/task/index",
+      "pages/submit/index",
+      "pages/progress/index",
+      "pages/points/index",
+      "pages/post/index",
+      "pages/shop/index",
+      "pages/product/index",
+      "pages/checkout/index",
+      "pages/orders/index",
+      "pages/order-detail/index",
+      "pages/settings/index",
+      "pages/invite/index",
+      "pages/legal/index",
+      "pages/privacy-rights/index",
+      "pages/support/index",
+      "pages/management/index",
+      "pages/management-catalog/index",
+      "pages/management-product/index",
+      "pages/management-orders/index",
+      "pages/management-order-detail/index",
+      "pages/management-support/index",
+      "pages/management-support-chat/index",
+      "pages/management-members/index",
+      "pages/management-member/index",
+      "pages/referral/index",
+      "pages/community-compose/index",
+      "pages/community-post/index",
+      "pages/community-author/index",
+      "pages/community-review/index",
+      "pages/community-activity/index",
+      "pages/management-finance/index",
+      "pages/commission/index",
+      "pages/management-privacy/index",
+      "pages/aftersale/index",
+      "pages/management-fulfillment/index"
+    ],
+    "errors": []
+  }
+}

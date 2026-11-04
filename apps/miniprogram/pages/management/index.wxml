@@ -1,6 +1,6 @@
 <view class="management-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">CISME 管理中心</text></view><view class="page page--stack management-page">
  <view class="page-title">今天需要处理什么？</view><text class="subtitle">按职责查看和处理待办。</text>
- <view wx:if="{{loading}}" class="state">正在核验管理权限…</view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button class="text-button" bindtap="retry">重试</button></view>
+ <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在核验管理权限…"><view class="page-read-loading__indicator"/></view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button class="text-button" bindtap="retry">重试</button></view>
  <view wx:if="{{hasFinanceCapability}}" class="state" aria-live="polite"><text>{{runtimeCopy}}</text><button wx:if="{{runtimeState==='error'}}" class="text-button {{navigating?'text-button--disabled':''}}" bindtap="retryRuntime" disabled="{{navigating}}">重试</button></view><view wx:if="{{authority && attention}}" class="management-attention" aria-live="polite">
   <text class="management-attention__title">待办摘要</text>
   <button wx:if="{{canSupport && attention.support && attention.support.count}}" plain="true" class="management-attention__row {{navigating?'control--disabled':''}}" bindtap="openSupport" disabled="{{navigating}}">客服待接管或未读 {{attention.support.count}} · 进入处理</button>

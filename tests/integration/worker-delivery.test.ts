@@ -88,6 +88,11 @@ describe("worker delivery controls", () => {
   it("backs off, dead-letters and explicitly redrives outbox delivery", async () => {
     const publication = await insertPublicationSource("worker-test-outbox", new Date("2026-08-15T00:00:00Z"));
     const itemId = publication.eventId;
+    await pool.query(`CREATE FUNCTION synthetic_outbox_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+      IF NEW.business_key='worker-test-outbox' AND NEW.processed_at IS NOT NULL THEN
+        RAISE EXCEPTION 'synthetic retryable write fault' USING ERRCODE='40001';
+      END IF; RETURN NEW; END $$;
+      CREATE TRIGGER synthetic_outbox_failure BEFORE UPDATE ON outbox_event FOR EACH ROW EXECUTE FUNCTION synthetic_outbox_failure()`);
     const unhandled = await pool.query<{ id: string }>(`INSERT INTO outbox_event
       (event_type, aggregate_type, aggregate_id, aggregate_version, business_key, payload, occurred_at, next_attempt_at)
       VALUES ('identity.accepted.v1','member',gen_random_uuid(),1,'worker-test-unhandled','{}'::jsonb,$1,$1) RETURNING id`, [new Date("2026-08-15T00:00:00Z")]);
@@ -127,17 +132,17 @@ describe("worker delivery controls", () => {
     expect(replay.json()).toEqual(redriven.json());
     expect(redriven.json()).toMatchObject({ status: "queued", redriveCount: 1, attempts: WORKER_MAX_ATTEMPTS });
 
+    await pool.query('DROP TRIGGER synthetic_outbox_failure ON outbox_event; DROP FUNCTION synthetic_outbox_failure()');
     expect(await processOutboxBatch(pool, new Date(start + 4 * 60 * 60_000), 10, { ugcGoLiveGate: true })).toBe(1);
     const recovered = (await pool.query("SELECT processed_at, redrive_count, processing_outcome FROM outbox_event WHERE id=$1", [itemId])).rows[0];
     expect(recovered.processed_at).toBeTruthy();
     expect(recovered.redrive_count).toBe(1);
-    expect(recovered.processing_outcome).toBe("applied");
-    expect((await pool.query("SELECT submission_id, member_id, visible FROM feed_item WHERE submission_id=$1", [publication.submissionId])).rows[0])
-      .toMatchObject({ submission_id: publication.submissionId, member_id: publication.memberId, visible: true });
+    expect(recovered.processing_outcome).toBe("suppressed");
+    expect((await pool.query("SELECT count(*)::int n FROM feed_item WHERE submission_id=$1", [publication.submissionId])).rows[0].n).toBe(0);
     expect((await pool.query("SELECT count(*)::int count FROM audit_log WHERE action='worker_failure.redrive' AND object_id=$1", [itemId])).rows[0].count).toBe(1);
   });
 
-  it("isolates a database statement failure and continues the batch", async () => {
+  it("suppresses queued retired publications even with absent or malformed sources", async () => {
     const now = new Date("2026-08-15T01:00:00Z");
     const missingSource = await pool.query<{ id: string }>(`INSERT INTO outbox_event
       (event_type, aggregate_type, aggregate_id, aggregate_version, business_key, payload, occurred_at, next_attempt_at)
@@ -149,19 +154,12 @@ describe("worker delivery controls", () => {
         '{"submissionId":"not-a-uuid"}'::jsonb,$1,$1) RETURNING id`, [now]);
     const valid = await insertPublicationSource("worker-savepoint-valid", now);
 
-    expect(await processOutboxBatch(pool, now, 10, { ugcGoLiveGate: true })).toBe(1);
-    const failed = (await pool.query("SELECT attempts, processed_at, last_error FROM outbox_event WHERE id=$1", [malformed.rows[0]!.id])).rows[0];
-    expect(failed.attempts).toBe(1);
-    expect(failed.processed_at).toBeNull();
-    expect(failed.last_error).toBe("22P02");
-    const missing = (await pool.query("SELECT attempts, processed_at, last_error FROM outbox_event WHERE id=$1", [missingSource.rows[0]!.id])).rows[0];
-    expect(missing.attempts).toBe(1);
-    expect(missing.processed_at).toBeNull();
-    expect(missing.last_error).toContain("PUBLICATION_SOURCE_NOT_FOUND");
-    const delivered = (await pool.query("SELECT processed_at, processing_outcome FROM outbox_event WHERE id=$1", [valid.eventId])).rows[0];
-    expect(delivered.processed_at).toBeTruthy();
-    expect(delivered.processing_outcome).toBe("applied");
-    expect((await pool.query("SELECT count(*)::int count FROM feed_item WHERE submission_id=$1 AND visible=true", [valid.submissionId])).rows[0].count).toBe(1);
+    expect(await processOutboxBatch(pool, now, 10, { ugcGoLiveGate: true })).toBe(3);
+    for(const id of [malformed.rows[0]!.id,missingSource.rows[0]!.id,valid.eventId]){
+      const row=(await pool.query("SELECT attempts,processed_at,last_error,processing_outcome FROM outbox_event WHERE id=$1",[id])).rows[0];
+      expect(row).toMatchObject({attempts:1,last_error:null,processing_outcome:'suppressed'});expect(row.processed_at).toBeTruthy();
+    }
+    expect((await pool.query("SELECT count(*)::int count FROM feed_item WHERE submission_id=$1 AND visible=true", [valid.submissionId])).rows[0].count).toBe(0);
   });
 
   it("records consent withdrawal as a safe suppression instead of a false delivery", async () => {

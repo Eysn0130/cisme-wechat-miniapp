@@ -38,7 +38,7 @@ beforeAll(async () => {
 afterAll(async () => { await app?.close(); await pool.end(); });
 
 describe("unforgeable R0 vertical slice", () => {
-  it("creates identity, audited experience qualification, explicit care and time-derived D7 eligibility", async () => {
+  it("creates identity, audited experience qualification, explicit care and D7 completion without retired task allocation", async () => {
     const identity = await json(await app.inject({ method: "POST", url: "/v1/identity/dev", headers: { "x-dev-clock": "2026-08-01T08:00:00+08:00" }, payload: { externalUserId: "vertical-member", displayName: "纵切会员", consents: [{ documentType: "privacy", version: "v1" }, { documentType: "terms", version: "v1" }] } }));
     token = identity.sessionToken; memberId = identity.memberId;
     const renamed = await json(await app.inject({ method: "POST", url: "/v1/identity/dev", payload: { externalUserId: "vertical-member", displayName: "佳静", consents: [{ documentType: "privacy", version: "v1" }, { documentType: "terms", version: "v1" }] } }));
@@ -108,12 +108,11 @@ describe("unforgeable R0 vertical slice", () => {
     const d7Payload = careCompletion(d1.cycle.version);
     const d7 = await json(await app.inject({ method: "POST", url: `/v1/care-cycles/${cycleId}/milestones/D7/complete`, headers: d7Headers, payload: d7Payload }));
     expect(d7.cycle.version).toBe(d1.cycle.version + 1);
-    taskId = d7.task.id; expect(taskId).toBeTruthy();
+    expect(d7.task).toBeNull();
     const repeated = await json(await app.inject({ method: "POST", url: `/v1/care-cycles/${cycleId}/milestones/D7/complete`, headers: d7Headers, payload: d7Payload }));
     expect(repeated).toEqual(d7);
-    expect(repeated.task.id).toBe(taskId);
-    const task = await json(await app.inject({ method: "GET", url: `/v1/tasks/${taskId}`, headers: auth() }));
-    expect(task).toMatchObject({ name: "第 7 天真实护理日记", state: "available", claimable: true, submission_id: null });
+    expect((await json(await app.inject({method:"GET",url:"/v1/me/tasks",headers:auth()})))).toEqual([]);
+    expect((await pool.query("SELECT count(*)::int n FROM eligibility_task")).rows[0].n).toBe(0);
   });
 
   it("keys WeChat identities by app and openid while allowing multiple identities per member", async () => {
@@ -250,147 +249,30 @@ describe("unforgeable R0 vertical slice", () => {
     expect(archive.history[0].records[0]).toMatchObject({ protocolVersion: "care-r0-v1", stepCodes: ["00", "01", "02", "03"] });
   });
 
-  it("atomically replays concurrent task claims to one claim and submission", async () => {
-    const responses = await Promise.all(Array.from({ length: 8 }, (_, index) => app.inject({ method: "POST", url: `/v1/tasks/${taskId}/claim`, headers: { ...auth(), "idempotency-key": `claim-key-${index}` } })));
-    const bodies = await Promise.all(responses.map(json));
-    expect(new Set(bodies.map((body) => body.id)).size).toBe(1);
-    expect(new Set(bodies.map((body) => body.submissionId)).size).toBe(1);
-    submissionId = bodies[0].submissionId;
-    const counts = await pool.query("SELECT (SELECT count(*) FROM task_claim)::int claims, (SELECT count(*) FROM submission)::int submissions");
-    expect(counts.rows[0]).toMatchObject({ claims: 1, submissions: 1 });
-  });
-
-  it("uploads original and screenshot through the real API gateway with retry semantics", async () => {
-    const fixtures: Array<["original" | "screenshot", Buffer, "image/jpeg" | "image/png"]> = [
-      ["original", originalBytes, "image/jpeg"],
-      ["screenshot", screenshotBytes, "image/png"]
-    ];
-    for (const [kind, bytes, mime] of fixtures) {
-      const authorization = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/authorize`, headers: auth(), payload: { kind, mimeType: mime, maxBytes: 2048 } }));
-      const tokenValue = authorization.fields.token;
-      const { boundary, payload } = multipart(tokenValue, bytes, mime);
-      const uploadPath = new URL(authorization.url).pathname;
-      await json(await app.inject({ method: "POST", url: uploadPath, headers: { "content-type": `multipart/form-data; boundary=${boundary}` }, payload }));
-      await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/${authorization.mediaId}/complete`, headers: auth() }));
+  it("retires task proof writes and preserves historical submissions and points", async () => {
+    taskId="00000000-0000-4000-8000-000000000001";
+    const campaign=(await pool.query("SELECT id FROM eligibility_campaign WHERE code='care-d7-story-r0'")).rows[0].id;
+    submissionId=(await pool.query("INSERT INTO submission(member_id,status,post_url) VALUES($1,'approved','https://example.test/care-story/vertical-1') RETURNING id",[memberId])).rows[0].id;
+    const claim=(await pool.query("INSERT INTO reward_claim(submission_id,member_id,campaign_id,rule_code,amount,state) VALUES($1,$2,$3,'CARE_D7_STORY_R0',300,'approved') RETURNING id",[submissionId,memberId,campaign])).rows[0].id;
+    const grant=(await pool.query("INSERT INTO points_grant(reward_claim_id,member_id,amount,state,available_after,expires_at) VALUES($1,$2,300,'frozen','2026-08-14','2027-08-08') RETURNING id",[claim,memberId])).rows[0].id;
+    const lot=(await pool.query("INSERT INTO points_lot(grant_id,original_amount,frozen_amount,available_amount,expires_at) VALUES($1,300,300,0,'2027-08-08') RETURNING id",[grant])).rows[0].id;
+    await pool.query("INSERT INTO points_entry(member_id,grant_id,lot_id,entry_type,frozen_delta,business_key,occurred_at) VALUES($1,$2,$3,'grant_frozen',300,$4,'2026-08-07')",[memberId,grant,lot,'grant:'+grant+':frozen']);
+    await pool.query("INSERT INTO points_projection(member_id,frozen) VALUES($1,300) ON CONFLICT(member_id) DO UPDATE SET frozen=300",[memberId]);
+    const facts=(await pool.query('SELECT to_jsonb(t) AS row FROM submission t WHERE id=$1',[submissionId])).rows;
+    for(const [url,payload] of [
+      [`/v1/tasks/${taskId}/claim`,{}],
+      [`/v1/submissions/${submissionId}/draft`,{expectedVersion:1}],
+      [`/v1/submissions/${submissionId}/submit`,{expectedVersion:1}],
+      [`/v1/submissions/${submissionId}/appeal`,{reason:'retired',expectedVersion:1}],
+      [`/v1/submissions/${submissionId}/media/authorize`,{kind:'original',mimeType:'image/jpeg',maxBytes:100}]
+    ] as const){
+      const response=await app.inject({method:url.endsWith('/draft')?'PUT':'POST',url,headers:{...auth(),'idempotency-key':'retired-'+url},payload});
+      expect(response.statusCode,JSON.stringify(response.json())).toBe(410);expect(response.json().code).toBe('TASK_PROOF_REMOVED');
     }
-    const submission = await json(await app.inject({ method: "GET", url: `/v1/submissions/${submissionId}`, headers: auth() }));
-    expect(submission.media_uploads_enabled).toBe(true);
-    expect(submission.media).toHaveLength(2); expect(submission.media.every((item: any) => item.upload_state === "uploaded")).toBe(true);
-  });
-
-  it("handles upload failure, retry, explicit delete and duplicate hash", async () => {
-    let submission = await json(await app.inject({ method: "GET", url: `/v1/submissions/${submissionId}`, headers: auth() }));
-    let screenshot = submission.media.find((item: any) => item.kind === "screenshot");
-    const originalScreenshotId = screenshot.id;
-
-    let authorization = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/authorize`, headers: auth(), payload: { kind: "screenshot", mimeType: "image/png", maxBytes: 2048 } }));
-    let upload = multipart(authorization.fields.token, Buffer.from("not-an-image"), "image/png");
-    let response = await app.inject({ method: "POST", url: new URL(authorization.url).pathname, headers: { "content-type": `multipart/form-data; boundary=${upload.boundary}` }, payload: upload.payload });
-    expect(response.statusCode).toBe(422); expect(response.json().code).toBe("UPLOAD_CONTENT_INVALID");
-    submission = await json(await app.inject({ method: "GET", url: `/v1/submissions/${submissionId}`, headers: auth() }));
-    expect(submission.media.find((item: any) => item.kind === "screenshot")).toMatchObject({ id: originalScreenshotId, upload_state: "uploaded" });
-
-    authorization = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/authorize`, headers: auth(), payload: { kind: "screenshot", mimeType: "image/png", maxBytes: 2048 } }));
-    upload = multipart(authorization.fields.token, screenshotBytes, "image/png");
-    await json(await app.inject({ method: "POST", url: new URL(authorization.url).pathname, headers: { "content-type": `multipart/form-data; boundary=${upload.boundary}` }, payload: upload.payload }));
-    await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/${authorization.mediaId}/complete`, headers: auth() }));
-
-    submission = await json(await app.inject({ method: "GET", url: `/v1/submissions/${submissionId}`, headers: auth() }));
-    screenshot = submission.media.find((item: any) => item.kind === "screenshot");
-    expect(screenshot.id).not.toBe(originalScreenshotId);
-    const replacementCleanup = await pool.query("SELECT reason, processed_at FROM media_cleanup_queue WHERE media_id=$1", [originalScreenshotId]);
-    expect(replacementCleanup.rows[0]).toMatchObject({ reason: "replaced", processed_at: null });
-    await json(await app.inject({ method: "DELETE", url: `/v1/submissions/${submissionId}/media/${screenshot.id}`, headers: auth() }));
-    authorization = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/authorize`, headers: auth(), payload: { kind: "screenshot", mimeType: "image/jpeg", maxBytes: 2048 } }));
-    upload = multipart(authorization.fields.token, originalBytes, "image/jpeg");
-    await json(await app.inject({ method: "POST", url: new URL(authorization.url).pathname, headers: { "content-type": `multipart/form-data; boundary=${upload.boundary}` }, payload: upload.payload }));
-    response = await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/${authorization.mediaId}/complete`, headers: auth() });
-    expect(response.statusCode).toBe(409); expect(response.json().code).toBe("MEDIA_DUPLICATE_HASH");
-
-    authorization = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/authorize`, headers: auth(), payload: { kind: "screenshot", mimeType: "image/png", maxBytes: 2048 } }));
-    upload = multipart(authorization.fields.token, screenshotBytes, "image/png");
-    await json(await app.inject({ method: "POST", url: new URL(authorization.url).pathname, headers: { "content-type": `multipart/form-data; boundary=${upload.boundary}` }, payload: upload.payload }));
-    await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/media/${authorization.mediaId}/complete`, headers: auth() }));
-  });
-
-  it("allows private reward submission without optional feed publication consent", async () => {
-    const draft = await pool.query<{ id: string }>("INSERT INTO submission(member_id) VALUES ($1) RETURNING id", [memberId]);
-    const privateSubmissionId = draft.rows[0]!.id;
-    await pool.query(`INSERT INTO media_object(submission_id, kind, object_key, mime_type, upload_state, size_bytes, uploaded_at)
-      VALUES ($1,'original',$2,'image/jpeg','uploaded',8,now()),($1,'screenshot',$3,'image/png','uploaded',8,now())`,
-    [privateSubmissionId, `submissions/${privateSubmissionId}/original/private-test`, `submissions/${privateSubmissionId}/screenshot/private-test`]);
-    const response = await app.inject({
-      method: "POST",
-      url: `/v1/submissions/${privateSubmissionId}/submit`,
-      headers: { ...auth(), "idempotency-key": "private-submit-v1" },
-      payload: {
-        postUrl: "https://example.test/care-story/private-review-only",
-        platformAccount: "小红书@私有审核用户",
-        disclosure: "本次内容可能获得 CISME 积分奖励",
-        license: { content_storage: true, human_review: true, feed_readonly: false },
-        expectedVersion: 1
-      }
-    });
-    expect(response.statusCode).toBe(200);
-    const grants = await pool.query<{ purpose: string }>("SELECT purpose FROM consent_grant WHERE submission_id=$1 ORDER BY purpose", [privateSubmissionId]);
-    expect(grants.rows.map((row) => row.purpose)).toEqual(["content_storage", "human_review"]);
-  });
-
-  it("supports supplement, reject, appeal and exactly-once approval grant", async () => {
-    const payload = { postUrl: "https://example.test/care-story/vertical-1", platformAccount: "小红书@护理用户", disclosure: "本次内容可能获得 CISME 积分奖励", license: { content_storage: true, human_review: true, feed_readonly: true }, expectedVersion: 1 };
-    const first = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/submit`, headers: { ...auth(), "idempotency-key": "submit-v1" }, payload }));
-    const replay = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/submit`, headers: { ...auth(), "idempotency-key": "submit-v1" }, payload }));
-    expect(replay).toEqual(first);
-    const adminHeaders = legacy("admin-reviewer", { "x-dev-clock": "2026-08-07T12:00:00+08:00" });
-    const needs = await json(await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/review`, headers: { ...adminHeaders, "idempotency-key": `review-${submissionId}-v2` }, payload: { decision: "request_changes", reasonCode: "EVIDENCE_INCOMPLETE", evidence: { field: "caption" }, expectedVersion: 2 } }));
-    const resubmitted = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/submit`, headers: { ...auth(), "idempotency-key": "submit-v3" }, payload: { ...payload, expectedVersion: needs.version } }));
-    const rejected = await json(await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/review`, headers: { ...adminHeaders, "idempotency-key": `review-${submissionId}-v${resubmitted.version}` }, payload: { decision: "reject", reasonCode: "POLICY_REVIEW", evidence: { note: "needs appeal" }, expectedVersion: resubmitted.version } }));
-    const appealed = await json(await app.inject({ method: "POST", url: `/v1/submissions/${submissionId}/appeal`, headers: { ...auth(), "idempotency-key": `appeal-${submissionId}-v${rejected.version}` }, payload: { reason: "补充完整事实", expectedVersion: rejected.version } }));
-    const approvals = await Promise.all(Array.from({ length: 6 }, () => app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/review`, headers: { ...adminHeaders, "idempotency-key": `review-${submissionId}-v${appealed.version}` }, payload: { decision: "approve", reasonCode: "APPEAL_UPHELD", evidence: { checked: true }, expectedVersion: appealed.version } })));
-    const approvalBodies = await Promise.all(approvals.map(json));
-    expect(new Set(approvalBodies.map((body) => body.pointsGrantId)).size).toBe(1);
-    const conserved = await pool.query("SELECT (SELECT count(*) FROM reward_claim)::int rewards, (SELECT count(*) FROM points_grant)::int grants, (SELECT count(*) FROM points_entry)::int entries, frozen, available FROM points_projection WHERE member_id=$1", [memberId]);
-    expect(conserved.rows[0]).toMatchObject({ rewards: 1, grants: 1, entries: 1, frozen: 300, available: 0 });
-    await expect(pool.query("UPDATE points_entry SET frozen_delta=301")).rejects.toMatchObject({ code: "55000" });
-  });
-
-  it("locks media mutations after submission and honors upload, submission and review switches", async () => {
-    const lockedSubmission = await pool.query<{ id: string }>("INSERT INTO submission(member_id,status) VALUES ($1,'submitted') RETURNING id", [memberId]);
-    const lockedMedia = await pool.query<{ id: string }>(`INSERT INTO media_object(submission_id,kind,object_key,mime_type,upload_state,is_current)
-      VALUES ($1,'original',$2,'image/jpeg','uploaded',true) RETURNING id`, [lockedSubmission.rows[0]!.id, `switch-test/${lockedSubmission.rows[0]!.id}/locked.jpg`]);
-    let response = await app.inject({ method: "DELETE", url: `/v1/submissions/${lockedSubmission.rows[0]!.id}/media/${lockedMedia.rows[0]!.id}`, headers: auth() });
-    expect(response.statusCode).toBe(409); expect(response.json().code).toBe("SUBMISSION_LOCKED");
-
-    const draft = await pool.query<{ id: string }>("INSERT INTO submission(member_id) VALUES ($1) RETURNING id", [memberId]);
-    const media = await pool.query<{ id: string }>(`INSERT INTO media_object(submission_id,kind,object_key,mime_type,upload_state,is_current)
-      VALUES ($1,'original',$2,'image/jpeg','uploaded',true) RETURNING id`, [draft.rows[0]!.id, `switch-test/${draft.rows[0]!.id}/draft.jpg`]);
-    await pool.query("UPDATE emergency_switch SET enabled=false, reason='upload drill' WHERE key='uploads'");
-    const uploadsDisabledView = await json(await app.inject({ method: "GET", url: `/v1/submissions/${draft.rows[0]!.id}`, headers: auth() }));
-    expect(uploadsDisabledView.media_uploads_enabled).toBe(false);
-    response = await app.inject({ method: "DELETE", url: `/v1/submissions/${draft.rows[0]!.id}/media/${media.rows[0]!.id}`, headers: auth() });
-    expect(response.statusCode).toBe(503); expect(response.json().code).toBe("SWITCH_UPLOADS_OFF");
-    await pool.query("UPDATE emergency_switch SET enabled=true, reason='normal' WHERE key='uploads'");
-    const uploadsEnabledView = await json(await app.inject({ method: "GET", url: `/v1/submissions/${draft.rows[0]!.id}`, headers: auth() }));
-    expect(uploadsEnabledView.media_uploads_enabled).toBe(true);
-    await pool.query("UPDATE emergency_switch SET enabled=false, reason='submission drill' WHERE key='submissions'");
-    response = await app.inject({ method: "DELETE", url: `/v1/submissions/${draft.rows[0]!.id}/media/${media.rows[0]!.id}`, headers: auth() });
-    expect(response.statusCode).toBe(503); expect(response.json().code).toBe("SWITCH_SUBMISSIONS_OFF");
-    await pool.query("UPDATE emergency_switch SET enabled=true, reason='normal' WHERE key='submissions'");
-    response = await app.inject({ method: "DELETE", url: `/v1/submissions/${draft.rows[0]!.id}/media/${media.rows[0]!.id}`, headers: auth() });
-    expect(response.statusCode).toBe(200);
-
-    const rejected = await pool.query<{ id: string }>("INSERT INTO submission(member_id,status,version) VALUES ($1,'rejected',3) RETURNING id", [memberId]);
-    await pool.query("INSERT INTO review_case(submission_id,status,version) VALUES ($1,'rejected',3)", [rejected.rows[0]!.id]);
-    await pool.query("UPDATE emergency_switch SET enabled=false, reason='review drill' WHERE key='reviews'");
-    response = await app.inject({
-      method: "POST",
-      url: `/v1/submissions/${rejected.rows[0]!.id}/appeal`,
-      headers: { ...auth(), "idempotency-key": `switch-appeal-${rejected.rows[0]!.id}` },
-      payload: { reason: "请求重新核验", expectedVersion: 3 }
-    });
-    expect(response.statusCode).toBe(503); expect(response.json().code).toBe("SWITCH_REVIEWS_OFF");
-    expect((await pool.query("SELECT count(*)::int count FROM appeal WHERE review_case_id=(SELECT id FROM review_case WHERE submission_id=$1)", [rejected.rows[0]!.id])).rows[0].count).toBe(0);
-    await pool.query("UPDATE emergency_switch SET enabled=true, reason='normal' WHERE key='reviews'");
+    const history=await json(await app.inject({method:'GET',url:`/v1/submissions/${submissionId}`,headers:auth()}));
+    expect(history).toMatchObject({workflowRetired:true,media_uploads_enabled:false});
+    expect((await pool.query('SELECT to_jsonb(t) AS row FROM submission t WHERE id=$1',[submissionId])).rows).toEqual(facts);
+    expect((await pool.query('SELECT count(*)::int n FROM points_grant WHERE member_id=$1',[memberId])).rows[0].n).toBe(1);
   });
 
   it("requires four-eyes finance approval and conserves unfreeze, expiry and reversal", async () => {
@@ -440,37 +322,6 @@ describe("unforgeable R0 vertical slice", () => {
     expect(conserved.rows[0]).toMatchObject({ frozen: 0, available: 0, debt: 0, approved_actions: 3, lifecycle_events: 3, lots_conserve: true });
   });
 
-  it("separates reward review from four-eyes public publication and safely replays it", async () => {
-    await processOutboxBatch(pool, new Date("2026-08-08T10:00:00+08:00"), 50, { ugcGoLiveGate: true });
-    const privateAfterReview = await json(await app.inject({ method: "GET", url: "/v1/feed" })); expect(privateAfterReview).toHaveLength(0);
-    const publishPayload = { title: "第 7 天护理记录", excerpt: "一份经过人工核验的护理阶段记录。", aiUsage: "none", reasonCode: "PUBLICATION_CLEAR", evidence: { rightsChecked: true, contentSafetyChecked: true } };
-    const sameReviewer = await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/publish`, headers: legacy("admin-reviewer", { "idempotency-key": `publish-self-${submissionId}` }), payload: publishPayload });
-    expect(sameReviewer.statusCode).toBe(409); expect(sameReviewer.json().code).toBe("FOUR_EYES_REQUIRED");
-    const lead = legacy("admin-lead", { "idempotency-key": `publish-${submissionId}-v1`, "x-dev-clock": "2026-08-08T10:00:00+08:00" });
-    const queued = await json(await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/publish`, headers: lead, payload: publishPayload }));
-    const replay = await json(await app.inject({ method: "POST", url: `/v1/admin/submissions/${submissionId}/publish`, headers: lead, payload: publishPayload }));
-    expect(queued.eventId).toBe(replay.eventId); expect(queued.status).toBe("publication_queued");
-    await processOutboxBatch(pool, new Date("2026-08-08T10:00:30+08:00"), 50, { ugcGoLiveGate: false });
-    const held = await pool.query("SELECT processed_at, attempts, last_error FROM outbox_event WHERE id=$1", [queued.eventId]);
-    expect(held.rows[0].processed_at).toBeNull(); expect(held.rows[0].attempts).toBe(1); expect(held.rows[0].last_error).toContain("UGC_GO_LIVE_GATE_CLOSED");
-    const stillPrivate = await json(await app.inject({ method: "GET", url: "/v1/feed" })); expect(stillPrivate).toHaveLength(0);
-    await processOutboxBatch(pool, new Date("2026-08-08T10:01:00+08:00"), 50, { ugcGoLiveGate: true });
-    await pool.query("UPDATE outbox_event SET processed_at=NULL WHERE event_type='submission.publication.approved.v1'");
-    await processOutboxBatch(pool, new Date("2026-08-08T10:02:00+08:00"), 50, { ugcGoLiveGate: true });
-    const feedBefore = await json(await app.inject({ method: "GET", url: "/v1/feed" })); expect(feedBefore).toHaveLength(1); expect(feedBefore[0].ai_usage).toBe("none");
-    const feedPage = await json(await app.inject({ method: "GET", url: "/v1/feed/page?limit=1" }));
-    expect(feedPage).toMatchObject({ items: [expect.objectContaining({ id: feedBefore[0].id })], nextCursor: null, authors: expect.any(Object), asOf: expect.any(String) });
-    expect(await json(await app.inject({ method: "GET", url: `/v1/feed/${feedBefore[0].id}` }))).toMatchObject({ id: feedBefore[0].id, asOf: expect.any(String) });
-    expect((await app.inject({ method: "GET", url: "/v1/feed/page?cursor=invalid" })).statusCode).toBe(422);
-    const consents = await json(await app.inject({ method: "GET", url: "/v1/me/consents", headers: auth() }));
-    const feedGrant = consents.find((item: any) => item.purpose === "feed_readonly");
-    const pointsBeforeRevocation = await pool.query("SELECT blocked_for_use, (SELECT count(*)::int FROM points_entry) entries FROM points_grant WHERE id=(SELECT id FROM points_grant ORDER BY created_at LIMIT 1)");
-    await json(await app.inject({ method: "POST", url: `/v1/consents/${feedGrant.id}/revoke`, headers: { ...auth(), "idempotency-key": `consent-revoke-${feedGrant.id}` }, payload: { reason: "MEMBER_REQUEST" } }));
-    const feedAfter = await json(await app.inject({ method: "GET", url: "/v1/feed" })); expect(feedAfter).toHaveLength(0);
-    const pointsAfterRevocation = await pool.query("SELECT blocked_for_use, (SELECT count(*)::int FROM points_entry) entries FROM points_grant WHERE id=(SELECT id FROM points_grant ORDER BY created_at LIMIT 1)");
-    expect(pointsAfterRevocation.rows[0]).toEqual(pointsBeforeRevocation.rows[0]);
-  });
-
   it("enforces object-level authorization and four independent switches", async () => {
     const outsider = await json(await app.inject({ method: "POST", url: "/v1/identity/dev", payload: { externalUserId: "outsider", displayName: "外部会员", consents: [{ documentType: "privacy", version: "v1" }, { documentType: "terms", version: "v1" }] } }));
     await expect(pool.query("INSERT INTO submission(member_id, post_url) VALUES ($1,$2)", [outsider.memberId, "https://example.test/care-story/vertical-1"])).rejects.toMatchObject({ code: "23505" });
@@ -491,74 +342,5 @@ describe("unforgeable R0 vertical slice", () => {
     const audits = await pool.query("SELECT count(*)::int count FROM audit_log WHERE action='emergency_switch.update'"); expect(audits.rows[0].count).toBe(8);
   });
 
-  it("approves content without creating points assets when finance rules are disabled", async () => {
-    const campaign = await pool.query<{ id: string }>(`INSERT INTO eligibility_campaign(code, qualifying_milestone, capacity, reward_points, starts_at, ends_at, active)
-      VALUES ('NO_POINTS_TRIAL','D7',10,300,'2026-01-01','2027-01-01',true) RETURNING id`);
-    const decision = await pool.query<{ id: string }>(`INSERT INTO eligibility_decision(campaign_id, cycle_id, fact_key, eligible, reason_code, decided_at)
-      VALUES ($1,$2,$3,true,'TRIAL_ONLY','2026-08-08') RETURNING id`, [campaign.rows[0]!.id, cycleId, `${cycleId}:D7:no-points`]);
-    const task = await pool.query<{ id: string }>(`INSERT INTO eligibility_task(decision_id, campaign_id, member_id, state, expires_at)
-      VALUES ($1,$2,$3,'claimed','2027-01-01') RETURNING id`, [decision.rows[0]!.id, campaign.rows[0]!.id, memberId]);
-    const trialSubmission = await pool.query<{ id: string }>(`INSERT INTO submission(member_id, status, post_url, platform_account, disclosure, license_payload, submitted_at)
-      VALUES ($1,'submitted','https://example.test/care-story/no-points','体验账号','体验环境不发放真实积分','{"content_storage":true,"human_review":true,"feed_readonly":true}','2026-08-08') RETURNING id`, [memberId]);
-    await pool.query("INSERT INTO task_claim(task_id, member_id, submission_id, claimed_at) VALUES ($1,$2,$3,'2026-08-08')", [task.rows[0]!.id, memberId, trialSubmission.rows[0]!.id]);
-    await pool.query("INSERT INTO review_case(submission_id) VALUES ($1)", [trialSubmission.rows[0]!.id]);
 
-    const disabledConfig = loadConfig({ APP_ENV: "test", DATABASE_URL: TEST_DATABASE_URL, ALLOW_DEV_ADAPTERS: "true", APP_SESSION_SECRET: "test-session-secret", ADMIN_API_TOKEN: "test-admin-token", UPLOAD_TOKEN_SECRET: "test-upload-secret", OBJECT_STORAGE_DRIVER: "api_gateway" });
-    const disabledApp = await createApp({ config: disabledConfig, pool, storage });
-    try {
-      const approved = await json(await disabledApp.inject({ method: "POST", url: `/v1/admin/submissions/${trialSubmission.rows[0]!.id}/review`, headers: legacy("admin-reviewer", { "idempotency-key": `review-${trialSubmission.rows[0]!.id}-v1` }), payload: { decision: "approve", reasonCode: "TRIAL_APPROVED", evidence: { checked: true }, expectedVersion: 1 } }));
-      expect(approved).not.toHaveProperty("pointsGrantId");
-      const assets = await pool.query("SELECT count(*)::int count FROM reward_claim WHERE submission_id=$1", [trialSubmission.rows[0]!.id]);
-      expect(assets.rows[0]!.count).toBe(0);
-      const publication = await disabledApp.inject({ method: "POST", url: `/v1/admin/submissions/${trialSubmission.rows[0]!.id}/publish`, headers: legacy("admin-lead", { "idempotency-key": `publish-disabled-${trialSubmission.rows[0]!.id}` }), payload: { title: "不应公开", excerpt: "门禁关闭时不应创建发布事件。", aiUsage: "none", reasonCode: "PUBLICATION_CLEAR", evidence: { checked: true } } });
-      expect(publication.statusCode).toBe(503); expect(publication.json().code).toBe("UGC_GO_LIVE_GATE_CLOSED");
-      const publicationEvents = await pool.query("SELECT count(*)::int count FROM outbox_event WHERE aggregate_id=$1 AND event_type='submission.publication.approved.v1'", [trialSubmission.rows[0]!.id]);
-      expect(publicationEvents.rows[0]!.count).toBe(0);
-    } finally {
-      await disabledApp.close();
-    }
-  });
-
-  it("stops advertising rewards when the finance approval expires during a long-running process", async () => {
-    const expiredClock = "2100-01-01T00:00:00Z";
-    const tasks = await json(await app.inject({ method: "GET", url: "/v1/me/tasks", headers: auth(expiredClock) }));
-    expect(tasks.length).toBeGreaterThan(0);
-    expect(tasks.every((task: any) => task.reward_enabled === false && task.reward_points === null)).toBe(true);
-    const task = await json(await app.inject({ method: "GET", url: `/v1/tasks/${taskId}`, headers: auth(expiredClock) }));
-    expect(task).toMatchObject({ reward_enabled: false, reward_points: null });
-    const submission = await json(await app.inject({ method: "GET", url: `/v1/submissions/${submissionId}`, headers: auth(expiredClock) }));
-    expect(submission.reward_enabled).toBe(false);
-    const points = await json(await app.inject({ method: "GET", url: "/v1/me/points", headers: auth(expiredClock) }));
-    expect(points.rulesEnabled).toBe(false);
-
-    const queued = await pool.query<{ id: string }>(`INSERT INTO submission(member_id,status,post_url,platform_account,disclosure,submitted_at)
-      VALUES ($1,'submitted','https://example.test/care-story/expired-policy-read','审批到期测试','到期后不得宣称积分启用',$2) RETURNING id`, [memberId, new Date("2099-12-31T23:59:58Z")]);
-    await pool.query("INSERT INTO review_case(submission_id) VALUES ($1)", [queued.rows[0]!.id]);
-    const reviewQueue = await json(await app.inject({ method: "GET", url: "/v1/admin/reviews", headers: legacy("admin-reviewer", { "x-dev-clock": expiredClock }) }));
-    expect(reviewQueue.find((item: any) => item.id === queued.rows[0]!.id)).toMatchObject({ reward_enabled: false });
-  });
-
-  it("operates invitation campaigns through versioned RBAC and audit instead of seed-only mutation", async () => {
-    const adminHeaders = legacy("admin-reviewer", { "x-dev-clock": "2026-08-15T15:00:00+08:00" });
-    const campaigns = await json(await app.inject({ method: "GET", url: "/v1/admin/campaigns", headers: adminHeaders }));
-    const campaign = campaigns.find((item: any) => item.code === "care-d7-story-r0");
-    expect(campaign).toBeTruthy();
-    const payload = {
-      active: campaign.active,
-      capacity: Math.max(campaign.capacity, campaign.allocated_count),
-      startsAt: campaign.starts_at,
-      endsAt: campaign.ends_at,
-      expectedVersion: campaign.version,
-      reasonCode: "R0_CAPACITY_RECONFIRMED",
-      evidence: { approval: "integration-reviewed" }
-    };
-    const denied = await app.inject({ method: "PUT", url: `/v1/admin/campaigns/${campaign.id}`, headers: legacy("finance-maker", { "idempotency-key": "campaign-update-denied" }), payload });
-    expect(denied.statusCode).toBe(403);
-    const headers = { ...adminHeaders, "idempotency-key": `campaign-${campaign.id}-v${campaign.version}` };
-    const updated = await json(await app.inject({ method: "PUT", url: `/v1/admin/campaigns/${campaign.id}`, headers, payload }));
-    const replay = await json(await app.inject({ method: "PUT", url: `/v1/admin/campaigns/${campaign.id}`, headers, payload }));
-    expect(replay).toEqual(updated);
-    expect(updated).toMatchObject({ version: campaign.version + 1, updated_by: "admin-reviewer", update_reason_code: "R0_CAPACITY_RECONFIRMED" });
-    expect((await pool.query("SELECT count(*)::int count FROM audit_log WHERE action='eligibility_campaign.update' AND object_id=$1", [campaign.id])).rows[0].count).toBe(1);
-  });
 });

@@ -23,7 +23,7 @@ beforeAll(async () => { await resetDatabase(pool); await seedTestCampaign(pool);
 afterAll(async () => { await app.close(); await pool.end(); });
 
 describe("campaign capacity", () => {
-  it("serializes concurrent D7 decisions without exceeding capacity", async () => {
+  it("completes concurrent D7 care without allocating retired campaign capacity", async () => {
     const members: Array<{ token: string; cycleId: string; version: number }> = [];
     for (let index = 0; index < 5; index += 1) {
       const identity = (await app.inject({ method: "POST", url: "/v1/identity/dev", payload: { externalUserId: `capacity-${index}`, displayName: `容量会员${index}`, consents: [{ documentType: "privacy", version: "v1" }, { documentType: "terms", version: "v1" }] } })).json();
@@ -39,19 +39,8 @@ describe("campaign capacity", () => {
       responses.map((response) => ({ status: 200, body: response.json() }))
     );
     const counts = await pool.query("SELECT (SELECT count(*) FROM eligibility_decision)::int decisions, (SELECT count(*) FROM eligibility_task)::int tasks");
-    expect(counts.rows[0]).toEqual({ decisions: 5, tasks: 2 });
-
-    await pool.query("UPDATE eligibility_task SET expires_at='2026-08-06T00:00:00Z' WHERE id=(SELECT id FROM eligibility_task ORDER BY id LIMIT 1)");
-    await sweepExpired(pool, new Date("2026-08-07T12:30:00+08:00"));
-    const identity = (await app.inject({ method: "POST", url: "/v1/identity/dev", payload: { externalUserId: "capacity-release", displayName: "释放名额会员", consents: [{ documentType: "privacy", version: "v1" }, { documentType: "terms", version: "v1" }] } })).json();
-    const headers = { authorization: `Bearer ${identity.sessionToken}`, "x-dev-clock": "2026-08-01T09:00:00+08:00" };
-    const fact = (await app.inject({ method: "POST", url: "/v1/qualifications/dev", headers, payload: { externalRef: "capacity-purchase-release", occurredAt: "2026-08-01T08:00:00+08:00" } })).json();
-    const planned = (await app.inject({ method: "POST", url: "/v1/care-cycles", headers, payload: { qualificationFactId: fact.id, timezone: "Asia/Shanghai", protocolVersion: "care-r0-v1" } })).json();
-    const active = (await app.inject({ method: "POST", url: `/v1/care-cycles/${planned.id}/activate`, headers: careHeaders(identity.sessionToken, "capacity-release-activate", "2026-08-01T09:00:00+08:00"), payload: { expectedVersion: planned.version } })).json();
-    const d1 = (await app.inject({ method: "POST", url: `/v1/care-cycles/${planned.id}/milestones/D1/complete`, headers: careHeaders(identity.sessionToken, "capacity-release-D1", "2026-08-01T09:00:00+08:00"), payload: careCompletion(active.version) })).json();
-    const released = await app.inject({ method: "POST", url: `/v1/care-cycles/${planned.id}/milestones/D7/complete`, headers: careHeaders(identity.sessionToken, "capacity-release-D7", "2026-08-07T13:00:00+08:00"), payload: careCompletion(d1.cycle.version) });
-    expect(released.statusCode).toBe(200);
-    const afterRelease = await pool.query("SELECT count(*) FILTER (WHERE state <> 'expired')::int active, count(*)::int total FROM eligibility_task");
-    expect(afterRelease.rows[0]).toEqual({ active: 2, total: 3 });
+    expect(counts.rows[0]).toEqual({ decisions: 0, tasks: 0 });
+    expect(responses.every(response=>response.json().task===null)).toBe(true);
+    expect((await pool.query("SELECT count(*)::int n FROM care_record_step")).rows[0].n).toBe(40);
   });
 });

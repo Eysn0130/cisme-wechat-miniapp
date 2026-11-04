@@ -1,3 +1,4 @@
+import { retainReadPresentation } from "../../services/read-presentation";
 import { nativeCatalogImage } from "../../services/catalog";
 import { catalogDetail } from "../../services/commerce";
 import { requireMemberAccess } from "../../services/api";
@@ -22,7 +23,10 @@ Page({
   async load() {
     const attempt = this.data.loadAttempt + 1;
     wx.hideShareMenu();
-    this.setData({ loadAttempt: attempt, item: null, catalog: null, shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
+    const preserve = retainReadPresentation(this, this.data.id);
+    const previousSku = preserve ? this.data.selectedSku?.id : "";
+    const previousQuantity = preserve ? this.data.quantity : 1;
+    this.setData({ loadAttempt: attempt, ...(!preserve ? { item: null, catalog: null } : {}), shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
     if (!validProductCode(this.data.id)) {
       this.setData({ loading: false, errorKind: "selection", errorTitle: "先选一件商品",
         error: "请从商品目录选择商品，再查看详细资料。" });
@@ -36,8 +40,9 @@ Page({
       const item = raw ? { ...raw, image: nativeCatalogImage(raw.image), displayPrice,
         contractCopy:raw.purchaseEnabled?"购买前会重新确认价格与库存":raw.sourceKind==="synthetic_test"?"测试商品 · 暂不可购买":"自营商品 · 暂不可购买",
         purchaseCopy:raw.purchaseEnabled?(raw.sourceKind==="synthetic_test"?"测试商品，不会发生真实扣款。":"确认价格、收货地址与配送承诺后，可创建订单并使用微信支付。"):"可先了解商品，购买暂未开放。" } : null;
-      const selectedSku=item?.variants.find((sku:any)=>sku.active&&sku.inStock)??item?.variants.find((sku:any)=>sku.active)??null;
-      this.setData({ gallery: item ? [item.image] : [], galleryIndex: 0, catalog: {items:[item]}, item, selectedSku, quantity:1, navigating:false, loading: false, errorKind: item ? "none" : "missing", errorTitle: item ? "" : "这件商品暂不可用", error: item ? "" : "商品已下架或暂不可见，请返回商品目录选择。" });
+      const selectedSku=item?.variants.find((sku:any)=>sku.id===previousSku&&sku.active)??item?.variants.find((sku:any)=>sku.active&&sku.inStock)??item?.variants.find((sku:any)=>sku.active)??null;
+      const quantity = Math.min(previousQuantity, Math.max(1, Math.min(99, selectedSku?.availableQuantity ?? 1)));
+      this.setData({ gallery: item ? [item.image] : [], galleryIndex: 0, catalog: {items:[item]}, item, selectedSku, quantity, navigating:false, loading: false, errorKind: item ? "none" : "missing", errorTitle: item ? "" : "这件商品暂不可用", error: item ? "" : "商品已下架或暂不可见，请返回商品目录选择。" });
       if (item) {
         wx.showShareMenu({ menus: ["shareAppMessage"] });
         const shareId = await prepareShareLink("product", this.data.id);
@@ -57,10 +62,10 @@ Page({
   galleryChange(event: WechatMiniprogram.CustomEvent<{ current: number }>) { this.setData({ galleryIndex: event.detail.current }); },
   galleryPrevious() { if (this.data.gallery.length > 1) this.setData({ galleryIndex: (this.data.galleryIndex + this.data.gallery.length - 1) % this.data.gallery.length }); },
   galleryNext() { if (this.data.gallery.length > 1) this.setData({ galleryIndex: (this.data.galleryIndex + 1) % this.data.gallery.length }); },
-  selectSku(event:WechatMiniprogram.TouchEvent){if(this.data.navigating)return;const sku=this.data.item?.variants.find((item:any)=>item.id===String(event.currentTarget.dataset.id));if(!sku||!sku.active)return;this.setData({selectedSku:sku,quantity:Math.min(this.data.quantity,Math.max(1,sku.availableQuantity))});},
-  decrease(){if(this.data.quantity>1&&!this.data.navigating)this.setData({quantity:this.data.quantity-1});},
-  increase(){const maximum=Math.min(99,this.data.selectedSku?.availableQuantity??0);if(this.data.quantity<maximum&&!this.data.navigating)this.setData({quantity:this.data.quantity+1});},
-  openCheckout(){const sku=this.data.selectedSku;if(this.data.navigating||!this.data.item?.purchaseEnabled||!sku?.purchaseEnabled)return;if(!requireMemberAccess(`/pages/product/index?id=${encodeURIComponent(this.data.id)}`))return;this.setData({navigating:true});wx.navigateTo({url:`/pages/checkout/index?product=${encodeURIComponent(this.data.id)}&sku=${encodeURIComponent(sku.id)}&quantity=${this.data.quantity}`,fail:()=>{this.setData({navigating:false});wx.showToast({title:"结算页暂时无法打开",icon:"none"});}});},
+  selectSku(event:WechatMiniprogram.TouchEvent){if(this.data.loading||this.data.navigating)return;const sku=this.data.item?.variants.find((item:any)=>item.id===String(event.currentTarget.dataset.id));if(!sku||!sku.active)return;this.setData({selectedSku:sku,quantity:Math.min(this.data.quantity,Math.max(1,sku.availableQuantity))});},
+  decrease(){if(this.data.quantity>1&&!this.data.loading&&!this.data.navigating)this.setData({quantity:this.data.quantity-1});},
+  increase(){const maximum=Math.min(99,this.data.selectedSku?.availableQuantity??0);if(this.data.quantity<maximum&&!this.data.loading&&!this.data.navigating)this.setData({quantity:this.data.quantity+1});},
+  openCheckout(){const sku=this.data.selectedSku;if(this.data.loading||this.data.navigating||!this.data.item?.purchaseEnabled||!sku?.purchaseEnabled)return;if(!requireMemberAccess(`/pages/product/index?id=${encodeURIComponent(this.data.id)}`))return;this.setData({navigating:true});wx.navigateTo({url:`/pages/checkout/index?product=${encodeURIComponent(this.data.id)}&sku=${encodeURIComponent(sku.id)}&quantity=${this.data.quantity}`,fail:()=>{this.setData({navigating:false});wx.showToast({title:"结算页暂时无法打开",icon:"none"});}});},
   back() {
     if (!this.data.pageAlive || this.data.leaving) return;
     this.setData({ leaving: true });

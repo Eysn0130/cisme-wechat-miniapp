@@ -16,13 +16,14 @@ const operationIds=new Set<string>();
 let metadataCount=0;
 for(const [path,pathItem] of Object.entries(document.paths)){
   for(const method of ["get","post","put","patch","delete"]){
-    const operation=pathItem[method] as {operationId?:string;security?:unknown;responses?:Record<string,unknown>}|undefined;
+    const operation=pathItem[method] as {operationId?:string;security?:unknown;deprecated?:boolean;responses?:Record<string,unknown>}|undefined;
     if(!operation)continue;
     metadataCount+=1;
     if(!operation.operationId||operationIds.has(operation.operationId))throw new Error(`OPENAPI_OPERATION_ID_INVALID:${method}:${path}`);
     operationIds.add(operation.operationId);
     if(!Array.isArray(operation.security))throw new Error(`OPENAPI_SECURITY_UNDECLARED:${method}:${path}`);
-    if(!operation.responses||!Object.keys(operation.responses).some(code=>code.startsWith("2")))
+    if(!operation.responses||!Object.keys(operation.responses).some(code=>code.startsWith("2"))&&
+      !(operation.deprecated===true&&operation.responses["410"]))
       throw new Error(`OPENAPI_SUCCESS_RESPONSE_MISSING:${method}:${path}`);
   }
 }

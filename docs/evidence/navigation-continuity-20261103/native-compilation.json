@@ -1,0 +1,1006 @@
+{
+  "sourceSha256": "1948a60f1815d42d2fdabfbab7701b464f0c6b0404f3f3896eb10091907b1877",
+  "scope": "Official read-only per-file compiler summaries for all 40 routes; not full state or physical-device acceptance.",
+  "receipts": [
+    {
+      "file": "pages/account/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/account/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/home/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/home/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/records/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/records/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/community/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/profile/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/profile/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/task/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/task/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/submit/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/submit/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/progress/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/progress/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/points/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/points/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/post/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/post/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/shop/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/shop/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/product/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/product/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/checkout/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/checkout/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/orders/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/orders/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/order-detail/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/order-detail/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/settings/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/settings/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/invite/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/invite/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/legal/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/legal/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/privacy-rights/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/privacy-rights/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/support/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/support/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-catalog/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-catalog/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-product/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-product/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-orders/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-orders/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-order-detail/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-order-detail/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-support/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-support/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-support-chat/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-support-chat/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-members/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-members/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-member/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-member/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/referral/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/referral/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/community-compose/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/community-post/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/community-post/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/community-author/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/community-author/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/community-review/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/community-review/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/community-activity/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/community-activity/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-finance/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-finance/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/commission/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/commission/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-privacy/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-privacy/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/aftersale/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/aftersale/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    },
+    {
+      "file": "pages/management-fulfillment/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/management-fulfillment/index.wxss",
+      "ok": true,
+      "tool": "compile_wxss",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20755
+      }
+    }
+  ]
+}

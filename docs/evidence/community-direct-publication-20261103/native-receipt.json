@@ -1,0 +1,143 @@
+{
+  "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+  "scope": "Native simulator with isolated in-memory transport, session and storage; no live writes or external safety-service claim.",
+  "cases": [
+    {
+      "name": "old-task-returns-community",
+      "route": "pages/community/index",
+      "error": "",
+      "hasOldActivities": false
+    },
+    {
+      "name": "old-submit-returns-community",
+      "route": "pages/community/index",
+      "error": "",
+      "hasOldActivities": false
+    },
+    {
+      "name": "old-progress-returns-community",
+      "route": "pages/community/index",
+      "error": "",
+      "hasOldActivities": false
+    },
+    {
+      "name": "profile-no-proof-entry",
+      "route": "pages/profile/index",
+      "error": "",
+      "hasOldActivities": false
+    },
+    {
+      "name": "published",
+      "route": "pages/community-compose/index",
+      "state": "published",
+      "notice": "已发布。",
+      "error": "",
+      "hasOldActivities": false,
+      "publicVersionActive": true
+    },
+    {
+      "name": "pending_review",
+      "route": "pages/community-compose/index",
+      "state": "pending_review",
+      "notice": "正在发布，安全检查完成后自动公开。",
+      "error": "",
+      "hasOldActivities": false,
+      "publicVersionActive": false
+    },
+    {
+      "name": "pending-publication-editable",
+      "route": "pages/community-compose/index",
+      "state": "draft",
+      "notice": "草稿已保存。",
+      "error": "",
+      "hasOldActivities": false,
+      "publicVersionActive": false
+    },
+    {
+      "name": "rejected",
+      "route": "pages/community-compose/index",
+      "state": "rejected",
+      "notice": "发布未完成，请修改内容后重试。",
+      "error": "",
+      "hasOldActivities": false,
+      "publicVersionActive": false
+    }
+  ],
+  "setup": {
+    "originalRoute": "pages/home/index",
+    "hadSession": true
+  },
+  "pendingActionRects": [
+    {
+      "id": "",
+      "dataset": {},
+      "left": 138,
+      "right": 224,
+      "top": 194.1953125,
+      "bottom": 238.1953125,
+      "width": 86,
+      "height": 44
+    },
+    {
+      "id": "",
+      "dataset": {},
+      "left": 236,
+      "right": 322,
+      "top": 194.1953125,
+      "bottom": 238.1953125,
+      "width": 86,
+      "height": 44
+    },
+    {
+      "id": "",
+      "dataset": {},
+      "left": 40,
+      "right": 126,
+      "top": 246.1953125,
+      "bottom": 290.1953125,
+      "width": 86,
+      "height": 44
+    }
+  ],
+  "noLegacyRequests": true,
+  "passed": true,
+  "cleanup": {
+    "readCount": 44,
+    "simulatedWriteCount": 7,
+    "writes": [
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/draft"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/submit"
+      },
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/draft"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/submit"
+      },
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/draft"
+      },
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/draft"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/submit"
+      }
+    ],
+    "unknown": [],
+    "forwardedServerWrites": 0,
+    "requestRestored": true,
+    "storageRestored": true,
+    "sessionRestored": true
+  }
+}

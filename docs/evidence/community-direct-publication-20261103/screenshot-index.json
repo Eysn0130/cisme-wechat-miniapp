@@ -1,0 +1,44 @@
+[
+  {
+    "file": "native/community-without-proof-activities-a7aabbf0.png",
+    "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+    "sha256": "848cd0e1d261389f90efa0f4cf783fee1ddb34de34cc596c59accad973bda753",
+    "origin": "Official WeChat native simulator; isolated memory fixtures only."
+  },
+  {
+    "file": "native/compose-edit-pending-a7aabbf0.png",
+    "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+    "sha256": "3d461c166cb7d53c392ba10e28531e583907c6636e339cbcda7a80a49df67bbb",
+    "origin": "Official WeChat native simulator; isolated memory fixtures only."
+  },
+  {
+    "file": "native/compose-pending_review-a7aabbf0.png",
+    "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+    "sha256": "f8377086beedac2d7312cbb8803d2b2e8c69d3b987ad77b6208b6c8e358a74a1",
+    "origin": "Official WeChat native simulator; isolated memory fixtures only."
+  },
+  {
+    "file": "native/compose-published-a7aabbf0.png",
+    "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+    "sha256": "c2d519acdc9796e98d069fa22968d367549c592745350f53900664b12dc701cc",
+    "origin": "Official WeChat native simulator; isolated memory fixtures only."
+  },
+  {
+    "file": "native/compose-ready-a7aabbf0.png",
+    "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+    "sha256": "b88e882a294525d51873517dcf91660323574c3523bcc4d0e50194f808ecf3fc",
+    "origin": "Official WeChat native simulator; isolated memory fixtures only."
+  },
+  {
+    "file": "native/compose-rejected-a7aabbf0.png",
+    "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+    "sha256": "06693622d28be765aee2219c40b5bd9e8b72f6e0f900fecd57d7151240c988e7",
+    "origin": "Official WeChat native simulator; isolated memory fixtures only."
+  },
+  {
+    "file": "native/profile-without-proof-entry-a7aabbf0.png",
+    "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+    "sha256": "b4fbd39b0e17feed3ef73c7dd7c821350eeee1fd75985e28d15a9cb0e2f08b3b",
+    "origin": "Official WeChat native simulator; isolated memory fixtures only."
+  }
+]

@@ -339,23 +339,7 @@ async function seedFixtures() {
     headers: { ...auth, "idempotency-key": "acceptance-care-d7-0001", "x-dev-clock": "2026-09-07T10:10:00+08:00" },
     payload: { expectedVersion: d1.cycle.version, stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable" }
   }), "CARE_D7");
-  const claim = body<any>(await app.inject({
-    method: "POST",
-    url: `/v1/tasks/${d7.task.id}/claim`,
-    headers: { ...auth, "idempotency-key": "acceptance-task-claim-0001", "x-dev-clock": "2026-09-07T10:15:00+08:00" }
-  }), "TASK_CLAIM");
-  body(await app.inject({
-    method: "PUT",
-    url: `/v1/submissions/${claim.submissionId}/draft`,
-    headers: auth,
-    payload: {
-      postUrl: "https://example.invalid/cisme-local-acceptance",
-      platformAccount: "synthetic_acceptance",
-      disclosure: "本地合成验收内容，不代表真实投稿。",
-      license: { content_storage: true, human_review: true, feed_readonly: false },
-      expectedVersion: 1
-    }
-  }), "SUBMISSION_DRAFT");
+  if (d7.task !== null) throw new Error("REMOVED_TASK_PROOF_WAS_CREATED");
   const share = body<any>(await app.inject({
     method: "POST",
     url: "/v1/shares",
@@ -398,9 +382,9 @@ async function seedFixtures() {
       managementMember: { path: "pages/management-member/index", query: `id=${identity.memberId}` },
       product: { path: "pages/product/index", query: `id=${createdProduct.code}` },
       checkout: { path: "pages/checkout/index", query: `product=${createdProduct.code}&sku=${sku.id}&quantity=1` },
-      task: { path: "pages/task/index", query: `id=${d7.task.id}` },
-      submit: { path: "pages/submit/index", query: `id=${claim.submissionId}` },
-      progress: { path: "pages/progress/index", query: `id=${claim.submissionId}` },
+      task: { path: "pages/task/index", query: "" },
+      submit: { path: "pages/submit/index", query: "" },
+      progress: { path: "pages/progress/index", query: "" },
       orderDetail: { path: "pages/order-detail/index", query: `id=${pendingOrder.id}` },
       ...(paidFixture?{orderDetailPaid:{path:'pages/order-detail/index',query:`id=${paidFixture.id}`}}:{}),
       managementProduct: { path: "pages/management-product/index", query: `id=${createdProduct.productId}` },
@@ -420,8 +404,8 @@ async function seedFixtures() {
       addressId: address.id,
       supportConversationId: claimedConversation.id,
       careCycleId: enrollment.cycle.id,
-      taskId: d7.task.id,
-      submissionId: claim.submissionId,
+      taskId: null,
+      submissionId: null,
       shareId: share.shareId
     },
     assertions: {

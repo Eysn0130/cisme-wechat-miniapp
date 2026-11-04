@@ -1,7 +1,7 @@
 <view class="chrome-root" style="{{chromeStyle}}">
 <view class="topbar shop-topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="shop-topbar__copy"><text class="topbar__title">商品目录</text><small class="shop-topbar__subtitle">护理精选</small></view></view>
 <view class="page page--stack shop-page">
-  <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载商品目录…</view>
+  <view wx:if="{{loading && !catalog}}" class="page-read-loading" aria-role="status" aria-label="正在加载商品目录…"><view class="page-read-loading__indicator"/></view>
   <button wx:if="{{featured}}" class="shop-hero {{navigating ? 'control--disabled' : ''}}" data-id="{{featured.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="查看商品详情：{{featured.name}}，价格 {{featured.displayPrice}} 元">
     <image class="shop-hero__image" src="{{featured.image}}" mode="aspectFill"/>
     <view class="shop-hero__shade"></view>

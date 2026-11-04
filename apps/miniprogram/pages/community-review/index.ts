@@ -18,17 +18,6 @@ function context(page: object): ReviewContext {
   if (!value) { value = { epoch: 0, token: "", alive: true, shown: false }; contexts.set(page, value); }
   return value;
 }
-function captureIntent(page: { data: { postId: string; candidate: Candidate | null } }): ReviewIntent | null {
-  const candidate = page.data.candidate, ctx = context(page);
-  if (!candidate || !ctx.alive || !ctx.token || ctx.token !== getApp<IAppOption>().globalData.sessionToken) return null;
-  return { epoch: ctx.epoch, token: ctx.token, postId: page.data.postId, revision: candidate.revision, version: candidate.version };
-}
-function sameIntent(page: { data: { postId: string; candidate: Candidate | null } }, intent: ReviewIntent): boolean {
-  const ctx = context(page), candidate = page.data.candidate;
-  return ctx.alive && ctx.epoch === intent.epoch && ctx.token === intent.token &&
-    getApp<IAppOption>().globalData.sessionToken === intent.token && page.data.postId === intent.postId &&
-    candidate?.id === intent.postId && candidate.revision === intent.revision && candidate.version === intent.version;
-}
 const handledElsewhere = (error: unknown) => [404, 409].includes(Number((error as { status?: number })?.status));
 const reviewStatusLabel=(status:string)=>({pending:"待审核",published:"已公开",rejected:"已退回",hidden:"已隐藏"}[status]||status);
 const reviewSafetyLabel=(state:string)=>({pending:"检查中",safe:"已通过",review:"需核对",risky:"未通过",error:"检查未完成"}[state]||"未完成");
@@ -47,8 +36,7 @@ Page({
       if(articleId&&!editorialIdentifier(articleId)){this.setData({loading:false,error:"文章链接无效。"});return;}
       if(requireMemberAccess(this.editorialReviewReturnUrl()))void this.loadEditorialQueue();return;
     }
-    if (!requireMemberAccess(`/pages/community-review/index?id=${encodeURIComponent(id)}`)) return;
-    if (id) void this.load();else this.setData({ loading: false, error: "内容编号缺失。" });
+    wx.switchTab({url:"/pages/community/index"});
   },
   onShow() { this.reviewVisible=true;const ctx=context(this);if(this.data.editorialSource){if(ctx.shown)void this.loadEditorialQueue();ctx.shown=true;return;}if(ctx.shown&&(!this.data.handled||ctx.token!==getApp<IAppOption>().globalData.sessionToken))void this.load();else ctx.shown=true; },
   onHide() {this.reviewVisible=false;context(this).epoch+=1;this.editorialQueueEpoch+=1;this.editorialReviewOwner+=1;cancelPageReads(this);this.setData({busy:false});},
@@ -60,31 +48,7 @@ Page({
       error:"当前账号没有内容审核权限，请返回社区。"});
     return true;
   },
-  async load() {
-    if(this.data.editorialSource){await this.loadEditorialQueue();return;}
-    if (!this.data.postId) return;
-    const ctx=context(this),epoch=++ctx.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-    ctx.token=token;
-    this.setData({ candidate:null,media:[],loading:true,busy:false,error:"",handled:false,permissionDenied:false });
-    if(!token){this.setData({loading:false,error:"请先确认身份后重新进入审核。"});requireMemberAccess();return;}
-    try {
-      const candidate = await request<Candidate>({ path: `/v1/management/ugc/posts/${this.data.postId}` });
-      const media = await Promise.all(candidate.media.map(async item => {
-        try {
-          const preview = await request<{ url: string }>({ path: `/v1/management/ugc/media/${item.id}/preview-url` });
-          return { ...item, scanVerdict: item.scanVerdict || "pending", src: preview.url };
-        } catch (error) {
-          if((error as {code?:string})?.code==="CAPABILITY_REQUIRED")throw error;
-          return { ...item, scanVerdict: item.scanVerdict || "pending", src: "" };
-        }
-      }));
-      if (ctx.alive && epoch === ctx.epoch && token === getApp<IAppOption>().globalData.sessionToken)
-        this.setData({ candidate, media, loading: false });
-    } catch (error) { if (ctx.alive && epoch === ctx.epoch && token === getApp<IAppOption>().globalData.sessionToken && !this.denyCapability(error))
-      this.setData({ candidate:null,media:[],loading:false,
-        error:handledElsewhere(error)?"":failure(error,"待审内容暂时无法加载，请重试。"),handled:handledElsewhere(error),
-        notice:handledElsewhere(error)?"这篇内容已不在待审队列，可能已撤回或被其他审核员处理。":"" }); }
-  },
+  async load() { if(this.data.editorialSource)await this.loadEditorialQueue();else wx.switchTab({url:"/pages/community/index"}); },
   editorialReviewReturnUrl() {return `/pages/community-review/index?source=editorial${this.data.articleId?`&articleId=${encodeURIComponent(this.data.articleId)}`:""}`;},
   currentEditorialQueue(epoch:number,token:string) {
     return this.reviewVisible&&context(this).alive&&this.data.editorialSource&&epoch===this.editorialQueueEpoch
@@ -182,69 +146,6 @@ Page({
   preview(event: WechatMiniprogram.TouchEvent) {
     const src = String(event.currentTarget.dataset.src || ""), urls = this.data.media.map(item => item.src).filter(Boolean);
     if (src && urls.length) wx.previewImage({ current: src, urls });
-  },
-  async reviewMedia(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.busy || !this.data.candidate) return;
-    const intent=captureIntent(this);if(!intent)return;
-    const id = String(event.currentTarget.dataset.id || ""), decision = String(event.currentTarget.dataset.decision || "");
-    const media = this.data.media.find(item => item.id === id);
-    if (!media || !["approve", "reject"].includes(decision) || decision === "approve" && media.scanVerdict !== "safe") return;
-    const reason = await wx.showModal({ title: decision === "approve" ? "通过图片审核" : "退回这张图片",
-      editable: true, placeholderText: "填写至少 4 字的审核依据", confirmText: "确认" });
-    if (!reason.confirm||!sameIntent(this,intent)) return;
-    const why=(reason.content||"").trim();
-    if(why.length<4){this.setData({error:"请填写至少 4 字的审核依据。"});return;}
-    this.setData({ busy: true, error: "" });
-    try {
-      if(!sameIntent(this,intent))return;
-      await request({ path: `/v1/management/ugc/media/${id}/review`, method: "POST", data: {
-        decision, reason: why, ruleVersion: "UGC-R1" } });
-      if(!sameIntent(this,intent))return;
-      this.setData({notice:decision==="approve"?"图片审核已通过。":"图片已退回作者。"});
-      await this.load();
-    } catch (error) { if(sameIntent(this,intent)&&!this.denyCapability(error))this.setData({error:handledElsewhere(error)?"":failure(error),
-      notice:handledElsewhere(error)?"图片状态已变化，请返回待审队列核对。":""}); }
-    finally { if(sameIntent(this,intent))this.setData({busy:false}); }
-  },
-  async reviewPost(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.busy || !this.data.candidate || this.data.candidate.moderationState !== "pending") return;
-    const intent=captureIntent(this);if(!intent)return;
-    const decision = String(event.currentTarget.dataset.decision || "");
-    if (!["approve", "reject"].includes(decision)) return;
-    const reason = await wx.showModal({ title: decision === "approve" ? "通过内容审核" : "退回作者修改",
-      editable: true, placeholderText: "填写已核对的事实与审核依据", confirmText: "提交" });
-    if (!reason.confirm||!sameIntent(this,intent)) return;
-    const why=(reason.content||"").trim();
-    if(why.length<4){this.setData({error:"请填写至少 4 字的审核依据。"});return;}
-    this.setData({ busy: true, error: "" });
-    try {
-      if(!sameIntent(this,intent))return;
-      const result=await request<{decision:string;version:number}>({ path: `/v1/management/ugc/posts/${intent.postId}/review`, method: "POST", data: {
-        decision, reason: why, ruleVersion: "UGC-R1", expectedVersion: intent.version } });
-      if(!sameIntent(this,intent))return;
-      if(result.decision==="reject")this.setData({candidate:null,media:[],busy:false,handled:true,notice:"已退回作者修改。"});
-      else {this.setData({notice:"内容审核已通过，等待另一名审核员复核公开。"});await this.load();}
-    } catch (error) { if(sameIntent(this,intent)&&!this.denyCapability(error))this.setData({error:handledElsewhere(error)?"":failure(error),
-      candidate:handledElsewhere(error)?null:this.data.candidate,media:handledElsewhere(error)?[]:this.data.media,
-      handled:handledElsewhere(error),notice:handledElsewhere(error)?"内容已被他人处理或作者撤回，请返回待审队列核对。":""}); }
-    finally { if(sameIntent(this,intent))this.setData({ busy: false }); }
-  },
-  async publish() {
-    if (this.data.busy || !this.data.candidate || this.data.candidate.moderationState !== "approved") return;
-    const intent=captureIntent(this);if(!intent)return;
-    const answer = await wx.showModal({ title: "复核并公开？", content: "确认内容、图片和公开许可与已审核版本一致。需由另一名审核员完成。", confirmText: "公开" });
-    if (!answer.confirm||!sameIntent(this,intent)) return;
-    this.setData({ busy: true, error: "" });
-    try {
-      if(!sameIntent(this,intent))return;
-      const result=await request<{state:string;version:number}>({ path: `/v1/management/ugc/posts/${intent.postId}/publish`, method: "POST",
-        data: { expectedVersion: intent.version } });
-      if(!sameIntent(this,intent))return;
-      if(result.state==="published")this.setData({candidate:null,media:[],busy:false,handled:true,notice:"已公开这篇护理故事。"});
-    } catch (error) { if(sameIntent(this,intent)&&!this.denyCapability(error))this.setData({error:handledElsewhere(error)?"":failure(error),
-      candidate:handledElsewhere(error)?null:this.data.candidate,media:handledElsewhere(error)?[]:this.data.media,
-      handled:handledElsewhere(error),notice:handledElsewhere(error)?"内容已被他人处理或作者撤回，请返回待审队列核对。":""}); }
-    finally { if(sameIntent(this,intent))this.setData({ busy: false }); }
   },
   back() { wx.navigateBack({ fail: () => wx.switchTab({ url: "/pages/community/index" }) }); }
 });

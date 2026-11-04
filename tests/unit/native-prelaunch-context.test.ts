@@ -69,12 +69,8 @@ describe('prelaunch historical rights and request context', () => {
 });
 
 it('keeps user-facing progress and order copy free of obsolete development claims', () => {
-  const progress = readFileSync('apps/miniprogram/pages/progress/index.wxml', 'utf8');
   const orders = readFileSync('apps/miniprogram/pages/management-orders/index.wxml', 'utf8');
   const api = readFileSync('apps/miniprogram/services/api.ts', 'utf8');
-  expect(progress).not.toMatch(/虚构积分流水|历史证据保持可审计|STATUS UNAVAILABLE/);
-  expect(progress).toContain('submission.reward_enabled');
-  expect(progress).toContain('本次投稿不发放积分');
   expect(orders).not.toContain('未来履约');
   expect(orders).toContain('!coreReady||navigating');
   expect(api).not.toContain('不要更换幂等键重复提交');

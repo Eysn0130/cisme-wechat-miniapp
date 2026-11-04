@@ -1,0 +1,1558 @@
+{
+  "sourceSha256": "bb508339cd10a17ab47ed678b00403d90b5bd3985ca0fdfde92ffebd0ce2bcda",
+  "scope": "Real existing session and published editorial GETs, all non-GET requests blocked locally. No writes or device acceptance.",
+  "posts": [
+    {
+      "id": "039c0c93-6093-4c03-9f01-2c777c92bde7",
+      "cold": {
+        "id": "039c0c93-6093-4c03-9f01-2c777c92bde7",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ],
+          []
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 723,
+              "width": 358,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 226.5078125,
+              "top": 760,
+              "bottom": 804,
+              "width": 210.5078125,
+              "height": 44
+            }
+          ],
+          [],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": [
+        {
+          "elapsed": 28,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 226.5078125,
+                "top": 760,
+                "bottom": 804,
+                "width": 210.5078125,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 114,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 226.5078125,
+                "top": 760,
+                "bottom": 804,
+                "width": 210.5078125,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 208,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 226.5078125,
+                "top": 760,
+                "bottom": 804,
+                "width": 210.5078125,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 297,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 226.5078125,
+                "top": 760,
+                "bottom": 804,
+                "width": 210.5078125,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 384,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 226.5078125,
+                "top": 760,
+                "bottom": 804,
+                "width": 210.5078125,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 472,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 226.5078125,
+                "top": 760,
+                "bottom": 804,
+                "width": 210.5078125,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        }
+      ],
+      "updated": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 723,
+              "width": 358,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 226.5078125,
+              "top": 760,
+              "bottom": 804,
+              "width": 210.5078125,
+              "height": 44
+            }
+          ],
+          [],
+          []
+        ],
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "error": ""
+      },
+      "warmGeometryMatchesBaseline": true
+    },
+    {
+      "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a",
+      "cold": {
+        "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ],
+          []
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 224.15625,
+              "top": 760,
+              "bottom": 804,
+              "width": 208.15625,
+              "height": 44
+            }
+          ],
+          [],
+          []
+        ],
+        "mediaCount": 2,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": [
+        {
+          "elapsed": 30,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 118,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 206,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 294,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 380,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 468,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        }
+      ],
+      "updated": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 224.15625,
+              "top": 760,
+              "bottom": 804,
+              "width": 208.15625,
+              "height": 44
+            }
+          ],
+          [],
+          []
+        ],
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "error": ""
+      },
+      "warmGeometryMatchesBaseline": true
+    },
+    {
+      "id": "d6909bc4-aaa6-47da-b388-af003a21b52d",
+      "cold": {
+        "id": "d6909bc4-aaa6-47da-b388-af003a21b52d",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ],
+          []
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 224.15625,
+              "top": 760,
+              "bottom": 804,
+              "width": 208.15625,
+              "height": 44
+            }
+          ],
+          [],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": [
+        {
+          "elapsed": 30,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 116,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 203,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 292,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 380,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        },
+        {
+          "elapsed": 471,
+          "loading": true,
+          "privateCommentsCleared": true,
+          "hasViewerSession": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 224.15625,
+                "top": 760,
+                "bottom": 804,
+                "width": 208.15625,
+                "height": 44
+              }
+            ],
+            [],
+            []
+          ]
+        }
+      ],
+      "updated": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 224.15625,
+              "top": 760,
+              "bottom": 804,
+              "width": 208.15625,
+              "height": 44
+            }
+          ],
+          [],
+          []
+        ],
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "error": ""
+      },
+      "warmGeometryMatchesBaseline": true
+    }
+  ],
+  "setup": {
+    "installed": true,
+    "hasSession": true,
+    "cloudTransport": false
+  },
+  "feedCount": 20,
+  "coldScreenshot": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/navigation-continuity-20261103/live/post-cold-bb508339.png",
+    "imageWidth": 664,
+    "imageHeight": 1436
+  },
+  "readyScreenshot": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/navigation-continuity-20261103/live/post-ready-bb508339.png",
+    "imageWidth": 664,
+    "imageHeight": 1436
+  },
+  "warmScreenshot": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/navigation-continuity-20261103/live/post-author-return-held-bb508339.png",
+    "imageWidth": 664,
+    "imageHeight": 1436
+  },
+  "cleanup": {
+    "readCount": 36,
+    "blockedWriteAttempts": [],
+    "forwardedServerWrites": 0,
+    "requestRestored": true,
+    "sessionUnchanged": true
+  }
+}

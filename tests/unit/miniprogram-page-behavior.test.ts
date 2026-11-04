@@ -11,7 +11,6 @@ const uploadAuthorizedMock = vi.hoisted(() => vi.fn());
 const setSessionTokenMock = vi.hoisted(() => vi.fn());
 const setPrivacyRightsTokenMock = vi.hoisted(() => vi.fn());
 const downloadPrivateMediaMock = vi.hoisted(() => vi.fn());
-const submissionReturnUrlMock = vi.hoisted(() => vi.fn((id: string): string => id ? "/pages/task/index?id=task-1" : ""));
 
 vi.mock("../../apps/miniprogram/services/api", () => ({
   historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken || (globalThis as any).getApp().globalData.privacyRightsToken || "",
@@ -32,7 +31,6 @@ vi.mock("../../apps/miniprogram/services/api", () => ({
   setSessionToken: setSessionTokenMock,
   setPrivacyRightsToken: setPrivacyRightsTokenMock,
   downloadPrivateMedia: downloadPrivateMediaMock,
-  submissionReturnUrl: submissionReturnUrlMock
 }));
 
 vi.mock("../../apps/miniprogram/services/layout", () => ({
@@ -61,15 +59,6 @@ function mountedPage(definition: PageDefinition, overrides: Record<string, any> 
   return context;
 }
 
-async function actualSubmissionReturnStorage() {
-  const storage = new Map<string, unknown>();
-  wxMock.getStorageSync!.mockImplementation((key: string) => storage.get(key));
-  wxMock.setStorageSync!.mockImplementation((key: string, value: unknown) => storage.set(key, value));
-  const api = await vi.importActual<typeof import("../../apps/miniprogram/services/api")>("../../apps/miniprogram/services/api");
-  submissionReturnUrlMock.mockImplementation(api.submissionReturnUrl);
-  return { storage, remember: api.rememberSubmissionReturn };
-}
-
 beforeEach(() => {
   vi.resetModules();
   requestMock.mockReset();
@@ -85,8 +74,6 @@ beforeEach(() => {
   setSessionTokenMock.mockReset();
   setPrivacyRightsTokenMock.mockReset();
   downloadPrivateMediaMock.mockReset();
-  submissionReturnUrlMock.mockReset();
-  submissionReturnUrlMock.mockImplementation((id: string): string => id ? "/pages/task/index?id=task-1" : "");
   capturedPage = null;
   wxMock = {
     navigateTo: vi.fn(),
@@ -151,21 +138,9 @@ describe("mini-program page behavior", () => {
     expect(account.data.error).toBe("隐私保护指引暂不可用，请稍后重试。");
   });
 
-  it("clears task, review, and settings snapshots before a guest can return from login", async () => {
+  it("clears settings snapshots before a guest can return from login", async () => {
     retainMemberSnapshotMock.mockReturnValue(false);
     requireMemberAccessMock.mockReturnValue(false);
-
-    await vi.importActual("../../apps/miniprogram/pages/task/index");
-    const task = mountedPage(capturedPage!, { task: { id: "previous-task", submission_id: "previous-submission" },
-      continuationSubmissionId: "previous-submission", working: true });
-    task.onShow();
-    expect(task.data).toMatchObject({ task: null, continuationSubmissionId: "", working: false, errorTitle: "请先登录" });
-
-    await vi.importActual("../../apps/miniprogram/pages/progress/index");
-    const progress = mountedPage(capturedPage!, { submission: { id: "previous-submission", status: "rejected" },
-      appealReason: "private appeal", reviewReason: "private review", working: true });
-    progress.onShow();
-    expect(progress.data).toMatchObject({ submission: null, appealReason: "", reviewReason: "", working: false, errorTitle: "请先登录" });
 
     await vi.importActual("../../apps/miniprogram/pages/settings/index");
     const settings = mountedPage(capturedPage!, { memberId: "previous-member", displayName: "上一位会员",
@@ -456,12 +431,11 @@ describe("mini-program page behavior", () => {
     vi.useRealTimers();
   });
 
-  it.each(["product", "task", "settings"])("serializes %s back navigation and permits retry only after fallback failure", async (route) => {
+  it.each(["product", "settings"])("serializes %s back navigation and permits retry only after fallback failure", async (route) => {
     await vi.importActual(`../../apps/miniprogram/pages/${route}/index`);
     const page = mountedPage(capturedPage!);
     page.back();
     page.back();
-    if (route === "task") page.goCommunity();
     expect(wxMock.navigateBack).toHaveBeenCalledTimes(1);
     expect(wxMock.switchTab).not.toHaveBeenCalled();
     wxMock.navigateBack!.mock.calls[0]![0].fail();
@@ -600,153 +574,17 @@ describe("mini-program page behavior", () => {
     expect(wxMock.showToast).toHaveBeenCalledWith({ title: "商品目录暂时无法打开", icon: "none" });
   });
 
-  it("blocks a stale appeal after an authority conflict until a successful reload", async () => {
-    requestMock.mockRejectedValueOnce({ status: 409, code: "APPEAL_STATE_INVALID" });
-    await vi.importActual("../../apps/miniprogram/pages/progress/index");
-    const page = capturedPage!;
-    const context = mountedPage(page, {
-      submissionId: "submission-1",
-      submission: { id: "submission-1", status: "rejected", version: 3, review: {} },
-      appealReason: "请重新核验",
-      appealValid: true,
-      appealBlocked: false,
-      working: false,
-      pageAlive: true,
-      loadAttempt: 0
-    });
 
-    await page.appeal.call(context);
 
-    expect(requestMock).toHaveBeenCalledTimes(1);
-    expect(context.data.appealBlocked).toBe(true);
-    expect(context.data.working).toBe(false);
-    expect(context.data.errorTitle).toBe("申诉资格已变化");
 
-    await page.appeal.call(context);
-    expect(requestMock).toHaveBeenCalledTimes(1);
 
-    requestMock.mockResolvedValueOnce({
-      id: "submission-1",
-      status: "rejected",
-      version: 4,
-      reward_enabled: false,
-      review: { reason_summary: "权威状态已刷新" }
-    });
-    await page.load.call(context);
 
-    expect(context.data.appealBlocked).toBe(false);
-    expect(context.data.submission.version).toBe(4);
-  });
 
-  it("returns Progress only to the matching Task source and serializes fallback navigation", async () => {
-    await vi.importActual("../../apps/miniprogram/pages/progress/index");
-    const page = capturedPage!;
-    const matchingContext = mountedPage(page, { submissionId: "submission-1", pageAlive: true, navigatingAway: false });
-    (globalThis as any).getCurrentPages = () => [
-      { route: "pages/task/index", options: { id: "task-1" } },
-      { route: "pages/progress/index", options: { id: "submission-1" } }
-    ];
 
-    page.back.call(matchingContext);
 
-    expect(wxMock.navigateBack).toHaveBeenCalledWith(expect.objectContaining({ delta: 1 }));
-    expect(wxMock.redirectTo).not.toHaveBeenCalled();
 
-    wxMock.navigateBack!.mockClear();
-    wxMock.showToast!.mockClear();
-    const unrelatedContext = mountedPage(page, { submissionId: "submission-1", pageAlive: true, navigatingAway: false });
-    (globalThis as any).getCurrentPages = () => [
-      { route: "pages/post/index", options: { id: "post-1" } },
-      { route: "pages/progress/index", options: { id: "submission-1" } }
-    ];
 
-    page.back.call(unrelatedContext);
-    page.back.call(unrelatedContext);
 
-    expect(wxMock.navigateBack).not.toHaveBeenCalled();
-    expect(wxMock.redirectTo).toHaveBeenCalledTimes(1);
-    expect(wxMock.redirectTo).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/task/index?id=task-1" }));
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "正在返回活动", icon: "none" });
-
-    wxMock.redirectTo!.mock.calls[0]![0].fail();
-    expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/community/index" }));
-    wxMock.switchTab!.mock.calls[0]![0].fail();
-    expect(unrelatedContext.data.navigatingAway).toBe(false);
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "投稿来源暂时无法打开", icon: "none" });
-  });
-
-  it.each(["", "different-submission"])("uses one community destination without a matching submission source: %s", async (submissionId) => {
-    const source = await actualSubmissionReturnStorage();
-    source.remember({ submissionId: "submission-1", taskId: "task-1", returnUrl: "/pages/task/index?id=task-1" });
-    await vi.importActual("../../apps/miniprogram/pages/progress/index");
-    const context = mountedPage(capturedPage!);
-    context.onLoad(submissionId ? { id: submissionId } : {});
-    if (!submissionId) {
-      await context.load();
-      expect(context.data.errorAction).toBe("missing");
-    }
-    expect(context.data.hasActivitySource).toBe(false);
-    (globalThis as any).getCurrentPages = () => [
-      { route: "pages/task/index", options: { id: "task-1" } },
-      { route: "pages/progress/index", options: { id: submissionId } }
-    ];
-    context.back();
-    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/community/index" }));
-    expect(wxMock.navigateBack).not.toHaveBeenCalled();
-    expect(wxMock.redirectTo).not.toHaveBeenCalled();
-    expect(requestMock).not.toHaveBeenCalled();
-    const view = await (await import("node:fs/promises")).readFile("apps/miniprogram/pages/progress/index.wxml", "utf8");
-    expect(view).toContain("{{hasActivitySource ? '返回活动' : '返回社区'}}");
-    expect(view).toContain('wx:if="{{hasActivitySource}}" class="progress-community');
-    expect(view).toContain('wx:if="{{hasActivitySource}}" class="text-button progress-error-action');
-  });
-
-  it("projects a stored matching activity source and keeps its original navigation fallback", async () => {
-    const source = await actualSubmissionReturnStorage();
-    source.remember({ submissionId: "submission-1", taskId: "task-1", returnUrl: "/pages/task/index?id=task-1" });
-    await vi.importActual("../../apps/miniprogram/pages/progress/index");
-    const context = mountedPage(capturedPage!);
-    context.onLoad({ id: "submission-1" });
-    expect(context.data.hasActivitySource).toBe(true);
-    (globalThis as any).getCurrentPages = () => [
-      { route: "pages/post/index", options: { id: "unrelated" } },
-      { route: "pages/progress/index", options: { id: "submission-1" } }
-    ];
-    context.back();
-    expect(wxMock.navigateBack).not.toHaveBeenCalled();
-    expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/task/index?id=task-1" }));
-    wxMock.redirectTo!.mock.calls[0]![0].fail();
-    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/community/index" }));
-    expect(requestMock).not.toHaveBeenCalled();
-  });
-
-  it.each(["invalid", "unavailable"])("does not label an %s stored task source as usable", async (state) => {
-    if (state === "invalid") submissionReturnUrlMock.mockReturnValue("/pages/task/index?id=%E0%A4%A");
-    else submissionReturnUrlMock.mockImplementation(() => { throw new Error("synthetic storage unavailable"); });
-    await vi.importActual("../../apps/miniprogram/pages/progress/index");
-    const context = mountedPage(capturedPage!);
-    expect(() => context.onLoad({ id: "submission-1" })).not.toThrow();
-    expect(context.data.hasActivitySource).toBe(false);
-    context.back();
-    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/community/index" }));
-    expect(wxMock.redirectTo).not.toHaveBeenCalled();
-  });
-
-  it("refreshes the visible return label when the stored submission source is no longer available", async () => {
-    const source = await actualSubmissionReturnStorage();
-    source.remember({ submissionId: "submission-1", taskId: "task-1", returnUrl: "/pages/task/index?id=task-1" });
-    await vi.importActual("../../apps/miniprogram/pages/progress/index");
-    const context = mountedPage(capturedPage!);
-    context.onLoad({ id: "submission-1" });
-    expect(context.data.hasActivitySource).toBe(true);
-    source.storage.clear();
-    context.load = vi.fn();
-    context.onShow();
-    expect(context.data.hasActivitySource).toBe(false);
-    context.back();
-    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ url: "/pages/community/index" }));
-    expect(wxMock.redirectTo).not.toHaveBeenCalled();
-  });
 
   it.each(["home", "records"])("does not pass a tap event into %s preserveSnapshot retries", async (route) => {
     await vi.importActual(`../../apps/miniprogram/pages/${route}/index`);
@@ -886,59 +724,11 @@ describe("mini-program page behavior", () => {
     expect(act).toHaveBeenCalledWith("/v1/care-cycles/cycle-planned/activate", "care-activate-cycle-planned-v2", { expectedVersion: 2 });
   });
 
-  it("refreshes Submit authority after returning to an existing page", async () => {
-    await vi.importActual("../../apps/miniprogram/pages/submit/index");
-    const page = capturedPage!;
-    const context = mountedPage(page, { pageAlive: true, hasShown: false, draftDirty: false, savingDraft: false, working: false, uploadingKind: "", navigatingToProgress: true });
-    context.load = vi.fn();
 
-    page.onShow.call(context);
-    expect(context.load).toHaveBeenCalledTimes(1);
-    context.load.mockClear();
-    page.onShow.call(context);
 
-    expect(context.load).toHaveBeenCalledTimes(1);
-    expect(context.data.navigatingToProgress).toBe(false);
-  });
 
-  it("blocks Submit media access before privacy, chooser, or network calls when uploads are disabled", async () => {
-    await vi.importActual("../../apps/miniprogram/pages/submit/index");
-    const page = capturedPage!;
-    const context = mountedPage(page, {
-      pageAlive: true,
-      editable: true,
-      mediaUploadsEnabled: false,
-      working: false,
-      uploadingKind: "",
-      savingDraft: false,
-      draftDirty: false
-    });
 
-    await page.chooseMedia.call(context, { currentTarget: { dataset: { kind: "original" } } });
 
-    expect(context.data.error).toContain("图片上传暂未开放，请稍后再来。");
-    expect(requestMock).not.toHaveBeenCalled();
-    expect(wxMock.requirePrivacyAuthorize).not.toHaveBeenCalled();
-    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
-    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
-  });
-
-  it("does not enter the chooser or network path when WeChat privacy authorization is refused", async () => {
-    wxMock.requirePrivacyAuthorize!.mockImplementation(({ fail }: { fail(error: unknown): void }) => fail({ errMsg: "privacy deny" }));
-    await vi.importActual("../../apps/miniprogram/pages/submit/index");
-    const page = capturedPage!;
-    const context = mountedPage(page, {
-      pageAlive: true, editable: true, mediaUploadsEnabled: true,
-      working: false, uploadingKind: "", savingDraft: false, draftDirty: false
-    });
-
-    await page.chooseMedia.call(context, { currentTarget: { dataset: { kind: "original" } } });
-
-    expect(context.data.error).toContain("隐私授权");
-    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
-    expect(requestMock).not.toHaveBeenCalled();
-    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
-  });
 
   it("keeps support text and blocks repeated image taps while privacy consent is pending or refused", async () => {
     const app = { globalData: { sessionToken: "support-member-a" } };
@@ -1016,45 +806,9 @@ describe("mini-program page behavior", () => {
     expect(uploadAuthorizedMock).not.toHaveBeenCalled();
   });
 
-  it("does not choose or upload Submit evidence after privacy authorization returns to another session", async () => {
-    const app = { globalData: { sessionToken: "submit-member-a" } };
-    (globalThis as any).getApp = () => app;
-    let allow!: () => void;
-    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => { allow = success; });
-    await vi.importActual("../../apps/miniprogram/pages/submit/index");
-    const page = capturedPage!;
-    const context = mountedPage(page, { pageAlive: true, editable: true, mediaUploadsEnabled: true,
-      working: false, uploadingKind: "", savingDraft: false, draftDirty: false, submissionId: "submission-a" });
-    const pending = page.chooseMedia.call(context, { currentTarget: { dataset: { kind: "original" } } });
-    app.globalData.sessionToken = "submit-member-b";
-    allow();
-    await pending;
-    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
-    expect(requestMock).not.toHaveBeenCalled();
-    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
-  });
 
-  it("invalidates a pending Submit chooser on page hide without replacing old evidence", async () => {
-    (globalThis as any).getApp = () => ({ globalData: { sessionToken: "submit-member-a" } });
-    wxMock.requirePrivacyAuthorize!.mockImplementation(({ success }: { success(): void }) => success());
-    let resolveChosen!: (value: unknown) => void;
-    wxMock.chooseMedia!.mockImplementation(() => new Promise(resolve => { resolveChosen = resolve; }));
-    await vi.importActual("../../apps/miniprogram/pages/submit/index");
-    const page = capturedPage!;
-    const oldMedia = [{ kind: "original", upload_state: "uploaded", id: "confirmed-old-evidence" }];
-    const context = mountedPage(page, { pageAlive: true, editable: true, mediaUploadsEnabled: true,
-      working: false, uploadingKind: "", savingDraft: false, draftDirty: false, submissionId: "submission-a",
-      submission: { media: oldMedia } });
-    const pending = page.chooseMedia.call(context, { currentTarget: { dataset: { kind: "original" } } });
-    await vi.waitFor(() => expect(wxMock.chooseMedia).toHaveBeenCalledTimes(1));
-    page.onHide.call(context);
-    resolveChosen({ tempFiles: [{ tempFilePath: "/synthetic/private.jpg", size: 100 }] });
-    await pending;
-    expect(context.data.submission.media).toEqual(oldMedia);
-    expect(context.data.uploadRecovery).toBe("retry");
-    expect(requestMock).not.toHaveBeenCalled();
-    expect(uploadAuthorizedMock).not.toHaveBeenCalled();
-  });
+
+
 
   it("keeps community text intact on privacy refusal and permits a later explicit retry", async () => {
     (globalThis as any).getApp = () => ({ globalData: { sessionToken: "community-member-a" } });
@@ -1114,40 +868,9 @@ describe("mini-program page behavior", () => {
     expect(wxMock.chooseMedia).not.toHaveBeenCalled();
   });
 
-  it("scrubs the previous member submission before reloading after an account switch", async () => {
-    retainMemberSnapshotMock.mockReturnValue(false);
-    await vi.importActual("../../apps/miniprogram/pages/submit/index");
-    const page = capturedPage!;
-    const context = mountedPage(page, {
-      pageAlive: true, hasShown: true, submissionId: "submission-old", submission: { id: "submission-old" },
-      mediaUploadsEnabled: true, originalReady: true, screenshotReady: true,
-      postUrl: "https://personal.example/old", platformAccount: "old-account", disclosure: "old disclosure",
-      permissions: { content_storage: true, human_review: true, feed_readonly: true }, editable: true, draftDirty: true
-    });
-    context.load = vi.fn();
 
-    page.onShow.call(context);
 
-    expect(context.data).toMatchObject({
-      submission: null, mediaUploadsEnabled: false, originalReady: false, screenshotReady: false,
-      postUrl: "", platformAccount: "", disclosure: "", editable: false, draftDirty: false
-    });
-    expect(context.data.permissions).toEqual({ content_storage: false, human_review: false, feed_readonly: false });
-    expect(context.load).toHaveBeenCalledTimes(1);
-  });
 
-  it("recovers when a rendered Community invitation is stale", async () => {
-    await vi.importActual("../../apps/miniprogram/pages/community/index");
-    const page = capturedPage!;
-    const context = mountedPage(page, { tasks: [], tasksLoading: false, navigating: false });
-    context.loadTasks = vi.fn();
-
-    page.openInvite.call(context, { currentTarget: { dataset: { id: "stale-task" } } });
-
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "邀请状态已更新，请重试", icon: "none" });
-    expect(context.loadTasks).toHaveBeenCalledTimes(1);
-    expect(wxMock.navigateTo).not.toHaveBeenCalled();
-  });
 
   it("returns an authenticated member from Account to its source while keeping public browsing separate", async () => {
     Object.assign(globalThis,{getApp:()=>({globalData:{sessionToken:"valid-member"}})});

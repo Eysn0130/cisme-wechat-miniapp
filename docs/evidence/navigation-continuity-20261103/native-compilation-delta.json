@@ -1,0 +1,345 @@
+{
+  "sourceSha256": "bb508339cd10a17ab47ed678b00403d90b5bd3985ca0fdfde92ffebd0ce2bcda",
+  "scope": "Final package: two changed WXML files recompiled. The other 78 WXML/WXSS compiler inputs are byte-identical to native-compilation-1948a60f.json; not route/state/device acceptance.",
+  "receipts": [
+    {
+      "file": "pages/community-author/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    },
+    {
+      "file": "pages/submit/index.wxml",
+      "ok": true,
+      "tool": "compile_wxml",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "codeLength": 36546
+      }
+    }
+  ],
+  "unchangedCompilerInputs": {
+    "basisSourceSha256": "1948a60f1815d42d2fdabfbab7701b464f0c6b0404f3f3896eb10091907b1877",
+    "basisEvidence": "native-compilation-1948a60f.json",
+    "count": 78,
+    "files": [
+      {
+        "path": "apps/miniprogram/pages/account/index.wxml",
+        "sha256": "a7d637668f940629e2f9bd528fd6488b46c87bfc67886232d1b5c03d662dc057"
+      },
+      {
+        "path": "apps/miniprogram/pages/account/index.wxss",
+        "sha256": "70029ab6f2984365e1d3b930c60bb0b423319926352f23eb3ec7c4b001c57885"
+      },
+      {
+        "path": "apps/miniprogram/pages/home/index.wxml",
+        "sha256": "cfbfeea42083e4ca0f12129dfe91ab991f13335c4fe9bef2fea82370151c4035"
+      },
+      {
+        "path": "apps/miniprogram/pages/home/index.wxss",
+        "sha256": "d67d4af2db44826b7214c4d54c2120025879a13830d98742644d0794b8d5462f"
+      },
+      {
+        "path": "apps/miniprogram/pages/records/index.wxml",
+        "sha256": "bcda579e1807fdfc131eae331d04effa70d64a934715247bb18e1680ae3b52cc"
+      },
+      {
+        "path": "apps/miniprogram/pages/records/index.wxss",
+        "sha256": "a70e12b214717996fefd8d3027b60a1ce18e38af3f5a8098ee9f706042d15a6a"
+      },
+      {
+        "path": "apps/miniprogram/pages/community/index.wxml",
+        "sha256": "1df5c144666d5e9400817502d51846b6f6ddde2554f0b0ea77f0b9004a44417a"
+      },
+      {
+        "path": "apps/miniprogram/pages/community/index.wxss",
+        "sha256": "099594e9401098d1e4b6ef7668f1a43967893ed64e400052c2d9fff161ebb17f"
+      },
+      {
+        "path": "apps/miniprogram/pages/profile/index.wxml",
+        "sha256": "c51cf54cfb5eecdedbcc8811be018eba548f7265583e71f223b018a7db494c06"
+      },
+      {
+        "path": "apps/miniprogram/pages/profile/index.wxss",
+        "sha256": "1fc5593c32c60b4d074482ff25538d649ff3c75a0e4dbee2fb11ddb2f198467c"
+      },
+      {
+        "path": "apps/miniprogram/pages/task/index.wxml",
+        "sha256": "9005bb6c64ff39613ec69688e62dbda768180e3154d7232f28817183b89fd260"
+      },
+      {
+        "path": "apps/miniprogram/pages/task/index.wxss",
+        "sha256": "bd357040d0b0021da731cab4864ce114764b951808830e14955b2fa05acb3ee6"
+      },
+      {
+        "path": "apps/miniprogram/pages/submit/index.wxss",
+        "sha256": "1c7e14cc3ff3b70ed8c13e87f895ddb864bad05f6ac4436656e899c7a1b2d3b2"
+      },
+      {
+        "path": "apps/miniprogram/pages/progress/index.wxml",
+        "sha256": "eda4d32db25c08f5005c2bef2d2da4fdf135e99dddb96ad744d9e30eae043230"
+      },
+      {
+        "path": "apps/miniprogram/pages/progress/index.wxss",
+        "sha256": "5e9c4bff1435cbc6b1688293432589ca3380a0b128b87d15591b97957720c9db"
+      },
+      {
+        "path": "apps/miniprogram/pages/points/index.wxml",
+        "sha256": "b9303de7f503824468ce662c4ca63de8b9b6004d61a1f9ef7c3e2b9a96f4a1fa"
+      },
+      {
+        "path": "apps/miniprogram/pages/points/index.wxss",
+        "sha256": "f9b9063634af0be33331ea2b26bd880f7be5dc97650afad8e8f31c4ea55a753c"
+      },
+      {
+        "path": "apps/miniprogram/pages/post/index.wxml",
+        "sha256": "4cd026cc4b2c2493155d0fb2bcb39994402b9f4fbfcb4fa935ab9caf8bde07b7"
+      },
+      {
+        "path": "apps/miniprogram/pages/post/index.wxss",
+        "sha256": "3af007912db8a6230f3b3aa4cd3396a7389fcc2c89cafcdeabe084f9f15e2c03"
+      },
+      {
+        "path": "apps/miniprogram/pages/shop/index.wxml",
+        "sha256": "2e7f4699e60ce4ab434f9e4461934b1049a25efe8b8682dd5ceca5658523f7a2"
+      },
+      {
+        "path": "apps/miniprogram/pages/shop/index.wxss",
+        "sha256": "e881c7296e3eff24e4648aed51690623b3ac044e4cc8c4a425b48d6e0969514a"
+      },
+      {
+        "path": "apps/miniprogram/pages/product/index.wxml",
+        "sha256": "0042b75cf4b301fab181aa1039a408f89b8209c588562d2fa379d6bfe9adf903"
+      },
+      {
+        "path": "apps/miniprogram/pages/product/index.wxss",
+        "sha256": "e2d3443393a7590e086addca9871cb69bbabce9ca585e8b7d9b8da9d9d5ca612"
+      },
+      {
+        "path": "apps/miniprogram/pages/checkout/index.wxml",
+        "sha256": "57d8f7e34da468f282368d74e443542ec304928714b2a0d0d03da5cc99fa50b6"
+      },
+      {
+        "path": "apps/miniprogram/pages/checkout/index.wxss",
+        "sha256": "6ead26d62884ba1b16a047d3f7536c47993181af2b8440b8fe5028221c5cca7b"
+      },
+      {
+        "path": "apps/miniprogram/pages/orders/index.wxml",
+        "sha256": "08e912ab730e1227f4005d06c31965bbfd579e682ae7cd3656918acbf4f2b991"
+      },
+      {
+        "path": "apps/miniprogram/pages/orders/index.wxss",
+        "sha256": "3dd3db3538245094f8dbd10a744b55e52d72318391f307447cd9a6427abea0b7"
+      },
+      {
+        "path": "apps/miniprogram/pages/order-detail/index.wxml",
+        "sha256": "6b120004bcaaca0202f0cf24d69c23f78e5a2e61ae439ca6387030d26b335290"
+      },
+      {
+        "path": "apps/miniprogram/pages/order-detail/index.wxss",
+        "sha256": "9f2a7d9f0607e8bf5d1f49b4a03eb6cd939df3459ac95e6f75f0baf7d2c23244"
+      },
+      {
+        "path": "apps/miniprogram/pages/settings/index.wxml",
+        "sha256": "5876a7c97f67cb8721e269a390e310a7c4ea4229ed5ee02c292049eb028153f2"
+      },
+      {
+        "path": "apps/miniprogram/pages/settings/index.wxss",
+        "sha256": "a0cad6d9a4700df99aea463b6057e7e95ee255069a49a9087ba9c10fb7f70ef2"
+      },
+      {
+        "path": "apps/miniprogram/pages/invite/index.wxml",
+        "sha256": "92e5495980f9dbe63ca82363ccdf97073960256e45da2378fdeb044c01e8b598"
+      },
+      {
+        "path": "apps/miniprogram/pages/invite/index.wxss",
+        "sha256": "9d6dafb926f279df7acc30fd397cebf8615970292d7300b7e2228a1a85815e42"
+      },
+      {
+        "path": "apps/miniprogram/pages/legal/index.wxml",
+        "sha256": "85b0bc61d1cf98a84f938882fead7c20644057ee0079b49564a1904f33ff4dc8"
+      },
+      {
+        "path": "apps/miniprogram/pages/legal/index.wxss",
+        "sha256": "66cc04a215c6932b7b233d295350dcada4777f2e970abc0085fcc1aa74d14e0a"
+      },
+      {
+        "path": "apps/miniprogram/pages/privacy-rights/index.wxml",
+        "sha256": "d719a8287f39101fd4e288e416218da3dc8494c25023689369d8b61ba27c73da"
+      },
+      {
+        "path": "apps/miniprogram/pages/privacy-rights/index.wxss",
+        "sha256": "1ad9edeb3415430417a7404760699e97289130e25dcba3878633fc6dfb3d90d4"
+      },
+      {
+        "path": "apps/miniprogram/pages/support/index.wxml",
+        "sha256": "3e9c94360dc297ee62a618d47f44d2561dbf392684e4e05fdfca26bac8d6f2f0"
+      },
+      {
+        "path": "apps/miniprogram/pages/support/index.wxss",
+        "sha256": "70fee0dd296a54c86f774cc82b51b9ef37afe987772af4cfb0a7ce2e8917967f"
+      },
+      {
+        "path": "apps/miniprogram/pages/management/index.wxml",
+        "sha256": "2bfc255d33c375673ceca2e1f67ce27d420227078fd71940416aa70e723426b5"
+      },
+      {
+        "path": "apps/miniprogram/pages/management/index.wxss",
+        "sha256": "fc36678e76086a2cc295e18d4feebfb6068625c039d1c2a5c1b0f496a08e2993"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-catalog/index.wxml",
+        "sha256": "a99d412a2a607b8a0e057dc4eb005d4baf6008e4c74806231791d13faf77fd11"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-catalog/index.wxss",
+        "sha256": "d8fa34d84de51a78b17d8cdd966ecc63ef102b70f44de9c90e370029770301f3"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-product/index.wxml",
+        "sha256": "48aaeef3d0cf10648076f7ae3069fa5cccc098b5c89a080f7d846cb005f60334"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-product/index.wxss",
+        "sha256": "41e419448a4f78a467fd6cd81e3f0c9fd72bc28adf56c6f21d01232b87ca2cdd"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-orders/index.wxml",
+        "sha256": "9efa60bed2eeb70cda8fe8dd95b4cb736b601dd4684f6c39bfab20aba3761125"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-orders/index.wxss",
+        "sha256": "782cea1e5bbaf7d99f9f92088426f5ff537ef83a644601b71d06ed160dbfce89"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-order-detail/index.wxml",
+        "sha256": "3a1252982d3daf1229e6427c889c991c47fbd3898bd8bb3039d54396d0654c17"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-order-detail/index.wxss",
+        "sha256": "75e20ed0defd01a5cf421d7274c4d0d372a5e973974c0840c998d66b66dfe381"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-support/index.wxml",
+        "sha256": "f444fe87ae95d6ddd25eae3155e37ce4aedee73754e5aab6510e6a73a25dfadd"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-support/index.wxss",
+        "sha256": "46671f75d312099341a1389f950325e9dd54078e95ee4637688dbaf08bc8545b"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-support-chat/index.wxml",
+        "sha256": "cbd76f89aca570f3d15b5a0aaae5243ba852e10127900f4515c66aeef2ca1a05"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-support-chat/index.wxss",
+        "sha256": "ea19871ba835401aad73d24c5aa904cd64e1fe3ae342b424b727abb62e5a4d90"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-members/index.wxml",
+        "sha256": "2357a44519eaac6f6c2a967555c96c94ef25d0be05575a4ecbdae7e8b9ae2f0f"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-members/index.wxss",
+        "sha256": "70fbd3f3fe284af03576c58e46a9af06a06fd366e5cdaf2fc0e4d0080984bf60"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-member/index.wxml",
+        "sha256": "54c045cffaacbe2763e98f98b984018914fe3a90ff4c6381e02833d6ad7dc4c5"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-member/index.wxss",
+        "sha256": "bbd14252ee2e549db1a37800d1f34100ce2e44cd0156c8b4aa468c84636ff33d"
+      },
+      {
+        "path": "apps/miniprogram/pages/referral/index.wxml",
+        "sha256": "a29da7bd68a7873a50c3c9dadc9fe69939e37ddc6ead001fd992aa256ba3d110"
+      },
+      {
+        "path": "apps/miniprogram/pages/referral/index.wxss",
+        "sha256": "a34f102f334bae13e327f269dbd4181997efc6f2978b0ac9ae6117e63b91094a"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-compose/index.wxml",
+        "sha256": "1f1b7cf75856557e43200483445e2792689c692c7f95663d5fd1b671c6708486"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-compose/index.wxss",
+        "sha256": "18ae681ec905c152250cc55a454032abf0d47b169153d749a0bfd133465fc7be"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-post/index.wxml",
+        "sha256": "b2ed6a6e56ee894a032c3973c5b382b2a9650a97afd3a81bdc32e4db5c5616bd"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-post/index.wxss",
+        "sha256": "845172f57d316d0da4737796be07c020eecc1bc00b9f53158316ac055bc5b7ce"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-author/index.wxss",
+        "sha256": "2b1bb655a778295c7a871676ec3c30e8afc40dd209905570537338f537ade210"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-review/index.wxml",
+        "sha256": "26a88c836c6ea41594f3b03036ec80b493505f83a6bf060df4f3c7b44fa286ec"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-review/index.wxss",
+        "sha256": "4942bdc0acde0dba07a3e938464b64966b93ae5fe3fa052e2d14e0c3ed136fe9"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-activity/index.wxml",
+        "sha256": "0fc700d1ddcd2d226ced278c5cc573f18f529c63967c44303d23287458943dbb"
+      },
+      {
+        "path": "apps/miniprogram/pages/community-activity/index.wxss",
+        "sha256": "d5d17b0a08d12816077e29dd20079f17e0b875996c9ba71ed3768c9ded8a9a44"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-finance/index.wxml",
+        "sha256": "49e8d7fb0b10213931f8d34c812d5e634cde52508264b186d1e9c8e5d1875cdf"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-finance/index.wxss",
+        "sha256": "f325336ad5f2957416cfdc3ac36d37d2af50259f7c5ff000d75c75c4ed501882"
+      },
+      {
+        "path": "apps/miniprogram/pages/commission/index.wxml",
+        "sha256": "be4e71dbebb50d4291d42729cdd73f21d8d883d3a2ad4e1c79339652b547d517"
+      },
+      {
+        "path": "apps/miniprogram/pages/commission/index.wxss",
+        "sha256": "f4bce5450f5a7279c1eeebc8a183560d95b5f6269b6a9a171bf3f519b20c5740"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-privacy/index.wxml",
+        "sha256": "d9dbdf9ca0b3b2d48410639f0759b8fd95546fe470ad2339569553c888bec05a"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-privacy/index.wxss",
+        "sha256": "50929eaee88332e22dc79c4bd50e95969821a5cbf113c3aa6c949452ac85d079"
+      },
+      {
+        "path": "apps/miniprogram/pages/aftersale/index.wxml",
+        "sha256": "68d535b14bbf3a4dac882b46bfcea433a2b17c8f9aa85c6483259b2aa77761e5"
+      },
+      {
+        "path": "apps/miniprogram/pages/aftersale/index.wxss",
+        "sha256": "1f89b0746fb2eb5991955227a6cdc7d7e41755b2d661175c03538911ec210338"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-fulfillment/index.wxml",
+        "sha256": "de679e52b60216f0832bd28c5a38136f82382eb0c4ff49f0246902f43741b10a"
+      },
+      {
+        "path": "apps/miniprogram/pages/management-fulfillment/index.wxss",
+        "sha256": "acfb7ecca918f056b35adb39244dd3e4ca37eba8efeb18ebd88b80073fed5c91"
+      }
+    ]
+  }
+}

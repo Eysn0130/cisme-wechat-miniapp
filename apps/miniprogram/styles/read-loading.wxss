@@ -1,0 +1,4 @@
+.page-read-loading{position:fixed;top:calc(var(--cisme-topbar-height,88px) + 24px);left:0;right:0;display:flex;justify-content:center;pointer-events:none}
+.page-read-loading__indicator{width:18px;height:18px;border:2px solid var(--cisme-line,rgba(78,47,91,.12));border-top-color:var(--cisme-plum,#56306f);border-radius:50%;animation:page-read-spin .8s linear infinite}
+@keyframes page-read-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.page-read-loading__indicator{animation:none}}

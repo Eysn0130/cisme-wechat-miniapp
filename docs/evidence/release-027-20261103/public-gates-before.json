@@ -1,0 +1,18 @@
+{
+  "observedAt": "2026-11-04T00:20:28.319Z",
+  "mode": "anonymous read-only GET; no redirects or credentials",
+  "results": [
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "status": 200,
+      "publicEnabled": false,
+      "defaultTlsValidation": true
+    },
+    {
+      "origin": "https://api.cisme.cn",
+      "status": 200,
+      "publicEnabled": false,
+      "defaultTlsValidation": true
+    }
+  ]
+}

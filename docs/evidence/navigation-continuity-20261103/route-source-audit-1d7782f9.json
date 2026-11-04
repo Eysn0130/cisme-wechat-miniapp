@@ -1,0 +1,589 @@
+{
+  "packageSourceSha256": "1d7782f9f378aa0693d72700d1bebebc639f862ce5bfbbd445a2693c10b69a2a",
+  "scope": "All 40 registered TypeScript/WXML routes inspected for reload clears, transient flow rows, empty states and permission/command gates. This is source inspection, not full runtime/device acceptance.",
+  "routes": [
+    {
+      "route": "pages/account/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "legalAcceptanceStarted || identityCommitStarted || localLegalFixture || !legalTextsReady",
+        "(!pendingDestination || renewalMode) && !legalLoading && !legalTextsReady"
+      ],
+      "sourceSha256": "40318250a01ae9c9fea1264ebe1d84491ae19635b3f7d0d828a912ce280e8c51"
+    },
+    {
+      "route": "pages/home/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading"
+      ],
+      "sourceSha256": "160a33272b2b6067d845ab1ad13df153f1dd987ab7072495893019e1dde3c0e6"
+    },
+    {
+      "route": "pages/records/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "authorityAvailable || dailyReady",
+        "dailyReady && !dailyError",
+        "dailyLoading",
+        "loading",
+        "!accessRequired && dailyReady && calendarDays.length",
+        "loading && !authorityAvailable && !accessRequired",
+        "authorityAvailable && !care && dailyReady && !dailyError && !calendarSelectedDay && !dailyRecords.length && !undoAvailable && !dailyMutationError && dailyMutationState === 'idle'",
+        "!accessRequired && (dailyReady || dailyLoading || dailyError) && (care || calendarSelectedDay || dailyRecords.length || !authorityAvailable || (dailyLoading && !dailyReady) || dailyError || dailyMutationError || undoAvailable || dailyMutationState !== 'idle')",
+        "dailyReady && !dailyError",
+        "dailyLoading && !dailyReady",
+        "(calendarSelectedEmpty || (calendarSelectedDay && calendarStale && !calendarVisibleRecords.length)) && dailyReady && !dailyError && !undoAvailable && !dailyMutationError && dailyMutationState === 'idle'",
+        "!calendarSelectedDay && dailyReady && !dailyError && !dailyRecords.length && !undoAvailable && !dailyMutationError && dailyMutationState === 'idle'"
+      ],
+      "sourceSha256": "c2a1b4f38ffb0d40aba2123ac76de18c5172c8425c6c1f71a07163c8800a3c38"
+    },
+    {
+      "route": "pages/community/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "mode === 'recommend' && (!loading || feedReady) && !displayFeedCount && !error",
+        "mode === 'featured' && (!loading || feedReady) && !displayFeedCount && !error",
+        "mode === 'following' && (!loading || feedReady) && !displayFeedCount",
+        "loading && !feedReady && !displayFeedCount",
+        "formalLoadingMore",
+        "mode === 'recommend' && appliedSearch && (!loading || feedReady) && !displayFeedCount"
+      ],
+      "sourceSha256": "cc55c1e5293445201827a87639c39ae5396806f7e14e03cd422a8c1f2ca47bf0"
+    },
+    {
+      "route": "pages/profile/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !member",
+        "(!retainingSnapshot && (authorityState !== 'ready' || commercialState !== 'ready')) || authorityState === 'error' || commercialState === 'error'"
+      ],
+      "sourceSha256": "c2dfeef11783324e1f98d28099e1234960898534b0b7a95fe2cba34e387502d9"
+    },
+    {
+      "route": "pages/task/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !task"
+      ],
+      "sourceSha256": "7be81b01de577c742e6810536f5bffb5eec26dfa3955baa358215b44efec59df"
+    },
+    {
+      "route": "pages/submit/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "submission && !loading",
+        "loading && !submission"
+      ],
+      "sourceSha256": "b4a089d07a689175cb8f8f9ee85feff505a53cd7a2106bc40525bdc39f06ea07"
+    },
+    {
+      "route": "pages/progress/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !submission"
+      ],
+      "sourceSha256": "057d98b480820d6a541e60c1023edbbe4c404bf170bc7f10d6f02a4d9846cb7c"
+    },
+    {
+      "route": "pages/points/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !points"
+      ],
+      "sourceSha256": "e6d1588466bbc8e45087461bcd245bf5351d8690637770c7d5161488ec506d5c"
+    },
+    {
+      "route": "pages/post/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !item",
+        "commentsLoading && !threads.length",
+        "!commentsLoading && !commentsError && !threads.length",
+        "commentsLoading && threads.length",
+        "commentHasMore && !commentsLoading",
+        "socialLoading",
+        "!socialLoading && !socialError && !threads.length",
+        "blocksLoading && !blocks.length",
+        "!blocksLoading && !blocksError && !blocks.length"
+      ],
+      "sourceSha256": "5be0d8bd197d568d15ae431387955419b75440e32f99504ed44a8207b7676a4f"
+    },
+    {
+      "route": "pages/shop/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !catalog"
+      ],
+      "sourceSha256": "c284f149b085b52c50c7e66a73f255ffcdaa12e0cfaa383d189701bb11d8e840"
+    },
+    {
+      "route": "pages/product/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !item"
+      ],
+      "sourceSha256": "b8ecffbf536b6437cf58af7f4c9a8abc39d2adbad939d1557d2795181e27ea7b"
+    },
+    {
+      "route": "pages/checkout/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !product",
+        "!loading&&!syncError&&!runtimeEnabled",
+        "!loading&&!syncError&&runtimeEnabled"
+      ],
+      "sourceSha256": "3413263c589d9ff1c1e91f3b162d12e6275401057aadaf932abc4e23b9365832"
+    },
+    {
+      "route": "pages/orders/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!loading&&!error&&!items.length"
+      ],
+      "sourceSha256": "3de0a0f35dec1a44cad2ad025d4039b154cfbd0e756749cba8f2765a90dd359d"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !order",
+        "!closedRights && (recoveryLoading||recoveryError||recoveryRows.length)",
+        "recoveryLoading",
+        "sheetLoading",
+        "!sheetCase && !sheetLoading",
+        "!sheetCase && sheetLinesReady && !sheetHasRemaining",
+        "!sheetCase && !sheetConsulting && sheetLinesReady && sheetHasRemaining",
+        "!sheetCasesReady || !sheetLinesReady",
+        "!sheetCasesReady || !sheetLinesReady",
+        "shipmentLoading",
+        "receiptQueryLoading",
+        "refundLoading",
+        "coreReady"
+      ],
+      "sourceSha256": "47fffcb6d0ee1227e4b18adf6f24335f138531d3ea410c10f4daa14e328cb9ad"
+    },
+    {
+      "route": "pages/settings/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "!profileReady && !profileError",
+        "profileReady",
+        "addressesLoading && !addressesReady",
+        "addressesReady && !addresses.length && !addressEditorOpen"
+      ],
+      "sourceSha256": "aad3a648b83963dd9fddad3889c4c9597f58a6b53e0e83abe55c1d298b420d2f"
+    },
+    {
+      "route": "pages/invite/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !invitationReady",
+        "invitationReady && !error"
+      ],
+      "sourceSha256": "9b41689cf811d537b8757d6b06b01b622a25179c3ee64ef75d684d04fdfcc712"
+    },
+    {
+      "route": "pages/legal/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": false,
+      "loadingConditions": [
+        "loading"
+      ],
+      "sourceSha256": "efccc36e2a22306f24c6ddc19b8d4d7c987e8f8bc102ac742cf8b9235d08b512"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "!closedRights && labels[selected] === '撤回个人信息处理同意' && consentsLoading",
+        "labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))",
+        "labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))",
+        "labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))"
+      ],
+      "sourceSha256": "b52053474e020cc7d5ec0ced805827e35d8c7ad758e19f730db04deedc122192"
+    },
+    {
+      "route": "pages/support/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!loading && olderCursor !== null",
+        "!loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')",
+        "newTopicAttempt || historyLoaded && !loading && ((conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active')) || newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'))",
+        "selectedImage.status === 'ready'",
+        "orderPickerLoading"
+      ],
+      "sourceSha256": "cdb642d01cda1d3a2a86ae87b93d3b3fd900c6b93fe6f41922f028a226f3ac4c"
+    },
+    {
+      "route": "pages/management/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading"
+      ],
+      "sourceSha256": "1cac3d7063c431af74ea0e6e0c9206b927cc2a9a9cf5842dc300a483e6d6ffb7"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!loading && !error && !items.length"
+      ],
+      "sourceSha256": "09c59d4019076a1538fb0415f2b906b3a1dee9afc5434332efa10d3beb11ea4a"
+    },
+    {
+      "route": "pages/management-product/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!loading && (!error || product || dirty)"
+      ],
+      "sourceSha256": "bd4f2f15fc5a1df671b2b409e029874ba66751f7632b769f082e3c5b04cfe6fd"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!loading&&!error&&!items.length"
+      ],
+      "sourceSha256": "defd4901b5712c257e185da2a0c25598071f026ceada94877a9a56f0558b25a2"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "shipmentLoading"
+      ],
+      "sourceSha256": "81caebf3293ec60c31276aa98f832cb6e4af327d05b5fb91000154fd60c3731b"
+    },
+    {
+      "route": "pages/management-support/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!loading && !items.length && !error",
+        "!loading",
+        "loadingMore"
+      ],
+      "sourceSha256": "26d582b1a6e00f653d8c4e2447b09f950ccde55725346a96841175925c925ba9"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!loading && olderCursor !== null",
+        "!loading",
+        "contextOpen && !loading",
+        "aftersaleOpen && !loading"
+      ],
+      "sourceSha256": "84d13ad83fb8f9d1b0a0fedfcf51125a481659012acc543aed8423f0d178c514"
+    },
+    {
+      "route": "pages/management-members/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "membersLoaded && !loading && !error",
+        "loading",
+        "!loading && !error && !items.length",
+        "!loading && !error",
+        "!loading && !error",
+        "!loading && !error && nextCursor"
+      ],
+      "sourceSha256": "464b59981855441c148a9022549f426e9a2031ff757995a29b39c72e80094d12"
+    },
+    {
+      "route": "pages/management-member/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "detail && !loading",
+        "sectionLoading",
+        "!sectionLoading && !visibleRows.length && !sectionError"
+      ],
+      "sourceSha256": "430a7c3dd04d29fa3b39fe33255420108aebb16cc9b3843f2bf7afb10449d692"
+    },
+    {
+      "route": "pages/referral/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "preview.relationState==='already_bound_other'"
+      ],
+      "sourceSha256": "5bd89696fa36a7f670b9b10d93f5b6c3ddd55dde3979d483dc86290f8b56f7c3"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!postId && !loading && !listMode && (textCardHandoffPath || (busy && operation === 'creating'))",
+        "error && !loading && !postId && !writeRecovery",
+        "listMode && !loading",
+        "!listMode && !loading && postId",
+        "item.state === 'uploading' || item.state === 'failed' || item.error",
+        "!listMode && !loading && postId && (state === 'draft' || state === 'rejected' || state === 'published') && !keyboardVisible"
+      ],
+      "sourceSha256": "34b63f62a177c2d56d1080a7871678c0e1a1c57eba5704bb4b1d6185d1569bd9"
+    },
+    {
+      "route": "pages/community-post/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !post"
+      ],
+      "sourceSha256": "c7462056951ddf0edf4c78d712859bcf23e8ff263403ae6c7a055580fccde7b2"
+    },
+    {
+      "route": "pages/community-author/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !author",
+        "!items.length && !loading",
+        "loadingMore"
+      ],
+      "sourceSha256": "43e2961ea2f7461ecc089c125d5211ef19037ce39a2c1acb0087a6a812dc83f5"
+    },
+    {
+      "route": "pages/community-review/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!loading && !error && !queueItems.length"
+      ],
+      "sourceSha256": "d77a0e1ee1fb9001f119e4afac32ffe8aae9ec5991f1ead4e70c2f205eeedb81"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "same-owner presentation retained and requests revalidated",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading && !activityReady",
+        "activityReady && !error && items.length",
+        "activityReady && !items.length && !error"
+      ],
+      "sourceSha256": "a87a267830701f76dda1066c1eef5b9294d1aa4d5eed789ec93b74b193958e82"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "section!=='cycles'&&!loading&&!error",
+        "section!=='cycles'&&!loading&&!error&&!items.length"
+      ],
+      "sourceSha256": "83dc664d1959624c7e94ae5c3ac75420f78eb2263b931e0d7bfcdf32151ecc47"
+    },
+    {
+      "route": "pages/commission/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "existing scoped state retention preserved",
+      "nonFlowReadIndicator": false,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "recoveryLoading||recoveryError||recoveryRows.length",
+        "recoveryLoading",
+        "status&&!coreReady",
+        "!creditLoading&&!creditError",
+        "creditLoading",
+        "!requestsLoading&&!listError",
+        "requestsLoading",
+        "coreReady"
+      ],
+      "sourceSha256": "be1c48fb809e40c31ad0bed3eb7a02e4ad8646a026808d8dbd959ba438c0c6c8"
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "!coreReady",
+        "coreReady && !selected",
+        "coreReady && selected"
+      ],
+      "sourceSha256": "30cc8ccc0c6a9a32136e9a05cbc64b63b167565e9b35633d75b1ae0c7d419ee2"
+    },
+    {
+      "route": "pages/aftersale/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "coreReady",
+        "coreReady&&attentionLabel",
+        "coreReady&&!selected",
+        "coreReady&&selected"
+      ],
+      "sourceSha256": "c043c311337e362ebc9645fc9c3ede7242f36f130410f37af33648c7b5b18209"
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "sourceAudit": "reviewed",
+      "runtimeAcceptance": "scoped separately; not implied by this inventory",
+      "classification": "fresh permission, identity or document gate preserved",
+      "nonFlowReadIndicator": true,
+      "hasShowHook": true,
+      "loadingConditions": [
+        "loading",
+        "coreReady",
+        "coreReady"
+      ],
+      "sourceSha256": "404d21b001e065e488d5d63ec4fdf1a5968def971968eb550ab2d2c75465bb21"
+    }
+  ]
+}

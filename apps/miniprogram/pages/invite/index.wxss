@@ -1,3 +1,4 @@
+@import "../../styles/read-loading.wxss";
 .invite-page { padding-right:28rpx; padding-left:28rpx; background:#f7f2f8; }
 .invite-topbar-copy { display:flex; flex-direction:column; align-items:center; }
 .invite-topbar-subtitle { margin-top:4rpx; color:#958a97; font-size:24rpx; line-height:1.5; }

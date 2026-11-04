@@ -1,0 +1,2947 @@
+{
+  "sourceSha256": "1d7782f9f378aa0693d72700d1bebebc639f862ce5bfbbd445a2693c10b69a2a",
+  "scope": "Real existing session and published editorial GETs, all non-GET requests blocked locally. No writes or device acceptance.",
+  "posts": [
+    {
+      "id": "039c0c93-6093-4c03-9f01-2c777c92bde7",
+      "cold": {
+        "id": "039c0c93-6093-4c03-9f01-2c777c92bde7",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 723,
+              "width": 358,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1673,
+              "width": 390,
+              "height": 1006
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": [
+        {
+          "elapsed": 30,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1592,
+                "width": 390,
+                "height": 925
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 116,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1592,
+                "width": 390,
+                "height": 925
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 216,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1592,
+                "width": 390,
+                "height": 925
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 302,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1592,
+                "width": 390,
+                "height": 925
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 390,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1592,
+                "width": 390,
+                "height": 925
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 477,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 723,
+                "width": 358,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1592,
+                "width": 390,
+                "height": 925
+              }
+            ],
+            []
+          ]
+        }
+      ],
+      "updated": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 723,
+              "width": 358,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1673,
+              "width": 390,
+              "height": 1006
+            }
+          ],
+          []
+        ],
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "error": ""
+      },
+      "warmGeometryMatchesBaseline": false
+    },
+    {
+      "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a",
+      "cold": {
+        "id": "78a8bd9c-fd5b-49fa-82a0-30f5904c073a",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1964,
+              "width": 390,
+              "height": 1297
+            }
+          ],
+          []
+        ],
+        "mediaCount": 2,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": [
+        {
+          "elapsed": 29,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 2084,
+                "width": 390,
+                "height": 1417
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 113,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 2084,
+                "width": 390,
+                "height": 1417
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 206,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 2084,
+                "width": 390,
+                "height": 1417
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 294,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 2084,
+                "width": 390,
+                "height": 1417
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 380,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 2084,
+                "width": 390,
+                "height": 1417
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 467,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 2084,
+                "width": 390,
+                "height": 1417
+              }
+            ],
+            []
+          ]
+        }
+      ],
+      "updated": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1964,
+              "width": 390,
+              "height": 1297
+            }
+          ],
+          []
+        ],
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "error": ""
+      },
+      "warmGeometryMatchesBaseline": false
+    },
+    {
+      "id": "d6909bc4-aaa6-47da-b388-af003a21b52d",
+      "cold": {
+        "id": "d6909bc4-aaa6-47da-b388-af003a21b52d",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1392,
+              "width": 390,
+              "height": 725
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": [
+        {
+          "elapsed": 27,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1512,
+                "width": 390,
+                "height": 845
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 114,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1512,
+                "width": 390,
+                "height": 845
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 200,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1512,
+                "width": 390,
+                "height": 845
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 286,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1512,
+                "width": 390,
+                "height": 845
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 373,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1512,
+                "width": 390,
+                "height": 845
+              }
+            ],
+            []
+          ]
+        },
+        {
+          "elapsed": 461,
+          "loading": true,
+          "mediaIndex": 0,
+          "galleryHeight": 1000,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 91,
+                "bottom": 611,
+                "width": 390,
+                "height": 520
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 611,
+                "bottom": 667,
+                "width": 390,
+                "height": 56
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 667,
+                "bottom": 695,
+                "width": 358,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 0,
+                "right": 390,
+                "top": 667,
+                "bottom": 1512,
+                "width": 390,
+                "height": 845
+              }
+            ],
+            []
+          ]
+        }
+      ],
+      "updated": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1392,
+              "width": 390,
+              "height": 725
+            }
+          ],
+          []
+        ],
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "error": ""
+      },
+      "warmGeometryMatchesBaseline": false
+    },
+    {
+      "id": "8b183841-ba8a-4f12-851d-d80e63fdcb39",
+      "cold": {
+        "id": "8b183841-ba8a-4f12-851d-d80e63fdcb39",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1288,
+              "width": 390,
+              "height": 621
+            }
+          ],
+          []
+        ],
+        "mediaCount": 6,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "0dd14a6a-cbcd-47bc-b284-fe2e4026f876",
+      "cold": {
+        "id": "0dd14a6a-cbcd-47bc-b284-fe2e4026f876",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 2213,
+              "width": 390,
+              "height": 1546
+            }
+          ],
+          []
+        ],
+        "mediaCount": 2,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "ec2919e1-0c9e-433d-8b16-b40e96652202",
+      "cold": {
+        "id": "ec2919e1-0c9e-433d-8b16-b40e96652202",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1158,
+              "width": 390,
+              "height": 491
+            }
+          ],
+          []
+        ],
+        "mediaCount": 0,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": true,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "90f0cff6-29bb-4cd2-9d8e-cc84a385cc96",
+      "cold": {
+        "id": "90f0cff6-29bb-4cd2-9d8e-cc84a385cc96",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1028,
+              "width": 390,
+              "height": 361
+            }
+          ],
+          []
+        ],
+        "mediaCount": 0,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": true,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "1a6e1c5e-44a0-475c-b156-bfd9aec5ec98",
+      "cold": {
+        "id": "1a6e1c5e-44a0-475c-b156-bfd9aec5ec98",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1339,
+              "width": 390,
+              "height": 672
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 3,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "d5e94e77-9e12-4f22-b628-da12d0c8e8e6",
+      "cold": {
+        "id": "d5e94e77-9e12-4f22-b628-da12d0c8e8e6",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1184,
+              "width": 390,
+              "height": 517
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 3,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "39256eb6-9078-42b6-8900-7a9a4f1ad440",
+      "cold": {
+        "id": "39256eb6-9078-42b6-8900-7a9a4f1ad440",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1210,
+              "width": 390,
+              "height": 543
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 3,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "6c9a8008-fa1b-492a-93cc-11f7ed3598a0",
+      "cold": {
+        "id": "6c9a8008-fa1b-492a-93cc-11f7ed3598a0",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1834,
+              "width": 390,
+              "height": 1167
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "f8d9ff69-e77f-491f-818d-02a097cdb91c",
+      "cold": {
+        "id": "f8d9ff69-e77f-491f-818d-02a097cdb91c",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1548,
+              "width": 390,
+              "height": 881
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "dec6ce35-05fe-4b60-95d3-77d35e73fa1d",
+      "cold": {
+        "id": "dec6ce35-05fe-4b60-95d3-77d35e73fa1d",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1756,
+              "width": 390,
+              "height": 1089
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "7b9c2ae5-e88d-4a7f-84ac-f3b598521d42",
+      "cold": {
+        "id": "7b9c2ae5-e88d-4a7f-84ac-f3b598521d42",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1314,
+              "width": 390,
+              "height": 647
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "a28a3b3c-03a3-4074-bf5a-d989405b04ac",
+      "cold": {
+        "id": "a28a3b3c-03a3-4074-bf5a-d989405b04ac",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1080,
+              "width": 390,
+              "height": 413
+            }
+          ],
+          []
+        ],
+        "mediaCount": 4,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "94983bbc-5bea-41ba-a9a4-3a00a99a351c",
+      "cold": {
+        "id": "94983bbc-5bea-41ba-a9a4-3a00a99a351c",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1028,
+              "width": 390,
+              "height": 361
+            }
+          ],
+          []
+        ],
+        "mediaCount": 0,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": true,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "541bbfcd-0ac3-4ac2-89f1-72a7390cb90c",
+      "cold": {
+        "id": "541bbfcd-0ac3-4ac2-89f1-72a7390cb90c",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1054,
+              "width": 390,
+              "height": 387
+            }
+          ],
+          []
+        ],
+        "mediaCount": 0,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": true,
+        "version": 2,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "e9ef4758-e0a4-4469-8df0-c7cc50985910",
+      "cold": {
+        "id": "e9ef4758-e0a4-4469-8df0-c7cc50985910",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1212,
+              "width": 390,
+              "height": 545
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 3,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "11c35a29-566f-436d-9374-dcb5548f84d5",
+      "cold": {
+        "id": "11c35a29-566f-436d-9374-dcb5548f84d5",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1236,
+              "width": 390,
+              "height": 569
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 3,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    },
+    {
+      "id": "27c84214-15c6-4dcc-8f69-11a3bd1f89c1",
+      "cold": {
+        "id": "27c84214-15c6-4dcc-8f69-11a3bd1f89c1",
+        "loading": true,
+        "hasItem": false,
+        "rects": [
+          [],
+          [],
+          [],
+          [],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 115,
+              "bottom": 133,
+              "width": 390,
+              "height": 18
+            }
+          ]
+        ]
+      },
+      "ready": {
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 91,
+              "bottom": 611,
+              "width": 390,
+              "height": 520
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 611,
+              "bottom": 667,
+              "width": 390,
+              "height": 56
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 667,
+              "bottom": 695,
+              "width": 358,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 0,
+              "right": 390,
+              "top": 667,
+              "bottom": 1262,
+              "width": 390,
+              "height": 595
+            }
+          ],
+          []
+        ],
+        "mediaCount": 1,
+        "mediaIndex": 0,
+        "galleryHeight": 1000,
+        "hasVideo": false,
+        "version": 3,
+        "authorId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456"
+      },
+      "warm": null,
+      "updated": null,
+      "warmGeometryMatchesBaseline": null
+    }
+  ],
+  "setup": {
+    "installed": true,
+    "hasSession": true,
+    "cloudTransport": false
+  },
+  "feedCount": 20,
+  "coldScreenshot": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/navigation-continuity-20261103/live/post-cold-1d7782f9.png",
+    "imageWidth": 664,
+    "imageHeight": 1436
+  },
+  "readyScreenshot": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/navigation-continuity-20261103/live/post-ready-1d7782f9.png",
+    "imageWidth": 664,
+    "imageHeight": 1436
+  },
+  "warmScreenshot": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/navigation-continuity-20261103/live/post-author-return-held-1d7782f9.png",
+    "imageWidth": 664,
+    "imageHeight": 1436
+  },
+  "cleanup": {
+    "readCount": 189,
+    "blockedWriteAttempts": [],
+    "forwardedServerWrites": 0,
+    "requestRestored": true,
+    "sessionUnchanged": true
+  }
+}

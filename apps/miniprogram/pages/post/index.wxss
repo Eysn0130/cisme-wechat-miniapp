@@ -1,3 +1,4 @@
+@import "../../styles/read-loading.wxss";
 page,
 .post-root {
   min-height:100%;

@@ -1,7 +1,7 @@
 <view class="chrome-root" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">护理故事</text></view>
   <view class="page page--stack story-page">
-    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载护理故事…</view>
+    <view wx:if="{{loading && !post}}" class="page-read-loading" aria-role="status" aria-label="正在加载护理故事…"><view class="page-read-loading__indicator"/></view>
     <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{!postId}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">重新加载</button></view>
     <view wx:if="{{notice}}" class="state story-notice" aria-live="polite">{{notice}}</view>
     <block wx:if="{{post}}">

@@ -6,6 +6,7 @@ import { DomainError } from "@cisme/domain";
 import { transaction } from "./db.js";
 import type { ObjectStorage } from "./storage.js";
 import { pendingReviewRevisionSql } from "./ugcVisibility.js";
+import { UgcDirectPublication } from "./ugcDirectPublication.js";
 import { decryptWechatMessage, type MessageQuery } from "./wechatMessageCrypto.js";
 import { startWorkerLoop } from '../../worker/src/loop.js';
 
@@ -166,6 +167,7 @@ export class UgcSafetyService{
         results.push({kind:"image",id:asset.id,state:"error"});
       }
     }
+    await new UgcDirectPublication(this.pool,this.config,this.storage).finish(id);
     return {postId:id,revision:post.current_revision,results};
   }
 
@@ -386,7 +388,7 @@ export class UgcSafetyService{
     return "success";
   }
   private async applyCallback(traceId:string){
-    await transaction(this.pool,async client=>{
+    const postId=await transaction(this.pool,async client=>{
       const inbox=(await client.query("SELECT * FROM ugc_safety_callback_inbox WHERE trace_id=$1 FOR UPDATE",[traceId])).rows[0];
       if(!inbox||inbox.applied_at)return;
       const scan=(await client.query("SELECT * FROM ugc_safety_scan WHERE trace_id=$1 FOR UPDATE",[traceId])).rows[0];
@@ -406,7 +408,9 @@ export class UgcSafetyService{
             scan.content_sha256,scan.post_id,scan.revision,scan.id]);
       }
       await client.query("UPDATE ugc_safety_callback_inbox SET applied_at=now() WHERE trace_id=$1",[traceId]);
+      return scan.post_id as string;
     });
+    if(postId)await new UgcDirectPublication(this.pool,this.config,this.storage).finish(postId);
   }
 }
 

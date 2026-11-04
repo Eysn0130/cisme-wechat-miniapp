@@ -1,0 +1,27 @@
+{
+  "host": "124.223.74.198",
+  "instance": "lhins-61ikz4mi",
+  "runId": "ff77a1e76fdf9a9f2a86c5d7",
+  "deployed": false,
+  "existingAccountWrites": 0,
+  "passed": true,
+  "checks": [
+    "authenticated empty timeline without featured fallback",
+    "follow → publish new user post → fresh timeline; drafts and un-followed authors excluded",
+    "shared author following state on curated details and profile",
+    "global keyset page order and owner-bound cursor; new posts on first-page refresh",
+    "closed public UGC gate preserves followed curated posts only",
+    "follow and unfollow remain consistent across both post sources",
+    "blocks, hidden posts, withdrawn curated content and inactive authors filtered"
+  ],
+  "syntheticActors": 5,
+  "publishedOrdinaryPosts": 4,
+  "ownedClusterRemoved": true,
+  "ownedObjectsRemoved": true,
+  "frontendSourceSha256": "5e7bd9a51246ba1a3468379305c05c4be1140c47d85dcff600101b286087ca12",
+  "inputPayloadSha256": "4e020c49c26ee898405eba09051a7bdf12a0a332ac0a155bcfc7ee8d3648cef6",
+  "sourceManifest": "source-proof.json#backendFiles",
+  "inputPayloadRemoved": true,
+  "execution": "app.inject in separately owned ephemeral PostgreSQL 16 cluster on the formal Tencent instance; no public listener, production database writes, or deployment",
+  "externalSafetyVerdict": "synthetic test input; not external WeChat safety-service acceptance"
+}

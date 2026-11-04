@@ -1,0 +1,8 @@
+{
+  "sourceSha256": "e627214bfdff6520d9febd04ad984e61849425e810511eae21d9da62881fbc29",
+  "scope": "Current-source native WeChat simulator, synthetic GET responses, no server writes; no physical-device or deployed-version claim.",
+  "calls": [],
+  "routes": [],
+  "status": "blocked",
+  "error": "Native automation timed out immediately after the simulator device switch; no 346px checks completed. The original 390px device and original runtime were restored and verified separately."
+}

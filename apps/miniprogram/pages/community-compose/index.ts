@@ -8,13 +8,13 @@ import { editUgcLocalImage, ugcImageEditCapabilities } from "../../services/ugc-
 import { hasTextCardContent, normalizeTextCardTemplate, normalizeTextCardText, textCardGraphemes, type TextCardTemplate } from "../../services/ugc-text-card-layout";
 
 type MediaItem = { id: string; localPath: string; previewUrl: string; size: number; state: "uploading" | "uploaded" | "failed"; progress: number; error: string };
-type Draft = { id: string; ownerId:string; state: string; version: number; title: string; body: string;
+type Draft = { directPublication?:boolean; id: string; ownerId:string; state: string; version: number; title: string; body: string;
   revision?:number;publishedRevision?:number|null;moderationState?:string;revisionState?:string;
   publicVersionActive: boolean; media: Array<{ id: string; state: string }>;
   reviewNote:string|null;reviewedAt:string|null;hiddenReason:string|null;hiddenAt:string|null;
   hiddenPublished:{title:string;body:string}|null;appeal:{id:string;state:string;reason:string;decisionReason:string|null}|null };
 const operationKey = () => `ugc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-const stateLabel = (state: string) => ({ draft: "草稿", pending_review: "审核中", awaiting_publication:"待发布复核", rejected: "待修改", published: "已发布", hidden: "已下架" }[state] || state);
+const stateLabel = (state: string) => ({ draft: "草稿", pending_review: "发布中", awaiting_publication:"待重新发布", rejected: "待修改", published: "已发布", hidden: "已下架" }[state] || state);
 const message = (error: unknown, fallback: string) => (error as { title?: string })?.title || fallback;
 const imageEditPendingError="请先重试使用修改后的图片，或放弃本次图片修改。";
 type DraftSnapshot={title:string;body:string;mediaIds:string[]};
@@ -76,7 +76,7 @@ Page({
   mediaPress:null as MediaPress|null,mediaDrag:null as MediaDrag|null,
   mediaDragTimer:null as ReturnType<typeof setTimeout>|null,mediaMoveTimer:null as ReturnType<typeof setTimeout>|null,mediaEdgeTimer:null as ReturnType<typeof setInterval>|null,
   mediaScrollPosition:0,mediaTapBlockedUntil:0,
-  data: { chromeStyle: currentChromeStyle(), postId: "", ownerId:"", state: "draft", publicVersionActive: false, version: 0, title: "", body: "",
+  data: { directPublication:false,chromeStyle: currentChromeStyle(), postId: "", ownerId:"", state: "draft", publicVersionActive: false, version: 0, title: "", body: "",
     textCardVisible:false,textCardContext:"",textCardText:"",textCardHandoffPath:"",textCardTemplate:"plain" as TextCardTemplate,photoEditorVisible:false,photoEditorAdditional:false,photoEditorContext:"",photoEditorFiles:[] as Array<{path:string;size:number}>,
     files: [] as MediaItem[],mediaDragging:false,mediaDragId:"",mediaDragSource:"",mediaDragLeft:0,mediaDragTop:0,mediaDragSize:0,mediaDragDropping:false,mediaDragOffsets:[] as number[],mediaScrollLeft:0,
     drafts: [] as Array<{ id: string; title: string; status: string; state:string;version:number;imageCount: number;publicVersionActive?:boolean }>,
@@ -85,7 +85,7 @@ Page({
     reviewNote:"",reviewedLabel:"",hiddenReason:"",hiddenPublished:null as {title:string;body:string}|null,
     appeal:null as Draft["appeal"],publicGateEnabled:false,publicGateLoaded:false,publicGateUnknown:false,
     listTotal:0,listCursor:null as string|null,listLoadingMore:false,listMoreError:"",
-    draftFilter:"all",draftFilters:[{value:"all",label:"全部"},{value:"draft",label:"草稿"},{value:"pending_review",label:"审核中"},{value:"awaiting_publication",label:"待发布复核"},{value:"rejected",label:"待修改"},{value:"published",label:"已发布"},{value:"hidden",label:"已下架"}],
+    draftFilter:"all",draftFilters:[{value:"all",label:"全部"},{value:"draft",label:"草稿"},{value:"pending_review",label:"发布中"},{value:"awaiting_publication",label:"待重新发布"},{value:"rejected",label:"待修改"},{value:"published",label:"已发布"},{value:"hidden",label:"已下架"}],
     requestedDraftId: "", requestedNew: false },
   onLoad(query: Record<string, string | undefined>) {
     this.pageAlive=true;
@@ -296,14 +296,14 @@ Page({
     const mediaIds=backup?.mediaIds??draft.media.map(media=>media.id);
     const restored=backup?.mediaItems;
     this.textCardInputInitialized=typeof backup?.textCardText==="string";
-    this.setData({ postId: draft.id,ownerId:draft.ownerId, state: draft.state, publicVersionActive: draft.publicVersionActive, version: draft.version,
+    this.setData({ postId: draft.id,ownerId:draft.ownerId, state: draft.state,directPublication:draft.directPublication===true, publicVersionActive: draft.publicVersionActive, version: draft.version,
       reviewNote:draft.reviewNote??"",reviewedLabel:draft.reviewedAt?new Date(draft.reviewedAt).toLocaleDateString("zh-CN"):"",
       hiddenReason:draft.hiddenReason??"",hiddenPublished:draft.hiddenPublished??null,appeal:draft.appeal??null,
       title: backup?.title??draft.title, body: backup?.body??draft.body,
       requestedNew:false,requestedDraftId:draft.id,textCardHandoffPath:"",textCardText:typeof backup?.textCardText==="string"?backup.textCardText:"",textCardTemplate:normalizeTextCardTemplate(backup?.textCardTemplate),
       files: restored?restored.map(item=>({...item,previewUrl:"",progress:item.state==="uploaded"?100:0})):mediaIds.map(id => ({ id, localPath: "", previewUrl: "", size: 0, state: "uploaded" as const, progress: 100, error: "" })),
       loading: false, error: "",mediaRecovery:"", dirty: Boolean(backup), notice: backup?"已恢复未提交的修改；若有图片未显示，请检查后保存草稿。":
-        draft.state === "rejected" ? "审核已退回。修改后可以再次提交。" : "" });
+        draft.state === "rejected" ? "发布未完成，请修改内容后重试。" : "" });
     void this.loadMediaPreviews(mediaIds,this.data.epoch,token,draft.id);
     this.syncUnloadWarning();
   },
@@ -864,10 +864,10 @@ Page({
     [items[index], items[next]] = [items[next]!, items[index]!];
     this.setData({ files: items, dirty: true });this.queueLocalBackup();
   },
-  async saveDraft(): Promise<Draft | null> {
+  async saveDraft(allowPending?:unknown): Promise<Draft | null> {
     if(this.data.mediaDragging)return null;
     if(this.pendingImageEdit){this.setData({error:"请先重试使用修改后的图片，或放弃本次图片修改。"});return null;}
-    if (!this.data.postId || this.data.busy || this.data.uploadBusy||this.data.writeRecovery||!["draft","rejected","published"].includes(this.data.state)) return null;
+    if (!this.data.postId || this.data.busy || this.data.uploadBusy||this.data.writeRecovery||!(["draft","rejected","published"].includes(this.data.state)||allowPending===true&&["pending_review","awaiting_publication"].includes(this.data.state))) return null;
     if (this.data.files.some(item => item.state !== "uploaded")) { this.setData({ error: "有图片还没上传完成，请移除失败图片或稍后重试。" }); return null; }
     const pending=this.newPendingWrite("save");this.pendingWrite=pending;
     this.flushLocalBackup();
@@ -891,8 +891,8 @@ Page({
   finishWrite(pending:PendingWrite,draft:Draft){
     if(!this.writeIsCurrent(pending))return;
     clearUgcBackup(pending.ownerId,pending.postId,pending.version);this.pendingWrite=null;
-    this.setData({version:draft.version,state:draft.state,publicVersionActive:draft.publicVersionActive,dirty:false,busy:false,operation:"idle",writeRecovery:"",recoveryBusy:false,error:"",mediaRecovery:"",
-      notice:pending.kind==="save"?"草稿已保存。":draft.publicVersionActive?"新版已提交审核。通过前，公开页面仍显示上一版。":"已提交审核，审核与发布复核完成后公开。"});
+    this.setData({version:draft.version,state:draft.state,directPublication:draft.directPublication===true,publicVersionActive:draft.publicVersionActive,dirty:false,busy:false,operation:"idle",writeRecovery:"",recoveryBusy:false,error:"",mediaRecovery:"",
+      reviewNote:draft.reviewNote??"",notice:pending.kind==="save"?"草稿已保存。":draft.state==="published"?"已发布。":draft.state==="rejected"?"发布未完成，请修改内容后重试。":"正在发布，安全检查完成后自动公开。"});
     this.syncUnloadWarning();
   },
   async verifyWriteResult():Promise<Draft|null>{
@@ -903,7 +903,7 @@ Page({
       if(draft.id!==pending.postId||draft.ownerId!==pending.ownerId){this.setData({busy:false,operation:"idle",writeRecovery:"conflict",error:"内容归属尚未确认，请重新打开投稿核对。"});return null;}
       if(draft.state==="hidden"||draft.state==="deleted"){
         this.flushLocalBackup();this.pendingWrite=null;
-        this.setData({state:draft.state,publicVersionActive:false,version:this.data.dirty?this.data.version:draft.version,
+        this.setData({state:draft.state,directPublication:draft.directPublication===true,publicVersionActive:false,version:this.data.dirty?this.data.version:draft.version,
           reviewNote:draft.reviewNote??"",reviewedLabel:draft.reviewedAt?new Date(draft.reviewedAt).toLocaleDateString("zh-CN"):"",
           hiddenReason:draft.hiddenReason??"",hiddenPublished:draft.hiddenPublished??null,appeal:draft.appeal??null,
           busy:false,operation:"idle",writeRecovery:"",recoveryBusy:false,error:"",
@@ -916,7 +916,7 @@ Page({
         this.setData({busy:false,operation:"idle",recoveryBusy:false,writeRecovery:"submit",error:"暂未查到提交结果。请稍后核对，也可保留输入离开；离开不会撤销已发送的操作。"});return null;}
       if(draft.version===pending.version&&pending.kind==="save"){
         this.setData({busy:false,operation:"idle",recoveryBusy:false,writeRecovery:"save",error:"暂未查到保存结果，本次输入仍保留。请稍后核对，也可保留输入离开。"});return null;}
-      this.setData({busy:false,operation:"idle",writeRecovery:"conflict",error:"草稿或审核状态已有变化。本次修改仍保留，请先重新加载并核对。"});return null;
+      this.setData({busy:false,operation:"idle",writeRecovery:"conflict",error:"草稿或发布状态已有变化。本次修改仍保留，请先重新加载并核对。"});return null;
     }catch(error){if(this.writeIsCurrent(pending)&&this.mediaVisible)this.setData({busy:false,operation:"idle",error:message(error,"暂时无法核对操作结果，请稍后再试。")});return null;}
     finally{if(this.writeIsCurrent(pending))this.setData({recoveryBusy:false});}
   },
@@ -936,6 +936,8 @@ Page({
     clearUgcBackup(this.data.ownerId,postId,this.data.version);this.setData({dirty:false});this.syncUnloadWarning();
     this.pendingWrite=null;void this.loadDraft(postId,false);
   },
+  refreshPublication(){if(!this.data.busy&&!this.data.uploadBusy&&!this.data.writeRecovery)void this.loadDraft(this.data.postId);},
+  async editPendingPublication(){if(["pending_review","awaiting_publication"].includes(this.data.state))await this.saveDraft(true);},
   async submit() {
     if(this.data.mediaDragging)return;
     if(this.pendingImageEdit){this.setData({error:"请先重试使用修改后的图片，或放弃本次图片修改。"});return;}
@@ -952,7 +954,7 @@ Page({
       if(this.writeIsCurrent(pending)&&this.mediaVisible)this.finishWrite(pending,sent);
     } catch (error) { if(!this.writeIsCurrent(pending))return;
       this.setData({busy:false,operation:"idle"});
-      if(unknownWrite(error)){this.setData({writeRecovery:"submit",error:"提交结果暂未确认，正在核对审核状态。"});if(this.mediaVisible)await this.verifyWriteResult();}
+      if(unknownWrite(error)){this.setData({writeRecovery:"submit",error:"提交结果暂未确认，正在核对发布状态。"});if(this.mediaVisible)await this.verifyWriteResult();}
       else{this.pendingWrite=null;this.setData({writeRecovery:"",recoveryBusy:false,error:message(error,"提交未完成，草稿仍保留。")});}}
   },
   async discardFreshDraft():Promise<boolean>{
@@ -1037,7 +1039,7 @@ Page({
       if(!current())return;
       if(draft.id!==context.postId||draft.ownerId!==context.ownerId)throw {title:"内容归属尚未确认，请重新打开投稿核对。"};
       this.publishedReturn=null;
-      if(this.data.dirty){this.flushLocalBackup();this.setData({state:draft.state,publicVersionActive:draft.publicVersionActive,
+      if(this.data.dirty){this.flushLocalBackup();this.setData({state:draft.state,directPublication:draft.directPublication===true,publicVersionActive:draft.publicVersionActive,
         reviewNote:draft.reviewNote??"",hiddenReason:draft.hiddenReason??"",hiddenPublished:draft.hiddenPublished??null,appeal:draft.appeal??null,
         notice:draft.state==="deleted"||draft.state==="hidden"?"修改暂留本页，请先复制需要的文字或查看图片；离开后无法从投稿列表找回。":"已核对最新状态，本机尚未保存的修改仍保留。",error:""});this.syncUnloadWarning();}
       else this.applyDraft(draft,false);

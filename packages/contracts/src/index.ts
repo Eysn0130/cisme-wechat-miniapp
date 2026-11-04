@@ -66,6 +66,12 @@ export interface EditorialDetail extends EditorialCard {
   following:boolean;isMine:boolean;interactionsEnabled:true;sourceUrl:string|null;provenanceLabel:string;
 }
 export interface EditorialPage { items:EditorialCard[];nextCursor:string|null }
+export interface CommunityFollowingCard {
+  kind: "editorial" | "formal" | "ugc"; id: string; authorId: string; author: string;
+  avatar: string; avatarRevision: string | null; title: string; excerpt: string;
+  coverUrl: string | null; publishedAt: string; likeCount: number;
+}
+export interface CommunityFollowingPage { items: CommunityFollowingCard[]; nextCursor: string | null }
 export interface EditorialAuthorPage extends EditorialPage {
   author:{id:string;name:string;avatar:string;postCount:number;following:boolean;isMine:boolean};
 }

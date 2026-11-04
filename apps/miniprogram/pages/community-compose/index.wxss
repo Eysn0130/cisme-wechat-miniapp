@@ -1,3 +1,4 @@
+@import "../../styles/read-loading.wxss";
 .composer-page { min-height:100vh; padding:var(--cisme-stack-top,103px) 22px calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 32px); background:#fff; }
 .composer-page--editing { padding-bottom:calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 112px); }
 .topbar { border-bottom:0; background:#fff; }
