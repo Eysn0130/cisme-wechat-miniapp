@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-11-04T15:44:12.029683+00:00",
+  "trialReady": true,
+  "officialPublicIdentityIndependent": true,
+  "officialCardsAndProfileAligned": true,
+  "currentlyPublishedOfficialCount": 20,
+  "officialAnonymousIsMine": false,
+  "officialAnonymousCanManage": false,
+  "privateProfileRequiresAuthentication": true,
+  "publicUgcEnabled": true,
+  "draftsEnabled": true,
+  "formalReady": true,
+  "realAccountWrites": false,
+  "physicalDeviceTested": false
+}
