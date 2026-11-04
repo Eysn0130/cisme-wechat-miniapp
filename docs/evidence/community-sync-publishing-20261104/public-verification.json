@@ -1,0 +1,51 @@
+{
+  "trialReady": {
+    "status": 200,
+    "body": {
+      "status": "ready"
+    }
+  },
+  "trialUgc": {
+    "status": 200,
+    "body": {
+      "publicEnabled": true,
+      "draftsEnabled": true
+    }
+  },
+  "formalReady": {
+    "status": 200,
+    "body": {
+      "status": "ready"
+    }
+  },
+  "formalUgc": {
+    "status": 200,
+    "body": {
+      "publicEnabled": false,
+      "draftsEnabled": true
+    }
+  },
+  "unauthenticatedCreate": {
+    "status": 401,
+    "body": {
+      "type": "https://cisme.example/problems/AUTH_REQUIRED",
+      "title": "Bearer session required",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "trace_id": "73f4b9cc-90ec-4934-903a-0cae813aa7e1"
+    }
+  },
+  "legal": {
+    "status": 200,
+    "body": [
+      {
+        "type": "privacy",
+        "version": "2026-11-03-v5"
+      },
+      {
+        "type": "terms",
+        "version": "2026-11-03-v5"
+      }
+    ]
+  }
+}

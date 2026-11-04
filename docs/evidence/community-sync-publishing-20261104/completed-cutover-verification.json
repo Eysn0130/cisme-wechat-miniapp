@@ -1,0 +1,64 @@
+{
+  "activation": {
+    "approvalId": "04059dc4-4da0-40a9-ad8b-09565e73dd67",
+    "approvalReference": "cisme-user-direct-publication-20261104",
+    "auditTrace": "a647f02c-78ae-40ed-a484-091157f7261e",
+    "authorityGranted": false,
+    "expiresAt": "2027-11-04T10:37:50.272Z",
+    "legalVersion": "2026-11-03-v5",
+    "memberConsentCreated": false,
+    "publicSwitchEnabled": true
+  },
+  "activeVerified": true,
+  "applicationOrBusinessDataChangedByCompletion": false,
+  "authorityGranted": false,
+  "changedConfigKeys": [
+    "UGC_IMAGE_SAFETY_MODE",
+    "UGC_SCAN_WORKER_MODE",
+    "UGC_GO_LIVE_GATE",
+    "UGC_PROVENANCE_READY",
+    "UGC_CONTENT_SAFETY_READY",
+    "UGC_LEGAL_APPROVAL_ID"
+  ],
+  "ciRunId": 41812760478,
+  "ciVerifyJobId": 126515838735,
+  "databaseRestored": false,
+  "healthGuardCorrection": {
+    "applicationCodeChanged": false,
+    "bindingSha256": "6dc3b5628e14c2654b8dd4ac2b5d3d78d68c94469e2f18d30cf3665b8614ac7f",
+    "checksRemoved": false,
+    "ciRunId": 41818232680,
+    "ciVerifyJobId": 126534427367,
+    "codeSha256": "2e210dc21a093be778a1d25e52b31830ca95742c8a722779f65c7d6205b2b35f",
+    "directory": "/opt/cisme-trial/sync-publication-health-runners/31a4fcf97364",
+    "healthSchema": "status=ready",
+    "originalHelperPreserved": true,
+    "sourceHead": "31a4fcf97364b594fe7195df976cb70748cf887b",
+    "sourceTree": "e0575b7d54403bc38b5536a44739070c2fe6a349"
+  },
+  "kind": "trial-sync-publication-active",
+  "memberConsentCreated": false,
+  "messagePushRequired": false,
+  "migrationCount": 107,
+  "originalFactsPreservedExceptDeclaredReleaseFacts": true,
+  "privatePlanSha256": "6a75f740ddfd5b5f5c910b12adf47d52f607a32188fa1fd34935527f2a9a2918",
+  "privateValuesExported": false,
+  "productionChanged": false,
+  "provider": "wechat_v1_sync",
+  "publicUgcEnabled": true,
+  "readOnly": true,
+  "sourceHead": "70629d32504399873ac44e7cacc2b159e896880d",
+  "sourceReaderVerification": [
+    {
+      "commit": "31a4fcf97364b594fe7195df976cb70748cf887b",
+      "gitBlob": "3fc2c06340a5c4b118fa8c91bd73ac5543519e4e",
+      "packageReaderUnchanged": true,
+      "path": "infra/tencent/trial-sync-publication-health-fix.py",
+      "realHttpsResponse": true,
+      "sha256": "2e210dc21a093be778a1d25e52b31830ca95742c8a722779f65c7d6205b2b35f"
+    }
+  ],
+  "sourceTree": "f052dde0edb4e7a4ffc8cdeed79687e8ca0648cd",
+  "upgradeState": "/opt/cisme-trial/sync-publication-updates/commit-70629d325043-1793788653980275761",
+  "workerHeartbeatFresh": true
+}
