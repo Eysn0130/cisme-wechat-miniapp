@@ -49,9 +49,9 @@ export class AuthorityService {
     return owner;
   }
 
-  async has(memberId: string | undefined, capability: Capability): Promise<boolean> {
+  async has(memberId: string | undefined, capability: Capability, client?:DbClient): Promise<boolean> {
     if (!memberId) return false;
-    const result = await this.pool.query("SELECT 1 FROM authority_grant WHERE EXISTS(SELECT 1 FROM member m WHERE m.id=member_id AND m.status='active') AND member_id=$1 AND capability=$2 AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now())", [memberId, capability, this.environment]);
+    const result = await (client??this.pool).query("SELECT 1 FROM authority_grant WHERE EXISTS(SELECT 1 FROM member m WHERE m.id=member_id AND m.status='active') AND member_id=$1 AND capability=$2 AND environment=$3 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now())", [memberId, capability, this.environment]);
     return Boolean(result.rowCount);
   }
 

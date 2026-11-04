@@ -148,7 +148,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       reports:(await client.query(`SELECT id,target_type,target_id,category,description,state,
         created_at,updated_at FROM ugc_report WHERE reporter_member_id=$1
         ORDER BY created_at,id`,[memberId])).rows},
-    editorial:{articles:(await client.query(`SELECT id,external_ref,author_display_name,title,excerpt,body,
+    editorial:{articles:(await client.query(`SELECT id,external_ref,author_display_name,publisher_id,title,excerpt,body,
         source_url,authorization_ref,media,content_sha256,status,version,published_at,created_at,updated_at
         FROM editorial_article WHERE author_member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
       publicationEvidence:(await client.query(`SELECT r.article_id,r.version,r.content_sha256,r.action,

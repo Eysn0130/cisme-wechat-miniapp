@@ -15,7 +15,7 @@ export async function readFollowingFeed(page: object, cursor?: string | null) {
     author_id: item.authorId,
     image: item.kind === "editorial" ? editorialMediaSrc(item.coverUrl)
       : /^\/v1\/ugc\/media\/[0-9a-f-]{36}\?variant=thumbnail$/i.test(item.coverUrl ?? "") ? origin + item.coverUrl : "",
-    avatar: item.kind === "editorial" ? editorialPublisherAvatar(item.author, defaultMemberAvatar)
+    avatar: item.kind === "editorial" ? editorialPublisherAvatar(item.author, defaultMemberAvatar,item.authorId)
       : await localMemberAvatar(item.avatar, item.avatarRevision),
     engagementLabel: item.kind === "ugc" ? "" : `${item.likeCount} 赞`
   }))) };

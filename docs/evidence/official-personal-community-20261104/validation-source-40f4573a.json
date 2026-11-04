@@ -1,0 +1,111 @@
+{
+  "recordedAt": "2026-11-04T14:48:02.113275+00:00",
+  "sourcePackage": {
+    "files": 304,
+    "routes": 40,
+    "totalBytes": 2077263,
+    "mainPackageBytes": 935755,
+    "subpackageBytes": {
+      "pages/task": 435,
+      "pages/submit": 435,
+      "pages/progress": 435,
+      "pages/points": 12312,
+      "pages/post": 108686,
+      "pages/shop": 9429,
+      "pages/product": 17543,
+      "pages/checkout": 28658,
+      "pages/orders": 9073,
+      "pages/order-detail": 85060,
+      "pages/settings": 76349,
+      "pages/invite": 15809,
+      "pages/legal": 3776,
+      "pages/privacy-rights": 53276,
+      "pages/support": 104068,
+      "pages/management": 19264,
+      "pages/management-catalog": 7945,
+      "pages/management-product": 21901,
+      "pages/management-orders": 9005,
+      "pages/management-order-detail": 17609,
+      "pages/management-support": 10831,
+      "pages/management-support-chat": 87836,
+      "pages/management-members": 34110,
+      "pages/management-member": 34736,
+      "pages/referral": 6863,
+      "pages/community-compose": 138833,
+      "pages/community-post": 27143,
+      "pages/community-author": 19830,
+      "pages/community-review": 22681,
+      "pages/community-activity": 24701,
+      "pages/management-finance": 30063,
+      "pages/commission": 36445,
+      "pages/management-privacy": 17895,
+      "pages/aftersale": 33475,
+      "pages/management-fulfillment": 14998
+    },
+    "globalStyleBytes": 8190,
+    "sourceSha256": "40f4573ae8727c6ba3e85ce2ac29de9beaa0f4898013f7973e013da75e07e003"
+  },
+  "unit": {
+    "passed": 3098,
+    "skipped": 1
+  },
+  "focusedIntegration": {
+    "files": 8,
+    "passed": 63
+  },
+  "operationGuardTests": {
+    "passed": 8
+  },
+  "native": {
+    "width": 390,
+    "realApiRequests": false,
+    "realAccountWrites": false,
+    "sourceOverrides": [
+      "app.ts synthetic transport",
+      "app.json entryPagePath"
+    ],
+    "images": [
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-official-bio-sheet.png",
+        "sha256": "a456eb0bbc91e3c3758b0f71547f21c8e4e58f548d8876ac6b6ad2ad06968206",
+        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+      },
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-member-official.png",
+        "sha256": "a40e98e0d6d9162b777d96bea449b4a91ca232dcf6d682c3797fcb64fe4d0a53",
+        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+      },
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-admin-personal.png",
+        "sha256": "c75de00334538582f29b1e25b699dfa01d2e9e2bbb8be0a0210309b3b4dc2657",
+        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+      },
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-admin-official.png",
+        "sha256": "7ae0e9d9a5a27df850602c843e208de5a910a0dbee6776d4f33cc144562d54b3",
+        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+      },
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-member-admin-personal.png",
+        "sha256": "562302b581993e9d76f9733104fc0775bc96e93534537904f0e42270c7da18ea",
+        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+      }
+    ]
+  },
+  "trialReadonlyBaseline": {
+    "schema": 108,
+    "brandArticles": 20,
+    "sourceResponsibilityMembers": 1,
+    "brandLinkedCommunityFollowRows": 0,
+    "brandLinkedPersonalFollowRows": 0,
+    "memberWritesPerformed": false
+  },
+  "deployment": {
+    "status": "not performed at source acceptance",
+    "plannedSchema": 109,
+    "plannedExperienceVersion": "0.1.31"
+  },
+  "fullVisualMatrix": "blocked; unchanged",
+  "phoneAcceptance": "not performed",
+  "imagePerformanceInvestigation": "paused by user; unchanged"
+}

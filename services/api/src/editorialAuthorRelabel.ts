@@ -14,7 +14,7 @@ export interface EditorialAuthorRelabelPlan {
   operatorMemberId:string;operatorPrincipalId:string;authorMemberId:string;
   oldName:string;newName:string;authorizationRef:string;targets:EditorialAuthorRelabelTarget[];
 }
-type ArticleRow={id:string;external_ref:string;author_member_id:string;author_display_name:string;
+type ArticleRow={id:string;external_ref:string;author_member_id:string;author_display_name:string;publisher_id:string|null;
   title:string;excerpt:string;body:string;source_url:string|null;authorization_ref:string;
   rights_evidence:Record<string,unknown>;media:EditorialPublication['media'];content_sha256:string;
   status:string;version:number;relabel_row_sha256:string};
@@ -57,7 +57,7 @@ function validatePlan(config:AppConfig,input:EditorialAuthorRelabelPlan):Editori
 function publication(row:ArticleRow):EditorialPublication {
   return {externalRef:row.external_ref,authorMemberId:row.author_member_id,author:row.author_display_name,
     title:row.title,excerpt:row.excerpt,body:row.body,sourceUrl:row.source_url,authorizationRef:row.authorization_ref,
-    rightsEvidence:row.rights_evidence,media:row.media};
+    rightsEvidence:row.rights_evidence,media:row.media,...(row.publisher_id?{publisherId:row.publisher_id}:{})};
 }
 
 /** Explicit, exact-ID trial maintenance. Never publishes new posts or changes

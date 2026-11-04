@@ -56,6 +56,11 @@ export const CAPABILITIES = [
   "commission.settlement.approve", "privacy.request.manage", "editorial.manage"
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
+// A public publishing identity, never a synthetic member or a login principal.
+export const CISME_OFFICIAL_PUBLISHER = {
+  key: 'cisme-scalp-lab', id: 'fe841ebb-1db1-57de-988b-4ff1534f23e6',
+  name: 'CISME头皮实验室', avatar: '/assets/cisme/cisme-scalp-lab-avatar-v1.jpg'
+} as const;
 export interface EditorialCard {
   id:string;title:string;excerpt:string;authorId:string;author:string;avatar:string;
   coverUrl:string|null;publishedAt:string;likeCount:number;saveCount:number;
@@ -63,7 +68,7 @@ export interface EditorialCard {
 export interface EditorialDetail extends EditorialCard {
   version:number;body:string;media:Array<{id:string;url:string;aiUsage:'generated'|'not_declared';type?:'video';mimeType?:'video/mp4';posterUrl?:string;width?:number;height?:number;durationMs?:number}>;liked:boolean;saved:boolean;
   commentsEnabled:boolean;commentsPolicyVersion:number;commentCount:number;canModerate:boolean;
-  following:boolean;isMine:boolean;interactionsEnabled:true;sourceUrl:string|null;provenanceLabel:string;
+  following:boolean;isMine:boolean;canManage:boolean;interactionsEnabled:true;sourceUrl:string|null;provenanceLabel:string;
 }
 export interface EditorialPage { items:EditorialCard[];nextCursor:string|null }
 export interface CommunityFollowingCard {
@@ -73,8 +78,8 @@ export interface CommunityFollowingCard {
 }
 export interface CommunityFollowingPage { items: CommunityFollowingCard[]; nextCursor: string | null }
 export interface CommunityAuthorPage extends CommunityFollowingPage {
-  author:{id:string;name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;
-    postCount:number;following:boolean;isMine:boolean;canFollow:boolean;followArticleId:string|null};
+  author:{id:string;accountType:'member'|'official';name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;
+    postCount:number;following:boolean;isMine:boolean;canManage:boolean;canFollow:boolean;followArticleId:string|null};
 }
 export interface EditorialAuthorPage extends EditorialPage {
   author:{id:string;name:string;avatar:string;postCount:number;following:boolean;isMine:boolean};

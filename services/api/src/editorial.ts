@@ -7,6 +7,7 @@ import {AuthorityService} from './authority.js';
 import {readSnapshot,transaction,type DbClient} from './db.js';
 import {inspectEditorialMp4,type ObjectStorage} from './storage.js';
 import {editorialCommentSummary} from './editorialComments.js';
+import {officialPublisher,editorialPublicAuthorId,editorialPublicAuthorIdSql} from './editorialPublisher.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA=/^[0-9a-f]{64}$/;
@@ -20,10 +21,11 @@ export type EditorialMedia=EditorialImage|EditorialVideo;
 type Media=EditorialMedia;
 export interface EditorialPublication {
   externalRef:string;authorMemberId:string;author:string;title:string;excerpt:string;body:string;
+  publisherId?:string|null;
   sourceUrl:string|null;authorizationRef:string;rightsEvidence:Record<string,unknown>;media:Media[];
   expectedVersion?:number;
 }
-type Article={id:string;external_ref:string;author_member_id:string;author_display_name:string;
+type Article={id:string;external_ref:string;author_member_id:string;author_display_name:string;publisher_id:string|null;
   title:string;excerpt:string;body:string;source_url:string|null;authorization_ref:string;
   rights_evidence:Record<string,unknown>;media:Media[];content_sha256:string;status:string;version:number;
   published_by:string;published_principal_id:string;published_at:Date;cursor_at:string;like_count:number;save_count:number};
@@ -53,7 +55,7 @@ function page(input:{limit?:unknown;cursor?:unknown},scope:string){
   return {limit,cursor,scope};
 }
 function mediaUrl(id:string,sha:string){return `/v1/editorial/media/${id}/${sha}`;}
-function card(a:Article):EditorialCard{return {id:a.id,title:a.title,excerpt:a.excerpt,authorId:a.author_member_id,
+function card(a:Article):EditorialCard{return {id:a.id,title:a.title,excerpt:a.excerpt,authorId:editorialPublicAuthorId(a),
   author:a.author_display_name,avatar:'',coverUrl:a.media[0]?mediaUrl(a.id,videoMedia(a.media[0])?a.media[0].poster.sha256:a.media[0].sha256):null,
   publishedAt:a.published_at.toISOString(),likeCount:a.like_count,saveCount:a.save_count};}
 function next(rows:Article[],limit:number,scope:string){const row=rows.length>limit?rows[limit-1]:null;
@@ -74,6 +76,10 @@ function mediaObjects(media:EditorialMedia[]):EditorialMedia[]{return [...new Ma
   .map(item=>[item.objectKey,item])).values()];}
 export function validateEditorialPublication(input:EditorialPublication){
   if(!input||typeof input!=='object')throw new DomainError('EDITORIAL_INPUT_INVALID','精选内容字段无效',422);
+  const author=text(input.author,1,40);
+  if(input.publisherId!==undefined&&input.publisherId!==null&&input.publisherId!==officialPublisher.key||
+    input.publisherId===officialPublisher.key&&author!==officialPublisher.name)
+    throw new DomainError('EDITORIAL_PUBLISHER_INVALID','请明确选择与官方署名一致的发布身份',422);
   const sourceUrl=input.sourceUrl===null||input.sourceUrl===undefined?null:text(input.sourceUrl,8,2000);
   if(sourceUrl){let u:URL;try{u=new URL(sourceUrl);}catch{throw new DomainError('EDITORIAL_INPUT_INVALID','内容来源链接无效',422);}
     if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash)throw new DomainError('EDITORIAL_INPUT_INVALID','来源须为不含凭据或临时查询参数的HTTPS链接',422);}
@@ -107,14 +113,16 @@ export function validateEditorialPublication(input:EditorialPublication){
   if(media.some(videoMedia)&&media.length!==1)throw new DomainError('EDITORIAL_INPUT_INVALID','精选视频须使用独立视频条目',422);
   if(input.expectedVersion!==undefined&&(!Number.isInteger(input.expectedVersion)||input.expectedVersion<0))
     throw new DomainError('EDITORIAL_INPUT_INVALID','精选版本无效',422);
-  return {externalRef:text(input.externalRef,3,200),authorMemberId:uuid(input.authorMemberId),author:text(input.author,1,40),
+  return {externalRef:text(input.externalRef,3,200),authorMemberId:uuid(input.authorMemberId),author,
     title:text(input.title,1,120),excerpt:text(input.excerpt,0,320),body:text(input.body,1,20000),sourceUrl,
-    authorizationRef:authorizationRef(input.authorizationRef),rightsEvidence:input.rightsEvidence,media};
+    authorizationRef:authorizationRef(input.authorizationRef),rightsEvidence:input.rightsEvidence,media,
+    ...(input.publisherId===officialPublisher.key?{publisherId:officialPublisher.key}:{})};
 }
 
 export class EditorialService{
   constructor(private pool:pg.Pool,private config:AppConfig,private storage:ObjectStorage,private authority:AuthorityService){}
   private canonicalApp(){return this.config.wechat.appId===CANONICAL_WECHAT_MINIPROGRAM_APP_ID?this.config.wechat.appId:null;}
+  canManage(memberId:string|undefined,client?:DbClient){return this.authority.has(memberId,'editorial.manage',client);}
   private async actor(client:DbClient,memberId:string|undefined,principalId:string|undefined,lock=true){
     if(!memberId||!principalId)throw new DomainError('AUTH_REQUIRED','请先使用微信账号登录',401);
     const found=await client.query(`SELECT 1 FROM member m JOIN wechat_identity w ON w.member_id=m.id
@@ -133,8 +141,8 @@ export class EditorialService{
       EXISTS(SELECT 1 FROM community_reaction WHERE post_id=$1 AND member_id=$2 AND kind='like') AS liked,
       EXISTS(SELECT 1 FROM community_reaction WHERE post_id=$1 AND member_id=$2 AND kind='save') AS saved,
       (EXISTS(SELECT 1 FROM community_follow WHERE member_id=$2 AND author_id=$3)
-        OR EXISTS(SELECT 1 FROM ugc_author_follow WHERE follower_member_id=$2 AND followed_member_id=$3::uuid)) AS following`,
-      [`editorial:${a.id}`,memberId??null,a.author_member_id])).rows[0];
+        OR ($4::boolean AND EXISTS(SELECT 1 FROM ugc_author_follow WHERE follower_member_id=$2 AND followed_member_id=$3::uuid))) AS following`,
+      [`editorial:${a.id}`,memberId??null,editorialPublicAuthorId(a),a.publisher_id===null])).rows[0];
     return {liked:Boolean(row.liked),saved:Boolean(row.saved),following:Boolean(row.following)};
   }
   private async currentLegal(client:DbClient){
@@ -198,22 +206,23 @@ export class EditorialService{
       media:a.media.map(x=>({id:x.sha256,url:mediaUrl(a.id,x.sha256),aiUsage:x.aiUsage,...(videoMedia(x)?{type:'video' as const,mimeType:x.mimeType,
         posterUrl:mediaUrl(a.id,x.poster.sha256),width:x.width,height:x.height,durationMs:x.durationMs}:{})})),...await this.state(client,a,memberId),
       ...await editorialCommentSummary(client,this.config.env,a.id,a.author_member_id,memberId),
-      isMine:memberId===a.author_member_id,interactionsEnabled:true,sourceUrl:a.source_url,provenanceLabel:editorialProvenanceLabel(a.media)};
+      isMine:a.publisher_id===null&&memberId===a.author_member_id,canManage:await this.canManage(memberId,client),
+      interactionsEnabled:true,sourceUrl:a.source_url,provenanceLabel:editorialProvenanceLabel(a.media)};
   });}
   async author(memberId:string|undefined,authorId:string,input:{limit?:unknown;cursor?:unknown}={}):Promise<EditorialAuthorPage>{
-    const author=uuid(authorId),p=page(input,`editorial-author:${author}`);return readSnapshot(this.pool,async client=>{
+    const author=uuid(authorId),official=author===officialPublisher.id,
+      p=page(input,`editorial-author:${author}${official?':'+(memberId??'guest'):''}`);return readSnapshot(this.pool,async client=>{
       const summary=(await client.query<{name:string;post_count:number}>(`SELECT
-        (SELECT b.author_display_name FROM editorial_article b WHERE b.author_member_id=$2 AND b.status='published'
-          ORDER BY b.published_at DESC,b.id DESC LIMIT 1) AS name,count(*)::int AS post_count
-        FROM editorial_article a JOIN member m ON m.id=a.author_member_id WHERE ${visible} AND a.author_member_id=$2`,
+        (array_agg(a.author_display_name ORDER BY a.published_at DESC,a.id DESC))[1] AS name,count(*)::int AS post_count
+        FROM editorial_article a JOIN member m ON m.id=a.author_member_id WHERE ${visible} AND (${editorialPublicAuthorIdSql})=$2`,
         [this.canonicalApp(),author])).rows[0]!;
-      if(!summary.post_count)throw NOT_FOUND();
-      const rows=(await client.query<Article>(`SELECT ${columns} FROM ${relations} WHERE ${visible} AND a.author_member_id=$2
+      if(!summary.post_count&&!official)throw NOT_FOUND();
+      const rows=(await client.query<Article>(`SELECT ${columns} FROM ${relations} WHERE ${visible} AND (${editorialPublicAuthorIdSql})=$2
         AND ($3::timestamptz IS NULL OR (a.published_at,a.id)<($3::timestamptz,$4::uuid))
         ORDER BY a.published_at DESC,a.id DESC LIMIT $5`,[this.canonicalApp(),author,p.cursor?.at??null,p.cursor?.id??null,p.limit+1])).rows;
       const following=Boolean((await client.query(`SELECT 1 WHERE EXISTS(SELECT 1 FROM community_follow WHERE member_id=$1 AND author_id=$2)
-        OR EXISTS(SELECT 1 FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2::uuid)`,[memberId??null,author])).rowCount);
-      return {author:{id:author,name:summary.name,avatar:'',postCount:summary.post_count,following,isMine:memberId===author},
+        OR ($3::boolean AND EXISTS(SELECT 1 FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2::uuid))`,[memberId??null,author,!official])).rowCount);
+      return {author:{id:author,name:official?officialPublisher.name:summary.name,avatar:official?officialPublisher.avatar:'',postCount:summary.post_count,following,isMine:!official&&memberId===author},
         items:rows.slice(0,p.limit).map(card),nextCursor:next(rows,p.limit,p.scope)};
     });
   }
@@ -257,12 +266,26 @@ export class EditorialService{
   async follow(memberId:string|undefined,principalId:string|undefined,id:string,active:unknown){
     if(typeof active!=='boolean')throw new DomainError('EDITORIAL_FOLLOW_INVALID','关注状态无效',422);
     return transaction(this.pool,async client=>{const owner=await this.actor(client,memberId,principalId);await this.requireCurrentLegal(client,owner);const a=await this.article(client,id,true);
-      if(owner===a.author_member_id)throw new DomainError('EDITORIAL_FOLLOW_INVALID','不能关注自己',422);
-      const changed=active?await client.query('INSERT INTO community_follow(member_id,author_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[owner,a.author_member_id])
-        :await client.query('DELETE FROM community_follow WHERE member_id=$1 AND author_id=$2',[owner,a.author_member_id]);
-      const otherRemoved=!active?await client.query('DELETE FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2',[owner,a.author_member_id]):null;
-      if(changed.rowCount||otherRemoved?.rowCount)await this.audit(client,owner,principalId!,'editorial.follow',a.id,{authorId:a.author_member_id,active});
-      return {authorId:a.author_member_id,following:active};
+      const authorId=editorialPublicAuthorId(a);
+      if(owner===authorId)throw new DomainError('EDITORIAL_FOLLOW_INVALID','不能关注自己',422);
+      const changed=active?await client.query('INSERT INTO community_follow(member_id,author_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[owner,authorId])
+        :await client.query('DELETE FROM community_follow WHERE member_id=$1 AND author_id=$2',[owner,authorId]);
+      const otherRemoved=!active&&a.publisher_id===null?await client.query('DELETE FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2',[owner,authorId]):null;
+      if(changed.rowCount||otherRemoved?.rowCount)await this.audit(client,owner,principalId!,'editorial.follow',a.id,{authorId,active});
+      return {authorId,following:active};
+    });
+  }
+  async followPublisher(memberId:string|undefined,principalId:string|undefined,active:unknown){
+    if(typeof active!=='boolean')throw new DomainError('EDITORIAL_FOLLOW_INVALID','关注状态无效',422);
+    return transaction(this.pool,async client=>{
+      const owner=await this.actor(client,memberId,principalId);await this.requireCurrentLegal(client,owner);
+      if(!(await client.query('SELECT 1 FROM editorial_publisher WHERE id=$1 FOR SHARE',[officialPublisher.key])).rowCount)throw NOT_FOUND();
+      const changed=active?await client.query('INSERT INTO community_follow(member_id,author_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[owner,officialPublisher.id])
+        :await client.query('DELETE FROM community_follow WHERE member_id=$1 AND author_id=$2',[owner,officialPublisher.id]);
+      if(changed.rowCount)await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+        VALUES($1,'editorial.publisher_follow','editorial_publisher',$2,'EXPLICIT_MEMBER_OR_OWNER_ACTION',$3,gen_random_uuid()::text)`,
+        [principalId,officialPublisher.id,{actorMemberId:owner,active}]);
+      return {authorId:officialPublisher.id,following:active};
     });
   }
   async publish(operatorId:string,principalId:string,input:EditorialPublication){
@@ -275,6 +298,7 @@ export class EditorialService{
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`editorial:${content.externalRef}`]);
       const old=(await client.query<Article>('SELECT * FROM editorial_article WHERE external_ref=$1 FOR UPDATE',[content.externalRef])).rows[0];
       if(old&&old.author_member_id!==content.authorMemberId)throw new DomainError('EDITORIAL_SOURCE_CONFLICT','该来源已属于另一作者',409);
+      if(old&&(old.publisher_id??null)!==(content.publisherId??null))throw new DomainError('EDITORIAL_SOURCE_CONFLICT','发布身份已确定，请保留原内容归属',409);
       if(old?.content_sha256===fingerprint&&old.status==='published')return {id:old.id,version:old.version,status:'published',replayed:true};
       if((old?.version??0)!==(input.expectedVersion??0))throw new DomainError('EDITORIAL_VERSION_CONFLICT','精选版本已变化，请重新核对',409);
       for(const media of mediaObjects(content.media).sort((a,b)=>a.sha256.localeCompare(b.sha256))){
@@ -282,10 +306,10 @@ export class EditorialService{
       }
       const id=old?.id??randomUUID(),version=(old?.version??0)+1;
       const values=[id,content.externalRef,content.authorMemberId,content.author,content.title,content.excerpt,content.body,
-        content.sourceUrl,content.authorizationRef,content.rightsEvidence,JSON.stringify(content.media),fingerprint,version,operatorId,principalId];
+        content.sourceUrl,content.authorizationRef,content.rightsEvidence,JSON.stringify(content.media),fingerprint,version,operatorId,principalId,content.publisherId??null];
       await client.query(`INSERT INTO editorial_article(id,external_ref,author_member_id,author_display_name,title,excerpt,body,
-        source_url,authorization_ref,rights_evidence,media,content_sha256,status,version,published_by,published_principal_id)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'published',$13,$14,$15)
+        source_url,authorization_ref,rights_evidence,media,content_sha256,status,version,published_by,published_principal_id,publisher_id)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'published',$13,$14,$15,$16)
         ON CONFLICT(id) DO UPDATE SET author_display_name=$4,title=$5,excerpt=$6,body=$7,source_url=$8,
         authorization_ref=$9,rights_evidence=$10,media=$11,content_sha256=$12,status='published',version=$13,
         published_by=$14,published_principal_id=$15,published_at=now(),updated_at=now()`,values);

@@ -1,0 +1,126 @@
+{
+  "recordedAt": "2026-11-04T14:48:02.113275+00:00",
+  "sourcePackage": {
+    "files": 304,
+    "routes": 40,
+    "totalBytes": 2077538,
+    "mainPackageBytes": 935755,
+    "subpackageBytes": {
+      "pages/task": 435,
+      "pages/submit": 435,
+      "pages/progress": 435,
+      "pages/points": 12312,
+      "pages/post": 108686,
+      "pages/shop": 9429,
+      "pages/product": 17543,
+      "pages/checkout": 28658,
+      "pages/orders": 9073,
+      "pages/order-detail": 85060,
+      "pages/settings": 76349,
+      "pages/invite": 15809,
+      "pages/legal": 3776,
+      "pages/privacy-rights": 53276,
+      "pages/support": 104068,
+      "pages/management": 19264,
+      "pages/management-catalog": 7945,
+      "pages/management-product": 21901,
+      "pages/management-orders": 9005,
+      "pages/management-order-detail": 17609,
+      "pages/management-support": 10831,
+      "pages/management-support-chat": 87836,
+      "pages/management-members": 34110,
+      "pages/management-member": 34736,
+      "pages/referral": 6863,
+      "pages/community-compose": 138833,
+      "pages/community-post": 27143,
+      "pages/community-author": 20105,
+      "pages/community-review": 22681,
+      "pages/community-activity": 24701,
+      "pages/management-finance": 30063,
+      "pages/commission": 36445,
+      "pages/management-privacy": 17895,
+      "pages/aftersale": 33475,
+      "pages/management-fulfillment": 14998
+    },
+    "globalStyleBytes": 8190,
+    "sourceSha256": "33551ff1d56cb1a9e2a8853b8308668a8a0c81a5fe912deebd6449e7979bbec4"
+  },
+  "unit": {
+    "passed": 3098,
+    "skipped": 1
+  },
+  "focusedIntegration": {
+    "files": 8,
+    "passed": 63
+  },
+  "operationGuardTests": {
+    "passed": 8
+  },
+  "native": {
+    "width": 390,
+    "realApiRequests": false,
+    "realAccountWrites": false,
+    "sourceOverrides": [
+      "app.ts synthetic transport",
+      "app.json entryPagePath"
+    ],
+    "images": [
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-official-bio-sheet.png",
+        "sha256": "0cb35b4ce51229db4832ecd8279818d4f132f927f114b435a46367d47226ffac",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
+      },
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-member-official.png",
+        "sha256": "065ab4c5a8b4f47be0ec1a847ef407fb42a3d7ddf4bb0ae19b48e17ec203cb34",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
+      },
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-admin-personal.png",
+        "sha256": "35f3817ab33472aa47f8149593e0e6725c48b544ac1f71196fa865c64204ac3e",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
+      },
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-admin-official.png",
+        "sha256": "4fa64ac087b64bcfb8ac960e9d1a68d08b1776e4fe205470152ab4b444e76470",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
+      },
+      {
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-member-admin-personal.png",
+        "sha256": "f2b38eb67c7bc6ef8d7b8e9bb320dabb31aac40b47e5f5813c59098ac5dd1000",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
+      }
+    ],
+    "fixtureProof": "native-final/native-fixture-proof.json",
+    "validation": "native-final/native-validation.json"
+  },
+  "trialReadonlyBaseline": {
+    "schema": 108,
+    "brandArticles": 20,
+    "sourceResponsibilityMembers": 1,
+    "brandLinkedCommunityFollowRows": 0,
+    "brandLinkedPersonalFollowRows": 0,
+    "memberWritesPerformed": false
+  },
+  "deployment": {
+    "status": "not performed at source acceptance",
+    "plannedSchema": 109,
+    "plannedExperienceVersion": "0.1.31"
+  },
+  "fullVisualMatrix": "blocked; unchanged",
+  "phoneAcceptance": "not performed",
+  "imagePerformanceInvestigation": "paused by user; unchanged",
+  "history": {
+    "previousPackageSourceSha256": "40f4573ae8727c6ba3e85ce2ac29de9beaa0f4898013f7973e013da75e07e003",
+    "previousValidation": "validation-source-40f4573a.json",
+    "oldNativeEvidenceRetainsOriginalBinding": true
+  },
+  "finalWording": "official editor explicitly says 官方简介 and 填写官方账号简介",
+  "authorityReadConnectionReview": {
+    "queryClient": "reuse the current readonly snapshot client",
+    "singleConnectionIntegrationPassed": true,
+    "canonicalIdentityAndExplicitGrantChecksUnchanged": true,
+    "fullUnitPassedAfterChange": 3098,
+    "unitLog": "unit-authority-client.txt"
+  }
+}

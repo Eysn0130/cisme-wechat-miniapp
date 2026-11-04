@@ -1,0 +1,35 @@
+{
+  "nativeChecksPassed": true,
+  "width": 390,
+  "states": [
+    "admin personal owner (captured before this script)",
+    "admin official visitor/manager",
+    "official independent biography edit/save",
+    "ordinary member official visitor",
+    "ordinary member viewing admin personal profile"
+  ],
+  "realApiRequests": false,
+  "realAccountWrites": false,
+  "fixtureBootstrapOnly": true,
+  "sourceSha256": "33551ff1d56cb1a9e2a8853b8308668a8a0c81a5fe912deebd6449e7979bbec4",
+  "images": [
+    {
+      "file": "/Users/mini/CISME/tmp/official-personal-community-20261104/native-admin-official.png",
+      "sha256": "4fa64ac087b64bcfb8ac960e9d1a68d08b1776e4fe205470152ab4b444e76470"
+    },
+    {
+      "file": "/Users/mini/CISME/tmp/official-personal-community-20261104/native-official-bio-sheet.png",
+      "sha256": "0cb35b4ce51229db4832ecd8279818d4f132f927f114b435a46367d47226ffac"
+    },
+    {
+      "file": "/Users/mini/CISME/tmp/official-personal-community-20261104/native-member-official.png",
+      "sha256": "065ab4c5a8b4f47be0ec1a847ef407fb42a3d7ddf4bb0ae19b48e17ec203cb34"
+    },
+    {
+      "file": "/Users/mini/CISME/tmp/official-personal-community-20261104/native-member-admin-personal.png",
+      "sha256": "f2b38eb67c7bc6ef8d7b8e9bb320dabb31aac40b47e5f5813c59098ac5dd1000"
+    }
+  ],
+  "fullDeviceMatrix": false,
+  "physicalDeviceTested": false
+}

@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_screenshot",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "path": "/Users/mini/CISME/tmp/official-personal-community-20261104/native-admin-official.png",
+    "imageWidth": 390,
+    "imageHeight": 844
+  }
+}

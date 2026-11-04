@@ -1,0 +1,65 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-author/index",
+        "author": {
+          "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          "accountType": "member",
+          "name": "HEHEHE",
+          "avatar": "/assets/icons/user-circle-plum.svg",
+          "avatarRevision": null,
+          "membershipLabel": "CISME会员",
+          "bio": "HEHEHE 的个人护理记录。",
+          "bioRevision": null,
+          "postCount": 1,
+          "following": false,
+          "isMine": false,
+          "canManage": false,
+          "canFollow": false,
+          "followArticleId": null
+        },
+        "bioOpen": false,
+        "bioDraft": "",
+        "error": "",
+        "loading": false,
+        "cards": [
+          {
+            "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            "kind": "formal",
+            "title": "HEHEHE 自己发布的合成个人故事"
+          }
+        ],
+        "calls": [
+          {
+            "path": "me/community-profile?limit=20",
+            "method": "GET"
+          },
+          {
+            "path": "community/authors/fe841ebb-1db1-57de-988b-4ff1534f23e6?limit=20",
+            "method": "GET"
+          },
+          {
+            "path": "management/community/official-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "community/authors/fe841ebb-1db1-57de-988b-4ff1534f23e6?limit=20",
+            "method": "GET"
+          },
+          {
+            "path": "community/authors/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa?limit=20",
+            "method": "GET"
+          }
+        ],
+        "personalBio": "HEHEHE 的个人护理记录。",
+        "officialBio": "合成官方简介已独立保存。",
+        "width": 390
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "sourceSha256": "40f4573ae8727c6ba3e85ce2ac29de9beaa0f4898013f7973e013da75e07e003",
+  "fixtureProject": "/Users/mini/CISME/tmp/official-personal-community-20261104/native-app",
+  "changes": [
+    "app.json",
+    "app.ts"
+  ],
+  "realApiRequests": false,
+  "realAccountWrites": false
+}

@@ -11,6 +11,7 @@ import {AuthorityService} from '../services/api/src/authority.js';
 import {createObjectStorage,inspectEditorialMp4} from '../services/api/src/storage.js';
 import {EditorialService,validateEditorialPublication,type EditorialPublication,type EditorialMedia,type EditorialVideo} from '../services/api/src/editorial.js';
 import {defaultEditorialPublisherName} from '../apps/miniprogram/services/editorial-publisher.js';
+import {CISME_OFFICIAL_PUBLISHER} from '@cisme/contracts';
 
 const SHA=/^[0-9a-f]{64}$/;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -139,6 +140,7 @@ export async function prepareEditorial(inputFile:string,outDir:string){
     const brand=media.some(image=>image.sourceKind==='owner_authorized_brand_media');
     const value:EditorialPublication={externalRef:`cisme-owned-20261026:${post.slug}`,authorMemberId:input.authorMemberId,
       author:input.authorDisplayName===undefined?defaultEditorialPublisherName:input.authorDisplayName,
+      ...((input.authorDisplayName??defaultEditorialPublisherName)===defaultEditorialPublisherName?{publisherId:CISME_OFFICIAL_PUBLISHER.key}:{}),
       title:post.title,excerpt:post.excerpt,body:post.body,sourceUrl:post.sources.find((s:{url?:unknown})=>typeof s.url==='string')?.url??null,
       authorizationRef:input.authorizationRef,rightsEvidence:brand?{kind:'owner_authorized_brand_republication',sources:post.sources,
         media:media.map(image=>({sourceSha256:image.sourceSha256,rightsRef:image.rightsRef,sourceKind:image.sourceKind,aiUsage:image.aiUsage}))}:

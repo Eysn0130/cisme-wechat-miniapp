@@ -22,12 +22,13 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app?.close();});
 it("retains the explicit authentication denominator",()=>{
-  expect(routes).toHaveLength(251);
+  expect(routes).toHaveLength(252);
   // Editorial comments and blocks are member-private. Article text stays public.
   for(const operation of [
     {method:"GET",path:"/v1/me/community/following"},
     {method:"GET",path:"/v1/me/community-profile"},
     {method:"PUT",path:"/v1/me/community-profile"},
+    {method:"PUT",path:"/v1/management/community/official-profile"},
     {method:"POST",path:"/v1/me/support/resume-ai"},
     {method:"POST",path:"/v1/me/support/new-topic"},
     {method:"GET",path:"/v1/editorial/articles/{id}/comments"},
