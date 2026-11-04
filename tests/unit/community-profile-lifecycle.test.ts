@@ -6,6 +6,7 @@ vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({localMemberAvatar:async()=>'/synthetic-avatar'}));
 const authorId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',postId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const officialId='fe841ebb-1db1-57de-988b-4ff1534f23e6';
 const response=(mine=true,kind='formal')=>({author:{id:authorId,name:'合成会员',avatar:'',avatarRevision:null,membershipLabel:'CISME会员',bio:'已保存的合成简介',bioRevision:mine?2:null,postCount:1,following:false,isMine:mine,canFollow:true,followArticleId:kind==='editorial'?postId:null},items:[{id:postId,authorId,kind,title:'自己的合成故事',author:'合成会员',avatar:'',coverUrl:null}],nextCursor:null});
 const pending=()=>{let resolve!:(v:any)=>void,reject!:(v:any)=>void;const promise=new Promise<any>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 let page:any,wx:any;
@@ -29,6 +30,27 @@ it.each(['editorial','formal','ugc'])('keeps the correct detail route for %s whi
 it('preserves an ordinary member portrait even when their nickname matches the brand signature',async()=>{
  const dto=response();dto.author.name='CISME头皮实验室';dto.items[0]!.author=dto.author.name;m.read.mockResolvedValue(dto);await page.load();
  expect(page.data.author.avatar).toBe('/synthetic-avatar');expect(page.data.feedColumns.flat()[0].avatar).toBe('/synthetic-avatar');
+});
+it('opens an administrator’s official biography editor without treating the official account as their personal profile',async()=>{
+ const dto=response(false,'editorial');Object.assign(dto.author,{id:officialId,accountType:'official',canManage:true,isMine:false,bioRevision:2,name:'CISME头皮实验室'});dto.items[0]!.authorId=officialId;
+ page.onLoad({id:officialId});m.read.mockResolvedValue(dto);await page.load();
+ page.openSettings();page.openDrafts();page.openActivity();expect(wx.navigateTo).not.toHaveBeenCalled();
+ page.openBio();expect(page.data.bioOpen).toBe(true);page.editBio({detail:{value:'独立官方简介'}});m.write.mockResolvedValue({bio:'独立官方简介',bioRevision:3});await page.saveBio();
+ expect(m.write).toHaveBeenCalledExactlyOnceWith({path:'/v1/management/community/official-profile',method:'PUT',data:{bio:'独立官方简介',expectedVersion:2}});
+ expect(page.data.author).toMatchObject({id:officialId,isMine:false,accountType:'official',bio:'独立官方简介'});
+});
+it('does not permit ordinary visitors to edit another member or the official profile, and closes an editor after authority revocation',async()=>{
+ const dto=response(false);m.read.mockResolvedValue(dto);page.onLoad({id:authorId});await page.load();page.openBio();page.openSettings();page.openDrafts();page.openActivity();expect(page.data.bioOpen).toBe(false);expect(wx.navigateTo).not.toHaveBeenCalled();
+ Object.assign(dto.author,{id:officialId,accountType:'official',canManage:true,bioRevision:2});dto.items[0]!.authorId=officialId;
+ page.onLoad({id:officialId});await page.load();page.openBio();expect(page.data.bioOpen).toBe(true);
+ Object.assign(dto.author,{canManage:false,bioRevision:null});await page.load();expect(page.data).toMatchObject({bioOpen:false,bioDraft:'',bioVersion:0});page.openBio();expect(page.data.bioOpen).toBe(false);expect(m.write).not.toHaveBeenCalled();
+});
+it('follows the independent official account with zero stories without following its operator',async()=>{
+ const dto=response(false,'editorial');Object.assign(dto.author,{id:officialId,accountType:'official',canManage:false,postCount:0,followArticleId:null});dto.items=[];
+ page.onLoad({id:officialId});m.read.mockResolvedValue(dto);await page.load();
+ m.write.mockResolvedValue({authorId:officialId,following:true});await page.toggleFollow();
+ expect(m.write).toHaveBeenCalledExactlyOnceWith({path:`/v1/me/follows/${officialId}`,method:'PUT',data:{active:true}});
+ expect(page.data.author).toMatchObject({id:officialId,isMine:false,following:true});
 });
 it('saves only after an explicit tap, trims the bio and sends its independent version once',async()=>{
  await page.load();page.openBio();page.editBio({detail:{value:' 新合成简介 '}});expect(m.write).not.toHaveBeenCalled();

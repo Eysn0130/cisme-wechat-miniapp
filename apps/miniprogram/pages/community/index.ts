@@ -334,7 +334,7 @@ Page({
       ? { ...item, avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: `${item.likeCount || 0} 赞` }
       : { ...item, kind: "ugc", image: item.image || "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "" });
     const featured = model.editorial.map(item => ({ ...item, kind:"editorial", author_id:item.authorId,
-      image:editorialMediaSrc(item.coverUrl),avatar:editorialPublisherAvatar(item.author,defaultMemberAvatar),engagementLabel:`${item.likeCount} 赞` }));
+      image:editorialMediaSrc(item.coverUrl),avatar:editorialPublisherAvatar(item.author,defaultMemberAvatar,item.authorId),engagementLabel:`${item.likeCount} 赞` }));
     const items = this.data.mode === "featured" ? featured : reviewed;
     const patch = { ...feedColumnPatch(this.data.feedColumns, projectFeedCards(items)), ...state };
     if (items.length !== this.data.displayFeedCount) patch.displayFeedCount = items.length;

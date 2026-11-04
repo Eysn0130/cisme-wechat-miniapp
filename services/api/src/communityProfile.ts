@@ -7,6 +7,8 @@ import { communityAuthors } from './memberProfile.js';
 import type { EditorialService } from './editorial.js';
 import type { FormalUgcService } from './formalUgc.js';
 import type { UgcSafetyService } from './ugcSafety.js';
+import {officialPublisher} from './editorialPublisher.js';
+import type {AuthorityService} from './authority.js';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const unavailable=()=>new DomainError('COMMUNITY_AUTHOR_NOT_FOUND','作者暂不可见',404);
@@ -15,10 +17,21 @@ const unavailable=()=>new DomainError('COMMUNITY_AUTHOR_NOT_FOUND','作者暂不
  * visible stories are counted; drafts and moderation facts never enter it. */
 export class CommunityProfileService {
   constructor(private pool:pg.Pool,private config:AppConfig,private editorial:EditorialService,
-    private ugc:FormalUgcService,private safety:UgcSafetyService){}
+    private ugc:FormalUgcService,private safety:UgcSafetyService,private authority:AuthorityService){}
 
   async page(memberId:string|undefined,authorId:string|undefined,input:{limit?:unknown;cursor?:unknown}={}):Promise<CommunityAuthorPage>{
     if(!authorId||!uuid.test(authorId))throw unavailable();
+    if(authorId===officialPublisher.id){
+      const page=await this.editorial.author(memberId,authorId,input);
+      const profile=(await this.pool.query('SELECT biography,profile_revision FROM editorial_publisher WHERE id=$1',[officialPublisher.key])).rows[0];
+      if(!profile)throw unavailable();
+      const canManage=await this.editorial.canManage(memberId);
+      return {author:{...page.author,accountType:'official',name:officialPublisher.name,avatar:officialPublisher.avatar,
+        avatarRevision:null,membershipLabel:'CISME官方',bio:profile.biography,bioRevision:canManage?profile.profile_revision:null,isMine:false,canManage,canFollow:true,
+        followArticleId:page.items[0]?.id??null},
+        items:page.items.map(item=>({...item,kind:'editorial',avatar:officialPublisher.avatar,avatarRevision:null})),
+        nextCursor:page.nextCursor};
+    }
     const limit=input.limit===undefined?20:Number(input.limit);
     if(!Number.isSafeInteger(limit)||limit<1||limit>30)throw new DomainError('COMMUNITY_AUTHOR_PAGE_INVALID','请重新加载作者主页',422);
     let cursor:{at:string;kind:string;id:string}|null=null;
@@ -46,7 +59,7 @@ export class CommunityProfileService {
             COALESCE(a.media->0->'poster'->>'sha256',a.media->0->>'sha256') END AS cover_url,
           COALESCE(s.like_count,0)::int AS like_count
         FROM editorial_article a LEFT JOIN community_post_stats s ON s.post_id=('editorial:'||a.id::text)
-        WHERE a.author_member_id=$1 AND a.status='published' AND EXISTS(SELECT 1 FROM wechat_identity w
+        WHERE a.author_member_id=$1 AND a.publisher_id IS NULL AND a.status='published' AND EXISTS(SELECT 1 FROM wechat_identity w
           WHERE w.member_id=a.author_member_id AND w.provider='wechat_miniprogram' AND w.adapter='wechat' AND w.app_id=$3)
         UNION ALL
         SELECT 'formal',p.id,COALESCE(NULLIF(r.title,''),NULLIF(left(r.body,40),''),'图片护理故事'),left(r.body,100),
@@ -65,7 +78,6 @@ export class CommunityProfileService {
         ORDER BY published_at DESC,kind DESC,id DESC LIMIT $7
       ) SELECT (SELECT count(*)::int FROM posts) AS post_count,
         (SELECT count(*)::int FROM posts WHERE kind='formal') AS formal_count,
-        (SELECT editorial_author FROM posts WHERE kind='editorial' ORDER BY published_at DESC,id DESC LIMIT 1) AS publisher_name,
         (SELECT id FROM posts WHERE kind='editorial' ORDER BY published_at DESC,id DESC LIMIT 1) AS follow_article_id,
         COALESCE((SELECT jsonb_agg(page ORDER BY published_at DESC,kind DESC,id DESC) FROM page),'[]'::jsonb) AS items`,
         [authorId,publicEnabled,this.config.wechat.appId===CANONICAL_WECHAT_MINIPROGRAM_APP_ID?this.config.wechat.appId:null,
@@ -74,12 +86,11 @@ export class CommunityProfileService {
       if(!isMine&&!summary.post_count)throw unavailable();
       const publicAuthor=(await communityAuthors(client,[authorId]))[authorId];
       const personalName=(isMine?member.display_name:publicAuthor?.name)||'CISME 会员';
-      const name=summary.publisher_name||personalName;
       const avatar=isMine?member.avatar_data_url||'':publicAuthor?.avatar||'';
       const rows=summary.items.slice(0,limit),last=rows.at(-1);
-      return {author:{id:authorId,name,avatar,avatarRevision:isMine?member.avatar_revision??null:publicAuthor?.avatarRevision??null,
+      return {author:{id:authorId,accountType:'member',name:personalName,avatar,avatarRevision:isMine?member.avatar_revision??null:publicAuthor?.avatarRevision??null,
         membershipLabel:'CISME会员',bio:member.bio,bioRevision:isMine?member.bio_revision:null,
-        postCount:summary.post_count,following:member.following===true,isMine,canFollow:Boolean(summary.follow_article_id||summary.formal_count),followArticleId:summary.follow_article_id??null},
+        postCount:summary.post_count,following:member.following===true,isMine,canManage:false,canFollow:Boolean(summary.follow_article_id||summary.formal_count),followArticleId:summary.follow_article_id??null},
         items:rows.map((row:any)=>({id:row.id,kind:row.kind,authorId,author:row.editorial_author||personalName,avatar,
           avatarRevision:isMine?member.avatar_revision??null:publicAuthor?.avatarRevision??null,
           title:row.title,excerpt:row.excerpt,coverUrl:row.cover_url,publishedAt:new Date(row.published_at).toISOString(),likeCount:row.like_count})),
@@ -87,13 +98,37 @@ export class CommunityProfileService {
     });
   }
 
-  async updateBio(memberId:string|undefined,principalId:string|undefined,input:{bio?:unknown;expectedVersion?:unknown}){
+  async updateOfficialBio(memberId:string|undefined,principalId:string|undefined,input:{bio?:unknown;expectedVersion?:unknown}){
     if(!memberId)throw new DomainError('AUTH_REQUIRED','请先登录会员账号',401);
+    const bio=this.biography(input);
+    await readSnapshot(this.pool,client=>this.editorial.commentReader(client,memberId,principalId));
+    if(!await this.editorial.canManage(memberId))throw new DomainError('CAPABILITY_REQUIRED','需要已授予的官方内容管理权限',403);
+    if(bio)await this.safety.checkProfileBio(memberId,bio);
+    return transaction(this.pool,async client=>{
+      const owner=await this.editorial.commentActor(client,memberId,principalId);
+      await this.authority.requireWithClient(client,owner,'editorial.manage');
+      const row=(await client.query(`UPDATE editorial_publisher SET biography=$2,profile_revision=profile_revision+1
+        WHERE id=$1 AND profile_revision=$3 RETURNING biography AS bio,profile_revision AS "bioRevision"`,
+        [officialPublisher.key,bio,input.expectedVersion])).rows[0];
+      if(!row)throw new DomainError('COMMUNITY_BIO_CHANGED','简介已在其他页面更新，请重新加载后修改',409);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+        VALUES($1,'editorial.publisher_bio_updated','editorial_publisher',$2,'EXPLICIT_AUTHORIZED_PUBLISHER_EDIT',$3,gen_random_uuid()::text)`,
+        [principalId,officialPublisher.id,{actorMemberId:owner,revision:row.bioRevision}]);
+      return row;
+    });
+  }
+
+  private biography(input:{bio?:unknown;expectedVersion?:unknown}){
     if(typeof input?.bio!=='string'||Array.from(input.bio.trim()).length>120||
       /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(input.bio)||
       !Number.isSafeInteger(input.expectedVersion)||Number(input.expectedVersion)<0||Number(input.expectedVersion)>=2147483647)
       throw new DomainError('COMMUNITY_BIO_INVALID','简介最多120字，请检查后重试',422);
-    const bio=input.bio.trim();
+    return input.bio.trim();
+  }
+
+  async updateBio(memberId:string|undefined,principalId:string|undefined,input:{bio?:unknown;expectedVersion?:unknown}){
+    if(!memberId)throw new DomainError('AUTH_REQUIRED','请先登录会员账号',401);
+    const bio=this.biography(input);
     // Never hold member locks across a network call. Authority and the version
     // are checked again in the write transaction after the exact text is safe.
     await readSnapshot(this.pool,client=>this.editorial.commentReader(client,memberId,principalId));

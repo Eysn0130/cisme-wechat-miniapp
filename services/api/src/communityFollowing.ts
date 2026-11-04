@@ -6,6 +6,7 @@ import { readSnapshot } from "./db.js";
 import type { EditorialService } from "./editorial.js";
 import type { FormalUgcService } from "./formalUgc.js";
 import { communityAuthors } from "./memberProfile.js";
+import {editorialPublicAuthorIdSql} from './editorialPublisher.js';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const kinds = ["editorial", "formal", "ugc"] as const;
@@ -39,13 +40,14 @@ export class CommunityFollowingService {
           THEN author_id::uuid END AS author_id FROM community_follow WHERE member_id=$1
         UNION SELECT followed_member_id FROM ugc_author_follow WHERE follower_member_id=$1
       ), posts AS (
-        SELECT 'editorial'::text AS kind,a.id,a.author_member_id AS author_id,a.title,a.excerpt,a.published_at,
+        SELECT 'editorial'::text AS kind,a.id,(${editorialPublicAuthorIdSql}) AS author_id,a.title,a.excerpt,a.published_at,
           a.author_display_name AS editorial_author,
           CASE WHEN jsonb_array_length(a.media)>0 THEN '/v1/editorial/media/'||a.id::text||'/'||
             COALESCE(a.media->0->'poster'->>'sha256',a.media->0->>'sha256') END AS cover_url,
           COALESCE(s.like_count,0)::int AS like_count
         FROM editorial_article a LEFT JOIN community_post_stats s ON s.post_id=('editorial:'||a.id::text)
-        WHERE a.status='published' AND EXISTS(SELECT 1 FROM wechat_identity w WHERE w.member_id=a.author_member_id
+        WHERE a.status='published' AND EXISTS(SELECT 1 FROM member m WHERE m.id=a.author_member_id AND m.status='active')
+          AND EXISTS(SELECT 1 FROM wechat_identity w WHERE w.member_id=a.author_member_id
           AND w.provider='wechat_miniprogram' AND w.adapter='wechat' AND w.app_id=$3)
         UNION ALL
         SELECT 'formal',p.id,p.author_member_id,COALESCE(NULLIF(r.title,''),NULLIF(left(r.body,40),''),'图片护理故事'),
@@ -60,8 +62,9 @@ export class CommunityFollowingService {
           COALESCE((SELECT c.like_count FROM community_post_stats c WHERE c.post_id=f.id::text),0)::int
         FROM feed_item f JOIN submission s ON s.id=f.submission_id WHERE $2::boolean AND f.visible
       ) SELECT p.*,p.published_at::text AS cursor_at FROM posts p
-        JOIN followed f ON f.author_id=p.author_id JOIN member m ON m.id=p.author_id AND m.status='active'
-        WHERE NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE b.blocker_member_id=$1 AND b.blocked_member_id=p.author_id)
+        JOIN followed f ON f.author_id=p.author_id
+        WHERE (p.kind='editorial' OR EXISTS(SELECT 1 FROM member m WHERE m.id=p.author_id AND m.status='active'))
+          AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE b.blocker_member_id=$1 AND b.blocked_member_id=p.author_id)
           AND ($4::timestamptz IS NULL OR (p.published_at,p.kind,p.id)<($4::timestamptz,$5::text,$6::uuid))
         ORDER BY p.published_at DESC,p.kind DESC,p.id DESC LIMIT $7`, [owner, publicEnabled,
         this.config.wechat.appId === CANONICAL_WECHAT_MINIPROGRAM_APP_ID ? this.config.wechat.appId : null,

@@ -569,7 +569,7 @@
       "informationType": "会员编号、文章编号、点赞/收藏期望状态、关注作者关系和操作时间",
       "purpose": "保存用户主动选择，显示真实累计数和本人当前状态",
       "activation": "真实微信会员主动点击互动按钮；游客仅浏览，登录可返回原文",
-      "serverStorage": "community_reaction以editorial:UUID分区，community_follow保存真实作者UUID；最小审计不含会话或联系人",
+      "serverStorage": "community_reaction以editorial:UUID分区；community_follow保存独立公开作者UUID，官方发布者Key与个人会员Key分开，不按管理权限合并关注；最小审计不含会话或联系人",
       "currentGate": "幂等设置/撤销，不能关注自己；不会因发表文章生成虚假互动"
     },
     {
@@ -761,7 +761,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "c2e3ec48d61bf2045dd9ccfb612c3b3dbf3fdef18d68a55bb19d018532ae3a42",
+  "migrationSetSha256": "a90104af662535d7f33b2fee3a037e337e6cae76acfd6a2517f583871119a697",
   "egressSignatureSha256": "e12bd89786fdf36dba3c626c41bf974b504025dda042cecff65151769912ec6b",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1295,5 +1295,13 @@
     "privacy": "No IP, follower/following/likes/saves totals, contact, phone, OpenID, orders, balances, internal notes or public biography revision. Biography included in existing owner portable exports and deleted with member_profile by existing account closure.",
     "retentionChange": false,
     "recipients": "Existing WeChat content safety service only; no new third party."
+  },
+  "officialPublisherIdentityReview20261104": {
+    "scope": "Independent official publisher and personal community ownership; no synthetic member or new authority",
+    "dataModel": "One official business profile in editorial_publisher; explicit editorial_article.publisher_id. Historical classification requires the existing owner-authorized per-article relabel audit.",
+    "ownership": "Official public UUID is distinct from every personal member; source responsibility and actual operator evidence stay private and unchanged. Personal community never includes official posts.",
+    "writes": "Member biography routes bind the current session. Official biography uses canonical actor, explicitly granted editorial.manage, independent version, synchronous safety and locked authority recheck. No role inferred from a name or signature.",
+    "following": "Independent official/member keys. Zero initial brand-linked following rows in the read-only trial baseline; no follow intent inferred or transferred.",
+    "retention": "Existing source ownership, export, hold and closure boundaries remain; official business metadata is not the operator’s personal biography. No new automatic erasure or retention promise."
   }
 }

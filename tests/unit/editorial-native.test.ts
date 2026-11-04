@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {defaultEditorialPublisherName,defaultEditorialPublisherAvatar} from '../../apps/miniprogram/services/editorial-publisher';
+import {defaultEditorialPublisherName,defaultEditorialPublisherAvatar,officialEditorialPublisherId} from '../../apps/miniprogram/services/editorial-publisher';
 
 const mocks=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),renew:vi.fn(),token:"",share:vi.fn(),incoming:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:mocks.request,resumeAuthentication:mocks.resume,beginLegalRenewal:mocks.renew,clearAuthenticationRedirectSuppression:vi.fn()}));
@@ -35,17 +35,17 @@ const imageEvent=(src=page.data.media[0],identity=page.data.imageEventId,index=0
 describe("published editorial native contracts",()=>{
  it.each(['community','post','community-author'] as const)('shows the brand portrait on %s while preserving the real article and author relationships',async(name)=>{
   if(name==='community')mocks.request.mockImplementation(({path}:any)=>{
-   if(path==='/v1/editorial/articles?limit=20')return Promise.resolve({items:[{...card(),author:defaultEditorialPublisherName}],nextCursor:null});
+   if(path==='/v1/editorial/articles?limit=20')return Promise.resolve({items:[{...card(),author:defaultEditorialPublisherName,authorId:officialEditorialPublisherId}],nextCursor:null});
    if(path==='/v1/capabilities')return Promise.resolve({communityPreviewEnabled:false});
    if(path==='/v1/ugc/status')return Promise.resolve({publicEnabled:false});
    return Promise.reject({status:403});
   });
-  else if(name==='post')mocks.request.mockResolvedValueOnce({...article(),author:defaultEditorialPublisherName,following:true});
-  else mocks.request.mockResolvedValueOnce({...authorPage(),author:{...authorPage().author,name:defaultEditorialPublisherName,following:true}});
-  await mount(name,name==='post'?{id:articleId,source:'editorial'}:name==='community-author'?{id:authorId,source:'editorial'}:{});await page.load();
+  else if(name==='post')mocks.request.mockResolvedValueOnce({...article(),author:defaultEditorialPublisherName,authorId:officialEditorialPublisherId,following:true});
+  else mocks.request.mockResolvedValueOnce({...authorPage(),author:{...authorPage().author,name:defaultEditorialPublisherName,id:officialEditorialPublisherId,accountType:'official',following:true},items:[{...card(),kind:'editorial',authorId:officialEditorialPublisherId,author:defaultEditorialPublisherName}]});
+  await mount(name,name==='post'?{id:articleId,source:'editorial'}:name==='community-author'?{id:officialEditorialPublisherId,source:'editorial'}:{});await page.load();
   if(name==='community')expect(page.data.feedColumns.flat()).toEqual([expect.objectContaining({id:articleId,kind:'editorial',author:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar})]);
-  else if(name==='post')expect(page.data).toMatchObject({authorId,following:true,item:{id:articleId,authorId,author:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar}});
-  else expect(page.data).toMatchObject({author:{canFollow:true,followArticleId:articleId,id:authorId,name:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar,following:true}});
+  else if(name==='post')expect(page.data).toMatchObject({authorId:officialEditorialPublisherId,following:true,item:{id:articleId,authorId:officialEditorialPublisherId,author:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar}});
+  else expect(page.data).toMatchObject({author:{canFollow:true,followArticleId:articleId,id:officialEditorialPublisherId,name:defaultEditorialPublisherName,accountType:'official',avatar:defaultEditorialPublisherAvatar,following:true}});
   expect(mocks.request.mock.calls.every(([input])=>input.method===undefined)).toBe(true);
  });
  it.each([["generated","AI生成"],["not_declared",""]] as const)("uses the stored selected-media AI flag %s for its short label",async(aiUsage,label)=>{

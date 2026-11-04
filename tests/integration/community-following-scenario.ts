@@ -141,7 +141,7 @@ export async function communityFollowingScenario(pool:pg.Pool){
   assert((await legacyAccess.follows(reader.id)).includes(author.id));
   const fresh=await publishPost(author,'关注后新发布的帖子');
   const draft=await app.inject({method:'POST',url:'/v1/me/ugc/posts',headers:{...headers(author),'idempotency-key':'following-private-draft'},payload:{}});assert.equal(draft.statusCode,200);
-  const curated=await editorial.publish(author.id,author.principal,{externalRef:'following-curated',authorMemberId:author.id,author:'CISME头皮实验室',title:'关注作者的精选',excerpt:'合成摘要',body:'合成正文',
+  const curated=await editorial.publish(author.id,author.principal,{externalRef:'following-curated',authorMemberId:author.id,author:'合成精选作者',title:'关注作者的精选',excerpt:'合成摘要',body:'合成正文',
    sourceUrl:null,authorizationRef:'synthetic:following',rightsEvidence:{scope:'disposable integration'},media:[],expectedVersion:0});
   const full=await timeline();assert.equal(full.items.length,3);assert.deepEqual(new Set(full.items.map((x:any)=>x.id)),new Set([first,fresh,curated.id]));
   assert(full.items.findIndex((x:any)=>x.id===fresh)<full.items.findIndex((x:any)=>x.id===first));assert(full.items.every((x:any)=>x.authorId===author.id));

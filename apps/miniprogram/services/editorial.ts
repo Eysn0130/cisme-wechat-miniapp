@@ -37,7 +37,7 @@ export interface PublishedEditorialCard {
 }
 export interface PublishedEditorialArticle extends PublishedEditorialCard {
   version:number; body:string; media:PublishedEditorialMedia[]; liked:boolean; saved:boolean;
-  following:boolean; isMine:boolean; interactionsEnabled:boolean; sourceUrl:string|null; provenanceLabel:string;
+  following:boolean; isMine:boolean; canManage?:boolean; interactionsEnabled:boolean; sourceUrl:string|null; provenanceLabel:string;
   commentsEnabled?:boolean; commentCount?:number; canModerate?:boolean; commentsPolicyVersion?:number;
 }
 export type PublishedEditorialMedia = {id:string;url:string;type?:"image";aiUsage?:"generated"|"not_declared"} | {

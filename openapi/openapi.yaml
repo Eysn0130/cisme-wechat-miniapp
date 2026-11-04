@@ -491,9 +491,9 @@ paths:
     get:
       operationId: communityAuthorProfile
       security: [{}, {session: []}]
-      description: Public profile and this author's currently visible stories across editorial and ordinary sources. Active author, publication, canonical editorial identity, blocks and public UGC gate enforced. Owner receives own private avatar/nickname and may have zero posts; visitors never receive private profile fields or biography revision. No IP, social counts, contact, order or balance projection. Private no-store.
+      description: Member profiles contain only that member's stories and own/public identity; official publisher articles never become an operator's personal posts. The independent official UUID returns official name, avatar, biography and articles with isMine false. Explicit editorial.manage may return canManage and official biography revision, without transferring identity or exposing personal member data. Active source author, canonical editorial identity, publication and ordinary UGC blocks/gates remain enforced. Owner may have zero posts. No IP, social counts, contact, order or balance projection. Private no-store.
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 30}}, {name: cursor, in: query, schema: {type: string, maxLength: 1000}}]
-      responses: {'200': {description: CommunityAuthorPage with member identity, explicitly published bio, story count and source-tagged cards}, '404': {description: Author inactive, blocked or without visible public stories}, '422': {description: Invalid page or cursor for another author/viewer}}
+      responses: {'200': {description: CommunityAuthorPage with explicit member/official accountType, isMine and independently authorized canManage, bio, count and source-tagged cards}, '404': {description: Author inactive, blocked or without visible public stories}, '422': {description: Invalid page or cursor for another author/viewer}}
   /v1/me/community-profile:
     get:
       operationId: myCommunityProfile
@@ -520,12 +520,19 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
       responses: {'200': {description: Repeatable-read stable cursor page with de-duplicated public author projection}}
+  /v1/management/community/official-profile:
+    put:
+      operationId: updateOfficialCommunityBiography
+      security: [{session: []}]
+      description: Explicitly edit only the independent official publisher biography. Requires canonical WeChat identity, an active explicitly granted editorial.manage capability in this environment, current legal consent, synchronous text safety and expectedVersion. Rechecks locked authority after safety. Does not edit the operator's personal profile, other members, publisher ownership, roles or articles.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [bio, expectedVersion], properties: {bio: {type: string, maxLength: 120}, expectedVersion: {type: integer, minimum: 0}}}}}}
+      responses: {'200': {description: Saved official biography and new independent bioRevision}, '401': {description: Canonical member identity required}, '403': {description: Explicit editorial.manage capability required}, '409': {description: Biography version or current consent changed}, '422': {description: Invalid or unsafe text}, '503': {description: Safety unavailable; nothing saved}}
   /v1/me/follows/{authorId}:
     parameters: [{name: authorId, in: path, required: true, schema: {type: string}}]
     put:
       operationId: setFollow
       security: [{session: []}]
-      description: Sets desired state idempotently; author must be CISME editorial or an author of published content.
+      description: Sets desired state idempotently. The independent official publisher UUID uses canonical WeChat identity, current consent and publisher existence; it remains followable with zero articles and never follows the operator's personal member. Other legacy preview authors keep their existing gated behavior.
       requestBody:
         required: true
         content: {application/json: {schema: {type: object, required: [active], properties: {active: {type: boolean}}}}}

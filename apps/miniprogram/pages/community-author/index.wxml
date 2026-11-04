@@ -12,7 +12,7 @@
           <button wx:if="{{author.isMine}}" class="author-action  {{loading || !!error || navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{loading || !!error || navigating}}">编辑资料</button>
           <button wx:elif="{{author.canFollow}}" class="author-action author-follow  {{loading || !!error || busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{loading || !!error || busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>
         </view>
-        <button wx:if="{{author.isMine}}" class="author-bio author-bio--editable {{!author.bio ? 'author-bio--empty' : ''}} {{loading || !!error ? 'control--disabled' : ''}}" bindtap="openBio" disabled="{{loading || !!error}}" aria-label="{{author.bio ? '编辑简介：' + author.bio : '添加简介'}}"><text>{{author.bio || '添加简介'}}</text><image src="/assets/icons/note-pencil-plum.svg" mode="aspectFit" aria-hidden="true"/></button>
+        <button wx:if="{{author.isMine || author.canManage}}" class="author-bio author-bio--editable {{!author.bio ? 'author-bio--empty' : ''}} {{loading || !!error ? 'control--disabled' : ''}}" bindtap="openBio" disabled="{{loading || !!error}}" aria-label="{{author.accountType === 'official' ? '编辑官方简介' : author.bio ? '编辑简介：' + author.bio : '添加简介'}}"><text>{{author.bio || '添加简介'}}</text><image src="/assets/icons/note-pencil-plum.svg" mode="aspectFit" aria-hidden="true"/></button>
         <text wx:elif="{{author.bio}}" class="author-bio">{{author.bio}}</text>
       </view>
       <view class="author-stories">

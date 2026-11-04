@@ -29,6 +29,7 @@ import { PhoneBinding } from "./phoneBinding.js";
 import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CloudUpload } from "./cloudUpload.js";
 import { CommunityAccess } from "./communityAccess.js";
+import {officialPublisher} from './editorialPublisher.js';
 import { CommunityService } from "./communityService.js";
 import { CommunityFollowingService } from "./communityFollowing.js";
 import { EditorialService } from "./editorial.js";
@@ -167,7 +168,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const followingFeed = new CommunityFollowingService(pool, config, editorial, formalUgc);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
-  const communityProfile = new CommunityProfileService(pool,config,editorial,formalUgc,ugcSafety);
+  const communityProfile = new CommunityProfileService(pool,config,editorial,formalUgc,ugcSafety,authority);
   const supportAi = createSupportAiBoundary(config.supportAi);
   const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi);
   const access = new CommunityAccess(pool, config, authority);
@@ -364,6 +365,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/community-profile",
     request=>communityProfile.page(request.memberId,request.memberId,request.query));
   app.put("/v1/me/community-profile",request=>communityProfile.updateBio(request.memberId,request.principalId,(request.body??{}) as never));
+  app.put("/v1/management/community/official-profile",request=>communityProfile.updateOfficialBio(request.memberId,request.principalId,(request.body??{}) as never));
   app.post("/v1/me/legal-acceptances",request=>editorial.acceptCurrentLegal(request.memberId,request.principalId,(request.body??{}) as {consents?:unknown}));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/articles",request=>editorial.list(request.query));
   app.get<{Params:{id:string}}>("/v1/editorial/articles/:id",request=>editorial.detail(request.memberId,request.params.id));
@@ -721,7 +723,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/community/following", request => followingFeed.page(request.memberId, request.principalId, request.query));
   app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/following/page", async request => service.feedPage(request.memberId, { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
   app.get("/v1/me/follows", async request => access.follows(request.memberId));
-  app.put<{ Params: { authorId: string } }>("/v1/me/follows/:authorId", async request => access.follow(request.memberId, request.params.authorId, (request.body as { active?: unknown }).active));
+  app.put<{ Params: { authorId: string } }>("/v1/me/follows/:authorId", async request => request.params.authorId===officialPublisher.id
+    ?editorial.followPublisher(request.memberId,request.principalId,(request.body as {active?:unknown})?.active)
+    :access.follow(request.memberId, request.params.authorId, (request.body as { active?: unknown })?.active));
   app.get("/v1/team/reviews", async request => service.adminQueue(await access.teamPrincipal(request.memberId, request.principalId), service.now(), "capability"));
   app.get("/v1/team/publications", async request => service.adminPublicationQueue(await access.teamPrincipal(request.memberId, request.principalId), "capability"));
   app.post<{ Params: { submissionId: string } }>("/v1/team/submissions/:submissionId/review", async request => service.review(await access.teamPrincipal(request.memberId, request.principalId), request.params.submissionId, idempotencyKey(request), request.body as never, service.now(), "capability"));

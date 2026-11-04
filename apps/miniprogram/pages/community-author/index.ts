@@ -4,7 +4,7 @@ import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, beginLegalRenewal, requireMemberAccess } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 import { editorialIdentifier, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
-import { readCommunityProfile, type CommunityAuthor } from "../../services/community-profile";
+import { readCommunityProfile, canEditCommunityBio, type CommunityAuthor } from "../../services/community-profile";
 import { projectFeedCards, feedColumnPatch, type FeedCard } from "../../services/feed-projection";
 
 const message=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
@@ -53,7 +53,8 @@ Page({
       const result=await readCommunityProfile(this,id,this.data.mine);
       if(!this.current(epoch,token))return;
       stories.set(this,result.items);
-      this.setData({...feedColumnPatch(this.data.feedColumns,projectFeedCards(result.items)),author:result.author,nextCursor:result.nextCursor,loading:false});
+      this.setData({...feedColumnPatch(this.data.feedColumns,projectFeedCards(result.items)),author:result.author,nextCursor:result.nextCursor,loading:false,
+        ...(!canEditCommunityBio(result.author)&&this.data.bioOpen?{bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false}:{})});
     }catch(error){
       if(this.recoverExpiredRead(epoch,token,error)||!this.current(epoch,token))return;
       // Revocation clears the projection. A temporary read failure can retain
@@ -84,9 +85,9 @@ Page({
     if(!token){resumeAuthentication(this.returnUrl());return;}
     const epoch=this.data.epoch,next=!author.following;this.setData({busy:true});
     try{
-      const following=author.followArticleId?(await followEditorialArticle(author.followArticleId,next)):
+      const following=author.accountType==="official"?await request<{authorId:string;following:boolean}>({path:`/v1/me/follows/${author.id}`,method:"PUT",data:{active:next}}):author.followArticleId?(await followEditorialArticle(author.followArticleId,next)):
         await request<{following:boolean}>({path:`/v1/me/ugc/follows/${author.id}`,method:"PUT",data:{active:next}});
-      if(author.followArticleId&&(following as {authorId?:string}).authorId!==author.id)throw new Error("COMMUNITY_AUTHOR_MISMATCH");
+      if((author.accountType==="official"||author.followArticleId)&&(following as {authorId?:string}).authorId!==author.id)throw new Error("COMMUNITY_AUTHOR_MISMATCH");
       if(typeof following.following!=="boolean")throw new Error("COMMUNITY_FOLLOW_INVALID");
       if(this.current(epoch,token))this.setData({author:{...this.data.author!,following:following.following}});
     }catch(error){if(this.current(epoch,token)){
@@ -95,7 +96,7 @@ Page({
     }}finally{if(this.current(epoch,token))this.setData({busy:false});}
   },
   openBio(){
-    const author=this.data.author;if(!author?.isMine||this.data.loading||this.data.error||this.data.bioBusy)return;
+    const author=this.data.author;if(!author||!canEditCommunityBio(author)||this.data.loading||this.data.error||this.data.bioBusy)return;
     this.setData({bioOpen:true,bioDraft:author.bio,bioVersion:author.bioRevision!,bioError:"",bioConflict:false});
   },
   editBio(event:{detail:{value:string}}){if(!this.data.bioBusy)this.setData({bioDraft:event.detail.value,bioError:""});},
@@ -103,19 +104,19 @@ Page({
   async reloadBio(){
     if(this.data.bioBusy)return;
     await this.load();
-    if(this.readVisible&&this.data.bioOpen&&this.data.author?.isMine&&!this.data.error){
+    if(this.readVisible&&this.data.bioOpen&&this.data.author&&canEditCommunityBio(this.data.author)&&!this.data.error){
       this.setData({bioDraft:this.data.author.bio,bioVersion:this.data.author.bioRevision!,bioError:"",bioConflict:false});
     }
   },
   holdBio(){},
   async saveBio(){
-    const author=this.data.author;if(!author?.isMine||!this.data.bioOpen||this.data.bioBusy||this.data.loading||this.data.error||this.data.bioConflict)return;
+    const author=this.data.author;if(!author||!canEditCommunityBio(author)||!this.data.bioOpen||this.data.bioBusy||this.data.loading||this.data.error||this.data.bioConflict)return;
     const bio=this.data.bioDraft.trim();if(Array.from(bio).length>120){this.setData({bioError:"简介最多120字。"});return;}
     if(bio===author.bio){this.closeBio();return;}
     const epoch=this.data.epoch,attempt=++this.bioAttempt,token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({bioBusy:true,bioError:""});
     try{
-      const result=await request<{bio:string;bioRevision:number}>({path:"/v1/me/community-profile",method:"PUT",data:{bio,expectedVersion:this.data.bioVersion}});
+      const result=await request<{bio:string;bioRevision:number}>({path:author.accountType==="official"?"/v1/management/community/official-profile":"/v1/me/community-profile",method:"PUT",data:{bio,expectedVersion:this.data.bioVersion}});
       if(!this.current(epoch,token)||attempt!==this.bioAttempt)return;
       if(result.bio!==bio||!Number.isSafeInteger(result.bioRevision)||result.bioRevision<=this.data.bioVersion)throw new Error("COMMUNITY_BIO_INVALID");
       this.setData({author:{...this.data.author!,bio:result.bio,bioRevision:result.bioRevision},bioOpen:false,bioDraft:"",bioBusy:false});
@@ -124,9 +125,9 @@ Page({
       this.setData({bioError:message(error,"暂时无法确认保存结果，请重试。"),bioConflict:(error as {code?:string}).code==="COMMUNITY_BIO_CHANGED"});
     }}finally{if(this.current(epoch,token)&&attempt===this.bioAttempt)this.setData({bioBusy:false});}
   },
-  openSettings(){this.navigate("/pages/settings/index?section=profile");},
-  openActivity(){this.navigate("/pages/community-activity/index");},
-  openDrafts(){this.navigate("/pages/community-compose/index");},
+  openSettings(){if(this.data.author?.isMine)this.navigate("/pages/settings/index?section=profile");},
+  openActivity(){if(this.data.author?.isMine)this.navigate("/pages/community-activity/index");},
+  openDrafts(){if(this.data.author?.isMine)this.navigate("/pages/community-compose/index");},
   navigate(url:string){
     if(this.data.navigating||this.data.bioBusy)return;
     this.setData({navigating:true});wx.navigateTo({url,fail:()=>{if(this.readVisible)this.setData({navigating:false});wx.showToast({title:"页面暂时无法打开，请重试",icon:"none"});}});

@@ -1,0 +1,62 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-author/index",
+        "author": {
+          "id": "fe841ebb-1db1-57de-988b-4ff1534f23e6",
+          "accountType": "official",
+          "name": "CISME头皮实验室",
+          "avatar": "/assets/cisme/cisme-scalp-lab-avatar-v1.jpg",
+          "avatarRevision": null,
+          "membershipLabel": "CISME官方",
+          "bio": "合成官方简介已独立保存。",
+          "bioRevision": 1,
+          "postCount": 2,
+          "following": false,
+          "isMine": false,
+          "canManage": true,
+          "canFollow": true,
+          "followArticleId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+        },
+        "bioOpen": false,
+        "bioDraft": "",
+        "error": "",
+        "loading": false,
+        "cards": [
+          {
+            "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "kind": "editorial",
+            "title": "合成官方故事：日常头皮护理"
+          },
+          {
+            "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+            "kind": "editorial",
+            "title": "合成官方故事：洗护的顺序"
+          }
+        ],
+        "calls": [
+          {
+            "path": "me/community-profile?limit=20",
+            "method": "GET"
+          },
+          {
+            "path": "community/authors/fe841ebb-1db1-57de-988b-4ff1534f23e6?limit=20",
+            "method": "GET"
+          },
+          {
+            "path": "management/community/official-profile",
+            "method": "PUT"
+          }
+        ],
+        "personalBio": "HEHEHE 的个人护理记录。",
+        "officialBio": "合成官方简介已独立保存。",
+        "width": 390
+      }
+    }
+  }
+}

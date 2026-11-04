@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "d7a24f483ec0d62b9b8aad04eafe9b9670d69726536d1f307481652ed4c20ebe",
+  "migrationSetSha256": "5c8ad42abb197dd26b9820f95e65f6b11185c07ba54ce1734c1da7dc5fad38df",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -3963,11 +3963,12 @@
         "published_by",
         "published_principal_id"
       ],
-      "specialHandling": "Author and publishing operator are distinct. Public nickname is an explicitly authorized snapshot, never identity proof. Export author-owned article fields and derived media; private operator keys and raw rights_evidence excluded. Withdrawal/inactive author blocks public reads; non-held self-closure redacts live text. Withdrawn media cleanup separately checks current version, holds and references.",
+      "specialHandling": "Author and publishing operator are distinct. Public nickname is an explicitly authorized snapshot, never identity proof. Export author-owned article fields and derived media; private operator keys and raw rights_evidence excluded. Withdrawal/inactive author blocks public reads; non-held self-closure redacts live text. Withdrawn media cleanup separately checks current version, holds and references. publisher_id is an independently authorized public publisher, not a member/login or a grant. Official articles are excluded from the responsibility member’s personal community; private source attribution and audit actors remain unchanged.",
       "exportFields": [
         "id",
         "external_ref",
         "author_display_name",
+        "publisher_id",
         "title",
         "excerpt",
         "body",
@@ -4185,6 +4186,22 @@
       "productionErasure": "DISABLED",
       "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; ADMIN_COMMENT_DELETE_OR_SUBJECT_INTERACTION_REMOVAL_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
       "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
+    },
+    {
+      "table": "editorial_publisher",
+      "subjectPaths": [],
+      "actorColumns": [],
+      "specialHandling": "Public official publishing profile, independent of every member and login principal. The one business publisher record grants no authority. Explicit editorial.manage and canonical actor checks protect edits; actor evidence lives separately in audit_log. Never export this as the operator’s personal biography.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "biography",
+        "profile_revision"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PUBLIC_BUSINESS_PROFILE; REVISIONED_EXPLICIT_EDITORIAL_AUTHORITY; NO_PERSONAL_ACCOUNT_COOWNERSHIP",
+      "fullSubjectResolverStatus": "NON_PERSONAL_PUBLISHER_METADATA"
     },
     {
       "table": "eligibility_campaign",
