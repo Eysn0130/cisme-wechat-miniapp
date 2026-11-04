@@ -1,0 +1,23 @@
+{
+  "sourceSha256": "f81c8db8339bbcce1777ede2a5d794c8fd2804d25afa0afe40347abc6ac93665",
+  "files": 301,
+  "routes": 40,
+  "changedNativeFiles": {
+    "apps/miniprogram/pages/community/index.ts": "583f1dcc2a497386213ec0c4d9ce3bad04ec43ab7c27868397073211cb5873d5",
+    "apps/miniprogram/pages/community/index.wxml": "1a52fcdbc4c27984395adca1f3cf2aa990a7d29a7eedbcb685a81a56bfc9bbf6"
+  },
+  "unitPassed": 3056,
+  "unitSkipped": 1,
+  "nativeWxmlCompile": {
+    "ok": true,
+    "tool": "compile_wxml",
+    "clientName": "Codex",
+    "result": {
+      "success": true,
+      "codeLength": 36546
+    }
+  },
+  "physicalPhoneResult": "pending; user must confirm on updated trial; simulator success is not phone acceptance",
+  "backendChanged": false,
+  "realAccountTestWrites": false
+}

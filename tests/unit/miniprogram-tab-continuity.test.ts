@@ -50,14 +50,18 @@ async function mount(route: string, template?: string) {
   await import(`../../apps/miniprogram/pages/${route}/index.ts`);
   let rendered: any;
   const samples: string[] = [];
+  const states: any[] = [];
+  const patches: any[] = [];
   const page: any = { ...definition, data: structuredClone(definition.data),
     setData(patch: any, callback?: () => void) {
+      patches.push(structuredClone(patch));
       for (const [path, value] of Object.entries(patch)) {
         const keys = path.replace(/\[(\d+)\]/g, ".$1").split(".");
         let target = this.data;
         for (const key of keys.slice(0, -1)) target = target[key];
         target[keys[keys.length - 1]!] = value;
       }
+      states.push(structuredClone(this.data));
       // The JS renderer leaks nested default `item` aliases across partial updates.
       // Render the complete serializable state; native bridge behavior is checked separately.
       if (rendered) { rendered.setData(structuredClone(this.data)); samples.push(rendered.dom.textContent); }
@@ -69,7 +73,7 @@ async function mount(route: string, template?: string) {
   rendered = simulate.render(id);
   rendered.attach(document.body);
   components.push(rendered);
-  return { page, rendered, samples };
+  return { page, rendered, samples, states, patches };
 }
 
 beforeEach(() => {
@@ -112,6 +116,64 @@ afterEach(() => {
 });
 
 describe("native tab return presentation while real read paths revalidate", () => {
+  it("renders both columns through real incremental bridge patches without aliasing cards or remounting columns", () => {
+    const wxml = readFileSync("apps/miniprogram/pages/community/index.wxml", "utf8");
+    const template = wxml.slice(wxml.indexOf('<view class="feed-grid">'), wxml.indexOf('<view wx:if="{{moreError}}"'));
+    const id = simulate.load({ template, data: { feedColumns: [[], []], navigating: false } });
+    const rendered = simulate.render(id); rendered.attach(document.body); components.push(rendered);
+    const columns = rendered.querySelectorAll(".feed-column").map((column: any) => column.dom);
+    const card = (id: string, title: string) => ({ id, title, author: "合成作者", image: "", avatar: "", engagementLabel: "" });
+    rendered.setData({ "feedColumns[0]": [card("left", "左列故事")] });
+    rendered.setData({ "feedColumns[1]": [card("right", "右列故事")] });
+    expect(columns[0].textContent).toContain("左列故事");
+    expect(columns[0].textContent).not.toContain("右列故事");
+    expect(columns[1].textContent).toContain("右列故事");
+    rendered.setData({ "feedColumns[0][0].title": "左列更新" });
+    expect(columns[0].textContent).toContain("左列更新");
+    rendered.setData({ feedColumns: [[], []] });
+    expect(rendered.querySelectorAll(".feed-card")).toHaveLength(0);
+    rendered.setData({ feedColumns: [[card("new-left", "新左列")], [card("new-right", "新右列")]] });
+    expect(rendered.querySelectorAll(".feed-column").map((column: any) => column.dom)).toEqual(columns);
+    expect(columns[0].textContent).toContain("新左列");
+    expect(columns[1].textContent).toContain("新右列");
+  });
+
+  it.each(["/v1/capabilities", "/v1/me/community-access", "/v1/feed/page?limit=30", "/v1/ugc/posts?limit=30"])("renders returned Featured content while ancillary %s is still pending", async path => {
+    const pending = later(); held.set(path, pending);
+    const { page, rendered, states } = await mount("community");
+    const reading = page.load();
+    try {
+      await flush();
+      expect(page.data).toMatchObject({ loading: false, feedReady: true, displayFeedCount: 1 });
+      expect(rendered.querySelector(".feed-card").dom.textContent).toContain(story.title);
+      const firstReady = states.find(state => state.feedReady);
+      expect(firstReady.feedColumns.flat()).toHaveLength(1);
+      expect(firstReady.displayFeedCount).toBe(1);
+    } finally { pending.resolve(replies.get(path)); await reading; }
+  });
+
+  it("does not reset the two empty column arrays on the first Community read", async () => {
+    const pending = later(); held.set("/v1/editorial/articles?limit=20", pending);
+    const { page, patches } = await mount("community"); const reading = page.load();
+    try {
+      await flush();
+      expect(patches.filter(patch => "feedColumns" in patch)).toEqual([]);
+    } finally { pending.resolve({ items: [story], nextCursor: null }); await reading; }
+  });
+
+  it("clears previously visible Featured cards immediately when its authoritative read fails, even while capabilities are pending", async () => {
+    const { page, rendered } = await mount("community"); await page.load();
+    const capabilities = later(), editorial = later();
+    held.set("/v1/capabilities", capabilities); held.set("/v1/editorial/articles?limit=20", editorial);
+    const reading = page.load();
+    try {
+      editorial.reject({status:503}); await flush();
+      expect(page.data).toMatchObject({loading:false,feedReady:false,displayFeedCount:0,error:expect.stringContaining("无法加载")});
+      expect(rendered.querySelector(".feed-card")).toBeFalsy();
+      expect(rendered.querySelector(".state-error__action").dom.textContent).toContain("重新加载");
+    } finally { capabilities.resolve(replies.get("/v1/capabilities")); await reading; }
+  });
+
   it("retains the Home signal throughout a delayed return and applies the new daily fact", async () => {
     const { page, rendered, samples } = await mount("home");
     await page.load(); await flush();

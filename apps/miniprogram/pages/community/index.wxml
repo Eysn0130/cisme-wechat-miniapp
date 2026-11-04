@@ -57,10 +57,10 @@
   <view wx:if="{{error}}" class="state state--error community-sync-error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重新加载</button></view>
 
   <view class="feed-grid">
-    <view wx:for="{{feedColumns}}" wx:for-item="column" wx:key="index" class="feed-column">
-    <button wx:for="{{column}}" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{item.title}}，作者{{item.author}}">
-      <image wx:if="{{item.image}}" class="feed-card__image" src="{{item.image}}" mode="widthFix" lazy-load="{{true}}" />
-      <view class="feed-card__body"><view class="card-title feed-card__title">{{item.title}}</view><view class="feed-card__meta"><image wx:if="{{item.avatar}}" class="feed-card__avatar" src="{{item.avatar}}" mode="aspectFill" lazy-load="{{true}}"/><text class="feed-card__author">{{item.author}}</text><image class="feed-card__meta-icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text class="feed-card__engagement">{{item.engagementLabel}}</text></view></view>
+    <view wx:for="{{[0, 1]}}" wx:for-item="columnIndex" wx:key="*this" class="feed-column">
+    <button wx:for="{{feedColumns[columnIndex]}}" wx:for-item="card" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{card.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{card.title}}，作者{{card.author}}">
+      <image wx:if="{{card.image}}" class="feed-card__image" src="{{card.image}}" mode="widthFix" lazy-load="{{true}}" />
+      <view class="feed-card__body"><view class="card-title feed-card__title">{{card.title}}</view><view class="feed-card__meta"><image wx:if="{{card.avatar}}" class="feed-card__avatar" src="{{card.avatar}}" mode="aspectFill" lazy-load="{{true}}"/><text class="feed-card__author">{{card.author}}</text><image class="feed-card__meta-icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text class="feed-card__engagement">{{card.engagementLabel}}</text></view></view>
     </button>
     </view>
   </view>

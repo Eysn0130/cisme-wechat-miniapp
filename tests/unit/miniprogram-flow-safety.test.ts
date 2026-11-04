@@ -90,7 +90,8 @@ describe("mini program submission flow safety", () => {
     const records = await source("apps/miniprogram/pages/records/index.ts");
     const recordsView = await source("apps/miniprogram/pages/records/index.wxml");
 
-    expect(community).toContain('if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = [];feedModel(this).editorial=[];this.setData({ feedReady:false,error: this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。" }); this.renderFeed(); }');
+    // Community failure clearing is exercised through the page in
+    // miniprogram-tab-continuity.test.ts, including retained cards and a stalled ancillary read.
     expect(community).toContain("this.data.feedAttempt === attempt");
     expect(home).toContain("authorityAvailable: false");
     expect(home).toContain("care: null, view: homeView(null, homeDisplayName(this)), authorityAvailable: false");
