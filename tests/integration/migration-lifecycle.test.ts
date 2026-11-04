@@ -110,6 +110,18 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //106 adds only the current direct-publication audit lookup index.
+    expect(migrationTip).toBe('202611030001_direct_publication_lookup.sql');
+    const directIndex=async()=>(await pool.query("SELECT indexdef FROM pg_indexes WHERE indexname='ugc_direct_publication_intent_idx'")).rows;
+    expect(await directIndex()).toEqual([expect.objectContaining({indexdef:expect.stringContaining("'directPublication'::text")} )]);
+    await closePool(pool);await migrate('down');pool=migrationPool();
+    expect(await directIndex()).toEqual([]);
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
+    await closePool(pool);await migrate('up');pool=migrationPool();
+    expect(await directIndex()).toHaveLength(1);
+    await closePool(pool);await migrate('down');pool=migrationPool();
+    migrationCount-=1;extensionCount-=1;migrationTip='202611020001_ugc_publish_intent.sql';
+
     //105 changes only the post guard. It preserves immutable historical
     // declarations and refuses down once a publish-action fact would be lost.
     expect(migrationTip).toBe('202611020001_ugc_publish_intent.sql');

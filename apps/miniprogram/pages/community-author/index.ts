@@ -1,3 +1,4 @@
+import { retainReadPresentation } from "../../services/read-presentation";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, beginLegalRenewal } from "../../services/api";
@@ -29,7 +30,7 @@ Page({
     else if(this.data.author){this.setData({navigating:false});}
     void this.load();
   },
-  onHide(){this.readVisible=false;this.data.epoch+=1;cancelPageReads(this);},
+  onHide(){this.readVisible=false;this.data.epoch+=1;cancelPageReads(this);if(this.data.loading)this.setData({author:null,items:[],nextCursor:null,articleContextId:""});},
   onUnload(){this.onHide();},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   currentEditorial(epoch:number,token:string){return this.readVisible&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();},
@@ -45,10 +46,10 @@ Page({
     if(!/^[0-9a-f-]{36}$/i.test(id)||(this.data.editorialSource&&!editorialIdentifier(id))){this.setData({loading:false,invalidId:true,error:"作者主页链接无效，请返回社区。"});return;}
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     this.readRevision=commerceContextRevision();this.lastSessionToken=token;
-    this.setData({loading:true,invalidId:false,error:"",items:[],nextCursor:null});
+    const preserve = retainReadPresentation(this, `${this.data.editorialSource}:${id}`) && Boolean(this.data.author);
+    this.setData({loading:true,invalidId:false,error:"",...(!preserve?{author:null,items:[],nextCursor:null,articleContextId:""}:{})});
     try{
       if(this.data.editorialSource){
-        this.setData({author:null,articleContextId:""});
         const result=await publishedEditorialAuthor(id,this);
         if(!this.currentEditorial(epoch,token))return;
         this.setData({author:{...result.author,avatar:editorialPublisherAvatar(result.author.name,defaultMemberAvatar)},articleContextId:result.items[0]?.id||"",
@@ -63,7 +64,7 @@ Page({
       this.setData({author,items:page.items.map(item=>({...item,
         cover:item.coverId&&origin?`${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail`:""})),
         nextCursor:page.nextCursor,loading:false});
-    }catch(error){if(this.recoverExpiredEditorialRead(epoch,token,error))return;if(epoch===this.data.epoch&&(!this.data.editorialSource||this.currentEditorial(epoch,token)))this.setData({loading:false,error:message(error,"作者资料暂时无法加载，请重试。")});}
+    }catch(error){if(this.recoverExpiredEditorialRead(epoch,token,error))return;if(epoch===this.data.epoch&&(!this.data.editorialSource||this.currentEditorial(epoch,token)))this.setData({author:null,items:[],articleContextId:"",nextCursor:null,loading:false,error:message(error,"作者资料暂时无法加载，请重试。")});}
   },
   async refreshAuthor(){
     if(this.data.editorialSource){await this.load();return;}
@@ -92,7 +93,7 @@ Page({
     finally{if(epoch===this.data.epoch&&(!this.data.editorialSource||this.currentEditorial(epoch,token)))this.setData({loadingMore:false});}
   },
   async toggleFollow(){
-    const author=this.data.author;if(!author||author.isMine||this.data.busy)return;
+    const author=this.data.author;if(this.data.loading||!author||author.isMine||this.data.busy)return;
     const token=getApp<IAppOption>().globalData.sessionToken;
     if(!token){resumeAuthentication(`/pages/community-author/index?id=${author.id}${this.data.editorialSource?"&source=editorial":""}`);return;}
     const epoch=this.data.epoch,next=!author.following;

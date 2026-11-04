@@ -1,0 +1,22 @@
+{
+  "command": "diagnose",
+  "scope": "public-legal-bootstrap-only",
+  "probes": [
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "path": "/v1/legal",
+      "ok": true,
+      "code": "LEGAL_BOOTSTRAP_READY",
+      "status": 200,
+      "elapsedMs": 186
+    },
+    {
+      "origin": "https://api.cisme.cn",
+      "path": "/v1/legal",
+      "ok": true,
+      "code": "LEGAL_BOOTSTRAP_READY",
+      "status": 200,
+      "elapsedMs": 283
+    }
+  ]
+}

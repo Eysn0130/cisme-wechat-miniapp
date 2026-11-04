@@ -1,0 +1,38 @@
+{
+  "sourceSha256": "bb508339cd10a17ab47ed678b00403d90b5bd3985ca0fdfde92ffebd0ce2bcda",
+  "unitTests": {
+    "filesPassed": 180,
+    "passed": 3048,
+    "skipped": 1,
+    "navigationScenarios": 29
+  },
+  "typecheck": "passed",
+  "packageGate": true,
+  "staticRoutes": 40,
+  "compilerInputs": {
+    "priorUnchanged": 78,
+    "currentRecompiled": 2,
+    "scope": "file-input provenance; not runtime acceptance"
+  },
+  "nativeSynthetic": {
+    "uniquePages": 16,
+    "roundTrips": 17,
+    "stableSamples": 102,
+    "reads": 208
+  },
+  "nativeLive": {
+    "currentPosts": 3,
+    "stableReturnSamples": 18,
+    "reads": 36,
+    "historicalPosts1948a60f": 20
+  },
+  "nativePreview": {
+    "stableSamples": 6,
+    "reads": 4
+  },
+  "serverWrites": 0,
+  "runtimeRestored": true,
+  "physicalDeviceAcceptance": false,
+  "fullStateAcceptance": false,
+  "uploadedOrPublished": false
+}

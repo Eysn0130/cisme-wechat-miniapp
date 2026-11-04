@@ -1,0 +1,58 @@
+{
+  "sourceSha256": "5e7bd9a51246ba1a3468379305c05c4be1140c47d85dcff600101b286087ca12",
+  "requirements": [
+    "COMM-FOLLOW-01",
+    "COMM-FOLLOW-02",
+    "COMM-FOLLOW-03",
+    "COMM-FOLLOW-04",
+    "COMM-FOLLOW-05"
+  ],
+  "unit": {
+    "filesPassed": 181,
+    "passed": 3063,
+    "skipped": 1,
+    "newFollowingCases": 14
+  },
+  "typecheck": "passed",
+  "contracts": {
+    "result": "passed",
+    "v1Methods": 285,
+    "methodsIncludingHealth": 287,
+    "typedEvents": 32
+  },
+  "packageBudget": "passed",
+  "communityWxmlDiagnostic": "passed",
+  "integration": {
+    "result": "passed",
+    "checks": 7,
+    "host": "124.223.74.198",
+    "ownedTestResourcesRemoved": true,
+    "existingAccountWrites": 0,
+    "inputPayloadSha256": "4e020c49c26ee898405eba09051a7bdf12a0a332ac0a155bcfc7ee8d3648cef6"
+  },
+  "native": {
+    "result": "passed within synthetic simulator scope",
+    "devtools": "2.02.2611022",
+    "SDKVersion": "3.15.2",
+    "viewport": [
+      390,
+      844
+    ],
+    "screenshots": 7,
+    "cardGeometrySamples": 6,
+    "emptyGeometrySamples": 6,
+    "geometryStable": true,
+    "syntheticGetRequests": 50,
+    "unknownReads": 0,
+    "writeAttempts": 0,
+    "forwardedServerWrites": 0,
+    "contextRestored": true
+  },
+  "deviceValidated": false,
+  "fullPageStateMatrixPassed": false,
+  "releaseAcceptance": "blocked",
+  "apiDeployed": false,
+  "miniProgramUploaded": false,
+  "livePublicUgcGateChanged": false,
+  "priorNavigationFixPreserved": true
+}

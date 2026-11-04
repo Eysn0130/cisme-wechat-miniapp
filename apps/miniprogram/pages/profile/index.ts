@@ -5,7 +5,6 @@ import { memberIdentity, publishMemberIdentity } from "../../services/member-ide
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
-import { consumerTaskEntries } from "../../services/task-entry";
 import { authorityProjection, hasNativeManagementEntry, type AuthorityProjection } from "../../services/authority";
 import { readDailyCareRecords, type DailyCarePage } from "../../services/daily-care";
 import { commerceContextRevision } from "../../services/commerce-command-store";
@@ -30,20 +29,21 @@ function profileCareView(care: any): { title: string; copy: string; status: stri
 const snapshotOwners = new WeakMap<object, string>();
 type AuxiliaryState = "unknown" | "loading" | "ready" | "error";
 
+function dailyCareView(daily: DailyCarePage | null, error: string) {
+  if (error) return { careTitle: "日常护理记录暂未更新", careCopy: "", careStatus: "日常记录待更新" };
+  if (!daily) return { careTitle: "正在读取日常护理记录…", careCopy: "", careStatus: "正在更新日常记录" };
+  if (daily.today) return { careTitle: "今日日常护理已记录", careCopy: "四步与感受已保存，点击查看记录。", careStatus: "今日已记录" };
+  const day = daily.items[0]?.careDay, parts = day?.split("-");
+  const label = parts ? `${parts[0] === daily.serverDay.slice(0, 4) ? "" : parts[0] + "年"}${Number(parts[1])}月${Number(parts[2])}日` : "";
+  return { careTitle: "今天还未记录", careStatus: "今日日常护理未记录", careCopy: label ? `最近一次日常护理：${label}` : "完成四步并保存后，可在记录中查看。" };
+}
+
 Page({
   dailySnapshot: null as DailyCarePage | null,
   dailyStatusAttempt: 0,
   projectDailyCare() {
     if (!this.data.member || this.data.hasCareCycle || this.data.careUnavailable || this.data.care !== null) return;
-    const daily = this.dailySnapshot;
-    if (this.data.dailyStatusError) this.setData({ careTitle: "日常护理记录暂未更新", careCopy: "", careStatus: "日常记录待更新" });
-    else if (!daily || this.data.dailyStatusLoading) this.setData({ careTitle: "正在读取日常护理记录…", careCopy: "", careStatus: "正在更新日常记录" });
-    else if (daily.today) this.setData({ careTitle: "今日日常护理已记录", careCopy: "四步与感受已保存，点击查看记录。", careStatus: "今日已记录" });
-    else {
-      const day = daily.items[0]?.careDay, parts = day?.split("-");
-      const label = parts ? `${parts[0] === daily.serverDay.slice(0, 4) ? "" : parts[0] + "年"}${Number(parts[1])}月${Number(parts[2])}日` : "";
-      this.setData({ careTitle: "今天还未记录", careStatus: "今日日常护理未记录", careCopy: label ? `最近一次日常护理：${label}` : "完成四步并保存后，可在记录中查看。" });
-    }
+    this.setData(dailyCareView(this.dailySnapshot, this.data.dailyStatusError));
   },
   async loadDailyStatus(attempt: number, token: string) {
     const dailyAttempt = ++this.dailyStatusAttempt;
@@ -59,20 +59,21 @@ Page({
     }
   },
   retryDailyStatus() { const token = getApp<IAppOption>().globalData.sessionToken; if (token && this.data.member) void this.loadDailyStatus(this.data.loadAttempt, token); },
-  data: { dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, tasks: [] as any[], tasksLoading: false, tasksError: "", progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, tasksAttempt: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
+  data: { retainingSnapshot: false, dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { if (!requireMemberAccess()) { this.dailySnapshot=null; this.dailyStatusAttempt++; this.setData({dailyStatusError:"",dailyStatusLoading:false,hasCareCycle:false,careUnavailable:false,member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",tasks:[],loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
-  onHide() { cancelPageReads(this); this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
-  onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1; this.data.tasksAttempt += 1; },
+  onShow() { if (!requireMemberAccess()) { this.dailySnapshot=null; this.dailyStatusAttempt++; this.setData({retainingSnapshot:false,dailyStatusError:"",dailyStatusLoading:false,hasCareCycle:false,careUnavailable:false,member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
+  onHide() { cancelPageReads(this); this.data.loadAttempt += 1;  },
+  onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1;  },
   isCurrentLoad(attempt: number, token: string): boolean {
     return this.data.pageAlive && this.data.loadAttempt === attempt && getApp<IAppOption>().globalData.sessionToken === token;
   },
   loadAuxiliary(attempt: number, token: string) {
     const auxiliaryAttempt = ++this.data.auxiliaryAttempt;
     const current = () => this.isCurrentLoad(attempt, token) && this.data.auxiliaryAttempt === auxiliaryAttempt;
-    // Clearing eligibility is fail-closed, not a statement that it is absent.
-    this.setData({ authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null, authorityState:"loading", commercialState:"loading", supportState:"loading" });
+    // Retained entries are presentation only; authorityState still blocks actions
+    // until this read confirms access, and failed reads clear their projection.
+    this.setData({ ...(this.data.retainingSnapshot ? {} : { authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null }), authorityState:"loading", commercialState:"loading", supportState:"loading" });
     void (async () => {
       try {
         const authority = await authorityProjection(this);
@@ -120,11 +121,10 @@ Page({
     const token = getApp<IAppOption>().globalData.sessionToken;
     const sameSession = snapshotOwners.get(this) === token;
     snapshotOwners.set(this, token);
-    if (!sameSession) { this.dailySnapshot = null; this.setData({ snapshotVersion:0, dailyStatusError: "" }); }
-    this.setData(preserveSnapshot && sameSession
-      ? { loadAttempt:attempt, coreUnavailable:false, loading:true, error:"" }
-      : { hasCareCycle:false, careUnavailable:false, loadAttempt:attempt, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:false, authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null, tasks:[], tasksError:"", loading:true, error:"" });
-    void this.loadTasks(attempt);
+    if (!sameSession || !preserveSnapshot) { this.dailySnapshot = null; this.setData({ snapshotVersion:0, dailyStatusError: "" }); }
+    this.setData(preserveSnapshot && sameSession && this.data.member && this.data.points
+      ? { loadAttempt:attempt, retainingSnapshot:true, coreUnavailable:false, loading:true, error:"" }
+      : { hasCareCycle:false, careUnavailable:false, loadAttempt:attempt, retainingSnapshot:false, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:false, authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null, loading:true, error:"" });
     this.loadAuxiliary(attempt, token);
     void this.loadDailyStatus(attempt, token);
     try {
@@ -141,7 +141,7 @@ Page({
       publishMemberIdentity({ id: member.id, display_name: normalizedMember.display_name, profile_revision: normalizedMember.profile_revision, avatarUrl: currentAvatar });
       const careView = profileCareView(care);
       // One authoritative core snapshot; local file work is never on this path.
-      const core = { member:visibleMember, memberAvatar:currentAvatar, avatarState:"loading" as AuxiliaryState, points, care:care??null, hasCareCycle:careView.hasCycle, careUnavailable:careView.unavailable, coreUnavailable:false, snapshotVersion:snapshot.businessVersion, progressPercent:careView.hasCycle?Math.min(100, care.completed.length * 25):0, pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, loading:false };
+      const core = { member:visibleMember, memberAvatar:currentAvatar, avatarState:"loading" as AuxiliaryState, points, care:care??null, hasCareCycle:careView.hasCycle, careUnavailable:careView.unavailable, coreUnavailable:false, snapshotVersion:snapshot.businessVersion, progressPercent:careView.hasCycle?Math.min(100, care.completed.length * 25):0, pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, ...(!careView.hasCycle && !careView.unavailable ? dailyCareView(this.dailySnapshot, this.data.dailyStatusError) : {}), loading:false };
       recordClientMetric({ action: "profile", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
       this.setData(core, () => {
@@ -158,23 +158,6 @@ Page({
       }
     } finally { if (this.isCurrentLoad(attempt, token)) this.setData({ loading:false }); }
   },
-  async loadTasks(profileAttempt?: number) {
-    const ownerAttempt = profileAttempt ?? this.data.loadAttempt;
-    const token = getApp<IAppOption>().globalData.sessionToken;
-    const attempt = this.data.tasksAttempt + 1;
-    this.setData({ tasksAttempt: attempt, tasks: [], tasksLoading: true, tasksError: "" });
-    try {
-      const taskHistory = await pageRead<any[]>(this, { path: "/v1/me/tasks" });
-      if (!this.isCurrentLoad(ownerAttempt, token) || this.data.tasksAttempt !== attempt) return;
-      const tasks = consumerTaskEntries(taskHistory);
-      this.setData({ tasks, tasksError: "" });
-    } catch (error) {
-      if (this.isCurrentLoad(ownerAttempt, token) && this.data.tasksAttempt === attempt) this.setData({ tasks: [], tasksError: "活动暂未加载，请重试" });
-    } finally {
-      if (this.isCurrentLoad(ownerAttempt, token) && this.data.tasksAttempt === attempt) this.setData({ tasksLoading: false });
-    }
-  },
-  retryTasks() { void this.loadTasks(); },
   openRoute(url: string, mode: "navigate" | "tab", failureCopy: string) {
     if (this.data.navigating) return;
     this.setData({ navigating: true });
@@ -198,13 +181,5 @@ Page({
     const url="/pages/community-compose/index";
     if(this.data.navigating||!requireMemberAccess(url))return;
     this.openRoute(url,"navigate","投稿与草稿暂时无法打开");
-  },
-  openTasks() {
-    if (this.data.tasksLoading || this.data.navigating) return;
-    if (this.data.tasksError) { void this.loadTasks(); return; }
-    const task = this.data.tasks[0];
-    if (this.data.tasks.length > 1) { this.openRoute("/pages/community/index", "tab", "投稿列表暂时无法打开"); return; }
-    if (task) this.openRoute(`/pages/task/index?id=${task.id}`, "navigate", "投稿与邀请暂时无法打开");
-    else this.openRoute("/pages/community/index", "tab", "社区暂时无法打开");
   },
 });

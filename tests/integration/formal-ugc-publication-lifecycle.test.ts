@@ -1,4 +1,6 @@
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
+import {directSafetyEnv,safeProvider,bindSafetyIdentity} from './ugc-direct-fixture';
+import {UgcDirectPublication} from '../../services/api/src/ugcDirectPublication';
 import {afterAll,beforeAll,expect,it,vi} from 'vitest';
 import type {FastifyInstance} from 'fastify';
 import {loadConfig} from '@cisme/config';
@@ -9,7 +11,7 @@ import {FormalUgcService} from '../../services/api/src/formalUgc';
 import {AuthorityService} from '../../services/api/src/authority';
 
 const pool=testPool();
-const base={APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'ugc-lifecycle-session',
+const base={...directSafetyEnv,APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'ugc-lifecycle-session',
   ADMIN_API_TOKEN:'ugc-lifecycle-admin',UPLOAD_TOKEN_SECRET:'ugc-lifecycle-upload',OBJECT_STORAGE_DRIVER:'api_gateway'};
 const config=loadConfig({...base,UGC_GO_LIVE_GATE:'true',UGC_LEGAL_APPROVAL_ID:'isolated-lifecycle-approval',
   UGC_PROVENANCE_READY:'true',UGC_CONTENT_SAFETY_READY:'true',UGC_MODERATION_READY:'true'});
@@ -21,7 +23,7 @@ const auth=(actor:Actor)=>({authorization:`Bearer ${actor.sessionToken}`});
 const identity=async(name:string):Promise<Actor>=>{
   const response=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:name,displayName:name,
     consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
-  expect(response.statusCode).toBe(200);return response.json();
+  expect(response.statusCode).toBe(200);const actor=response.json();await bindSafetyIdentity(pool,actor.memberId);return actor;
 };
 const create=async(actor=owner):Promise<OwnPost>=>{
   const response=await app.inject({method:'POST',url:'/v1/me/ugc/posts',headers:{...auth(actor),'idempotency-key':randomUUID()},payload:{}});
@@ -42,10 +44,19 @@ const publish=async(post:OwnPost,actor=publisher)=>app.inject({method:'POST',url
 async function publishedPost(){
   let post=await save(await create());
   expect((await submit(post)).statusCode).toBe(200);post=await readOwn(post.id);
-  expect((await review(post)).statusCode).toBe(200);post=await readOwn(post.id);
-  expect((await publish(post)).statusCode).toBe(200);return readOwn(post.id);
+  expect(post.state).toBe('published');return post;
+}
+let scanSuggest='pass';
+const intent=()=>new FormalUgcService(pool,config,storage,new AuthorityService(pool,'test'));
+const finisher=()=>new UgcDirectPublication(pool,config,storage);
+async function pendingSafe(post:OwnPost){
+  await intent().submit(owner.memberId,post.id,post.version);const pending=await readOwn(post.id);
+  const hash=createHash('sha256').update(['真实护理记录',pending.body].join('\n')).digest('hex');
+  await pool.query(`INSERT INTO ugc_safety_scan(post_id,revision,kind,content_sha256,provider,trace_id,state,resolved_at) VALUES($1,$2,'text',$3,'wechat_v2',$4,'safe',now())`,[post.id,pending.revision,hash,randomUUID()]);
+  return pending;
 }
 beforeAll(async()=>{
+  vi.stubGlobal('fetch',async(...args:Parameters<typeof fetch>)=>{const response=await safeProvider(...args);if(String(args[0]).includes('/msg_sec_check')){const body=await response.json();body.result.suggest=scanSuggest;return new Response(JSON.stringify(body),{status:200});}return response;});
   await resetDatabase(pool);await storage.ensureReady();app=await createApp({config,pool,storage});
   closed=await createApp({config:loadConfig(base),pool,storage});
   owner=await identity('lifecycle-owner');reviewer=await identity('lifecycle-reviewer');
@@ -57,7 +68,7 @@ beforeAll(async()=>{
     VALUES('isolated-lifecycle-approval','synthetic fixture','{"scope":"isolated tests only"}',now(),now()+interval '1 hour')`);
   await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'");
 });
-afterAll(async()=>{await closed?.close();await app?.close();await pool.end();});
+afterAll(async()=>{await closed?.close();await app?.close();await pool.end();vi.unstubAllGlobals();});
 
 it('rejects empty publication without creating an intent snapshot for new posts or edits',async()=>{
   for(const original of [await create(),await publishedPost()]){
@@ -74,17 +85,17 @@ it('saves without retired flags and submits an immutable public-intent snapshot 
   const source=(await pool.query('SELECT to_jsonb(r) AS row FROM ugc_post_revision r WHERE post_id=$1 AND revision=$2',[post.id,post.revision])).rows[0].row;
   expect(source).toMatchObject({ai_usage:'unknown',rights_confirmed:false,public_consent_confirmed:false,moderation_state:'unreviewed'});
   const result=await submit(post);expect(result.statusCode).toBe(200);
-  const submitted=result.json();expect(submitted).toMatchObject({state:'pending_review',version:post.version+1,revision:post.revision+1,
+  const submitted=result.json();expect(submitted).toMatchObject({state:'published',version:post.version+2,revision:post.revision+1,
     rightsConfirmed:false,publicConsentConfirmed:true});
   expect((await pool.query('SELECT to_jsonb(r) AS row FROM ugc_post_revision r WHERE post_id=$1 AND revision=$2',[post.id,post.revision])).rows[0].row).toEqual(source);
   expect((await pool.query('SELECT rights_confirmed,public_consent_confirmed,moderation_state FROM ugc_post_revision WHERE post_id=$1 AND revision=$2',
-    [post.id,submitted.revision])).rows[0]).toEqual({rights_confirmed:false,public_consent_confirmed:true,moderation_state:'pending'});
+    [post.id,submitted.revision])).rows[0]).toEqual({rights_confirmed:false,public_consent_confirmed:true,moderation_state:'approved'});
   expect((await pool.query("SELECT after_state FROM audit_log WHERE action='ugc.post_submitted' AND object_id=$1",[post.id])).rows[0].after_state)
-    .toEqual({revision:submitted.revision,sourceRevision:post.revision,newRevision:submitted.revision,publicConsentConfirmed:true,publicConsentSource:'publish_action'});
+    .toEqual({revision:submitted.revision,sourceRevision:post.revision,newRevision:submitted.revision,publicConsentConfirmed:true,publicConsentSource:'publish_action',directPublication:true});
   await expect(pool.query('UPDATE ugc_post_revision SET public_consent_confirmed=true WHERE post_id=$1 AND revision=$2',[post.id,post.revision]))
     .rejects.toMatchObject({code:'55000'});
-  expect((await review(submitted)).statusCode).toBe(200);
-  const approved=await readOwn(post.id);expect((await publish(approved)).statusCode).toBe(200);
+  expect((await review(submitted)).statusCode).toBe(410);
+  expect((await publish(submitted)).statusCode).toBe(410);
   expect((await readOwn(post.id)).state).toBe('published');
 });
 
@@ -128,38 +139,30 @@ it('accepts optional legacy AI metadata while retaining existing revision values
   expect(submitted.statusCode).toBe(200);
   expect((await pool.query('SELECT after_state FROM audit_log WHERE id=$1',[audit])).rows[0].after_state).toEqual(legacyFact);
   const current=(await pool.query("SELECT after_state FROM audit_log WHERE action='ugc.post_submitted' AND object_id=$1 AND id<>$2",[legacy.id,audit])).rows[0].after_state;
-  expect(current).toEqual({revision:revised.revision+1,sourceRevision:revised.revision,newRevision:revised.revision+1,publicConsentConfirmed:true,publicConsentSource:'publish_action'});
+  expect(current).toEqual({revision:revised.revision+1,sourceRevision:revised.revision,newRevision:revised.revision+1,publicConsentConfirmed:true,publicConsentSource:'publish_action',directPublication:true});
   const previousClient=await save(await create(),{aiUsage:'none'});
   expect((await app.inject({method:'POST',url:`/v1/me/ugc/posts/${previousClient.id}/submit`,headers:auth(owner),
     payload:{expectedVersion:previousClient.version,aiDeclarationChosen:true}})).statusCode).toBe(200);
 });
 
-it('keeps submitted and approved revisions immutable while the prior public revision remains readable',async()=>{
+it('keeps pending revision facts immutable while an owner edit cancels publication and preserves the public version',async()=>{
   const original=await publishedPost();
-  let post=await save(original,{body:'新版尚未公开的感受'});expect((await submit(post)).statusCode).toBe(200);post=await readOwn(post.id);
-  for(const expectedState of ['pending_review','awaiting_publication']){
-    expect(post.state).toBe(expectedState);
-    const overwrite=await app.inject({method:'PUT',url:`/v1/me/ugc/posts/${post.id}/draft`,headers:auth(owner),
-      payload:{expectedVersion:post.version,title:'覆盖待审版本',body:'不应保存',mediaIds:[],rightsConfirmed:true,publicConsentConfirmed:true}});
-    expect(overwrite.statusCode).toBe(409);expect(overwrite.json().code).toBe('UGC_POST_LOCKED');
-    expect((await readOwn(post.id)).version).toBe(post.version);
-    const listed=(await app.inject({method:'GET',url:'/v1/me/ugc/posts',headers:auth(owner)})).json().items.find((item:{id:string})=>item.id===post.id);
-    expect(listed).toMatchObject({state:expectedState,revision:post.revision,publishedRevision:original.revision,publicVersionActive:true,
-      revisionState:expectedState==='pending_review'?'pending':'approved'});
-    expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}`})).json().body).toBe(original.body);
-    if(expectedState==='pending_review'){expect((await review(post)).statusCode).toBe(200);post=await readOwn(post.id);}
-  }
-  expect((await publish(post,reviewer)).statusCode).toBe(403);
-  expect((await publish({...post,version:post.version-1})).statusCode).toBe(409);
-  expect((await publish(post)).statusCode).toBe(200);
-  expect((await readOwn(post.id)).state).toBe('published');
-  expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}`})).json().body).toBe('新版尚未公开的感受');
+  const pending=await pendingSafe(await save(original,{body:'未完成的新版本'}));
+  const row=(await pool.query('SELECT to_jsonb(r) AS fact FROM ugc_post_revision r WHERE post_id=$1 AND revision=$2',[pending.id,pending.revision])).rows[0].fact;
+  await expect(pool.query("UPDATE ugc_post_revision SET body='overwrite' WHERE post_id=$1 AND revision=$2",[pending.id,pending.revision])).rejects.toMatchObject({code:'55000'});
+  const edited=await save(pending,{body:'作者中断后只保存私稿',replacePendingPublication:true});
+  expect(edited.state).toBe('draft');
+  await finisher().finish(pending.id);
+  expect((await readOwn(pending.id)).state).toBe('draft');
+  expect((await pool.query('SELECT to_jsonb(r) AS fact FROM ugc_post_revision r WHERE post_id=$1 AND revision=$2',[pending.id,pending.revision])).rows[0].fact).toEqual(row);
+  expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${pending.id}`})).json().body).toBe(original.body);
+  expect((await submit(edited)).json().state).toBe('published');
 });
 
 it('reopens rejected edits for the owner without replacing the prior public revision',async()=>{
   const original=await publishedPost();let post=await save(original,{body:'这次编辑等待审核'});
-  expect((await submit(post)).statusCode).toBe(200);post=await readOwn(post.id);
-  expect((await review(post,'reject')).statusCode).toBe(200);post=await readOwn(post.id);expect(post.state).toBe('rejected');
+  scanSuggest='risky';try{expect((await submit(post)).statusCode).toBe(200);}finally{scanSuggest='pass';}
+  post=await readOwn(post.id);expect(post.state).toBe('rejected');
   post=await save(post,{body:'按意见修改后的新版'});expect(post.state).toBe('draft');
   expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}`})).json().body).toBe(original.body);
   const crossOwner=await app.inject({method:'PUT',url:`/v1/me/ugc/posts/${post.id}/draft`,headers:auth(other),
@@ -190,8 +193,7 @@ it('rejects an inactive owner inside the write transaction, independently of the
 });
 
 it('filters all owned records before pagination and binds cursors and counts to the selected state',async()=>{
-  let post=await save(await create());expect((await submit(post)).statusCode).toBe(200);post=await readOwn(post.id);
-  expect((await review(post,'reject')).statusCode).toBe(200);
+  let post=await save(await create());scanSuggest='risky';try{expect((await submit(post)).statusCode).toBe(200);}finally{scanSuggest='pass';}post=await readOwn(post.id);
   const client=await pool.connect();
   try{
     await client.query('BEGIN');
@@ -212,48 +214,32 @@ it('filters all owned records before pagination and binds cursors and counts to 
   expect((await app.inject({method:'GET',url:'/v1/me/ugc/posts?state=private',headers:auth(owner)})).statusCode).toBe(422);
 });
 
-it('rejects approval and publication if the author became inactive after submission',async()=>{
-  const actor=await identity('lifecycle-inactive-after-submit');
-  const post=await save(await create(actor),{},actor);
-  const submitted=await app.inject({method:'POST',url:`/v1/me/ugc/posts/${post.id}/submit`,headers:auth(actor),
-    payload:{expectedVersion:post.version}});expect(submitted.statusCode).toBe(200);
-  const submittedPost=submitted.json();await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[actor.memberId]);
-  const blockedApproval=await review(submittedPost);expect(blockedApproval.statusCode).toBe(409);expect(blockedApproval.json().code).toBe('UGC_AUTHOR_INACTIVE');
-  await pool.query("UPDATE member SET status='active' WHERE id=$1",[actor.memberId]);
-  const approved=await review(submittedPost);expect(approved.statusCode).toBe(200);
-  await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[actor.memberId]);
-  const blockedPublication=await publish({...submittedPost,version:approved.json().version});
-  expect(blockedPublication.statusCode).toBe(409);expect(blockedPublication.json().code).toBe('UGC_AUTHOR_INACTIVE');
-  expect((await pool.query('SELECT state,published_revision FROM ugc_post WHERE id=$1',[post.id])).rows[0])
-    .toMatchObject({state:'pending_review',published_revision:null});
+it('keeps safe pending content private when its author becomes inactive and retires human publication',async()=>{
+  const pending=await pendingSafe(await save(await create()));
+  try{
+    await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[owner.memberId]);
+    await finisher().finish(pending.id);
+    expect((await pool.query('SELECT state,published_revision FROM ugc_post WHERE id=$1',[pending.id])).rows[0]).toMatchObject({state:'pending_review',published_revision:null});
+    expect((await review(pending)).statusCode).toBe(410);
+    expect((await publish(pending)).statusCode).toBe(410);
+  }finally{await pool.query("UPDATE member SET status='active' WHERE id=$1",[owner.memberId]);}
+  await finisher().finish(pending.id);expect((await readOwn(pending.id)).state).toBe('published');
 });
 
-it('rechecks the gate after waiting for the post lock, including expiry after the transaction began',async()=>{
+it('rechecks closed, expired and revoked public gates after waiting for the post lock',async()=>{
   for(const condition of ['switch_closed','approval_expired','approval_revoked']){
-    let post=await save(await create());expect((await submit(post)).statusCode).toBe(200);post=await readOwn(post.id);
-    expect((await review(post)).statusCode).toBe(200);post=await readOwn(post.id);
-    const locker=await pool.connect();let pending:ReturnType<typeof publish>|undefined;
+    const post=await pendingSafe(await save(await create()));
+    const locker=await pool.connect();let pending:Promise<void>|undefined;
     try{
       await locker.query('BEGIN');const pid=(await locker.query('SELECT pg_backend_pid() AS pid')).rows[0].pid;
       await locker.query('SELECT id FROM ugc_post WHERE id=$1 FOR UPDATE',[post.id]);
-      pending=publish(post);
-      await vi.waitFor(async()=>{
-        const waiting=(await pool.query(`SELECT count(*)::int AS n FROM pg_stat_activity
-          WHERE datname=current_database() AND $1::integer=ANY(pg_blocking_pids(pid))
-            AND query LIKE 'SELECT * FROM ugc_post WHERE id=%'`,[pid])).rows[0].n;
-        expect(waiting).toBeGreaterThan(0);
-      },{timeout:600,interval:10});
+      pending=finisher().finish(post.id);
+      await vi.waitFor(async()=>expect((await pool.query(`SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND $1::integer=ANY(pg_blocking_pids(pid))`,[pid])).rows[0].n).toBeGreaterThan(0),{timeout:1000,interval:10});
       if(condition==='switch_closed')await pool.query("UPDATE emergency_switch SET enabled=false WHERE key='community'");
       else if(condition==='approval_revoked')await pool.query('UPDATE ugc_go_live_approval SET revoked_at=clock_timestamp()');
-      else{
-        await pool.query("UPDATE ugc_go_live_approval SET expires_at=clock_timestamp()+interval '120 milliseconds'");
-        await pool.query('SELECT pg_sleep(0.15)');
-      }
-      await locker.query('COMMIT');
-      const response=await pending;expect(response.statusCode,JSON.stringify(response.json())).toBe(503);
-      expect(response.json().code).toBe('UGC_GO_LIVE_GATE_CLOSED');
-      expect((await pool.query('SELECT state,published_revision,version FROM ugc_post WHERE id=$1',[post.id])).rows[0])
-        .toMatchObject({state:'pending_review',published_revision:null,version:post.version});
+      else{await pool.query("UPDATE ugc_go_live_approval SET expires_at=clock_timestamp()+interval '120 milliseconds'");await pool.query('SELECT pg_sleep(0.15)');}
+      await locker.query('COMMIT');await pending;
+      expect((await pool.query('SELECT state,published_revision,version FROM ugc_post WHERE id=$1',[post.id])).rows[0]).toMatchObject({state:'pending_review',published_revision:null,version:post.version});
     }finally{
       await locker.query('ROLLBACK');locker.release();await pending;
       await pool.query("UPDATE ugc_go_live_approval SET revoked_at=NULL,expires_at=clock_timestamp()+interval '1 hour'");

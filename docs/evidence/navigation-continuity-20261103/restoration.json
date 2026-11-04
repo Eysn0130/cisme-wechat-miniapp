@@ -1,0 +1,21 @@
+{
+  "sourceSha256": "bb508339cd10a17ab47ed678b00403d90b5bd3985ca0fdfde92ffebd0ce2bcda",
+  "observedRuntime": {
+    "route": "pages/community/index",
+    "appReady": true,
+    "hasSession": true,
+    "syntheticTransportRemaining": false,
+    "liveReadWrapperRemaining": false,
+    "previewReadWrapperRemaining": false,
+    "syntheticOriginRemaining": false,
+    "width": 390,
+    "height": 844,
+    "SDKVersion": "3.15.2",
+    "loading": false
+  },
+  "perRunRestoreReceipts": [
+    "native-navigation.json",
+    "live-editorial.json",
+    "native-preview.json"
+  ]
+}

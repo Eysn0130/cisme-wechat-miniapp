@@ -1,4 +1,5 @@
 import { requireActiveUploadOwner } from "./uploadAuthority.js";
+import { taskProofRetired } from "./taskProofRetired.js";
 import { createHash } from 'node:crypto';
 import type pg from 'pg';
 import type { AppConfig } from '@cisme/config';
@@ -19,9 +20,7 @@ export class CloudUpload {
    const parent = await client.query('SELECT submission_id,support_conversation_id,support_expires_at FROM media_object WHERE id=$1',[mediaId]);
    const parentRow=parent.rows[0];
    if(parentRow?.submission_id){
-    const submission = await client.query('SELECT status,member_id FROM submission WHERE id=$1 FOR UPDATE',[parentRow.submission_id]);
-    await requireActiveUploadOwner(client,submission.rows[0]?.member_id);
-    if (!['draft','needs_changes','appealed'].includes(submission.rows[0]?.status)) throw new DomainError('UPLOAD_UNAVAILABLE','该投稿不再接受上传',409);
+    return taskProofRetired();
    }else if(parentRow?.support_conversation_id){
     const conversation=await client.query('SELECT status,member_id FROM support_conversation WHERE id=$1 FOR UPDATE',[parentRow.support_conversation_id]);
     await requireActiveUploadOwner(client,conversation.rows[0]?.member_id);
@@ -54,7 +53,7 @@ export class CloudUpload {
   if (!total || result.rows.length!==count || result.rows.some((row,i)=>row.chunk_index!==i || row.total_bytes!==total)) throw new DomainError('UPLOAD_INCOMPLETE','文件分块尚未完整上传',409);
   const bytes=Buffer.concat(result.rows.map(row=>row.bytes));
   if(bytes.length!==total) throw new DomainError('UPLOAD_INCOMPLETE','文件大小不一致',409);
-  // Reuse the locked final write and existing completeMedia verification.
+  // Reuse the locked gateway write; support-image completion remains in its own service.
   await this.service.gatewayUpload(mediaId,{token,bytes,mimeType:'application/octet-stream'},now);
   // Keep retry data until completion or expiry; a lost response can safely retry.
   return {uploaded:true,bytes:total};

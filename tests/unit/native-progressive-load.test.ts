@@ -108,7 +108,7 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     const community=readFileSync("apps/miniprogram/pages/community/index.wxml","utf8"),profile=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
     // K.10 adds one contextual draft shortcut inside the creation chooser.
     expect(community.match(/bindtap="openMyPosts"/g)).toHaveLength(1);expect(community).toContain('wx:if="{{publishEntryOpen}}"');expect(community).not.toContain("我的投稿与草稿");
-    for(const [handler,label]of [["openCommunityActivity","我的社区"],["openMyPosts","投稿与草稿"],["openTasks","我的活动"]]){
+    for(const [handler,label]of [["openCommunityActivity","我的社区"],["openMyPosts","投稿与草稿"]]){
       expect(profile.match(new RegExp(`bindtap="${handler}"`,"g"))).toHaveLength(1);expect(profile).toContain(`<strong>${label}</strong>`);
     }
     expect(profile).not.toContain("<strong>投稿与活动</strong>");
@@ -133,14 +133,7 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     expect((globalThis as any).wx.showToast).toHaveBeenCalledWith({title:"投稿与草稿暂时无法打开",icon:"none"});
     page.openMyPosts();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledTimes(2);expect(mocks.request).not.toHaveBeenCalled();
   });
-  it.each([
-    {tasks:[],mode:"switchTab",url:"/pages/community/index"},
-    {tasks:[{id:"task-a"}],mode:"navigateTo",url:"/pages/task/index?id=task-a"},
-    {tasks:[{id:"task-a"},{id:"task-b"}],mode:"switchTab",url:"/pages/community/index"}
-  ])("retains the existing invitation activity route for $tasks",async({tasks,mode,url})=>{
-    await loadPage("profile");page.data.tasks=tasks;page.openTasks();
-    expect((globalThis as any).wx[mode]).toHaveBeenCalledWith(expect.objectContaining({url}));expect(mocks.request).not.toHaveBeenCalled();
-  });
+
   it("keeps My community pointed at real interaction history",async()=>{
     await loadPage("profile");page.openCommunityActivity();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/community-activity/index"}));expect(mocks.request).not.toHaveBeenCalled();
   });
@@ -153,7 +146,7 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
       throw new Error(`Unexpected synthetic request: ${path}`);
     });
     await loadPage("profile"); await page.load(); await flush();
-    expect(page.data).toMatchObject({ member: null, points: null, care: null, coreUnavailable: true, tasks: [{ id: "task-a" }] });
+    expect(page.data).toMatchObject({ member: null, points: null, care: null, coreUnavailable: true });
     const view = readFileSync("apps/miniprogram/pages/profile/index.wxml", "utf8");
     expect(view).toContain('<block wx:if="{{member || coreUnavailable}}">');
     page.openOrders();

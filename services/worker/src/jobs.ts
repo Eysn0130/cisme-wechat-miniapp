@@ -51,39 +51,8 @@ function failureSchedule(now: Date, previousAttempts: number) {
 
 async function applyEvent(client: pg.PoolClient, event: EventRow, now: Date, gates: WorkerGates): Promise<DeliveryOutcome> {
   if (workerEventPolicy(event.event_type) === "audit_only") return "audit_only";
-  if (event.event_type === "submission.publication.approved.v1") {
-    if (!gates.ugcGoLiveGate) throw new Error("UGC_GO_LIVE_GATE_CLOSED");
-    const submissionId = String(event.payload.submissionId);
-    const source = await client.query<{ member_id: string; status: string; cover_object_key: string | null; has_active_consent: boolean; has_revocation: boolean }>(`
-      SELECT s.member_id, s.status, m.object_key AS cover_object_key,
-        EXISTS (
-          SELECT 1 FROM consent_grant cg
-          WHERE cg.submission_id=s.id AND cg.purpose='feed_readonly' AND cg.active=true
-        ) AS has_active_consent,
-        EXISTS (
-          SELECT 1 FROM consent_grant cg JOIN revocation_request rr ON rr.consent_grant_id=cg.id
-          WHERE cg.submission_id=s.id AND cg.purpose='feed_readonly'
-        ) AS has_revocation
-      FROM submission s
-      LEFT JOIN media_object m ON m.submission_id=s.id AND m.kind='screenshot' AND m.upload_state='uploaded' AND m.is_current=true
-      WHERE s.id=$1
-    `, [submissionId]);
-    const row = source.rows[0];
-    if (!row) throw new Error("PUBLICATION_SOURCE_NOT_FOUND");
-    if (row.status !== "approved") throw new Error("PUBLICATION_SOURCE_NOT_APPROVED");
-    if (!row.has_active_consent || row.has_revocation) {
-      await client.query("UPDATE feed_item SET visible=false WHERE submission_id=$1", [submissionId]);
-      return "suppressed";
-    }
-    await client.query(`INSERT INTO feed_item(submission_id, member_id, title, excerpt, cover_object_key, ai_usage, published_by, publication_reason_code, publication_evidence, published_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-      ON CONFLICT (submission_id) DO UPDATE SET title=EXCLUDED.title, excerpt=EXCLUDED.excerpt, cover_object_key=EXCLUDED.cover_object_key,
-        ai_usage=EXCLUDED.ai_usage, published_by=EXCLUDED.published_by, publication_reason_code=EXCLUDED.publication_reason_code,
-        publication_evidence=EXCLUDED.publication_evidence, published_at=EXCLUDED.published_at, visible=true`,
-      [submissionId, row.member_id, String(event.payload.title), String(event.payload.excerpt), row.cover_object_key,
-        String(event.payload.aiUsage), String(event.payload.publishedBy), String(event.payload.reasonCode), event.payload.evidence ?? {}, now]);
-    return "applied";
-  }
+  // The removed proof workflow cannot publish queued content after retirement.
+  if (event.event_type === "submission.publication.approved.v1") return "suppressed";
   throw new Error("WORKER_EVENT_NOT_SUPPORTED");
 }
 
@@ -141,7 +110,6 @@ export async function processMediaCleanup(pool: pg.Pool, storage: ObjectStorage,
 }
 
 export async function sweepExpired(pool: pg.Pool, now = new Date()): Promise<void> {
-  await pool.query("UPDATE eligibility_task SET state='expired', version=version+1 WHERE state='available' AND expires_at <= $1", [now]);
   await pool.query(`WITH expired AS (
     UPDATE media_object m SET upload_state='failed'
     WHERE m.upload_state='authorized' AND m.uploaded_at IS NULL AND m.deleted_at IS NULL

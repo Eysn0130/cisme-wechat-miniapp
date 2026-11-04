@@ -7,7 +7,6 @@ import { RequestCoordinator } from "./request-coordinator";
 import { sendJsonRequest, type TransportHandle } from "./http";
 const app = { get globalData() { return getApp<IAppOption>().globalData; } };
 const authReturnKey = "cisme.authReturnUrl";
-const submissionReturnKey = "cisme.submissionReturnContext";
 const tabRoutes = new Set(["/pages/home/index", "/pages/records/index", "/pages/community/index", "/pages/profile/index"]);
 const reads = new RequestCoordinator();
 const privateDownloads = new Set<() => void>();
@@ -206,17 +205,6 @@ export function navigateAfterAuthentication(url: string): Promise<"target" | "fa
     }
     wx.redirectTo({ url, success: () => resolve("target"), fail: failed });
   });
-}
-
-export function rememberSubmissionReturn(context: { submissionId: string; taskId: string; returnUrl: string }): void {
-  if (!context.submissionId || !context.taskId || !context.returnUrl.startsWith("/pages/task/")) return;
-  wx.setStorageSync(submissionReturnKey, context);
-}
-
-export function submissionReturnUrl(submissionId: string): string {
-  const context = wx.getStorageSync<{ submissionId?: string; taskId?: string; returnUrl?: string }>(submissionReturnKey);
-  if (context?.submissionId !== submissionId || !context.taskId || !context.returnUrl?.startsWith("/pages/task/")) return "";
-  return context.returnUrl;
 }
 
 export type RequestOptions = { path: string; method?: "GET" | "POST" | "PUT" | "DELETE"; data?: WechatMiniprogram.IAnyObject; idempotencyKey?: string; authMode?: "required" | "optional" | "public"; cacheTags?: string[]; budgetMs?: number; registerAbort?: (abort: () => void) => void };

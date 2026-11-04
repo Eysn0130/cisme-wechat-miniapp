@@ -1,7 +1,7 @@
 <view class="member-shell" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">成员详情</text></view>
   <view class="page page--stack member-page">
-    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载成员详情…</view>
+    <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在加载成员详情…"><view class="page-read-loading__indicator"/></view>
     <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{!id}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">重新加载</button></view>
     <block wx:if="{{detail && !loading}}">
       <view class="member-hero">

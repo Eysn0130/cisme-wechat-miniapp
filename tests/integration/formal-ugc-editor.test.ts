@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import sharp from "sharp";
 import { loadConfig } from "@cisme/config";
@@ -6,8 +6,9 @@ import { TEST_DATABASE_URL, resetDatabase, testPool } from "@cisme/testkit";
 import { createApp } from "../../services/api/src/server";
 import { createApiGatewayStorage } from "../../services/api/src/storage";
 
+import {directSafetyEnv,safeProvider,bindSafetyIdentity,completeSafeImages} from './ugc-direct-fixture';
 const pool=testPool();
-const base={APP_ENV:"test",DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:"ugc-editor-session",ADMIN_API_TOKEN:"ugc-editor-admin",
+const base={...directSafetyEnv,APP_ENV:"test",DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:"ugc-editor-session",ADMIN_API_TOKEN:"ugc-editor-admin",
   UPLOAD_TOKEN_SECRET:"ugc-editor-upload",OBJECT_STORAGE_DRIVER:"api_gateway"};
 const closedConfig=loadConfig(base);
 const openConfig=loadConfig({...base,UGC_GO_LIVE_GATE:"true",UGC_LEGAL_APPROVAL_ID:"synthetic-test-approval",
@@ -21,17 +22,18 @@ const identity=async(name:string)=>{
   expect(response.statusCode).toBe(200);return response.json();
 };
 beforeAll(async()=>{
+  vi.stubGlobal("fetch",safeProvider);
   await resetDatabase(pool);
   const storage=createApiGatewayStorage(closedConfig);await storage.ensureReady();
   app=await createApp({config:closedConfig,pool,storage});
   owner=await identity("ugc-editor-owner");other=await identity("ugc-editor-other");
-  reviewer=await identity("ugc-editor-reviewer");publisher=await identity("ugc-editor-publisher");
+  reviewer=await identity("ugc-editor-reviewer");publisher=await identity("ugc-editor-publisher");await bindSafetyIdentity(pool,owner.memberId);
   for(const actor of [reviewer,publisher])await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
     VALUES($1,'community.moderate','fixture','UGC isolated integration','test','integration_fixture')`,[actor.memberId]);
 });
-afterAll(async()=>{await openApp?.close();await app?.close();await pool.end();});
+afterAll(async()=>{await openApp?.close();await app?.close();await pool.end();vi.unstubAllGlobals();});
 
-it("keeps image-only drafts private, reuses owned media across revisions, and publishes only after independent review",async()=>{
+it("keeps image-only drafts private, reuses owned media across revisions, and publishes only after matching automatic safety results",async()=>{
   const headers={...auth(owner),"idempotency-key":"ugc-editor-create-0001"};
   const created=await app.inject({method:"POST",url:"/v1/me/ugc/posts",headers,payload:{}});
   expect(created.statusCode).toBe(200);
@@ -75,8 +77,6 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect((await app.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/submit`,headers:auth(owner),payload:{expectedVersion:3}})).statusCode).toBe(503);
   expect((await app.inject({method:"GET",url:"/v1/ugc/posts"})).json()).toMatchObject({publicEnabled:false,items:[]});
 
-  await pool.query(`UPDATE ugc_media_asset SET scan_result=$2::jsonb WHERE id=$1`,[upload.mediaId,
-    JSON.stringify({verdict:"safe",provider:"test_fixture",checkedAt:new Date().toISOString()})]);
   await pool.query(`INSERT INTO ugc_go_live_approval(approval_reference,signed_by,evidence,signed_at,expires_at)
     VALUES('synthetic-test-approval-20260912','isolated test fixture',$1,now(),now()+interval '1 hour')`,[{scope:"isolated integration only"}]);
   await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'");
@@ -93,16 +93,13 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   const reviewPreviewPath=new URL(reviewPreview.json().url).pathname+new URL(reviewPreview.json().url).search;
   expect((await openApp.inject({method:"GET",url:reviewPreviewPath})).statusCode).toBe(200);
   const mediaReview=await openApp.inject({method:"POST",url:`/v1/management/ugc/media/${upload.mediaId}/review`,headers:auth(reviewer),
-    payload:{decision:"approve",reason:"合成图片已通过测试扫描",ruleVersion:"UGC-R1"}});
-  expect(mediaReview.statusCode).toBe(200);
-  expect((await openApp.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/review`,headers:auth(owner),
-    payload:{decision:"approve",reason:"自行审核不允许",ruleVersion:"UGC-R1",expectedVersion:4}})).statusCode).toBe(403);
-  const reviewed=await openApp.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/review`,headers:auth(reviewer),
-    payload:{decision:"approve",reason:"内容与公开许可已核对",ruleVersion:"UGC-R1",expectedVersion:4}});
-  expect(reviewed.statusCode).toBe(200);
-  expect((await openApp.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/publish`,headers:auth(reviewer),payload:{expectedVersion:5}})).statusCode).toBe(403);
-  const published=await openApp.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/publish`,headers:auth(publisher),payload:{expectedVersion:5}});
-  expect(published.statusCode).toBe(200);
+    payload:{decision:"approve",reason:"人工审核已取消",ruleVersion:"UGC-R1"}});
+  expect(mediaReview.statusCode).toBe(410);
+  expect((await openApp.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/review`,headers:auth(reviewer),
+    payload:{decision:"approve",reason:"人工审核已取消",ruleVersion:"UGC-R1",expectedVersion:4}})).statusCode).toBe(410);
+  expect((await openApp.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/publish`,headers:auth(publisher),payload:{expectedVersion:4}})).statusCode).toBe(410);
+  expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).statusCode).toBe(404);
+  await completeSafeImages(pool,openConfig,createApiGatewayStorage(openConfig),draft.id);
   expect((await openApp.inject({method:"GET",url:reviewPreviewPath})).statusCode).toBe(404);
   const publicPost=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`});
   expect(publicPost.statusCode).toBe(200);expect(publicPost.json().media).toHaveLength(1);
@@ -223,8 +220,8 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
     headers:{...auth(other),"idempotency-key":"ugc-blocked-comment-0001"},payload:{body:"屏蔽后不应互动"}})).statusCode).toBe(404);
   expect((await pool.query("SELECT count(*)::int AS n FROM ugc_author_follow WHERE follower_member_id=$1",[other.memberId])).rows[0].n).toBe(0);
   const edited=await openApp.inject({method:"PUT",url:`/v1/me/ugc/posts/${draft.id}/draft`,headers:auth(owner),
-    payload:{...imageOnly,title:"未审核标题",body:"新版尚未审核",expectedVersion:6}});
-  expect(edited.statusCode).toBe(200);expect(edited.json()).toMatchObject({state:"draft",version:7,publicVersionActive:true,publishedRevision:4});
+    payload:{...imageOnly,title:"未审核标题",body:"新版尚未审核",expectedVersion:5}});
+  expect(edited.statusCode).toBe(200);expect(edited.json()).toMatchObject({state:"draft",version:6,publicVersionActive:true,publishedRevision:4});
   const privateAuthorization=await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/media/authorize`,headers:auth(owner),
     payload:{mimeType:"image/png",maxBytes:100}});
   expect(privateAuthorization.statusCode).toBe(200);
@@ -234,11 +231,11 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect((await openApp.inject({method:"POST",url:`/v1/uploads/${privateUpload.mediaId}/assemble`,payload:{token:privateUpload.fields.token}})).statusCode).toBe(200);
   expect((await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/media/${privateUpload.mediaId}/complete`,headers:auth(owner),payload:{}})).statusCode).toBe(200);
   const privateDraft=await openApp.inject({method:"PUT",url:`/v1/me/ugc/posts/${draft.id}/draft`,headers:auth(owner),
-    payload:{...imageOnly,mediaIds:[upload.mediaId,privateUpload.mediaId],title:"未提交私人版本",expectedVersion:7}});
+    payload:{...imageOnly,mediaIds:[upload.mediaId,privateUpload.mediaId],title:"未提交私人版本",expectedVersion:6}});
   expect(privateDraft.statusCode).toBe(200);
   expect((await openApp.inject({method:"GET",url:`/v1/management/ugc/posts/${draft.id}`,headers:auth(reviewer)})).statusCode).toBe(404);
   expect((await openApp.inject({method:"GET",url:`/v1/management/ugc/media/${privateUpload.mediaId}/preview-url`,headers:auth(reviewer)})).statusCode).toBe(404);
-  const privateSubmitted=await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/submit`,headers:auth(owner),payload:{expectedVersion:8}});
+  const privateSubmitted=await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/submit`,headers:auth(owner),payload:{expectedVersion:7}});
   expect(privateSubmitted.statusCode).toBe(200);
   const privatePreview=await openApp.inject({method:"GET",url:`/v1/management/ugc/media/${privateUpload.mediaId}/preview-url`,headers:auth(reviewer)});
   expect(privatePreview.statusCode).toBe(200);
@@ -253,8 +250,9 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect((await openApp.inject({method:"GET",url:publisherPreviewPath})).statusCode).toBe(403);
   expect((await openApp.inject({method:"GET",url:privatePreviewPath})).statusCode).toBe(200);
   const rejectedPrivate=await openApp.inject({method:"POST",url:`/v1/management/ugc/posts/${draft.id}/review`,headers:auth(reviewer),
-    payload:{decision:"reject",reason:"私人修订退回作者修改",ruleVersion:"UGC-R1",expectedVersion:9}});
-  expect(rejectedPrivate.statusCode).toBe(200);
+    payload:{decision:"reject",reason:"人工审核已取消",ruleVersion:"UGC-R1",expectedVersion:8}});
+  expect(rejectedPrivate.statusCode).toBe(410);
+  await completeSafeImages(pool,openConfig,createApiGatewayStorage(openConfig),draft.id,"risky");
   expect((await openApp.inject({method:"GET",url:privatePreviewPath})).statusCode).toBe(404);
   const stillPublic=(await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).json();
   expect(stillPublic.body).toBe("");expect(stillPublic.media).toHaveLength(1);
@@ -272,24 +270,24 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect(hideReport.statusCode).toBe(200);
   const hideQueue=(await openApp.inject({method:"GET",url:"/v1/management/ugc/reports",headers:auth(reviewer)})).json();
   const hideItem=hideQueue.items.find((item:{id:string})=>item.id===hideReport.json().id);
-  expect(hideItem).toMatchObject({targetVersion:10});
+  expect(hideItem).toMatchObject({targetVersion:9});
   const hidden=await openApp.inject({method:"POST",url:`/v1/management/ugc/reports/${hideReport.json().id}/decision`,
-    headers:auth(reviewer),payload:{decision:"hide_post",reason:"核实后下架合成测试帖子",expectedVersion:1,expectedTargetVersion:10}});
+    headers:auth(reviewer),payload:{decision:"hide_post",reason:"核实后下架合成测试帖子",expectedVersion:1,expectedTargetVersion:9}});
   expect(hidden.statusCode).toBe(200);
   expect((await openApp.inject({method:"GET",url:`/v1/ugc/media/${upload.mediaId}`})).statusCode).toBe(404);
   const hiddenOwn=(await openApp.inject({method:"GET",url:`/v1/me/ugc/posts/${draft.id}`,headers:auth(owner)})).json();
-  expect(hiddenOwn).toMatchObject({state:"hidden",version:11,hiddenReason:"核实后下架合成测试帖子"});
+  expect(hiddenOwn).toMatchObject({state:"hidden",version:10,hiddenReason:"核实后下架合成测试帖子"});
   expect(hiddenOwn.hiddenPublished.body).toBe("");
   expect((await openApp.inject({method:"GET",url:"/v1/me/ugc/posts",headers:auth(owner)})).json().items)
     .toContainEqual(expect.objectContaining({id:draft.id,state:"hidden"}));
   expect((await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/appeals`,headers:auth(other),
-    payload:{reason:"他人不能代为申诉",expectedVersion:11}})).statusCode).toBe(404);
+    payload:{reason:"他人不能代为申诉",expectedVersion:10}})).statusCode).toBe(404);
   const appeal=await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/appeals`,headers:auth(owner),
-    payload:{reason:"请复核这次下架所依据的内容",expectedVersion:11}});
+    payload:{reason:"请复核这次下架所依据的内容",expectedVersion:10}});
   expect(appeal.statusCode,JSON.stringify(appeal.json())).toBe(200);
   expect(appeal.json()).toMatchObject({state:"received",alreadyCreated:false});
   expect((await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/appeals`,headers:auth(owner),
-    payload:{reason:"请复核这次下架所依据的内容",expectedVersion:11}})).json().alreadyCreated).toBe(true);
+    payload:{reason:"请复核这次下架所依据的内容",expectedVersion:10}})).json().alreadyCreated).toBe(true);
   expect((await openApp.inject({method:"GET",url:"/v1/me/ugc/activity/appeals",headers:auth(owner)})).json())
     .toMatchObject({matchingTotal:1,items:[{id:appeal.json().id,state:"received"}]});
   const appealQueue=(await openApp.inject({method:"GET",url:"/v1/management/ugc/appeals",headers:auth(reviewer)})).json();
@@ -305,7 +303,7 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
     VALUES($1,'community.moderate','fixture','Independent appeal review','test','integration_fixture')`,[other.memberId]);
   const independentQueue=(await openApp.inject({method:"GET",url:"/v1/management/ugc/appeals",headers:auth(other)})).json();
   const independentRow=independentQueue.items.find((item:{id:string})=>item.id===appeal.json().id);
-  expect(independentRow).toMatchObject({postVersion:11,publishedRevision:4,hiddenByMemberId:reviewer.memberId,
+  expect(independentRow).toMatchObject({postVersion:10,publishedRevision:4,hiddenByMemberId:reviewer.memberId,
     hideReporterMemberId:publisher.memberId});
   expect(JSON.stringify(independentRow)).not.toContain("未提交私人版本");
   const restored=await openApp.inject({method:"POST",url:`/v1/management/ugc/appeals/${appeal.json().id}/decision`,

@@ -1,0 +1,3404 @@
+{
+  "sourceSha256": "e627214bfdff6520d9febd04ad984e61849425e810511eae21d9da62881fbc29",
+  "scope": "Current-source native WeChat simulator, synthetic GET responses, no server writes; no physical-device or deployed-version claim.",
+  "calls": [
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "installed": true,
+              "priorHasSession": false,
+              "priorHasCloud": false,
+              "writes": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "ready": true,
+              "route": "pages/home/index"
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "route": "pages/home/index",
+              "rects": [
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 28.859375,
+                    "right": 361.125,
+                    "top": 247.421875,
+                    "bottom": 281.921875,
+                    "width": 332.265625,
+                    "height": 34.5
+                  }
+                ],
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 58.765625,
+                    "right": 331.21875,
+                    "top": 401.3125,
+                    "bottom": 463.3125,
+                    "width": 272.453125,
+                    "height": 62
+                  }
+                ],
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 48.796875,
+                    "right": 341.1875,
+                    "top": 580.3125,
+                    "bottom": 627.5,
+                    "width": 292.390625,
+                    "height": 47.1875
+                  }
+                ],
+                []
+              ],
+              "loading": false,
+              "careTitle": "今天的护理已记录"
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "simulator_screenshot",
+      "result": {
+        "ok": true,
+        "tool": "simulator_screenshot",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/home-ready-e627214b.png",
+          "imageWidth": 195,
+          "imageHeight": 422
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": [
+              {
+                "elapsed": 20,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 28.859375,
+                      "right": 361.125,
+                      "top": 247.421875,
+                      "bottom": 281.921875,
+                      "width": 332.265625,
+                      "height": 34.5
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 58.765625,
+                      "right": 331.21875,
+                      "top": 401.3125,
+                      "bottom": 463.3125,
+                      "width": 272.453125,
+                      "height": 62
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 48.796875,
+                      "right": 341.1875,
+                      "top": 580.3125,
+                      "bottom": 627.5,
+                      "width": 292.390625,
+                      "height": 47.1875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": "今天的护理已记录"
+              },
+              {
+                "elapsed": 111,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 28.859375,
+                      "right": 361.125,
+                      "top": 247.421875,
+                      "bottom": 281.921875,
+                      "width": 332.265625,
+                      "height": 34.5
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 58.765625,
+                      "right": 331.21875,
+                      "top": 401.3125,
+                      "bottom": 463.3125,
+                      "width": 272.453125,
+                      "height": 62
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 48.796875,
+                      "right": 341.1875,
+                      "top": 580.3125,
+                      "bottom": 627.5,
+                      "width": 292.390625,
+                      "height": 47.1875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": "今天的护理已记录"
+              },
+              {
+                "elapsed": 203,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 28.859375,
+                      "right": 361.125,
+                      "top": 247.421875,
+                      "bottom": 281.921875,
+                      "width": 332.265625,
+                      "height": 34.5
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 58.765625,
+                      "right": 331.21875,
+                      "top": 401.3125,
+                      "bottom": 463.3125,
+                      "width": 272.453125,
+                      "height": 62
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 48.796875,
+                      "right": 341.1875,
+                      "top": 580.3125,
+                      "bottom": 627.5,
+                      "width": 292.390625,
+                      "height": 47.1875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": "今天的护理已记录"
+              },
+              {
+                "elapsed": 298,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 28.859375,
+                      "right": 361.125,
+                      "top": 247.421875,
+                      "bottom": 281.921875,
+                      "width": 332.265625,
+                      "height": 34.5
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 58.765625,
+                      "right": 331.21875,
+                      "top": 401.3125,
+                      "bottom": 463.3125,
+                      "width": 272.453125,
+                      "height": 62
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 48.796875,
+                      "right": 341.1875,
+                      "top": 580.3125,
+                      "bottom": 627.5,
+                      "width": 292.390625,
+                      "height": 47.1875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": "今天的护理已记录"
+              },
+              {
+                "elapsed": 388,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 28.859375,
+                      "right": 361.125,
+                      "top": 247.421875,
+                      "bottom": 281.921875,
+                      "width": 332.265625,
+                      "height": 34.5
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 58.765625,
+                      "right": 331.21875,
+                      "top": 401.3125,
+                      "bottom": 463.3125,
+                      "width": 272.453125,
+                      "height": 62
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 48.796875,
+                      "right": 341.1875,
+                      "top": 580.3125,
+                      "bottom": 627.5,
+                      "width": 292.390625,
+                      "height": 47.1875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": "今天的护理已记录"
+              },
+              {
+                "elapsed": 481,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 28.859375,
+                      "right": 361.125,
+                      "top": 247.421875,
+                      "bottom": 281.921875,
+                      "width": 332.265625,
+                      "height": 34.5
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 58.765625,
+                      "right": 331.21875,
+                      "top": 401.3125,
+                      "bottom": 463.3125,
+                      "width": 272.453125,
+                      "height": 62
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 48.796875,
+                      "right": 341.1875,
+                      "top": 580.3125,
+                      "bottom": 627.5,
+                      "width": 292.390625,
+                      "height": 47.1875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": "今天的护理已记录"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "tool": "simulator_screenshot",
+      "result": {
+        "ok": true,
+        "tool": "simulator_screenshot",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/home-refresh-e627214b.png",
+          "imageWidth": 195,
+          "imageHeight": 422
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "released": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "ready": true,
+              "route": "pages/records/index"
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "route": "pages/records/index",
+              "rects": [
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 18,
+                    "right": 372,
+                    "top": 100,
+                    "bottom": 128,
+                    "width": 354,
+                    "height": 28
+                  }
+                ],
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 16,
+                    "right": 374,
+                    "top": 335.890625,
+                    "bottom": 484.875,
+                    "width": 358,
+                    "height": 148.984375
+                  }
+                ],
+                [
+                  {
+                    "id": "",
+                    "dataset": {
+                      "key": "daily:11111111-1111-4111-8111-111111111111"
+                    },
+                    "left": 17,
+                    "right": 373,
+                    "top": 395.875,
+                    "bottom": 483.875,
+                    "width": 356,
+                    "height": 88
+                  }
+                ],
+                [],
+                []
+              ],
+              "loading": false,
+              "careTitle": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "simulator_screenshot",
+      "result": {
+        "ok": true,
+        "tool": "simulator_screenshot",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/records-ready-e627214b.png",
+          "imageWidth": 195,
+          "imageHeight": 422
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": [
+              {
+                "elapsed": 20,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 18,
+                      "right": 372,
+                      "top": 100,
+                      "bottom": 128,
+                      "width": 354,
+                      "height": 28
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 16,
+                      "right": 374,
+                      "top": 335.890625,
+                      "bottom": 484.875,
+                      "width": 358,
+                      "height": 148.984375
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "key": "daily:11111111-1111-4111-8111-111111111111"
+                      },
+                      "left": 17,
+                      "right": 373,
+                      "top": 395.875,
+                      "bottom": 483.875,
+                      "width": 356,
+                      "height": 88
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": null
+              },
+              {
+                "elapsed": 114,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 18,
+                      "right": 372,
+                      "top": 100,
+                      "bottom": 128,
+                      "width": 354,
+                      "height": 28
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 16,
+                      "right": 374,
+                      "top": 335.890625,
+                      "bottom": 484.875,
+                      "width": 358,
+                      "height": 148.984375
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "key": "daily:11111111-1111-4111-8111-111111111111"
+                      },
+                      "left": 17,
+                      "right": 373,
+                      "top": 395.875,
+                      "bottom": 483.875,
+                      "width": 356,
+                      "height": 88
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": null
+              },
+              {
+                "elapsed": 207,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 18,
+                      "right": 372,
+                      "top": 100,
+                      "bottom": 128,
+                      "width": 354,
+                      "height": 28
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 16,
+                      "right": 374,
+                      "top": 335.890625,
+                      "bottom": 484.875,
+                      "width": 358,
+                      "height": 148.984375
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "key": "daily:11111111-1111-4111-8111-111111111111"
+                      },
+                      "left": 17,
+                      "right": 373,
+                      "top": 395.875,
+                      "bottom": 483.875,
+                      "width": 356,
+                      "height": 88
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": null
+              },
+              {
+                "elapsed": 300,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 18,
+                      "right": 372,
+                      "top": 100,
+                      "bottom": 128,
+                      "width": 354,
+                      "height": 28
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 16,
+                      "right": 374,
+                      "top": 335.890625,
+                      "bottom": 484.875,
+                      "width": 358,
+                      "height": 148.984375
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "key": "daily:11111111-1111-4111-8111-111111111111"
+                      },
+                      "left": 17,
+                      "right": 373,
+                      "top": 395.875,
+                      "bottom": 483.875,
+                      "width": 356,
+                      "height": 88
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": null
+              },
+              {
+                "elapsed": 394,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 18,
+                      "right": 372,
+                      "top": 100,
+                      "bottom": 128,
+                      "width": 354,
+                      "height": 28
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 16,
+                      "right": 374,
+                      "top": 335.890625,
+                      "bottom": 484.875,
+                      "width": 358,
+                      "height": 148.984375
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "key": "daily:11111111-1111-4111-8111-111111111111"
+                      },
+                      "left": 17,
+                      "right": 373,
+                      "top": 395.875,
+                      "bottom": 483.875,
+                      "width": 356,
+                      "height": 88
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": null
+              },
+              {
+                "elapsed": 488,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 18,
+                      "right": 372,
+                      "top": 100,
+                      "bottom": 128,
+                      "width": 354,
+                      "height": 28
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 16,
+                      "right": 374,
+                      "top": 335.890625,
+                      "bottom": 484.875,
+                      "width": 358,
+                      "height": 148.984375
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "key": "daily:11111111-1111-4111-8111-111111111111"
+                      },
+                      "left": 17,
+                      "right": 373,
+                      "top": 395.875,
+                      "bottom": 483.875,
+                      "width": 356,
+                      "height": 88
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": false,
+                "careTitle": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "tool": "simulator_screenshot",
+      "result": {
+        "ok": true,
+        "tool": "simulator_screenshot",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/records-refresh-e627214b.png",
+          "imageWidth": 195,
+          "imageHeight": 422
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "released": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "ready": true,
+              "route": "pages/community/index"
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "route": "pages/community/index",
+              "rects": [
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 9,
+                    "right": 381,
+                    "top": 149,
+                    "bottom": 271,
+                    "width": 372,
+                    "height": 122
+                  }
+                ],
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 9,
+                    "right": 381,
+                    "top": 273,
+                    "bottom": 345.296875,
+                    "width": 372,
+                    "height": 72.296875
+                  }
+                ],
+                [
+                  {
+                    "id": "",
+                    "dataset": {
+                      "id": "22222222-2222-4222-8222-222222222222"
+                    },
+                    "left": 9,
+                    "right": 193,
+                    "top": 273,
+                    "bottom": 341.296875,
+                    "width": 184,
+                    "height": 68.296875
+                  }
+                ],
+                []
+              ],
+              "loading": false,
+              "careTitle": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "simulator_screenshot",
+      "result": {
+        "ok": true,
+        "tool": "simulator_screenshot",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/community-ready-e627214b.png",
+          "imageWidth": 195,
+          "imageHeight": 422
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": [
+              {
+                "elapsed": 16,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 149,
+                      "bottom": 271,
+                      "width": 372,
+                      "height": 122
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 273,
+                      "bottom": 345.296875,
+                      "width": 372,
+                      "height": 72.296875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "id": "22222222-2222-4222-8222-222222222222"
+                      },
+                      "left": 9,
+                      "right": 193,
+                      "top": 273,
+                      "bottom": 341.296875,
+                      "width": 184,
+                      "height": 68.296875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": false,
+                "tasksLoading": true,
+                "careTitle": null
+              },
+              {
+                "elapsed": 108,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 149,
+                      "bottom": 271,
+                      "width": 372,
+                      "height": 122
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 273,
+                      "bottom": 345.296875,
+                      "width": 372,
+                      "height": 72.296875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "id": "22222222-2222-4222-8222-222222222222"
+                      },
+                      "left": 9,
+                      "right": 193,
+                      "top": 273,
+                      "bottom": 341.296875,
+                      "width": 184,
+                      "height": 68.296875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": false,
+                "tasksLoading": true,
+                "careTitle": null
+              },
+              {
+                "elapsed": 197,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 149,
+                      "bottom": 271,
+                      "width": 372,
+                      "height": 122
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 273,
+                      "bottom": 345.296875,
+                      "width": 372,
+                      "height": 72.296875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "id": "22222222-2222-4222-8222-222222222222"
+                      },
+                      "left": 9,
+                      "right": 193,
+                      "top": 273,
+                      "bottom": 341.296875,
+                      "width": 184,
+                      "height": 68.296875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": false,
+                "tasksLoading": true,
+                "careTitle": null
+              },
+              {
+                "elapsed": 288,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 149,
+                      "bottom": 271,
+                      "width": 372,
+                      "height": 122
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 273,
+                      "bottom": 345.296875,
+                      "width": 372,
+                      "height": 72.296875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "id": "22222222-2222-4222-8222-222222222222"
+                      },
+                      "left": 9,
+                      "right": 193,
+                      "top": 273,
+                      "bottom": 341.296875,
+                      "width": 184,
+                      "height": 68.296875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": false,
+                "tasksLoading": true,
+                "careTitle": null
+              },
+              {
+                "elapsed": 378,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 149,
+                      "bottom": 271,
+                      "width": 372,
+                      "height": 122
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 273,
+                      "bottom": 345.296875,
+                      "width": 372,
+                      "height": 72.296875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "id": "22222222-2222-4222-8222-222222222222"
+                      },
+                      "left": 9,
+                      "right": 193,
+                      "top": 273,
+                      "bottom": 341.296875,
+                      "width": 184,
+                      "height": 68.296875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": false,
+                "tasksLoading": true,
+                "careTitle": null
+              },
+              {
+                "elapsed": 470,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 149,
+                      "bottom": 271,
+                      "width": 372,
+                      "height": 122
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 9,
+                      "right": 381,
+                      "top": 273,
+                      "bottom": 345.296875,
+                      "width": 372,
+                      "height": 72.296875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {
+                        "id": "22222222-2222-4222-8222-222222222222"
+                      },
+                      "left": 9,
+                      "right": 193,
+                      "top": 273,
+                      "bottom": 341.296875,
+                      "width": 184,
+                      "height": 68.296875
+                    }
+                  ],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": false,
+                "tasksLoading": true,
+                "careTitle": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "tool": "simulator_screenshot",
+      "result": {
+        "ok": true,
+        "tool": "simulator_screenshot",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/community-refresh-e627214b.png",
+          "imageWidth": 195,
+          "imageHeight": 422
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "released": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "ready": true,
+              "route": "pages/profile/index"
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "route": "pages/profile/index",
+              "rects": [
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 14,
+                    "right": 376,
+                    "top": 94,
+                    "bottom": 159,
+                    "width": 362,
+                    "height": 65
+                  }
+                ],
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 14,
+                    "right": 376,
+                    "top": 171,
+                    "bottom": 328.6875,
+                    "width": 362,
+                    "height": 157.6875
+                  }
+                ],
+                [
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 14,
+                    "right": 376,
+                    "top": 366.6875,
+                    "bottom": 716.6875,
+                    "width": 362,
+                    "height": 350
+                  },
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 14,
+                    "right": 376,
+                    "top": 754.6875,
+                    "bottom": 814.6875,
+                    "width": 362,
+                    "height": 60
+                  },
+                  {
+                    "id": "",
+                    "dataset": {},
+                    "left": 14,
+                    "right": 376,
+                    "top": 852.6875,
+                    "bottom": 1086.6875,
+                    "width": 362,
+                    "height": 234
+                  }
+                ],
+                [],
+                []
+              ],
+              "loading": false,
+              "careTitle": "今日日常护理已记录",
+              "retainingSnapshot": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "simulator_screenshot",
+      "result": {
+        "ok": true,
+        "tool": "simulator_screenshot",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/profile-ready-e627214b.png",
+          "imageWidth": 195,
+          "imageHeight": 422
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": [
+              {
+                "elapsed": 21,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 94,
+                      "bottom": 159,
+                      "width": 362,
+                      "height": 65
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 171,
+                      "bottom": 328.6875,
+                      "width": 362,
+                      "height": 157.6875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 366.6875,
+                      "bottom": 716.6875,
+                      "width": 362,
+                      "height": 350
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 754.6875,
+                      "bottom": 814.6875,
+                      "width": 362,
+                      "height": 60
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 852.6875,
+                      "bottom": 1086.6875,
+                      "width": 362,
+                      "height": 234
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": true,
+                "careTitle": "今日日常护理已记录",
+                "retainingSnapshot": true
+              },
+              {
+                "elapsed": 116,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 94,
+                      "bottom": 159,
+                      "width": 362,
+                      "height": 65
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 171,
+                      "bottom": 328.6875,
+                      "width": 362,
+                      "height": 157.6875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 366.6875,
+                      "bottom": 716.6875,
+                      "width": 362,
+                      "height": 350
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 754.6875,
+                      "bottom": 814.6875,
+                      "width": 362,
+                      "height": 60
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 852.6875,
+                      "bottom": 1086.6875,
+                      "width": 362,
+                      "height": 234
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": true,
+                "careTitle": "今日日常护理已记录",
+                "retainingSnapshot": true
+              },
+              {
+                "elapsed": 209,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 94,
+                      "bottom": 159,
+                      "width": 362,
+                      "height": 65
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 171,
+                      "bottom": 328.6875,
+                      "width": 362,
+                      "height": 157.6875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 366.6875,
+                      "bottom": 716.6875,
+                      "width": 362,
+                      "height": 350
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 754.6875,
+                      "bottom": 814.6875,
+                      "width": 362,
+                      "height": 60
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 852.6875,
+                      "bottom": 1086.6875,
+                      "width": 362,
+                      "height": 234
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": true,
+                "careTitle": "今日日常护理已记录",
+                "retainingSnapshot": true
+              },
+              {
+                "elapsed": 300,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 94,
+                      "bottom": 159,
+                      "width": 362,
+                      "height": 65
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 171,
+                      "bottom": 328.6875,
+                      "width": 362,
+                      "height": 157.6875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 366.6875,
+                      "bottom": 716.6875,
+                      "width": 362,
+                      "height": 350
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 754.6875,
+                      "bottom": 814.6875,
+                      "width": 362,
+                      "height": 60
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 852.6875,
+                      "bottom": 1086.6875,
+                      "width": 362,
+                      "height": 234
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": true,
+                "careTitle": "今日日常护理已记录",
+                "retainingSnapshot": true
+              },
+              {
+                "elapsed": 393,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 94,
+                      "bottom": 159,
+                      "width": 362,
+                      "height": 65
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 171,
+                      "bottom": 328.6875,
+                      "width": 362,
+                      "height": 157.6875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 366.6875,
+                      "bottom": 716.6875,
+                      "width": 362,
+                      "height": 350
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 754.6875,
+                      "bottom": 814.6875,
+                      "width": 362,
+                      "height": 60
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 852.6875,
+                      "bottom": 1086.6875,
+                      "width": 362,
+                      "height": 234
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": true,
+                "careTitle": "今日日常护理已记录",
+                "retainingSnapshot": true
+              },
+              {
+                "elapsed": 486,
+                "rects": [
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 94,
+                      "bottom": 159,
+                      "width": 362,
+                      "height": 65
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 171,
+                      "bottom": 328.6875,
+                      "width": 362,
+                      "height": 157.6875
+                    }
+                  ],
+                  [
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 366.6875,
+                      "bottom": 716.6875,
+                      "width": 362,
+                      "height": 350
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 754.6875,
+                      "bottom": 814.6875,
+                      "width": 362,
+                      "height": 60
+                    },
+                    {
+                      "id": "",
+                      "dataset": {},
+                      "left": 14,
+                      "right": 376,
+                      "top": 852.6875,
+                      "bottom": 1086.6875,
+                      "width": 362,
+                      "height": 234
+                    }
+                  ],
+                  [],
+                  []
+                ],
+                "loading": true,
+                "dailyLoading": true,
+                "tasksLoading": true,
+                "careTitle": "今日日常护理已记录",
+                "retainingSnapshot": true
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "tool": "simulator_screenshot",
+      "result": {
+        "ok": true,
+        "tool": "simulator_screenshot",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/profile-refresh-e627214b.png",
+          "imageWidth": 195,
+          "imageHeight": 422
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "released": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "tool": "automation_evaluate",
+      "result": {
+        "ok": true,
+        "tool": "automation_evaluate",
+        "clientName": "Codex",
+        "result": {
+          "success": true,
+          "result": {
+            "result": {
+              "writes": [],
+              "getCount": 63,
+              "syntheticOnly": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "routes": [
+    {
+      "route": "home",
+      "selectors": [
+        ".care-greeting",
+        ".care-cta",
+        ".care-signal",
+        ".home-authority-state"
+      ],
+      "baseline": {
+        "route": "pages/home/index",
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 28.859375,
+              "right": 361.125,
+              "top": 247.421875,
+              "bottom": 281.921875,
+              "width": 332.265625,
+              "height": 34.5
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 58.765625,
+              "right": 331.21875,
+              "top": 401.3125,
+              "bottom": 463.3125,
+              "width": 272.453125,
+              "height": 62
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 48.796875,
+              "right": 341.1875,
+              "top": 580.3125,
+              "bottom": 627.5,
+              "width": 292.390625,
+              "height": 47.1875
+            }
+          ],
+          []
+        ],
+        "loading": false,
+        "careTitle": "今天的护理已记录"
+      },
+      "samples": [
+        {
+          "elapsed": 20,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 28.859375,
+                "right": 361.125,
+                "top": 247.421875,
+                "bottom": 281.921875,
+                "width": 332.265625,
+                "height": 34.5
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 58.765625,
+                "right": 331.21875,
+                "top": 401.3125,
+                "bottom": 463.3125,
+                "width": 272.453125,
+                "height": 62
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 48.796875,
+                "right": 341.1875,
+                "top": 580.3125,
+                "bottom": 627.5,
+                "width": 292.390625,
+                "height": 47.1875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": "今天的护理已记录"
+        },
+        {
+          "elapsed": 111,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 28.859375,
+                "right": 361.125,
+                "top": 247.421875,
+                "bottom": 281.921875,
+                "width": 332.265625,
+                "height": 34.5
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 58.765625,
+                "right": 331.21875,
+                "top": 401.3125,
+                "bottom": 463.3125,
+                "width": 272.453125,
+                "height": 62
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 48.796875,
+                "right": 341.1875,
+                "top": 580.3125,
+                "bottom": 627.5,
+                "width": 292.390625,
+                "height": 47.1875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": "今天的护理已记录"
+        },
+        {
+          "elapsed": 203,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 28.859375,
+                "right": 361.125,
+                "top": 247.421875,
+                "bottom": 281.921875,
+                "width": 332.265625,
+                "height": 34.5
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 58.765625,
+                "right": 331.21875,
+                "top": 401.3125,
+                "bottom": 463.3125,
+                "width": 272.453125,
+                "height": 62
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 48.796875,
+                "right": 341.1875,
+                "top": 580.3125,
+                "bottom": 627.5,
+                "width": 292.390625,
+                "height": 47.1875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": "今天的护理已记录"
+        },
+        {
+          "elapsed": 298,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 28.859375,
+                "right": 361.125,
+                "top": 247.421875,
+                "bottom": 281.921875,
+                "width": 332.265625,
+                "height": 34.5
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 58.765625,
+                "right": 331.21875,
+                "top": 401.3125,
+                "bottom": 463.3125,
+                "width": 272.453125,
+                "height": 62
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 48.796875,
+                "right": 341.1875,
+                "top": 580.3125,
+                "bottom": 627.5,
+                "width": 292.390625,
+                "height": 47.1875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": "今天的护理已记录"
+        },
+        {
+          "elapsed": 388,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 28.859375,
+                "right": 361.125,
+                "top": 247.421875,
+                "bottom": 281.921875,
+                "width": 332.265625,
+                "height": 34.5
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 58.765625,
+                "right": 331.21875,
+                "top": 401.3125,
+                "bottom": 463.3125,
+                "width": 272.453125,
+                "height": 62
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 48.796875,
+                "right": 341.1875,
+                "top": 580.3125,
+                "bottom": 627.5,
+                "width": 292.390625,
+                "height": 47.1875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": "今天的护理已记录"
+        },
+        {
+          "elapsed": 481,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 28.859375,
+                "right": 361.125,
+                "top": 247.421875,
+                "bottom": 281.921875,
+                "width": 332.265625,
+                "height": 34.5
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 58.765625,
+                "right": 331.21875,
+                "top": 401.3125,
+                "bottom": 463.3125,
+                "width": 272.453125,
+                "height": 62
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 48.796875,
+                "right": 341.1875,
+                "top": 580.3125,
+                "bottom": 627.5,
+                "width": 292.390625,
+                "height": 47.1875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": "今天的护理已记录"
+        }
+      ],
+      "baselineMatchesEveryRefreshSample": true,
+      "sampleCount": 6
+    },
+    {
+      "route": "records",
+      "selectors": [
+        ".records-summary",
+        ".record-list--recent",
+        ".record-row",
+        ".records-empty",
+        ".state"
+      ],
+      "baseline": {
+        "route": "pages/records/index",
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 18,
+              "right": 372,
+              "top": 100,
+              "bottom": 128,
+              "width": 354,
+              "height": 28
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 16,
+              "right": 374,
+              "top": 335.890625,
+              "bottom": 484.875,
+              "width": 358,
+              "height": 148.984375
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {
+                "key": "daily:11111111-1111-4111-8111-111111111111"
+              },
+              "left": 17,
+              "right": 373,
+              "top": 395.875,
+              "bottom": 483.875,
+              "width": 356,
+              "height": 88
+            }
+          ],
+          [],
+          []
+        ],
+        "loading": false,
+        "careTitle": null
+      },
+      "samples": [
+        {
+          "elapsed": 20,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 18,
+                "right": 372,
+                "top": 100,
+                "bottom": 128,
+                "width": 354,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 335.890625,
+                "bottom": 484.875,
+                "width": 358,
+                "height": 148.984375
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "key": "daily:11111111-1111-4111-8111-111111111111"
+                },
+                "left": 17,
+                "right": 373,
+                "top": 395.875,
+                "bottom": 483.875,
+                "width": 356,
+                "height": 88
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": null
+        },
+        {
+          "elapsed": 114,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 18,
+                "right": 372,
+                "top": 100,
+                "bottom": 128,
+                "width": 354,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 335.890625,
+                "bottom": 484.875,
+                "width": 358,
+                "height": 148.984375
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "key": "daily:11111111-1111-4111-8111-111111111111"
+                },
+                "left": 17,
+                "right": 373,
+                "top": 395.875,
+                "bottom": 483.875,
+                "width": 356,
+                "height": 88
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": null
+        },
+        {
+          "elapsed": 207,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 18,
+                "right": 372,
+                "top": 100,
+                "bottom": 128,
+                "width": 354,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 335.890625,
+                "bottom": 484.875,
+                "width": 358,
+                "height": 148.984375
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "key": "daily:11111111-1111-4111-8111-111111111111"
+                },
+                "left": 17,
+                "right": 373,
+                "top": 395.875,
+                "bottom": 483.875,
+                "width": 356,
+                "height": 88
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": null
+        },
+        {
+          "elapsed": 300,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 18,
+                "right": 372,
+                "top": 100,
+                "bottom": 128,
+                "width": 354,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 335.890625,
+                "bottom": 484.875,
+                "width": 358,
+                "height": 148.984375
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "key": "daily:11111111-1111-4111-8111-111111111111"
+                },
+                "left": 17,
+                "right": 373,
+                "top": 395.875,
+                "bottom": 483.875,
+                "width": 356,
+                "height": 88
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": null
+        },
+        {
+          "elapsed": 394,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 18,
+                "right": 372,
+                "top": 100,
+                "bottom": 128,
+                "width": 354,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 335.890625,
+                "bottom": 484.875,
+                "width": 358,
+                "height": 148.984375
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "key": "daily:11111111-1111-4111-8111-111111111111"
+                },
+                "left": 17,
+                "right": 373,
+                "top": 395.875,
+                "bottom": 483.875,
+                "width": 356,
+                "height": 88
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": null
+        },
+        {
+          "elapsed": 488,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 18,
+                "right": 372,
+                "top": 100,
+                "bottom": 128,
+                "width": 354,
+                "height": 28
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 16,
+                "right": 374,
+                "top": 335.890625,
+                "bottom": 484.875,
+                "width": 358,
+                "height": 148.984375
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "key": "daily:11111111-1111-4111-8111-111111111111"
+                },
+                "left": 17,
+                "right": 373,
+                "top": 395.875,
+                "bottom": 483.875,
+                "width": 356,
+                "height": 88
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": false,
+          "careTitle": null
+        }
+      ],
+      "baselineMatchesEveryRefreshSample": true,
+      "sampleCount": 6
+    },
+    {
+      "route": "community",
+      "selectors": [
+        ".community-task-list",
+        ".feed-grid",
+        ".feed-card",
+        ".community-loading"
+      ],
+      "baseline": {
+        "route": "pages/community/index",
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 9,
+              "right": 381,
+              "top": 149,
+              "bottom": 271,
+              "width": 372,
+              "height": 122
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 9,
+              "right": 381,
+              "top": 273,
+              "bottom": 345.296875,
+              "width": 372,
+              "height": 72.296875
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {
+                "id": "22222222-2222-4222-8222-222222222222"
+              },
+              "left": 9,
+              "right": 193,
+              "top": 273,
+              "bottom": 341.296875,
+              "width": 184,
+              "height": 68.296875
+            }
+          ],
+          []
+        ],
+        "loading": false,
+        "careTitle": null
+      },
+      "samples": [
+        {
+          "elapsed": 16,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 149,
+                "bottom": 271,
+                "width": 372,
+                "height": 122
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 273,
+                "bottom": 345.296875,
+                "width": 372,
+                "height": 72.296875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "id": "22222222-2222-4222-8222-222222222222"
+                },
+                "left": 9,
+                "right": 193,
+                "top": 273,
+                "bottom": 341.296875,
+                "width": 184,
+                "height": 68.296875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": false,
+          "tasksLoading": true,
+          "careTitle": null
+        },
+        {
+          "elapsed": 108,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 149,
+                "bottom": 271,
+                "width": 372,
+                "height": 122
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 273,
+                "bottom": 345.296875,
+                "width": 372,
+                "height": 72.296875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "id": "22222222-2222-4222-8222-222222222222"
+                },
+                "left": 9,
+                "right": 193,
+                "top": 273,
+                "bottom": 341.296875,
+                "width": 184,
+                "height": 68.296875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": false,
+          "tasksLoading": true,
+          "careTitle": null
+        },
+        {
+          "elapsed": 197,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 149,
+                "bottom": 271,
+                "width": 372,
+                "height": 122
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 273,
+                "bottom": 345.296875,
+                "width": 372,
+                "height": 72.296875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "id": "22222222-2222-4222-8222-222222222222"
+                },
+                "left": 9,
+                "right": 193,
+                "top": 273,
+                "bottom": 341.296875,
+                "width": 184,
+                "height": 68.296875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": false,
+          "tasksLoading": true,
+          "careTitle": null
+        },
+        {
+          "elapsed": 288,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 149,
+                "bottom": 271,
+                "width": 372,
+                "height": 122
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 273,
+                "bottom": 345.296875,
+                "width": 372,
+                "height": 72.296875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "id": "22222222-2222-4222-8222-222222222222"
+                },
+                "left": 9,
+                "right": 193,
+                "top": 273,
+                "bottom": 341.296875,
+                "width": 184,
+                "height": 68.296875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": false,
+          "tasksLoading": true,
+          "careTitle": null
+        },
+        {
+          "elapsed": 378,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 149,
+                "bottom": 271,
+                "width": 372,
+                "height": 122
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 273,
+                "bottom": 345.296875,
+                "width": 372,
+                "height": 72.296875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "id": "22222222-2222-4222-8222-222222222222"
+                },
+                "left": 9,
+                "right": 193,
+                "top": 273,
+                "bottom": 341.296875,
+                "width": 184,
+                "height": 68.296875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": false,
+          "tasksLoading": true,
+          "careTitle": null
+        },
+        {
+          "elapsed": 470,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 149,
+                "bottom": 271,
+                "width": 372,
+                "height": 122
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 9,
+                "right": 381,
+                "top": 273,
+                "bottom": 345.296875,
+                "width": 372,
+                "height": 72.296875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {
+                  "id": "22222222-2222-4222-8222-222222222222"
+                },
+                "left": 9,
+                "right": 193,
+                "top": 273,
+                "bottom": 341.296875,
+                "width": 184,
+                "height": 68.296875
+              }
+            ],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": false,
+          "tasksLoading": true,
+          "careTitle": null
+        }
+      ],
+      "baselineMatchesEveryRefreshSample": true,
+      "sampleCount": 6
+    },
+    {
+      "route": "profile",
+      "selectors": [
+        ".profile-identity",
+        ".care-status",
+        ".profile-group",
+        ".profile-sync-status",
+        ".profile-skeleton"
+      ],
+      "baseline": {
+        "route": "pages/profile/index",
+        "rects": [
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 14,
+              "right": 376,
+              "top": 94,
+              "bottom": 159,
+              "width": 362,
+              "height": 65
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 14,
+              "right": 376,
+              "top": 171,
+              "bottom": 328.6875,
+              "width": 362,
+              "height": 157.6875
+            }
+          ],
+          [
+            {
+              "id": "",
+              "dataset": {},
+              "left": 14,
+              "right": 376,
+              "top": 366.6875,
+              "bottom": 716.6875,
+              "width": 362,
+              "height": 350
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 14,
+              "right": 376,
+              "top": 754.6875,
+              "bottom": 814.6875,
+              "width": 362,
+              "height": 60
+            },
+            {
+              "id": "",
+              "dataset": {},
+              "left": 14,
+              "right": 376,
+              "top": 852.6875,
+              "bottom": 1086.6875,
+              "width": 362,
+              "height": 234
+            }
+          ],
+          [],
+          []
+        ],
+        "loading": false,
+        "careTitle": "今日日常护理已记录",
+        "retainingSnapshot": true
+      },
+      "samples": [
+        {
+          "elapsed": 21,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 94,
+                "bottom": 159,
+                "width": 362,
+                "height": 65
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 171,
+                "bottom": 328.6875,
+                "width": 362,
+                "height": 157.6875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 366.6875,
+                "bottom": 716.6875,
+                "width": 362,
+                "height": 350
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 754.6875,
+                "bottom": 814.6875,
+                "width": 362,
+                "height": 60
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 852.6875,
+                "bottom": 1086.6875,
+                "width": 362,
+                "height": 234
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": true,
+          "careTitle": "今日日常护理已记录",
+          "retainingSnapshot": true
+        },
+        {
+          "elapsed": 116,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 94,
+                "bottom": 159,
+                "width": 362,
+                "height": 65
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 171,
+                "bottom": 328.6875,
+                "width": 362,
+                "height": 157.6875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 366.6875,
+                "bottom": 716.6875,
+                "width": 362,
+                "height": 350
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 754.6875,
+                "bottom": 814.6875,
+                "width": 362,
+                "height": 60
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 852.6875,
+                "bottom": 1086.6875,
+                "width": 362,
+                "height": 234
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": true,
+          "careTitle": "今日日常护理已记录",
+          "retainingSnapshot": true
+        },
+        {
+          "elapsed": 209,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 94,
+                "bottom": 159,
+                "width": 362,
+                "height": 65
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 171,
+                "bottom": 328.6875,
+                "width": 362,
+                "height": 157.6875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 366.6875,
+                "bottom": 716.6875,
+                "width": 362,
+                "height": 350
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 754.6875,
+                "bottom": 814.6875,
+                "width": 362,
+                "height": 60
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 852.6875,
+                "bottom": 1086.6875,
+                "width": 362,
+                "height": 234
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": true,
+          "careTitle": "今日日常护理已记录",
+          "retainingSnapshot": true
+        },
+        {
+          "elapsed": 300,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 94,
+                "bottom": 159,
+                "width": 362,
+                "height": 65
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 171,
+                "bottom": 328.6875,
+                "width": 362,
+                "height": 157.6875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 366.6875,
+                "bottom": 716.6875,
+                "width": 362,
+                "height": 350
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 754.6875,
+                "bottom": 814.6875,
+                "width": 362,
+                "height": 60
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 852.6875,
+                "bottom": 1086.6875,
+                "width": 362,
+                "height": 234
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": true,
+          "careTitle": "今日日常护理已记录",
+          "retainingSnapshot": true
+        },
+        {
+          "elapsed": 393,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 94,
+                "bottom": 159,
+                "width": 362,
+                "height": 65
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 171,
+                "bottom": 328.6875,
+                "width": 362,
+                "height": 157.6875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 366.6875,
+                "bottom": 716.6875,
+                "width": 362,
+                "height": 350
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 754.6875,
+                "bottom": 814.6875,
+                "width": 362,
+                "height": 60
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 852.6875,
+                "bottom": 1086.6875,
+                "width": 362,
+                "height": 234
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": true,
+          "careTitle": "今日日常护理已记录",
+          "retainingSnapshot": true
+        },
+        {
+          "elapsed": 486,
+          "rects": [
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 94,
+                "bottom": 159,
+                "width": 362,
+                "height": 65
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 171,
+                "bottom": 328.6875,
+                "width": 362,
+                "height": 157.6875
+              }
+            ],
+            [
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 366.6875,
+                "bottom": 716.6875,
+                "width": 362,
+                "height": 350
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 754.6875,
+                "bottom": 814.6875,
+                "width": 362,
+                "height": 60
+              },
+              {
+                "id": "",
+                "dataset": {},
+                "left": 14,
+                "right": 376,
+                "top": 852.6875,
+                "bottom": 1086.6875,
+                "width": 362,
+                "height": 234
+              }
+            ],
+            [],
+            []
+          ],
+          "loading": true,
+          "dailyLoading": true,
+          "tasksLoading": true,
+          "careTitle": "今日日常护理已记录",
+          "retainingSnapshot": true
+        }
+      ],
+      "baselineMatchesEveryRefreshSample": true,
+      "sampleCount": 6
+    }
+  ],
+  "cleanup": {
+    "writes": [],
+    "getCount": 63,
+    "syntheticOnly": true
+  },
+  "device": {
+    "model": "iPhone 12/13 (Pro)",
+    "windowWidth": 390,
+    "windowHeight": 844,
+    "SDKVersion": "3.15.2"
+  }
+}

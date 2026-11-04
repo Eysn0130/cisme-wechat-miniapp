@@ -14,7 +14,6 @@ import { commerceContextRevision } from "../../services/commerce-command-store";
 interface CareRecord { milestone: string; completedAt: string; stepCodes?: string[]; selfAssessment?: CareSelfAssessmentValue | null }
 interface CareView { id: string; version: number; phase: string; startedOn: string | null; timezone: string; due: string | null; next: string | null; completed: string[]; records: CareRecord[]; scheduleOffsetDays: number }
 interface MemberView { id?: string; profile_revision?: number; display_name: string }
-interface CareCompletionResponse { task?: { id: string; reward_enabled?: boolean; reward_points?: number | null } | null }
 
 let daypartTimer: ReturnType<typeof setInterval> | null = null;
 let careSessionCloseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -120,6 +119,14 @@ function visitorView(selectedIndex = 0) {
   return { ...homeView(null, "CISME 会员", selectedIndex), greeting: "欢迎来到 CISME", action: "授权身份并开始", signalTitle: "先了解四步护理", signalMeta: "登录后查看你的护理安排与记录" };
 }
 
+function dailyHomeProjection(state: { dailyReady: boolean; dailyLoading: boolean; dailyToday: DailyCareRecord | null }) {
+  const today = state.dailyToday;
+  return state.dailyLoading && !state.dailyReady ? { action: "正在读取今日记录…", actionable: false, signalTitle: "正在读取日常护理记录", signalMeta: "" }
+    : !state.dailyReady ? { action: "重新加载今日记录", actionable: true, signalTitle: "今日记录暂未确认", signalMeta: "请重新加载后开始护理" }
+    : today ? { schedule: "今日已记录", action: "调整今日记录", actionable: !state.dailyLoading, signalTitle: "今天的护理已记录", signalMeta: `${careSelfAssessments.find(item => item.value === today.selfAssessment)!.label}，再次保存会更新今天的记录`, signalIcon: "/assets/icons/check-circle-plum.svg" }
+    : { schedule: "日常护理", action: careDaypart(new Date(), "Asia/Shanghai").careAction, actionable: !state.dailyLoading, signalTitle: "今天还未记录", signalMeta: "完成四步并记录感受，保存今天的护理", signalIcon: "/assets/icons/clipboard-text-muted.svg" };
+}
+
 Page({
   data: {
     dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null as DailyCareRecord | null, dailyAttempt: 0,
@@ -133,12 +140,7 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
   syncDailyHomeView() {
     if (this.data.care || this.data.needsAuthentication || !this.data.authorityAvailable) return;
-    const today = this.data.dailyToday;
-    const projection = this.data.dailyLoading ? { action: "正在读取今日记录…", actionable: false, signalTitle: "正在读取日常护理记录", signalMeta: "" }
-      : !this.data.dailyReady ? { action: "重新加载今日记录", actionable: true, signalTitle: "今日记录暂未确认", signalMeta: "请重新加载后开始护理" }
-      : today ? { schedule: "今日已记录", action: "调整今日记录", actionable: true, signalTitle: "今天的护理已记录", signalMeta: `${careSelfAssessments.find(item => item.value === today.selfAssessment)!.label}，再次保存会更新今天的记录`, signalIcon: "/assets/icons/check-circle-plum.svg" }
-      : { schedule: "日常护理", action: careDaypart(new Date(), "Asia/Shanghai").careAction, actionable: true, signalTitle: "今天还未记录", signalMeta: "完成四步并记录感受，保存今天的护理", signalIcon: "/assets/icons/clipboard-text-muted.svg" };
-    this.setData({ view: { ...this.data.view, ...projection } });
+    this.setData({ view: { ...this.data.view, ...dailyHomeProjection(this.data) } });
   },
   async loadDailyCare(attempt?: number, token = getApp<IAppOption>().globalData.sessionToken): Promise<DailyCarePage | null> {
     const loadAttempt = attempt ?? this.data.loadAttempt;
@@ -206,7 +208,7 @@ Page({
     this.setData({ care: null, snapshotVersion: 0, supportUnread: null, supportState: "unknown", view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "" });
   },
   async loadSupport(attempt: number, token: string) {
-    this.setData({ supportUnread: null, supportState: "loading" });
+    this.setData({ supportState: "loading" });
     try {
       const support = await pageRead<{ unreadCount: number }>(this, { path: "/v1/me/support/summary", authMode: "optional", cacheTags: ["support"] });
       if (!Number.isSafeInteger(support.unreadCount) || support.unreadCount < 0) throw new Error("INVALID_UNREAD_COUNT");
@@ -234,6 +236,7 @@ Page({
       this.finishCareSessionClose();
       this.setData({ snapshotVersion: 0, dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null });
     }
+    if (!preserveSnapshot) this.setData({ dailyReady: false, dailyToday: null, serverDay: "" });
     this.setData(preserveSnapshot && sameSession && this.data.authorityAvailable
       ? { loadAttempt: attempt, loading: true, error: "" }
       : { loadAttempt: attempt, care: null, supportUnread: null, supportState: "unknown", view: token ? homeView(null, homeDisplayName(this), this.data.selectedProtocolIndex) : visitorView(this.data.selectedProtocolIndex), loading: true, authorityAvailable: false, needsAuthentication: !token, error: "" });
@@ -250,7 +253,8 @@ Page({
       const processingStarted = measurementClock();
       const { member, care } = snapshot;
       const displayName = homeDisplayName(this, member);
-      const core = { care, snapshotVersion: snapshot.businessVersion, view: homeView(care, displayName || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes), authorityAvailable: true, needsAuthentication: false, loading: false };
+      const view = homeView(care, displayName || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes);
+      const core = { care, snapshotVersion: snapshot.businessVersion, view: care ? view : { ...view, ...dailyHomeProjection(this.data) }, authorityAvailable: true, needsAuthentication: false, loading: false };
       recordClientMetric({ action: "home", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
       this.setData(core, () => {
@@ -407,21 +411,11 @@ Page({
       return;
     }
     if (!care || !care.due) return;
-    const completed = await this.act<CareCompletionResponse>(`/v1/care-cycles/${care.id}/milestones/${care.due}/complete`, `care-milestone-${care.id}-${care.due}-v${care.version}`, { expectedVersion: care.version, stepCodes: this.data.sessionCompletedCodes, selfAssessment: this.data.sessionAssessment });
+    const completed = await this.act(`/v1/care-cycles/${care.id}/milestones/${care.due}/complete`, `care-milestone-${care.id}-${care.due}-v${care.version}`, { expectedVersion: care.version, stepCodes: this.data.sessionCompletedCodes, selfAssessment: this.data.sessionAssessment });
     if (!completed || !this.isCurrentUi(epoch, token)) return;
     this.resetCareSession();
     lightHaptic(this.data.reducedMotion);
-    if (!completed.task?.id) {
-      wx.showToast({ title: `${care.due} 护理记录已点亮`, icon: "success" });
-      return;
-    }
-    const rewardCopy = completed.task.reward_enabled && typeof completed.task.reward_points === "number" && Number.isFinite(completed.task.reward_points)
-      ? `通过审核后可获得 ${completed.task.reward_points} 积分。`
-      : "是否参与完全由你决定。";
-    try {
-      const decision = await wx.showModal({ title: "护理记录已点亮", content: `你已解锁一项自愿分享邀请。${rewardCopy}`, confirmText: "查看邀请", cancelText: "稍后再说" });
-      if (this.isCurrentUi(epoch, token) && decision.confirm) wx.navigateTo({ url: `/pages/task/index?id=${completed.task.id}`, fail: () => wx.showToast({ title: "邀请暂时无法打开", icon: "none" }) });
-    } catch { if (this.isCurrentUi(epoch, token)) wx.showToast({ title: `${care.due} 护理记录已点亮`, icon: "success" }); }
+    wx.showToast({ title: `${care.due} 护理记录已点亮`, icon: "success" });
   },
   async retryCareMutation() {
     const pending = pendingCareCommands.get(this);

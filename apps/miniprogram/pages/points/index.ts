@@ -1,3 +1,4 @@
+import { retainReadPresentation } from "../../services/read-presentation";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
@@ -42,7 +43,8 @@ Page({
     if (event?.type) clearAuthenticationRedirectSuppression();
     const attempt = this.data.loadAttempt + 1;
     const token = getApp<IAppOption>().globalData.sessionToken;
-    this.setData({ loadAttempt: attempt, points: null, balanceClass: "", loading: true, error: "" });
+    const preserve = retainReadPresentation(this);
+    this.setData({ loadAttempt: attempt, ...(!preserve ? { points: null, balanceClass: "" } : {}), loading: true, error: "" });
     try {
       const points = await request<any>({ path: "/v1/me/points" });
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt || token !== getApp<IAppOption>().globalData.sessionToken) return;

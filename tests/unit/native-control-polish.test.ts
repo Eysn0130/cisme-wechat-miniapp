@@ -25,7 +25,7 @@ describe("targeted native control polish contracts (not visual acceptance)",()=>
     assert.doesNotMatch(source,/gsap|requestAnimationFrame|setInterval/);
   });
   it("does not show a misleading zero-record count during a failed read",()=>{
-    assert.match(read("community-activity","wxml"),/wx:if="{{!loading && !error && items.length}}" class="activity-count"/);
+    assert.match(read("community-activity","wxml"),/wx:if="{{activityReady && !error && items.length}}" class="activity-count"/);
   });
   it("centers member-rate actions including the bottom-sheet footer",()=>{
     const css=read("management-members","wxss");

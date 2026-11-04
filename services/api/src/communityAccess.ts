@@ -25,7 +25,10 @@ export class CommunityAccess {
   }
   async follows(memberId: string | undefined): Promise<string[]> {
     this.assertSocialPreview();
-    const result = await this.pool.query('SELECT author_id FROM community_follow WHERE member_id=$1 ORDER BY created_at DESC', [memberId]);
+    const result = await this.pool.query(`SELECT author_id FROM (
+      SELECT author_id,created_at FROM community_follow WHERE member_id=$1
+      UNION ALL SELECT followed_member_id::text,created_at FROM ugc_author_follow WHERE follower_member_id=$1
+    ) f GROUP BY author_id ORDER BY max(created_at) DESC,author_id`, [memberId]);
     return result.rows.map(row => row.author_id);
   }
   async follow(memberId: string | undefined, authorId: string, active: unknown) {
@@ -37,7 +40,10 @@ export class CommunityAccess {
       if (!author.rowCount) throw new DomainError('AUTHOR_UNAVAILABLE', '作者暂不可关注', 404);
     }
     if (active) await this.pool.query('INSERT INTO community_follow(member_id,author_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[memberId,authorId]);
-    else await this.pool.query('DELETE FROM community_follow WHERE member_id=$1 AND author_id=$2',[memberId,authorId]);
+    else {
+      await this.pool.query('DELETE FROM community_follow WHERE member_id=$1 AND author_id=$2',[memberId,authorId]);
+      if(authorId!=='brand:cisme')await this.pool.query('DELETE FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2',[memberId,authorId]);
+    }
     return { authorId, following: active };
   }
 }

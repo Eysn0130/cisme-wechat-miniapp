@@ -1,0 +1,1216 @@
+{
+  "sourceSha256": "5e7bd9a51246ba1a3468379305c05c4be1140c47d85dcff600101b286087ca12",
+  "scope": "Native simulator: synthetic following relationships and one synthetic ordinary post; cover examples reuse existing public curated cards. All non-GET transport is blocked. No live account or UGC publication claim.",
+  "cases": [],
+  "setup": {
+    "installed": true,
+    "hasOriginalSession": true,
+    "publicCoverExamples": 2,
+    "originalRoute": "pages/home/index"
+  },
+  "featured": {
+    "mode": "featured",
+    "loading": false,
+    "feedReady": true,
+    "rects": [
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 390,
+          "top": 0,
+          "bottom": 136.5,
+          "width": 390,
+          "height": 136.5
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "mode": "featured"
+          },
+          "left": 19,
+          "right": 65,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {
+            "mode": "following"
+          },
+          "left": 71,
+          "right": 117,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+          },
+          "left": 9,
+          "right": 193,
+          "top": 138.5,
+          "bottom": 492.5078125,
+          "width": 184,
+          "height": 354.0078125
+        },
+        {
+          "id": "",
+          "dataset": {
+            "id": "6c9a8008-fa1b-492a-93cc-11f7ed3598a0"
+          },
+          "left": 197,
+          "right": 381,
+          "top": 138.5,
+          "bottom": 454.59375,
+          "width": 184,
+          "height": 316.09375
+        }
+      ],
+      [],
+      []
+    ],
+    "ids": [
+      "039c0c93-6093-4c03-9f01-2c777c92bde7",
+      "6c9a8008-fa1b-492a-93cc-11f7ed3598a0"
+    ],
+    "error": ""
+  },
+  "following": {
+    "mode": "following",
+    "loading": false,
+    "feedReady": true,
+    "rects": [
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 390,
+          "top": 0,
+          "bottom": 136.5,
+          "width": 390,
+          "height": 136.5
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "mode": "featured"
+          },
+          "left": 19,
+          "right": 65,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {
+            "mode": "following"
+          },
+          "left": 71,
+          "right": 117,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+          },
+          "left": 9,
+          "right": 193,
+          "top": 138.5,
+          "bottom": 492.5078125,
+          "width": 184,
+          "height": 354.0078125
+        }
+      ],
+      [],
+      []
+    ],
+    "ids": [
+      "039c0c93-6093-4c03-9f01-2c777c92bde7"
+    ],
+    "error": ""
+  },
+  "warmSamples": [
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+            },
+            "left": 9,
+            "right": 193,
+            "top": 138.5,
+            "bottom": 492.5078125,
+            "width": 184,
+            "height": 354.0078125
+          }
+        ],
+        [],
+        []
+      ],
+      "ids": [
+        "039c0c93-6093-4c03-9f01-2c777c92bde7"
+      ],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+            },
+            "left": 9,
+            "right": 193,
+            "top": 138.5,
+            "bottom": 492.5078125,
+            "width": 184,
+            "height": 354.0078125
+          }
+        ],
+        [],
+        []
+      ],
+      "ids": [
+        "039c0c93-6093-4c03-9f01-2c777c92bde7"
+      ],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+            },
+            "left": 9,
+            "right": 193,
+            "top": 138.5,
+            "bottom": 492.5078125,
+            "width": 184,
+            "height": 354.0078125
+          }
+        ],
+        [],
+        []
+      ],
+      "ids": [
+        "039c0c93-6093-4c03-9f01-2c777c92bde7"
+      ],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+            },
+            "left": 9,
+            "right": 193,
+            "top": 138.5,
+            "bottom": 492.5078125,
+            "width": 184,
+            "height": 354.0078125
+          }
+        ],
+        [],
+        []
+      ],
+      "ids": [
+        "039c0c93-6093-4c03-9f01-2c777c92bde7"
+      ],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+            },
+            "left": 9,
+            "right": 193,
+            "top": 138.5,
+            "bottom": 492.5078125,
+            "width": 184,
+            "height": 354.0078125
+          }
+        ],
+        [],
+        []
+      ],
+      "ids": [
+        "039c0c93-6093-4c03-9f01-2c777c92bde7"
+      ],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+            },
+            "left": 9,
+            "right": 193,
+            "top": 138.5,
+            "bottom": 492.5078125,
+            "width": 184,
+            "height": 354.0078125
+          }
+        ],
+        [],
+        []
+      ],
+      "ids": [
+        "039c0c93-6093-4c03-9f01-2c777c92bde7"
+      ],
+      "error": ""
+    }
+  ],
+  "warmStable": true,
+  "pagination": {
+    "mode": "following",
+    "loading": false,
+    "feedReady": true,
+    "rects": [
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 390,
+          "top": 0,
+          "bottom": 136.5,
+          "width": 390,
+          "height": 136.5
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "mode": "featured"
+          },
+          "left": 19,
+          "right": 65,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {
+            "mode": "following"
+          },
+          "left": 71,
+          "right": 117,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+          },
+          "left": 9,
+          "right": 193,
+          "top": 138.5,
+          "bottom": 492.5078125,
+          "width": 184,
+          "height": 354.0078125
+        },
+        {
+          "id": "",
+          "dataset": {
+            "id": "6c9a8008-fa1b-492a-93cc-11f7ed3598a0"
+          },
+          "left": 197,
+          "right": 381,
+          "top": 138.5,
+          "bottom": 454.59375,
+          "width": 184,
+          "height": 316.09375
+        }
+      ],
+      [],
+      []
+    ],
+    "ids": [
+      "039c0c93-6093-4c03-9f01-2c777c92bde7",
+      "6c9a8008-fa1b-492a-93cc-11f7ed3598a0"
+    ],
+    "error": ""
+  },
+  "newPost": {
+    "mode": "following",
+    "loading": false,
+    "feedReady": true,
+    "rects": [
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 390,
+          "top": 0,
+          "bottom": 136.5,
+          "width": 390,
+          "height": 136.5
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "mode": "featured"
+          },
+          "left": 19,
+          "right": 65,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {
+            "mode": "following"
+          },
+          "left": 71,
+          "right": 117,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {
+            "mode": "recommend"
+          },
+          "left": 123,
+          "right": 169,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "id": "44444444-4444-4444-8444-444444444444"
+          },
+          "left": 9,
+          "right": 193,
+          "top": 138.5,
+          "bottom": 227.09375,
+          "width": 184,
+          "height": 88.59375
+        },
+        {
+          "id": "",
+          "dataset": {
+            "id": "6c9a8008-fa1b-492a-93cc-11f7ed3598a0"
+          },
+          "left": 9,
+          "right": 193,
+          "top": 231.09375,
+          "bottom": 547.1875,
+          "width": 184,
+          "height": 316.09375
+        },
+        {
+          "id": "",
+          "dataset": {
+            "id": "039c0c93-6093-4c03-9f01-2c777c92bde7"
+          },
+          "left": 197,
+          "right": 381,
+          "top": 138.5,
+          "bottom": 492.5078125,
+          "width": 184,
+          "height": 354.0078125
+        }
+      ],
+      [],
+      []
+    ],
+    "ids": [
+      "44444444-4444-4444-8444-444444444444",
+      "6c9a8008-fa1b-492a-93cc-11f7ed3598a0",
+      "039c0c93-6093-4c03-9f01-2c777c92bde7"
+    ],
+    "error": ""
+  },
+  "empty": {
+    "mode": "following",
+    "loading": false,
+    "feedReady": true,
+    "rects": [
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 390,
+          "top": 0,
+          "bottom": 136.5,
+          "width": 390,
+          "height": 136.5
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "mode": "featured"
+          },
+          "left": 19,
+          "right": 65,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {
+            "mode": "following"
+          },
+          "left": 71,
+          "right": 117,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        }
+      ],
+      [],
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 9,
+          "right": 381,
+          "top": 147.5,
+          "bottom": 230.6953125,
+          "width": 372,
+          "height": 83.1953125
+        }
+      ],
+      []
+    ],
+    "ids": [],
+    "error": ""
+  },
+  "emptyWarmSamples": [
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 9,
+            "right": 381,
+            "top": 147.5,
+            "bottom": 230.6953125,
+            "width": 372,
+            "height": 83.1953125
+          }
+        ],
+        []
+      ],
+      "ids": [],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 9,
+            "right": 381,
+            "top": 147.5,
+            "bottom": 230.6953125,
+            "width": 372,
+            "height": 83.1953125
+          }
+        ],
+        []
+      ],
+      "ids": [],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 9,
+            "right": 381,
+            "top": 147.5,
+            "bottom": 230.6953125,
+            "width": 372,
+            "height": 83.1953125
+          }
+        ],
+        []
+      ],
+      "ids": [],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 9,
+            "right": 381,
+            "top": 147.5,
+            "bottom": 230.6953125,
+            "width": 372,
+            "height": 83.1953125
+          }
+        ],
+        []
+      ],
+      "ids": [],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 9,
+            "right": 381,
+            "top": 147.5,
+            "bottom": 230.6953125,
+            "width": 372,
+            "height": 83.1953125
+          }
+        ],
+        []
+      ],
+      "ids": [],
+      "error": ""
+    },
+    {
+      "mode": "following",
+      "loading": true,
+      "feedReady": true,
+      "rects": [
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 0,
+            "bottom": 136.5,
+            "width": 390,
+            "height": 136.5
+          }
+        ],
+        [
+          {
+            "id": "",
+            "dataset": {
+              "mode": "featured"
+            },
+            "left": 19,
+            "right": 65,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          },
+          {
+            "id": "",
+            "dataset": {
+              "mode": "following"
+            },
+            "left": 71,
+            "right": 117,
+            "top": 92.5,
+            "bottom": 136.5,
+            "width": 46,
+            "height": 44
+          }
+        ],
+        [],
+        [
+          {
+            "id": "",
+            "dataset": {},
+            "left": 9,
+            "right": 381,
+            "top": 147.5,
+            "bottom": 230.6953125,
+            "width": 372,
+            "height": 83.1953125
+          }
+        ],
+        []
+      ],
+      "ids": [],
+      "error": ""
+    }
+  ],
+  "emptyWarmStable": true,
+  "error": {
+    "mode": "following",
+    "loading": false,
+    "feedReady": true,
+    "rects": [
+      [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 0,
+          "right": 390,
+          "top": 0,
+          "bottom": 136.5,
+          "width": 390,
+          "height": 136.5
+        }
+      ],
+      [
+        {
+          "id": "",
+          "dataset": {
+            "mode": "featured"
+          },
+          "left": 19,
+          "right": 65,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {
+            "mode": "following"
+          },
+          "left": 71,
+          "right": 117,
+          "top": 92.5,
+          "bottom": 136.5,
+          "width": 46,
+          "height": 44
+        }
+      ],
+      [],
+      [],
+      []
+    ],
+    "ids": [],
+    "error": "关注内容暂时无法更新，请下拉刷新或重试。"
+  },
+  "cleanup": {
+    "readCount": 50,
+    "blockedWrites": [],
+    "unknownReads": [],
+    "forwardedServerWrites": 0,
+    "requestRestored": true,
+    "sessionRestored": true
+  }
+}

@@ -1,16 +1,16 @@
 <view class="chrome-root" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back {{leaving ? 'control--disabled' : ''}}" disabled="{{leaving}}" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><view class="invite-topbar-copy"><text class="topbar__title">邀请与分享</text><text class="invite-topbar-subtitle">邀请朋友，一起记录护理</text></view></view>
   <view class="page page--stack invite-page">
-    <view wx:if="{{loading}}" class="state" aria-live="polite">正在加载邀请资料…</view>
-    <block wx:if="{{!loading && !error}}">
+    <view wx:if="{{loading && !invitationReady}}" class="page-read-loading" aria-role="status" aria-label="正在加载邀请资料…"><view class="page-read-loading__indicator"/></view>
+    <block wx:if="{{invitationReady && !error}}">
       <view class="invite-card">
         <text class="invite-eyebrow">我的邀请</text>
         <view class="invite-avatar"><image class="invite-avatar-image" src="/assets/icons/user-circle-plum.svg" mode="aspectFit" aria-label="默认会员头像"/></view>
         <view class="invite-title"><text class="invite-title-line">邀请朋友一起</text><text class="invite-title-line">记录头皮护理</text></view>
         <text class="invite-code-label">分享编号</text><text class="invite-code">{{shareCode}}</text>
         <text class="invite-validity">分享链接有效期 30 天</text>
-        <button wx:if="{{!shareId}}" class="invite-primary {{preparing || !!error ? 'primary--disabled' : ''}}" bindtap="prepare" disabled="{{preparing || !!error}}"><image class="invite-button-icon" src="/assets/icons/share-network-white.svg" mode="aspectFit"/><text>{{preparing ? '正在生成…' : '生成分享卡片'}}</text></button>
-        <button wx:else class="invite-primary" open-type="share"><image class="invite-button-icon" src="/assets/icons/share-network-white.svg" mode="aspectFit"/><text>分享给朋友</text></button>
+        <button wx:if="{{!shareId}}" class="invite-primary {{loading || preparing || !!error ? 'primary--disabled' : ''}}" bindtap="prepare" disabled="{{loading || preparing || !!error}}"><image class="invite-button-icon" src="/assets/icons/share-network-white.svg" mode="aspectFit"/><text>{{preparing ? '正在生成…' : '生成分享卡片'}}</text></button>
+        <button wx:else class="invite-primary {{loading ? 'control--disabled' : ''}}" open-type="share" disabled="{{loading}}"><image class="invite-button-icon" src="/assets/icons/share-network-white.svg" mode="aspectFit"/><text>分享给朋友</text></button>
       </view>
       <view wx:if="{{commercialEligible}}" class="invite-commercial"><text class="invite-commercial__eyebrow">CISME MEMBER</text><strong>我的会员推荐码</strong><text class="invite-commercial__code">{{referralCode ? referralCode : referralAvailable ? '正在生成…' : '暂不可用'}}</text><text class="invite-commercial__copy">朋友确认推荐码后，你可在“我的”查看推荐记录。</text><view class="invite-commercial__actions"><button class="{{!referralAvailable || !referralCode ? 'control--disabled' : ''}}" bindtap="copyReferralCode" disabled="{{!referralAvailable || !referralCode}}">复制推荐码</button><button open-type="share" data-kind="commercial" class="{{!referralAvailable || !referralCode ? 'control--disabled' : ''}}" disabled="{{!referralAvailable || !referralCode}}">分享推荐码</button></view><text wx:if="{{referralError}}" class="invite-commercial__error">{{referralError}}</text></view>
       <view wx:if="{{!error}}" class="glass invite-history"><view class="invite-history-heading"><text class="invite-history-title">最近的邀请卡</text><text class="invite-history-meta">{{history.length ? '已生成' : '暂无记录'}}</text></view><view wx:if="{{!history.length}}" class="invite-empty">还没有邀请卡，生成后即可分享给朋友。</view><view wx:for="{{history}}" wx:key="shareId" class="invite-history-row"><text class="invite-history-code">{{item.code}}</text><text class="invite-history-date">{{item.date}} · {{item.label}}</text></view></view>

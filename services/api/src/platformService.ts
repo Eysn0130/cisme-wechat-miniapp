@@ -1,3 +1,4 @@
+import { taskProofRetired } from "./taskProofRetired.js";
 import { requireActiveUploadOwner } from "./uploadAuthority.js";
 import { requireCareRecordDetails } from "./careRecordDetails.js";
 import { communityAuthors } from './memberProfile.js';
@@ -8,7 +9,7 @@ import { assertMilestone, assertTimezone, deriveDueMilestone, DomainError, miles
 import type { AppConfig } from "@cisme/config";
 import { readSnapshot, transaction, type DbClient } from "./db.js";
 import { enqueue } from "./outbox.js";
-import { objectKey, type ObjectStorage } from "./storage.js";
+import { type ObjectStorage } from "./storage.js";
 import { EVENT_DELIVERY_POLICIES, type EventType } from "@cisme/contracts";
 import { cursorTimestamp } from "./keysetPage.js";
 import type { AccountClosure } from './accountClosure.js';
@@ -59,9 +60,6 @@ function calendarDayDifference(from: string, to: string): number {
   return Math.max(0, Math.round((Date.parse(`${to}T00:00:00.000Z`) - Date.parse(`${from}T00:00:00.000Z`)) / 86_400_000));
 }
 
-function addDays(now: Date, days: number): Date {
-  return new Date(now.getTime() + days * 86_400_000);
-}
 
 function requireMember(memberId: string | undefined): string {
   if (!memberId) throw new DomainError("MEMBER_REQUIRED", "Member identity is required", 401);
@@ -102,10 +100,6 @@ function pageLimit(value: number | undefined, fallback = 20, maximum = 100): num
   return value;
 }
 
-function taskStoryName(milestone: string): string {
-  const day = milestone.match(/^D(\d+)$/)?.[1];
-  return day ? `第 ${day} 天真实护理日记` : `${milestone} 真实护理日记`;
-}
 
 function reviewReasonSummary(reasonCode: string | null | undefined): string | null {
   if (!reasonCode) return null;
@@ -397,7 +391,7 @@ export class PlatformService {
       if (cycle.version !== expectedVersion) throw new DomainError("VERSION_CONFLICT", "Care-cycle version changed", 409);
       const existing = await client.query("SELECT * FROM care_record WHERE cycle_id=$1 AND milestone=$2", [cycleId, milestone]);
       if (existing.rows[0]) {
-        const response = { cycle: await this.cycleView(client, cycle, now), record: existing.rows[0], task: await this.taskForCycle(client, cycleId) };
+        const response = { cycle: await this.cycleView(client, cycle, now), record: existing.rows[0], task: null };
         await this.idempotencySave(client, { ...idem, response });
         return response;
       }
@@ -423,10 +417,8 @@ export class PlatformService {
         eventType: "care.milestone.completed.v1", aggregateType: "care_cycle", aggregateId: cycleId, aggregateVersion: cycle.version,
         businessKey: `care:${cycleId}:${milestone}`, payload: { memberId: owner, milestone, recordId, stepCodes: details.stepCodes, selfAssessment: details.selfAssessment }, occurredAt: now
       });
-      let task = null;
-      if (milestone === "D7") task = await this.decideEligibility(client, cycle, recordId, now);
       const record = await client.query("SELECT * FROM care_record WHERE id=$1", [recordId]);
-      const response = { cycle: await this.cycleView(client, cycle, now), record: { ...record.rows[0], stepCodes: details.stepCodes, selfAssessment: details.selfAssessment }, task };
+      const response = { cycle: await this.cycleView(client, cycle, now), record: { ...record.rows[0], stepCodes: details.stepCodes, selfAssessment: details.selfAssessment }, task: null };
       await this.idempotencySave(client, { ...idem, response });
       return response;
     }, "SERIALIZABLE");
@@ -582,47 +574,12 @@ export class PlatformService {
   }
 
   async getEligibleTasks(memberId: string | undefined, now = this.now()) {
-    const owner = requireMember(memberId);
-    const result = await this.pool.query(`SELECT t.id, t.state, t.expires_at, c.code, c.qualifying_milestone, c.reward_points,
-      tc.submission_id, s.status AS submission_status
-      FROM eligibility_task t JOIN eligibility_campaign c ON c.id=t.campaign_id
-      LEFT JOIN task_claim tc ON tc.task_id=t.id LEFT JOIN submission s ON s.id=tc.submission_id
-      WHERE t.member_id=$1 ORDER BY t.expires_at DESC, t.id DESC`, [owner]);
-    const rewardEnabled = this.pointsPolicyEnabled(now);
-    return result.rows.map((row) => {
-      const expired = new Date(row.expires_at).getTime() <= now.getTime();
-      const claimable = !row.submission_id && row.state === "available" && !expired;
-      return {
-        ...row,
-        name: taskStoryName(row.qualifying_milestone),
-        claimable,
-        claim_block_reason: claimable ? null : row.submission_id ? null : expired ? "邀请已过有效期" : "邀请当前不可领取",
-        reward_enabled: rewardEnabled,
-        reward_points: rewardEnabled ? row.reward_points : null
-      };
-    });
+    requireMember(memberId);
+    return [] as any[];
   }
 
   async getTask(memberId: string | undefined, taskId: string, now = this.now()) {
-    const owner = requireMember(memberId);
-    const result = await this.pool.query(`SELECT t.id, t.state, t.expires_at, t.version, c.code, c.qualifying_milestone, c.reward_points,
-      tc.id AS claim_id, tc.submission_id, s.status AS submission_status
-      FROM eligibility_task t JOIN eligibility_campaign c ON c.id=t.campaign_id
-      LEFT JOIN task_claim tc ON tc.task_id=t.id LEFT JOIN submission s ON s.id=tc.submission_id
-      WHERE t.id=$1 AND t.member_id=$2`, [taskId, owner]);
-    if (!result.rows[0]) throw new DomainError("TASK_NOT_FOUND", "Task not found", 404);
-    const row = result.rows[0];
-    const expired = new Date(row.expires_at).getTime() <= now.getTime();
-    const claimable = !row.submission_id && row.state === "available" && !expired;
-    const rewardEnabled = this.pointsPolicyEnabled(now);
-    return {
-      ...row,
-      name: taskStoryName(row.qualifying_milestone),
-      claimable,
-      claim_block_reason: claimable ? null : row.submission_id ? null : expired ? "邀请已过有效期" : "邀请当前不可领取",
-      reward_enabled: rewardEnabled,
-      reward_points: rewardEnabled ? row.reward_points : null
-    };
+    return taskProofRetired();
   }
 
   async getConsentGrants(memberId: string | undefined) {
@@ -690,98 +647,12 @@ export class PlatformService {
     return cycle;
   }
 
-  private async decideEligibility(client: DbClient, cycle: CycleRow, recordId: string, now: Date) {
-    const campaignResult = await client.query<{ id: string; capacity: number; ends_at: Date }>(`
-      SELECT id, capacity, ends_at FROM eligibility_campaign
-      WHERE active=true AND qualifying_milestone='D7' AND starts_at <= $1 AND ends_at > $1
-      ORDER BY starts_at LIMIT 1 FOR UPDATE
-    `, [now]);
-    const campaign = campaignResult.rows[0];
-    if (!campaign) return null;
-    const factKey = `${cycle.id}:D7`;
-    const existing = await client.query("SELECT id, eligible FROM eligibility_decision WHERE campaign_id=$1 AND fact_key=$2", [campaign.id, factKey]);
-    if (existing.rows[0]) return this.taskForCycle(client, cycle.id);
-    const count = await client.query<{ count: string }>("SELECT count(*)::text AS count FROM eligibility_task WHERE campaign_id=$1 AND state <> 'expired'", [campaign.id]);
-    const eligible = Number(count.rows[0]?.count ?? 0) < campaign.capacity;
-    const decisionId = randomUUID();
-    await client.query(`INSERT INTO eligibility_decision(id, campaign_id, cycle_id, fact_key, eligible, reason_code, decided_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)`, [decisionId, campaign.id, cycle.id, factKey, eligible, eligible ? "D7_AND_CAPACITY" : "CAPACITY_EXHAUSTED", now]);
-    let task = null;
-    if (eligible) {
-      const taskId = randomUUID();
-      await client.query(`INSERT INTO eligibility_task(id, decision_id, campaign_id, member_id, expires_at)
-        VALUES ($1,$2,$3,$4,$5)`, [taskId, decisionId, campaign.id, cycle.member_id, campaign.ends_at]);
-      task = { id: taskId, state: "available", expiresAt: campaign.ends_at.toISOString() };
-    }
-    await enqueue(client, {
-      eventType: "eligibility.decided.v1", aggregateType: "eligibility_decision", aggregateId: decisionId, aggregateVersion: 1,
-      businessKey: `eligibility:${campaign.id}:${factKey}`, payload: { cycleId: cycle.id, recordId, eligible, taskId: task?.id ?? null }, occurredAt: now
-    });
-    return task;
-  }
-
-  private async taskForCycle(client: DbClient, cycleId: string) {
-    const result = await client.query(`SELECT t.id, t.state, t.expires_at FROM eligibility_task t
-      JOIN eligibility_decision d ON d.id=t.decision_id WHERE d.cycle_id=$1`, [cycleId]);
-    const row = result.rows[0];
-    return row ? { id: row.id as string, state: row.state as string, expiresAt: (row.expires_at as Date).toISOString() } : null;
-  }
-
   async claimTask(memberId: string | undefined, taskId: string, idempotencyKey: string, now: Date): Promise<TaskClaimView> {
-    const owner = requireMember(memberId);
-    return transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "submissions");
-      const idem = { principalId: `member:${owner}`, operation: "task.claim", idempotencyKey, businessKey: `task:${taskId}:claim`, requestHash: requestHash({ taskId }) };
-      const replay = await this.idempotencyLookup<TaskClaimView>(client, idem);
-      if (replay) return replay;
-      const task = await client.query<{ member_id: string; state: string; expires_at: Date; version: number }>("SELECT member_id, state, expires_at, version FROM eligibility_task WHERE id=$1 FOR UPDATE", [taskId]);
-      const row = task.rows[0];
-      if (!row || row.member_id !== owner) throw new DomainError("TASK_NOT_FOUND", "Task not found", 404);
-      const existing = await client.query<{ id: string; submission_id: string; claimed_at: Date }>("SELECT id, submission_id, claimed_at FROM task_claim WHERE task_id=$1", [taskId]);
-      if (existing.rows[0]) {
-        const response = { id: existing.rows[0].id, taskId, submissionId: existing.rows[0].submission_id, claimedAt: existing.rows[0].claimed_at.toISOString() };
-        await this.idempotencySave(client, { ...idem, response });
-        return response;
-      }
-      if (row.state !== "available" || row.expires_at <= now) throw new DomainError("TASK_NOT_AVAILABLE", "Task is not available", 409);
-      const submissionId = randomUUID();
-      const claimId = randomUUID();
-      await client.query("INSERT INTO submission(id, member_id) VALUES ($1,$2)", [submissionId, owner]);
-      await client.query("INSERT INTO task_claim(id, task_id, member_id, submission_id, claimed_at) VALUES ($1,$2,$3,$4,$5)", [claimId, taskId, owner, submissionId, now]);
-      await client.query("UPDATE eligibility_task SET state='claimed', version=version+1 WHERE id=$1", [taskId]);
-      await enqueue(client, {
-        eventType: "task.claimed.v1", aggregateType: "eligibility_task", aggregateId: taskId, aggregateVersion: row.version + 1,
-        businessKey: `task:${taskId}:claimed`, payload: { memberId: owner, claimId, submissionId }, occurredAt: now
-      });
-      const response = { id: claimId, taskId, submissionId, claimedAt: now.toISOString() };
-      await this.idempotencySave(client, { ...idem, response });
-      return response;
-    }, "SERIALIZABLE");
+    return taskProofRetired();
   }
 
   async authorizeMedia(memberId: string | undefined, submissionId: string, input: { kind: "original" | "screenshot"; mimeType: string; maxBytes: number; baseUrl: string }, now: Date): Promise<UploadAuthorization> {
-    const owner = requireMember(memberId);
-    return transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "uploads");
-      const submission = await client.query<{ member_id: string; status: string }>("SELECT member_id, status FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
-      const row = submission.rows[0];
-      if (!row || row.member_id !== owner) throw new DomainError("SUBMISSION_NOT_FOUND", "Submission not found", 404);
-      if (!["draft", "needs_changes", "appealed"].includes(row.status)) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts uploads", 409);
-      const current = await client.query<{ id: string; object_key: string; mime_type: string; upload_state: string }>(
-        "SELECT id, object_key, mime_type, upload_state FROM media_object WHERE submission_id=$1 AND kind=$2 AND is_current=true FOR UPDATE",
-        [submissionId, input.kind]
-      );
-      const active = current.rows[0];
-      if (active?.upload_state === "authorized") {
-        await client.query("UPDATE media_object SET authorized_max_bytes=$2 WHERE id=$1", [active.id, input.maxBytes]);
-        return this.storage.authorize({ mediaId: active.id, objectKey: active.object_key, mimeType: active.mime_type, maxBytes: input.maxBytes, baseUrl: input.baseUrl, now });
-      }
-      const id = randomUUID();
-      const key = objectKey(submissionId, input.kind);
-      await client.query(`INSERT INTO media_object(id, submission_id, kind, object_key, mime_type, is_current, authorized_max_bytes)
-        VALUES ($1,$2,$3,$4,$5,$6,$7)`, [id, submissionId, input.kind, key, input.mimeType, !active, input.maxBytes]);
-      return this.storage.authorize({ mediaId: id, objectKey: key, mimeType: input.mimeType, maxBytes: input.maxBytes, baseUrl: input.baseUrl, now });
-    });
+    return taskProofRetired();
   }
 
   async gatewayUpload(mediaId: string, input: { token: string; bytes: Uint8Array; mimeType: string }, now: Date) {
@@ -795,9 +666,7 @@ export class PlatformService {
         "SELECT submission_id,support_conversation_id,support_expires_at FROM media_object WHERE id=$1", [mediaId]);
       const parentRow = parent.rows[0];
       if (parentRow?.submission_id) {
-        const submission = await client.query<{ status: string;member_id:string }>("SELECT status,member_id FROM submission WHERE id=$1 FOR UPDATE", [parentRow.submission_id]);
-        await requireActiveUploadOwner(client,submission.rows[0]?.member_id);
-        if (!["draft", "needs_changes", "appealed"].includes(submission.rows[0]?.status ?? "")) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts uploads", 409);
+        return taskProofRetired();
       } else if (parentRow?.support_conversation_id) {
         const supportConversation = await client.query<{ status: string;member_id:string }>("SELECT status,member_id FROM support_conversation WHERE id=$1 FOR UPDATE", [parentRow.support_conversation_id]);
         await requireActiveUploadOwner(client,supportConversation.rows[0]?.member_id);
@@ -816,261 +685,27 @@ export class PlatformService {
   }
 
   async completeMedia(memberId: string | undefined, submissionId: string, mediaId: string, now: Date) {
-    const owner = requireMember(memberId);
-    const outcome = await transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "uploads");
-      const submission = await client.query<{ member_id: string; status: string }>("SELECT member_id, status FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
-      if (submission.rows[0]?.member_id !== owner) throw new DomainError("MEDIA_NOT_FOUND", "Media not found", 404);
-      const media = await client.query<{ id: string; kind: string; object_key: string; mime_type: string; upload_state: string; is_current: boolean; authorized_max_bytes: number }>(
-        "SELECT * FROM media_object WHERE id=$1 AND submission_id=$2 FOR UPDATE", [mediaId, submissionId]);
-      const row = media.rows[0];
-      if (!row) throw new DomainError("MEDIA_NOT_FOUND", "Media not found", 404);
-      if (row.upload_state === "uploaded" && row.is_current) return { media: row };
-      if (row.upload_state !== "authorized") throw new DomainError("MEDIA_NOT_FOUND", "Media authorization not found", 404);
-      if (!["draft", "needs_changes", "appealed"].includes(submission.rows[0].status)) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts uploads", 409);
-      const stored = await this.storage.verify(row.object_key);
-      const failUpload = async (error: DomainError) => {
-        // Commit the failed state while still holding the lock. Never delete a
-        // verified object in a catch after releasing its transaction lock.
-        await this.storage.delete(row.object_key);
-        await client.query("UPDATE media_object SET upload_state='failed' WHERE id=$1", [mediaId]);
-        return { error };
-      };
-      if (stored.bytes < 1 || stored.bytes > Number(row.authorized_max_bytes)) return failUpload(new DomainError("UPLOAD_SIZE_INVALID", "Uploaded image exceeds the authorized size", 422));
-      if (stored.detectedMime !== row.mime_type) return failUpload(new DomainError("UPLOAD_CONTENT_MISMATCH", "Uploaded image content does not match the authorized MIME type", 422));
-      const current = await client.query<{ id: string; object_key: string }>(
-        "SELECT id, object_key FROM media_object WHERE submission_id=$1 AND kind=$2 AND is_current=true FOR UPDATE", [submissionId, row.kind]);
-      const previous = current.rows.find((item) => item.id !== mediaId);
-      await client.query("SAVEPOINT media_completion");
-      try {
-        if (previous) await client.query("UPDATE media_object SET is_current=false WHERE id=$1", [previous.id]);
-        const result = await client.query(`UPDATE media_object
-          SET upload_state='uploaded', content_hash=$1, size_bytes=$2, uploaded_at=$3, is_current=true
-          WHERE id=$4 RETURNING *`, [stored.checksumBase64, stored.bytes, now, mediaId]);
-        if (previous) await client.query(`INSERT INTO media_cleanup_queue(media_id, object_key, reason)
-          VALUES ($1,$2,'replaced') ON CONFLICT DO NOTHING`, [previous.id, previous.object_key]);
-        await client.query("DELETE FROM upload_chunk WHERE media_id=$1", [mediaId]);
-        await client.query("RELEASE SAVEPOINT media_completion");
-        return { media: result.rows[0] };
-      } catch (error) {
-        if ((error as { code?: string }).code !== "23505") throw error;
-        await client.query("ROLLBACK TO SAVEPOINT media_completion");
-        return failUpload(new DomainError("MEDIA_DUPLICATE_HASH", "This media has already been submitted", 409));
-      }
-    });
-    if ("error" in outcome) throw outcome.error;
-    return outcome.media;
+    return taskProofRetired();
   }
 
   async deleteMedia(memberId: string | undefined, submissionId: string, mediaId: string, now: Date) {
-    const owner = requireMember(memberId);
-    return transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "uploads");
-      await this.assertSwitch(client, "submissions");
-      await client.query("SELECT id FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
-      const result = await client.query<{ object_key: string; member_id: string; status: string; upload_state: string }>(`
-        SELECT m.object_key, m.upload_state, s.member_id, s.status
-        FROM media_object m JOIN submission s ON s.id=m.submission_id
-        WHERE m.id=$1 AND m.submission_id=$2 FOR UPDATE OF m, s`, [mediaId, submissionId]);
-      const row = result.rows[0];
-      if (!row || row.member_id !== owner || row.upload_state === "deleted") throw new DomainError("MEDIA_NOT_FOUND", "Media not found", 404);
-      if (!["draft", "needs_changes", "appealed"].includes(row.status)) {
-        throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts media changes", 409);
-      }
-      await client.query("UPDATE media_object SET upload_state='deleted', deleted_at=$1, is_current=false WHERE id=$2", [now, mediaId]);
-      await client.query(`INSERT INTO media_cleanup_queue(media_id, object_key, reason)
-        VALUES ($1,$2,'member_deleted') ON CONFLICT DO NOTHING`, [mediaId, row.object_key]);
-      await client.query("DELETE FROM upload_chunk WHERE media_id=$1", [mediaId]);
-      return { deleted: true, cleanupQueued: true };
-    });
+    return taskProofRetired();
   }
 
   async saveSubmissionDraft(memberId: string | undefined, submissionId: string, input: { postUrl: string; platformAccount: string; disclosure: string; license: JsonObject; expectedVersion: number }, now: Date) {
-    const owner = requireMember(memberId);
-    const postUrl = input.postUrl.trim();
-    const platformAccount = input.platformAccount.trim();
-    const disclosure = input.disclosure.trim();
-    if (postUrl && !postUrl.startsWith("https://")) throw new DomainError("POST_URL_INVALID", "A HTTPS post URL is required", 422);
-    if (postUrl.length > 500 || platformAccount.length > 120 || disclosure.length > 300) throw new DomainError("SUBMISSION_FIELDS_TOO_LONG", "Draft fields exceed the accepted limits", 422);
-    return transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "submissions");
-      const result = await client.query<{ member_id: string; status: string; version: number }>(
-        "SELECT member_id, status, version FROM submission WHERE id=$1 FOR UPDATE", [submissionId]
-      );
-      const row = result.rows[0];
-      if (!row || row.member_id !== owner) throw new DomainError("SUBMISSION_NOT_FOUND", "Submission not found", 404);
-      if (!["draft", "needs_changes", "appealed"].includes(row.status)) throw new DomainError("SUBMISSION_LOCKED", "Submission no longer accepts draft changes", 409);
-      if (row.version !== input.expectedVersion) throw new DomainError("VERSION_CONFLICT", "Submission version changed", 409);
-      const nextVersion = row.version + 1;
-      const updated = await client.query(`UPDATE submission
-        SET post_url=$1, platform_account=$2, disclosure=$3, license_payload=$4, version=$5, updated_at=$6
-        WHERE id=$7 RETURNING id, status, version, post_url, platform_account, disclosure, license_payload`,
-      [postUrl || null, platformAccount || null, disclosure || null, input.license, nextVersion, now, submissionId]);
-      return updated.rows[0];
-    });
+    return taskProofRetired();
   }
 
   async submit(memberId: string | undefined, submissionId: string, idempotencyKey: string, input: { postUrl: string; platformAccount: string; disclosure: string; license: JsonObject; expectedVersion: number }, now: Date) {
-    const owner = requireMember(memberId);
-    if (!input.postUrl.startsWith("https://")) throw new DomainError("POST_URL_INVALID", "A HTTPS post URL is required", 422);
-    if (!input.platformAccount.trim() || !input.disclosure.trim()) throw new DomainError("SUBMISSION_FIELDS_REQUIRED", "Account and benefit disclosure are required", 422);
-    const requiredPurposes = ["content_storage", "human_review"];
-    if (requiredPurposes.some((purpose) => input.license[purpose] !== true)) throw new DomainError("LICENSE_REQUIRED", "All R0 usage permissions must be explicit", 422);
-    return transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "submissions");
-      const idem = { principalId: `member:${owner}`, operation: "submission.submit", idempotencyKey, businessKey: `submission:${submissionId}:v${input.expectedVersion}:submit`, requestHash: requestHash({ submissionId, ...input }) };
-      const replay = await this.idempotencyLookup<Record<string, unknown>>(client, idem);
-      if (replay) return replay;
-      const submission = await client.query<{ member_id: string; status: string; version: number }>("SELECT member_id, status, version FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
-      const row = submission.rows[0];
-      if (!row || row.member_id !== owner) throw new DomainError("SUBMISSION_NOT_FOUND", "Submission not found", 404);
-      if (row.version !== input.expectedVersion) throw new DomainError("VERSION_CONFLICT", "Submission version changed", 409);
-      if (!["draft", "needs_changes", "appealed"].includes(row.status)) throw new DomainError("SUBMISSION_STATE_INVALID", "Submission cannot be sent in its current state", 409);
-      const media = await client.query<{ kind: string }>("SELECT kind FROM media_object WHERE submission_id=$1 AND upload_state='uploaded' AND is_current=true", [submissionId]);
-      const kinds = new Set(media.rows.map((item) => item.kind));
-      if (!kinds.has("original") || !kinds.has("screenshot")) throw new DomainError("MEDIA_REQUIRED", "Original and screenshot media are required", 422);
-      const nextVersion = row.version + 1;
-      await client.query(`UPDATE submission SET status='submitted', post_url=$1, platform_account=$2, disclosure=$3, license_payload=$4,
-        version=$5, submitted_at=$6, updated_at=$6 WHERE id=$7`, [input.postUrl, input.platformAccount, input.disclosure, input.license, nextVersion, now, submissionId]);
-      const caseResult = await client.query<{ id: string }>(`INSERT INTO review_case(id, submission_id) VALUES ($1,$2)
-        ON CONFLICT (submission_id) DO UPDATE SET status='pending', version=review_case.version+1, updated_at=$3 RETURNING id`, [randomUUID(), submissionId, now]);
-      const reviewCaseId = caseResult.rows[0]!.id;
-      await client.query("INSERT INTO review_action(review_case_id, actor_principal_id, action, reason_code) VALUES ($1,$2,'submit','MEMBER_SUBMITTED')", [reviewCaseId, `member:${owner}`]);
-      for (const purpose of requiredPurposes) {
-        await client.query(`INSERT INTO consent_grant(submission_id, member_id, purpose, granted_at) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`, [submissionId, owner, purpose, now]);
-      }
-      if (input.license.feed_readonly === true) {
-        await client.query(`INSERT INTO consent_grant(submission_id, member_id, purpose, granted_at)
-          VALUES ($1,$2,'feed_readonly',$3) ON CONFLICT DO NOTHING`, [submissionId, owner, now]);
-      } else {
-        const optionalGrant = await client.query<{ id: string }>("SELECT id FROM consent_grant WHERE submission_id=$1 AND purpose='feed_readonly' AND active=true", [submissionId]);
-        if (optionalGrant.rows[0]) {
-          await client.query(`INSERT INTO revocation_request(consent_grant_id, requested_by, reason, requested_at)
-            VALUES ($1,$2,'MEMBER_OPT_OUT',$3) ON CONFLICT DO NOTHING`, [optionalGrant.rows[0].id, owner, now]);
-          await client.query("UPDATE consent_grant SET active=false WHERE id=$1", [optionalGrant.rows[0].id]);
-          await client.query("UPDATE feed_item SET visible=false WHERE submission_id=$1", [submissionId]);
-        }
-      }
-      const pendingReward = await client.query<{ id: string }>(`INSERT INTO reward_claim(submission_id, member_id, campaign_id, rule_code, amount, state)
-        SELECT $1,$2,t.campaign_id,'CARE_D7_STORY_R0',c.reward_points,'pending'
-        FROM task_claim tc JOIN eligibility_task t ON t.id=tc.task_id JOIN eligibility_campaign c ON c.id=t.campaign_id
-        WHERE tc.submission_id=$1
-        ON CONFLICT (submission_id) DO UPDATE SET state='pending'
-        RETURNING id`, [submissionId, owner]);
-      await enqueue(client, {
-        eventType: "submission.submitted.v1", aggregateType: "submission", aggregateId: submissionId, aggregateVersion: nextVersion,
-        businessKey: `submission:${submissionId}:v${nextVersion}:submitted`, payload: { memberId: owner, reviewCaseId }, occurredAt: now
-      });
-      const response = { id: submissionId, status: "submitted", version: nextVersion, reviewCaseId, ...(pendingReward.rows[0] ? { rewardClaimId: pendingReward.rows[0].id } : {}) };
-      await this.idempotencySave(client, { ...idem, response });
-      return response;
-    });
+    return taskProofRetired();
   }
 
   async review(principalId: string, submissionId: string, idempotencyKey: string, input: { decision: ReviewDecision; reasonCode: string; evidence?: JsonObject; expectedVersion: number }, now: Date, authorization: "legacy_role" | "capability" = "legacy_role"): Promise<ReviewResult> {
-    if (!["approve", "reject", "request_changes"].includes(input.decision)) throw new DomainError("REVIEW_DECISION_INVALID", "Invalid review decision", 422);
-    if (!input.reasonCode?.trim() || !input.evidence || Object.keys(input.evidence).length === 0) throw new DomainError("REVIEW_EVIDENCE_REQUIRED", "Review reason code and evidence are required", 422);
-    return transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "reviews");
-      if (authorization === "legacy_role") await this.assertAdminRole(client, principalId, ["reviewer", "review_lead"]);
-      const idem = { principalId, operation: "submission.review", idempotencyKey, businessKey: `submission:${submissionId}:v${input.expectedVersion}:review`, requestHash: requestHash({ submissionId, ...input }) };
-      let replay = await this.idempotencyLookup<ReviewResult>(client, idem);
-      if (replay) return replay;
-      const submission = await client.query<{ status: string; version: number; member_id: string }>("SELECT status, version, member_id FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
-      const row = submission.rows[0];
-      if (!row) throw new DomainError("SUBMISSION_NOT_FOUND", "Submission not found", 404);
-      const caseResult = await client.query<{ id: string; status: string; version: number }>("SELECT id, status, version FROM review_case WHERE submission_id=$1 FOR UPDATE", [submissionId]);
-      const reviewCase = caseResult.rows[0];
-      if (!reviewCase) throw new DomainError("REVIEW_NOT_FOUND", "Review case not found", 404);
-      replay = await this.idempotencyLookup<ReviewResult>(client, idem);
-      if (replay) return replay;
-      if (row.status === "approved") {
-        const existing = await client.query<{ reward_claim_id: string; grant_id: string }>(`SELECT rc.id AS reward_claim_id, pg.id AS grant_id
-          FROM reward_claim rc LEFT JOIN points_grant pg ON pg.reward_claim_id=rc.id WHERE rc.submission_id=$1`, [submissionId]);
-        const response: ReviewResult = {
-          submissionId,
-          status: "approved",
-          version: row.version,
-          ...(existing.rows[0]?.reward_claim_id ? { rewardClaimId: existing.rows[0].reward_claim_id } : {}),
-          ...(existing.rows[0]?.grant_id ? { pointsGrantId: existing.rows[0].grant_id } : {})
-        };
-        await this.idempotencySave(client, { ...idem, response });
-        return response;
-      }
-      if (row.version !== input.expectedVersion) throw new DomainError("VERSION_CONFLICT", "Submission version changed", 409);
-      if (!["submitted", "appealed"].includes(row.status)) throw new DomainError("REVIEW_STATE_INVALID", "Submission is not reviewable", 409);
-      const status = input.decision === "request_changes" ? "needs_changes" : input.decision === "reject" ? "rejected" : "approved";
-      const nextVersion = row.version + 1;
-      await client.query("UPDATE submission SET status=$1, version=$2, updated_at=$3 WHERE id=$4", [status, nextVersion, now, submissionId]);
-      await client.query("UPDATE review_case SET status=$1, version=version+1, assigned_to=$2, updated_at=$3 WHERE id=$4", [status, principalId, now, reviewCase.id]);
-      await client.query(`INSERT INTO review_action(review_case_id, actor_principal_id, action, reason_code, evidence)
-        VALUES ($1,$2,$3,$4,$5)`, [reviewCase.id, principalId, input.decision, input.reasonCode, input.evidence ?? {}]);
-      let rewardClaimId: string | undefined;
-      let pointsGrantId: string | undefined;
-      if (input.decision === "approve" && this.config.pointsRulesEnabled) {
-        await this.assertSwitch(client, "rewards");
-        this.assertPointsPolicyActive(now);
-        if (!this.config.pointsRuleIds.includes("CARE_D7_STORY_R0")) {
-          throw new DomainError("REWARD_RULE_NOT_APPROVED", "The reward rule is not in an active finance approval", 503);
-        }
-        const claim = await client.query<{ id: string; amount: number }>("SELECT id, amount FROM reward_claim WHERE submission_id=$1 FOR UPDATE", [submissionId]);
-        if (!claim.rows[0]) throw new DomainError("REWARD_CONTEXT_MISSING", "Reward claim was not prepared at submission", 500);
-        rewardClaimId = claim.rows[0].id;
-        pointsGrantId = randomUUID();
-        const lotId = randomUUID();
-        const amount = claim.rows[0].amount;
-        await client.query("UPDATE reward_claim SET state='approved' WHERE id=$1", [rewardClaimId]);
-        const availableAfter = addDays(now, this.config.pointsHoldDays);
-        const expiresAt = addDays(now, this.config.pointsExpiryDays);
-        await client.query("INSERT INTO points_grant(id, reward_claim_id, member_id, amount, available_after, expires_at) VALUES ($1,$2,$3,$4,$5,$6)", [pointsGrantId, rewardClaimId, row.member_id, amount, availableAfter, expiresAt]);
-        await client.query("INSERT INTO points_lot(id, grant_id, original_amount, frozen_amount, expires_at) VALUES ($1,$2,$3,$3,$4)", [lotId, pointsGrantId, amount, expiresAt]);
-        await client.query(`INSERT INTO points_entry(member_id, grant_id, lot_id, entry_type, frozen_delta, business_key, occurred_at)
-          VALUES ($1,$2,$3,'grant_frozen',$4,$5,$6)`, [row.member_id, pointsGrantId, lotId, amount, `grant:${pointsGrantId}:frozen`, now]);
-        await client.query(`INSERT INTO points_projection(member_id, frozen) VALUES ($1,$2)
-          ON CONFLICT (member_id) DO UPDATE SET frozen=points_projection.frozen+EXCLUDED.frozen, version=points_projection.version+1, updated_at=$3`, [row.member_id, amount, now]);
-        await enqueue(client, {
-          eventType: "reward.grant.created.v1", aggregateType: "points_grant", aggregateId: pointsGrantId, aggregateVersion: 1,
-          businessKey: `reward:${submissionId}:grant`, payload: { submissionId, memberId: row.member_id, rewardClaimId, pointsGrantId, amount }, occurredAt: now
-        });
-      }
-      await enqueue(client, {
-        eventType: "submission.reviewed.v1", aggregateType: "submission", aggregateId: submissionId, aggregateVersion: nextVersion,
-        businessKey: `submission:${submissionId}:v${nextVersion}:${status}`, payload: { submissionId, memberId: row.member_id, status }, occurredAt: now
-      });
-      await this.audit(client, principalId, `submission.${input.decision}`, "submission", submissionId, input.reasonCode, { status: row.status, version: row.version }, { status, version: nextVersion });
-      const response: ReviewResult = {
-        submissionId,
-        status,
-        version: nextVersion,
-        ...(rewardClaimId ? { rewardClaimId } : {}),
-        ...(pointsGrantId ? { pointsGrantId } : {})
-      };
-      await this.idempotencySave(client, { ...idem, response });
-      return response;
-    }, "SERIALIZABLE");
+    return taskProofRetired();
   }
 
   async appeal(memberId: string | undefined, submissionId: string, idempotencyKey: string, reason: string, expectedVersion: number, now: Date) {
-    const owner = requireMember(memberId);
-    if (!reason.trim()) throw new DomainError("APPEAL_REASON_REQUIRED", "Appeal reason is required", 422);
-    return transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "reviews");
-      const idem = { principalId: `member:${owner}`, operation: "submission.appeal", idempotencyKey, businessKey: `submission:${submissionId}:v${expectedVersion}:appeal`, requestHash: requestHash({ submissionId, reason, expectedVersion }) };
-      const replay = await this.idempotencyLookup<Record<string, unknown>>(client, idem);
-      if (replay) return replay;
-      const submission = await client.query<{ member_id: string; status: string; version: number }>("SELECT member_id, status, version FROM submission WHERE id=$1 FOR UPDATE", [submissionId]);
-      const row = submission.rows[0];
-      if (!row || row.member_id !== owner) throw new DomainError("SUBMISSION_NOT_FOUND", "Submission not found", 404);
-      if (row.status !== "rejected" || row.version !== expectedVersion) throw new DomainError("APPEAL_STATE_INVALID", "Only the current rejected version can be appealed", 409);
-      const reviewCase = await client.query<{ id: string }>("SELECT id FROM review_case WHERE submission_id=$1", [submissionId]);
-      await client.query("INSERT INTO appeal(review_case_id, member_id, reason) VALUES ($1,$2,$3)", [reviewCase.rows[0]!.id, owner, reason]);
-      await client.query("UPDATE submission SET status='appealed', version=version+1, updated_at=$2 WHERE id=$1", [submissionId, now]);
-      await client.query("UPDATE review_case SET status='appealed', version=version+1, updated_at=$2 WHERE id=$1", [reviewCase.rows[0]!.id, now]);
-      await client.query("INSERT INTO review_action(review_case_id, actor_principal_id, action, reason_code, evidence) VALUES ($1,$2,'appeal','MEMBER_APPEAL',$3)", [reviewCase.rows[0]!.id, `member:${owner}`, { reason }]);
-      const response = { submissionId, status: "appealed", version: expectedVersion + 1 };
-      await this.idempotencySave(client, { ...idem, response });
-      return response;
-    });
+    return taskProofRetired();
   }
 
   async revokeConsent(memberId: string | undefined, consentGrantId: string, idempotencyKey: string, reason: string, now: Date) {
@@ -1270,7 +905,6 @@ export class PlatformService {
     return readSnapshot(this.pool, async (client, asOf) => {
     const result = await client.query("SELECT id, status, post_url, platform_account, disclosure, license_payload, version, submitted_at FROM submission WHERE id=$1 AND member_id=$2", [submissionId, owner]);
     if (!result.rows[0]) throw new DomainError("SUBMISSION_NOT_FOUND", "Submission not found", 404);
-    const uploadSwitch = await client.query<{ enabled: boolean }>("SELECT enabled FROM emergency_switch WHERE key='uploads'");
     const media = await client.query("SELECT id, kind, mime_type, size_bytes, upload_state FROM media_object WHERE submission_id=$1 AND is_current=true ORDER BY kind", [submissionId]);
     const review = await client.query(`SELECT rc.status, rc.version, rc.updated_at,
       latest.reason_code, latest.evidence
@@ -1286,7 +920,8 @@ export class PlatformService {
       ...result.rows[0],
       asOf: asOf.toISOString(), businessVersion: Math.max(Number(result.rows[0].version), Number(reviewRow?.version ?? 0)),
       reward_enabled: this.pointsPolicyEnabled(now),
-      media_uploads_enabled: uploadSwitch.rows[0]?.enabled === true,
+      media_uploads_enabled: false,
+      workflowRetired: true,
       media: media.rows,
       review: reviewRow ? { ...reviewRow, reason_summary: reviewReasonSummary(reviewRow.reason_code as string | null) } : null
     };
@@ -1313,95 +948,23 @@ export class PlatformService {
   }
 
   async adminQueue(principalId: string, now = this.now(), authorization: "legacy_role" | "capability" = "legacy_role") {
-    const client = await this.pool.connect();
-    try {
-      if (authorization === "legacy_role") await this.assertAdminRole(client, principalId, ["reviewer", "review_lead", "auditor"]);
-      const result = await client.query(`SELECT s.id, s.status, s.version, s.post_url, s.platform_account, s.disclosure,
-        rc.id AS review_case_id, rc.status AS review_status, rc.version AS review_version, s.submitted_at
-        FROM submission s JOIN review_case rc ON rc.submission_id=s.id
-        WHERE s.status IN ('submitted','appealed') ORDER BY s.submitted_at ASC, s.id ASC LIMIT 100`);
-      return result.rows.map((row) => ({ ...row, reward_enabled: this.pointsPolicyEnabled(now) }));
-    } finally { client.release(); }
+    if (authorization === "legacy_role") {
+      const client = await this.pool.connect();
+      try { await this.assertAdminRole(client, principalId, ["reviewer", "review_lead", "auditor"]); } finally { client.release(); }
+    }
+    return [] as any[];
   }
 
   async adminPublicationQueue(principalId: string, authorization: "legacy_role" | "capability" = "legacy_role") {
-    const client = await this.pool.connect();
-    try {
-      if (authorization === "legacy_role") await this.assertAdminRole(client, principalId, ["review_lead", "auditor"]);
-      const result = await client.query(`SELECT s.id, s.status, s.version, s.post_url, s.platform_account, s.disclosure,
-        s.updated_at AS reviewed_at, rc.assigned_to AS reviewed_by, fi.id AS feed_item_id, fi.visible,
-        EXISTS (
-          SELECT 1 FROM consent_grant cg JOIN revocation_request rr ON rr.consent_grant_id=cg.id
-          WHERE cg.submission_id=s.id AND cg.purpose='feed_readonly' AND cg.active=false
-        ) AS consent_revoked,
-        EXISTS (
-          SELECT 1 FROM outbox_event oe
-          WHERE oe.event_type='submission.publication.approved.v1' AND oe.aggregate_id=s.id
-            AND oe.processed_at IS NULL AND oe.dead_lettered_at IS NULL
-        ) AS publication_queued,
-        EXISTS (
-          SELECT 1 FROM outbox_event oe
-          WHERE oe.event_type='submission.publication.approved.v1' AND oe.aggregate_id=s.id
-            AND oe.processed_at IS NULL AND oe.dead_lettered_at IS NOT NULL
-        ) AS publication_dead_lettered
-        FROM submission s JOIN review_case rc ON rc.submission_id=s.id
-        LEFT JOIN feed_item fi ON fi.submission_id=s.id
-        WHERE s.status='approved' ORDER BY s.updated_at ASC LIMIT 100`);
-      return result.rows.map((row) => ({ ...row, publication_enabled: this.config.ugcGoLiveGate }));
-    } finally { client.release(); }
+    if (authorization === "legacy_role") {
+      const client = await this.pool.connect();
+      try { await this.assertAdminRole(client, principalId, ["review_lead", "auditor"]); } finally { client.release(); }
+    }
+    return [] as any[];
   }
 
   async publishSubmission(principalId: string, submissionId: string, idempotencyKey: string, input: { title: string; excerpt: string; aiUsage: "none" | "assisted" | "generated" | "unknown"; reasonCode: string; evidence: JsonObject }, now: Date, authorization: "legacy_role" | "capability" = "legacy_role") {
-    if (!this.config.ugcGoLiveGate) throw new DomainError("UGC_GO_LIVE_GATE_CLOSED", "Public user content is disabled until the UGC go-live gate is approved", 503);
-    const title = input.title?.trim();
-    const excerpt = input.excerpt?.trim();
-    if (!title || title.length > 60 || !excerpt || excerpt.length > 240) throw new DomainError("PUBLICATION_COPY_INVALID", "Publication title and excerpt are required and must fit the R0 limits", 422);
-    if (!input.reasonCode?.trim() || !input.evidence || Object.keys(input.evidence).length === 0) throw new DomainError("PUBLICATION_EVIDENCE_REQUIRED", "Publication reason code and evidence are required", 422);
-    if (!["none", "assisted", "generated", "unknown"].includes(input.aiUsage)) throw new DomainError("AI_USAGE_INVALID", "A structured AI usage declaration is required", 422);
-    return transaction(this.pool, async (client) => {
-      await this.assertSwitch(client, "submissions");
-      if (authorization === "legacy_role") await this.assertAdminRole(client, principalId, ["review_lead"]);
-      const idem = { principalId, operation: "submission.publish", idempotencyKey, businessKey: `submission:${submissionId}:publication:v1`, requestHash: requestHash({ submissionId, ...input }) };
-      let replay = await this.idempotencyLookup<Record<string, unknown>>(client, idem);
-      if (replay) return replay;
-      const submission = await client.query<{ status: string; version: number; member_id: string; assigned_to: string | null }>(`
-        SELECT s.status, s.version, s.member_id, rc.assigned_to FROM submission s
-        JOIN review_case rc ON rc.submission_id=s.id WHERE s.id=$1 FOR UPDATE OF s, rc`, [submissionId]);
-      const row = submission.rows[0];
-      if (!row) throw new DomainError("SUBMISSION_NOT_FOUND", "Submission not found", 404);
-      replay = await this.idempotencyLookup<Record<string, unknown>>(client, idem);
-      if (replay) return replay;
-      if (row.status !== "approved") throw new DomainError("PUBLICATION_STATE_INVALID", "Only an approved submission can enter publication review", 409);
-      if (row.assigned_to === principalId) throw new DomainError("FOUR_EYES_REQUIRED", "The reward reviewer and public-content publisher must be different principals", 409);
-      const consent = await client.query(`SELECT cg.id FROM consent_grant cg
-        LEFT JOIN revocation_request rr ON rr.consent_grant_id=cg.id
-        WHERE cg.submission_id=$1 AND cg.purpose='feed_readonly' AND cg.active=true AND rr.id IS NULL`, [submissionId]);
-      if (!consent.rows[0]) throw new DomainError("PUBLICATION_CONSENT_MISSING", "Active feed publication consent is required", 409);
-      const existing = await client.query<{ id: string; visible: boolean }>("SELECT id, visible FROM feed_item WHERE submission_id=$1", [submissionId]);
-      if (existing.rows[0]?.visible) {
-        const response = { submissionId, status: "published", feedItemId: existing.rows[0].id };
-        await this.idempotencySave(client, { ...idem, response });
-        return response;
-      }
-      const pending = await client.query<{ id: string }>(`SELECT id FROM outbox_event
-        WHERE event_type='submission.publication.approved.v1' AND aggregate_id=$1 AND processed_at IS NULL`, [submissionId]);
-      if (pending.rows[0]) {
-        const response = { submissionId, status: "publication_queued", eventId: pending.rows[0].id };
-        await this.idempotencySave(client, { ...idem, response });
-        return response;
-      }
-      await enqueue(client, {
-        eventType: "submission.publication.approved.v1", aggregateType: "submission", aggregateId: submissionId, aggregateVersion: row.version,
-        businessKey: `submission:${submissionId}:publication:v1`,
-        payload: { submissionId, memberId: row.member_id, title, excerpt, aiUsage: input.aiUsage, publishedBy: principalId, reasonCode: input.reasonCode, evidence: input.evidence },
-        occurredAt: now
-      });
-      const queued = await client.query<{ id: string }>("SELECT id FROM outbox_event WHERE business_key=$1", [`submission:${submissionId}:publication:v1`]);
-      await this.audit(client, principalId, "submission.publish_approved", "submission", submissionId, input.reasonCode, { status: row.status, publication: "not_public" }, { publication: "queued", aiUsage: input.aiUsage });
-      const response = { submissionId, status: "publication_queued", eventId: queued.rows[0]!.id };
-      await this.idempotencySave(client, { ...idem, response });
-      return response;
-    });
+    return taskProofRetired();
   }
 
   async feed(followingMemberId?: string) {
@@ -1465,33 +1028,7 @@ export class PlatformService {
   }
 
   async updateCampaign(principalId: string, campaignId: string, idempotencyKey: string, input: { active: boolean; capacity: number; startsAt: string; endsAt: string; expectedVersion: number; reasonCode: string; evidence: JsonObject }, now: Date) {
-    const startsAt = new Date(input.startsAt);
-    const endsAt = new Date(input.endsAt);
-    if (!Number.isInteger(input.capacity) || input.capacity < 1 || input.capacity > 100_000) throw new DomainError("CAMPAIGN_CAPACITY_INVALID", "Campaign capacity must be between 1 and 100000", 422);
-    if (!Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime()) || endsAt <= startsAt) throw new DomainError("CAMPAIGN_WINDOW_INVALID", "Campaign start and end must define a valid increasing window", 422);
-    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) throw new DomainError("EXPECTED_VERSION_INVALID", "expectedVersion must be a positive integer", 422);
-    if (!input.reasonCode?.trim() || !input.evidence || Object.keys(input.evidence).length === 0) throw new DomainError("CAMPAIGN_EVIDENCE_REQUIRED", "A reason code and evidence are required", 422);
-    return transaction(this.pool, async (client) => {
-      await this.assertAdminRole(client, principalId, ["review_lead"]);
-      const idem = { principalId, operation: "campaign.update", idempotencyKey, businessKey: `campaign:${campaignId}:v${input.expectedVersion}:update`, requestHash: requestHash({ campaignId, ...input }) };
-      let replay = await this.idempotencyLookup<Record<string, unknown>>(client, idem);
-      if (replay) return replay;
-      const before = await client.query<{ id: string; code: string; capacity: number; active: boolean; starts_at: Date; ends_at: Date; version: number }>("SELECT id, code, capacity, active, starts_at, ends_at, version FROM eligibility_campaign WHERE id=$1 FOR UPDATE", [campaignId]);
-      const row = before.rows[0];
-      if (!row) throw new DomainError("CAMPAIGN_NOT_FOUND", "Eligibility campaign not found", 404);
-      replay = await this.idempotencyLookup<Record<string, unknown>>(client, idem);
-      if (replay) return replay;
-      if (row.version !== input.expectedVersion) throw new DomainError("VERSION_CONFLICT", "Campaign version changed", 409);
-      const allocated = await client.query<{ count: number }>("SELECT count(*)::int count FROM eligibility_task WHERE campaign_id=$1 AND state <> 'expired'", [campaignId]);
-      if (input.capacity < allocated.rows[0]!.count) throw new DomainError("CAMPAIGN_CAPACITY_BELOW_ALLOCATION", "Campaign capacity cannot be lower than active allocations", 409);
-      const updated = await client.query(`UPDATE eligibility_campaign SET active=$1, capacity=$2, starts_at=$3, ends_at=$4,
-        version=version+1, updated_at=$5, updated_by=$6, update_reason_code=$7, update_evidence=$8
-        WHERE id=$9 RETURNING *`, [input.active, input.capacity, startsAt, endsAt, now, principalId, input.reasonCode.trim(), input.evidence, campaignId]);
-      const response = { ...updated.rows[0], allocated_count: allocated.rows[0]!.count };
-      await this.audit(client, principalId, "eligibility_campaign.update", "eligibility_campaign", campaignId, input.reasonCode.trim(), row, response);
-      await this.idempotencySave(client, { ...idem, response });
-      return response;
-    });
+    return taskProofRetired();
   }
 
   async listWorkerBacklog(principalId: string) {

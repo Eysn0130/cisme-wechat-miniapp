@@ -7,8 +7,8 @@ import { editorialStoriesForRuntime, editorialMediaSrc, publishedEditorialArticl
 import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { currentChromeStyle } from "../../services/layout";
 import { memberIdentity } from "../../services/member-identity";
-import { consumerTaskEntries } from "../../services/task-entry";
 import { commerceContextRevision } from "../../services/commerce-command-store";
+import { readFollowingFeed } from "../../services/following-feed";
 import { createComposeMediaIntent,discardComposeMediaIntent,revokeComposeMediaIntents,type ComposeMediaIntentPayload } from "../../services/community-compose-intent";
 
 type PublisherOwner={token:string;revision:number;epoch:number};
@@ -32,11 +32,15 @@ async function validatePublisherFiles(files:Array<{tempFilePath:string;size:numb
   return selected;
 }
 
-const feedModels = new WeakMap<object, { feed: any[]; following: any[]; editorial: PublishedEditorialCard[] }>();
+const feedModels = new WeakMap<object, { feed: any[]; following: any[]; editorial: PublishedEditorialCard[]; followingReady: boolean; followingOwner: string }>();
+const communityReadOwner = () => {
+  const context = getApp<IAppOption>().globalData;
+  return JSON.stringify([context.sessionToken, commerceContextRevision(), context.apiBaseUrl, context.cloudFunction?.env, context.cloudFunction?.name]);
+};
 const initialEditorialStories = editorialStoriesForRuntime();
 function feedModel(page: object) {
   let model = feedModels.get(page);
-  if (!model) { model = { feed: [], following: [], editorial: [] }; feedModels.set(page, model); }
+  if (!model) { model = { feed: [], following: [], editorial: [], followingReady: false, followingOwner: "" }; feedModels.set(page, model); }
   return model;
 }
 const chromeHideTravel = 24;
@@ -49,11 +53,13 @@ let scrollDirection: -1 | 0 | 1 = 0;
 let scrollTravel = 0;
 
 Page({
+  readOwner: "",
   readVisible:true,
+  followingRequested:false,
   publisherAlive:true,publisherEpoch:0,publisherOwner:null as PublisherOwner|null,
   publisherNative:"" as ""|"privacy"|"picker"|"settings",publisherReturn:null as (()=>void)|null,
   publisherIntentId:"",publisherTransferActive:false,publisherNavigationEpoch:0,
-  data: { publishEntryOpen:false,publishEntryBusy:false,publishEntryError:"",publishEntryRecovery:"" as ""|"privacy"|"settings",publishEntrySource:"" as ""|"album"|"camera", reportCategoryLabels:{spam:'垃圾信息',harassment:'骚扰',unsafe_advice:'不安全建议',illegal:'违法内容',intellectual_property:'知识产权',privacy:'隐私',other:'其他'},mode: "featured", ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], reviewQueue: [] as any[], publicationQueue: [] as any[], profileReviewQueue: [] as any[], formalReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", searchInput:"", appliedSearch:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, tasks: [] as any[], tasksLoading: false, tasksError: "", feedAttempt: 0, tasksAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  data: { feedReady:false,publishEntryOpen:false,publishEntryBusy:false,publishEntryError:"",publishEntryRecovery:"" as ""|"privacy"|"settings",publishEntrySource:"" as ""|"album"|"camera", reportCategoryLabels:{spam:'垃圾信息',harassment:'骚扰',unsafe_advice:'不安全建议',illegal:'违法内容',intellectual_property:'知识产权',privacy:'隐私',other:'其他'},mode: "featured", ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], profileReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", searchInput:"", appliedSearch:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, feedAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.readVisible=true;
@@ -63,7 +69,10 @@ Page({
     if(this.publisherOwner&&!this.publisherCurrent(this.publisherOwner,false))this.clearPublisherWork(false);
     this.publisherReturn?.();this.publisherReturn=null;
     this.resetChromeMotion();
-    this.setData({ navigating: false, chromeHidden: false, signedIn: Boolean(getApp<IAppOption>().globalData.sessionToken) });
+    const signedIn = Boolean(getApp<IAppOption>().globalData.sessionToken);
+    this.setData({ navigating: false, chromeHidden: false, signedIn,
+      ...(this.followingRequested ? {mode:signedIn?"following":"featured"} : {}) });
+    this.followingRequested=false;
     const tab = this.getTabBar?.();
     if (tab) tab.setData({ active: 2, externalBusy: false });
     tab?.syncActive?.(2);
@@ -78,19 +87,19 @@ Page({
     if(!nativeReturn)this.clearPublisherWork(this.publisherTransferActive);
     cancelPageReads(this);
     this.data.feedAttempt += 1;
-    this.data.tasksAttempt += 1;
+
     this.resetChromeMotion();
     const tab = this.getTabBar?.();
     tab?.setPresentation?.("community-scroll", false);
     if(!nativeReturn)tab?.setCommunityPublisherAvailable?.(false);
-    this.setData({ chromeHidden: false, canReview: false, reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [],formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:"",reviewNotice:"" });
+    this.setData({ chromeHidden: false, canReview: false, profileReviewQueue: [], formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:"",reviewNotice:"" });
   },
   onUnload() {
     this.readVisible=false;
     this.publisherAlive=false;this.clearPublisherWork(false);
     cancelPageReads(this); feedModels.delete(this);
     this.data.feedAttempt += 1;
-    this.data.tasksAttempt += 1;
+
     this.resetChromeMotion();
   },
   resetChromeMotion() {
@@ -268,16 +277,17 @@ Page({
   submitSearch(){
     const next=this.data.searchInput.trim();
     if(this.data.loading)return;
-    this.setData({appliedSearch:next,mode:"recommend"});
+    this.setData({appliedSearch:next,mode:"recommend",feedReady:false,feedColumns:[[],[]],displayFeedCount:0});
     void this.load();
   },
   clearSearch(){
-    this.setData({searchInput:"",appliedSearch:"",mode:"recommend"});
+    this.setData({searchInput:"",appliedSearch:"",mode:"recommend",feedReady:false,feedColumns:[[],[]],displayFeedCount:0});
     void this.load();
   },
   async onReachBottom(){
     if(this.data.mode==="review"){if(this.data.reportNextCursor)await this.loadMoreReports();else await this.loadMoreAppeals();return;}
     if(this.data.mode==="featured"){await this.loadMoreEditorial();return;}
+    if(this.data.mode==="following"){await this.loadMoreFollowing();return;}
     const mode=this.data.mode,cursor=mode==="following"?this.data.followingNextCursor:this.data.formalNextCursor,
       attempt=this.data.feedAttempt;
     if(!cursor||this.data.formalLoadingMore||this.data.loading||!["recommend","following"].includes(mode)||!this.data.ugcFeedEnabled)return;
@@ -316,29 +326,31 @@ Page({
     const mode = String(event.currentTarget.dataset.mode);
     if (!["featured", "recommend", "following", "review"].includes(mode) || (mode === "review" && !this.data.canReview)) return;
     if (mode === "recommend" && !this.data.ugcFeedEnabled && !this.data.socialPreviewEnabled) return;
-    if (mode === "following" && !this.data.socialPreviewEnabled && !this.data.ugcFeedEnabled) return;
-    if ((mode === "following" || mode === "review") && !getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication(); return; }
-    if (this.data.loading) return;
+    if (mode === this.data.mode || this.data.reviewBusy || this.data.publishEntryBusy || this.data.navigating) return;
+    if ((mode === "following" || mode === "review") && !getApp<IAppOption>().globalData.sessionToken) {
+      this.followingRequested=mode==="following";resumeAuthentication("/pages/community/index");return;
+    }
+    const previousMode=this.data.mode,wasLoading=this.data.loading;
     cancelPageReads(this);
     this.data.feedAttempt += 1; // A → B → A must not revive an older pagination result.
-    this.setData({ mode, formalLoadingMore:false, moreError:"" });
+    this.setData({ mode, loading:false,feedReady:false,formalLoadingMore:false, moreError:"",error:"" });
     this.syncPublisherEntry();
     if (mode === "review") await this.loadReview();
     else if (mode === "following") await this.loadFollowing();
-    else this.renderFeed();
+    else { this.renderFeed();if(previousMode==="following"||wasLoading)await this.load(); }
   },
   renderFeed() {
     const processingStarted = measurementClock();
     const model = feedModel(this);
-    const reviewed = (this.data.mode === "following" ? model.following : model.feed).map((item: any) => item.kind === "formal"
+    const reviewed = (this.data.mode === "following" ? model.following : model.feed).map((item: any) => item.kind === "editorial" ? item : item.kind === "formal"
       ? { ...item, avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: `${item.likeCount || 0} 赞` }
       : { ...item, kind: "ugc", image: item.image || "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "" });
     const featured = model.editorial.map(item => ({ ...item, kind:"editorial", author_id:item.authorId,
       image:editorialMediaSrc(item.coverUrl),avatar:editorialPublisherAvatar(item.author,defaultMemberAvatar),engagementLabel:`${item.likeCount} 赞` }));
-    let items = this.data.mode === "featured" ? featured : this.data.mode === "recommend" ? reviewed : reviewed.concat(featured);
-    if (this.data.mode === "following") items = items.filter(item => item.kind==="formal"||this.data.follows.includes(item.author_id));
+    const items = this.data.mode === "featured" ? featured : reviewed;
     const patch = feedColumnPatch(this.data.feedColumns, projectFeedCards(items));
     if (items.length !== this.data.displayFeedCount) patch.displayFeedCount = items.length;
+    if (!this.data.loading && !this.data.error && !this.data.feedReady) patch.feedReady = true;
     recordClientMetric({ action: "feed", stage: "data_processing", durationMs: measurementClock() - processingStarted });
     if (Object.keys(patch).length) {
       const bridgeStarted = measurementClock(), attempt = this.data.feedAttempt;
@@ -346,41 +358,51 @@ Page({
     }
   },
   async loadFollowing() {
-    const attempt = this.data.feedAttempt;
+    const attempt = ++this.data.feedAttempt;
     const token = getApp<IAppOption>().globalData.sessionToken;
-    feedModel(this).following = [];
-    this.setData({ followingNextCursor:null,loading: true, error: "" });
+    const owner=communityReadOwner(),model=feedModel(this);
+    if(this.readOwner!==owner){model.feed=[];model.editorial=[];}
+    if(model.followingOwner!==owner){model.following=[];model.followingReady=false;}
+    this.readOwner=owner;model.followingOwner=owner;
+    if(!token){model.following=[];model.followingReady=false;this.setData({mode:"featured",loading:false});this.renderFeed();return;}
+    const current=()=>this.readVisible&&attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken&&owner===communityReadOwner()&&this.data.mode==="following";
+    this.setData({feedAttempt:attempt,feedReady:model.followingReady,loading:true,error:"",moreError:""});
     this.renderFeed();
     try {
-      const [formalOutcome,previewOutcome]=await Promise.all([
-        this.data.ugcFeedEnabled?request<{items:any[];nextCursor:string|null}>({path:"/v1/ugc/posts?following=1&limit=30"})
-          .then(page=>({page}),error=>({error})):Promise.resolve({page:{items:[],nextCursor:null}}),
-        this.data.socialPreviewEnabled?request<{items:any[];authors?:Record<string,any>}>({path:"/v1/me/following/page?limit=30"})
-          .then(page=>({page}),error=>({error})):Promise.resolve({page:{items:[]}})
-      ]);
-      if (attempt !== this.data.feedAttempt || token !== getApp<IAppOption>().globalData.sessionToken||this.data.mode!=="following") return;
-      if("error" in formalOutcome&&"error" in previewOutcome)throw formalOutcome.error;
-      const origin=getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/,"");
-      const formal="page" in formalOutcome?formalOutcome.page.items.map(item=>({...item,kind:"formal",author_id:item.authorId,
-        image:item.coverId&&origin?`${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail`:""})):[];
-      const preview="page" in previewOutcome?await prepareFeedPage(previewOutcome.page):[];
-      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||this.data.mode!=="following")return;
-      feedModel(this).following = [...formal, ...preview];
-      this.setData({followingNextCursor:"page" in formalOutcome?formalOutcome.page.nextCursor:null});
+      const page=await readFollowingFeed(this);if(!current())return;
+      model.following=page.items;model.followingReady=true;
+      this.setData({feedReady:true,followingNextCursor:page.nextCursor});
       this.renderFeed();
-    } catch { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ error: "关注内容未同步，请重试。" }); }
-    finally { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({loading:false}); }
+    } catch(error) { if(!current()||this.recoverExpiredEditorialRead(attempt,token,error))return;if(current()){
+      if([401,403].includes((error as {status?:number})?.status??0)){model.following=[];model.followingReady=false;}
+      this.setData({feedReady:model.followingReady,error:"关注内容暂时无法更新，请下拉刷新或重试。"});this.renderFeed();
+    }} finally { if(current())this.setData({loading:false}); }
+  },
+  async loadMoreFollowing(){
+    const model=feedModel(this),cursor=this.data.followingNextCursor,attempt=this.data.feedAttempt,owner=communityReadOwner(),token=getApp<IAppOption>().globalData.sessionToken;
+    if(!cursor||this.data.loading||this.data.formalLoadingMore||this.data.mode!=="following"||model.followingOwner!==owner)return;
+    const current=()=>this.readVisible&&attempt===this.data.feedAttempt&&owner===communityReadOwner()&&this.data.mode==="following";
+    this.setData({formalLoadingMore:true,moreError:""});
+    try{const page=await readFollowingFeed(this,cursor);if(!current()||cursor!==this.data.followingNextCursor)return;
+      const seen=new Set(model.following.map(item=>`${item.kind}:${item.id}`));
+      model.following=[...model.following,...page.items.filter(item=>{const key=`${item.kind}:${item.id}`;if(seen.has(key))return false;seen.add(key);return true;})];
+      this.setData({followingNextCursor:page.nextCursor});this.renderFeed();
+    }catch(error){if(!current()||this.recoverExpiredEditorialRead(attempt,token,error))return;this.setData({moreError:"更多关注内容暂时无法加载，已显示的故事保留。"});}
+    finally{if(current())this.setData({formalLoadingMore:false});}
+  },
+  async onPullDownRefresh(){
+    try{if(!this.data.reviewBusy&&!this.data.publishEntryOpen&&!this.data.publishEntryBusy&&!this.data.navigating)await this.load();}finally{wx.stopPullDownRefresh();}
   },
   async loadReview() {
     if (!this.data.canReview) return;
     const token = getApp<IAppOption>().globalData.sessionToken;
     const attempt = this.data.feedAttempt;
-    this.setData({ reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [],formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:memberIdentity()?.id||"", teamError: "", reviewBusy: true });
+    this.setData({ profileReviewQueue: [], formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:memberIdentity()?.id||"", teamError: "", reviewBusy: true });
     try {
-      const [reviewQueue, publicationQueue, profiles, formal,reports,appeals] = await Promise.all([request<any[]>({ path: "/v1/team/reviews" }), request<any[]>({ path: "/v1/team/publications" }), request<any[]>({ path: "/v1/team/member-profiles" }), request<{items:any[]}>({path:"/v1/management/ugc/review-queue"}),request<{items:any[];nextCursor:string|null;matchingTotal:number}>({path:"/v1/management/ugc/reports?limit=30"}),request<{items:any[];nextCursor:string|null;matchingTotal:number}>({path:"/v1/management/ugc/appeals?limit=30"})]);
+      const [profiles,reports,appeals] = await Promise.all([ request<any[]>({ path: "/v1/team/member-profiles" }),request<{items:any[];nextCursor:string|null;matchingTotal:number}>({path:"/v1/management/ugc/reports?limit=30"}),request<{items:any[];nextCursor:string|null;matchingTotal:number}>({path:"/v1/management/ugc/appeals?limit=30"})]);
       const profileReviewQueue=await Promise.all(profiles.map(async row=>{const {avatar_data_url,...safe}=row;return {...safe,avatar:await localMemberAvatar(avatar_data_url,row.avatar_revision)};}));
       if (attempt !== this.data.feedAttempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
-      this.setData({ reviewQueue, publicationQueue, profileReviewQueue, formalReviewQueue: formal.items,
+      this.setData({ profileReviewQueue,
         formalReportQueue:reports.items,reportNextCursor:reports.nextCursor,reportTotal:reports.matchingTotal,
         formalAppealQueue:appeals.items,appealNextCursor:appeals.nextCursor,appealTotal:appeals.matchingTotal });
     } catch (error) { if (attempt === this.data.feedAttempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ teamError: (error as {title?:string}).title || "审核列表未同步，请重试" }); }
@@ -479,13 +501,6 @@ Page({
       "这条举报已被处理，请刷新队列核对。":(error as {title?:string}).title||"举报未处理，请重试。"});}
     finally{if(current())this.setData({reviewBusy:false});}
   },
-  openFormalReview(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.navigating || !this.data.canReview) return;
-    const id = String(event.currentTarget.dataset.id || ""); if (!id) return;
-    this.setData({ navigating: true });
-    wx.navigateTo({ url: `/pages/community-review/index?id=${encodeURIComponent(id)}`,
-      fail: () => { this.setData({ navigating: false }); wx.showToast({ title: "审核页暂时无法打开", icon: "none" }); } });
-  },
   async reviewMemberProfile(event:WechatMiniprogram.TouchEvent) {
     if(this.data.reviewBusy || !this.data.canReview)return;
     const item=this.data.profileReviewQueue.find(row=>row.member_id===event.currentTarget.dataset.id);
@@ -501,57 +516,15 @@ Page({
     }catch(error){if(token===getApp<IAppOption>().globalData.sessionToken && attempt===this.data.feedAttempt)this.setData({teamError:(error as {title?:string}).title || "审核尚未确认，请刷新核对"});}
     finally {if(token===getApp<IAppOption>().globalData.sessionToken && attempt===this.data.feedAttempt)this.setData({reviewBusy:false});}
   },
-  async reviewSubmission(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.reviewBusy || !this.data.canReview) return;
-    const item = this.data.reviewQueue.find(item => item.id === event.currentTarget.dataset.id);
-    if (!item) return;
-    const decision = String(event.currentTarget.dataset.decision);
-    if (!["approve", "request_changes", "reject"].includes(decision)) return;
-    const token = getApp<IAppOption>().globalData.sessionToken;
-    const attempt = this.data.feedAttempt;
-    this.setData({ reviewBusy: true, teamError: "" });
-    try {
-      const result = await wx.showModal({ title: decision === "approve" ? "确认投稿审核通过" : "填写审核意见", editable: true, placeholderText: "请填写已核实的事实与审核理由", confirmText: "提交审核" });
-      if (!result.confirm || token !== getApp<IAppOption>().globalData.sessionToken || attempt !== this.data.feedAttempt) return;
-      const reason = result.content?.trim() || "";
-      if (reason.length < 4) { this.setData({ teamError: "请输入至少 4 个字的审核依据" }); return; }
-      await request({ path: `/v1/team/submissions/${item.id}/review`, method: "POST", idempotencyKey: `native-review-${item.id}-${item.version}-${decision}`, data: { decision, reasonCode: reason, evidence: { note: reason }, expectedVersion: item.version } });
-      if (token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.feedAttempt) await this.loadReview();
-    } catch (error) { if (token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.feedAttempt) this.setData({ teamError: (error as {title?:string}).title || "审核未确认，请刷新核对后重试" }); }
-    finally { if (token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.feedAttempt) this.setData({ reviewBusy: false }); }
-  },
-  copyPostUrl(event: WechatMiniprogram.TouchEvent) { const url = String(event.currentTarget.dataset.url || ""); if (url) wx.setClipboardData({ data: url }); },
-  async publishSubmission(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.reviewBusy || !this.data.canReview) return;
-    const item = this.data.publicationQueue.find(item => item.id === event.currentTarget.dataset.id);
-    if (!item || !item.publication_enabled || item.visible || item.publication_queued) return;
-    const token = getApp<IAppOption>().globalData.sessionToken;
-    const attempt = this.data.feedAttempt;
-    const current = () => token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.feedAttempt;
-    this.setData({ reviewBusy: true, teamError: "" });
-    try {
-      const title = await wx.showModal({ title: "发布标题", editable: true, placeholderText: "输入审核后的标题（最多 60 字）" });
-      if (!title.confirm || !current()) return;
-      const excerpt = await wx.showModal({ title: "发布摘要", editable: true, placeholderText: "输入审核后的摘要（最多 240 字）" });
-      if (!excerpt.confirm || !current()) return;
-      const reason = await wx.showModal({ title: "发布复核依据", editable: true, placeholderText: "确认内容与公开展示许可后填写依据" });
-      if (!reason.confirm || !current()) return;
-      const ai = await wx.showActionSheet({ itemList: ["无 AI 使用", "AI 辅助", "AI 生成", "尚不明确"] });
-      if (!current()) return;
-      await request({ path: `/v1/team/submissions/${item.id}/publish`, method: "POST", idempotencyKey: `native-publish-${item.id}-${Date.now()}`, data: { title: title.content || "", excerpt: excerpt.content || "", aiUsage: ["none","assisted","generated","unknown"][ai.tapIndex], reasonCode: reason.content || "", evidence: { note: reason.content || "" } } });
-      if (current()) await this.loadReview();
-    } catch (error) { if (current() && !/cancel/i.test((error as {errMsg?:string}).errMsg || "")) this.setData({ teamError: (error as {title?:string}).title || "发布未确认，请刷新核对后重试" }); }
-    finally { if (current()) this.setData({ reviewBusy: false }); }
-  },
   recoverExpiredEditorialRead(attempt:number,token:string,error:unknown){
     if(!this.readVisible||attempt!==this.data.feedAttempt||!expiredEditorialRead(error,token))return false;
     this.clearPublisherWork(false);
-    this.data.feedAttempt+=1;this.data.tasksAttempt+=1;
-    const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];
+    this.data.feedAttempt+=1;
+    const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];model.followingReady=false;model.followingOwner="";
     this.setData({signedIn:false,mode:"featured",loading:false,ugcFeedEnabled:false,ugcDraftsEnabled:false,socialPreviewEnabled:false,canReview:false,follows:[],
-      reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],formalReportQueue:[],reportNextCursor:null,reportTotal:0,
+      profileReviewQueue:[],formalReportQueue:[],reportNextCursor:null,reportTotal:0,
       formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reportLoadingMore:false,appealLoadingMore:false,reviewActorId:"",reviewNotice:"",reviewBusy:false,
-      tasks:[],tasksLoading:false,tasksError:"",editorialNextCursor:null,formalNextCursor:null,followingNextCursor:null,formalLoadingMore:false,
+      feedReady:false,editorialNextCursor:null,formalNextCursor:null,followingNextCursor:null,formalLoadingMore:false,
       moreError:"",teamError:"",error:"登录状态已失效，请重新加载社区内容。"});
     this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);this.renderFeed();return true;
   },
@@ -559,17 +532,21 @@ Page({
     cancelPageReads(this);
     const preservePublisher=preservePublisherMount===true&&Boolean(this.publisherNative)&&this.data.publishEntryOpen&&this.publisherOwner!==null&&this.publisherCurrent(this.publisherOwner);
     if(!preservePublisher)this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);
-    const session = getApp<IAppOption>().globalData.sessionToken;
-    feedModel(this).following = [];
-    feedModel(this).editorial = [];
+    const context = getApp<IAppOption>().globalData;
+    const session = context.sessionToken;
+    const owner = JSON.stringify([session, commerceContextRevision(), context.apiBaseUrl, context.cloudFunction?.env, context.cloudFunction?.name]);
+    const sameOwner = this.readOwner === owner;
+    this.readOwner = owner;
+    const model = feedModel(this);
+    if (!sameOwner) { model.feed = []; model.editorial = []; model.following=[];model.followingReady=false;model.followingOwner=""; }
     const attempt = this.data.feedAttempt + 1;
-    const privateMode=this.data.mode==="following"||this.data.mode==="review";
-    this.setData({ feedAttempt: attempt, loading: true, ugcFeedEnabled:false, ugcDraftsEnabled:false, editorialNextCursor:null, formalNextCursor:null, followingNextCursor:null,
-      follows:[],canReview:false,reviewQueue:[],publicationQueue:[],profileReviewQueue:[],formalReviewQueue:[],
+    const privateMode=this.data.mode==="review"||(this.data.mode==="following"&&!model.followingReady);
+    this.setData({ feedAttempt: attempt, loading: true, ugcDraftsEnabled:false, editorialNextCursor:null, formalNextCursor:null, followingNextCursor:null,
+      ...(!sameOwner ? { feedReady:false,ugcFeedEnabled:false, socialPreviewEnabled:false,  feedColumns:[[],[]] as [any[],any[]], displayFeedCount:0 } : {}),
+      follows:[],canReview:false,profileReviewQueue:[],
       formalLoadingMore:false, moreError:"", reviewBusy: false, teamError: "", error: "",
-      ...(privateMode?{feedColumns:[[],[]] as [any[],any[]],displayFeedCount:0}:{}) });
+      ...(privateMode?{feedReady:false,feedColumns:[[],[]] as [any[],any[]],displayFeedCount:0}:{}) });
     const failedRead=(error:unknown)=>{this.recoverExpiredEditorialRead(attempt,session,error);return {error};};
-    const tasksPromise = this.loadTasks((error:unknown)=>{this.recoverExpiredEditorialRead(attempt,session,error);});
     const editorialPromise=publishedEditorialArticles(this).then(feed=>({feed}),failedRead);
     const capabilityPromise = Promise.all([request<{ communityPreviewEnabled?: boolean }>({ path: "/v1/capabilities", authMode: "public" }),
       request<{ publicEnabled?: boolean; draftsEnabled?: boolean }>({ path: "/v1/ugc/status", authMode: "public" })])
@@ -579,11 +556,10 @@ Page({
     const formalQuery=this.data.appliedSearch?`&q=${encodeURIComponent(this.data.appliedSearch)}`:"";
     const formalPromise = request<{items:any[];nextCursor:string|null}>({ path: `/v1/ugc/posts?limit=30${formalQuery}`, authMode: getApp<IAppOption>().globalData.sessionToken ? "optional" : "public" })
       .then(feed => ({ feed }), failedRead);
-    this.setData({ canReview: false, follows: [], reviewQueue: [], publicationQueue: [], profileReviewQueue: [], formalReviewQueue: [] });
+    this.setData({ canReview: false, follows: [], profileReviewQueue: [] });
     const capabilities = await capabilityPromise;
     if (this.data.feedAttempt !== attempt || session !== getApp<IAppOption>().globalData.sessionToken) return;
     const availableMode = this.data.mode === "recommend" && !capabilities.ugcFeedEnabled && !capabilities.socialPreviewEnabled
-      || this.data.mode === "following" && !capabilities.socialPreviewEnabled && !capabilities.ugcFeedEnabled
       ? "featured"
       : this.data.mode;
     this.setData({ ...capabilities, mode: availableMode });
@@ -598,15 +574,19 @@ Page({
         if (this.data.feedAttempt !== attempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
         this.setData({ canReview: access.canReview === true, follows, mode: this.data.mode === "review" && !access.canReview ? "featured" : this.data.mode });
         this.syncPublisherEntry();
-      } catch(error) { failedRead(error);if (this.data.feedAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ canReview: false, mode: "featured" }); }
+      } catch(error) { failedRead(error);if (this.data.feedAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ canReview: false, ...(this.data.mode==="review"?{mode:"featured"}:{}) }); }
     } else this.setData({ mode: "featured" });
     try {
       const [outcome,formalOutcome,editorialOutcome] = await Promise.all([feedPromise,formalPromise,editorialPromise]);
       if(this.data.feedAttempt!==attempt||session!==getApp<IAppOption>().globalData.sessionToken)return;
+      if(this.data.mode==="following"){
+        if("feed" in editorialOutcome)model.editorial=editorialOutcome.feed.items;
+        await this.loadFollowing();return;
+      }
       if(this.data.mode==="featured"&&"error" in editorialOutcome)throw editorialOutcome.error;
       if(this.data.mode==="featured"&&!capabilities.ugcFeedEnabled&&!capabilities.socialPreviewEnabled&&"feed" in editorialOutcome){
         feedModel(this).editorial=editorialOutcome.feed.items;
-        this.setData({editorialNextCursor:editorialOutcome.feed.nextCursor,error:""});this.renderFeed();return;
+        this.setData({feedReady:true,editorialNextCursor:editorialOutcome.feed.nextCursor,error:""});this.renderFeed();return;
       }
       if(this.data.mode!=="featured"&&"error" in outcome&&"error" in formalOutcome)throw outcome.error;
       const preview = !this.data.appliedSearch && "feed" in outcome ? await prepareFeedPage(outcome.feed) : [];
@@ -619,36 +599,13 @@ Page({
       // identities come only from the server public-profile allowlist.
       feedModel(this).feed = feed;
       feedModel(this).editorial = "feed" in editorialOutcome?editorialOutcome.feed.items:[];
-      this.setData({ editorialNextCursor:"feed" in editorialOutcome?editorialOutcome.feed.nextCursor:null,formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: "" });
+      this.setData({ feedReady:true,editorialNextCursor:"feed" in editorialOutcome?editorialOutcome.feed.nextCursor:null,formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: "" });
       this.renderFeed();
       if (this.data.mode === "review") await this.loadReview();
-      else if (this.data.mode === "following") await this.loadFollowing();
     } catch (error) {
-      if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = [];feedModel(this).editorial=[];this.setData({ error: this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。" }); this.renderFeed(); }
+      if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) { feedModel(this).feed = [];feedModel(this).editorial=[];this.setData({ feedReady:false,error: this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。" }); this.renderFeed(); }
     } finally {
       if (this.data.feedAttempt === attempt && session === getApp<IAppOption>().globalData.sessionToken) this.setData({ loading: false });
-      await tasksPromise;
-    }
-  },
-  async loadTasks(reportFailure?:((error:unknown)=>void)|WechatMiniprogram.TouchEvent) {
-    if (!getApp<IAppOption>().globalData.sessionToken) {
-      this.data.tasksAttempt += 1;
-      this.setData({ tasks: [], tasksLoading: false, tasksError: "" });
-      return;
-    }
-    const token = getApp<IAppOption>().globalData.sessionToken;
-    const attempt = this.data.tasksAttempt + 1;
-    this.setData({ tasksAttempt: attempt, tasks: [], tasksLoading: true, tasksError: "" });
-    try {
-      const taskHistory = await request<any[]>({ path: "/v1/me/tasks", authMode: "optional" });
-      if (this.data.tasksAttempt !== attempt || token !== getApp<IAppOption>().globalData.sessionToken) return;
-      const tasks = consumerTaskEntries(taskHistory);
-      this.setData({ tasks, tasksError: "" });
-    } catch (error) {
-      if(typeof reportFailure==="function")reportFailure(error);
-      if (this.data.tasksAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ tasks: [], tasksError: "活动暂未加载，请重试" });
-    } finally {
-      if (this.data.tasksAttempt === attempt && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ tasksLoading: false });
     }
   },
   openPost(event: WechatMiniprogram.TouchEvent) {
@@ -661,18 +618,4 @@ Page({
     const route = item?.kind === "formal" ? "/pages/community-post/index" : "/pages/post/index";
     wx.navigateTo({ url: `${route}?id=${encodeURIComponent(id)}${item?.kind==="editorial"?"&source=editorial":""}`, fail: () => { this.setData({ navigating: false }); const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false }); wx.showToast({ title: "护理故事暂时无法打开", icon: "none" }); } });
   },
-  openInvite(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.tasksLoading || this.data.navigating) return;
-    const id = String(event.currentTarget.dataset.id ?? "");
-    const task = this.data.tasks.find((entry) => entry.id === id);
-    if (!task) {
-      this.setData({ tasksError: "邀请状态已更新，正在重新核验。" });
-      wx.showToast({ title: "邀请状态已更新，请重试", icon: "none" });
-      void this.loadTasks();
-      return;
-    }
-    this.setData({ navigating: true });
-    const tab = this.getTabBar?.(); if (tab) tab.setData({ externalBusy: true });
-    wx.navigateTo({ url: `/pages/task/index?id=${task.id}`, fail: () => { this.setData({ navigating: false }); const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false }); wx.showToast({ title: "投稿与邀请暂时无法打开", icon: "none" }); } });
-  }
 });

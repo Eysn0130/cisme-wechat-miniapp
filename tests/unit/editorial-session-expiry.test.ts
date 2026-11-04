@@ -73,14 +73,14 @@ describe("editorial reads after a real transport session revocation",()=>{
   expirePath=null;await page.load();expect(requests.at(-1).header.Authorization).toBe("");expect(page.data.loading).toBe(false);expect(page.data.error).toBe("");
   if(route==="post")expect(page.data.item.id).toBe(articleId);else expect(page.data.author.id).toBe(authorId);
  });
- it.each(["tasks-before-capabilities","editorial-before-capabilities","access-after-capabilities","editorial-at-aggregate"])("settles Community when expiry occurs at %s",async(stage)=>{
-  await mount("community");Object.assign(page.data,{signedIn:true,follows:["old-private-follow"],reviewQueue:[{private:true}],tasks:[{private:true}],displayFeedCount:1});
-  expirePath=stage.startsWith("tasks")?"/v1/me/tasks":stage.startsWith("access")?"/v1/me/community-access":"/v1/editorial/articles?";
+ it.each(["editorial-before-capabilities","access-after-capabilities","editorial-at-aggregate"])("settles Community when expiry occurs at %s",async(stage)=>{
+  await mount("community");Object.assign(page.data,{signedIn:true,follows:["old-private-follow"],profileReviewQueue:[{private:true}],displayFeedCount:1});
+  expirePath=stage.startsWith("access")?"/v1/me/community-access":"/v1/editorial/articles?";
   if(stage.includes("before-capabilities"))holdPath="/v1/capabilities";else if(stage==="editorial-at-aggregate")holdPath="/v1/editorial/articles?";
   const reading=page.load();
   if(holdPath==="/v1/capabilities"){await vi.waitFor(()=>expect(runtime.globalData.sessionToken).toBe(""));releaseHeld();}
   else if(holdPath){await vi.waitFor(()=>expect(requests.some(r=>pathOf(r)==="/v1/me/community-access")).toBe(true));releaseHeld();}
-  await reading;expect(runtime.globalData.sessionToken).toBe("");expect(page.data).toMatchObject({loading:false,signedIn:false,mode:"featured",canReview:false,follows:[],reviewQueue:[],tasks:[],tasksLoading:false,formalLoadingMore:false,displayFeedCount:0,error:expect.stringContaining("登录状态已失效")});
+  await reading;expect(runtime.globalData.sessionToken).toBe("");expect(page.data).toMatchObject({loading:false,signedIn:false,mode:"featured",canReview:false,follows:[],profileReviewQueue:[],formalLoadingMore:false,displayFeedCount:0,error:expect.stringContaining("登录状态已失效")});
   expirePath=null;holdPath=null;await page.load();expect(page.data).toMatchObject({loading:false,error:"",displayFeedCount:1});expect(requests.filter(r=>pathOf(r).startsWith("/v1/editorial/")).at(-1).header.Authorization).toBe("");
  });
  it.each(["community","community-author"] as const)("clears %s pagination busy and actor-specific projection on HTTP401",async(route)=>{
@@ -89,12 +89,12 @@ describe("editorial reads after a real transport session revocation",()=>{
   if(route==="community")expect(page.data).toMatchObject({formalLoadingMore:false,displayFeedCount:0});else expect(page.data).toMatchObject({loadingMore:false,author:null,items:[]});
  });
  it.each(["post","community-author","community"] as const)("does not recover a hidden %s view when an old transport subsequently expires",async(route)=>{
-  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/editorial/authors/":"/v1/me/tasks";
+  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/editorial/authors/":"/v1/editorial/articles?";
   const reading=page.load();page.onHide();const before=patches.length;expirePath=holdPath;releaseHeld();await reading;
   expect(patches.slice(before)).toEqual([]);expect(page.data.error).not.toContain("登录状态已失效");
  });
  it.each(["post","community-author","community"] as const)("does not let %s old HTTP401 overwrite a different nonempty session",async(route)=>{
-  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/editorial/authors/":"/v1/me/tasks";
+  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/editorial/authors/":"/v1/editorial/articles?";
   const reading=page.load();const api=await import("../../apps/miniprogram/services/api");api.setSessionToken("synthetic-different-session");const before=patches.length;
   expirePath=holdPath;releaseHeld();await reading;expect(runtime.globalData.sessionToken).toBe("synthetic-different-session");expect(patches.slice(before)).toEqual([]);expect(page.data.error).not.toContain("登录状态已失效");
  });

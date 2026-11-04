@@ -1,0 +1,49 @@
+{
+  "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+  "previousSourceSha256": "5e7bd9a51246ba1a3468379305c05c4be1140c47d85dcff600101b286087ca12",
+  "unit": {
+    "files": 182,
+    "passed": 3049,
+    "failed": 0,
+    "existingSkipped": 1
+  },
+  "typecheck": "passed",
+  "contracts": {
+    "result": "passed",
+    "v1Methods": 285,
+    "methodsIncludingHealth": 287,
+    "typedEvents": 32,
+    "removedOperationsDeclare410": true
+  },
+  "packageBudget": "passed",
+  "native": {
+    "result": "passed within simulator/synthetic scope",
+    "cases": 8,
+    "screenshots": 7,
+    "diagnosticsPassed": 11,
+    "GETs": 44,
+    "inMemorySimulatedWrites": 7,
+    "forwardedServerWrites": 0,
+    "requestStorageAndSessionRestored": true,
+    "realDeviceValidated": false
+  },
+  "integration": {
+    "result": "passed",
+    "checks": 15,
+    "migrations": 106,
+    "host": "124.223.74.198",
+    "instance": "lhins-61ikz4mi",
+    "existingAccountWrites": 0,
+    "ownedResourcesRemoved": true,
+    "inputPayloadRemoved": true,
+    "payloadSha256": "a5f30e3e0a49d08c263faef01cff95c6ce1145c81639207cedd5f8e9ac972a89",
+    "providerIsSynthetic": true
+  },
+  "allIntegrationSuitesRun": false,
+  "fullVisualAcceptance": "blocked",
+  "apiDeployed": false,
+  "indexDeployed": false,
+  "miniProgramUploaded": false,
+  "liveGatesChanged": false,
+  "sourceMismatches": []
+}

@@ -1,0 +1,43 @@
+{
+  "sourceSha256": "e627214bfdff6520d9febd04ad984e61849425e810511eae21d9da62881fbc29",
+  "calls": [
+    {
+      "ok": true,
+      "tool": "automation_evaluate",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "result": {
+          "result": {
+            "started": true
+          }
+        }
+      }
+    },
+    {
+      "ok": true,
+      "tool": "simulator_screenshot",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "path": "/Users/mini/CISME/docs/evidence/navigation-continuity-20261103/before-post-loading-e627214b.png",
+        "imageWidth": 195,
+        "imageHeight": 422
+      }
+    },
+    {
+      "ok": true,
+      "tool": "automation_evaluate",
+      "clientName": "Codex",
+      "result": {
+        "success": true,
+        "result": {
+          "result": {
+            "restored": true,
+            "blockedWrites": 0
+          }
+        }
+      }
+    }
+  ]
+}

@@ -81,7 +81,7 @@ describe("community composer command ownership",()=>{
       {method:"PUT",path:`/v1/me/ugc/posts/${post}/draft`},{method:"POST",path:`/v1/me/ugc/posts/${post}/submit`}]);
     expect(m.request.mock.calls[1]![0].data).toEqual({expectedVersion:2});
     expect(page.data).toMatchObject({state:"pending_review",publicVersionActive:false,busy:false,writeRecovery:""});
-    expect(page.data.notice).toContain("已提交审核");
+    expect(page.data.notice).toContain("安全检查完成后自动公开");
     for(const [request] of m.request.mock.calls)for(const field of ["rightsConfirmed","publicConsentConfirmed","publicIntent","aiUsage","aiDeclarationChosen"])expect(request.data).not.toHaveProperty(field);
   });
   it("keeps the public gate authoritative without turning a publish tap into public consent or a write",async()=>{
@@ -287,4 +287,22 @@ describe("community composer command ownership",()=>{
     expect(wxMock.showModal).toHaveBeenCalledOnce();expect(wxMock.showModal).toHaveBeenCalledWith(expect.objectContaining({title:state==="deleted"?"这篇内容已删除":"这篇内容已下架",content:expect.stringContaining("离开后无法从投稿列表找回")}));
     expect(reads).toBe(2);expect(m.request.mock.calls.some(([value])=>value.method==="POST")).toBe(false);
   });
+});
+
+it('shows published success only for the actual published response, without a human-review stage',async()=>{
+ const page=editor();page.mediaVisible=true;
+ m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body:page.data.body}):draft({state:'published',version:4,revision:3,publishedRevision:3,publicVersionActive:true,directPublication:true,body:page.data.body}));
+ await page.submit();expect(page.data).toMatchObject({state:'published',publicVersionActive:true,notice:'已发布。',busy:false});
+ expect(page.data.notice).not.toContain('审核');
+});
+it('keeps an automatic check failure editable and does not label it published',async()=>{
+ const page=editor();page.mediaVisible=true;const body=page.data.body;
+ m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body}):draft({state:'rejected',version:4,body,directPublication:true,reviewNote:'检查未完成'}));
+ await page.submit();expect(page.data).toMatchObject({state:'rejected',publicVersionActive:false,body,reviewNote:'检查未完成',notice:'发布未完成，请修改内容后重试。'});
+});
+it('lets an author revise a pending publication using a versioned draft without republishing it',async()=>{
+ const page=editor({state:'pending_review',dirty:false,version:3});page.mediaVisible=true;
+ m.request.mockResolvedValue(draft({version:4,body:page.data.body}));await page.editPendingPublication();
+ expect(m.request).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({method:'PUT',path:`/v1/me/ugc/posts/${post}/draft`,data:expect.objectContaining({expectedVersion:3})}));
+ expect(page.data).toMatchObject({state:'draft',publicVersionActive:false,notice:'草稿已保存。'});
 });

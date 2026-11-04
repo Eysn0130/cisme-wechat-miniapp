@@ -29,6 +29,7 @@ import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CloudUpload } from "./cloudUpload.js";
 import { CommunityAccess } from "./communityAccess.js";
 import { CommunityService } from "./communityService.js";
+import { CommunityFollowingService } from "./communityFollowing.js";
 import { EditorialService } from "./editorial.js";
 import { EditorialCommentsService } from "./editorialComments.js";
 import { EditorialActivityService } from "./editorialActivity.js";
@@ -163,6 +164,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const managementAttention = new ManagementAttentionService(pool,config.env);
   const commercial = new CommercialMembershipService(pool, authority,config.env);
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
+  const followingFeed = new CommunityFollowingService(pool, config, editorial, formalUgc);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
   const supportAi = createSupportAiBoundary(config.supportAi);
   const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi);
@@ -417,10 +419,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.put<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/draft", async request => formalUgc.saveDraft(request.memberId,request.params.postId,(request.body??{}) as never));
   app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/submit", async request => {
     const input=(request.body??{}) as {expectedVersion?:unknown};
-    // This authenticated, version-bound action is the public submission
-    // intent; draft metadata and retired UI switches are not prerequisites.
-    const saved=await formalUgc.submit(request.memberId,request.params.postId,input.expectedVersion);
-    return {...saved,scan:{state:config.media.ugcScanBaseUrl?"queued":"unavailable",retryRequired:!config.media.ugcScanBaseUrl}};
+    const scanBase=config.media.ugcScanBaseUrl;
+    if(!scanBase)throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，草稿仍保留，请稍后发布。",503);
+    await formalUgc.submit(request.memberId,request.params.postId,input.expectedVersion);
+    await ugcSafety.scanPost(request.memberId,request.params.postId,scanBase);
+    return formalUgc.readOwn(request.memberId,request.params.postId);
   });
   app.post<{Params:{postId:string}}>("/v1/me/ugc/posts/:postId/scan", async request => {
     const scanBase=config.media.ugcScanBaseUrl;
@@ -707,6 +710,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.delete<{Params:{addressId:string}}>("/v1/me/addresses/:addressId", async request => deliveryAddresses.remove(request.memberId, request.params.addressId, request.body as never));
   app.get("/v1/me/community-access", async request => access.capabilities(request.memberId));
   app.get("/v1/me/following", async request => service.feed(request.memberId));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/community/following", request => followingFeed.page(request.memberId, request.principalId, request.query));
   app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/following/page", async request => service.feedPage(request.memberId, { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
   app.get("/v1/me/follows", async request => access.follows(request.memberId));
   app.put<{ Params: { authorId: string } }>("/v1/me/follows/:authorId", async request => access.follow(request.memberId, request.params.authorId, (request.body as { active?: unknown }).active));

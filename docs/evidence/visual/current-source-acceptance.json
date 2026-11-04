@@ -257,16 +257,16 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "7fd3e10ec169581684ff01f5161e82c62fd065f74d3b16560dcb894ce2d8a6f2",
+  "packageSourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "Scoped Community composer validation does not complete the existing full40-route state or physical-device matrices."
+      "reason": "Scoped navigation and Community validation do not complete the existing full 40-route state or physical-device matrices."
     }
   ],
-  "note": "Current source aligns album/camera/text entry, true local PNG text cards and JPEG photo effects, scoped new-asset replacement/retry and exact fresh-draft cancellation. Scoped current-source native evidence: docs/evidence/community-three-entry-20261101. Offline simulator and isolated tests do not complete physical-device, current production account, deployment or full40-route matrices.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-c9a4f099689d.json",
+  "note": "Current source adds the Community Following tab and authenticated followed-author timeline. Scoped evidence: docs/evidence/community-following-20261103. Historical navigation screenshots retain their original source hashes; full route-state and physical-device matrices remain incomplete.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-d32f7741cc6b.json",
   "pendingSourceRebind": false
 }

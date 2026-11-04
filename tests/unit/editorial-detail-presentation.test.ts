@@ -137,7 +137,8 @@ describe("native detail presentation preserves the authorized comments and sourc
     expect(branches).not.toBeNull();
     const guest=branches![1]!,authenticated=branches![2]!;
     expect(guest).toContain('class="comment-login-preview" aria-hidden="true"');
-    expect(guest).not.toMatch(/\{\{|wx:for|comment\.(?:body|authorName|avatar)|threads|commentsError/);
+    expect(guest).toContain('wx:if="{{!loading || !viewerHasSession}}"');
+    expect(guest.replace('wx:if="{{!loading || !viewerHasSession}}"', "")).not.toMatch(/\{\{|wx:for|comment\.(?:body|authorName|avatar)|threads|commentsError/);
     expect(guest).toMatch(/<button\b[^>]*bindtap="loginToViewComments"[^>]*>登录后查看<\/button>/);
     for(const privateFact of ['wx:for="{{threads}}"','{{commentsError}}','{{commentsNotice}}','commentsEnabled === false'])
       expect(authenticated).toContain(privateFact);

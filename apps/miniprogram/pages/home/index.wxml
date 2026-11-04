@@ -18,7 +18,7 @@
           <text class="step-code">{{item.code}}</text><text class="step-label">{{item.label}}</text><view class="step-state"><image wx:if="{{item.done}}" class="step-state__icon" src="/assets/icons/check-white.svg" mode="aspectFit"/><image wx:elif="{{item.active}}" class="step-state__icon" src="/assets/icons/drop-active.svg" mode="aspectFit"/></view>
         </button>
       </view>
-      <view class="care-signal" aria-live="polite"><image class="care-signal__icon" src="{{view.signalIcon}}" mode="aspectFit" /><view class="care-signal__copy"><strong class="care-signal__title">{{loading ? '正在加载护理安排…' : view.signalTitle}}</strong><text wx:if="{{!loading}}" class="care-signal__meta">{{view.signalMeta}}</text></view></view>
+      <view class="care-signal" aria-live="polite"><image class="care-signal__icon" src="{{view.signalIcon}}" mode="aspectFit" /><view class="care-signal__copy"><strong class="care-signal__title">{{view.signalTitle}}</strong><text class="care-signal__meta">{{view.signalMeta}}</text></view></view>
     </block>
     <view wx:elif="{{loading}}" class="home-authority-state" aria-live="polite">正在加载护理安排…</view>
     <view wx:else class="home-authority-state" aria-live="assertive">护理状态暂不可用，请重试。</view>

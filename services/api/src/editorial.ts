@@ -132,7 +132,8 @@ export class EditorialService{
     const row=(await client.query(`SELECT
       EXISTS(SELECT 1 FROM community_reaction WHERE post_id=$1 AND member_id=$2 AND kind='like') AS liked,
       EXISTS(SELECT 1 FROM community_reaction WHERE post_id=$1 AND member_id=$2 AND kind='save') AS saved,
-      EXISTS(SELECT 1 FROM community_follow WHERE member_id=$2 AND author_id=$3) AS following`,
+      (EXISTS(SELECT 1 FROM community_follow WHERE member_id=$2 AND author_id=$3)
+        OR EXISTS(SELECT 1 FROM ugc_author_follow WHERE follower_member_id=$2 AND followed_member_id=$3::uuid)) AS following`,
       [`editorial:${a.id}`,memberId??null,a.author_member_id])).rows[0];
     return {liked:Boolean(row.liked),saved:Boolean(row.saved),following:Boolean(row.following)};
   }
@@ -210,7 +211,8 @@ export class EditorialService{
       const rows=(await client.query<Article>(`SELECT ${columns} FROM ${relations} WHERE ${visible} AND a.author_member_id=$2
         AND ($3::timestamptz IS NULL OR (a.published_at,a.id)<($3::timestamptz,$4::uuid))
         ORDER BY a.published_at DESC,a.id DESC LIMIT $5`,[this.canonicalApp(),author,p.cursor?.at??null,p.cursor?.id??null,p.limit+1])).rows;
-      const following=Boolean((await client.query('SELECT 1 FROM community_follow WHERE member_id=$1 AND author_id=$2',[memberId??null,author])).rowCount);
+      const following=Boolean((await client.query(`SELECT 1 WHERE EXISTS(SELECT 1 FROM community_follow WHERE member_id=$1 AND author_id=$2)
+        OR EXISTS(SELECT 1 FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2::uuid)`,[memberId??null,author])).rowCount);
       return {author:{id:author,name:summary.name,avatar:'',postCount:summary.post_count,following,isMine:memberId===author},
         items:rows.slice(0,p.limit).map(card),nextCursor:next(rows,p.limit,p.scope)};
     });
@@ -258,7 +260,8 @@ export class EditorialService{
       if(owner===a.author_member_id)throw new DomainError('EDITORIAL_FOLLOW_INVALID','不能关注自己',422);
       const changed=active?await client.query('INSERT INTO community_follow(member_id,author_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[owner,a.author_member_id])
         :await client.query('DELETE FROM community_follow WHERE member_id=$1 AND author_id=$2',[owner,a.author_member_id]);
-      if(changed.rowCount)await this.audit(client,owner,principalId!,'editorial.follow',a.id,{authorId:a.author_member_id,active});
+      const otherRemoved=!active?await client.query('DELETE FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2',[owner,a.author_member_id]):null;
+      if(changed.rowCount||otherRemoved?.rowCount)await this.audit(client,owner,principalId!,'editorial.follow',a.id,{authorId:a.author_member_id,active});
       return {authorId:a.author_member_id,following:active};
     });
   }

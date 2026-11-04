@@ -32,11 +32,8 @@
     "wx.navigateBack",
     "wx.navigateTo",
     "wx.nextTick",
-    "wx.offKeyboardHeightChange",
-    "wx.onKeyboardHeightChange",
     "wx.openBusinessView",
     "wx.openDocument",
-    "wx.openPrivacyContract",
     "wx.openSetting",
     "wx.pageScrollTo",
     "wx.previewImage",
@@ -764,7 +761,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "58afd1d14d480687628289e09b9a15c6af0cd0b6134adb76422980a3cd6c1fba",
+  "migrationSetSha256": "e6602e27013d2f428073117a241859367b60981684de9864ba7ab43607e0318d",
   "egressSignatureSha256": "eef2c6f170f4b2e8f42f99ac0c4aeff28ecaaab85bce55774556d83cc1190a94",
   "performanceRepairReview": {
     "date": "2026-09-20",

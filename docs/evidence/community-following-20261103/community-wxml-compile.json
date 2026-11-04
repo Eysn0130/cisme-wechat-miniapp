@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "tool": "compile_wxml",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "codeLength": 36546
+  },
+  "sourceSha256": "5e7bd9a51246ba1a3468379305c05c4be1140c47d85dcff600101b286087ca12",
+  "file": "pages/community/index.wxml",
+  "scope": "Official community WXML diagnostic only; not a full-package compile or state-matrix acceptance."
+}

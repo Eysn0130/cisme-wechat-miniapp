@@ -1,3 +1,4 @@
+import { readPresentationKey } from "../../services/read-presentation";
 import { defaultMemberAvatar, prepareFeedAuthors } from "../../services/member-avatar";
 import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication, beginLegalRenewal } from "../../services/api";
@@ -58,6 +59,7 @@ Page({
   galleryTouch:null as GalleryTouch|null,
   previewBusy:false,
   previewOwner:0,
+  presentationKey:"",
   readingRead:null as ReadingRead|null,
   pendingReadingRestore:null as ReadingRead|null,
   readingScrollRevision:0,
@@ -71,7 +73,7 @@ Page({
   commentDraftToken:null as string|null,
   commentDraftArticle:"",
   editorialSocialRefusal:null as string|null,
-  data: { blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.cancelGallerySizing?.();this.readingRead=null;this.pendingReadingRestore=null;this.readingScrollRevision+=1;this.setData({ chromeStyle: currentChromeStyle() },()=>this.measureComposer()); },
   onReachBottom() {
     if(this.data.editorialSource&&!this.data.commentsError&&!this.data.composerOpen&&!this.data.blocksOpen)void this.loadMoreEditorialComments();
@@ -87,7 +89,7 @@ Page({
     wx.hideShareMenu();
   },
   onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(true); },
-  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
+  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.loading)this.clearArticlePresentation();if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
   onUnload() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.gallerySizingCache=null;this.pauseVideo(true);this.galleryRead=null;this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
   onPageScroll(event:WechatMiniprogram.Page.IPageScrollOption) {
     const top=event.scrollTop;
@@ -119,7 +121,7 @@ Page({
     if(stop)context.stop();else context.pause();
     context.exitFullScreen();
   },
-  currentVideoEvent(event:WechatMiniprogram.CustomEvent){return this.readVisible&&this.data.pageAlive&&Boolean(this.data.video)&&event.currentTarget.dataset.videoIdentity===this.data.videoEventId;},
+  currentVideoEvent(event:WechatMiniprogram.CustomEvent){return this.readVisible&&this.data.pageAlive&&!this.data.loading&&Boolean(this.data.video)&&event.currentTarget.dataset.videoIdentity===this.data.videoEventId;},
   videoTimeChanged(event:WechatMiniprogram.CustomEvent) {
     const current=Number(event.detail.currentTime);
     if(this.currentVideoEvent(event)&&this.data.video&&Number.isFinite(current)&&current>=0)this.videoPosition=Math.min(current,this.data.video.durationSeconds);
@@ -127,6 +129,13 @@ Page({
   videoEnded(event:WechatMiniprogram.CustomEvent){if(this.currentVideoEvent(event))this.videoPosition=0;},
   videoFailed(event:WechatMiniprogram.CustomEvent){if(this.currentVideoEvent(event))this.setData({mediaError:"视频暂时无法播放，请重新加载。"});},
   currentEditorial(attempt:number,token:string){return this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken;},
+  currentArticleLoad(attempt:number,token:string){return this.currentEditorial(attempt,token)&&this.presentationKey===readPresentationKey(this.data.id);},
+  clearArticlePresentation() {
+    this.setData({item:null,media:[],video:null,mediaIndex:0,galleryHeight:1000,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"",aiLabel:""});
+  },
+  dropChangedArticleOwner(attempt:number) {
+    if(this.data.item&&this.data.loadAttempt===attempt&&this.presentationKey!==readPresentationKey(this.data.id))this.clearArticlePresentation();
+  },
   recoverExpiredEditorialRead(attempt:number,token:string,error:unknown){
     if(!this.readVisible||!this.data.pageAlive||this.data.leaving||attempt!==this.data.loadAttempt||!expiredEditorialRead(error,token))return false;
     this.data.loadAttempt+=1;
@@ -200,8 +209,15 @@ Page({
     this.galleryRead=null;
     this.pauseVideo();
     const attempt = this.data.loadAttempt + 1;
+    const presentationKey=readPresentationKey(this.data.id);
+    const retained=restoreGallery===true&&this.presentationKey===presentationKey&&this.data.item?.id===this.data.id
+      ? {item:this.data.item,media:this.data.media,video:this.data.video,mediaIndex:this.data.mediaIndex,galleryHeight:this.data.galleryHeight,
+        videoHeightRpx:this.data.videoHeightRpx,videoInitialTime:this.data.videoInitialTime,videoEventId:this.data.videoEventId,imageEventId:this.data.imageEventId,
+        aiLabel:this.data.aiLabel,socialEnabled:this.data.socialEnabled,social:this.data.social,following:this.data.following}
+      : {};
+    this.presentationKey=presentationKey;
     wx.hideShareMenu();
-    this.setData({composerEventId:++this.composerSequence,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null,commentCount:null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null,editorialCommentItems:[],aiLabel:"", loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "" });
+    this.setData({viewerHasSession:Boolean(getApp<IAppOption>().globalData.sessionToken),composerEventId:++this.composerSequence,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null,commentCount:null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null,editorialCommentItems:[],aiLabel:"", loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "", ...retained });
     try {
       const editorial = editorialStory(this.data.id);
       if (!editorial && isBundledEditorialId(this.data.id)) {
@@ -213,12 +229,13 @@ Page({
         const token=getApp<IAppOption>().globalData.sessionToken;
         if(!editorialIdentifier(this.data.id)){this.setData({loading:false,errorKind:"missing",errorTitle:"这篇精选不可用",error:"内容链接无效，请返回社区。"});return;}
         try{const article=await publishedEditorialArticle(this.data.id,this);
-          if(!this.currentEditorial(attempt,token))return;
+          if(!this.currentArticleLoad(attempt,token)){this.dropChangedArticleOwner(attempt);return;}
           const display=editorialDisplayMedia(article.media);
           const videoMedia=article.media.find(media=>media.type==="video");
           const videoHeightRpx=videoMedia?.type==="video"?imageCanvasHeight(videoMedia.width,videoMedia.height,"up")??1000:1000;
           const galleryHeight=display.images.length?await this.resolveGalleryHeight(article.id,article.version,display.images,token,attempt):1000;
-          if(!this.currentEditorial(attempt,token)){
+          if(!this.currentArticleLoad(attempt,token)){
+            this.dropChangedArticleOwner(attempt);
             this.recoverExpiredEditorialRead(attempt,token,{code:"REQUEST_SESSION_CHANGED"});
             return;
           }
@@ -260,7 +277,8 @@ Page({
               });
             });
           wx.showShareMenu({menus:["shareAppMessage"]});
-        }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;if(this.currentEditorial(attempt,token)){const missing=(error as {status?:number}).status===404;
+        }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;this.dropChangedArticleOwner(attempt);if(this.currentArticleLoad(attempt,token)){const missing=(error as {status?:number}).status===404;
+          this.clearArticlePresentation();
           this.setData({loading:false,errorKind:missing?"missing":"load",errorTitle:missing?"这篇精选暂不可见":"暂时无法加载精选",error:missing?"内容已撤回或尚未发布，请返回社区。":"请检查网络后重试。"});}}
         return;
       }
@@ -285,6 +303,7 @@ Page({
       }
     }
     catch (error) {
+      this.dropChangedArticleOwner(attempt);
       if (this.data.pageAlive && this.data.loadAttempt === attempt) this.setData({ item: null, shareId: "", loading: false, errorKind: "load", errorTitle: "暂时无法加载故事", error: "请检查网络后重新加载。" });
     }
   },
@@ -593,7 +612,7 @@ Page({
     } catch { if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ followError: "暂时无法查询关注状态" }); }
   },
   async toggleFollow() {
-    if (!this.data.socialEnabled || this.data.followBusy || !this.data.authorId || this.data.leaving) return;
+    if (this.data.loading || !this.data.socialEnabled || this.data.followBusy || !this.data.authorId || this.data.leaving) return;
     if(this.data.editorialSource){
       if(this.data.item?.isMine)return;
       const token=getApp<IAppOption>().globalData.sessionToken;

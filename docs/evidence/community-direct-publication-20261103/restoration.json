@@ -1,0 +1,51 @@
+{
+  "sourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+  "finalObservation": {
+    "route": "pages/home/index",
+    "hasSession": true,
+    "testHookRemaining": false,
+    "previousTestHookRemaining": false,
+    "SDKVersion": "3.15.2",
+    "windowWidth": 390,
+    "windowHeight": 844
+  },
+  "cleanup": {
+    "readCount": 44,
+    "simulatedWriteCount": 7,
+    "writes": [
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/draft"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/submit"
+      },
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/draft"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/submit"
+      },
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/draft"
+      },
+      {
+        "method": "PUT",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/draft"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/me/ugc/posts/f2222222-2222-4222-8222-222222222222/submit"
+      }
+    ],
+    "unknown": [],
+    "forwardedServerWrites": 0,
+    "requestRestored": true,
+    "storageRestored": true,
+    "sessionRestored": true
+  }
+}

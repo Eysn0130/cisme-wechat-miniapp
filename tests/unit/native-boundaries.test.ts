@@ -133,7 +133,6 @@ describe("native mini program boundary", () => {
       "aftersale/index.wxml": 1,
       "community-compose/index.wxml": 1,
       "commission/index.wxml": 2,
-      "community-review/index.wxml": 2,
       "checkout/index.wxml": 3,
       "management-catalog/index.wxml": 1,
       "management-product/index.wxml": 1,
@@ -144,10 +143,7 @@ describe("native mini program boundary", () => {
       "management-privacy/index.wxml": 1,
       "management-fulfillment/index.wxml": 1,
       "product/index.wxml": 2,
-      "progress/index.wxml": 3,
       "referral/index.wxml": 2,
-      "submit/index.wxml": 3,
-      "task/index.wxml": 5
     });
 
     const normalize = (expression: string) => expression.replace(/\s+/g, "");
@@ -212,10 +208,10 @@ describe("native mini program boundary", () => {
       "community-activity": ["back", "selectSource", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
-      "community-compose": ["back", "showMyPosts", "retryPendingImageEdit", "discardPendingImageEdit", "openComposerMediaSettings", "retryChoosingMedia", "retryLoad", "verifyWriteResult", "reloadRemoteDraft", "startNew", "selectDraftFilter", "openDraft", "deleteListDraft", "loadMoreList", "showMyPosts", "returnToCommunity", "openPublishedPost", "submitAppeal", "retryPreview", "retryImage", "retryPreview", "removeImage", "addContent", "showMyPosts", "returnToCommunity", "saveDraft", "submit"],
+      "community-compose": ["back", "showMyPosts", "retryPendingImageEdit", "discardPendingImageEdit", "openComposerMediaSettings", "retryChoosingMedia", "retryLoad", "verifyWriteResult", "reloadRemoteDraft", "startNew", "selectDraftFilter", "openDraft", "deleteListDraft", "loadMoreList", "refreshPublication", "editPendingPublication", "showMyPosts", "returnToCommunity", "openPublishedPost", "submitAppeal", "retryPreview", "retryImage", "retryPreview", "removeImage", "addContent", "showMyPosts", "returnToCommunity", "saveDraft", "submit"],
       "community-post": ["back", "back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "openMyComments", "chooseReply", "loadMoreComments", "cancelReply", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
-      "community-review": ["back", "back", "load", "back", "selectEditorialQueue", "openEditorialArticle", "reviewEditorial", "reviewEditorial", "reviewEditorial", "deleteEditorial", "loadMoreEditorialQueue", "reviewMedia", "reviewMedia", "reviewPost", "reviewPost", "publish"],
-      community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "copyPostUrl", "reviewSubmission", "reviewSubmission", "reviewSubmission", "copyPostUrl", "publishSubmission", "openFormalReview", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "load", "loadTasks", "openInvite", "openPost", "onReachBottom", "openMyPosts", "choosePublisherSource", "choosePublisherSource", "choosePublisherSource", "openPublisherMediaSettings", "retryPublisherMedia", "closePublisherEntry"],
+      "community-review": ["back", "back", "load", "back", "selectEditorialQueue", "openEditorialArticle", "reviewEditorial", "reviewEditorial", "reviewEditorial", "deleteEditorial", "loadMoreEditorialQueue"],
+      community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "selectMode", "load", "openPost", "onReachBottom", "openMyPosts", "choosePublisherSource", "choosePublisherSource", "choosePublisherSource", "openPublisherMediaSettings", "retryPublisherMedia", "closePublisherEntry"],
       home: ["openSupport", "primaryAction", "selectProtocolStep", "retryLoad", "retryCareMutation", "closeCareSession", "retryLoad", "retryCareMutation", "advanceCareStep", "selectAssessment", "submitCareSession"],
       invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
       legal: ["back", "load", "privacyRights"],
@@ -239,15 +235,15 @@ describe("native mini program boundary", () => {
       checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadSupportSheet", "loadShipment", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
-      profile: ["openAccount", "openSettings", "openRecords", "load", "retryDailyStatus", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openMyPosts", "openTasks", "openSettings", "retryTasks"],
-      progress: ["back", "revise", "revise", "appeal", "load", "back", "goCommunity", "load", "back", "goCommunity"],
+      profile: ["openAccount", "openSettings", "openRecords", "load", "retryDailyStatus", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openMyPosts", "openSettings"],
+      progress: ["returnToCommunity"],
       records: ["selectCalendarDay", "authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "showRecentRecords", "retryDailyMutation", "retryDailyRecords", "undoDailyDelete", "retryDailyRecords", "deleteDailyRecord", "openRecordDetail", "loadMoreDailyRecords", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail", "deleteDailyRecord"],
       referral: ["back", "preview", "confirm"],
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openMemberManagement", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
       shop: ["back", "openProduct", "openProduct", "load"],
-      submit: ["back", "load", "back", "copySubmissionId", "retryDraftSave", "resolveDraftConflict", "focusPostUrl", "load", "openMediaPrivacy", "openMediaSettings", "load", "chooseMedia", "load", "focusPostUrl", "submit", "chooseMedia", "chooseMedia", "submit", "openProgress"],
+      submit: ["returnToCommunity"],
       support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "requestHuman", "startNewTopic", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
-      task: ["back", "continueSubmission", "load", "back", "goCommunity", "claim", "@disabled", "continueSubmission"]
+      task: ["returnToCommunity"]
     };
 
     const actual: Record<string, string[]> = {};
@@ -267,7 +263,8 @@ describe("native mini program boundary", () => {
     expect(actual).toEqual(expected);
 
     for (const [route, actions] of Object.entries(expected)) {
-      const logic = await readFile(resolve(root, route, "index.ts"), "utf8");
+      let logic = await readFile(resolve(root, route, "index.ts"), "utf8");
+      if (logic.includes("retiredTaskProofPage")) logic += await readFile(resolve("apps/miniprogram/services/retired-task-proof.ts"), "utf8");
       for (const handler of new Set(actions.filter((action) => !action.startsWith("@")))) {
         expect(logic, `${route}.${handler}`).toMatch(new RegExp(`(?:async\\s+)?${handler}\\s*\\(`));
       }
@@ -314,9 +311,6 @@ describe("native mini program boundary", () => {
     const accountMarkup = await readFile(resolve("apps/miniprogram/pages/account/index.wxml"), "utf8");
     const actionStyles = await readFile(resolve("apps/miniprogram/styles/action-hierarchy.wxss"), "utf8");
     const records = await readFile(resolve("apps/miniprogram/pages/records/index.wxss"), "utf8");
-    const task = await readFile(resolve("apps/miniprogram/pages/task/index.wxss"), "utf8");
-    const submit = await readFile(resolve("apps/miniprogram/pages/submit/index.wxss"), "utf8");
-    const submitMarkup = await readFile(resolve("apps/miniprogram/pages/submit/index.wxml"), "utf8");
     const post = await readFile(resolve("apps/miniprogram/pages/post/index.wxss"), "utf8");
     const product = await readFile(resolve("apps/miniprogram/pages/product/index.wxss"), "utf8");
     const profile = await readFile(resolve("apps/miniprogram/pages/profile/index.wxss"), "utf8");
@@ -348,7 +342,7 @@ describe("native mini program boundary", () => {
     expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxml"), "utf8")).toContain("<text class=\"care-cta__label\">{{working ? '正在提交…' : mutationState === 'unknown' ? '重试操作' : view.action}}</text>");
     expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxss"), "utf8")).toMatch(/\.care-cta\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s);
     expect(records).toContain(".cycle-button--single { grid-column:1/-1; width:100%; }");
-    for (const styles of [task, submit, product]) {
+    for (const styles of [product]) {
       expect(styles).toMatch(/position:fixed;[^}]*right:20rpx;[^}]*bottom:calc\([^}]*\+ 16rpx\);[^}]*left:20rpx;/);
       expect(styles).toContain("min-height:50px");
     }
@@ -371,9 +365,5 @@ describe("native mini program boundary", () => {
     expect(communityCompose).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{\s*\.composer-media--shifting,\.composer-drag-photo--dropping\s*\{\s*transition:none;/);
     expect(communityComposeMarkup).toMatch(/<scroll-view class="composer-media-scroll" scroll-x="\{\{true\}\}" scroll-left="\{\{mediaScrollLeft\}\}" bindscroll="onMediaScroll"/);
     expect(communityComposeMarkup).toContain('catchtouchmove="{{mediaDragging ? \'moveMediaDrag\' : \'\'}}"');
-    expect(submitMarkup).toMatch(/bindtap="retryDraftSave"\s+loading="\{\{savingDraft\}\}"\s+disabled="\{\{savingDraft\}\}"/);
-    expect(submitMarkup).toMatch(/class="primary submit-action__button[^>]*loading="\{\{working\}\}"\s+disabled="\{\{!canSubmit\}\}"/);
-    expect(submitMarkup).not.toContain('loading="{{working || savingDraft}}"');
-    expect(submitMarkup).toContain('<text class="action-label">提交人工审核</text>');
   });
 });
