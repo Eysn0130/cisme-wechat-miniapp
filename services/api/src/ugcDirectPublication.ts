@@ -4,6 +4,7 @@ import sharp from "sharp";
 import type { AppConfig } from "@cisme/config";
 import { transaction, type DbClient } from "./db.js";
 import type { ObjectStorage } from "./storage.js";
+import { prepareUgcSyncImage } from "./ugcSyncImage.js";
 
 const digest = (value: string | Uint8Array) => createHash("sha256").update(value).digest("hex");
 
@@ -41,7 +42,7 @@ export class UgcDirectPublication {
       const text = [post.title, post.body].filter(Boolean).join("\n").trim();
       const textScan = text ? (await client.query(`SELECT state,content_sha256,provider FROM ugc_safety_scan
         WHERE post_id=$1 AND revision=$2 AND kind='text' ORDER BY requested_at DESC,id DESC LIMIT 1`, [postId, post.current_revision])).rows[0] : null;
-      const scans = await Promise.all(assets.map(async asset => (await client.query(`SELECT state,content_sha256,provider,trace_id
+      const scans = await Promise.all(assets.map(async asset => (await client.query(`SELECT state,content_sha256,provider,trace_id,result
         FROM ugc_safety_scan WHERE media_asset_id=$1 AND kind='image' ORDER BY requested_at DESC,id DESC LIMIT 1`, [asset.id])).rows[0]));
       const failed = (textScan && textScan.content_sha256 === digest(text) && ["risky", "review", "error"].includes(textScan.state)) ||
         scans.some((scan, i) => scan && scan.content_sha256 === assets[i].sha256 && ["risky", "review", "error"].includes(scan.state));
@@ -56,21 +57,31 @@ export class UgcDirectPublication {
         textScan.state !== "safe" || textScan.content_sha256 !== digest(text))) || assets.some((asset, i) =>
         asset.owner_member_id !== author || asset.source_post_id !== postId || asset.bound_post_id !== postId ||
         !["uploaded", "scanning", "approved"].includes(asset.state) || !scans[i] || scans[i].state !== "safe" ||
-        scans[i].provider !== "wechat_v2" || scans[i].content_sha256 !== asset.sha256 || !scans[i].trace_id)) return;
+        scans[i].content_sha256 !== asset.sha256 || !(
+          scans[i].provider === "wechat_v2" && scans[i].trace_id ||
+          this.config.media.ugcImageSafetyMode === "wechat_v1_sync" && scans[i].provider === "wechat_v1_sync" &&
+          scans[i].result?.api === "img_sec_check" && scans[i].result?.errcode === 0 &&
+          /^[0-9a-f]{64}$/.test(scans[i].result?.checkedSha256 ?? "") &&
+          Number.isInteger(scans[i].result?.checkedBytes) && scans[i].result.checkedBytes > 0 &&
+          scans[i].result.checkedBytes <= 1024 * 1024))) return;
       if (!await this.gate(client)) return;
       for (const [index, asset] of assets.entries()) {
         if (asset.state === "approved" && asset.public_object_key && asset.thumbnail_object_key) continue;
         const original = await this.storage.read(asset.object_key);
         if (digest(original.bytes) !== asset.sha256) return;
-        const pipeline = sharp(Buffer.from(original.bytes), { limitInputPixels: 36_000_000 }).rotate();
-        const detail = await pipeline.clone().resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+        const sync = scans[index].provider === "wechat_v1_sync";
+        const checked = sync ? await prepareUgcSyncImage(original.bytes) : null;
+        if (checked && (digest(checked) !== scans[index].result.checkedSha256 || checked.length !== scans[index].result.checkedBytes)) return;
+        const pipeline = sharp(checked ?? Buffer.from(original.bytes), { limitInputPixels: 36_000_000 }).rotate();
+        const detail = checked ?? await pipeline.clone().resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
         const thumbnail = await pipeline.clone().resize({ width: 480, height: 640, fit: "inside", withoutEnlargement: true }).webp({ quality: 76 }).toBuffer();
-        const detailKey = `ugc-derived/${asset.id}/detail-${digest(detail)}.webp`, thumbnailKey = `ugc-derived/${asset.id}/thumb-${digest(thumbnail)}.webp`;
+        const detailKey = `ugc-derived/${asset.id}/detail-${digest(detail)}.${sync ? "jpg" : "webp"}`, thumbnailKey = `ugc-derived/${asset.id}/thumb-${digest(thumbnail)}.webp`;
         await this.storage.writeDerivedImage(detailKey, detail);
         await this.storage.writeDerivedImage(thumbnailKey, thumbnail);
         await client.query(`UPDATE ugc_media_asset SET state='approved',public_object_key=$2,thumbnail_object_key=$3,
           scan_result=$4,derived_at=now(),updated_at=now() WHERE id=$1`, [asset.id, detailKey, thumbnailKey,
-          {verdict:"safe",provider:"wechat_v2",traceId:scans[index].trace_id,checkedAt:new Date().toISOString()}]);
+          {verdict:"safe",provider:scans[index].provider,traceId:scans[index].trace_id,
+            ...(sync ? {checkedSha256:scans[index].result.checkedSha256} : {}),checkedAt:new Date().toISOString()}]);
       }
       if (!await this.gate(client)) return;
       await client.query("UPDATE ugc_post_revision SET moderation_state='approved' WHERE post_id=$1 AND revision=$2", [postId, post.current_revision]);

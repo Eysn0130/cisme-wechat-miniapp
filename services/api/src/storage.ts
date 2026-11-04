@@ -73,6 +73,16 @@ function detectImageMime(bytes: Uint8Array): StoredObject["detectedMime"] {
   throw new DomainError("UPLOAD_CONTENT_INVALID", "Uploaded bytes are not an allowed image format", 422);
 }
 
+function derivedImageMime(objectKey: string, bytes: Uint8Array): StoredObject["detectedMime"] {
+  const mime = detectImageMime(bytes);
+  const checkedJpeg = /^ugc-derived\/[0-9a-f-]{36}\/detail-([0-9a-f]{64})\.jpg$/.exec(objectKey);
+  if (checkedJpeg && mime === "image/jpeg" && bytes.length > 0 && bytes.length <= 1024 * 1024 &&
+      createHash("sha256").update(bytes).digest("hex") === checkedJpeg[1]) return mime;
+  if ((objectKey.startsWith("ugc-derived/") || /^editorial-derived\/[0-9a-f]{64}\.webp$/.test(objectKey)) &&
+      !objectKey.endsWith(".jpg") && bytes.length > 0 && bytes.length <= 10 * 1024 * 1024 && mime === "image/webp") return mime;
+  throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
+}
+
 function detectReadableMime(bytes:Uint8Array):ReadableMime {
   // Legacy owned videos may need a privacy copy. Upload validation remains
   // image-only; reading an existing MP4 does not enable a new upload path.
@@ -320,9 +330,8 @@ export function createS3Storage(config: AppConfig): ObjectStorage {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }), { abortSignal: dependencySignal(30_000) });
     },
     async writeDerivedImage(objectKey, bytes) {
-      if (!(objectKey.startsWith("ugc-derived/") || /^editorial-derived\/[0-9a-f]{64}\.webp$/.test(objectKey)) || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
-        throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
-      await client.send(new PutObjectCommand({ Bucket: bucket, Key: objectKey, Body: bytes, ContentType: "image/webp" }), { abortSignal: dependencySignal(30_000) });
+      const mime = derivedImageMime(objectKey, bytes);
+      await client.send(new PutObjectCommand({ Bucket: bucket, Key: objectKey, Body: bytes, ContentType: mime }), { abortSignal: dependencySignal(30_000) });
     },
     async writeEditorialVideo(objectKey,bytes){
       checkEditorialVideo(objectKey,bytes);
@@ -402,8 +411,7 @@ export function createApiGatewayStorage(config: AppConfig): ObjectStorage {
       }finally{await file.close();}
     },
     async writeDerivedImage(objectKey, bytes) {
-      if (!(objectKey.startsWith("ugc-derived/") || /^editorial-derived\/[0-9a-f]{64}\.webp$/.test(objectKey)) || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
-        throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
+      derivedImageMime(objectKey, bytes);
       await mkdir(directory, { recursive: true });
       await writeFile(resolve(directory, objectKey.replaceAll("/", "__")), bytes, { flag: "w", signal: dependencySignal(30_000) });
     },
@@ -585,10 +593,9 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
     },
     async delete(objectKey) { await getClient().deleteObject({ ...location, Key: objectKey }); },
     async writeDerivedImage(objectKey, bytes) {
-      if (!(objectKey.startsWith("ugc-derived/") || /^editorial-derived\/[0-9a-f]{64}\.webp$/.test(objectKey)) || bytes.length < 1 || bytes.length > 10 * 1024 * 1024 || detectImageMime(bytes) !== "image/webp")
-        throw new DomainError("DERIVED_IMAGE_INVALID", "Derived image is invalid", 422);
+      const mime = derivedImageMime(objectKey, bytes);
       await requireNoVersioning();
-      await immutablePut(objectKey,bytes,"image/webp");
+      await immutablePut(objectKey,bytes,mime);
     },
     async writeEditorialVideo(objectKey,bytes){
       checkEditorialVideo(objectKey,bytes);await requireNoVersioning();await immutablePut(objectKey,bytes,'video/mp4');

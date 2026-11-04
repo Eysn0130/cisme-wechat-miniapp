@@ -1,0 +1,15 @@
+{
+  "unitFiles": 186,
+  "unitPassed": 3081,
+  "existingSkipped": 1,
+  "targetedIntegrationPassed": 40,
+  "deploymentHelperOfflineTestsPassed": 6,
+  "typecheckPassed": true,
+  "nativePackageSourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b",
+  "nativeSourceUnchangedFrom029": true,
+  "nativeFiles": 301,
+  "nativeRoutes": 40,
+  "phoneAcceptancePerformed": false,
+  "deployedByThisReceipt": false,
+  "scope": "Targeted API database fixtures synthetic providers; real WeChat capability probe uses synthetic images, not real member publication. Migration lifecycle rollback/replay passed separately."
+}

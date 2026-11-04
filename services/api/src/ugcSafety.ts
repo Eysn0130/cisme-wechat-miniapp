@@ -9,6 +9,7 @@ import { pendingReviewRevisionSql } from "./ugcVisibility.js";
 import { UgcDirectPublication } from "./ugcDirectPublication.js";
 import { decryptWechatMessage, type MessageQuery } from "./wechatMessageCrypto.js";
 import { startWorkerLoop } from '../../worker/src/loop.js';
+import { prepareUgcSyncImage } from './ugcSyncImage.js';
 
 type WechatResult={errcode?:number;errmsg?:string;trace_id?:string;result?:{suggest?:string;label?:number};detail?:unknown};
 type ScanCallback=WechatResult&{Event?:string;appid?:string;version?:number};
@@ -31,7 +32,7 @@ export function securityTextParts(content:string):string[]{
   return parts;
 }
 
-/** WeChat security v2 adapter. No fallback may mark a live item safe. */
+/** WeChat safety adapters. Switching providers is explicit, never a fallback. */
 export class UgcSafetyService{
   private tokenCache:{value:string;until:number}|null=null;
   constructor(private readonly pool:pg.Pool,private readonly config:AppConfig,private readonly storage:ObjectStorage,
@@ -61,7 +62,7 @@ export class UgcSafetyService{
     const signature=createHmac("sha256",this.config.sessionSecret).update(`ugc-scan:${mediaId}:${claims}`).digest("base64url");
     return `${baseUrl}/v1/ugc/scan-source/${mediaId}?token=${claims}.${signature}`;
   }
-  private async claimScan(postId:string,revision:number,kind:"text"|"image",hash:string,mediaId:string|null){
+  private async claimScan(postId:string,revision:number,kind:"text"|"image",hash:string,mediaId:string|null,provider='wechat_v2'){
     await this.pool.query(`UPDATE ugc_safety_scan SET state='error',resolved_at=clock_timestamp(),
       result='{"reason":"DISPATCH_LEASE_EXPIRED_WITHOUT_TRACE"}'::jsonb
       WHERE post_id=$1 AND revision=$2 AND kind=$3 AND media_asset_id IS NOT DISTINCT FROM $4::uuid
@@ -69,8 +70,8 @@ export class UgcSafetyService{
       [postId,revision,kind,mediaId,hash]);
     const result=await this.pool.query<{id:string}>(`INSERT INTO ugc_safety_scan
       (post_id,revision,media_asset_id,kind,content_sha256,provider,lease_until)
-      VALUES($1,$2,$3,$4,$5,'wechat_v2',clock_timestamp()+interval '2 minutes')
-      ON CONFLICT DO NOTHING RETURNING id`,[postId,revision,mediaId,kind,hash]);
+      VALUES($1,$2,$3,$4,$5,$6,clock_timestamp()+interval '2 minutes')
+      ON CONFLICT DO NOTHING RETURNING id`,[postId,revision,mediaId,kind,hash,provider]);
     return result.rows[0]?.id??null;
   }
   async scanSource(mediaId:string,token:unknown){
@@ -105,7 +106,7 @@ export class UgcSafetyService{
     if(!post)throw new DomainError("UGC_SCAN_CONFLICT","内容已变化，请刷新后重试",409);
     if(!post.openid)throw new DomainError("UGC_SCAN_UNAVAILABLE","请用微信登录后再提交内容",409);
     const content=[post.title,post.body].filter(Boolean).join("\n").trim();
-    const media=await this.pool.query(`SELECT a.id,a.sha256,a.state,a.scan_result FROM ugc_post_media b
+    const media=await this.pool.query(`SELECT a.id,a.sha256,a.state,a.scan_result,a.object_key FROM ugc_post_media b
       JOIN ugc_media_asset a ON a.id=b.media_asset_id WHERE b.post_id=$1 AND b.revision=$2 ORDER BY b.position`,[id,post.current_revision]);
     const results:{kind:string;id?:string;state:string}[]=[];
     if(content){
@@ -144,15 +145,32 @@ export class UgcSafetyService{
       if(!asset.sha256||!["uploaded","scanning"].includes(asset.state)){
         results.push({kind:"image",id:asset.id,state:"error"});continue;
       }
-      const latest=(await this.pool.query(`SELECT state,content_sha256,requested_at FROM ugc_safety_scan
+      const latest=(await this.pool.query(`SELECT state,content_sha256,requested_at,provider,lease_until FROM ugc_safety_scan
         WHERE media_asset_id=$1 AND kind='image' ORDER BY requested_at DESC,id DESC LIMIT 1`,[asset.id])).rows[0];
       if(latest?.content_sha256===asset.sha256&&(["safe","risky","review"].includes(latest.state)||
-        (latest.state==="pending"&&Date.now()-new Date(latest.requested_at).getTime()<30*60_000))){
+        (latest.state==="pending"&&(latest.provider==='wechat_v1_sync'
+          ?new Date(latest.lease_until).getTime()>Date.now()
+          :Date.now()-new Date(latest.requested_at).getTime()<30*60_000)))){
         results.push({kind:"image",id:asset.id,state:latest.state});continue;
       }
-      const scanId=await this.claimScan(id,post.current_revision,"image",asset.sha256,asset.id);
+      const sync=this.config.media.ugcImageSafetyMode==='wechat_v1_sync';
+      const scanId=await this.claimScan(id,post.current_revision,"image",asset.sha256,asset.id,sync?'wechat_v1_sync':'wechat_v2');
       if(!scanId){results.push({kind:"image",id:asset.id,state:"pending"});continue;}
       try{
+        if(sync){
+          const original=await this.storage.read(asset.object_key,10*1024*1024);
+          if(createHash('sha256').update(original.bytes).digest('hex')!==asset.sha256)throw new Error('UGC_SOURCE_HASH_MISMATCH');
+          const checked=await prepareUgcSyncImage(original.bytes),token=await this.accessToken();
+          const form=new FormData();form.append('media',new Blob([new Uint8Array(checked)],{type:'image/jpeg'}),'post.jpg');
+          const response=await this.fetcher(`https://api.weixin.qq.com/wxa/img_sec_check?access_token=${encodeURIComponent(token)}`,
+            {method:'POST',body:form,signal:AbortSignal.timeout(12000),redirect:'error'});
+          const result=await boundedWechatJson<WechatResult>(response);
+          const state=response.ok&&result.errcode===0?'safe':response.ok&&result.errcode===87014?'risky':'error';
+          await this.pool.query(`UPDATE ugc_safety_scan SET state=$2,result=$3,resolved_at=now() WHERE id=$1 AND state='pending'`,
+            [scanId,state,{api:'img_sec_check',errcode:result.errcode??null,
+              checkedSha256:createHash('sha256').update(checked).digest('hex'),checkedBytes:checked.length}]);
+          results.push({kind:'image',id:asset.id,state});continue;
+        }
         const response=await this.request("media_check_async",{media_url:this.signedRawUrl(asset.id,id,post.current_revision,asset.sha256,baseUrl),media_type:2,version:2,scene:3,openid:post.openid});
         if(!response.trace_id)throw new Error("WECHAT_TRACE_MISSING");
         await transaction(this.pool,async client=>{
