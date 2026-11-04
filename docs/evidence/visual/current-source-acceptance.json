@@ -257,7 +257,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "3a468032033f11850684d76480e431f810c1f46a86be6915f3cd8c0916bcc4eb",
+  "packageSourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -266,7 +266,7 @@
       "reason": "Scoped navigation and Community validation do not complete the existing full 40-route state or physical-device matrices."
     }
   ],
-  "note": "Current source fixes the phone-reported Community module-not-defined startup failure by explicitly retaining shared runtime dependencies on upload, and includes scoped Community read/bridge repairs. No historical screenshot or Node/simulator result is promoted to physical-device acceptance. Full 40-route state and device matrices remain incomplete.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-f81c8db8339b.json",
+  "note": "Current source keeps the native composer draft and publish actions mounted side by side, with honest closed/unknown publication availability and retry. No existing hardware screenshot is relabeled; full route and physical-device acceptance remain blocked.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-3a468032033f.json",
   "pendingSourceRebind": false
 }

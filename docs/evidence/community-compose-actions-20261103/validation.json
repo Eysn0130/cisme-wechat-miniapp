@@ -1,0 +1,24 @@
+{
+  "sourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b",
+  "nativeFiles": 301,
+  "nativeRoutes": 40,
+  "changedRuntimeFiles": {
+    "apps/miniprogram/pages/community-compose/index.wxml": "27120901d17f36341d16e302eb8c9e0077bd1ad6e89555bbab98bc25549e4572",
+    "apps/miniprogram/pages/community-compose/index.wxss": "a40d8e91595b5d5d2ed54924a63dd3f6b69debfe0f93d294a9f45a3a5f4804b0"
+  },
+  "unitPassed": 3073,
+  "unitSkipped": 1,
+  "newRenderedWxmlCases": 14,
+  "renderedRegressionFailuresBeforeFix": 6,
+  "sourceTypecheck": true,
+  "publicGateObserved": {
+    "publicEnabled": false,
+    "draftsEnabled": true
+  },
+  "publicGateChanged": false,
+  "serverDeploymentPerformed": false,
+  "realAccountTestWrites": false,
+  "rednoteReferenceScope": "native plus menu and blank text editor only; no input, save or publish",
+  "physicalDeviceResult": "not tested; full matrix remains blocked",
+  "wholeNativePageVisualResult": "not tested; partial compiler and JS renderer are scoped evidence only"
+}

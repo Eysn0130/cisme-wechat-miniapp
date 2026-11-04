@@ -1,6 +1,7 @@
 @import "../../styles/read-loading.wxss";
 .composer-page { min-height:100vh; padding:var(--cisme-stack-top,103px) 22px calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 32px); background:#fff; }
 .composer-page--editing { padding-bottom:calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 112px); }
+.composer-page--status-retry { padding-bottom:calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 152px); }
 .topbar { border-bottom:0; background:#fff; }
 .topbar__back { border:0; background:transparent; }
 .composer-drafts-shortcut { position:absolute; top:var(--cisme-back-top,var(--cisme-menu-top,env(safe-area-inset-top))); left:60px; display:flex; align-items:center; justify-content:center; min-width:54px; min-height:var(--cisme-hit-target); margin:0; padding:0 8px; border:0; background:transparent; color:var(--cisme-muted); font-size:var(--cisme-text-body); }
@@ -70,8 +71,8 @@
 .composer-actions__buttons .composer-actions__save { flex:1; border:1rpx solid var(--cisme-line); border-radius:28px; background:#fff; }
 .composer-actions__buttons .composer-actions__submit { flex:2; border:1rpx solid var(--cisme-plum); border-radius:28px; background:var(--cisme-plum); box-shadow:none; }
 .composer-actions .primary--disabled { background:var(--cisme-plum) !important; box-shadow:none !important; }
-.composer-actions--private .composer-actions__save { flex:1; border-color:var(--cisme-plum); background:var(--cisme-plum); color:#fff; }
-.composer-actions__hint { display:block; margin-top:7px; color:var(--cisme-muted); font-size:var(--cisme-text-small); line-height:1.5; text-align:center; }
+.composer-actions__hint { display:block; margin:0 0 7px; color:var(--cisme-muted); font-size:var(--cisme-text-small); line-height:1.5; text-align:center; }
+.composer-actions__gate-retry { display:block; width:100%; min-height:var(--cisme-hit-target); margin:0 0 4px; padding:8px 0; border:0; color:var(--cisme-plum); background:transparent; font-size:var(--cisme-text-small); line-height:1.5; text-decoration:underline; }
 .composer-readonly { color:var(--cisme-ink); }
 .composer-readonly__label { display:block; margin-bottom:16px; color:var(--cisme-muted); font-size:var(--cisme-text-small); }
 .composer-readonly__title { display:block; margin-bottom:14px; font-size:18px; font-weight:500; line-height:1.6; word-break:break-word; }

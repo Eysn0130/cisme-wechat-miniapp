@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "errorType": "MCP_TOOL_ERROR",
+  "message": "文件 /Users/mini/CISME/apps/miniprogram/pages/__cisme_missing_file_probe__/index.wxml 不存在",
+  "source": "mcp_business",
+  "detail": {
+    "rawResult": {
+      "success": false,
+      "error": "文件 /Users/mini/CISME/apps/miniprogram/pages/__cisme_missing_file_probe__/index.wxml 不存在"
+    }
+  },
+  "reason": "mcp_business_fail",
+  "tool": "compile_wxml",
+  "clientName": "Codex",
+  "suggestions": "查看该工具完整参数, wechatide -c Codex compile_wxml -h"
+}
