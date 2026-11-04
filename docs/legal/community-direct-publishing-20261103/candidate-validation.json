@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-11-04T03:28:51.686460+00:00",
+  "validator": "scripts/legal-publication.ts:validateLegalPublication",
+  "valid": true,
+  "documents": 2,
+  "version": "2026-11-03-v5",
+  "markdownBodiesMatch": true,
+  "baseline": "live trial /v1/legal 2026-10-28-v4, matched archived original bodies",
+  "sourceSha256": "59d80c83a7762150f3c2889b056c3430831de4611dd1b6bddf59048e69263b22",
+  "published": false,
+  "memberConsentCreated": false
+}

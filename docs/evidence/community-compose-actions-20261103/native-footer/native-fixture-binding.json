@@ -1,0 +1,8 @@
+{
+  "scope": "Native footer layout fixture only; synthetic local Page, no API calls, saves or publications; not full-page or phone acceptance",
+  "canonicalPackageSourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b",
+  "canonicalFooterSha256": "480c82d588ac2e0231ec0526ddec3587391680047953c18c0abe94b8222b35f2",
+  "canonicalPageStyleSha256": "a40d8e91595b5d5d2ed54924a63dd3f6b69debfe0f93d294a9f45a3a5f4804b0",
+  "fixturePath": "/Users/mini/CISME/tmp/community-compose-actions-20261103/native-fixture",
+  "noBackendTransport": true
+}

@@ -1,0 +1,49 @@
+{
+  "version": "0.1.29",
+  "status": "native-experience-upload-success",
+  "recordedAt": "2026-11-04T03:27:40.404413+00:00",
+  "sourceHead": "ed8bd6843459a53180eb8015ba398a7636e46506",
+  "sourceTree": "f6c337dcf0af43847bbe276440f06ebeac8a42b9",
+  "miniPackageSourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b",
+  "files": 301,
+  "routes": 40,
+  "pr": 69,
+  "prHead": "dc4af3cedc192c7c0f8d871a3d1a6359f160b978",
+  "ciRun": 41764756063,
+  "ciVerifyJob": 126360412545,
+  "unit": {
+    "passed": 3073,
+    "skipped": 1
+  },
+  "integration": "CI step passed; count not separately asserted",
+  "upload": {
+    "taskId": "confirmation_upload_ddd465a0-afd6-42a4-9afa-bc368640dfbe",
+    "callCount": 1,
+    "pollCount": 1,
+    "nativeOverwriteTrialHintObserved": true,
+    "allowClicks": 1,
+    "alwaysAllow": false,
+    "success": true,
+    "compiledTotalBytes": 1947563,
+    "compiledMainBytes": 854178,
+    "freshCompileDirectory": true,
+    "stagedSourceMatchesCanonical": true
+  },
+  "nativeLayout": "six isolated footer cases at 361px and 390px; not full composer or phone",
+  "phoneAcceptance": "not performed",
+  "fullVisualMatrix": "blocked",
+  "backend": {
+    "sourceHead": "97acb0028aad7b9c832c01b80ad3d4e7da1ffdac",
+    "schema": 106,
+    "redeployed": false
+  },
+  "publicUgc": {
+    "trial": false,
+    "production": false,
+    "trialOpeningAuthorized": true,
+    "openingCompleted": false,
+    "reason": "Real WeChat safety callback configuration and matching disclosure activation remain pending"
+  },
+  "realAccountWrites": false,
+  "imagePerformanceInvestigation": "paused by user; not changed"
+}
