@@ -1,0 +1,31 @@
+{
+  "activationAllowedByBuild": false,
+  "archive": "/Users/mini/CISME/tmp/wechat-message-callback-20261103/release/tencent-release-836ac3c8f86a.tar.gz",
+  "archiveBytes": 25667636,
+  "archiveSha256": "f41d08d0c068193e1d28dd0117c8f8936ce1f354d1493347041e7ea5508040de",
+  "bindingSha256": "984d72302623f19d44e1ab048350d6906f67306f53f0281325108652abacfdff",
+  "builderImage": "sha256:43ffb442676c100df1e90d50b1d582c5af0b9dca1bdf7cbc9065dad0c5521044",
+  "ciRunId": 41771192730,
+  "ciVerifyJobId": 126381015875,
+  "containerId": "ef86c82271fd3deb9fcc0a2103c6e1af44ab992022d55a5a0cc7e129ea177132",
+  "containerRetained": true,
+  "dependenciesSha256": "d9f03813fc808eced42eacb92db4530a2cd0e0824cab5d1beb9c3bdf08144bdd",
+  "deployed": false,
+  "helperSha256": "64ec9fe96342bb872a5ae0b338c0b4d350652b4d3354b93702ddabbe030ea799",
+  "hostMounts": [],
+  "kind": "trial-message-callback-build-not-activation",
+  "manifestSha256": "4e9a679ddbd1a00f11d5f438113293b049b084da15b354292128f9b9e37d0dff",
+  "migrations": 106,
+  "network": "none",
+  "runtimeDependencies": {
+    "fastify": "5.12.6",
+    "sharp": "0.35.5"
+  },
+  "schemaVersion": 1,
+  "secretsIncluded": false,
+  "serverMutations": false,
+  "sourceHead": "836ac3c8f86a8472f5de9c523a7f6cd0a0ef2236",
+  "sourceTree": "4c01fb56ed9f64fac4ca2ad33bb58215563b20b5",
+  "stageMetaSha256": "e9bfdefb0ab009786013e165c3d6cf812033f18e97084f16bc25e2ff62112954",
+  "unchangedProtectedFileCount": 109
+}

@@ -1,0 +1,46 @@
+{
+  "active": {
+    "callbackPrepared": true,
+    "changedConfigKeys": [
+      "WECHAT_MESSAGE_TOKEN",
+      "WECHAT_MESSAGE_AES_KEY",
+      "UGC_SCAN_BASE_URL"
+    ],
+    "ciRunId": 41771192730,
+    "ciVerifyJobId": 126381015875,
+    "databaseRestored": false,
+    "drainedAll106FactsPreserved": true,
+    "environment": "trial",
+    "migrationCount": 106,
+    "platformRegistered": false,
+    "privatePlanSha256": "b59f2da286dc8fc106b13b60eab2ca7c4b0431d1002aaad9702c073959288e4d",
+    "privateValuesExported": false,
+    "productionChanged": false,
+    "publicUgcEnabled": false,
+    "schemaChanged": false,
+    "sourceHead": "836ac3c8f86a8472f5de9c523a7f6cd0a0ef2236",
+    "sourceTree": "4c01fb56ed9f64fac4ca2ad33bb58215563b20b5",
+    "upgradeState": "/opt/cisme-trial/message-callback-updates/commit-836ac3c8f86a-1793766919614439923",
+    "readOnly": true,
+    "activeVerified": true
+  },
+  "probe": {
+    "signedGet": true,
+    "encryptedGet": true,
+    "badSignatureRejected": true,
+    "plaintextPostRejected": true,
+    "encryptedJsonDecodedAndUnknownEventRejected": true,
+    "publicHttpsVerified": true,
+    "requests": 5,
+    "businessDataCreated": false,
+    "syntheticWireProbe": true,
+    "wechatPlatformRegistered": false,
+    "realProviderCallbackVerified": false,
+    "privateValuesExported": false
+  },
+  "configurationSha256": "6a8660c443fc4d8c2c1f9b706de2f442de6a9eae1a8df9a7f74b68125fb2cef9",
+  "ownerConfigurationFile": "/Users/mini/CISME/tmp/wechat-message-callback-20261103/\u5fae\u4fe1\u6d88\u606f\u63a8\u9001\u914d\u7f6e.private.md",
+  "keysExportedToOwnerPrivateFile": true,
+  "keysPrinted": false,
+  "platformSavedByOwner": false
+}
