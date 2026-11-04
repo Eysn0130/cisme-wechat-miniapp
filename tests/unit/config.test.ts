@@ -102,6 +102,18 @@ describe("production configuration fails closed", () => {
     expect(config.pointsRedemptionEnabled).toBe(false);
   });
 
+  it('does not require the retired story-submission reward to configure current approved points rules',()=>{
+    const approved={...base,APP_ENV:'test',POINTS_RULES_ENABLED:'true',
+      POINTS_FINANCE_APPROVAL_ID:'synthetic-current-policy',POINTS_FINANCE_APPROVAL_EXPIRES_AT:'2099-12-31T23:59:59Z',
+      POINTS_RULE_IDS:'CARE_D28_RECORD_R0,ORDER_REWARD_R0,SERVICE_ADJUSTMENT_R0',
+      POINTS_MAKER_CHECKER_READY:'true',POINTS_HOLD_DAYS:'7',POINTS_EXPIRY_DAYS:'365'};
+    expect(loadConfig(approved).pointsRulesEnabled).toBe(true);
+    expect(loadConfig(approved).pointsRuleIds).not.toContain('CARE_D7_STORY_R0');
+    expect(()=>loadConfig({...approved,POINTS_FINANCE_APPROVAL_ID:undefined})).toThrow('POINTS_RULE_APPROVAL_REQUIRED');
+    expect(()=>loadConfig({...approved,POINTS_MAKER_CHECKER_READY:'false'})).toThrow('POINTS_RULE_APPROVAL_REQUIRED');
+    expect(()=>loadConfig({...approved,POINTS_FINANCE_APPROVAL_EXPIRES_AT:'2020-01-01T00:00:00Z'})).toThrow('POINTS_RULE_APPROVAL_REQUIRED');
+  });
+
   it("requires a selected production storage profile", () => {
     expect(() => loadConfig({ ...base, APP_ENV: "production", WECHAT_APP_ID: "wx4eac2d4fb11d299b", WECHAT_APP_SECRET: "secret" })).toThrow("PRODUCTION_STORAGE_PROFILE_REQUIRED");
   });

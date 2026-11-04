@@ -6,7 +6,8 @@
   "version": "2026-11-03-v5",
   "markdownBodiesMatch": true,
   "baseline": "live trial /v1/legal 2026-10-28-v4, matched archived original bodies",
-  "sourceSha256": "59d80c83a7762150f3c2889b056c3430831de4611dd1b6bddf59048e69263b22",
+  "sourceSha256": "9a2080748ed7b51d675ad84d7366e2c2564af4101aeb6e400274c24198a8e351",
   "published": false,
-  "memberConsentCreated": false
+  "memberConsentCreated": false,
+  "scopeUpdate": "Latest user instruction removes permanent trial/production feature restrictions; candidate is not yet published"
 }

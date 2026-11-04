@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-11-04T03:53:34.208188+00:00",
+  "unitPassed": 3079,
+  "unitSkipped": 1,
+  "ugcIntegrationPassed": 8,
+  "typecheck": "passed",
+  "offlineCallbackGuardTests": 10,
+  "callbackApplied": false,
+  "wechatPlatformSaved": false,
+  "realBusinessWrites": false,
+  "allFunctionsConnected": false,
+  "nativePackageSourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b"
+}

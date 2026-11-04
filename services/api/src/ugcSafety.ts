@@ -340,11 +340,10 @@ export class UgcSafetyService{
     }
   }
 
-  verifyCallback(query:MessageQuery){
-    if(this.config.env!=="test"||!this.config.wechat.plaintextCallbackTestOnly)
-      throw new DomainError("UGC_CALLBACK_ENCRYPTION_REQUIRED","内容安全回调须使用安全模式密文",401);
+  private verifyUrlSignature(query:MessageQuery){
     const token=this.config.wechat.messageToken;
     if(!token||typeof query.signature!=="string"||typeof query.timestamp!=="string"||typeof query.nonce!=="string"||
+      !/^[0-9a-f]{40}$/.test(query.signature)||
       !/^\d{10}$/.test(query.timestamp)||Math.abs(Date.now()/1000-Number(query.timestamp))>300||
       !query.nonce||query.nonce.length>100)
       throw new DomainError("UGC_CALLBACK_UNAUTHORIZED","内容安全回调未授权",401);
@@ -352,12 +351,19 @@ export class UgcSafetyService{
     const a=Buffer.from(query.signature),b=Buffer.from(expected);
     if(a.length!==b.length||!timingSafeEqual(a,b))throw new DomainError("UGC_CALLBACK_UNAUTHORIZED","内容安全回调签名无效",401);
   }
+  verifyCallback(query:MessageQuery){
+    if(this.config.env!=="test"||!this.config.wechat.plaintextCallbackTestOnly)
+      throw new DomainError("UGC_CALLBACK_ENCRYPTION_REQUIRED","内容安全回调须使用安全模式密文",401);
+    this.verifyUrlSignature(query);
+  }
   verifyChallenge(query:MessageQuery&{echostr?:unknown}){
-    if(typeof query.echostr!=="string")throw new DomainError("UGC_CALLBACK_UNAUTHORIZED","回调校验参数无效",401);
-    if(this.config.wechat.messageAesKey)return decryptWechatMessage(query,query.echostr,{
+    if(typeof query.echostr!=="string"||!query.echostr||Buffer.byteLength(query.echostr)>4096)
+      throw new DomainError("UGC_CALLBACK_UNAUTHORIZED","回调校验参数无效",401);
+    if(query.msg_signature!==undefined)return decryptWechatMessage(query,query.echostr,{
       token:this.config.wechat.messageToken,aesKey:this.config.wechat.messageAesKey,
       appId:this.config.wechat.appId});
-    this.verifyCallback(query);
+    // URL verification is a signed GET, independent of encrypted POST delivery.
+    this.verifyUrlSignature(query);
     return query.echostr;
   }
   async receiveCallback(query:MessageQuery,outer:unknown){
