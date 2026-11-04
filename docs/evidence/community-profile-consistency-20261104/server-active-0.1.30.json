@@ -1,0 +1,45 @@
+{
+  "activeVerified": true,
+  "authorityGranted": false,
+  "ciRunId": 41839554947,
+  "ciVerifyJobId": 126607187210,
+  "configurationChanged": false,
+  "databaseRestored": false,
+  "kind": "trial-community-profile-active",
+  "memberConsentCreated": false,
+  "migrationCount": 108,
+  "ordinaryPostsStillDirect": true,
+  "originalFactsPreservedAtMigration": true,
+  "privatePlanSha256": "cbc7920553ae42e6708beef311a02470699647787a0d378817b7c9abfb60856f",
+  "privateValuesExported": false,
+  "productionChanged": false,
+  "provider": "wechat_v1_sync",
+  "publicUgcEnabled": true,
+  "readOnly": true,
+  "runningGuardCorrection": {
+    "applicationCodeChanged": false,
+    "cause": "legacy closed_context rejects authorized open-UGC configuration",
+    "configurationChanged": false,
+    "databaseRestored": false,
+    "freshWorkerHeartbeatVerified": true,
+    "liveSourcePermit": {
+      "immutableResponseCount": 3,
+      "manifestSha256": "7925e783ab3650e8ca7640c49b960093dbc8570f6fc3da49563478075ff8a511",
+      "requests": {
+        "immutableCacheReads": 3,
+        "liveReads": 4
+      },
+      "treeReconstructed": true,
+      "treeSha": "f32af0cce05ad377b5fe3291cc380a7940751d03"
+    },
+    "originalFactsEqualBeforeRecoveryStart": true,
+    "recoveryCodeSha256": "e000a29525f525d48d9f9075beede9da1f7633d5f0b1376718720a123de19697",
+    "replacement": "existing pinned open-UGC-aware running(plan)",
+    "snapshotVerified": true,
+    "sqlReapplied": false
+  },
+  "snapshotCryptoAadUsesHistoricalPrimitiveLabel": true,
+  "sourceHead": "93681d520c1481dbc4a905afaa0ceb0c1f5dfe6b",
+  "sourceTree": "f32af0cce05ad377b5fe3291cc380a7940751d03",
+  "upgradeState": "/opt/cisme-trial/community-profile-updates/commit-93681d520c14-1793800215170866144"
+}

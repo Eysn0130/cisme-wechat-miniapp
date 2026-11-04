@@ -1,7 +1,13 @@
 import importlib.util
+from datetime import datetime,timezone
+import os
 from pathlib import Path
+import pwd
+import tempfile
+import time
 import types
 import unittest
+from unittest.mock import patch
 
 path=Path(__file__).with_name('trial-community-profile-update.py')
 spec=importlib.util.spec_from_file_location('profile_update',path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -51,5 +57,31 @@ class ProfileUpdateContract(unittest.TestCase):
         self.assertIn("'NEW_BIO_DEFAULTS_REQUIRED'",source)
         self.assertIn("need(facts(plan['profile'],True)==fence",source)
         self.assertIn("'publicUgcEnabled':True",source)
+
+    def health_fixture(self,root,completed):
+        heartbeat=Path(root)/'tmp/cisme-worker-heartbeat.json';heartbeat.parent.mkdir()
+        heartbeat.write_text('{"completedAtUtc":"'+completed+'"}');heartbeat.chmod(0o600)
+        return {'profile':{'root':root,'user':pwd.getpwuid(os.getuid()).pw_name},
+          'candidate':{'directory':'/exact/immutable/release'},'openConfig':{'UGC_GO_LIVE_GATE':'true'}}
+
+    def test_health_uses_open_ugc_process_checks_and_fresh_heartbeat_before_native_smoke(self):
+        calls=[]
+        def running(plan):
+            self.assertEqual(plan['openConfig']['UGC_GO_LIVE_GATE'],'true');calls.append('running')
+        with tempfile.TemporaryDirectory()as root:
+            plan=self.health_fixture(root,datetime.now(timezone.utc).isoformat())
+            runtime=types.SimpleNamespace(running=running,public_contract=lambda plan:calls.append('public'))
+            dependency=types.SimpleNamespace(healthy=lambda *args:self.fail('closed-gate health runner used'),
+              native_smoke=lambda profile,directory,patched:calls.append((directory,patched)))
+            with patch.object(m,'M',runtime),patch.object(m,'D',dependency):m.healthy(plan,time.time()-1)
+        self.assertEqual(calls,['running','public',('/exact/immutable/release',True)])
+
+    def test_health_does_not_accept_a_heartbeat_from_before_this_start(self):
+        with tempfile.TemporaryDirectory()as root:
+            plan=self.health_fixture(root,datetime.fromtimestamp(time.time()-30,timezone.utc).isoformat())
+            runtime=types.SimpleNamespace(running=lambda plan:None,public_contract=lambda plan:None)
+            dependency=types.SimpleNamespace(native_smoke=lambda *args:self.fail('stale heartbeat accepted'))
+            with patch.object(m,'M',runtime),patch.object(m,'D',dependency),patch.object(m.time,'sleep',lambda seconds:None):
+                with self.assertRaisesRegex(m.Refused,'NEW_HEARTBEAT_REQUIRED'):m.healthy(plan,time.time())
 
 if __name__=='__main__':unittest.main()

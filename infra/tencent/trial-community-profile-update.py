@@ -8,11 +8,13 @@ database restore, real-account fixture, gate change or production deployment.
 """
 import argparse
 import base64
+from datetime import datetime
 import fcntl
 import hashlib
 import json
 import os
 from pathlib import Path
+import pwd
 import re
 import stat
 import time
@@ -173,6 +175,23 @@ def preflight(b,app):
     need(D.native_smoke(plan['profile'],plan['candidate']['directory'],True)==D.native_smoke(plan['profile'],plan['old']['directory'],True),'NATIVE_RUNTIME_DRIFT')
     return plan
 
+def healthy(plan,started):
+    # The dependency-only runner predates public UGC and requires closed gates.
+    # Verify the exact authorized open configuration with the pinned UGC runner.
+    for attempt in range(40):
+        try:
+            M.running(plan);M.public_contract(plan)
+            heartbeat=Path(plan['profile']['root'])/'tmp/cisme-worker-heartbeat.json';info=heartbeat.lstat()
+            need(stat.S_ISREG(info.st_mode) and info.st_uid==pwd.getpwnam(plan['profile']['user']).pw_uid and
+              info.st_mode&0o077==0,'HEARTBEAT_PROTECTION_REQUIRED')
+            at=datetime.fromisoformat(json.loads(heartbeat.read_bytes())['completedAtUtc'].replace('Z','+00:00')).timestamp()
+            need(started<=at<=time.time() and time.time()-at<=120,'NEW_HEARTBEAT_REQUIRED')
+            break
+        except Exception:
+            if attempt==39:raise
+            time.sleep(.5)
+    return D.native_smoke(plan['profile'],plan['candidate']['directory'],True)
+
 def apply(b,app,approval):
     need(re.fullmatch('[-A-Za-z0-9_:.]{8,120}',approval or ''),'OPERATION_REFERENCE_REQUIRED')
     plan=preflight(b,app);STATES.mkdir(mode=0o700,exist_ok=True);D.owned_directory(STATES,True)
@@ -193,7 +212,7 @@ def apply(b,app,approval):
         need(facts(plan['profile'],True)==fence,'ORIGINAL_FACTS_CHANGED')
         D.switch(plan,plan['candidate']['directory']);verify(plan,True)
         started=time.time();D.command(['systemctl','start',*plan['profile']['units']],timeout=60)
-        D.healthy(plan,plan['candidate']['directory'],started,True);M.running(plan);M.public_contract(plan)
+        healthy(plan,started)
         verify(plan,True);journal(plan,[plan['candidate']['manifest']['migrations']])
         report={'kind':'trial-community-profile-active','sourceHead':b['sourceHead'],'sourceTree':b['sourceTree'],'upgradeState':str(state),
           'privatePlanSha256':sha(saved_raw),'migrationCount':108,'configurationChanged':False,'publicUgcEnabled':True,'provider':'wechat_v1_sync',
