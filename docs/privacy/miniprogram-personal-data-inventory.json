@@ -761,8 +761,8 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "e6602e27013d2f428073117a241859367b60981684de9864ba7ab43607e0318d",
-  "egressSignatureSha256": "eef2c6f170f4b2e8f42f99ac0c4aeff28ecaaab85bce55774556d83cc1190a94",
+  "migrationSetSha256": "cf277035c9b043c301ec015a93dcd3106c8029e1c239a3354842d6ed08719ea7",
+  "egressSignatureSha256": "e12bd89786fdf36dba3c626c41bf974b504025dda042cecff65151769912ec6b",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -1267,5 +1267,19 @@
     "localProcessing": "Pixel transforms copy input and preserve alpha; JPEG export flattens transparency onto white. Effect settings remain in current editor memory; confirmed output follows existing new-media authorization/upload/complete and revision ownership rules. A failed single-image upload retains an exact account/post/media/version-scoped local candidate for explicit retry or discard in current page memory only; old asset reference remains until completion. This is not restart recovery or a new retention period.",
     "notApplicable": "Consumer video/live streaming/music/topics/@mentions/polls/location/link tags are outside this image/text scope; 5000-character body is not a Rednote long-form implementation, whose downstream branch remains unaccepted.",
     "publicationIntent": "Retired rights/public switches are not collected by the current consumer editor. Saving a new private revision defaults their metadata to false; explicit legacy values and immutable history remain intact. Only a successful authenticated, version-bound submit after final gate checks appends a new pending snapshot with public consent true and a publish_action audit source. It does not fabricate rights confirmation, immediately publish or change public gates."
+  },
+  "synchronousImageSafetyReview20261104": {
+    "source": [
+      "services/api/src/ugcSafety.ts",
+      "services/api/src/ugcSyncImage.ts",
+      "services/api/src/ugcDirectPublication.ts",
+      "services/api/src/storage.ts"
+    ],
+    "egress": "Explicit WeChat img_sec_check HTTPS multipart with only normalized full-frame image and existing server access token. No new recipient, tracking or third-party service. Fixed origin, redirect refused, bounded JSON, request timeout; no automatic fallback from v2.",
+    "media": "Private raw image SHA256 must match, metadata removed and orientation normalized, at most 1 MiB JPEG; the exact checked bytes become the public detail, with its thumbnail derived from those bytes. Source raw image remains private.",
+    "evidenceScope": "Actual credential-bound synthetic-image probe succeeded without push; this is not a real member publication or phone acceptance.",
+    "legacySupport": "Official v1 stopped updating in 2021; explicitly selected interim mode only, v2 async remains default.",
+    "personalDataModelChanged": false,
+    "retentionOrErasureExpanded": false
   }
 }

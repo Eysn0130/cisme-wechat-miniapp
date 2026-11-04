@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "0f7807612239a6d09f78cbe292bcc425f4fc66874838d7b46c234486543491d0",
+  "migrationSetSha256": "a92939e444f0ad7fe547e3a2d5646d21eb3bf009624221c943f5920a6ff3aa9a",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -7376,5 +7376,10 @@
     "tableCount": 6,
     "genericProductionErasureExpanded": false,
     "scope": "Independent authorized editorial comments; fixed owner export and specific self-deletion/account-closure suppression. Ordinary public UGC remains gated. Safety records exclude text, OpenID and raw provider details."
+  },
+  "synchronousImageSafetyReview20261104": {
+    "source": "services/api/src/ugcSafety.ts; ugcSyncImage.ts; ugcDirectPublication.ts",
+    "schemaChange": "Extends existing provider enum only; no new columns, subject relationships, exports, retention or erasure permissions.",
+    "provider": "wechat_v1_sync: real explicit img_sec_check response bound to source SHA256 and the exact public JPEG SHA256; pending/error never passes; no invented v2 trace."
   }
 }

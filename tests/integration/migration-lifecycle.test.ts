@@ -111,6 +111,13 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
     //106 adds only the current direct-publication audit lookup index.
+    expect(migrationTip).toBe('202611040001_ugc_synchronous_image_safety.sql');
+    expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='ugc_safety_scan_provider_check'")).rows[0].definition).toContain('wechat_v1_sync');
+    expect((await migrate('down')).stdout).toContain(`rolled back ${migrationTip}`);
+    expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='ugc_safety_scan_provider_check'")).rows[0].definition).not.toContain('wechat_v1_sync');
+    await migrate('up');
+    await migrate('down');
+    migrationCount-=1;extensionCount-=1;migrationTip='202611030001_direct_publication_lookup.sql';
     expect(migrationTip).toBe('202611030001_direct_publication_lookup.sql');
     const directIndex=async()=>(await pool.query("SELECT indexdef FROM pg_indexes WHERE indexname='ugc_direct_publication_intent_idx'")).rows;
     expect(await directIndex()).toEqual([expect.objectContaining({indexdef:expect.stringContaining("'directPublication'::text")} )]);

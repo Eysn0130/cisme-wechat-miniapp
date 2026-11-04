@@ -1,0 +1,28 @@
+{
+  "archiveSha256": "f41d08d0c068193e1d28dd0117c8f8936ce1f354d1493347041e7ea5508040de",
+  "authorityGranted": false,
+  "bindingSha256": "984d72302623f19d44e1ab048350d6906f67306f53f0281325108652abacfdff",
+  "candidate": "/opt/cisme-trial/releases/tencent-release-836ac3c8f86a",
+  "configurationChanged": false,
+  "databaseChanged": false,
+  "dependenciesSha256": "d9f03813fc808eced42eacb92db4530a2cd0e0824cab5d1beb9c3bdf08144bdd",
+  "deployed": false,
+  "kind": "trial-message-callback-stage",
+  "liveChatProbePerformed": false,
+  "manifestSha256": "4e9a679ddbd1a00f11d5f438113293b049b084da15b354292128f9b9e37d0dff",
+  "migrations": 106,
+  "privateValuesExported": false,
+  "productionChanged": false,
+  "schemaVersion": 1,
+  "sourceHead": "836ac3c8f86a8472f5de9c523a7f6cd0a0ef2236",
+  "sourceTree": "4c01fb56ed9f64fac4ca2ad33bb58215563b20b5",
+  "staged": true,
+  "unitsChanged": false,
+  "uploadRetainedForEvidence": true,
+  "versions": {
+    "fastify": "5.12.6",
+    "rsvg": "2.63.2",
+    "sharp": "0.35.5",
+    "vips": "8.18.7"
+  }
+}

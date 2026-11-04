@@ -20,6 +20,13 @@ describe("production configuration fails closed", () => {
     expect(()=>loadConfig({...formal,WECHAT_MESSAGE_TOKEN:undefined})).toThrow('UGC_WECHAT_SAFETY_CREDENTIALS_REQUIRED');
     expect(()=>loadConfig({...formal,RUN_BACKGROUND_WORKER:'true'})).toThrow('UGC_DUPLICATE_WORKER_TOPOLOGY');
     expect(()=>loadConfig({...formal,UGC_SCAN_WORKER_MODE:'unknown'})).toThrow('CONFIG_INVALID:UGC_SCAN_WORKER_MODE');
+    const sync={...formal,UGC_IMAGE_SAFETY_MODE:'wechat_v1_sync',WECHAT_MESSAGE_TOKEN:undefined,WECHAT_MESSAGE_AES_KEY:undefined};
+    expect(loadConfig(sync).media.ugcImageSafetyMode).toBe('wechat_v1_sync');
+    expect(loadConfig({...sync,UGC_MODERATION_READY:'false'}).ugcGoLiveGate).toBe(true);
+    expect(()=>loadConfig({...sync,WECHAT_APP_SECRET:undefined})).toThrow('WECHAT_CREDENTIALS_REQUIRED');
+    expect(()=>loadConfig({...sync,UGC_CONTENT_SAFETY_READY:'false'})).toThrow('UGC_GATE_INCOMPLETE');
+    expect(()=>loadConfig({...formal,UGC_IMAGE_SAFETY_MODE:'unknown'})).toThrow('CONFIG_INVALID:UGC_IMAGE_SAFETY_MODE');
+    expect(loadConfig(formal).media.ugcImageSafetyMode).toBe('wechat_v2_async');
   });
   it('parses the shared migration fence strictly without exposing its input',()=>{
     expect(migrationReadOnly({})).toBe(false);

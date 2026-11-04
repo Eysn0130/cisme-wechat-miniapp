@@ -1,0 +1,19 @@
+{
+  "businessDataCreated": false,
+  "configuredCloudImageCredentialsPresent": false,
+  "credentialsExported": false,
+  "currentTrialSource": "836ac3c8f86a8472f5de9c523a7f6cd0a0ef2236",
+  "imageBytes": 2195,
+  "imageErrcode": 0,
+  "imageExplicitSuccess": true,
+  "imageHeight": 320,
+  "imageHttpStatus": 200,
+  "imageSha256": "2f70a021186ca840506f2bf496c197eebfbe48c97fe7bd929215833b83e15013",
+  "imageWidth": 320,
+  "messagePushUsed": false,
+  "runtimeGuardVerified": true,
+  "stableTokenAvailable": true,
+  "syntheticImage": true,
+  "tokenErrcode": null,
+  "tokenHttpStatus": 200
+}

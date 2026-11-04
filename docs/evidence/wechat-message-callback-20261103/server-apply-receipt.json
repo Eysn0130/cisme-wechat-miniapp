@@ -1,0 +1,50 @@
+{
+  "callbackPrepared": true,
+  "changedConfigKeys": [
+    "WECHAT_MESSAGE_TOKEN",
+    "WECHAT_MESSAGE_AES_KEY",
+    "UGC_SCAN_BASE_URL"
+  ],
+  "ciRunId": 41771192730,
+  "ciVerifyJobId": 126381015875,
+  "databaseRestored": false,
+  "drainedAll106FactsPreserved": true,
+  "environment": "trial",
+  "migrationCount": 106,
+  "platformRegistered": false,
+  "privatePlanSha256": "b59f2da286dc8fc106b13b60eab2ca7c4b0431d1002aaad9702c073959288e4d",
+  "privateValuesExported": false,
+  "productionChanged": false,
+  "publicUgcEnabled": false,
+  "schemaChanged": false,
+  "sourceHead": "836ac3c8f86a8472f5de9c523a7f6cd0a0ef2236",
+  "sourceTransport": {
+    "completeImmutableGitTreeAndBlobs": true,
+    "currentMainAndCiChecks": "live original checks",
+    "sourceChecks": [
+      {
+        "immutableResponseCount": 3,
+        "manifestSha256": "97cf2f4a2c5bdd6b2c319289f717ee4c47383aa05171095135afd40e8e477299",
+        "requests": {
+          "immutableCacheReads": 4,
+          "liveReads": 4
+        },
+        "treeReconstructed": true,
+        "treeSha": "4c01fb56ed9f64fac4ca2ad33bb58215563b20b5"
+      },
+      {
+        "immutableResponseCount": 3,
+        "manifestSha256": "97cf2f4a2c5bdd6b2c319289f717ee4c47383aa05171095135afd40e8e477299",
+        "requests": {
+          "immutableCacheReads": 4,
+          "liveReads": 4
+        },
+        "treeReconstructed": true,
+        "treeSha": "4c01fb56ed9f64fac4ca2ad33bb58215563b20b5"
+      }
+    ],
+    "transportCodeSha256": "5192e0eaa1b4d06f26349303cd2ae3e58f5c562852a1a515c82760fe28944610"
+  },
+  "sourceTree": "4c01fb56ed9f64fac4ca2ad33bb58215563b20b5",
+  "upgradeState": "/opt/cisme-trial/message-callback-updates/commit-836ac3c8f86a-1793766919614439923"
+}

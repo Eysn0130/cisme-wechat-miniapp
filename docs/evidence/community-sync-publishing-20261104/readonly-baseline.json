@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-11-04T09:26:26.452920+00:00",
+  "activeVerified": true,
+  "sourceHead": "836ac3c8f86a8472f5de9c523a7f6cd0a0ef2236",
+  "aggregate": {
+    "scans": 0,
+    "postStates": {
+      "draft": 5,
+      "deleted": 3
+    },
+    "currentLegal": [
+      {
+        "type": "terms",
+        "bodyMd5": "dd3399ed1c45a8713d2b00c84e7d16e5",
+        "version": "2026-10-28-v4"
+      },
+      {
+        "type": "privacy",
+        "bodyMd5": "24f330f93bab239844430f4c0248a30d",
+        "version": "2026-10-28-v4"
+      }
+    ],
+    "liveApprovals": 0,
+    "communitySwitch": false,
+    "pendingDirectIntents": 0
+  },
+  "businessDataWritten": false,
+  "privateValuesExported": false
+}

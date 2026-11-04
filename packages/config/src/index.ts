@@ -65,7 +65,8 @@ export interface AppConfig {
     adminWriteMax: number; moneyWriteMax: number; ugcWriteMax: number;
   } };
   observability: { logLevel: "silent" | "error" | "warn" | "info" | "debug" };
-  media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null; ugcScanWorkerMode: 'embedded' | 'standalone' };
+  media: { directUploadEnabled: boolean; ugcScanBaseUrl: string | null; ugcScanWorkerMode: 'embedded' | 'standalone';
+    ugcImageSafetyMode: 'wechat_v2_async' | 'wechat_v1_sync' };
   commerce: { orderFlowEnabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
     fulfillment?: { appId: string; merchantId: string; authorizationFile?: string };
     simulatedPayment?: { appId: string; merchantId: string; channelUrl: string;
@@ -194,6 +195,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error("FAIL_CLOSED:PRODUCTION_STORAGE_PROFILE_REQUIRED");
   }
   const ugcGoLiveGate = bool(env.UGC_GO_LIVE_GATE);
+  const ugcImageSafetyMode = env.UGC_IMAGE_SAFETY_MODE ?? 'wechat_v2_async';
+  if (!['wechat_v2_async','wechat_v1_sync'].includes(ugcImageSafetyMode)) throw new Error('CONFIG_INVALID:UGC_IMAGE_SAFETY_MODE');
   const ugcScanWorkerMode = env.UGC_SCAN_WORKER_MODE ?? 'embedded';
   if (!['embedded','standalone'].includes(ugcScanWorkerMode)) throw new Error('CONFIG_INVALID:UGC_SCAN_WORKER_MODE');
   if (ugcScanWorkerMode === 'standalone' && env.RUN_BACKGROUND_WORKER === 'true')
@@ -203,11 +206,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error("FAIL_CLOSED:UGC_PLAINTEXT_CALLBACK_TEST_ONLY");
   if(env.WECHAT_MESSAGE_AES_KEY&&!/^[A-Za-z0-9+/]{43}$/.test(env.WECHAT_MESSAGE_AES_KEY))
     throw new Error("CONFIG_INVALID:WECHAT_MESSAGE_AES_KEY");
-  if (ugcGoLiveGate && (!env.UGC_LEGAL_APPROVAL_ID || ["UGC_PROVENANCE_READY", "UGC_CONTENT_SAFETY_READY", "UGC_MODERATION_READY"].some((name) => !bool(env[name])))) {
+  // Ordinary posts have no prepublication human review. Post-publication
+  // management retains its own real capability checks.
+  if (ugcGoLiveGate && (!env.UGC_LEGAL_APPROVAL_ID || ["UGC_PROVENANCE_READY", "UGC_CONTENT_SAFETY_READY"].some((name) => !bool(env[name])))) {
     throw new Error("FAIL_CLOSED:UGC_GATE_INCOMPLETE");
   }
   if (ugcGoLiveGate && (appEnv === "production" || appEnv === "staging") &&
-      (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET || !env.WECHAT_MESSAGE_TOKEN || !env.WECHAT_MESSAGE_AES_KEY ||
+      (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET ||
+        (ugcImageSafetyMode === 'wechat_v2_async' && (!env.WECHAT_MESSAGE_TOKEN || !env.WECHAT_MESSAGE_AES_KEY)) ||
         !env.UGC_SCAN_BASE_URL || !/^https:\/\/[^/?#]+$/.test(env.UGC_SCAN_BASE_URL) ||
         (env.RUN_BACKGROUND_WORKER!=="true" && ugcScanWorkerMode!=='standalone'))) {
     throw new Error("FAIL_CLOSED:UGC_WECHAT_SAFETY_CREDENTIALS_REQUIRED");
@@ -379,7 +385,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       } },
     observability: { logLevel },
     media: { directUploadEnabled, ugcScanBaseUrl: env.UGC_SCAN_BASE_URL?.replace(/\/$/, "") ?? null,
-      ugcScanWorkerMode: ugcScanWorkerMode as 'embedded' | 'standalone' },
+      ugcScanWorkerMode: ugcScanWorkerMode as 'embedded' | 'standalone',
+      ugcImageSafetyMode: ugcImageSafetyMode as 'wechat_v2_async' | 'wechat_v1_sync' },
     commerce: {
       orderFlowEnabled,
       ...(fulfillment?{fulfillment}:{}),
