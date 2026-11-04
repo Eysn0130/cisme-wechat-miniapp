@@ -1,0 +1,62 @@
+[
+  {
+    "status": 200,
+    "bytes": 164218,
+    "ms": 277,
+    "format": "webp",
+    "width": 1080,
+    "height": 1575,
+    "cache": "private, no-store",
+    "type": "image/webp"
+  },
+  {
+    "status": 200,
+    "bytes": 143738,
+    "ms": 51,
+    "format": "webp",
+    "width": 1080,
+    "height": 1350,
+    "cache": "private, no-store",
+    "type": "image/webp"
+  },
+  {
+    "status": 200,
+    "bytes": 137780,
+    "ms": 112,
+    "format": "webp",
+    "width": 1080,
+    "height": 1440,
+    "cache": "private, no-store",
+    "type": "image/webp"
+  },
+  {
+    "status": 200,
+    "bytes": 276534,
+    "ms": 87,
+    "format": "webp",
+    "width": 1080,
+    "height": 1350,
+    "cache": "private, no-store",
+    "type": "image/webp"
+  },
+  {
+    "status": 200,
+    "bytes": 137792,
+    "ms": 46,
+    "format": "webp",
+    "width": 1080,
+    "height": 1350,
+    "cache": "private, no-store",
+    "type": "image/webp"
+  },
+  {
+    "status": 200,
+    "bytes": 166188,
+    "ms": 48,
+    "format": "webp",
+    "width": 1055,
+    "height": 1491,
+    "cache": "private, no-store",
+    "type": "image/webp"
+  }
+]
