@@ -25,9 +25,9 @@
     </block>
   </view>
   <view wx:if="{{bioOpen}}" class="author-bio-mask" catchtap="closeBio" catchtouchmove="holdBio">
-    <view class="author-bio-sheet" catchtap="holdBio" aria-role="dialog" aria-modal="{{true}}" aria-label="编辑社区简介">
-      <view class="author-bio-sheet-head"><button class="{{bioBusy ? 'control--disabled' : ''}}" bindtap="closeBio" disabled="{{bioBusy}}">取消</button><text>简介</text><button class="author-bio-save {{bioBusy || loading || !!error || bioConflict ? 'control--disabled' : ''}}" bindtap="saveBio" loading="{{bioBusy}}" disabled="{{bioBusy || loading || !!error || bioConflict}}">保存</button></view>
-      <textarea class="author-bio-input" value="{{bioDraft}}" bindinput="editBio" maxlength="120" disabled="{{bioBusy}}" placeholder="介绍一下自己" aria-label="公开简介，最多120字" focus="{{bioOpen}}" adjust-position="{{true}}"/>
+    <view class="author-bio-sheet" catchtap="holdBio" aria-role="dialog" aria-modal="{{true}}" aria-label="{{author.accountType === 'official' ? '编辑官方简介' : '编辑社区简介'}}">
+      <view class="author-bio-sheet-head"><button class="{{bioBusy ? 'control--disabled' : ''}}" bindtap="closeBio" disabled="{{bioBusy}}">取消</button><text>{{author.accountType === 'official' ? '官方简介' : '简介'}}</text><button class="author-bio-save {{bioBusy || loading || !!error || bioConflict ? 'control--disabled' : ''}}" bindtap="saveBio" loading="{{bioBusy}}" disabled="{{bioBusy || loading || !!error || bioConflict}}">保存</button></view>
+      <textarea class="author-bio-input" value="{{bioDraft}}" bindinput="editBio" maxlength="120" disabled="{{bioBusy}}" placeholder="{{author.accountType === 'official' ? '填写官方账号简介' : '介绍一下自己'}}" aria-label="{{author.accountType === 'official' ? '官方公开简介，最多120字' : '公开简介，最多120字'}}" focus="{{bioOpen}}" adjust-position="{{true}}"/>
       <view wx:if="{{bioError}}" class="author-bio-error" aria-live="assertive"><text>{{bioError}}</text><button wx:if="{{bioConflict}}" class="text-button" bindtap="reloadBio">重新加载简介</button></view>
     </view>
   </view>

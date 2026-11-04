@@ -3,7 +3,7 @@
   "sourcePackage": {
     "files": 304,
     "routes": 40,
-    "totalBytes": 2077263,
+    "totalBytes": 2077538,
     "mainPackageBytes": 935755,
     "subpackageBytes": {
       "pages/task": 435,
@@ -33,7 +33,7 @@
       "pages/referral": 6863,
       "pages/community-compose": 138833,
       "pages/community-post": 27143,
-      "pages/community-author": 19830,
+      "pages/community-author": 20105,
       "pages/community-review": 22681,
       "pages/community-activity": 24701,
       "pages/management-finance": 30063,
@@ -43,7 +43,7 @@
       "pages/management-fulfillment": 14998
     },
     "globalStyleBytes": 8190,
-    "sourceSha256": "40f4573ae8727c6ba3e85ce2ac29de9beaa0f4898013f7973e013da75e07e003"
+    "sourceSha256": "33551ff1d56cb1a9e2a8853b8308668a8a0c81a5fe912deebd6449e7979bbec4"
   },
   "unit": {
     "passed": 3098,
@@ -66,31 +66,33 @@
     ],
     "images": [
       {
-        "file": "docs/evidence/official-personal-community-20261104/native-official-bio-sheet.png",
-        "sha256": "a456eb0bbc91e3c3758b0f71547f21c8e4e58f548d8876ac6b6ad2ad06968206",
-        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-official-bio-sheet.png",
+        "sha256": "0cb35b4ce51229db4832ecd8279818d4f132f927f114b435a46367d47226ffac",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
       },
       {
-        "file": "docs/evidence/official-personal-community-20261104/native-member-official.png",
-        "sha256": "a40e98e0d6d9162b777d96bea449b4a91ca232dcf6d682c3797fcb64fe4d0a53",
-        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-member-official.png",
+        "sha256": "065ab4c5a8b4f47be0ec1a847ef407fb42a3d7ddf4bb0ae19b48e17ec203cb34",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
       },
       {
-        "file": "docs/evidence/official-personal-community-20261104/native-admin-personal.png",
-        "sha256": "c75de00334538582f29b1e25b699dfa01d2e9e2bbb8be0a0210309b3b4dc2657",
-        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-admin-personal.png",
+        "sha256": "35f3817ab33472aa47f8149593e0e6725c48b544ac1f71196fa865c64204ac3e",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
       },
       {
-        "file": "docs/evidence/official-personal-community-20261104/native-admin-official.png",
-        "sha256": "7ae0e9d9a5a27df850602c843e208de5a910a0dbee6776d4f33cc144562d54b3",
-        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-admin-official.png",
+        "sha256": "4fa64ac087b64bcfb8ac960e9d1a68d08b1776e4fe205470152ab4b444e76470",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
       },
       {
-        "file": "docs/evidence/official-personal-community-20261104/native-member-admin-personal.png",
-        "sha256": "562302b581993e9d76f9733104fc0775bc96e93534537904f0e42270c7da18ea",
-        "scope": "isolated synthetic native fixture at 390px; not a phone test"
+        "file": "docs/evidence/official-personal-community-20261104/native-final/native-member-admin-personal.png",
+        "sha256": "f2b38eb67c7bc6ef8d7b8e9bb320dabb31aac40b47e5f5813c59098ac5dd1000",
+        "scope": "final source; isolated synthetic fixture at 390px; not a phone test"
       }
-    ]
+    ],
+    "fixtureProof": "native-final/native-fixture-proof.json",
+    "validation": "native-final/native-validation.json"
   },
   "trialReadonlyBaseline": {
     "schema": 108,
@@ -107,5 +109,11 @@
   },
   "fullVisualMatrix": "blocked; unchanged",
   "phoneAcceptance": "not performed",
-  "imagePerformanceInvestigation": "paused by user; unchanged"
+  "imagePerformanceInvestigation": "paused by user; unchanged",
+  "history": {
+    "previousPackageSourceSha256": "40f4573ae8727c6ba3e85ce2ac29de9beaa0f4898013f7973e013da75e07e003",
+    "previousValidation": "validation-source-40f4573a.json",
+    "oldNativeEvidenceRetainsOriginalBinding": true
+  },
+  "finalWording": "official editor explicitly says 官方简介 and 填写官方账号简介"
 }
