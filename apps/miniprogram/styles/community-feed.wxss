@@ -1,0 +1,9 @@
+.feed-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8rpx; margin-top:4rpx; }
+.feed-column { min-width:0; }
+.feed-card { display:inline-block; overflow:hidden; width:100%; margin:0 0 8rpx; padding:0; border-radius:24rpx; background:rgba(255,252,255,.82); text-align:left; line-height:1.4; break-inside:avoid; vertical-align:top; }
+.feed-card__image { display:block; width:100%; }
+.feed-card__body { padding:18rpx 18rpx 20rpx; }
+.feed-card__title { display:-webkit-box; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; font-size:28rpx; font-weight:600; line-height:1.45; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+.feed-card__meta { display:flex; align-items:center; gap:7rpx; margin-top:14rpx; color:#665c6a; font-size:var(--cisme-text-small); line-height:1.5; }
+.feed-card__avatar { flex:none; width:40rpx; height:40rpx; border-radius:50%; }
+.feed-card__author { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

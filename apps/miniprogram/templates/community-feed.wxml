@@ -1,0 +1,10 @@
+<template name="communityFeed">
+  <view class="feed-grid">
+    <view wx:for="{{[0, 1]}}" wx:for-item="columnIndex" wx:key="*this" class="feed-column">
+      <button wx:for="{{feedColumns[columnIndex]}}" wx:for-item="card" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{card.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{card.title}}，作者{{card.author}}">
+        <image wx:if="{{card.image}}" class="feed-card__image" src="{{card.image}}" mode="widthFix" lazy-load="{{true}}"/>
+        <view class="feed-card__body"><view class="card-title feed-card__title">{{card.title}}</view><view class="feed-card__meta"><image wx:if="{{card.avatar}}" class="feed-card__avatar" src="{{card.avatar}}" mode="aspectFill" lazy-load="{{true}}"/><text class="feed-card__author">{{card.author}}</text></view></view>
+      </button>
+    </view>
+  </view>
+</template>

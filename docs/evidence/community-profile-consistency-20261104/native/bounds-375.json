@@ -1,0 +1,113 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "width": 375,
+        ".author-head": {
+          "id": "",
+          "dataset": {},
+          "left": 9,
+          "right": 366,
+          "top": 103,
+          "bottom": 234.796875,
+          "width": 357,
+          "height": 131.796875
+        },
+        ".author-name": {
+          "id": "",
+          "dataset": {},
+          "left": 97,
+          "right": 280,
+          "top": 123.203125,
+          "bottom": 149.796875,
+          "width": 183,
+          "height": 26.59375
+        },
+        ".author-follow": {
+          "id": "",
+          "dataset": {},
+          "left": 290,
+          "right": 356,
+          "top": 128,
+          "bottom": 172,
+          "width": 66,
+          "height": 44
+        },
+        ".author-bio": {
+          "id": "",
+          "dataset": {},
+          "left": 19,
+          "right": 356,
+          "top": 196,
+          "bottom": 219.796875,
+          "width": 337,
+          "height": 23.796875
+        },
+        ".feed-grid": {
+          "id": "",
+          "dataset": {},
+          "left": 9,
+          "right": 366,
+          "top": 301.796875,
+          "bottom": 1020.328125,
+          "width": 357,
+          "height": 718.53125
+        },
+        "cards": [
+          {
+            "id": "",
+            "dataset": {
+              "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+            },
+            "left": 9,
+            "right": 185.5,
+            "top": 301.796875,
+            "bottom": 564.890625,
+            "width": 176.5,
+            "height": 263.09375
+          },
+          {
+            "id": "",
+            "dataset": {
+              "id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+            },
+            "left": 9,
+            "right": 185.5,
+            "top": 568.890625,
+            "bottom": 1016.328125,
+            "width": 176.5,
+            "height": 447.4375
+          },
+          {
+            "id": "",
+            "dataset": {
+              "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+            },
+            "left": 189.5,
+            "right": 366,
+            "top": 301.796875,
+            "bottom": 769.53125,
+            "width": 176.5,
+            "height": 467.734375
+          },
+          {
+            "id": "",
+            "dataset": {
+              "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+            },
+            "left": 189.5,
+            "right": 366,
+            "top": 773.53125,
+            "bottom": 862.125,
+            "width": 176.5,
+            "height": 88.59375
+          }
+        ]
+      }
+    }
+  }
+}

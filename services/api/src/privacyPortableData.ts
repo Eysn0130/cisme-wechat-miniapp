@@ -39,7 +39,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
     account:{id:member.id,displayName:member.display_name,createdAt:member.created_at,
       identity:(await client.query(`SELECT provider,app_id,openid,unionid,created_at FROM wechat_identity
         WHERE member_id=$1`,[memberId])).rows,
-      profile:(await client.query(`SELECT wechat_handle,avatar_data_url,public_status,completed_at,updated_at
+      profile:(await client.query(`SELECT wechat_handle,avatar_data_url,public_status,community_bio,community_bio_revision,completed_at,updated_at
         FROM member_profile WHERE member_id=$1`,[memberId])).rows[0]??null,
       phone:openContact(config,memberId,contact),addresses:addressRows},
     care:{cycles:(await client.query(`SELECT id,phase,started_on,timezone,protocol_version,created_at,updated_at

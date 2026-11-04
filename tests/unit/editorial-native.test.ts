@@ -13,7 +13,7 @@ const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4
 const mediaPath=`/v1/editorial/media/${articleId}/${"d".repeat(64)}`;
 const card=(id=articleId)=>({id,title:"经授权的精选标题",excerpt:"来源清楚的摘要",authorId,author:"公开作者名",avatar:"",coverUrl:mediaPath,publishedAt:"2026-10-26T09:00:00Z",likeCount:0,saveCount:0});
 const article=()=>({...card(),version:1,body:"第一段正文\n第二段正文",media:[{id:"d".repeat(64),url:mediaPath}],liked:false,saved:false,following:false,isMine:false,interactionsEnabled:true,sourceUrl:"https://example.org/original",provenanceLabel:"作者授权发布"});
-const authorPage=()=>({author:{id:authorId,name:"公开作者名",avatar:"",postCount:1,following:false,isMine:false},items:[card()],nextCursor:null});
+const authorPage=()=>({author:{id:authorId,name:"公开作者名",avatar:"",avatarRevision:null,membershipLabel:"CISME会员",bio:"",bioRevision:null,postCount:1,following:false,isMine:false,canFollow:true,followArticleId:articleId},items:[{...card(),kind:"editorial"}],nextCursor:null});
 const delayed=()=>{let resolve!:(value:any)=>void,reject!:(value:any)=>void;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 let page:any;
 function patch(target:any,key:string,value:any){const parts=key.replace(/\[(\d+)\]/g,".$1").split(".");let current=target;for(const [i,name] of parts.entries()){if(i===parts.length-1)current[name]=structuredClone(value);else current=current[name!]??=(/^\d+$/.test(parts[i+1]!)?[]:{});}}
@@ -45,7 +45,7 @@ describe("published editorial native contracts",()=>{
   await mount(name,name==='post'?{id:articleId,source:'editorial'}:name==='community-author'?{id:authorId,source:'editorial'}:{});await page.load();
   if(name==='community')expect(page.data.feedColumns.flat()).toEqual([expect.objectContaining({id:articleId,kind:'editorial',author:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar})]);
   else if(name==='post')expect(page.data).toMatchObject({authorId,following:true,item:{id:articleId,authorId,author:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar}});
-  else expect(page.data).toMatchObject({articleContextId:articleId,author:{id:authorId,name:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar,following:true}});
+  else expect(page.data).toMatchObject({author:{canFollow:true,followArticleId:articleId,id:authorId,name:defaultEditorialPublisherName,avatar:defaultEditorialPublisherAvatar,following:true}});
   expect(mocks.request.mock.calls.every(([input])=>input.method===undefined)).toBe(true);
  });
  it.each([["generated","AI生成"],["not_declared",""]] as const)("uses the stored selected-media AI flag %s for its short label",async(aiUsage,label)=>{
@@ -212,20 +212,21 @@ describe("published editorial native contracts",()=>{
  });
  it("loads the independent author page and uses a published article to confirm following",async()=>{
   mocks.token="member-a";mocks.request.mockResolvedValueOnce(authorPage());await mount("community-author",{id:authorId,source:"editorial"});await page.load();
-  expect(page.data).toMatchObject({loading:false,editorialSource:true,articleContextId:articleId,author:{id:authorId,name:"公开作者名",avatar:'/assets/icons/user-circle-plum.svg',following:false}});
+  expect(page.data).toMatchObject({loading:false,author:{canFollow:true,followArticleId:articleId,id:authorId,name:"公开作者名",avatar:'/assets/icons/user-circle-plum.svg',following:false}});
   const pending=delayed();mocks.request.mockReturnValueOnce(pending.promise);const follow=page.toggleFollow();expect(page.data.author.following).toBe(false);
   pending.resolve({authorId,following:true});await follow;expect(page.data.author.following).toBe(true);
   page.openPost({currentTarget:{dataset:{id:articleId}}});expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/post/index?id=${articleId}&source=editorial`}));
  });
  it("retains the editorial author return path for a guest and ignores late author data after hide",async()=>{
   mocks.request.mockResolvedValueOnce(authorPage());await mount("community-author",{id:authorId,source:"editorial"});await page.load();
-  await page.toggleFollow();expect(mocks.resume).toHaveBeenCalledWith(`/pages/community-author/index?id=${authorId}&source=editorial`);expect(mocks.request).toHaveBeenCalledOnce();
+  await page.toggleFollow();expect(mocks.resume).toHaveBeenCalledWith(`/pages/community-author/index?id=${authorId}`);expect(mocks.request).toHaveBeenCalledOnce();
   const pending=delayed();mocks.request.mockReturnValueOnce(pending.promise);const next=page.load();page.onHide();mocks.token="other-member";
   pending.resolve({...authorPage(),author:{...authorPage().author,following:true}});await next;
-  expect(page.data.author).toBeNull();
+  expect(page.data.author.following).toBe(false);
+  const recheck=delayed();mocks.request.mockReturnValueOnce(recheck.promise);page.onShow();expect(page.data.author).toBeNull();recheck.resolve(authorPage());await vi.waitFor(()=>expect(page.data.loading).toBe(false));
  });
- it("keeps an author's exact source when a live following action requires current legal consent",async()=>{
+ it("keeps the unified author return path when a live following action requires current legal consent",async()=>{
   mocks.token="member-a";mocks.request.mockResolvedValueOnce(authorPage());await mount("community-author",{id:authorId,source:"editorial"});await page.load();
-  mocks.request.mockRejectedValueOnce({status:409,code:"CURRENT_LEGAL_CONSENT_REQUIRED"});await page.toggleFollow();expect(mocks.renew).toHaveBeenCalledExactlyOnceWith(`/pages/community-author/index?id=${authorId}&source=editorial`);expect(page.data.author.following).toBe(false);
+  mocks.request.mockRejectedValueOnce({status:409,code:"CURRENT_LEGAL_CONSENT_REQUIRED"});await page.toggleFollow();expect(mocks.renew).toHaveBeenCalledExactlyOnceWith(`/pages/community-author/index?id=${authorId}`);expect(page.data.author.following).toBe(false);
  });
 });

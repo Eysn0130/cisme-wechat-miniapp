@@ -72,6 +72,10 @@ export interface CommunityFollowingCard {
   coverUrl: string | null; publishedAt: string; likeCount: number;
 }
 export interface CommunityFollowingPage { items: CommunityFollowingCard[]; nextCursor: string | null }
+export interface CommunityAuthorPage extends CommunityFollowingPage {
+  author:{id:string;name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;
+    postCount:number;following:boolean;isMine:boolean;canFollow:boolean;followArticleId:string|null};
+}
 export interface EditorialAuthorPage extends EditorialPage {
   author:{id:string;name:string;avatar:string;postCount:number;following:boolean;isMine:boolean};
 }

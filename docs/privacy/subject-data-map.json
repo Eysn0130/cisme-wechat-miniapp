@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "a92939e444f0ad7fe547e3a2d5646d21eb3bf009624221c943f5920a6ff3aa9a",
+  "migrationSetSha256": "d7a24f483ec0d62b9b8aad04eafe9b9670d69726536d1f307481652ed4c20ebe",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -4879,7 +4879,9 @@
         "updated_at",
         "avatar_data_url",
         "completed_at",
-        "public_status"
+        "public_status",
+        "community_bio",
+        "community_bio_revision"
       ],
       "excludedFields": [
         "member_id",

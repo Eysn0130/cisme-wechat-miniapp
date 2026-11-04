@@ -44,6 +44,7 @@ const publicOperations = new Set([
   "POST /v1/ugc/safety-callback"
 ]);
 const optionalSessionOperations = new Set(["GET /v1/community/{postId}",
+  "GET /v1/community/authors/{id}",
   "GET /v1/editorial/articles/{id}", "GET /v1/editorial/authors/{id}"]);
 
 it("declares a supported security policy for every registered versioned operation", () => {

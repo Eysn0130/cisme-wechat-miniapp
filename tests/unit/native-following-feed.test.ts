@@ -1,3 +1,4 @@
+import {nativePageTemplate} from "../helpers/native-page-template";
 // @vitest-environment jsdom
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -27,7 +28,7 @@ beforeEach(async()=>{
   for(const [path,value]of Object.entries(patch)){const keys=path.replace(/\[(\d+)\]/g,'.$1').split('.');let target=this.data;for(const key of keys.slice(0,-1))target=target[key];target[keys.at(-1)!]=value;}
   rendered?.setData(structuredClone(this.data));cb?.();}};};
  await import('../../apps/miniprogram/pages/community/index');
- const id=simulate.load({template:readFileSync('apps/miniprogram/pages/community/index.wxml','utf8'),data:structuredClone(page.data)});rendered=simulate.render(id);rendered.attach(document.body);
+ const id=simulate.load({template:nativePageTemplate('apps/miniprogram/pages/community/index.wxml'),data:structuredClone(page.data)});rendered=simulate.render(id);rendered.attach(document.body);
  await page.load();await flush();
 });
 afterEach(()=>{page.onUnload();rendered.detach();rendered=null;});

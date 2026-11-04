@@ -1,3 +1,4 @@
+import {nativePageTemplate} from "../helpers/native-page-template";
 import { nativeCatalogImage } from "../../apps/miniprogram/services/catalog";
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -207,11 +208,11 @@ describe("native mini program boundary", () => {
       account: ["back", "openTerms", "openPrivacy", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "@contact", "restartLogin", "loginTap", "browseCommunity"],
       "community-activity": ["back", "selectSource", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
-      "community-author": ["back", "back", "load", "toggleFollow", "openPost"],
+      "community-author": ["back", "back", "load", "openSettings", "toggleFollow", "openBio", "openDrafts", "openActivity", "openPost", "openDrafts", "onReachBottom", "closeBio", "saveBio", "reloadBio"],
       "community-compose": ["back", "showMyPosts", "retryPendingImageEdit", "discardPendingImageEdit", "openComposerMediaSettings", "retryChoosingMedia", "retryLoad", "verifyWriteResult", "reloadRemoteDraft", "startNew", "selectDraftFilter", "openDraft", "deleteListDraft", "loadMoreList", "refreshPublication", "editPendingPublication", "showMyPosts", "returnToCommunity", "openPublishedPost", "submitAppeal", "retryPreview", "retryImage", "retryPreview", "removeImage", "addContent", "showMyPosts", "returnToCommunity", "refreshPublicGate", "saveDraft", "submit"],
       "community-post": ["back", "back", "load", "openAuthor", "toggleFollow", "toggleReaction", "toggleReaction", "openMyComments", "chooseReply", "loadMoreComments", "cancelReply", "sendComment", "editOwn", "deleteOwn", "blockAuthor", "report"],
       "community-review": ["back", "back", "load", "back", "selectEditorialQueue", "openEditorialArticle", "reviewEditorial", "reviewEditorial", "reviewEditorial", "deleteEditorial", "loadMoreEditorialQueue"],
-      community: ["selectMode", "selectMode", "selectMode", "selectMode", "submitSearch", "clearSearch", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "selectMode", "load", "openPost", "onReachBottom", "openMyPosts", "choosePublisherSource", "choosePublisherSource", "choosePublisherSource", "openPublisherMediaSettings", "retryPublisherMedia", "closePublisherEntry"],
+      community: ["selectMode", "selectMode", "selectMode", "selectMode", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "selectMode", "load", "openPost", "onReachBottom", "openMyPosts", "choosePublisherSource", "choosePublisherSource", "choosePublisherSource", "openPublisherMediaSettings", "retryPublisherMedia", "closePublisherEntry"],
       home: ["openSupport", "primaryAction", "selectProtocolStep", "retryLoad", "retryCareMutation", "closeCareSession", "retryLoad", "retryCareMutation", "advanceCareStep", "selectAssessment", "submitCareSession"],
       invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
       legal: ["back", "load", "privacyRights"],
@@ -249,7 +250,7 @@ describe("native mini program boundary", () => {
     const actual: Record<string, string[]> = {};
     for (const { path, source } of await pageMarkup(root)) {
       const route = path.slice(root.length + 1).split("/")[0]!;
-      const actions = buttonStartTags(source).map((tag) => {
+      const actions = buttonStartTags(nativePageTemplate(path)).map((tag) => {
         const handler = attributeValue(tag, "bindtap") ?? attributeValue(tag, "catchtap") ?? attributeValue(tag, "bindgetphonenumber") ?? attributeValue(tag,"bindchooseavatar") ?? (attributeValue(tag,"form-type") === "submit" ? source.match(/<form[^>]*bindsubmit="([^"]+)"/)?.[1] : undefined);
         if (handler) return handler;
         if (attributeValue(tag, "open-type") === "share") return "@share";

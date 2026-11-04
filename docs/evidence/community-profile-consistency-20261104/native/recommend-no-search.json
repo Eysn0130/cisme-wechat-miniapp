@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "mode": "recommend",
+        "ugcFeedEnabled": true,
+        "searchControls": 0,
+        "inputs": 0
+      }
+    }
+  }
+}

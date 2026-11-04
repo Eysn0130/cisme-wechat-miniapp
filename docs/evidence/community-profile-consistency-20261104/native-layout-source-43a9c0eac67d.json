@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "784344b0cb5fa49fd53d3a97c7f6f2704d3e6752",
+  "canonicalPackageSourceSha256": "43a9c0eac67dcdc29c2f829fc315b419ba768939ff28478254659f39cac261ec",
+  "fixturePath": "/Users/mini/CISME/tmp/community-profile-native-20261104",
+  "fixtureDifferences": [
+    "app.json",
+    "app.ts"
+  ],
+  "scope": "Native layout and local mocked transport only. Canonical page scripts, WXML, WXSS, shared template, styles, services and assets match byte-for-byte. Only fixture bootstrap and entry route differ. No backend writes, posts, follows or real account data used.",
+  "files": {
+    "pages/community-author/index.ts": "271338d7b737a11852e68d7669513af31c3cfb1397a0bbb90f9a478493dc129e",
+    "pages/community-author/index.wxml": "fc873b6bdd19bf02bca9a26cf743c6db1164f77c9668ab821fe32221442beb52",
+    "pages/community-author/index.wxss": "38bf25c2d4cf4eb29b978cf93e7f89774adf35c52da189777744a299eb4000ea",
+    "templates/community-feed.wxml": "7444ee25a2fb8b430b513874ddc703300b372f1e9fc40bc8ed3f24e76cb82ceb",
+    "styles/community-feed.wxss": "4bbd4e6ba49f80d09da16c420a7c34511a24bb7b607dd3ed759c3968039017b1",
+    "services/community-profile.ts": "5560e96f2b21633adb94fbbc42f00388989007558305479eae9b153c346b817e"
+  },
+  "captures": [
+    {
+      "file": "native/current-author-375.png",
+      "sha256": "79867238af3383086f9bf25fb96e2e55a9a0207bf9e92a559ab6c7d491f95983",
+      "origin": "Official DevTools simulator; synthetic member/posts and local owned artwork covers. Final source layout only; no real account/network or physical-device acceptance."
+    },
+    {
+      "file": "native/current-bio-editor-430.png",
+      "sha256": "70910e126ddc10f8a40a92114e9e3c854bdd93c571306eb9aa35ae673465770d",
+      "origin": "Official DevTools simulator; synthetic member/posts and local owned artwork covers. Final source layout only; no real account/network or physical-device acceptance."
+    },
+    {
+      "file": "native/current-own-375.png",
+      "sha256": "f172cb6a24f9de8461d71f2110016ee10ff27103954fc6f5a75ac44c6914d53c",
+      "origin": "Official DevTools simulator; synthetic member/posts and local owned artwork covers. Final source layout only; no real account/network or physical-device acceptance."
+    },
+    {
+      "file": "native/current-own-390.png",
+      "sha256": "6c639cc474d7da938f1a83dace0707b80e7bef3534be7c6bf7ece6eaef576df5",
+      "origin": "Official DevTools simulator; synthetic member/posts and local owned artwork covers. Final source layout only; no real account/network or physical-device acceptance."
+    },
+    {
+      "file": "native/current-own-430.png",
+      "sha256": "8c51a9043584ca1cd42966ad24ad7d6363a628f7b1ed38d0f095c2ac2bdcb9c0",
+      "origin": "Official DevTools simulator; synthetic member/posts and local owned artwork covers. Final source layout only; no real account/network or physical-device acceptance."
+    }
+  ],
+  "checks": {
+    "logicalWidths": [
+      375,
+      390,
+      430
+    ],
+    "ownAndOtherProfile": true,
+    "biographyEditor": true,
+    "logoutClearsOwnerBeforeLogin": true,
+    "historicalEmptyLongBioSearchEvidence": "native-layout-source-652929887623.json"
+  },
+  "notVerified": [
+    "Physical iOS/Android devices",
+    "OS keyboard/screen-reader/font-setting matrix",
+    "Real network image loading (user explicitly paused investigation)",
+    "All 40 route state matrices",
+    "Deployment of migration108/API or a new trial upload"
+  ],
+  "tests": {
+    "unit": {
+      "passed": 3093,
+      "skipped": 1,
+      "files": 187
+    },
+    "focusedIntegration": {
+      "passed": 40,
+      "files": 7,
+      "scope": "Community profile, following, private/public member projection, owner privacy export, synchronous image publication, migration lifecycle, schema privacy inventory; disposable databases only"
+    },
+    "typecheck": true,
+    "contracts": true,
+    "packageGate": true
+  },
+  "runtimeChanged": false,
+  "trialUploaded": false,
+  "historicalLayoutEvidence": "native-layout-source-652929887623.json"
+}

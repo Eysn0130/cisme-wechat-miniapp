@@ -8,12 +8,12 @@ vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:vi.fn(),r
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const card={id:articleId,title:"公开精选",excerpt:"公开摘要",authorId,author:"公开作者",avatar:"",coverUrl:null,publishedAt:"2026-10-26T00:00:00Z",likeCount:0,saveCount:0};
 const article={...card,version:1,body:"公开正文",media:[],liked:false,saved:false,following:false,isMine:false,interactionsEnabled:true,sourceUrl:null,provenanceLabel:"AI辅助配图"};
-const author={author:{id:authorId,name:"公开作者",avatar:"",postCount:1,following:false,isMine:false},items:[card],nextCursor:"next"};
+const author={author:{id:authorId,name:"公开作者",avatar:"",avatarRevision:null,membershipLabel:"CISME会员",bio:"",bioRevision:null,postCount:1,following:false,isMine:false,canFollow:true,followArticleId:articleId},items:[{...card,kind:"editorial"}],nextCursor:"next"};
 let page:any,runtime:any,requests:any[],storage:Map<string,unknown>,expirePath:string|null,holdPath:string|null,held:any[],patches:any[];
 function payload(path:string):unknown {
  if(path===`/v1/editorial/articles/${articleId}`)return article;
  if(path.startsWith(`/v1/editorial/articles/${articleId}/comments?`))return {comments:[{id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",version:1,body:"只对登录会员展示的评论",status:"published",parentId:null,replyToId:null,replyRootId:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",createdAt:"2026-10-26T00:00:00Z",authorId,authorName:"会员昵称",replyToName:null,isMine:false,likeCount:0,liked:false}],authors:{[authorId]:{name:"会员昵称",avatar:"",avatarRevision:null}},commentCount:1,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:1,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-26T00:00:00Z"};
- if(path.startsWith("/v1/editorial/authors/"))return author;
+ if(path.startsWith("/v1/community/authors/"))return author;
  if(path.startsWith("/v1/editorial/articles?"))return {items:[card],nextCursor:"next"};
  if(path==="/v1/capabilities")return {communityPreviewEnabled:false};
  if(path==="/v1/ugc/status")return {publicEnabled:false};
@@ -62,13 +62,13 @@ describe("editorial reads after a real transport session revocation",()=>{
   expect(storage.get("cisme.authReturnUrl")).toBe(`/pages/post/index?id=${articleId}&source=editorial`);
  });
  it.each(["post","community-author"] as const)("clears %s private state and offers a fresh anonymous retry after actual HTTP401",async(route)=>{
-  await mount(route);expirePath=route==="post"?`/v1/editorial/articles/${articleId}`:`/v1/editorial/authors/${authorId}`;
+  await mount(route);expirePath=route==="post"?`/v1/editorial/articles/${articleId}`:`/v1/community/authors/${authorId}`;
   Object.assign(page.data,route==="post"?{following:true,social:{liked:true,saved:true},draft:"old private draft"}:{author:{following:true,isMine:true},articleContextId:articleId,busy:true});
   await page.load();
   expect(requests[0].header.Authorization).toBe("Bearer synthetic-expired-session");expect(runtime.globalData.sessionToken).toBe("");expect(storage.get("synthetic.session")).toBe("");
-  expect(page.data).toMatchObject({loading:false,error:route==="post"?"请重新加载内容。点赞、收藏和关注前，请重新登录。":"登录状态已失效，请重新加载公开作者资料。"});
+  expect(page.data).toMatchObject({loading:false,error:route==="post"?"请重新加载内容。点赞、收藏和关注前，请重新登录。":"登录状态已失效，请重新加载作者资料。"});
   if(route==="post")expect(page.data).toMatchObject({errorTitle:"登录状态已失效",item:null,following:false,socialEnabled:false,draft:"",social:{liked:false,saved:false}});
-  else expect(page.data).toMatchObject({author:null,items:[],articleContextId:"",busy:false,loadingMore:false});
+  else expect(page.data).toMatchObject({author:null,feedColumns:[[],[]],busy:false,loadingMore:false});
   expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();
   expirePath=null;await page.load();expect(requests.at(-1).header.Authorization).toBe("");expect(page.data.loading).toBe(false);expect(page.data.error).toBe("");
   if(route==="post")expect(page.data.item.id).toBe(articleId);else expect(page.data.author.id).toBe(authorId);
@@ -84,17 +84,17 @@ describe("editorial reads after a real transport session revocation",()=>{
   expirePath=null;holdPath=null;await page.load();expect(page.data).toMatchObject({loading:false,error:"",displayFeedCount:1});expect(requests.filter(r=>pathOf(r).startsWith("/v1/editorial/")).at(-1).header.Authorization).toBe("");
  });
  it.each(["community","community-author"] as const)("clears %s pagination busy and actor-specific projection on HTTP401",async(route)=>{
-  await mount(route);await page.load();expirePath=route==="community"?"/v1/editorial/articles?":"/v1/editorial/authors/";
+  await mount(route);await page.load();expirePath=route==="community"?"/v1/editorial/articles?":"/v1/community/authors/";
   await page.onReachBottom();expect(runtime.globalData.sessionToken).toBe("");expect(page.data.loading).toBe(false);expect(page.data.error).toContain("登录状态已失效");
-  if(route==="community")expect(page.data).toMatchObject({formalLoadingMore:false,displayFeedCount:0});else expect(page.data).toMatchObject({loadingMore:false,author:null,items:[]});
+  if(route==="community")expect(page.data).toMatchObject({formalLoadingMore:false,displayFeedCount:0});else expect(page.data).toMatchObject({loadingMore:false,author:null,feedColumns:[[],[]]});
  });
  it.each(["post","community-author","community"] as const)("does not recover a hidden %s view when an old transport subsequently expires",async(route)=>{
-  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/editorial/authors/":"/v1/editorial/articles?";
+  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/community/authors/":"/v1/editorial/articles?";
   const reading=page.load();page.onHide();const before=patches.length;expirePath=holdPath;releaseHeld();await reading;
   expect(patches.slice(before)).toEqual([]);expect(page.data.error).not.toContain("登录状态已失效");
  });
  it.each(["post","community-author","community"] as const)("does not let %s old HTTP401 overwrite a different nonempty session",async(route)=>{
-  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/editorial/authors/":"/v1/editorial/articles?";
+  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/community/authors/":"/v1/editorial/articles?";
   const reading=page.load();const api=await import("../../apps/miniprogram/services/api");api.setSessionToken("synthetic-different-session");const before=patches.length;
   expirePath=holdPath;releaseHeld();await reading;expect(runtime.globalData.sessionToken).toBe("synthetic-different-session");expect(patches.slice(before)).toEqual([]);expect(page.data.error).not.toContain("登录状态已失效");
  });
