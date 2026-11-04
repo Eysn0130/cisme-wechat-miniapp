@@ -14,7 +14,7 @@ spec.loader.exec_module(M)
 
 
 def fixture():
-    names = sorted(p.name for p in (REPO / 'db/migrations').glob('*.sql') if p.name != M.MIGRATION)
+    names = sorted(p.name for p in (REPO / 'db/migrations').glob('*.sql') if p.name < M.MIGRATION)
     assert len(names) == 105
     files = {name: (REPO / path).read_bytes() for name, path in [('migrate.mjs', 'scripts/release-migrate.mjs'),
         ('package.json', 'package.json'), ('package-lock.json', 'package-lock.json')]}
