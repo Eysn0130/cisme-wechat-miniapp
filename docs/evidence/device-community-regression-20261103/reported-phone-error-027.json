@@ -1,0 +1,12 @@
+{
+  "reportedBuild": "latest trial 0.1.27 as confirmed by user",
+  "reportedSourceSha256": "a7aabbf0057d51b0728c8c98864174910122fbe903ab18e2d2086d3f634dceb2",
+  "hashBoundary": "Source hash is from our 0.1.27 delivery receipt; no physical-package binary hash was extracted from the phone.",
+  "source": "user supplied physical-device vConsole Error text",
+  "symptom": "Community entirely blank, including title and tabs; bottom tab switching feels slow",
+  "primaryError": "module 'services/following-feed.js' is not defined, require args is '../../services/following-feed'",
+  "requireSite": "require(pages/community/index.js)",
+  "secondaryError": "Component is not found in path \"wx://not-found\".",
+  "secondaryAttribution": "Likely cascading page-creation failure, not separately established as a component declaration defect.",
+  "newSourcePhysicalDeviceResult": "pending"
+}

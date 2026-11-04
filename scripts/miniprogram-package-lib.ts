@@ -22,6 +22,15 @@ export async function inspectMiniProgramPackage(root = resolve("apps/miniprogram
     .sort();
   const app = JSON.parse(await readFile(resolve(root, "app.json"), "utf8")) as { pages?: string[]; subPackages?: Array<{ root: string; pages: string[] }>; tabBar?: { list?: Array<{pagePath:string}> } };
   const errors: string[] = [];
+  const project = JSON.parse(await readFile(resolve(root, "project.config.json"), "utf8")) as {
+    setting?: { ignoreUploadUnusedFiles?: boolean };
+    packOptions?: { include?: Array<{ type: string; value: string }> };
+  };
+  // A source file existing on disk does not prove that the uploaded package
+  // defines its runtime module. Keep shared TS dependencies out of pruning.
+  if (project.setting?.ignoreUploadUnusedFiles !== false) errors.push("UPLOAD_RUNTIME_DEPENDENCY_PRUNING_ENABLED");
+  if (!project.packOptions?.include?.some(rule => rule.type === "folder" && rule.value.replace(/\/$/, "") === "services"))
+    errors.push("SHARED_RUNTIME_MODULES_NOT_INCLUDED");
   const aggregate = createHash("sha256");
   let totalBytes = 0;
   let mainPackageBytes = 0;

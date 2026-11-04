@@ -257,7 +257,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "f81c8db8339bbcce1777ede2a5d794c8fd2804d25afa0afe40347abc6ac93665",
+  "packageSourceSha256": "3a468032033f11850684d76480e431f810c1f46a86be6915f3cd8c0916bcc4eb",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -266,7 +266,7 @@
       "reason": "Scoped navigation and Community validation do not complete the existing full 40-route state or physical-device matrices."
     }
   ],
-  "note": "Current source adds the Community Following tab and authenticated followed-author timeline. Scoped evidence: docs/evidence/community-following-20261103. Historical navigation screenshots retain their original source hashes; full route-state and physical-device matrices remain incomplete.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-d32f7741cc6b.json",
+  "note": "Current source fixes the phone-reported Community module-not-defined startup failure by explicitly retaining shared runtime dependencies on upload, and includes scoped Community read/bridge repairs. No historical screenshot or Node/simulator result is promoted to physical-device acceptance. Full 40-route state and device matrices remain incomplete.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-f81c8db8339b.json",
   "pendingSourceRebind": false
 }

@@ -7,6 +7,7 @@
   "setting": {
     "es6": true,
     "minified": true,
+    "ignoreUploadUnusedFiles": false,
     "urlCheck": true,
     "useCompilerPlugins": [
       "typescript"
@@ -35,6 +36,10 @@
   "packOptions": {
     "ignore": [],
     "include": [
+      {
+        "type": "folder",
+        "value": "services"
+      },
       {
         "type": "file",
         "value": "assets/cisme/cisme-scalp-lab-avatar-v1.jpg"
