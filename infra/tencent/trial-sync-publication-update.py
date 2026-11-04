@@ -187,7 +187,7 @@ def public_contract(plan):
         raw=D.command(['/usr/bin/curl','--silent','--show-error','--fail','--noproxy','*','--max-time','10',
           '--proto','=https','--resolve',p['domain']+':443:127.0.0.1',base+path])
         need(len(raw)<16384,'PUBLIC_RESPONSE_LIMIT');value=json.loads(raw)
-        need(value.get('ready')is True if path=='/health/ready' else value.get('publicEnabled')is True and value.get('draftsEnabled')is True,'PUBLIC_READBACK_REQUIRED')
+        need(value.get('status')=='ready' if path=='/health/ready' else value.get('publicEnabled')is True and value.get('draftsEnabled')is True,'PUBLIC_READBACK_REQUIRED')
 
 def preflight(b):
     record=load_baseline(True);need(not ACTIVE.exists(),'EXISTING_ACTIVATION_REQUIRES_REVIEW')

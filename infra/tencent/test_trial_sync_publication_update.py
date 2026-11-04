@@ -58,5 +58,31 @@ class SyncUpdateContract(unittest.TestCase):
     def test_closed_public_readback_is_rejected(self):
         m.D=types.SimpleNamespace(command=lambda args:b'{"ready":true,"publicEnabled":false,"draftsEnabled":true}')
         with self.assertRaisesRegex(m.Refused,'PUBLIC_READBACK_REQUIRED'):m.public_contract({'profile':{'domain':'synthetic.invalid'}})
+    def test_real_health_response_schema_and_open_status_are_accepted(self):
+        for module in (m,module_health_fix()):
+            command=lambda args:b'{"status":"ready"}'if args[-1].endswith('/health/ready')else b'{"publicEnabled":true,"draftsEnabled":true}'
+            if module is m:
+                module.D=types.SimpleNamespace(command=command);call=lambda:module.public_contract({'profile':{'domain':'synthetic.invalid'}})
+            else:
+                module._runtime=types.SimpleNamespace(D=types.SimpleNamespace(command=command),need=m.need)
+                call=lambda:module.public_contract({'profile':{'domain':'synthetic.invalid'}})
+            call()
+    def test_both_checks_refuse_unready_missing_or_closed_responses(self):
+        for health,status in ((b'{"ready":true}',b'{"publicEnabled":true,"draftsEnabled":true}'),
+          (b'{"status":"unready"}',b'{"publicEnabled":true,"draftsEnabled":true}'),
+          (b'{"status":"ready"}',b'{"publicEnabled":false,"draftsEnabled":true}'),
+          (b'{"status":"ready"}',b'{"publicEnabled":true}')):
+            for module in (m,module_health_fix()):
+                command=lambda args:health if args[-1].endswith('/health/ready')else status
+                if module is m:
+                    module.D=types.SimpleNamespace(command=command)
+                else:module._runtime=types.SimpleNamespace(D=types.SimpleNamespace(command=command),need=m.need)
+                with self.assertRaisesRegex(m.Refused,'PUBLIC_READBACK_REQUIRED'):
+                    module.public_contract({'profile':{'domain':'synthetic.invalid'}})
+
+def module_health_fix():
+    path=Path(__file__).with_name('trial-sync-publication-health-fix.py')
+    spec=importlib.util.spec_from_file_location('health_fix',path);value=importlib.util.module_from_spec(spec);spec.loader.exec_module(value)
+    return value
 
 if __name__=='__main__':unittest.main()
