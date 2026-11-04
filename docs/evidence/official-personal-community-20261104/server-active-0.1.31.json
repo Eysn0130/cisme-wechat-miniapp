@@ -1,0 +1,30 @@
+{
+  "activeVerified": true,
+  "authorityGranted": false,
+  "ciRunId": 41857973605,
+  "ciVerifyJobId": 126671647372,
+  "configurationChanged": false,
+  "databaseRestored": false,
+  "kind": "trial-official-publisher-active",
+  "memberConsentCreated": false,
+  "migrationCount": 109,
+  "officialPublisherIndependent": true,
+  "ordinaryPostsStillDirect": true,
+  "originalFactsPreservedAtMigration": true,
+  "privatePlanSha256": "ffbf84f928854daf89ff15e0a0b3c24241464338f43d68a5b38e14f56d633d46",
+  "privateValuesExported": false,
+  "productionChanged": false,
+  "provider": "wechat_v1_sync",
+  "publicUgcEnabled": true,
+  "readOnly": true,
+  "snapshotCryptoAadUsesHistoricalPrimitiveLabel": true,
+  "sourceHead": "f8a80dbba373e9646f01f39bd3c50ac354f1332e",
+  "sourceTransport": {
+    "checks": [],
+    "codeSha256": "5192e0eaa1b4d06f26349303cd2ae3e58f5c562852a1a515c82760fe28944610",
+    "immutableTreeAndPackagesVerified": false,
+    "mutableMainAndCiChecks": "original live reads"
+  },
+  "sourceTree": "4c43db4141ec34946095b5e78cef09332423c367",
+  "upgradeState": "/opt/cisme-trial/official-publisher-updates/commit-f8a80dbba373-1793806919471875398"
+}
