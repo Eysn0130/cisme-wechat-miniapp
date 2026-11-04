@@ -229,6 +229,19 @@ export class UgcSafetyService{
     return editorialComments.rowCount??0;
   }
 
+  async checkProfileBio(memberId:string,bio:string){
+    const identity=(await this.pool.query(`SELECT i.openid FROM wechat_identity i JOIN member m ON m.id=i.member_id
+      WHERE i.member_id=$1 AND m.status='active' AND i.provider='wechat_miniprogram' AND i.adapter='wechat' AND i.app_id=$2
+      ORDER BY i.created_at DESC,i.id DESC LIMIT 1`,[validId(memberId),this.config.wechat.appId??''])).rows[0];
+    if(!identity?.openid)throw new DomainError('UGC_SCAN_UNAVAILABLE','简介安全检测暂不可用，请稍后重试',503);
+    let result:WechatResult;
+    try{result=await this.request('msg_sec_check',{content:bio,version:2,scene:1,openid:identity.openid});}
+    catch{throw new DomainError('UGC_SCAN_UNAVAILABLE','简介安全检测暂不可用，请稍后重试',503);}
+    const state=verdict(result);
+    if(state==='error')throw new DomainError('UGC_SCAN_UNAVAILABLE','简介安全检测暂不可用，请稍后重试',503);
+    if(state!=='safe')throw new DomainError('COMMUNITY_BIO_UNSAFE','简介未通过安全检测，请修改后重试',422);
+  }
+
   async scanNickname(memberId:string){
     const id=validId(memberId);
     const profile=(await this.pool.query(`SELECT m.display_name,p.profile_revision,i.openid FROM member m

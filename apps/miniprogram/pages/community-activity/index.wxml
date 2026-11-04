@@ -1,5 +1,5 @@
 <view class="chrome-root" style="{{chromeStyle}}">
-  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回我的"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">我的社区</text></view>
+  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回我的"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">互动记录</text></view>
   <view class="page page--stack activity-page">
     <view class="activity-sources" role="tablist" aria-label="社区内容来源">
       <button wx:for="{{sources}}" wx:key="key" data-source="{{item.key}}" bindtap="selectSource" class="activity-source {{source===item.key?'activity-source--active':''}}" hover-class="activity-tab--pressed" role="tab" aria-selected="{{source===item.key}}">{{item.label}}</button>

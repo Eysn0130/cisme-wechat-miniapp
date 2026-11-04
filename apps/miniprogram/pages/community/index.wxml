@@ -1,3 +1,4 @@
+<import src="../../templates/community-feed.wxml"/>
 <view class="page community-page" style="{{chromeStyle}}">
   <view class="community-head">
     <view class="community-title-row"><view class="community-wordmark">CISME <text class="community-wordmark__section">社区</text></view><view class="community-curation">{{mode === 'following' ? '关注动态' : '品牌精选'}}</view></view>
@@ -7,12 +8,6 @@
       <button wx:if="{{ugcFeedEnabled || socialPreviewEnabled}}" class="community-mode__tab {{mode === 'recommend' ? 'community-mode__active' : ''}}" data-mode="recommend" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'recommend'}}" aria-label="推荐，{{mode === 'recommend' ? '当前分类' : '未选中'}}"><text class="community-mode__label">推荐</text><view class="community-mode__marker {{mode === 'recommend' ? 'is-active' : ''}}" aria-hidden="true"/></button>
       <button wx:if="{{canReview}}" class="community-mode__tab {{mode === 'review' ? 'community-mode__active' : ''}}" data-mode="review" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'review'}}" aria-label="内容管理，{{mode === 'review' ? '当前分类' : '未选中'}}"><text class="community-mode__label">内容管理</text><view class="community-mode__marker {{mode === 'review' ? 'is-active' : ''}}" aria-hidden="true"/></button>
     </view>
-  </view>
-
-  <view wx:if="{{ugcFeedEnabled && mode !== 'review' && mode !== 'following'}}" class="community-search" aria-role="search">
-    <input class="community-search__input" value="{{searchInput}}" bindinput="onSearchInput" bindconfirm="submitSearch" confirm-type="search" maxlength="80" placeholder="搜索护理故事或作者" aria-label="搜索护理故事或作者" />
-    <button class="community-search__action {{loading ? 'control--disabled' : ''}}" bindtap="submitSearch" disabled="{{loading}}">搜索</button>
-    <button wx:if="{{appliedSearch}}" class="community-search__clear" bindtap="clearSearch" aria-label="清除搜索并查看全部内容">清除</button>
   </view>
 
   <view wx:if="{{mode === 'review'}}" class="review-panel">
@@ -56,17 +51,9 @@
   <view wx:if="{{loading && !feedReady && !displayFeedCount}}" class="page-read-loading" aria-role="status" aria-label="正在加载护理故事"><view class="page-read-loading__indicator"/></view>
   <view wx:if="{{error}}" class="state state--error community-sync-error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重新加载</button></view>
 
-  <view class="feed-grid">
-    <view wx:for="{{[0, 1]}}" wx:for-item="columnIndex" wx:key="*this" class="feed-column">
-    <button wx:for="{{feedColumns[columnIndex]}}" wx:for-item="card" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{card.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{card.title}}，作者{{card.author}}">
-      <image wx:if="{{card.image}}" class="feed-card__image" src="{{card.image}}" mode="widthFix" lazy-load="{{true}}" />
-      <view class="feed-card__body"><view class="card-title feed-card__title">{{card.title}}</view><view class="feed-card__meta"><image wx:if="{{card.avatar}}" class="feed-card__avatar" src="{{card.avatar}}" mode="aspectFill" lazy-load="{{true}}"/><text class="feed-card__author">{{card.author}}</text><image class="feed-card__meta-icon" src="/assets/icons/shield-check-plum.svg" mode="aspectFit"/><text class="feed-card__engagement">{{card.engagementLabel}}</text></view></view>
-    </button>
-    </view>
-  </view>
+  <template is="communityFeed" data="{{feedColumns, navigating}}"/>
   <view wx:if="{{moreError}}" class="state state--error" aria-live="polite"><text>{{moreError}}</text><button class="text-button {{formalLoadingMore ? 'control--disabled' : ''}}" bindtap="onReachBottom" disabled="{{formalLoadingMore}}">重试加载更多</button></view>
   <view wx:if="{{formalLoadingMore}}" class="community-loading" aria-live="polite">正在加载更多内容…</view>
-  <view wx:if="{{mode === 'recommend' && appliedSearch && (!loading || feedReady) && !displayFeedCount}}" class="state">没有找到相关护理故事或作者。试试其他关键词。</view>
   </block>
   <view wx:if="{{publishEntryOpen}}" class="community-publisher-mask" catchtap="closePublisherEntry" catchtouchmove="holdPublisherEntry">
     <view class="community-publisher-sheet" catchtap="holdPublisherEntry" aria-role="dialog" aria-modal="{{true}}" aria-label="选择创作方式">

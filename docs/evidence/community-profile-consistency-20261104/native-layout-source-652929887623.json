@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "784344b0cb5fa49fd53d3a97c7f6f2704d3e6752",
+  "canonicalPackageSourceSha256": "6529298876230038a3274208f518e706b29e85a3a6d1246938df3e4838edf7fa",
+  "fixturePath": "/Users/mini/CISME/tmp/community-profile-native-20261104",
+  "fixtureDifferences": [
+    "app.json",
+    "app.ts"
+  ],
+  "scope": "Native layout and local mocked transport only. Canonical page scripts, WXML, WXSS, shared template, styles, services and assets match byte-for-byte. Only fixture bootstrap and entry route differ. No backend writes, posts, follows or real account data used.",
+  "files": {
+    "pages/community-author/index.ts": "7e11f324f483df6cfeb13fc001d7436fb265e7374543261ab584eb8c540dff5e",
+    "pages/community-author/index.wxml": "fc873b6bdd19bf02bca9a26cf743c6db1164f77c9668ab821fe32221442beb52",
+    "pages/community-author/index.wxss": "38bf25c2d4cf4eb29b978cf93e7f89774adf35c52da189777744a299eb4000ea",
+    "templates/community-feed.wxml": "7444ee25a2fb8b430b513874ddc703300b372f1e9fc40bc8ed3f24e76cb82ceb",
+    "styles/community-feed.wxss": "4bbd4e6ba49f80d09da16c420a7c34511a24bb7b607dd3ed759c3968039017b1",
+    "services/community-profile.ts": "5560e96f2b21633adb94fbbc42f00388989007558305479eae9b153c346b817e"
+  },
+  "captures": [
+    {
+      "file": "native/author-375.png",
+      "sha256": "51bbb7abcaeec18cac2bd1abc4263012af5652ffd6c364f11ceaf4efe99288cc",
+      "origin": "Official DevTools simulator; synthetic member/posts and existing local owned artwork covers, not live feed/network or physical-device proof"
+    },
+    {
+      "file": "native/bio-editor-430.png",
+      "sha256": "f0c493227c8d63675825f425a6b3c06094a7fce064c9e89742c88a5e13c06bfd",
+      "origin": "Official DevTools simulator; synthetic member/posts and existing local owned artwork covers, not live feed/network or physical-device proof"
+    },
+    {
+      "file": "native/empty-own-390.png",
+      "sha256": "23ed53b68a62040501b128790c958b69d9c5f2ed49a4a9d949df8dda5c8af9f3",
+      "origin": "Official DevTools simulator; synthetic member/posts and existing local owned artwork covers, not live feed/network or physical-device proof"
+    },
+    {
+      "file": "native/long-profile-390.png",
+      "sha256": "32f909d774599f1f5089a2d3847252bb84918502f32c96769bbf4dcff3bb8efb",
+      "origin": "Official DevTools simulator; synthetic member/posts and existing local owned artwork covers, not live feed/network or physical-device proof"
+    },
+    {
+      "file": "native/own-390.png",
+      "sha256": "6e365ff615dfbc60c8276715f69557789cbe530bd4531686b510872f28b7f9ae",
+      "origin": "Official DevTools simulator; synthetic member/posts and existing local owned artwork covers, not live feed/network or physical-device proof"
+    },
+    {
+      "file": "native/own-430.png",
+      "sha256": "1938a9034e5d3ddc1018a68523a1b193fbf334721e2d8176e2f7db3a57b78e50",
+      "origin": "Official DevTools simulator; synthetic member/posts and existing local owned artwork covers, not live feed/network or physical-device proof"
+    }
+  ],
+  "checks": {
+    "logicalWidths": [
+      375,
+      390,
+      430
+    ],
+    "longNicknameCharacters": 40,
+    "longBiographyCharacters": 120,
+    "ownAndOtherProfile": true,
+    "emptyOwnProfile": true,
+    "biographyEditorInputAndLocalSave": true,
+    "searchRemovedInFeaturedAndRecommend": true
+  },
+  "notVerified": [
+    "Physical iOS/Android devices",
+    "OS keyboard/screen-reader/font-setting matrix",
+    "Real network image loading (user explicitly paused this investigation)",
+    "All 40 route state matrices",
+    "Deployment of migration108/API or a new trial upload"
+  ],
+  "tests": {
+    "unit": {
+      "passed": 3092,
+      "skipped": 1,
+      "files": 187
+    },
+    "focusedIntegration": {
+      "passed": 40,
+      "files": 7,
+      "scope": "Community profile, following, private/public member projection, owner privacy export, synchronous image publication, migration lifecycle, schema privacy inventory; disposable databases only"
+    },
+    "typecheck": true,
+    "contracts": true,
+    "packageGate": true
+  },
+  "runtimeChanged": false,
+  "trialUploaded": false
+}

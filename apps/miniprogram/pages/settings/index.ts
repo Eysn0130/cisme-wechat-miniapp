@@ -39,12 +39,13 @@ Page({
   profileSessionToken: "",
   profileVisible: true,
   requestedAddressSection: false,
+  requestedProfileSection: false,
   addressRecoverySnapshot: null as StoredAddressDraft | null,
   clipboardAttempt: 0,
   addressImportAttempt: 0,
   avatarAttempt: 0,
   data: { avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "", runtimeLabel: runtimeLabel(), profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, aboutOpen:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
-  onLoad(query:Record<string,string|undefined>) { this.data.pageAlive = true; this.requestedAddressSection=query.section==="addresses"; if(this.requestedAddressSection)this.setData({editingAddresses:true}); },
+  onLoad(query:Record<string,string|undefined>) { this.data.pageAlive = true; this.requestedAddressSection=query.section==="addresses"; this.requestedProfileSection=query.section==="profile"; if(this.requestedAddressSection)this.setData({editingAddresses:true}); else if(this.requestedProfileSection)this.setData({editingProfile:true}); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.data.pageAlive = true;
@@ -52,7 +53,7 @@ Page({
     const memberChanged = !retainMemberSnapshot(this);
     if (memberChanged) this.clearMemberSnapshot();
     if (!requireMemberAccess()) { this.setData({ loading: false, errorAction: "auth", error: "登录后可查看和修改个人设置。" }); return; }
-    this.setData({ leaving: false, canManageMembers:false, ...(memberChanged && this.requestedAddressSection ? {editingAddresses:true} : {}) });
+    this.setData({ leaving: false, canManageMembers:false, ...(memberChanged && this.requestedAddressSection ? {editingAddresses:true} : {}), ...(memberChanged && this.requestedProfileSection ? {editingProfile:true} : {}) });
     void this.loadSettingsBootstrap(); void this.loadAddresses(); void this.loadManagementAccess();
   },
   onHide() {

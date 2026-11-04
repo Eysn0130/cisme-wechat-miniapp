@@ -5,6 +5,7 @@ import { discoverCommerceCommands } from "./commerceCommandDiscovery.js";
 import { commerceCommandReceipt } from "./commerceCommandReceipt.js";
 import { listMemberRefundRequests, listMemberSettlements } from "./commerceHistory.js";
 import { MemberProfile, type MemberProfileInput } from "./memberProfile.js";
+import { CommunityProfileService } from "./communityProfile.js";
 import { startBackgroundWorker } from "../../worker/src/jobs.js";
 import { startMoneyBackgroundWorker } from "../../worker/src/moneyJobs.js";
 import { randomUUID } from "node:crypto";
@@ -166,6 +167,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const followingFeed = new CommunityFollowingService(pool, config, editorial, formalUgc);
   const ugcSafety = new UgcSafetyService(pool, config, storage);
+  const communityProfile = new CommunityProfileService(pool,config,editorial,formalUgc,ugcSafety);
   const supportAi = createSupportAiBoundary(config.supportAi);
   const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi);
   const access = new CommunityAccess(pool, config, authority);
@@ -288,7 +290,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.addHook("preHandler", async (request, reply) => {
     if (migrationReadOnly() && !["GET", "HEAD", "OPTIONS"].includes(request.method)) throw new DomainError("SERVICE_MIGRATING", "会员服务正在迁移，请稍后重试；已保存的数据不受影响", 503);
     const path = request.url.split("?")[0] ?? request.url;
-    const publicCommunityRead = request.method === "GET" && /^\/v1\/community\/[^/]+$/.test(path) && !request.headers.authorization;
+    const publicCommunityRead = request.method === "GET" && (/^\/v1\/community\/[^/]+$/.test(path) ||
+      /^\/v1\/community\/authors\/[0-9a-f-]{36}$/i.test(path)) && !request.headers.authorization;
     const publicShareRead = request.method === "GET" && /^\/v1\/shares\/[0-9a-f]{32}$/.test(path);
     const publicShareVisit = request.method === "POST" && /^\/v1\/shares\/[0-9a-f]{32}\/visits$/.test(path);
     const publicFeedRead = request.method === "GET" && (path === "/v1/feed" || path.startsWith("/v1/feed/"));
@@ -356,6 +359,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled }));
 
   app.get("/v1/ugc/status", async () => ({ publicEnabled: await formalUgc.publicEnabled(), draftsEnabled: true }));
+  app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/community/authors/:id",
+    request=>communityProfile.page(request.memberId,request.params.id,request.query));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/community-profile",
+    request=>communityProfile.page(request.memberId,request.memberId,request.query));
+  app.put("/v1/me/community-profile",request=>communityProfile.updateBio(request.memberId,request.principalId,(request.body??{}) as never));
   app.post("/v1/me/legal-acceptances",request=>editorial.acceptCurrentLegal(request.memberId,request.principalId,(request.body??{}) as {consents?:unknown}));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/articles",request=>editorial.list(request.query));
   app.get<{Params:{id:string}}>("/v1/editorial/articles/:id",request=>editorial.detail(request.memberId,request.params.id));

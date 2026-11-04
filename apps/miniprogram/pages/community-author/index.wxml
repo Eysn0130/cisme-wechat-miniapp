@@ -1,22 +1,34 @@
+<import src="../../templates/community-feed.wxml"/>
 <view class="chrome-root" style="{{chromeStyle}}">
-  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回上一页"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">社区作者</text></view>
+  <view class="topbar"><button class="topbar__back {{bioBusy ? 'control--disabled' : ''}}" bindtap="back" disabled="{{bioBusy}}" aria-label="返回上一页"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">{{mine || author.isMine ? '我的社区' : '社区作者'}}</text></view>
   <view class="page page--stack author-page">
-    <view wx:if="{{loading && !author}}" class="page-read-loading" aria-role="status" aria-label="正在加载作者资料…"><view class="page-read-loading__indicator"/></view>
-    <view wx:if="{{error}}" class="state state--error author-error" aria-live="assertive"><text class="author-error__copy">{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">重新加载</button></view>
+    <view wx:if="{{loading && !author}}" class="page-read-loading" aria-role="status" aria-label="正在加载作者资料"><view class="page-read-loading__indicator"/></view>
+    <view wx:if="{{error}}" class="state state--error author-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回社区</button><button wx:else class="text-button" bindtap="load">重新加载</button></view>
     <block wx:if="{{author}}">
       <view class="author-head">
-        <image wx:if="{{author.avatar}}" class="author-avatar" src="{{author.avatar}}" mode="aspectFill"/>
-        <view wx:else class="author-avatar author-avatar--empty">C</view>
-        <view class="author-info"><text class="author-name">{{author.name}}</text><text class="author-count">{{author.postCount}} 篇公开护理故事</text></view>
-        <button wx:if="{{!author.isMine && (!editorialSource || articleContextId)}}" class="author-follow {{loading || busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{loading || busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>
+        <view class="author-identity">
+          <image class="author-avatar" src="{{author.avatar}}" mode="aspectFill" aria-label="{{author.name}}的头像"/>
+          <view class="author-info"><text class="author-name">{{author.name}}</text><text class="author-membership">{{author.membershipLabel}}</text></view>
+          <button wx:if="{{author.isMine}}" class="author-action  {{loading || !!error || navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{loading || !!error || navigating}}">编辑资料</button>
+          <button wx:elif="{{author.canFollow}}" class="author-action author-follow  {{loading || !!error || busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{loading || !!error || busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>
+        </view>
+        <button wx:if="{{author.isMine}}" class="author-bio author-bio--editable {{!author.bio ? 'author-bio--empty' : ''}} {{loading || !!error ? 'control--disabled' : ''}}" bindtap="openBio" disabled="{{loading || !!error}}" aria-label="{{author.bio ? '编辑简介：' + author.bio : '添加简介'}}"><text>{{author.bio || '添加简介'}}</text><image src="/assets/icons/note-pencil-plum.svg" mode="aspectFit" aria-hidden="true"/></button>
+        <text wx:elif="{{author.bio}}" class="author-bio">{{author.bio}}</text>
       </view>
-      <text class="author-section">公开故事</text>
-      <view wx:if="{{!items.length}}" class="state">这位作者还没有公开的故事。</view>
-      <button wx:for="{{items}}" wx:key="id" class="author-story {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{item.title}}">
-        <image wx:if="{{item.cover}}" class="author-story__image" src="{{item.cover}}" mode="aspectFill" lazy-load="{{true}}"/>
-        <view class="author-story__copy"><text class="author-story__title">{{item.title}}</text><text wx:if="{{item.excerpt}}" class="author-story__excerpt">{{item.excerpt}}</text><text class="author-story__meta">{{item.likeCount}} 赞</text></view>
-      </button>
-      <view wx:if="{{loadingMore}}" class="state">正在加载更多故事…</view>
+      <view class="author-stories">
+        <view class="author-stories-head"><text class="author-count">{{author.postCount}} 篇故事</text><view wx:if="{{author.isMine}}" class="author-tools"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">草稿箱</button><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openActivity" disabled="{{navigating}}">互动记录</button></view></view>
+        <template is="communityFeed" data="{{feedColumns, navigating}}"/>
+        <view wx:if="{{!author.postCount && !error}}" class="author-empty"><text>还没有故事</text><button wx:if="{{author.isMine}}" class="text-button {{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">去发帖</button></view>
+        <view wx:if="{{moreError}}" class="state state--error" aria-live="polite"><text>{{moreError}}</text><button class="text-button {{loadingMore ? 'control--disabled' : ''}}" bindtap="onReachBottom" disabled="{{loadingMore}}">重试</button></view>
+        <view wx:if="{{loadingMore}}" class="author-more" aria-role="status" aria-label="正在加载更多故事"><view class="page-read-loading__indicator"/></view>
+      </view>
     </block>
+  </view>
+  <view wx:if="{{bioOpen}}" class="author-bio-mask" catchtap="closeBio" catchtouchmove="holdBio">
+    <view class="author-bio-sheet" catchtap="holdBio" aria-role="dialog" aria-modal="{{true}}" aria-label="编辑社区简介">
+      <view class="author-bio-sheet-head"><button class="{{bioBusy ? 'control--disabled' : ''}}" bindtap="closeBio" disabled="{{bioBusy}}">取消</button><text>简介</text><button class="author-bio-save {{bioBusy || loading || !!error || bioConflict ? 'control--disabled' : ''}}" bindtap="saveBio" loading="{{bioBusy}}" disabled="{{bioBusy || loading || !!error || bioConflict}}">保存</button></view>
+      <textarea class="author-bio-input" value="{{bioDraft}}" bindinput="editBio" maxlength="120" disabled="{{bioBusy}}" placeholder="介绍一下自己" aria-label="公开简介，最多120字" focus="{{bioOpen}}" adjust-position="{{true}}"/>
+      <view wx:if="{{bioError}}" class="author-bio-error" aria-live="assertive"><text>{{bioError}}</text><button wx:if="{{bioConflict}}" class="text-button" bindtap="reloadBio">重新加载简介</button></view>
+    </view>
   </view>
 </view>

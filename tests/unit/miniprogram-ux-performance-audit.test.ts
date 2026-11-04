@@ -32,7 +32,7 @@ describe("mini program user-perceived performance guardrails", () => {
     expect(logic).not.toMatch(/\bdisplayFeed:/);
     expect(logic).toContain("patch.displayFeedCount = items.length");
     expect(view).toContain("!displayFeedCount");
-    expect(view.match(/lazy-load="\{\{true\}\}"/g)?.length).toBeGreaterThanOrEqual(2);
+    expect((await source("apps/miniprogram/templates/community-feed.wxml")).match(/lazy-load="\{\{true\}\}"/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
   it("invalidates hidden privacy reads and guards Community session-sensitive callbacks", async () => {

@@ -134,8 +134,8 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     page.openMyPosts();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledTimes(2);expect(mocks.request).not.toHaveBeenCalled();
   });
 
-  it("keeps My community pointed at real interaction history",async()=>{
-    await loadPage("profile");page.openCommunityActivity();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/community-activity/index"}));expect(mocks.request).not.toHaveBeenCalled();
+  it("opens My community through the shared owner profile",async()=>{
+    await loadPage("profile");page.openCommunityActivity();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/community-author/index?mine=1"}));expect(mocks.request).not.toHaveBeenCalled();
   });
   it("keeps ordinary service routes reachable when the profile snapshot fails", async () => {
     mocks.request.mockImplementation(async ({ path }) => {

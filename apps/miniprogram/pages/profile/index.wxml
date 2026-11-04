@@ -33,7 +33,7 @@
 
     <view class="profile-label">账号与活动</view>
     <view class="profile-group">
-      <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openCommunityActivity" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>我的社区</strong><small>查看自己的社区记录</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+      <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openCommunityActivity" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>我的社区</strong></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
       <button class="profile-row {{navigating ? 'control--disabled' : ''}}" bindtap="openMyPosts" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/note-pencil-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>投稿与草稿</strong><small>查看已发布内容与草稿</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
       <button class="profile-row profile-row--last {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}"><image class="profile-row__icon" src="/assets/icons/gear-plum.svg" mode="aspectFit"/><view class="profile-row__copy"><strong>设置</strong><small>昵称、收货地址、隐私、会员编号</small></view><image class="profile-row__caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
     </view>

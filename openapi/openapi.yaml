@@ -487,6 +487,26 @@ paths:
       operationId: followingFeed
       security: [{session: []}]
       responses: {'200': {description: Latest published content by followed authors; publication gate remains enforced}}
+  /v1/community/authors/{id}:
+    get:
+      operationId: communityAuthorProfile
+      security: [{}, {session: []}]
+      description: Public profile and this author's currently visible stories across editorial and ordinary sources. Active author, publication, canonical editorial identity, blocks and public UGC gate enforced. Owner receives own private avatar/nickname and may have zero posts; visitors never receive private profile fields or biography revision. No IP, social counts, contact, order or balance projection. Private no-store.
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 30}}, {name: cursor, in: query, schema: {type: string, maxLength: 1000}}]
+      responses: {'200': {description: CommunityAuthorPage with member identity, explicitly published bio, story count and source-tagged cards}, '404': {description: Author inactive, blocked or without visible public stories}, '422': {description: Invalid page or cursor for another author/viewer}}
+  /v1/me/community-profile:
+    get:
+      operationId: myCommunityProfile
+      security: [{session: []}]
+      description: Same profile contract for the current session owner, including zero-story members. Ignores caller-supplied member IDs.
+      parameters: [{name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 30}}, {name: cursor, in: query, schema: {type: string, maxLength: 1000}}]
+      responses: {'200': {description: CommunityAuthorPage for the authenticated owner}, '401': {description: Active member session required}}
+    put:
+      operationId: updateCommunityBiography
+      security: [{session: []}]
+      description: Explicitly save or clear only the current owner's public bio. Exact text must pass synchronous WeChat v2 safety before saving. Canonical identity, current terms and independent optimistic bio version enforced. Does not change avatar/nickname approval, publish drafts, grant roles or add human review.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [bio, expectedVersion], properties: {bio: {type: string, maxLength: 120}, expectedVersion: {type: integer, minimum: 0, maximum: 2147483646}}}}}}
+      responses: {'200': {description: Saved bio and bioRevision}, '401': {description: Member required}, '409': {description: Biography conflict or current legal consent required}, '422': {description: Invalid or unsafe biography}, '503': {description: Real safety check unavailable; no biography changed}}
   /v1/me/community/following:
     get:
       operationId: communityFollowingTimeline

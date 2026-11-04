@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "scope": "synthetic native logout boundary",
+        "authorCleared": true,
+        "cardsCleared": true,
+        "biographyDraftCleared": true,
+        "editorClosed": true
+      }
+    }
+  }
+}

@@ -8,7 +8,7 @@ export const wechatReceiptPortableQuery=`SELECT w.order_id,w.shipment_id,w.platf
 export const portableQuerySpecs = [
   {section:'account',collection:'identity',single:false,sql:`SELECT provider,app_id,openid,unionid,created_at FROM wechat_identity
         WHERE member_id=$1`},
-  {section:'account',collection:'profile',single:true,sql:`SELECT wechat_handle,avatar_data_url,public_status,completed_at,updated_at
+  {section:'account',collection:'profile',single:true,sql:`SELECT wechat_handle,avatar_data_url,public_status,community_bio,community_bio_revision,completed_at,updated_at
         FROM member_profile WHERE member_id=$1`},
   {section:'care',collection:'cycles',single:false,sql:`SELECT id,phase,started_on,timezone,protocol_version,created_at,updated_at
         FROM care_cycle WHERE member_id=$1 ORDER BY created_at,id`},

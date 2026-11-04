@@ -257,7 +257,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b",
+  "packageSourceSha256": "230d31c4fe1a0aff3901a46ad473df9093834b54eefc810f3323590251be5cf2",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -266,7 +266,7 @@
       "reason": "Scoped navigation and Community validation do not complete the existing full 40-route state or physical-device matrices."
     }
   ],
-  "note": "Current source keeps the native composer draft and publish actions mounted side by side, with honest closed/unknown publication availability and retry. No existing hardware screenshot is relabeled; full route and physical-device acceptance remain blocked.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-3a468032033f.json",
+  "note": "Current source removes Community/Recommend search and shares one native author profile and story-card template. Biography is owner-written, versioned and automatically safety-checked. Scoped fixture verification does not complete the full 40-route or physical-device matrices; all historical evidence keeps its original source binding.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-56541fbdd575.json",
   "pendingSourceRebind": false
 }

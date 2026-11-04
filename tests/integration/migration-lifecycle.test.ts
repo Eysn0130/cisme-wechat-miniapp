@@ -110,14 +110,30 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //108 adds an independent owner biography without changing nickname review.
+    expect(migrationTip).toBe('202611040002_community_biography.sql');
+    const biographyColumns=async()=>(await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='member_profile' AND column_name IN ('community_bio','community_bio_revision')")).rows;
+    expect(await biographyColumns()).toHaveLength(2);
+    const bioClient=await pool.connect();
+    try{
+      await bioClient.query('BEGIN');
+      const owner=(await bioClient.query("INSERT INTO member(display_name) VALUES('synthetic bio lifecycle') RETURNING id")).rows[0].id;
+      await bioClient.query("INSERT INTO member_profile(member_id,handle_source,community_bio,community_bio_revision) VALUES($1,'self_reported','synthetic saved bio',1)",[owner]);
+      const down=(await readFile('db/migrations/202611040002_community_biography.sql','utf8')).split('-- migrate:down')[1]!;
+      await expect(bioClient.query(down)).rejects.toMatchObject({message:'COMMUNITY_BIO_ROLLBACK_REQUIRES_DATA_PRESERVATION'});
+    }finally{await bioClient.query('ROLLBACK');bioClient.release();}
+    await closePool(pool);await migrate('down');pool=migrationPool();expect(await biographyColumns()).toEqual([]);
+    await closePool(pool);await migrate('up');pool=migrationPool();expect(await biographyColumns()).toHaveLength(2);
+    await closePool(pool);await migrate('down');pool=migrationPool();migrationCount-=1;extensionCount-=1;migrationTip='202611040001_ugc_synchronous_image_safety.sql';
+
+    //107 names the real synchronous WeChat provider, without changing scans.
+    const providerConstraint=async()=>String((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='ugc_safety_scan_provider_check'")).rows[0].definition);
+    expect(await providerConstraint()).toContain('wechat_v1_sync');
+    await closePool(pool);await migrate('down');pool=migrationPool();expect(await providerConstraint()).not.toContain('wechat_v1_sync');
+    await closePool(pool);await migrate('up');pool=migrationPool();expect(await providerConstraint()).toContain('wechat_v1_sync');
+    await closePool(pool);await migrate('down');pool=migrationPool();migrationCount-=1;extensionCount-=1;migrationTip='202611030001_direct_publication_lookup.sql';
+
     //106 adds only the current direct-publication audit lookup index.
-    expect(migrationTip).toBe('202611040001_ugc_synchronous_image_safety.sql');
-    expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='ugc_safety_scan_provider_check'")).rows[0].definition).toContain('wechat_v1_sync');
-    expect((await migrate('down')).stdout).toContain(`rolled back ${migrationTip}`);
-    expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='ugc_safety_scan_provider_check'")).rows[0].definition).not.toContain('wechat_v1_sync');
-    await migrate('up');
-    await migrate('down');
-    migrationCount-=1;extensionCount-=1;migrationTip='202611030001_direct_publication_lookup.sql';
     expect(migrationTip).toBe('202611030001_direct_publication_lookup.sql');
     const directIndex=async()=>(await pool.query("SELECT indexdef FROM pg_indexes WHERE indexname='ugc_direct_publication_intent_idx'")).rows;
     expect(await directIndex()).toEqual([expect.objectContaining({indexdef:expect.stringContaining("'directPublication'::text")} )]);

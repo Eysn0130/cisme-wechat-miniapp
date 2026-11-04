@@ -176,7 +176,7 @@ Page({
   openManagement(){if(this.data.authorityState!=="ready"||!hasNativeManagementEntry(this.data.authority))return;this.openRoute("/pages/management/index","navigate","管理中心暂时无法打开");},
   openInvite() { this.openRoute("/pages/invite/index", "navigate", "邀请页面暂时无法打开"); },
   openCommission(){this.openRoute("/pages/commission/index","navigate","商业资格与佣金暂时无法打开");},
-  openCommunityActivity(){this.openRoute("/pages/community-activity/index","navigate","社区记录暂时无法打开");},
+  openCommunityActivity(){this.openRoute("/pages/community-author/index?mine=1","navigate","我的社区暂时无法打开");},
   openMyPosts(){
     const url="/pages/community-compose/index";
     if(this.data.navigating||!requireMemberAccess(url))return;

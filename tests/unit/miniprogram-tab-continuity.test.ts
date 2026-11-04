@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import {nativePageTemplate} from "../helpers/native-page-template";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -69,7 +70,7 @@ async function mount(route: string, template?: string) {
     }
   };
   pages.push(page);
-  const id = simulate.load({ template: template ?? readFileSync(`apps/miniprogram/pages/${route}/index.wxml`, "utf8"), data: structuredClone(page.data) });
+  const id = simulate.load({ template: template ?? nativePageTemplate(`apps/miniprogram/pages/${route}/index.wxml`), data: structuredClone(page.data) });
   rendered = simulate.render(id);
   rendered.attach(document.body);
   components.push(rendered);
@@ -96,7 +97,7 @@ beforeEach(() => {
   replies.set("/v1/submissions/synthetic-submission", { id: "synthetic-submission", status: "rejected", media: [], version: 1, review: { reason_summary: "合成审核说明" } });
   replies.set("/v1/catalog?limit=20", { items: [product], nextCursor: null });
   replies.set("/v1/catalog/synthetic-product", product);
-  replies.set(`/v1/editorial/authors/${authorId}?limit=20`, { author: { id: authorId, name: "合成作者", postCount: 1 }, items: [story], nextCursor: null });
+  replies.set(`/v1/community/authors/${authorId}?limit=20`, { author: { id: authorId, name: "合成作者", avatar:"",avatarRevision:null,membershipLabel:"CISME会员",bio:"",bioRevision:null,following:false,isMine:false,canFollow:true,followArticleId:story.id,postCount:1 }, items:[{...story,authorId,kind:"editorial"}], nextCursor: null });
   replies.set("/v1/me", member); replies.set("/v1/me/shares?targetType=invite", []);
   replies.set("/v1/me/orders?limit=20", { items: [{ id: "synthetic-order", status: "paid", createdAt: "2026-11-03T10:00:00Z", totalCents: 2000, orderNumber: "SYNTHETIC", lines: [{ productName: "合成商品", skuLabel: "规格甲", quantity: 1 }] }], nextCursor: null });
   m.request.mockImplementation(async ({ path }: any) => {
@@ -117,7 +118,7 @@ afterEach(() => {
 
 describe("native tab return presentation while real read paths revalidate", () => {
   it("renders both columns through real incremental bridge patches without aliasing cards or remounting columns", () => {
-    const wxml = readFileSync("apps/miniprogram/pages/community/index.wxml", "utf8");
+    const wxml = nativePageTemplate("apps/miniprogram/pages/community/index.wxml");
     const template = wxml.slice(wxml.indexOf('<view class="feed-grid">'), wxml.indexOf('<view wx:if="{{moreError}}"'));
     const id = simulate.load({ template, data: { feedColumns: [[], []], navigating: false } });
     const rendered = simulate.render(id); rendered.attach(document.body); components.push(rendered);
@@ -325,7 +326,7 @@ describe("native tab return presentation while real read paths revalidate", () =
     ["points", "/v1/me/points", ".points-hero", {}],
     ["shop", "/v1/catalog?limit=20", ".shop-hero", {}],
     ["product", "/v1/catalog/synthetic-product", ".product-gallery", { id: "synthetic-product" }],
-    ["community-author", `/v1/editorial/authors/${authorId}?limit=20`, ".author-head", { authorId, editorialSource: true }],
+    ["community-author", `/v1/community/authors/${authorId}?limit=20`, ".author-head", { authorId, editorialSource: true }],
     ["invite", "/v1/me", ".invite-card", {}],
     ["orders", "/v1/me/orders?limit=20", ".order-card", {}]
   ])("keeps %s content mounted on return while its actual read remains pending", async (route, path, selector, initial) => {
@@ -345,17 +346,17 @@ describe("native tab return presentation while real read paths revalidate", () =
   });
 
   it("keeps the confirmed empty author state while returning to an author with no public stories", async () => {
-    const path = `/v1/editorial/authors/${authorId}?limit=20`;
-    replies.set(path, { author: { id: authorId, name: "合成作者", postCount: 0 }, items: [], nextCursor: null });
+    const path = `/v1/community/authors/${authorId}?limit=20`;
+    replies.set(path, { author: { id: authorId, name: "合成作者", avatar:"",avatarRevision:null,membershipLabel:"CISME会员",bio:"",bioRevision:0,following:false,isMine:true,canFollow:true,followArticleId:null,postCount:0 }, items:[], nextCursor: null });
     const { page, rendered } = await mount("community-author");
     page.setData({ authorId, editorialSource: true }); page.lastSessionToken = m.token;
     await page.load(); await flush();
-    const empty = rendered.querySelector(".author-page .state").dom;
+    const empty = rendered.querySelector(".author-empty").dom;
     const pending = later(); held.set(path, pending);
     page.onHide(); page.onShow(); await flush();
-    expect(page.data).toMatchObject({ loading: true, author: { postCount: 0 }, items: [] });
-    expect(rendered.querySelector(".author-page .state").dom).toBe(empty);
-    expect(empty.textContent).toContain("这位作者还没有公开的故事");
+    expect(page.data).toMatchObject({ loading: true, author: { postCount: 0 }, feedColumns:[[],[]] });
+    expect(rendered.querySelector(".author-empty").dom).toBe(empty);
+    expect(empty.textContent).toContain("还没有故事");
     pending.resolve(replies.get(path)); await flush();
   });
 
