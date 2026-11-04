@@ -1,0 +1,13 @@
+{
+  "installed": true,
+  "runner": "/opt/cisme-trial/sync-publication-health-runners/31a4fcf97364",
+  "bindingSha256": "6dc3b5628e14c2654b8dd4ac2b5d3d78d68c94469e2f18d30cf3665b8614ac7f",
+  "codeSha256": "2e210dc21a093be778a1d25e52b31830ca95742c8a722779f65c7d6205b2b35f",
+  "oldHelperPreserved": true,
+  "businessDataChanged": false,
+  "workerHeartbeatFresh": true,
+  "completedAfterCurrentWorkerStart": true,
+  "completedAtUtc": "2026-11-04T11:17:07.685Z",
+  "fileMode": "0600",
+  "ownerVerified": true
+}

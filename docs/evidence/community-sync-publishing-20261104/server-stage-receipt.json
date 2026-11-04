@@ -1,0 +1,38 @@
+{
+  "archiveSha256": "e124750807d3181c5083fb2166fe18ef779ee993c1b7dae93fb20d5ba6742023",
+  "authorityGranted": false,
+  "bindingSha256": "ffb5ef3aafced5efb156621a4435fcdf04a2afdb95077351a469355eed8ae1b5",
+  "candidate": "/opt/cisme-trial/releases/tencent-release-70629d325043",
+  "configurationChanged": false,
+  "databaseChanged": false,
+  "dependenciesSha256": "d9f03813fc808eced42eacb92db4530a2cd0e0824cab5d1beb9c3bdf08144bdd",
+  "deployed": false,
+  "kind": "trial-sync-publication-stage",
+  "liveChatProbePerformed": false,
+  "manifestSha256": "780b3644edff4eb8d221190df42bea89eafce078509e0ec2ff1a289537ffa13b",
+  "migrations": 107,
+  "privateValuesExported": false,
+  "productionChanged": false,
+  "schemaVersion": 1,
+  "sourceHead": "70629d32504399873ac44e7cacc2b159e896880d",
+  "sourceTransport": {
+    "immutableResponseCount": 3,
+    "manifestSha256": "08a0bcc74b1a690343255e862013879011c8ac95a2e0df9bdcdf4e5e316c3e6b",
+    "requests": {
+      "immutableCacheReads": 3,
+      "liveReads": 4
+    },
+    "treeReconstructed": true,
+    "treeSha": "f052dde0edb4e7a4ffc8cdeed79687e8ca0648cd"
+  },
+  "sourceTree": "f052dde0edb4e7a4ffc8cdeed79687e8ca0648cd",
+  "staged": true,
+  "unitsChanged": false,
+  "uploadRetainedForEvidence": true,
+  "versions": {
+    "fastify": "5.12.6",
+    "rsvg": "2.63.2",
+    "sharp": "0.35.5",
+    "vips": "8.18.7"
+  }
+}
