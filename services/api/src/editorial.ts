@@ -122,7 +122,7 @@ export function validateEditorialPublication(input:EditorialPublication){
 export class EditorialService{
   constructor(private pool:pg.Pool,private config:AppConfig,private storage:ObjectStorage,private authority:AuthorityService){}
   private canonicalApp(){return this.config.wechat.appId===CANONICAL_WECHAT_MINIPROGRAM_APP_ID?this.config.wechat.appId:null;}
-  canManage(memberId:string|undefined){return this.authority.has(memberId,'editorial.manage');}
+  canManage(memberId:string|undefined,client?:DbClient){return this.authority.has(memberId,'editorial.manage',client);}
   private async actor(client:DbClient,memberId:string|undefined,principalId:string|undefined,lock=true){
     if(!memberId||!principalId)throw new DomainError('AUTH_REQUIRED','请先使用微信账号登录',401);
     const found=await client.query(`SELECT 1 FROM member m JOIN wechat_identity w ON w.member_id=m.id
@@ -206,7 +206,7 @@ export class EditorialService{
       media:a.media.map(x=>({id:x.sha256,url:mediaUrl(a.id,x.sha256),aiUsage:x.aiUsage,...(videoMedia(x)?{type:'video' as const,mimeType:x.mimeType,
         posterUrl:mediaUrl(a.id,x.poster.sha256),width:x.width,height:x.height,durationMs:x.durationMs}:{})})),...await this.state(client,a,memberId),
       ...await editorialCommentSummary(client,this.config.env,a.id,a.author_member_id,memberId),
-      isMine:a.publisher_id===null&&memberId===a.author_member_id,canManage:await this.authority.has(memberId,'editorial.manage'),
+      isMine:a.publisher_id===null&&memberId===a.author_member_id,canManage:await this.canManage(memberId,client),
       interactionsEnabled:true,sourceUrl:a.source_url,provenanceLabel:editorialProvenanceLabel(a.media)};
   });}
   async author(memberId:string|undefined,authorId:string,input:{limit?:unknown;cursor?:unknown}={}):Promise<EditorialAuthorPage>{

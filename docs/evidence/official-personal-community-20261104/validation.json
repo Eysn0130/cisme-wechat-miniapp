@@ -115,5 +115,12 @@
     "previousValidation": "validation-source-40f4573a.json",
     "oldNativeEvidenceRetainsOriginalBinding": true
   },
-  "finalWording": "official editor explicitly says 官方简介 and 填写官方账号简介"
+  "finalWording": "official editor explicitly says 官方简介 and 填写官方账号简介",
+  "authorityReadConnectionReview": {
+    "queryClient": "reuse the current readonly snapshot client",
+    "singleConnectionIntegrationPassed": true,
+    "canonicalIdentityAndExplicitGrantChecksUnchanged": true,
+    "fullUnitPassedAfterChange": 3098,
+    "unitLog": "unit-authority-client.txt"
+  }
 }

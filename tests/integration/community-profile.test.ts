@@ -1,5 +1,6 @@
 import {afterAll,beforeAll,expect,it} from 'vitest';
 import {randomUUID} from 'node:crypto';
+import pg from 'pg';
 import {CANONICAL_WECHAT_MINIPROGRAM_APP_ID,loadConfig} from '@cisme/config';
 import {CISME_OFFICIAL_PUBLISHER} from '@cisme/contracts';
 import {resetDatabase,testPool,TEST_DATABASE_URL} from '@cisme/testkit';
@@ -102,6 +103,11 @@ it('keeps official ownership, each personal profile and explicitly granted manag
  expect(official.items).toMatchObject([{id:post.id,authorId:CISME_OFFICIAL_PUBLISHER.id,kind:'editorial'}]);
  const detail=await app.inject({method:'GET',url:`/v1/editorial/articles/${post.id}`,headers:headers(admin)});
  expect(detail.json()).toMatchObject({authorId:CISME_OFFICIAL_PUBLISHER.id,isMine:false,canManage:true});
+ const singlePool=new pg.Pool({connectionString:TEST_DATABASE_URL,max:1,connectionTimeoutMillis:500});
+ try{
+  const singleReader=new EditorialService(singlePool,config,storage,new AuthorityService(singlePool,'test'));
+  expect(await singleReader.detail(admin.id,post.id)).toMatchObject({authorId:CISME_OFFICIAL_PUBLISHER.id,isMine:false,canManage:true});
+ }finally{await singlePool.end();}
  expect((await pool.query('SELECT id FROM member WHERE id=$1',[CISME_OFFICIAL_PUBLISHER.id])).rowCount).toBe(0);
  const manage=(who:typeof admin,bio:string,version:number)=>app.inject({method:'PUT',url:'/v1/management/community/official-profile',headers:headers(who),payload:{bio,expectedVersion:version,memberId:admin.id}});
  expect((await manage(reader,'不能靠同名取得管理权限',0)).statusCode).toBe(403);
