@@ -1,7 +1,11 @@
 import importlib.util
+import base64
+import hashlib
+import json
 from pathlib import Path
 import types
 import unittest
+from unittest.mock import Mock
 
 p=Path(__file__).with_name('trial-sync-publication-update.py')
 spec=importlib.util.spec_from_file_location('sync_update',p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
@@ -79,6 +83,28 @@ class SyncUpdateContract(unittest.TestCase):
                 else:module._runtime=types.SimpleNamespace(D=types.SimpleNamespace(command=command),need=m.need)
                 with self.assertRaisesRegex(m.Refused,'PUBLIC_READBACK_REQUIRED'):
                     module.public_contract({'profile':{'domain':'synthetic.invalid'}})
+    def source_fixture(self):
+        module=module_health_fix();raw=b'committed correction code'
+        blob=lambda v:hashlib.sha1(b'blob '+str(len(v)).encode()+b'\0'+v).hexdigest()
+        value={'path':module.SOURCE,'type':'file','encoding':'base64','content':base64.b64encode(raw).decode(),'size':len(raw),'sha':blob(raw)}
+        commit={'tree':{'sha':'2'*40}}
+        delta={'status':'ahead','merge_base_commit':{'sha':module.APP},'files':[{'filename':p,'status':'added'if p==module.SOURCE else'modified','sha':blob(raw)}for p in module.ALLOWED]}
+        def response(url,limit):return json.dumps(value if '/contents/'in url else commit if '/git/commits/'in url else delta).encode()
+        h=types.SimpleNamespace(candidate_ci=Mock(),source_bytes=Mock(side_effect=AssertionError('package-only reader must not be widened')),
+          response=response,parse=json.loads,git_blob=blob)
+        runtime=types.SimpleNamespace(H=h,need=m.need,protected=lambda *a:raw)
+        return module,runtime,{'sourceHead':'1'*40,'sourceTree':'2'*40},value,delta
+    def test_correction_reads_only_its_fixed_github_path_and_preserves_package_reader_restrictions(self):
+        module,runtime,fix,value,delta=self.source_fixture();module.permit(runtime,fix)
+        runtime.H.candidate_ci.assert_called_once_with(fix);runtime.H.source_bytes.assert_not_called()
+    def test_wrong_code_or_application_diff_cannot_be_accepted(self):
+        for mutation in ('path','sha','size','app'):
+            module,runtime,fix,value,delta=self.source_fixture()
+            if mutation=='app':delta['files'][0]['filename']='services/api/src/server.ts'
+            elif mutation=='path':value['path']='other.py'
+            elif mutation=='sha':value['sha']='0'*40
+            else:value['size']+=1
+            with self.assertRaises(m.Refused):module.permit(runtime,fix)
 
 def module_health_fix():
     path=Path(__file__).with_name('trial-sync-publication-health-fix.py')

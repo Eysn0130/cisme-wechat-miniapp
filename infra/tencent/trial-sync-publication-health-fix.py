@@ -8,6 +8,7 @@ The correction must be current main with a successful full verify job, and its
 entire diff from the applied main is limited to these three operation files.
 """
 import argparse
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -53,14 +54,19 @@ def load(path,expected):
 def permit(M,fix):
     # Mutable main and CI checks remain live. Do not use a cached success flag.
     H=M.H;H.candidate_ci(fix)
-    M.need(H.source_bytes(SOURCE,fix['sourceHead'])==M.protected(Path(__file__),128*1024),'FIX_COMMITTED_CODE_REQUIRED')
     base='https://api.github.com/repos/Eysn0130/cisme-wechat-miniapp/'
+    value=H.parse(H.response(base+'contents/'+SOURCE+'?ref='+fix['sourceHead'],256*1024))
+    M.need(value.get('path')==SOURCE and value.get('type')=='file'and value.get('encoding')=='base64','FIX_COMMITTED_CODE_REQUIRED')
+    code=base64.b64decode(value['content'].replace('\n','').replace('\r',''),validate=True)
+    M.need(0<len(code)<=128*1024 and len(code)==value.get('size')and
+      value.get('sha')==H.git_blob(code)and code==M.protected(Path(__file__),128*1024),'FIX_COMMITTED_CODE_REQUIRED')
     commit=H.parse(H.response(base+'git/commits/'+fix['sourceHead'],256*1024))
     M.need(commit.get('tree',{}).get('sha')==fix['sourceTree'],'FIX_SOURCE_TREE_REQUIRED')
     delta=H.parse(H.response(base+'compare/'+APP+'...'+fix['sourceHead'],2*1024**2))
     files=delta.get('files');M.need(delta.get('status')=='ahead'and delta.get('merge_base_commit',{}).get('sha')==APP and
       isinstance(files,list)and len(files)==3 and {f['filename']for f in files}==ALLOWED and
       all(f.get('status')in ('added','modified')for f in files),'FIX_APPLICATION_CHANGE_REFUSED')
+    M.need(next(f for f in files if f['filename']==SOURCE).get('sha')==H.git_blob(code),'FIX_COMMITTED_CODE_REQUIRED')
 
 def complete(M,app,fix):
     permit(M,fix)
