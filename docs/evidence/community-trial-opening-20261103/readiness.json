@@ -1,0 +1,48 @@
+{
+  "activeSource": "97acb0028aad7b9c832c01b80ad3d4e7da1ffdac",
+  "credentialPresence": {
+    "UGC_LEGAL_APPROVAL_ID": false,
+    "UGC_SCAN_BASE_URL": false,
+    "WECHAT_APP_ID": true,
+    "WECHAT_APP_SECRET": true,
+    "WECHAT_MESSAGE_AES_KEY": false,
+    "WECHAT_MESSAGE_TOKEN": false
+  },
+  "flags": {
+    "ALLOW_DEV_ADAPTERS": "false",
+    "APP_ENV": "staging",
+    "COMMERCE_ORDER_FLOW_ENABLED": "false",
+    "RUN_BACKGROUND_WORKER": "false",
+    "UGC_CONTENT_SAFETY_READY": null,
+    "UGC_GO_LIVE_GATE": "false",
+    "UGC_MODERATION_READY": null,
+    "UGC_PROVENANCE_READY": null,
+    "UGC_SCAN_WORKER_MODE": "embedded"
+  },
+  "privateValuesExported": false,
+  "readOnly": true,
+  "ugc": {
+    "allApprovals": 0,
+    "communitySwitch": false,
+    "posts": {
+      "deleted": 3,
+      "draft": 4
+    },
+    "scans": {},
+    "validApprovals": 0
+  },
+  "trialOpeningAuthorized": true,
+  "authorization": "User explicit reply: 同时开放体验版公开发帖，正式版仍关闭",
+  "openingCompleted": false,
+  "platformAccess": {
+    "status": "site-safety-blocked",
+    "site": "https://mp.weixin.qq.com",
+    "accountPageObserved": false,
+    "autoReviewAttempted": false,
+    "workaroundAttempted": false
+  },
+  "platformQuestion": "Pending user report of existing message-push configuration; no credentials requested in chat",
+  "runtimeMutated": false,
+  "databaseMutated": false,
+  "candidatePublished": false
+}

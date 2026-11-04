@@ -1,0 +1,163 @@
+{
+  "checkedAt": "2026-11-04T03:37:39.616780+00:00",
+  "privateValuesExported": false,
+  "production": {
+    "credentialPresence": {
+      "COMMERCE_FORMAL_API_V3_KEY_FILE": true,
+      "COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE": true,
+      "COMMERCE_FORMAL_MERCHANT_CERTIFICATE_FILE": true,
+      "COMMERCE_FORMAL_MERCHANT_ID": true,
+      "COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE": true,
+      "COMMERCE_FORMAL_MERCHANT_SERIAL": true,
+      "COMMERCE_FORMAL_PAYMENT_NOTIFY_URL": true,
+      "COMMERCE_FORMAL_PLATFORM_TRUST_FILE": true,
+      "COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE": true,
+      "COMMERCE_FORMAL_REFUND_NOTIFY_URL": true,
+      "COMMERCE_FULFILLMENT_AUTHORIZATION_FILE": true,
+      "DEEPSEEK_API_KEY": false,
+      "POINTS_FINANCE_APPROVAL_ID": false,
+      "POINTS_REDEMPTION_APPROVAL_ID": false,
+      "UGC_LEGAL_APPROVAL_ID": false,
+      "UGC_SCAN_BASE_URL": false,
+      "WECHAT_APP_ID": true,
+      "WECHAT_APP_SECRET": true,
+      "WECHAT_MESSAGE_AES_KEY": false,
+      "WECHAT_MESSAGE_TOKEN": false
+    },
+    "flags": {
+      "ALLOW_DEV_ADAPTERS": "false",
+      "APP_ENV": "production",
+      "COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED": "true",
+      "COMMERCE_FULFILLMENT_ENABLED": "true",
+      "COMMERCE_ORDER_FLOW_ENABLED": "false",
+      "OBJECT_STORAGE_DRIVER": "cos_gateway",
+      "POINTS_REDEMPTION_ENABLED": null,
+      "POINTS_RULES_ENABLED": null,
+      "RUN_BACKGROUND_WORKER": "false",
+      "SELECTED_TRANSACTION_PROFILE": null,
+      "SUPPORT_AI_ENABLED": null,
+      "UGC_GO_LIVE_GATE": "false",
+      "UGC_SCAN_WORKER_MODE": "standalone",
+      "WECHAT_PHONE_BINDING_ENABLED": null
+    }
+  },
+  "productionAggregate": {
+    "catalogProducts": 3,
+    "communitySwitch": false,
+    "productSourceKinds": {
+      "legacy_preview": 3
+    },
+    "publishedProducts": 0,
+    "validUgcApprovals": 0
+  },
+  "productionMerchantLocalValidation": {
+    "COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE": {
+      "approvalReferencePresent": true,
+      "capabilities": [
+        "order.create",
+        "payment.prepare",
+        "payment.close",
+        "refund.request",
+        "refund.approve",
+        "refund.submit"
+      ],
+      "current": true,
+      "environmentMatches": true,
+      "expiresAt": "2026-12-25T15:59:59Z",
+      "identityMatches": true,
+      "mode": "ordinary-merchant-commerce-commands"
+    },
+    "COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE": {
+      "approvalReferencePresent": true,
+      "capabilities": [
+        "payment.query",
+        "refund.query",
+        "bill.read",
+        "payment.callback",
+        "refund.callback"
+      ],
+      "current": true,
+      "environmentMatches": true,
+      "expiresAt": "2026-12-25T15:59:59Z",
+      "identityMatches": true,
+      "mode": "ordinary-merchant-recovery-only"
+    },
+    "COMMERCE_FULFILLMENT_AUTHORIZATION_FILE": {
+      "approvalReferencePresent": true,
+      "capabilities": [
+        "shipping.query",
+        "shipping.upload"
+      ],
+      "current": true,
+      "environmentMatches": true,
+      "expiresAt": "2026-12-25T15:59:59Z",
+      "identityMatches": true,
+      "mode": "wechat-shipping-sync"
+    },
+    "apiV3KeyBytesValid": true,
+    "merchantCertificateBinding": true,
+    "merchantCertificateCurrent": true,
+    "merchantCertificateExpiresAt": "Sep 25 13:34:50 2031 GMT",
+    "merchantKeyIsRsa2048": true,
+    "networkRequests": false,
+    "platformKeyCount": 1,
+    "privateValuesExported": false,
+    "trustManifestValid": true
+  },
+  "readOnly": true,
+  "runtimeHashes": {
+    "production": "ac452e6e23ceb2ca3d1be2500fc7d4dcfee831ad709d55fc92e0b7fbcafcab8d",
+    "trial": "703f030af18a71123e61d673d3887c77cd4279e6ad3408c027172dbc712a62f5"
+  },
+  "trial": {
+    "credentialPresence": {
+      "COMMERCE_FORMAL_API_V3_KEY_FILE": false,
+      "COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE": false,
+      "COMMERCE_FORMAL_MERCHANT_CERTIFICATE_FILE": false,
+      "COMMERCE_FORMAL_MERCHANT_ID": false,
+      "COMMERCE_FORMAL_MERCHANT_PRIVATE_KEY_FILE": false,
+      "COMMERCE_FORMAL_MERCHANT_SERIAL": false,
+      "COMMERCE_FORMAL_PAYMENT_NOTIFY_URL": false,
+      "COMMERCE_FORMAL_PLATFORM_TRUST_FILE": false,
+      "COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE": false,
+      "COMMERCE_FORMAL_REFUND_NOTIFY_URL": false,
+      "COMMERCE_FULFILLMENT_AUTHORIZATION_FILE": false,
+      "DEEPSEEK_API_KEY": true,
+      "POINTS_FINANCE_APPROVAL_ID": false,
+      "POINTS_REDEMPTION_APPROVAL_ID": false,
+      "UGC_LEGAL_APPROVAL_ID": false,
+      "UGC_SCAN_BASE_URL": false,
+      "WECHAT_APP_ID": true,
+      "WECHAT_APP_SECRET": true,
+      "WECHAT_MESSAGE_AES_KEY": false,
+      "WECHAT_MESSAGE_TOKEN": false
+    },
+    "flags": {
+      "ALLOW_DEV_ADAPTERS": "false",
+      "APP_ENV": "staging",
+      "COMMERCE_FORMAL_PROTOCOL_CONFIG_ENABLED": "false",
+      "COMMERCE_FULFILLMENT_ENABLED": "false",
+      "COMMERCE_ORDER_FLOW_ENABLED": "false",
+      "OBJECT_STORAGE_DRIVER": "api_gateway",
+      "POINTS_REDEMPTION_ENABLED": "false",
+      "POINTS_RULES_ENABLED": "false",
+      "RUN_BACKGROUND_WORKER": "false",
+      "SELECTED_TRANSACTION_PROFILE": null,
+      "SUPPORT_AI_ENABLED": "true",
+      "UGC_GO_LIVE_GATE": "false",
+      "UGC_SCAN_WORKER_MODE": "embedded",
+      "WECHAT_PHONE_BINDING_ENABLED": "false"
+    }
+  },
+  "trialAggregate": {
+    "catalogProducts": 3,
+    "communitySwitch": false,
+    "productSourceKinds": {
+      "legacy_preview": 3
+    },
+    "publishedProducts": 0,
+    "validUgcApprovals": 0
+  },
+  "trialSource": "97acb0028aad7b9c832c01b80ad3d4e7da1ffdac",
+  "scope": "Read-only baseline before callback preparation; presence/local trust checks are not live merchant acceptance"
+}

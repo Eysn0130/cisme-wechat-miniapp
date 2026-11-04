@@ -406,7 +406,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return reply.header("Cache-Control","no-store").type(object.mimeType).send(Buffer.from(object.bytes));
   });
   app.get<{Querystring:{signature?:string;msg_signature?:string;timestamp?:string;nonce?:string;echostr?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
-    reply.type("text/plain").send(ugcSafety.verifyChallenge(request.query)));
+    reply.header("Cache-Control","no-store").type("text/plain").send(ugcSafety.verifyChallenge(request.query)));
   app.post<{Querystring:{signature?:string;msg_signature?:string;timestamp?:string;nonce?:string}}>("/v1/ugc/safety-callback", async (request,reply) =>
     reply.type("text/plain").send(await ugcSafety.receiveCallback(request.query,(request.body??{}) as never)));
   app.get<{Querystring:{limit?:string;cursor?:string;state?:string}}>("/v1/me/ugc/posts", async request => formalUgc.myPosts(request.memberId,request.query));

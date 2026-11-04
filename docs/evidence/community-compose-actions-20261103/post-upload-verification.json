@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-11-04T03:24:50.637715+00:00",
+  "sourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b",
+  "stagedEqualsCanonical": true,
+  "gitClean": true,
+  "publicApi": [
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "ugcStatus": 200,
+      "publicEnabled": false,
+      "draftsEnabled": true,
+      "legalStatus": 200
+    },
+    {
+      "origin": "https://api.cisme.cn",
+      "ugcStatus": 200,
+      "publicEnabled": false,
+      "draftsEnabled": true,
+      "legalStatus": 200
+    }
+  ]
+}

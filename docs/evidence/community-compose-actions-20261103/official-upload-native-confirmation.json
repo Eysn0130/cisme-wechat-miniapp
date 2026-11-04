@@ -1,0 +1,10 @@
+{
+  "observedAt": "2026-11-04T03:22:21.635995+00:00",
+  "tool": "upload",
+  "client": "Codex",
+  "version": "0.1.29",
+  "taskId": "confirmation_upload_ddd465a0-afd6-42a4-9afa-bc368640dfbe",
+  "nativeHint": "Last upload has been selected as the trial Version. This upload will overwrite the trial version. Continue?",
+  "allowClicks": 1,
+  "alwaysAllowEnabled": false
+}

@@ -221,7 +221,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     !env.POINTS_FINANCE_APPROVAL_ID ||
     pointsRuleIds.length < 3 ||
     pointsRuleIds.length > 5 ||
-    !pointsRuleIds.includes("CARE_D7_STORY_R0") ||
     !bool(env.POINTS_MAKER_CHECKER_READY) ||
     !Number.isInteger(pointsHoldDays) || pointsHoldDays < 1 || pointsHoldDays > 90 ||
     !Number.isInteger(pointsExpiryDays) || pointsExpiryDays < 30 || pointsExpiryDays > 1095 ||

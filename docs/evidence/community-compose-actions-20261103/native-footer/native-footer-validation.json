@@ -1,0 +1,128 @@
+{
+  "canonicalPackageSourceSha256": "56541fbdd5753cef6a3720c1db6598a13426bd6c91ef12394df70d06663df58b",
+  "scope": "Native isolated footer fixture only; not whole composer, API publication or physical device acceptance",
+  "cases": [
+    {
+      "width": 361,
+      "mode": "closed",
+      "controls": {
+        "save": {
+          "left": 18,
+          "top": 742,
+          "width": 112,
+          "height": 50
+        },
+        "submit": {
+          "left": 140.3359375,
+          "top": 742,
+          "width": 203,
+          "height": 50
+        }
+      },
+      "screenshot": "footer-361-closed.jpg"
+    },
+    {
+      "width": 361,
+      "mode": "open",
+      "controls": {
+        "save": {
+          "left": 18,
+          "top": 742,
+          "width": 112,
+          "height": 50
+        },
+        "submit": {
+          "left": 140.3359375,
+          "top": 742,
+          "width": 203,
+          "height": 50
+        }
+      },
+      "screenshot": "footer-361-open.jpg"
+    },
+    {
+      "width": 361,
+      "mode": "unknown",
+      "controls": {
+        "save": {
+          "left": 18,
+          "top": 742,
+          "width": 112,
+          "height": 50
+        },
+        "submit": {
+          "left": 140.3359375,
+          "top": 742,
+          "width": 203,
+          "height": 50
+        }
+      },
+      "screenshot": "footer-361-unknown.jpg"
+    },
+    {
+      "width": 390,
+      "mode": "closed",
+      "controls": {
+        "save": {
+          "left": 22,
+          "top": 748,
+          "width": 121,
+          "height": 50
+        },
+        "submit": {
+          "left": 155.3359375,
+          "top": 748,
+          "width": 213,
+          "height": 50
+        }
+      },
+      "screenshot": "footer-390-closed.jpg"
+    },
+    {
+      "width": 390,
+      "mode": "open",
+      "controls": {
+        "save": {
+          "left": 22,
+          "top": 748,
+          "width": 121,
+          "height": 50
+        },
+        "submit": {
+          "left": 155.3359375,
+          "top": 748,
+          "width": 213,
+          "height": 50
+        }
+      },
+      "screenshot": "footer-390-open.jpg"
+    },
+    {
+      "width": 390,
+      "mode": "unknown",
+      "controls": {
+        "save": {
+          "left": 22,
+          "top": 748,
+          "width": 121,
+          "height": 50
+        },
+        "submit": {
+          "left": 155.3359375,
+          "top": 748,
+          "width": 213,
+          "height": 50
+        }
+      },
+      "screenshot": "footer-390-unknown.jpg"
+    }
+  ],
+  "buttonsAligned": true,
+  "gateStatePositionStable": true,
+  "minTouchTargetPassed": true,
+  "unverified430px": "Automator timed out following fixture-only device switch; no case claimed passed",
+  "realAccountTestWrites": false,
+  "canonicalProjectPageNotNavigated": true,
+  "canonicalDeviceUnchanged": true,
+  "fixtureWindowClosed": true
+}

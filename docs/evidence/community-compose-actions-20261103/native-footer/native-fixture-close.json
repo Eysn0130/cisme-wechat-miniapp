@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "tool": "close_project_window",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "winId": "s1"
+  }
+}
