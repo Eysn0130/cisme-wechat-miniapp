@@ -136,7 +136,7 @@ Page({
     const id=String(event.currentTarget.dataset.id||"");
     const item=this.data.feedColumns.flat().find(card=>card.id===id);
     if(!item||!editorialIdentifier(id))return;
-    this.navigate(`${item.kind==="formal"?"/pages/community-post/index":"/pages/post/index"}?id=${encodeURIComponent(id)}${item.kind==="editorial"?"&source=editorial":""}`);
+    this.navigate(`/pages/post/index?id=${encodeURIComponent(id)}${item.kind==="editorial"?"&source=editorial":item.kind==="formal"?"&source=formal":""}`);
   },
   back(){if(this.data.bioOpen){this.closeBio();return;}wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/community/index"})});}
 });

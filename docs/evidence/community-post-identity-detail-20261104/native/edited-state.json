@@ -1,0 +1,63 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "stack": [
+          "pages/post/index"
+        ],
+        "author": "HEHEHE",
+        "body": "合成验证：修改后回到同一篇故事。",
+        "isMine": true,
+        "formal": true,
+        "error": "",
+        "ownerBusy": false,
+        "commentsError": "",
+        "width": 390,
+        "calls": [
+          {
+            "path": "feed/",
+            "method": "GET"
+          },
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/comments?reader=1&limit=30",
+            "method": "GET"
+          },
+          {
+            "path": "ugc/status",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/draft",
+            "method": "PUT"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit",
+            "method": "POST"
+          },
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/comments?reader=1&limit=30",
+            "method": "GET"
+          }
+        ],
+        "deleted": false
+      }
+    }
+  }
+}

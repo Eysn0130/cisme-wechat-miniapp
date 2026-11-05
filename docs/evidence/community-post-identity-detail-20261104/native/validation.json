@@ -1,0 +1,52 @@
+{
+  "nativeChecksPassed": true,
+  "sourceSha256": "daed4d04b32274b98336a2734bcbca546e4260be29ac0c46d4ac32594d5104fe",
+  "widths": [
+    375,
+    390,
+    430
+  ],
+  "states": [
+    "owner: actual nickname and edit/delete",
+    "delete confirmation cancelled without deletion",
+    "edit/publish returns to the same detail with one submit",
+    "visitor: no owner controls",
+    "featured/ordinary: identical measured common layout",
+    "guest: unchanged comment gate"
+  ],
+  "sharedImages": "Production gallery code unchanged; UGC media mapping covered by unit and integration tests. These native fixtures have no images.",
+  "realApiRequests": false,
+  "realAccountWrites": false,
+  "bootstrapOnlyOverrides": [
+    "app.ts",
+    "app.json"
+  ],
+  "images": [
+    {
+      "file": "docs/evidence/community-post-identity-detail-20261104/native/owner-375.png",
+      "sha256": "b4f6b875905cb43f1f2bb3d982b2794db08b84b44b12b0beee7bae75d150570a"
+    },
+    {
+      "file": "docs/evidence/community-post-identity-detail-20261104/native/owner-390.png",
+      "sha256": "2117c6e290927876faa0442617d186b8253270792c03972a570aba8a539c39bc"
+    },
+    {
+      "file": "docs/evidence/community-post-identity-detail-20261104/native/owner-430.png",
+      "sha256": "66f044144fc1de110284986b2f90eb7ecdabb4f440cbe9be3cc5dd060cb7e68c"
+    },
+    {
+      "file": "docs/evidence/community-post-identity-detail-20261104/native/visitor-390.png",
+      "sha256": "a2e59565ab84c4f3465e83e9c61d3fa4e0a6b6c3a11b35ab2f9faef854537170"
+    },
+    {
+      "file": "docs/evidence/community-post-identity-detail-20261104/native/featured-390.png",
+      "sha256": "c98e58de68957d659d0642e85e592e199591242d6f4ada255657e1031e63d9e3"
+    },
+    {
+      "file": "docs/evidence/community-post-identity-detail-20261104/native/guest-390.png",
+      "sha256": "eeaa66ef959391be599f5964e06524db0ed021f3f8f2e4d03e1c95b167576535"
+    }
+  ],
+  "physicalDeviceTested": false,
+  "fullVisualMatrixPassed": false
+}

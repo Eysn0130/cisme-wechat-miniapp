@@ -1,5 +1,6 @@
+import {publishedFormalStory,formalStoryMedia,readFormalComments,createFormalComment,likeFormalComment,deleteFormalComment,reactToFormalStory,followFormalAuthor} from "../../services/formal-story";
 import { readPresentationKey } from "../../services/read-presentation";
-import { defaultMemberAvatar, prepareFeedAuthors } from "../../services/member-avatar";
+import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors } from "../../services/member-avatar";
 import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication, beginLegalRenewal } from "../../services/api";
 import { cancelPageReads } from "../../services/page-requests";
@@ -73,7 +74,7 @@ Page({
   commentDraftToken:null as string|null,
   commentDraftArticle:"",
   editorialSocialRefusal:null as string|null,
-  data: { blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", formalSource:false,ownerBusy:false,ownerWriteUnknown:false,ownerError:"",editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.cancelGallerySizing?.();this.readingRead=null;this.pendingReadingRestore=null;this.readingScrollRevision+=1;this.setData({ chromeStyle: currentChromeStyle() },()=>this.measureComposer()); },
   onReachBottom() {
     if(this.data.editorialSource&&!this.data.commentsError&&!this.data.composerOpen&&!this.data.blocksOpen)void this.loadMoreEditorialComments();
@@ -84,8 +85,8 @@ Page({
   },
   onLoad(query: Record<string, string | undefined>) {
     const id = query.id ?? "";
-    this.setData({ id, editorialSource:query.source==="editorial", pageAlive: true });
-    if (query.source!=="editorial"&&(!isBundledEditorialId(id) || editorialPreviewAllowed())) void registerIncomingShare(query.share_id, "post", id);
+    this.setData({ id, formalSource:query.source==="formal",editorialSource:query.source==="editorial"||query.source==="formal", pageAlive: true });
+    if (query.source!=="editorial"&&query.source!=="formal"&&(!isBundledEditorialId(id) || editorialPreviewAllowed())) void registerIncomingShare(query.share_id, "post", id);
     wx.hideShareMenu();
   },
   onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(true); },
@@ -129,12 +130,12 @@ Page({
   videoEnded(event:WechatMiniprogram.CustomEvent){if(this.currentVideoEvent(event))this.videoPosition=0;},
   videoFailed(event:WechatMiniprogram.CustomEvent){if(this.currentVideoEvent(event))this.setData({mediaError:"视频暂时无法播放，请重新加载。"});},
   currentEditorial(attempt:number,token:string){return this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken;},
-  currentArticleLoad(attempt:number,token:string){return this.currentEditorial(attempt,token)&&this.presentationKey===readPresentationKey(this.data.id);},
+  currentArticleLoad(attempt:number,token:string){return this.currentEditorial(attempt,token)&&this.presentationKey===readPresentationKey(this.data.formalSource?`formal:${this.data.id}`:this.data.id);},
   clearArticlePresentation() {
     this.setData({item:null,media:[],video:null,mediaIndex:0,galleryHeight:1000,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"",aiLabel:""});
   },
   dropChangedArticleOwner(attempt:number) {
-    if(this.data.item&&this.data.loadAttempt===attempt&&this.presentationKey!==readPresentationKey(this.data.id))this.clearArticlePresentation();
+    if(this.data.item&&this.data.loadAttempt===attempt&&this.presentationKey!==readPresentationKey(this.data.formalSource?`formal:${this.data.id}`:this.data.id))this.clearArticlePresentation();
   },
   recoverExpiredEditorialRead(attempt:number,token:string,error:unknown){
     if(!this.readVisible||!this.data.pageAlive||this.data.leaving||attempt!==this.data.loadAttempt||!expiredEditorialRead(error,token))return false;
@@ -147,7 +148,7 @@ Page({
       errorKind:"load",errorTitle:"登录状态已失效",error:"请重新加载内容。点赞、收藏和关注前，请重新登录。"});
     wx.hideShareMenu();return true;
   },
-  editorialReturnUrl(){return `/pages/post/index?id=${encodeURIComponent(this.data.id)}&source=editorial`;},
+  editorialReturnUrl(){return `/pages/post/index?id=${encodeURIComponent(this.data.id)}&source=${this.data.formalSource?"formal":"editorial"}`;},
   resolveGalleryHeight(id:string,version:number,images:string[],token:string,attempt:number):Promise<number> {
     const layoutIdentity=readingBaseLayoutIdentity();
     const cache=this.gallerySizingCache;
@@ -209,7 +210,7 @@ Page({
     this.galleryRead=null;
     this.pauseVideo();
     const attempt = this.data.loadAttempt + 1;
-    const presentationKey=readPresentationKey(this.data.id);
+    const presentationKey=readPresentationKey(this.data.formalSource?`formal:${this.data.id}`:this.data.id);
     const retained=restoreGallery===true&&this.presentationKey===presentationKey&&this.data.item?.id===this.data.id
       ? {item:this.data.item,media:this.data.media,video:this.data.video,mediaIndex:this.data.mediaIndex,galleryHeight:this.data.galleryHeight,
         videoHeightRpx:this.data.videoHeightRpx,videoInitialTime:this.data.videoInitialTime,videoEventId:this.data.videoEventId,imageEventId:this.data.imageEventId,
@@ -217,7 +218,7 @@ Page({
       : {};
     this.presentationKey=presentationKey;
     wx.hideShareMenu();
-    this.setData({viewerHasSession:Boolean(getApp<IAppOption>().globalData.sessionToken),composerEventId:++this.composerSequence,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null,commentCount:null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null,editorialCommentItems:[],aiLabel:"", loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "", ...retained });
+    this.setData({viewerHasSession:Boolean(getApp<IAppOption>().globalData.sessionToken),composerEventId:++this.composerSequence,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null,commentCount:null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null,editorialCommentItems:[],aiLabel:"",ownerBusy:false,ownerWriteUnknown:false,ownerError:"", loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "", ...retained });
     try {
       const editorial = editorialStory(this.data.id);
       if (!editorial && isBundledEditorialId(this.data.id)) {
@@ -228,9 +229,10 @@ Page({
       if(this.data.editorialSource){
         const token=getApp<IAppOption>().globalData.sessionToken;
         if(!editorialIdentifier(this.data.id)){this.setData({loading:false,errorKind:"missing",errorTitle:"这篇精选不可用",error:"内容链接无效，请返回社区。"});return;}
-        try{const article=await publishedEditorialArticle(this.data.id,this);
+        try{const article=await (this.data.formalSource?publishedFormalStory:publishedEditorialArticle)(this.data.id,this);
           if(!this.currentArticleLoad(attempt,token)){this.dropChangedArticleOwner(attempt);return;}
-          const display=editorialDisplayMedia(article.media);
+          const display=this.data.formalSource?formalStoryMedia(article.media):editorialDisplayMedia(article.media);
+          const avatar=this.data.formalSource?await localMemberAvatar(article.avatar,(article as {avatarRevision?:string|null}).avatarRevision):editorialPublisherAvatar(article.author,defaultMemberAvatar,article.authorId);
           const videoMedia=article.media.find(media=>media.type==="video");
           const videoHeightRpx=videoMedia?.type==="video"?imageCanvasHeight(videoMedia.width,videoMedia.height,"up")??1000:1000;
           const galleryHeight=display.images.length?await this.resolveGalleryHeight(article.id,article.version,display.images,token,attempt):1000;
@@ -260,7 +262,7 @@ Page({
           // successful read may retire that old refusal, never an unknown write.
           const clearSocialRefusal=this.editorialSocialRefusal!==null&&this.data.socialError===this.editorialSocialRefusal;
           if(clearSocialRefusal)this.editorialSocialRefusal=null;
-          this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:"editorial",avatar:editorialPublisherAvatar(article.author,defaultMemberAvatar,article.authorId),
+          this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:this.data.formalSource?"formal":"editorial",avatar,
             readingSegments:readingSegments(article.body),publishedLabel:new Date(article.publishedAt).toLocaleDateString("zh-CN"),engagementLabel:"精选内容"},
             media:display.images,mediaIndex:restored?.index??0,galleryHeight,video:display.video,videoHeightRpx,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",imageEventId:display.images.length?`${attempt}:${article.version}:${article.id}:${galleryHeight}`:"",following:article.following,
             commentAuthenticated:Boolean(token),commentsLoading:true,socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false},()=>{
@@ -379,7 +381,7 @@ Page({
     const current=()=>epoch===this.commentReadEpoch&&this.currentCommentIntent(intent);
     this.setData({commentsLoading:true,commentAuthenticated:true,commentsError:"",commentRetryAppend:false});
     try{
-      const page=await readEditorialComments(intent.id,this,cursor);
+      const page=await (this.data.formalSource?readFormalComments:readEditorialComments)(intent.id,this,cursor);
       if(!current()){this.recoverCommentAccess(intent);return;}
       const prepared=await prepareCommentAuthors({...emptyCommunity,preview:false,comments:page.comments,authors:page.authors});
       if(!current()){this.recoverCommentAccess(intent);return;}
@@ -428,7 +430,8 @@ Page({
     const replyToId=this.data.replyToId;
     this.setData({draftOperation:operation,commentSendUnknown:true});
     try{
-      const result=await createEditorialComment(intent.id,{body,...(replyToId?{replyToId}:{})},operation);
+      const reply=this.data.editorialCommentItems.find(item=>item.id===replyToId);
+      const result=await (this.data.formalSource?createFormalComment:createEditorialComment)(intent.id,{body,...(replyToId?{replyToId,...(this.data.formalSource?{parentId:reply?.parentId||replyToId}:{})}:{})},operation);
       if(!this.currentCommentIntent(intent))return;
       const notice=result.status==="pending"?"评论已提交，审核后公开。":result.status==="published"?"评论已发布。":result.status==="deleted"?"这次提交的评论已删除，未再次发送。":result.status==="hidden"?"这次提交的评论已隐藏，可在列表核对。":"这次提交的评论未通过审核，可在列表核对。";
       this.setData({commentsNotice:notice,commentSendUnknown:false});
@@ -451,7 +454,7 @@ Page({
     if(comment?.status!=="published")return;
     const intent=this.beginEditorialCommentAction(true);if(!intent)return;
     try{
-      const result=await setEditorialCommentLike(intent.id,comment.id,!comment.liked);
+      const result=await (this.data.formalSource?likeFormalComment:setEditorialCommentLike)(intent.id,comment.id,!comment.liked);
       if(!this.currentCommentIntent(intent))return;
       const comments=this.data.editorialCommentItems.map(item=>item.id===result.id?{...item,liked:result.liked,likeCount:result.likeCount}:item);
       this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads,0)});
@@ -460,12 +463,12 @@ Page({
   },
   async deleteEditorialComment(event:WechatMiniprogram.TouchEvent) {
     const comment=this.data.editorialCommentItems.find(item=>item.id===event.currentTarget.dataset.id);
-    if(!comment||!this.data.canModerate)return;
+    if(!comment||!(this.data.formalSource?comment.isMine:this.data.canModerate))return;
     const intent=this.beginEditorialCommentAction();if(!intent)return;
     try{
       const answer=await wx.showModal({title:"删除这条评论？",content:"删除后将不再展示。",confirmText:"删除",confirmColor:"#d83b4e"});
       if(!answer.confirm||!this.currentCommentIntent(intent))return;
-      await deleteEditorialComment(intent.id,comment.id);
+      await (this.data.formalSource?deleteFormalComment:deleteEditorialComment)(intent.id,comment.id);
       if(!this.currentCommentIntent(intent))return;
       const comments=this.data.editorialCommentItems.filter(item=>item.id!==comment.id&&item.parentId!==comment.id);
       this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads,0),commentCount:null,commentsNotice:"评论已删除。",
@@ -619,7 +622,7 @@ Page({
       if(!token){resumeAuthentication(this.editorialReturnUrl());return;}
       const attempt=this.data.loadAttempt;
       this.interruptReadingRestore();this.setData({followBusy:true,followError:""});
-      try{const result=await followEditorialArticle(this.data.id,!this.data.following);
+      try{const result=await (this.data.formalSource?followFormalAuthor(this.data.authorId,!this.data.following):followEditorialArticle(this.data.id,!this.data.following));
         if(result.authorId!==this.data.authorId)throw new Error("EDITORIAL_AUTHOR_MISMATCH");
         if(this.currentEditorial(attempt,token))this.setData({following:result.following});
       }catch(error){if(this.recoverCommentAccess({owner:this.commentActionOwner,attempt,token,id:this.data.id,version:this.data.item?.version},error))return;
@@ -685,7 +688,7 @@ Page({
     const attempt=this.data.loadAttempt;
     this.editorialSocialRefusal=null;
     this.interruptReadingRestore();this.setData({socialBusy:true,socialError:""});
-    try{const result=await reactToEditorialArticle(this.data.id,kind,!(kind==="like"?this.data.social.liked:this.data.social.saved));
+    try{const result=await (this.data.formalSource?reactToFormalStory:reactToEditorialArticle)(this.data.id,kind,!(kind==="like"?this.data.social.liked:this.data.social.saved));
       if(this.currentEditorial(attempt,token))this.setData({social:{...this.data.social,liked:result.liked,saved:result.saved,likeCount:result.likeCount,saveCount:result.saveCount}});
     }catch(error){if(this.recoverCommentAccess({owner:this.commentActionOwner,attempt,token,id:this.data.id,version:this.data.item?.version},error))return;
       if(this.currentEditorial(attempt,token)){
@@ -698,7 +701,7 @@ Page({
   },
   toggleLike() { if(this.data.editorialSource)return this.mutateEditorialReaction("like");return this.mutateSocial("/reaction", "PUT", { kind: "like", active: !this.data.social.liked }); },
   toggleSave() { if(this.data.editorialSource)return this.mutateEditorialReaction("save");return this.mutateSocial("/reaction", "PUT", { kind: "save", active: !this.data.social.saved }); },
-  openAuthor(){if(!this.data.editorialSource||!this.data.pageAlive||!editorialIdentifier(this.data.authorId)||this.data.leaving)return;this.setData({leaving:true});wx.navigateTo({url:`/pages/community-author/index?id=${encodeURIComponent(this.data.authorId)}&source=editorial`,fail:()=>{this.setData({leaving:false});wx.showToast({title:"作者资料暂时无法打开",icon:"none"});}});},
+  openAuthor(){if(!this.data.editorialSource||!this.data.pageAlive||!editorialIdentifier(this.data.authorId)||this.data.leaving)return;this.setData({leaving:true});wx.navigateTo({url:`/pages/community-author/index?id=${encodeURIComponent(this.data.authorId)}&source=${this.data.formalSource?"formal":"editorial"}`,fail:()=>{this.setData({leaving:false});wx.showToast({title:"作者资料暂时无法打开",icon:"none"});}});},
   copySource(){const url=this.data.editorialSource&&this.data.item?.sourceUrl;if(typeof url==="string"&&/^https:\/\//.test(url))wx.setClipboardData({data:url});},
   showComments() {
     if(this.data.editorialSource){
@@ -839,6 +842,42 @@ Page({
     const shareId = await prepareShareLink("post", this.data.id);
     if (this.data.pageAlive && this.data.loadAttempt === attempt && this.data.item) this.setData({ shareId });
   },
+  canManageOwnPost(){
+    const token=getApp<IAppOption>().globalData.sessionToken;
+    return this.data.formalSource&&this.data.item?.isMine===true&&Boolean(token)&&!this.data.ownerBusy&&!this.data.ownerWriteUnknown&&!this.data.loading&&!this.data.leaving&&
+      this.currentArticleLoad(this.data.loadAttempt,token);
+  },
+  editOwn(){
+    if(!this.canManageOwnPost())return;
+    const attempt=this.data.loadAttempt,token=getApp<IAppOption>().globalData.sessionToken;
+    this.setData({leaving:true,ownerError:""});
+    wx.navigateTo({url:`/pages/community-compose/index?id=${encodeURIComponent(this.data.id)}`,fail:()=>{
+      if(this.currentArticleLoad(attempt,token))this.setData({leaving:false,ownerError:"编辑页暂时无法打开，请重试。"});
+    }});
+  },
+  async deleteOwn(){
+    if(!this.canManageOwnPost())return;
+    const item=this.data.item,id=this.data.id,version=item.version,token=getApp<IAppOption>().globalData.sessionToken,attempt=this.data.loadAttempt;
+    const current=()=>this.currentArticleLoad(attempt,token)&&this.data.formalSource&&this.data.item?.id===id&&this.data.item?.version===version&&this.data.item?.isMine===true;
+    this.setData({ownerBusy:true,ownerError:""});
+    const answer=await wx.showModal({title:"删除这篇故事？",content:"删除后不再公开展示。",confirmText:"删除",confirmColor:"#d83b4e"}).catch(()=>null);
+    if(!current())return;
+    if(!answer?.confirm){this.setData({ownerBusy:false});return;}
+    try{
+      await request({path:`/v1/me/ugc/posts/${encodeURIComponent(id)}`,method:"DELETE",data:{expectedVersion:version}});
+      if(current()){this.setData({ownerBusy:false});this.back();}
+    }catch(error){
+      if(!current())return;
+      const code=(error as {status?:number}).status;
+      if(!code||code>=500){
+        try{const own=await request<{id:string;ownerId:string;state:string}>({path:`/v1/me/ugc/posts/${encodeURIComponent(id)}`});
+          if(!current())return;
+          if(own.id===id&&own.ownerId===item.authorId&&own.state==="deleted"){this.setData({ownerBusy:false});this.back();return;}
+        }catch{/* A missing or mismatched own record cannot confirm deletion. */}
+        if(current())this.setData({ownerWriteUnknown:true,ownerError:"删除结果待确认，请重新加载核对。"});
+      }else this.setData({ownerError:commentFailure(error,"删除未完成，请重新加载后重试。")});
+    }finally{if(current())this.setData({ownerBusy:false});}
+  },
   back() {
     if (!this.data.pageAlive || this.data.leaving) return;
     this.setData({ leaving: true });
@@ -861,6 +900,6 @@ Page({
     }});
   },
   onShareAppMessage() { return this.data.item
-    ? { title: this.data.item.title, path: `/pages/post/index?id=${encodeURIComponent(this.data.id)}${this.data.editorialSource?"&source=editorial":this.data.shareId ? `&share_id=${this.data.shareId}` : ""}` }
+    ? { title: this.data.item.title, path: `/pages/post/index?id=${encodeURIComponent(this.data.id)}${this.data.editorialSource?`&source=${this.data.formalSource?"formal":"editorial"}`:this.data.shareId ? `&share_id=${this.data.shareId}` : ""}` }
     : { title: "CISME 社区", path: "/pages/community/index" }; }
 });

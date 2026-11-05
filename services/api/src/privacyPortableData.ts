@@ -141,6 +141,8 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         FROM ugc_comment WHERE author_member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
       reactions:(await client.query(`SELECT post_id,kind,created_at FROM ugc_post_reaction
         WHERE member_id=$1 ORDER BY created_at,post_id,kind`,[memberId])).rows,
+      commentLikes:(await client.query(`SELECT comment_id,created_at FROM ugc_comment_like
+        WHERE member_id=$1 ORDER BY created_at,comment_id`,[memberId])).rows,
       follows:(await client.query(`SELECT created_at FROM ugc_author_follow
         WHERE follower_member_id=$1 ORDER BY created_at,followed_member_id`,[memberId])).rows,
       blocks:(await client.query(`SELECT created_at FROM ugc_block_relation

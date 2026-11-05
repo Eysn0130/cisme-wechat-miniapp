@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "5c8ad42abb197dd26b9820f95e65f6b11185c07ba54ce1734c1da7dc5fad38df",
+  "migrationSetSha256": "6bd0b9e112df125eb3dd9487c7ed62c7efe332dfcf9d150a5aa2d57021ebd104",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -6200,6 +6200,67 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "ugc_comment_like",
+      "subjectPaths": [
+        [
+          "ugc_comment_like.comment_id -> ugc_comment.id",
+          "ugc_comment.author_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "ugc_comment_like.comment_id -> ugc_comment.id",
+          "ugc_comment.post_id -> ugc_post.id",
+          "ugc_post.author_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "ugc_comment_like.comment_id -> ugc_comment.id",
+          "ugc_comment.post_id -> ugc_post.id",
+          "ugc_post.current_revision -> ugc_post_revision.revision",
+          "ugc_post_revision.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "ugc_comment_like.comment_id -> ugc_comment.id",
+          "ugc_comment.post_id -> ugc_post.id",
+          "ugc_post.id -> ugc_post_revision.post_id",
+          "ugc_post_revision.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "ugc_comment_like.comment_id -> ugc_comment.id",
+          "ugc_comment.post_id -> ugc_post.id",
+          "ugc_post.id -> ugc_post_revision.post_id",
+          "ugc_post_revision.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "ugc_comment_like.comment_id -> ugc_comment.id",
+          "ugc_comment.post_id -> ugc_post.id",
+          "ugc_post.published_revision -> ugc_post_revision.revision",
+          "ugc_post_revision.created_by_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "ugc_comment_like.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Export only the subject's own ordinary-post comment likes, owned by member_id; comment author and post author are separate subjects. Public counts never reveal liker identities.",
+      "exportFields": [
+        "comment_id",
+        "created_at"
+      ],
+      "excludedFields": [
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "PURPOSE_BOUND_COMMENT_GOVERNANCE; ADMIN_COMMENT_DELETE_OR_SUBJECT_INTERACTION_REMOVAL_OR_CLOSURE; ACTIVE_LEGAL_HOLD_RETAINS_PRIVATE_EVIDENCE; NO_AUTOMATIC_PURGE_PROMISE",
+      "fullSubjectResolverStatus": "FIXED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "ugc_comment_safety_scan",

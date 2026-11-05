@@ -461,7 +461,7 @@ Page({
     const row=this.data.formalReportQueue.find(item=>item.id===id);
     if(!row?.postId||this.data.navigating)return;
     this.setData({navigating:true});
-    wx.navigateTo({url:`/pages/community-post/index?id=${encodeURIComponent(row.postId)}`,
+    wx.navigateTo({url:`/pages/post/index?id=${encodeURIComponent(row.postId)}&source=formal`,
       fail:()=>{this.setData({navigating:false});wx.showToast({title:"内容暂不可见，请查看举报摘要",icon:"none"});}});
   },
   async decideFormalReport(event:WechatMiniprogram.TouchEvent){
@@ -623,7 +623,7 @@ Page({
     this.setData({ navigating: true });
     const tab = this.getTabBar?.(); if (tab) tab.setData({ externalBusy: true });
     const item = this.data.feedColumns.flat().find((entry: any) => entry.id === id);
-    const route = item?.kind === "formal" ? "/pages/community-post/index" : "/pages/post/index";
-    wx.navigateTo({ url: `${route}?id=${encodeURIComponent(id)}${item?.kind==="editorial"?"&source=editorial":""}`, fail: () => { this.setData({ navigating: false }); const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false }); wx.showToast({ title: "护理故事暂时无法打开", icon: "none" }); } });
+    const route = "/pages/post/index";
+    wx.navigateTo({ url: `${route}?id=${encodeURIComponent(id)}${item?.kind==="editorial"?"&source=editorial":item?.kind==="formal"?"&source=formal":""}`, fail: () => { this.setData({ navigating: false }); const currentTab = this.getTabBar?.(); if (currentTab) currentTab.setData({ externalBusy: false }); wx.showToast({ title: "护理故事暂时无法打开", icon: "none" }); } });
   },
 });

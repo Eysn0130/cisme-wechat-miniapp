@@ -110,6 +110,14 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //110 adds empty owner-scoped comment likes without rewriting existing posts.
+    expect(migrationTip).toBe('202611040004_ugc_comment_likes.sql');
+    const commentLikeTable=async()=> (await pool.query("SELECT to_regclass('public.ugc_comment_like') name")).rows[0].name;
+    expect(await commentLikeTable()).toBe('ugc_comment_like');
+    await closePool(pool);await migrate('down');pool=migrationPool();expect(await commentLikeTable()).toBeNull();
+    await closePool(pool);await migrate('up');pool=migrationPool();expect(await commentLikeTable()).toBe('ugc_comment_like');
+    await closePool(pool);await migrate('down');pool=migrationPool();migrationCount-=1;extensionCount-=1;migrationTip='202611040003_official_editorial_publisher.sql';
+
     //109 separates the public publisher without inventing a member identity.
     expect(migrationTip).toBe('202611040003_official_editorial_publisher.sql');
     const publisherColumn=async()=>(await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='editorial_article' AND column_name='publisher_id'")).rows;

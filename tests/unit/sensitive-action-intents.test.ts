@@ -155,19 +155,11 @@ it("does not mark an edited referral confirmed when an earlier confirmation retu
   expect(page.data).toMatchObject({code:"CMBBBBBBBBBB",busy:false,preview:null,confirmed:false,status:""});
 });
 
-it("does not report, block, or delete an old post after an account switch",async()=>{
-  await load("../../apps/miniprogram/pages/community-post/index");
-  const post={id:"post-1",version:2,authorId:"author-1",isMine:false};
-  const page=mounted({postId:"post-1",post,epoch:5,busy:false});
-  const choice=deferred<{tapIndex:number}>();sheet.mockReturnValueOnce(choice.promise);
-  const report=page.report();session="actor-b";choice.resolve({tapIndex:0});await report;
-  expect(requestMock).not.toHaveBeenCalled();
-
-  session="actor-a";const blockAnswer=deferred<{confirm:boolean}>();modal.mockReturnValueOnce(blockAnswer.promise);
-  const block=page.blockAuthor();page.data.epoch+=1;blockAnswer.resolve({confirm:true});await block;
-  expect(requestMock).not.toHaveBeenCalled();
-
-  page.data.post={...post,isMine:true};const deleteAnswer=deferred<{confirm:boolean}>();modal.mockReturnValueOnce(deleteAnswer.promise);
+it("does not delete an owned story if the actor changes while confirmation is open",async()=>{
+  await load("../../apps/miniprogram/pages/post/index");
+  const page=mounted({id:"post-1",item:{id:"post-1",version:2,authorId:"author-1",isMine:true},formalSource:true,loadAttempt:5,loading:false});
+  page.presentationKey=(await import('../../apps/miniprogram/services/read-presentation')).readPresentationKey('formal:post-1');
+  const deleteAnswer=deferred<{confirm:boolean}>();modal.mockReturnValueOnce(deleteAnswer.promise);
   const removal=page.deleteOwn();session="actor-b";deleteAnswer.resolve({confirm:true});await removal;
   expect(requestMock).not.toHaveBeenCalled();
 });

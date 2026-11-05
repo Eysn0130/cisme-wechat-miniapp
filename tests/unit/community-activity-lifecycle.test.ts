@@ -53,7 +53,7 @@ describe("community activity editorial and submission sources",()=>{
     const old=fixture();old.page.onLoad({source:"ugc",section:"appeals"});assert.equal(old.calls[0].path,"/v1/me/ugc/activity/appeals?limit=30");assert.equal(old.page.data.section,"appeals");
     assert.equal(old.accessUrls[0],"/pages/community-activity/index?source=ugc&section=appeals");
     const denied=fixture("editorial");denied.state.access=false;denied.page.onLoad({source:"ugc",section:"saves"});assert.equal(denied.calls.length,0);assert.equal(denied.accessUrls[0],"/pages/community-activity/index?source=ugc&section=saves");
-    assert.match(readFileSync("apps/miniprogram/pages/community-post/index.ts","utf8"),/community-activity\/index\?source=ugc&section=comments/);
+    assert.match(readFileSync("apps/miniprogram/pages/community-post/index.ts","utf8"),/source=formal/);
   });
   it("switches source with no stale cursor, cancels the old owned read and rejects its late result",async()=>{
     const f=fixture("editorial"),first=f.page.load();f.page.data.nextCursor="old-cursor";f.page.selectSource(event("source","ugc"));
@@ -84,7 +84,7 @@ describe("community activity editorial and submission sources",()=>{
     const f=fixture("editorial");f.page.data.items=[editorialRow];f.page.openPost(event("id",editorialRow.postId,"editorial"));assert.equal(f.navigation[0].url,`/pages/post/index?id=${editorialRow.postId}&source=editorial`);
     f.page.data.items=[{...editorialRow,available:false}];f.page.openPost(event("id",editorialRow.postId,"editorial"));assert.equal(f.navigation.length,1);
     f.page.data.source="ugc";f.page.data.items=[row];f.page.openPost(event("id",row.postId,"editorial"));assert.equal(f.navigation.length,1);
-    f.page.openPost(event("id",row.postId,"ugc"));assert.equal(f.navigation[1].url,`/pages/community-post/index?id=${row.postId}`);
+    f.page.openPost(event("id",row.postId,"ugc"));assert.equal(f.navigation[1].url,`/pages/post/index?id=${row.postId}&source=formal`);
   });
   for(const action of ["save","block"] as const){
     it(`${action}: uses only its real editorial write and reconciles the same source after settlement`,async()=>{

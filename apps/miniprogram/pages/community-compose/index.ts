@@ -963,9 +963,9 @@ Page({
       if(this.publicationIsCurrent(flow)){this.publicationOpening=false;this.setData({error:"帖子已发布，暂时未能打开，请重试查看。"});}
     };
     const pages=typeof getCurrentPages==="function"?getCurrentPages():[];
-    const previous=pages[pages.length-2] as {route?:string;data?:{postId?:string}}|undefined;
-    if(previous?.route==="pages/community-post/index"&&previous.data?.postId===flow.postId)wx.navigateBack({delta:1,fail});
-    else wx.redirectTo({url:`/pages/community-post/index?id=${encodeURIComponent(flow.postId)}`,fail});
+    const previous=pages[pages.length-2] as {route?:string;data?:{postId?:string;id?:string;formalSource?:boolean}}|undefined;
+    if(previous?.route==="pages/community-post/index"&&previous.data?.postId===flow.postId||previous?.route==="pages/post/index"&&previous.data?.formalSource===true&&previous.data?.id===flow.postId)wx.navigateBack({delta:1,fail});
+    else wx.redirectTo({url:`/pages/post/index?id=${encodeURIComponent(flow.postId)}&source=formal`,fail});
   },
   async verifyWriteResult():Promise<Draft|null>{
     const pending=this.pendingWrite;if(!pending||!this.writeIsCurrent(pending)||this.data.recoveryBusy||!this.mediaVisible)return null;
@@ -1128,7 +1128,7 @@ Page({
     if(this.pendingImageEdit){this.setData({error:"请先重试使用修改后的图片，或放弃本次图片修改。"});return;}
     const context:PublishedReturn={postId:this.data.postId,ownerId:this.data.ownerId,epoch:this.data.epoch,token:getApp<IAppOption>().globalData.sessionToken,revision:this.readRevision};
     this.flushLocalBackup();this.publishedReturn=context;
-    wx.navigateTo({url:`/pages/community-post/index?id=${encodeURIComponent(context.postId)}`,fail:()=>{
+    wx.navigateTo({url:`/pages/post/index?id=${encodeURIComponent(context.postId)}&source=formal`,fail:()=>{
       if(this.publishedReturn===context){this.publishedReturn=null;this.setData({error:"公开内容暂时无法打开，请重试。"});}}});},
   async back(){if(await this.confirmLeave())wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/community/index"})});}
 });

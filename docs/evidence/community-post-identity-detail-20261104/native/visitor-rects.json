@@ -1,0 +1,72 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": [
+        {
+          "selector": ".post-authorbar",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 390,
+            "top": 91,
+            "bottom": 147,
+            "width": 390,
+            "height": 56
+          }
+        },
+        {
+          "selector": ".post-title",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 374,
+            "top": 147,
+            "bottom": 175,
+            "width": 358,
+            "height": 28
+          }
+        },
+        {
+          "selector": ".post-copy",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 374,
+            "top": 183,
+            "bottom": 261,
+            "width": 358,
+            "height": 78
+          }
+        },
+        {
+          "selector": ".post-bottom-actions",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 374,
+            "top": 762,
+            "bottom": 802,
+            "width": 358,
+            "height": 40
+          }
+        },
+        {
+          "selector": ".post-owner-edit",
+          "rect": null
+        },
+        {
+          "selector": ".post-owner-delete",
+          "rect": null
+        }
+      ]
+    }
+  }
+}
