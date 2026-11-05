@@ -148,7 +148,7 @@ describe("native detail presentation preserves the authorized comments and sourc
     for(const removedAction of ['commentMore','openCommentManagement','undoEditorialBlock'])
       expect(markup).not.toContain('bindtap="'+removedAction+'"');
     const deleteButton=markup.match(/<button\b[^>]*bindtap="deleteComment"[^>]*>/)?.[0];
-    expect(deleteButton).toBeDefined();expect(attribute(deleteButton!,"wx:if")).toContain("editorial ? canModerate : comment.isMine");
+    expect(deleteButton).toBeDefined();expect(attribute(deleteButton!,"wx:if")).toContain("editorial ? (formal ? comment.isMine : canModerate) : comment.isMine");
   });
 
   it("reuses measured native navigation and places the conditional author in content flow below media before the title",()=>{

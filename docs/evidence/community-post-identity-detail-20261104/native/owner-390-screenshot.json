@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_screenshot",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/community-post-identity-detail-20261104/native/owner-390.png",
+    "imageWidth": 390,
+    "imageHeight": 844
+  }
+}

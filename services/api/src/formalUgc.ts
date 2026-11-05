@@ -6,7 +6,7 @@ import type { AppConfig } from "@cisme/config";
 import { DomainError } from "@cisme/domain";
 import { transaction, type DbClient } from "./db.js";
 import { AuthorityService, requireActiveMemberWithClient } from "./authority.js";
-import { communityAuthors } from "./memberProfile.js";
+import { communityAuthors, publishedPostAuthors } from "./memberProfile.js";
 import { validateGatewayUpload, type ObjectStorage } from "./storage.js";
 import { pendingReviewRevisionSql, reviewableRevisionSql } from "./ugcVisibility.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
@@ -369,9 +369,9 @@ export class FormalUgcService{
           WHERE f.follower_member_id=$3 AND f.followed_member_id=p.author_member_id))
       ORDER BY p.published_at DESC,p.id DESC LIMIT $4`,[q,authorId,memberId??null,limit+1,cursorAt,cursorId,followingOnly]);
     const page=result.rows.slice(0,limit),last=page[page.length-1],hasMore=result.rows.length>limit;
-    const authors=await communityAuthors(this.pool,page.map(row=>row.author_member_id));
+    const authors=await publishedPostAuthors(this.pool,page.map(row=>row.author_member_id));
     return {items:page.map(row=>({id:row.id,authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",
-      avatar:authors[row.author_member_id]?.avatar??"",title:row.title||row.body?.slice(0,40)||"图片护理故事",
+      avatar:authors[row.author_member_id]?.avatar??"",avatarRevision:authors[row.author_member_id]?.avatarRevision??null,title:row.title||row.body?.slice(0,40)||"图片护理故事",
       excerpt:row.body?.slice(0,100)||"",aiUsage:row.ai_usage,coverId:row.cover_id,likeCount:row.like_count,publishedAt:row.published_at})),
       total:page.length,nextCursor:hasMore&&last?Buffer.from(JSON.stringify({at:new Date(last.published_at).toISOString(),id:last.id})).toString("base64url"):null,
       publicEnabled:true};
@@ -393,7 +393,7 @@ export class FormalUgcService{
           WHERE b.blocker_member_id=$2 AND b.blocked_member_id=a.id))`,[id,memberId??null]);
     const row=result.rows[0];
     if(!row)throw new DomainError("UGC_AUTHOR_NOT_FOUND","作者暂不可见",404);
-    const publicNames=await communityAuthors(this.pool,[id]);
+    const publicNames=await publishedPostAuthors(this.pool,[id]);
     return {id,name:publicNames[id]?.name??"CISME 会员",avatar:publicNames[id]?.avatar??"",
       postCount:row.post_count,following:row.following===true,isMine:memberId===id};
   }
@@ -412,43 +412,48 @@ export class FormalUgcService{
         WHERE b.post_id=$1 AND b.revision=$2 AND a.state='approved' ORDER BY b.position`,[id,post.published_revision]),
       this.pool.query(`SELECT kind,count(*)::int AS count,bool_or(member_id=$2) AS mine FROM ugc_post_reaction WHERE post_id=$1 GROUP BY kind`,[id,memberId??null]),
       this.publicComments(memberId,id,{limit:30}),
-      communityAuthors(this.pool,[post.author_member_id]),
+      publishedPostAuthors(this.pool,[post.author_member_id]),
       memberId?this.pool.query(`SELECT (EXISTS(SELECT 1 FROM ugc_author_follow
         WHERE follower_member_id=$1 AND followed_member_id=$2)
         OR EXISTS(SELECT 1 FROM community_follow WHERE member_id=$1 AND author_id=$2::text)) AS following`,[memberId,post.author_member_id])
         :Promise.resolve({rows:[{following:false}]})
     ]);
     return {id,version:post.version,authorId:post.author_member_id,author:authors[post.author_member_id]?.name??"CISME 会员",
-      avatar:authors[post.author_member_id]?.avatar??"",title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,
+      avatar:authors[post.author_member_id]?.avatar??"",avatarRevision:authors[post.author_member_id]?.avatarRevision??null,title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,
       publishedAt:post.published_at,isMine:memberId===post.author_member_id,following:follow.rows[0]?.following===true,media:media.rows,
       likeCount:reactions.rows.find(row=>row.kind==="like")?.count??0,saveCount:reactions.rows.find(row=>row.kind==="save")?.count??0,
       liked:reactions.rows.find(row=>row.kind==="like")?.mine??false,saved:reactions.rows.find(row=>row.kind==="save")?.mine??false,
       comments:comments.items,commentsTotal:comments.matchingTotal,commentsNextCursor:comments.nextCursor};
   }
 
-  async publicComments(memberId:string|undefined,postId:string,input:{limit?:unknown;cursor?:unknown}={}){
+  async publicComments(memberId:string|undefined,postId:string,input:{limit?:unknown;cursor?:unknown;reader?:unknown}={}){
     if(!await this.publicEnabled())throw new DomainError("UGC_POST_NOT_FOUND","护理故事暂不可见",404);
-    const id=uuid(postId),limit=pageLimit(input.limit,30,50),scope=pageScope(["ugc-comments",id,memberId??"guest"]),
+    const reader=input.reader==="1"||input.reader===true;
+    if(reader&&!memberId)throw new DomainError("AUTH_REQUIRED","登录后查看评论",401);
+    const id=uuid(postId),limit=pageLimit(input.limit,30,50),scope=pageScope(reader?["ugc-comments",id,memberId??"guest","reader"]:["ugc-comments",id,memberId??"guest"]),
       cursor=readPageCursor(input.cursor,scope);
     const visible=(await this.pool.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id AND author.status='active'
       WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
         AND ($2::uuid IS NULL OR NOT EXISTS(SELECT 1 FROM ugc_block_relation b
           WHERE b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id))`,[id,memberId??null])).rowCount;
     if(!visible)throw new DomainError("UGC_POST_NOT_FOUND","护理故事已下架或不可见",404);
-    const condition=`c.post_id=$1 AND c.state='published' AND commenter.status='active'
+    const condition=`c.post_id=$1 AND (c.state='published'${reader?" OR (c.author_member_id=$2 AND c.state IN ('pending_review','rejected'))":""}) AND commenter.status='active'
       AND ($2::uuid IS NULL OR NOT EXISTS(SELECT 1 FROM ugc_block_relation b
         WHERE b.blocker_member_id=$2 AND b.blocked_member_id=c.author_member_id))
       AND (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM ugc_comment parent WHERE parent.id=c.parent_id AND parent.state='published'))`;
-    const result=await this.pool.query(`SELECT c.id,c.body,c.created_at,c.created_at::text AS cursor_at,c.author_member_id,c.parent_id,c.reply_to_id
+    const result=await this.pool.query(`SELECT c.id,c.body,c.state,c.version,c.created_at,c.created_at::text AS cursor_at,c.author_member_id,c.parent_id,c.reply_to_id,
+      (SELECT count(*)::int FROM ugc_comment_like l WHERE l.comment_id=c.id) AS like_count,
+      EXISTS(SELECT 1 FROM ugc_comment_like l WHERE l.comment_id=c.id AND l.member_id=$2) AS liked
       FROM ugc_comment c JOIN member commenter ON commenter.id=c.author_member_id
       WHERE ${condition} AND ($3::timestamptz IS NULL OR (c.created_at,c.id)>($3::timestamptz,$4::uuid))
       ORDER BY c.created_at,c.id LIMIT $5`,[id,memberId??null,cursor?.at??null,cursor?.id??null,limit+1]);
     const total=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_comment c JOIN member commenter ON commenter.id=c.author_member_id
       WHERE ${condition}`,[id,memberId??null])).rows[0]?.n??0;
-    const authors=await communityAuthors(this.pool,result.rows.map(row=>row.author_member_id));
-    const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,body:row.body,createdAt:row.created_at,
-      authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",parentId:row.parent_id,
-      replyToId:row.reply_to_id})),limit,scope);
+    const authors=await publishedPostAuthors(this.pool,result.rows.map(row=>row.author_member_id));
+    const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,body:row.body,state:row.state,version:row.version,createdAt:row.created_at,
+      authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",avatar:authors[row.author_member_id]?.avatar??"",
+      avatarRevision:authors[row.author_member_id]?.avatarRevision??null,isMine:memberId===row.author_member_id,
+      likeCount:row.like_count,liked:row.liked===true,parentId:row.parent_id,replyToId:row.reply_to_id})),limit,scope);
     return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};
   }
 
@@ -701,6 +706,29 @@ export class FormalUgcService{
     });
   }
 
+  async likeComment(memberId:string|undefined,postId:string,commentId:string,active:unknown){
+    const owner=member(memberId),id=uuid(postId),comment=uuid(commentId);
+    if(typeof active!=="boolean")throw new DomainError("UGC_REACTION_INVALID","点赞操作无效",422);
+    return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
+      const target=await client.query(`SELECT c.id FROM ugc_comment c JOIN ugc_post p ON p.id=c.post_id
+        JOIN member author ON author.id=p.author_member_id AND author.status='active'
+        JOIN member commenter ON commenter.id=c.author_member_id AND commenter.status='active'
+        WHERE p.id=$1 AND c.id=$2 AND p.state='published' AND p.visibility='public' AND c.state='published'
+          AND (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM ugc_comment parent WHERE parent.id=c.parent_id AND parent.state='published'))
+          AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE
+            (b.blocker_member_id=$3 AND b.blocked_member_id IN(p.author_member_id,c.author_member_id)) OR
+            (b.blocked_member_id=$3 AND b.blocker_member_id IN(p.author_member_id,c.author_member_id)))
+        FOR SHARE OF p,c`,[id,comment,owner]);
+      if(!target.rowCount)throw new DomainError("UGC_COMMENT_NOT_FOUND","评论暂不可见",404);
+      await this.requirePublicGate(client);
+      if(active)await client.query('INSERT INTO ugc_comment_like(comment_id,member_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[comment,owner]);
+      else await client.query('DELETE FROM ugc_comment_like WHERE comment_id=$1 AND member_id=$2',[comment,owner]);
+      const count=(await client.query('SELECT count(*)::int AS n FROM ugc_comment_like WHERE comment_id=$1',[comment])).rows[0].n;
+      return {id:comment,liked:active,likeCount:count};
+    });
+  }
+
   async follow(memberId:string|undefined,authorId:string,active:unknown){
     const owner=member(memberId),author=uuid(authorId);
     if(owner===author||typeof active!=="boolean")throw new DomainError("UGC_FOLLOW_INVALID","关注操作无效",422);
@@ -728,12 +756,12 @@ export class FormalUgcService{
     if(!body)throw new DomainError("UGC_COMMENT_EMPTY","请输入评论内容",422);
     const parentId=input.parentId?uuid(input.parentId):null,replyToId=input.replyToId?uuid(input.replyToId):null;
     return transaction(this.pool,async client=>{
-      const previous=(await client.query(`SELECT id,state,post_id,body,parent_id,reply_to_id FROM ugc_comment
+      const previous=(await client.query(`SELECT id,state,version,post_id,body,parent_id,reply_to_id FROM ugc_comment
         WHERE author_member_id=$1 AND operation_id=$2`,[owner,op])).rows[0];
       if(previous){
         if(previous.post_id!==id||previous.body!==body||previous.parent_id!==parentId||previous.reply_to_id!==replyToId)
           throw new DomainError("UGC_COMMENT_RETRY_CONFLICT","评论内容已变化，请重新发送",409);
-        return {id:previous.id,state:previous.state};
+        return {id:previous.id,state:previous.state,version:previous.version,replayed:true};
       }
       const post=await client.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id
         AND author.status='active' WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
@@ -747,8 +775,8 @@ export class FormalUgcService{
         if(!reply||reply.post_id!==id||reply.state!=="published")throw new DomainError("UGC_COMMENT_PARENT_INVALID","回复对象已不可见",409);}
       await this.requirePublicGate(client);
       const created=await client.query(`INSERT INTO ugc_comment(post_id,author_member_id,parent_id,reply_to_id,body,operation_id)
-        VALUES($1,$2,$3,$4,$5,$6) RETURNING id,state`,[id,owner,parentId,replyToId,body,op]);
-      return created.rows[0];
+        VALUES($1,$2,$3,$4,$5,$6) RETURNING id,state,version`,[id,owner,parentId,replyToId,body,op]);
+      return {...created.rows[0],replayed:false};
     });
   }
 

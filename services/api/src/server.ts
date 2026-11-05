@@ -397,7 +397,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{q?:string;authorId?:string;limit?:string;cursor?:string;following?:string}}>("/v1/ugc/posts", async request => formalUgc.feed(request.memberId,request.query));
   app.get<{Params:{authorId:string}}>("/v1/ugc/authors/:authorId", async request => formalUgc.publicAuthor(request.memberId,request.params.authorId));
   app.get<{Params:{postId:string}}>("/v1/ugc/posts/:postId", async request => formalUgc.publicPost(request.memberId,request.params.postId));
-  app.get<{Params:{postId:string};Querystring:{limit?:string;cursor?:string}}>("/v1/ugc/posts/:postId/comments",
+  app.get<{Params:{postId:string};Querystring:{limit?:string;cursor?:string;reader?:string}}>("/v1/ugc/posts/:postId/comments",
     async request => formalUgc.publicComments(request.memberId,request.params.postId,request.query));
   app.get<{Params:{mediaId:string};Querystring:{variant?:string}}>("/v1/ugc/media/:mediaId", async (request,reply) => {
     const object=await formalUgc.publicMedia(request.params.mediaId,request.query.variant==="thumbnail"?"thumbnail":"detail");
@@ -464,6 +464,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.put<{Params:{memberId:string}}>("/v1/me/ugc/follows/:memberId", async request => formalUgc.follow(request.memberId,request.params.memberId,(request.body as {active?:unknown})?.active));
   app.post<{Params:{postId:string}}>("/v1/ugc/posts/:postId/comments", async request => formalUgc.comment(request.memberId,request.params.postId,idempotencyKey(request),(request.body??{}) as never));
   app.delete<{Params:{postId:string;commentId:string}}>("/v1/ugc/posts/:postId/comments/:commentId", async request => formalUgc.deleteComment(request.memberId,request.params.postId,request.params.commentId));
+  app.put<{Params:{postId:string;commentId:string}}>("/v1/ugc/posts/:postId/comments/:commentId/like",async request=>formalUgc.likeComment(request.memberId,request.params.postId,request.params.commentId,(request.body as {active?:unknown})?.active));
   app.post<{Params:{targetType:string;targetId:string}}>("/v1/ugc/reports/:targetType/:targetId", async request => formalUgc.report(request.memberId,request.params.targetType,request.params.targetId,(request.body??{}) as never));
   app.put<{Params:{memberId:string}}>("/v1/me/ugc/blocks/:memberId", async request => formalUgc.block(request.memberId,request.params.memberId,(request.body as {active?:unknown})?.active));
   app.get("/v1/management/ugc/review-queue", async request => formalUgc.reviewQueue(request.memberId));

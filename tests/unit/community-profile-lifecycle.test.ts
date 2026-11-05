@@ -25,7 +25,7 @@ it.each(['editorial','formal','ugc'])('keeps the correct detail route for %s whi
  page.onLoad({id:authorId,source:'editorial'});m.read.mockResolvedValue(response(false,kind));await page.load();
  expect(m.read).toHaveBeenCalledWith({path:`/v1/community/authors/${authorId}?limit=20`,authMode:'optional'});
  page.openPost({currentTarget:{dataset:{id:postId}}});page.openPost({currentTarget:{dataset:{id:postId}}});
- expect(wx.navigateTo).toHaveBeenCalledOnce();expect(wx.navigateTo.mock.calls[0][0].url).toBe(`${kind==='formal'?'/pages/community-post/index':'/pages/post/index'}?id=${postId}${kind==='editorial'?'&source=editorial':''}`);
+ expect(wx.navigateTo).toHaveBeenCalledOnce();expect(wx.navigateTo.mock.calls[0][0].url).toBe(`/pages/post/index?id=${postId}${kind==='editorial'?'&source=editorial':kind==='formal'?'&source=formal':''}`);
 });
 it('preserves an ordinary member portrait even when their nickname matches the brand signature',async()=>{
  const dto=response();dto.author.name='CISME头皮实验室';dto.items[0]!.author=dto.author.name;m.read.mockResolvedValue(dto);await page.load();

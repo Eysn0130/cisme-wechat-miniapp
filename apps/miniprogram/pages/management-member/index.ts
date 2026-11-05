@@ -74,7 +74,7 @@ Page({
     if(!/^[0-9a-f-]{36}$/i.test(id))return;
     const section=this.sectionKey();
     if(section==="referrals")wx.navigateTo({url:`/pages/management-member/index?id=${id}`});
-    else if(section==="posts")wx.navigateTo({url:`/pages/community-post/index?id=${id}`});
+    else if(section==="posts")wx.navigateTo({url:`/pages/post/index?id=${id}&source=formal`});
     else wx.navigateTo({url:`/pages/management-order-detail/index?id=${id}`});
   },
   async load(){const attempt=++this.data.attempt,token=getApp<IAppOption>().globalData.sessionToken;

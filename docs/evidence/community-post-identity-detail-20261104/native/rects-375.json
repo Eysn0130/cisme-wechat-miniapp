@@ -1,0 +1,90 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": [
+        {
+          "selector": ".post-authorbar",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 0,
+            "right": 375,
+            "top": 91,
+            "bottom": 147,
+            "width": 375,
+            "height": 56
+          }
+        },
+        {
+          "selector": ".post-title",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 359,
+            "top": 147,
+            "bottom": 175,
+            "width": 343,
+            "height": 28
+          }
+        },
+        {
+          "selector": ".post-copy",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 359,
+            "top": 183,
+            "bottom": 261,
+            "width": 343,
+            "height": 78
+          }
+        },
+        {
+          "selector": ".post-bottom-actions",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 16,
+            "right": 359,
+            "top": 682,
+            "bottom": 722,
+            "width": 343,
+            "height": 40
+          }
+        },
+        {
+          "selector": ".post-owner-edit",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 32,
+            "right": 181.5,
+            "top": 726,
+            "bottom": 770,
+            "width": 149.5,
+            "height": 44
+          }
+        },
+        {
+          "selector": ".post-owner-delete",
+          "rect": {
+            "id": "",
+            "dataset": {},
+            "left": 193.5,
+            "right": 343,
+            "top": 726,
+            "bottom": 770,
+            "width": 149.5,
+            "height": 44
+          }
+        }
+      ]
+    }
+  }
+}

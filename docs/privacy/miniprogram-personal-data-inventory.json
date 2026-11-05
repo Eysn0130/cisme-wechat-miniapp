@@ -761,7 +761,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "a90104af662535d7f33b2fee3a037e337e6cae76acfd6a2517f583871119a697",
+  "migrationSetSha256": "09b596880c35c9ccd2f18df1e04a22e76cb31185e30c0d8ac45faee2cea916fb",
   "egressSignatureSha256": "e12bd89786fdf36dba3c626c41bf974b504025dda042cecff65151769912ec6b",
   "performanceRepairReview": {
     "date": "2026-09-20",

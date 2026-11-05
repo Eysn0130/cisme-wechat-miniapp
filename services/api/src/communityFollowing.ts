@@ -5,7 +5,7 @@ import { DomainError } from "@cisme/domain";
 import { readSnapshot } from "./db.js";
 import type { EditorialService } from "./editorial.js";
 import type { FormalUgcService } from "./formalUgc.js";
-import { communityAuthors } from "./memberProfile.js";
+import { communityAuthors, publishedPostAuthors } from "./memberProfile.js";
 import {editorialPublicAuthorIdSql} from './editorialPublisher.js';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -71,10 +71,11 @@ export class CommunityFollowingService {
         cursor?.at ?? null, cursor?.kind ?? null, cursor?.id ?? null, limit + 1]);
       const rows = result.rows.slice(0, limit), last = rows[rows.length - 1];
       const authors = await communityAuthors(client, rows.filter(row => row.kind !== "editorial").map(row => row.author_id));
+      const publishedAuthors = await publishedPostAuthors(client, rows.filter(row => row.kind === "formal").map(row => row.author_id));
       return { items: rows.map(row => ({ kind: row.kind, id: row.id, authorId: row.author_id,
-        author: row.kind === "editorial" ? row.editorial_author : authors[row.author_id]?.name ?? "CISME 会员",
-        avatar: row.kind === "editorial" ? "" : authors[row.author_id]?.avatar ?? "",
-        avatarRevision: row.kind === "editorial" ? null : authors[row.author_id]?.avatarRevision ?? null,
+        author: row.kind === "editorial" ? row.editorial_author : (row.kind === "formal" ? publishedAuthors : authors)[row.author_id]?.name ?? "CISME 会员",
+        avatar: row.kind === "editorial" ? "" : (row.kind === "formal" ? publishedAuthors : authors)[row.author_id]?.avatar ?? "",
+        avatarRevision: row.kind === "editorial" ? null : (row.kind === "formal" ? publishedAuthors : authors)[row.author_id]?.avatarRevision ?? null,
         title: row.title, excerpt: row.excerpt, coverUrl: row.cover_url,
         publishedAt: row.published_at.toISOString(), likeCount: row.like_count })),
         nextCursor: result.rows.length > limit && last

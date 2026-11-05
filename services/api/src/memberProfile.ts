@@ -115,3 +115,8 @@ export async function editorialCommentAuthors(pool: pg.Pool | pg.PoolClient, mem
   return Object.fromEntries(result.rows.map(row=>[row.id,{name:row.name||'CISME 会员',
     avatar:avatarIds.has(row.id)?row.avatar||'':'',avatarRevision:avatarIds.has(row.id)?row.revision||null:null}]));
 }
+
+// A public post carries its actual author's small display identity, just as
+// an explicit public comment does. Call only after publication/visibility
+// checks; this does not opt the member into the legacy public-profile review.
+export const publishedPostAuthors = editorialCommentAuthors;

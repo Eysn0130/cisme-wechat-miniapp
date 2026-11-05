@@ -234,7 +234,7 @@ describe("mini program submission flow safety", () => {
     expect(profile).toContain("member:null, points:null, care:null, coreUnavailable:false, authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null");
     expect(post).toContain("onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(true); }");
     expect(post).toContain("async load(restoreGallery = false)");
-    expect(post).toContain("const article=await publishedEditorialArticle(this.data.id,this);");
+    expect(post).toContain("const article=await (this.data.formalSource?publishedFormalStory:publishedEditorialArticle)(this.data.id,this);");
     expect(post).toContain("if(!this.currentArticleLoad(attempt,token)){this.dropChangedArticleOwner(attempt);return;}");
     expect(post).toContain("gallery.id===article.id && gallery.version===article.version");
     expect(post).toContain("gallery.ownerToken===token && gallery.media.length===display.images.length");

@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_open_page",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "page": "pages/post/index",
+    "query": "id=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb&source=formal",
+    "scene": 1001
+  }
+}

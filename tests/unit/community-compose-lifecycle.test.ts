@@ -295,7 +295,7 @@ it('shows published success only for the actual published response, without a hu
  await page.submit();expect(page.data).toMatchObject({state:'published',publicVersionActive:true,notice:'已发布。',busy:false});
  expect(page.data.notice).not.toContain('审核');
  expect(page.data.publicationComplete).toBe(true);
- expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:`/pages/community-post/index?id=${post}`}));
+ expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:`/pages/post/index?id=${post}&source=formal`}));
 });
 it('keeps an automatic check failure editable and does not label it published',async()=>{
  const page=editor();page.mediaVisible=true;const body=page.data.body;
@@ -325,7 +325,7 @@ describe('publication completion navigation',()=>{
   await page.submit();expect(wxMock.redirectTo).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(2000);
   expect(page.data).toMatchObject({state:'published',publicationComplete:true});
-  expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:`/pages/community-post/index?id=${post}`}));
+  expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:`/pages/post/index?id=${post}&source=formal`}));
   expect(m.request.mock.calls.filter(([r])=>r.method==='POST')).toHaveLength(1);
  });
  it('pauses on hide, ignores the old read and resumes on return',async()=>{

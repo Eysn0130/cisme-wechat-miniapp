@@ -130,7 +130,7 @@ Page({
   openPost(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id||""),source=this.data.source,row=this.data.items.find(item=>item.postId===id);
     if(!this.alive||!this.visible||!id||event.currentTarget.dataset.source!==source||!row||source==="editorial"&&row.available!==true)return;
-    const url=source==="editorial"?`/pages/post/index?id=${encodeURIComponent(id)}&source=editorial`:`/pages/community-post/index?id=${encodeURIComponent(id)}`;
+    const url=source==="editorial"?`/pages/post/index?id=${encodeURIComponent(id)}&source=editorial`:`/pages/post/index?id=${encodeURIComponent(id)}&source=formal`;
     wx.navigateTo({url,
       fail:()=>wx.showToast({title:"内容暂时无法打开",icon:"none"})});
   },

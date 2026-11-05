@@ -51,7 +51,7 @@ it('uses the authenticated timeline rather than appending un-followed curated co
  expect(Object.fromEntries(page.data.feedColumns.flat().map((x:any)=>[x.id,x.kind]))).toEqual({[uuid('a')]:'editorial',[uuid('b')]:'formal',[uuid('c')]:'ugc'});
  expect(rendered.dom.textContent).toContain('关注动态');expect(rendered.dom.textContent).not.toContain('邀请活动');
 });
-it.each([['editorial','/pages/post/index?id=','&source=editorial'],['formal','/pages/community-post/index?id=',''],['ugc','/pages/post/index?id=','']])('opens a %s card with its original source and detail route',async(kind,prefix,suffix)=>{
+it.each([['editorial','/pages/post/index?id=','&source=editorial'],['formal','/pages/post/index?id=','&source=formal'],['ugc','/pages/post/index?id=','']])('opens a %s card with its original source and detail route',async(kind,prefix,suffix)=>{
  following={items:[card('a',kind)],nextCursor:null};await select('following');page.openPost({currentTarget:{dataset:{id:uuid('a')}}});
  expect(wx.navigateTo.mock.calls[0][0].url).toBe(prefix+uuid('a')+suffix);
 });

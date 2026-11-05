@@ -109,6 +109,8 @@ export const portableQuerySpecs = [
         FROM ugc_comment WHERE author_member_id=$1 ORDER BY created_at,id`},
   {section:'community',collection:'reactions',single:false,sql:`SELECT post_id,kind,created_at FROM ugc_post_reaction
         WHERE member_id=$1 ORDER BY created_at,post_id,kind`},
+  {section:'community',collection:'commentLikes',single:false,sql:`SELECT comment_id,created_at FROM ugc_comment_like
+        WHERE member_id=$1 ORDER BY created_at,comment_id`},
   {section:'community',collection:'follows',single:false,sql:`SELECT created_at FROM ugc_author_follow
         WHERE follower_member_id=$1 ORDER BY created_at,followed_member_id`},
   {section:'community',collection:'blocks',single:false,sql:`SELECT created_at FROM ugc_block_relation

@@ -1,0 +1,43 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/post/index",
+        "stack": [
+          "pages/post/index"
+        ],
+        "author": "HEHEHE",
+        "body": "分享一次自己的护理感受。\n\n这是本轮原生界面的合成验证内容。",
+        "isMine": false,
+        "formal": true,
+        "error": "",
+        "ownerBusy": false,
+        "commentsError": "",
+        "width": 390,
+        "calls": [
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/comments?reader=1&limit=30",
+            "method": "GET"
+          },
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/comments?reader=1&limit=30",
+            "method": "GET"
+          }
+        ],
+        "deleted": false
+      }
+    }
+  }
+}

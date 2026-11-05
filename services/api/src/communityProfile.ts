@@ -3,7 +3,7 @@ import { CANONICAL_WECHAT_MINIPROGRAM_APP_ID, type AppConfig } from '@cisme/conf
 import type { CommunityAuthorPage } from '@cisme/contracts';
 import { DomainError } from '@cisme/domain';
 import { readSnapshot, transaction } from './db.js';
-import { communityAuthors } from './memberProfile.js';
+import { communityAuthors, publishedPostAuthors } from './memberProfile.js';
 import type { EditorialService } from './editorial.js';
 import type { FormalUgcService } from './formalUgc.js';
 import type { UgcSafetyService } from './ugcSafety.js';
@@ -84,7 +84,7 @@ export class CommunityProfileService {
           cursor?.at??null,cursor?.kind??null,cursor?.id??null,limit+1])).rows[0];
       const isMine=memberId===authorId;
       if(!isMine&&!summary.post_count)throw unavailable();
-      const publicAuthor=(await communityAuthors(client,[authorId]))[authorId];
+      const publicAuthor=(await (summary.formal_count?publishedPostAuthors:communityAuthors)(client,[authorId]))[authorId];
       const personalName=(isMine?member.display_name:publicAuthor?.name)||'CISME 会员';
       const avatar=isMine?member.avatar_data_url||'':publicAuthor?.avatar||'';
       const rows=summary.items.slice(0,limit),last=rows.at(-1);

@@ -1,0 +1,35 @@
+{
+  "sourceSha256": "daed4d04b32274b98336a2734bcbca546e4260be29ac0c46d4ac32594d5104fe",
+  "unit": {
+    "passed": 3118,
+    "skipped": 1,
+    "files": 188
+  },
+  "focusedIntegration": {
+    "passed": 10,
+    "files": 4
+  },
+  "migrationLifecycleAfterAdding110": {
+    "passed": 1
+  },
+  "deploymentGuardOffline": {
+    "passed": 8
+  },
+  "localCompleteIntegration": {
+    "passed": 1165,
+    "failed": 3,
+    "migrationFailureCorrectedSeparately": true,
+    "remainingFailures": [
+      "cloud-upload expired support chunk",
+      "media-concurrency expired support upload"
+    ],
+    "environmentDiagnosis": {
+      "databaseClockAheadOfHostMs": 1929,
+      "fixturesUsePastOffsetMs": 1000
+    },
+    "ciStillRequired": true
+  },
+  "realAccountWrites": false,
+  "physicalDeviceTested": false,
+  "fullVisualMatrixPassed": false
+}
