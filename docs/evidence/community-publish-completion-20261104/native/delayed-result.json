@@ -1,0 +1,53 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-post/index",
+        "stack": [
+          "pages/community-post/index"
+        ],
+        "body": "合成验证：自动等待安全检查完成。",
+        "error": "",
+        "calls": [
+          {
+            "path": "ugc/status",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/draft",
+            "method": "PUT"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit",
+            "method": "POST"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/activity/comments?postId=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb&limit=30",
+            "method": "GET"
+          }
+        ],
+        "width": 390
+      }
+    }
+  }
+}

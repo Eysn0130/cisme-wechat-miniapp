@@ -1,0 +1,52 @@
+
+> cisme-wechat-miniapp@0.1.0 test
+> vitest run tests/unit --exclude 'dist/**'
+
+
+ RUN  v4.1.12 /Users/mini/CISME
+
+ ❯ tests/unit/native-boundaries.test.ts (11 tests | 1 failed) 1222ms
+     × locks the per-route button action inventory and verifies every handler exists 146ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/native-boundaries.test.ts > native mini program boundary > locks the per-route button action inventory and verifies every handler exists
+AssertionError: expected { account: [ 'back', …(9) ], …(39) } to deeply equal { account: [ 'back', …(9) ], …(39) }
+
+- Expected
++ Received
+
+@@ -127,15 +127,16 @@
+      "startNew",
+      "selectDraftFilter",
+      "openDraft",
+      "deleteListDraft",
+      "loadMoreList",
++     "openPublicationResult",
++     "returnToCommunity",
+      "refreshPublication",
+      "editPendingPublication",
+      "showMyPosts",
+      "returnToCommunity",
+-     "openPublishedPost",
+      "submitAppeal",
+      "retryPreview",
+      "retryImage",
+      "retryPreview",
+      "removeImage",
+
+ ❯ tests/unit/native-boundaries.test.ts:264:20
+    262|       if (actions.length) actual[route] = actions;
+    263|     }
+    264|     expect(actual).toEqual(expected);
+       |                    ^
+    265|
+    266|     for (const [route, actions] of Object.entries(expected)) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 186 passed (187)
+      Tests  1 failed | 3109 passed | 1 skipped (3111)
+   Start at  17:45:36
+   Duration  11.37s (transform 9.79s, setup 10.90s, import 17.07s, tests 47.61s, environment 2.51s)

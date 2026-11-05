@@ -1,0 +1,39 @@
+{
+  "nativeChecksPassed": true,
+  "sourceSha256": "4b15f841376982594aa3f34e25788ce0c0bdaa680269dfd7a2ca9b3f2b7b7cc9",
+  "width": 390,
+  "states": [
+    "editable composer",
+    "immediate published detail",
+    "pending automatic safety check",
+    "automatic completion without a view tap",
+    "edit returns to one existing detail",
+    "navigation failure and navigation-only retry"
+  ],
+  "realApiRequests": false,
+  "realAccountWrites": false,
+  "bootstrapOnlyOverrides": [
+    "app.ts",
+    "app.json"
+  ],
+  "images": [
+    {
+      "file": "docs/evidence/community-publish-completion-20261104/native/editor.png",
+      "sha256": "8bb47c16f0fa4e4ca4fa40bf40ae450a0db9a7576875d645c36ef0b3a9875a10"
+    },
+    {
+      "file": "docs/evidence/community-publish-completion-20261104/native/instant-detail.png",
+      "sha256": "358d5aad53c78d5e8b53c069c93f8f30494e4c7d2af8bf952e07bee934520ddb"
+    },
+    {
+      "file": "docs/evidence/community-publish-completion-20261104/native/pending.png",
+      "sha256": "96365f1d61ede7e3c49a6f9cd3c7bd1d079577ac353328fc2ea6c2fa041e2171"
+    },
+    {
+      "file": "docs/evidence/community-publish-completion-20261104/native/navigation-failed.png",
+      "sha256": "799a02988b60d04ad6ff3a35c6c05f37460e1e9dab314f2b4262ba4d9c53fe90"
+    }
+  ],
+  "physicalDeviceTested": false,
+  "fullVisualMatrixPassed": false
+}

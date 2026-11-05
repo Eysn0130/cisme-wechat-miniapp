@@ -14,12 +14,12 @@ function editor(patch:Record<string,unknown>={}){return instance({postId:post,ow
 beforeEach(async()=>{
   vi.resetModules();m.request.mockReset();m.upload.mockReset().mockResolvedValue(undefined);m.token="member-a";storage=new Map();pages=[];
   wxMock={getStorageSync:(key:string)=>storage.get(key),setStorageSync:(key:string,value:unknown)=>storage.set(key,structuredClone(value)),removeStorageSync:(key:string)=>storage.delete(key),
-    enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),showActionSheet:vi.fn(),showModal:vi.fn(),navigateBack:vi.fn(),switchTab:vi.fn(),navigateTo:vi.fn(),hideKeyboard:vi.fn(),
+    enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),showActionSheet:vi.fn(),showModal:vi.fn(),navigateBack:vi.fn(),switchTab:vi.fn(),navigateTo:vi.fn(),redirectTo:vi.fn(),hideKeyboard:vi.fn(),
     requirePrivacyAuthorize:({success}:any)=>success(),chooseMedia:vi.fn(),previewImage:vi.fn(),getFileSystemManager:()=>({readFile:({success}:any)=>success({data:new Uint8Array([255,216,255]).buffer})})};
-  Object.assign(globalThis,{wx:wxMock,getApp:()=>({globalData:{sessionToken:m.token}}),Page:(value:any)=>{definition=value;}});
+  Object.assign(globalThis,{wx:wxMock,getApp:()=>({globalData:{sessionToken:m.token}}),getCurrentPages:()=>[],Page:(value:any)=>{definition=value;}});
   await import("../../apps/miniprogram/pages/community-compose/index");
 });
-afterEach(()=>{for(const page of pages)if(page.backupTimer)clearTimeout(page.backupTimer);});
+afterEach(()=>{for(const page of pages){page.stopPublicationTracking();if(page.backupTimer)clearTimeout(page.backupTimer);}vi.useRealTimers();});
 describe("community composer command ownership",()=>{
   it("uses a distinct creation key per new page and creates only once across onLoad/onShow",async()=>{
     m.request.mockImplementation(async({path,method}:any)=>path==="/v1/ugc/status"?{publicEnabled:false,draftsEnabled:true}:method==="POST"?draft():{items:[],matchingTotal:0,nextCursor:null});
@@ -294,6 +294,8 @@ it('shows published success only for the actual published response, without a hu
  m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body:page.data.body}):draft({state:'published',version:4,revision:3,publishedRevision:3,publicVersionActive:true,directPublication:true,body:page.data.body}));
  await page.submit();expect(page.data).toMatchObject({state:'published',publicVersionActive:true,notice:'已发布。',busy:false});
  expect(page.data.notice).not.toContain('审核');
+ expect(page.data.publicationComplete).toBe(true);
+ expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:`/pages/community-post/index?id=${post}`}));
 });
 it('keeps an automatic check failure editable and does not label it published',async()=>{
  const page=editor();page.mediaVisible=true;const body=page.data.body;
@@ -305,4 +307,86 @@ it('lets an author revise a pending publication using a versioned draft without 
  m.request.mockResolvedValue(draft({version:4,body:page.data.body}));await page.editPendingPublication();
  expect(m.request).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({method:'PUT',path:`/v1/me/ugc/posts/${post}/draft`,data:expect.objectContaining({expectedVersion:3})}));
  expect(page.data).toMatchObject({state:'draft',publicVersionActive:false,notice:'草稿已保存。'});
+});
+
+describe('publication completion navigation',()=>{
+ const pending=(body='本次真实感受')=>draft({state:'pending_review',version:3,revision:3,directPublication:true,body});
+ const published=(body='本次真实感受')=>draft({state:'published',version:4,revision:3,publishedRevision:3,publicVersionActive:true,directPublication:true,body});
+ it('opens a confirmed lost-response publication without submitting twice',async()=>{
+  const page=editor();page.mediaVisible=true;
+  m.request.mockImplementation(async({method}:any)=>{if(method==='PUT')return draft({version:2,body:page.data.body});if(method==='POST')throw {code:'NETWORK_TIMEOUT'};return published();});
+  await page.submit();
+  expect(wxMock.redirectTo).toHaveBeenCalledOnce();
+  expect(m.request.mock.calls.filter(([r])=>r.method==='POST')).toHaveLength(1);
+ });
+ it('automatically follows pending image checks into the published post',async()=>{
+  vi.useFakeTimers();const page=editor({files:[{id:image,localPath:'wxfile://photo',previewUrl:'',size:100,state:'uploaded',progress:100,error:''}]});page.mediaVisible=true;
+  m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body:page.data.body}):method==='POST'?pending():published());
+  await page.submit();expect(wxMock.redirectTo).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(page.data).toMatchObject({state:'published',publicationComplete:true});
+  expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:`/pages/community-post/index?id=${post}`}));
+  expect(m.request.mock.calls.filter(([r])=>r.method==='POST')).toHaveLength(1);
+ });
+ it('pauses on hide, ignores the old read and resumes on return',async()=>{
+  vi.useFakeTimers();const result=deferred(),page=editor();page.mediaVisible=true;let ownReads=0;
+  m.request.mockImplementation(async({path,method}:any)=>path==='/v1/ugc/status'?{publicEnabled:true,draftsEnabled:true}:method==='PUT'?draft({version:2,body:page.data.body}):method==='POST'?pending():++ownReads===1?result.promise:published());
+  await page.submit();await vi.advanceTimersByTimeAsync(2000);page.onHide();result.resolve(published());await flush();
+  expect(wxMock.redirectTo).not.toHaveBeenCalled();
+  page.onShow();await flush();expect(wxMock.redirectTo).toHaveBeenCalledOnce();
+ });
+ it('does not navigate an unloaded page or a different signed-in member',async()=>{
+  vi.useFakeTimers();const result=deferred(),page=editor();page.mediaVisible=true;
+  m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body:page.data.body}):method==='POST'?pending():result.promise);
+  await page.submit();await vi.advanceTimersByTimeAsync(2000);m.token='member-b';page.onUnload();result.resolve(published());await flush();
+  expect(wxMock.redirectTo).not.toHaveBeenCalled();expect(page.data.publicationComplete).toBe(false);
+ });
+ it('keeps private edits and an existing published editor out of completion navigation',async()=>{
+  const page=editor();page.mediaVisible=true;
+  page.applyDraft(published(),false);expect(wxMock.redirectTo).not.toHaveBeenCalled();
+  page.data.dirty=true;m.request.mockResolvedValue(draft({version:5,revision:4,publicVersionActive:true,body:page.data.body}));
+  await page.saveDraft();expect(page.data.publicationComplete).toBe(false);expect(wxMock.redirectTo).not.toHaveBeenCalled();
+ });
+ it('cancels tracking before editing and ignores a late published result',async()=>{
+  vi.useFakeTimers();const result=deferred(),page=editor();page.mediaVisible=true;let saves=0;
+  m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:++saves===1?2:5,revision:saves===1?2:4,body:page.data.body}):method==='POST'?pending():result.promise);
+  await page.submit();await vi.advanceTimersByTimeAsync(2000);await page.editPendingPublication();result.resolve(published());await flush();
+  expect(page.data).toMatchObject({state:'draft',version:5,publicationComplete:false});expect(wxMock.redirectTo).not.toHaveBeenCalled();
+ });
+ it('retains a failed check and never opens the previous public revision',async()=>{
+  vi.useFakeTimers();const page=editor();page.mediaVisible=true;
+  m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body:page.data.body}):method==='POST'?pending():draft({state:'rejected',version:4,revision:3,publicVersionActive:true,body:page.data.body,directPublication:true,reviewNote:'请修改内容'}));
+  await page.submit();await vi.advanceTimersByTimeAsync(2000);
+  expect(page.data).toMatchObject({state:'rejected',publicationComplete:false,body:'本次真实感受',reviewNote:'请修改内容'});expect(wxMock.redirectTo).not.toHaveBeenCalled();
+ });
+ it('bounds automatic reads and lets a manual retry confirm the same publication',async()=>{
+  vi.useFakeTimers();const page=editor();page.mediaVisible=true;let done=false;
+  m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body:page.data.body}):done?published():pending());
+  await page.submit();await vi.advanceTimersByTimeAsync(60000);
+  expect(m.request.mock.calls.filter(([r])=>!r.method)).toHaveLength(15);expect(wxMock.redirectTo).not.toHaveBeenCalled();
+  done=true;page.refreshPublication();await flush();expect(wxMock.redirectTo).toHaveBeenCalledOnce();
+  expect(m.request.mock.calls.filter(([r])=>r.method==='POST')).toHaveLength(1);
+ });
+ it('offers navigation retry without making a second publication',async()=>{
+  const page=editor();page.mediaVisible=true;wxMock.redirectTo.mockImplementationOnce(({fail}:any)=>fail());
+  m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body:page.data.body}):published());
+  await page.submit();expect(page.data).toMatchObject({publicationComplete:true,error:'帖子已发布，暂时未能打开，请重试查看。'});
+  await page.submit();await page.saveDraft();page.openPublicationResult();
+  expect(wxMock.redirectTo).toHaveBeenCalledTimes(2);expect(m.request).toHaveBeenCalledTimes(2);
+ });
+ it('returns to the same post after editing without adding another detail page',async()=>{
+  const page=editor();page.mediaVisible=true;
+  Object.assign(globalThis,{getCurrentPages:()=>[{route:'pages/community-post/index',data:{postId:post}},page]});
+  m.request.mockImplementation(async({method}:any)=>method==='PUT'?draft({version:2,body:page.data.body}):published());
+  await page.submit();expect(wxMock.navigateBack).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({delta:1}));
+  expect(wxMock.redirectTo).not.toHaveBeenCalled();
+ });
+ it('keeps content on a failed status read and retries without resubmitting',async()=>{
+  vi.useFakeTimers();const page=editor();page.mediaVisible=true;let reads=0;
+  m.request.mockImplementation(async({method}:any)=>{if(method==='PUT')return draft({version:2,body:page.data.body});if(method==='POST')return pending();if(++reads===1)throw {code:'NETWORK_TIMEOUT'};return published();});
+  await page.submit();await vi.advanceTimersByTimeAsync(2000);
+  expect(page.data).toMatchObject({state:'pending_review',body:'本次真实感受',publicationComplete:false,error:'暂时无法确认发布结果，请刷新状态重试。'});
+  page.refreshPublication();await flush();expect(wxMock.redirectTo).toHaveBeenCalledOnce();
+  expect(m.request.mock.calls.filter(([r])=>r.method==='POST')).toHaveLength(1);
+ });
 });
