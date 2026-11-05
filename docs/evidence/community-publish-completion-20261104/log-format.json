@@ -1,0 +1,20 @@
+[
+  {
+    "file": "typecheck-final.txt",
+    "normalization": "remove only extra trailing empty lines",
+    "originalSha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c",
+    "archivedSha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433"
+  },
+  {
+    "file": "unit-before-action-inventory-update.txt",
+    "normalization": "remove only extra trailing empty lines",
+    "originalSha256": "ff8a4c72f6f16acd751be99457eda0e86e27beb77d3a7740af2f01d7f1a70978",
+    "archivedSha256": "3a7c4892c9afca84cc45d0a4d5134d67294f017c01b3d17cd7d5aff9a38027e9"
+  },
+  {
+    "file": "unit-final.txt",
+    "normalization": "remove only extra trailing empty lines",
+    "originalSha256": "00dfa608fb635dbe9f2cedefecec8ae88cb01b51c97809a883100ec8bda63bfb",
+    "archivedSha256": "3830fe35dcabc371a01346e2c9590f23800d03ca578831f86e07ab2cd2e5aea2"
+  }
+]
