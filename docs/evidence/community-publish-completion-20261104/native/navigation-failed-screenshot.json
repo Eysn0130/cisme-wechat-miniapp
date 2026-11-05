@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "tool": "simulator_screenshot",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/community-publish-completion-20261104/native/navigation-failed.png",
+    "imageWidth": 390,
+    "imageHeight": 844
+  }
+}

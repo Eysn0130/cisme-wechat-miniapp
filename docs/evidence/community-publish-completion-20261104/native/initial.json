@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-compose/index",
+        "stack": [
+          "pages/community-compose/index"
+        ],
+        "state": "draft",
+        "publicationComplete": false,
+        "body": "",
+        "error": "",
+        "publicGateEnabled": true,
+        "calls": [
+          {
+            "path": "ugc/status",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          }
+        ],
+        "width": 390
+      }
+    }
+  }
+}

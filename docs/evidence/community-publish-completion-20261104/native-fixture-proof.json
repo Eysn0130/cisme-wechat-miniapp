@@ -1,0 +1,12 @@
+{
+  "syntheticFixture": true,
+  "bootstrapOnlyOverrides": [
+    "app.json",
+    "app.ts"
+  ],
+  "otherSourceFilesIdentical": true,
+  "canonicalFileCount": 304,
+  "realApiRequests": false,
+  "realAccountWrites": false,
+  "fixtureBootstrapSha256": "c444d8daa90beef0d7c6f63e0329cc35eee68985c6d9cc0709c95cf41971f9f2"
+}

@@ -14,7 +14,7 @@
     <view wx:if="{{imageEditRecovery && !uploadBusy}}" class="composer-recovery" aria-live="polite"><text>图片修改尚未应用，原图仍保留。</text><view class="composer-result__actions"><button class="text-button composer-action--primary {{busy || uploadBusy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" data-key="{{imageEditRecoveryKey}}" bindtap="retryPendingImageEdit" disabled="{{busy || uploadBusy || recoveryBusy || writeRecovery}}">重试应用修改</button><button class="text-button composer-action--quiet {{busy || uploadBusy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" data-key="{{imageEditRecoveryKey}}" bindtap="discardPendingImageEdit" disabled="{{busy || uploadBusy || recoveryBusy || writeRecovery}}">放弃图片修改</button></view></view>
     <button wx:if="{{mediaRecovery === 'settings'}}" class="text-button {{busy || uploadBusy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" bindtap="openComposerMediaSettings" disabled="{{busy || uploadBusy || recoveryBusy || writeRecovery}}">去设置</button>
     <button wx:if="{{mediaRecovery === 'privacy' || mediaRecovery === 'retry'}}" class="text-button {{busy || uploadBusy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" bindtap="retryChoosingMedia" disabled="{{busy || uploadBusy || recoveryBusy || writeRecovery}}">{{mediaRecovery === 'privacy' ? '重新授权' : '重新选择'}}</button>
-    <view wx:if="{{notice && state !== 'pending_review' && state !== 'awaiting_publication' && !((state === 'deleted' || state === 'hidden') && dirty)}}" class="state composer-notice" aria-live="polite">{{notice}}</view>
+    <view wx:if="{{notice && !publicationComplete && state !== 'pending_review' && state !== 'awaiting_publication' && !((state === 'deleted' || state === 'hidden') && dirty)}}" class="state composer-notice" aria-live="polite">{{notice}}</view>
     <button wx:if="{{error && !loading && !postId && !writeRecovery}}" class="secondary composer-retry {{busy ? 'secondary--disabled' : ''}}" bindtap="retryLoad" disabled="{{busy}}">{{requestedNew ? '重试继续' : '重试加载'}}</button>
     <view wx:if="{{writeRecovery}}" class="composer-recovery" aria-live="polite">
       <text class="composer-recovery__title">{{writeRecovery === 'conflict' ? '这篇内容已有更新' : '正在核对上次操作结果'}}</text>
@@ -43,14 +43,16 @@
       <text wx:if="{{listMoreError}}" class="state state--error">{{listMoreError}}</text>
     </block>
     <block wx:if="{{!listMode && !loading && postId}}">
+      <view wx:if="{{publicationComplete}}" class="composer-result" aria-live="polite">
+        <text class="composer-result__title">已发布</text>
+        <view class="composer-result__actions"><button class="text-button composer-action--primary" bindtap="openPublicationResult" aria-label="查看已发布的帖子">查看帖子</button><button class="text-button composer-action--quiet" bindtap="returnToCommunity">返回社区</button></view>
+      </view>
       <view wx:if="{{state === 'deleted'}}" class="composer-status"><text>这篇内容已删除</text><text class="composer-help">已停止公开展示，不能继续编辑或提交。</text><text wx:if="{{dirty}}" class="composer-help">修改暂留本页，请先复制需要的文字或查看图片；离开后无法从投稿列表找回。</text></view>
       <view wx:if="{{state === 'pending_review' || state === 'awaiting_publication'}}" class="composer-result" aria-live="polite">
         <text class="composer-result__title">{{directPublication ? '正在发布' : '待重新发布'}}</text>
         <text class="composer-help">{{directPublication ? '安全检查完成后自动公开。' : '内容尚未公开，请修改后重新发布。'}}</text>
-        <text wx:if="{{publicVersionActive}}" class="composer-help">{{publicGateEnabled ? '旧版本仍在公开展示，新版发布成功后才会替换。' : publicGateUnknown ? '旧版本已保留，公开状态待核对。' : '旧版本已保留，公开展示暂未开放。'}}</text>
         <view class="composer-result__actions"><button class="text-button composer-action--primary" bindtap="refreshPublication">刷新状态</button><button class="text-button composer-action--quiet" bindtap="editPendingPublication">修改内容</button><button class="text-button composer-action--quiet" bindtap="showMyPosts">我的投稿</button><button class="text-button composer-action--quiet" bindtap="returnToCommunity">返回社区</button></view>
       </view>
-      <view wx:elif="{{publicVersionActive}}" class="composer-status"><text>{{publicGateEnabled ? '当前公开版本仍在展示。修改内容仅自己可见，发布成功后才会替换原版本。' : publicGateUnknown ? '已发布版本已保留，公开状态待核对。修改内容仅自己可见。' : '已发布版本已保留，公开展示暂未开放。修改内容仅自己可见。'}}</text><button wx:if="{{publicGateEnabled}}" class="text-button {{busy || uploadBusy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" bindtap="openPublishedPost" disabled="{{busy || uploadBusy || recoveryBusy || writeRecovery}}">查看当前公开版本</button></view>
       <view wx:if="{{state === 'hidden'}}" class="composer-status">这篇内容已下架。{{hiddenReason ? '处理依据：' + hiddenReason : '请查看处理记录。'}}
         <view wx:if="{{hiddenPublished}}" class="composer-hidden-summary"><text>被下架的公开版本</text><text>{{hiddenPublished.title || '图片护理故事'}}</text><text wx:if="{{hiddenPublished.body}}">{{hiddenPublished.body}}</text></view>
         <text wx:if="{{appeal}}">{{appeal.state === 'received' ? '申诉已收到，等待另一名工作人员复核。' : appeal.state === 'resolved' ? '申诉通过，内容已恢复。' : '申诉未通过。'}}{{appeal.decisionReason ? ' · ' + appeal.decisionReason : ''}}</text>
@@ -62,7 +64,7 @@
         <text class="composer-readonly__label">{{dirty ? '本机尚未保存的修改' : '本次提交的内容'}}</text><text wx:if="{{title}}" class="composer-readonly__title" selectable="{{dirty}}">{{title}}</text><text wx:if="{{body}}" class="composer-readonly__body" selectable="{{dirty}}">{{body}}</text>
         <view class="composer-readonly-grid"><view wx:for="{{files}}" wx:key="id" class="composer-readonly-media"><image wx:if="{{item.previewUrl || item.localPath}}" class="composer-readonly-media__image" src="{{(state === 'pending_review' || state === 'awaiting_publication') ? (item.previewUrl || item.localPath) : (item.localPath || item.previewUrl)}}" mode="aspectFill" data-id="{{item.id}}" data-epoch="{{epoch}}" data-preview="{{(state === 'pending_review' || state === 'awaiting_publication') ? (item.previewUrl || item.localPath) : (item.localPath || item.previewUrl)}}" bindtap="previewImage" binderror="previewFailed" aria-label="查看图片{{index + 1}}"/><text wx:else class="composer-help">图片 {{index + 1}} · {{item.error || ((state === 'deleted' || state === 'hidden') ? '图片暂时无法预览' : '正在加载预览')}}</text><button wx:if="{{item.state === 'uploaded' && item.error}}" class="text-button" data-id="{{item.id}}" bindtap="retryPreview">重试预览</button></view></view>
       </view>
-      <block wx:if="{{state === 'draft' || state === 'rejected' || state === 'published'}}">
+      <block wx:if="{{!publicationComplete && (state === 'draft' || state === 'rejected' || state === 'published')}}">
         <scroll-view class="composer-media-scroll" scroll-x="{{true}}" scroll-left="{{mediaScrollLeft}}" bindscroll="onMediaScroll" enhanced="{{true}}" show-scrollbar="{{false}}" aria-label="已选照片，可左右滑动查看">
         <view class="composer-media-grid">
           <view wx:for="{{files}}" wx:key="id" class="composer-media {{mediaDragging ? 'composer-media--shifting' : ''}} {{mediaDragId === item.id ? 'composer-media--dragging' : ''}}" style="transform:translateX({{mediaDragOffsets[index] || 0}}px)" data-id="{{item.id}}" catchtouchmove="{{mediaDragging ? 'moveMediaDrag' : ''}}">
@@ -86,7 +88,7 @@
       <view wx:if="{{state === 'hidden' || state === 'deleted'}}" class="composer-result__actions"><button class="text-button composer-action--primary" bindtap="showMyPosts">我的投稿</button><button class="text-button composer-action--quiet" bindtap="returnToCommunity">返回社区</button></view>
     </block>
   </view>
-  <view wx:if="{{!listMode && !loading && postId && (state === 'draft' || state === 'rejected' || state === 'published') && !keyboardVisible}}" class="composer-actions">
+  <view wx:if="{{!listMode && !loading && !publicationComplete && postId && (state === 'draft' || state === 'rejected' || state === 'published') && !keyboardVisible}}" class="composer-actions">
     <view class="composer-actions__status">
       <text wx:if="{{mediaDragging || uploadBusy || writeRecovery || imageEditRecovery || (!publicGateEnabled && !publicGateUnknown)}}" class="composer-actions__hint" aria-live="polite">{{mediaDragging ? '请完成图片排序后继续' : uploadBusy ? '图片上传中' : writeRecovery ? '请先核对上次操作结果' : imageEditRecovery ? '请先重试或放弃本次图片修改' : !publicGateLoaded ? '正在确认发布状态…' : '公开发布暂未开放，草稿仅自己可见。'}}</text>
       <button wx:if="{{publicGateUnknown && !mediaDragging && !uploadBusy && !writeRecovery && !imageEditRecovery}}" class="composer-actions__gate-retry {{busy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="refreshPublicGate" disabled="{{busy || recoveryBusy}}" aria-label="发布状态暂无法确认，重新检查发布状态">发布状态待确认，点此重试</button>

@@ -5,7 +5,7 @@ import { afterEach, expect, it } from "vitest";
 
 const simulate = createRequire(import.meta.url)("miniprogram-simulate");
 const markup = readFileSync("apps/miniprogram/pages/community-compose/index.wxml", "utf8");
-const start = markup.indexOf('<view wx:if="{{!listMode && !loading && postId');
+const start = markup.indexOf('<view wx:if="{{!listMode && !loading && !publicationComplete && postId');
 const template = markup.slice(start, markup.indexOf('<view wx:if="{{mediaDragging}}"', start));
 const mounted: any[] = [];
 afterEach(() => { for (const page of mounted.splice(0)) page.detach(); document.body.innerHTML = ""; });
@@ -51,6 +51,6 @@ it.each(["uploadBusy", "writeRecovery", "imageEditRecovery", "mediaDragging"])("
   expect(page.querySelector(".composer-actions__hint")?.dom.textContent.trim()).toBeTruthy();
 });
 
-it.each([{ keyboardVisible: true }, { listMode: true }, { loading: true }, { state: "hidden" }, { state: "pending_review" }])("keeps the existing non-editing/keyboard footer boundary: %j", state => {
+it.each([{ keyboardVisible: true }, { listMode: true }, { loading: true }, { publicationComplete: true }, { state: "hidden" }, { state: "pending_review" }])("keeps the existing non-editing/keyboard footer boundary: %j", state => {
   expect(render(state).querySelector(".composer-actions")).toBeFalsy();
 });

@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-compose/index",
+        "stack": [
+          "pages/community-compose/index"
+        ],
+        "state": "published",
+        "publicationComplete": true,
+        "body": "合成验证：打开失败只重试查看，不重复发布。",
+        "error": "帖子已发布，暂时未能打开，请重试查看。",
+        "publicGateEnabled": true,
+        "calls": [
+          {
+            "path": "ugc/status",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/draft",
+            "method": "PUT"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit",
+            "method": "POST"
+          }
+        ],
+        "width": 390
+      }
+    }
+  }
+}

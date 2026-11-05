@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/community-compose/index",
+        "stack": [
+          "pages/community-compose/index"
+        ],
+        "state": "pending_review",
+        "publicationComplete": false,
+        "body": "合成验证：自动等待安全检查完成。",
+        "error": "",
+        "publicGateEnabled": true,
+        "calls": [
+          {
+            "path": "ugc/status",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "method": "GET"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/draft",
+            "method": "PUT"
+          },
+          {
+            "path": "me/ugc/posts/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/submit",
+            "method": "POST"
+          }
+        ],
+        "width": 390
+      }
+    }
+  }
+}
