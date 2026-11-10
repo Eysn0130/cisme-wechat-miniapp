@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type pg from "pg";
-import { transaction, readSnapshot } from "../../services/api/src/db";
+import { transaction, readSnapshot, requestBudgetPool } from "../../services/api/src/db";
+import {loadConfig} from '@cisme/config';
 import { OperationBudget, runWithOperationBudget, dependencySignal, currentOperationBudget } from "../../services/api/src/operationBudget";
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -16,6 +17,18 @@ function fixture(behavior: (text: string, values?: unknown[]) => Promise<any> = 
 afterEach(() => vi.restoreAllMocks());
 
 describe("PERF-05/06 bounded transaction ownership", () => {
+  it('discards a manual read lease when response cancellation arrives during its session-reset cleanup',async()=>{
+    let resetStarted!:()=>void,finishReset!:(v:unknown)=>void,releaseObserved!:()=>void;
+    const resetting=new Promise<void>(resolve=>resetStarted=resolve),heldReset=new Promise(resolve=>finishReset=resolve),released=new Promise<void>(resolve=>releaseObserved=resolve);
+    const f=fixture(async text=>{if(text.includes("$1,false")){resetStarted();return heldReset;}return {rows:[]};});
+    f.client.release.mockImplementation(discard=>{f.releases.push(Boolean(discard));releaseObserved();});
+    const options=loadConfig({APP_ENV:'test',DATABASE_URL:'postgresql://synthetic@127.0.0.1/cisme_unit_test',APP_SESSION_SECRET:'synthetic-budget-test',UPLOAD_TOKEN_SECRET:'synthetic-budget-upload'}).database;
+    const bounded=requestBudgetPool(f.pool,options),budget=new OperationBudget(2000);
+    try{await runWithOperationBudget(budget,async()=>{
+      const client=await bounded.connect();await client.query('SELECT synthetic_public_policy');client.release();
+      await resetting;budget.abort(new Error('Synthetic response completed during cleanup'));finishReset({rows:[]});await released;
+    });expect(f.releases).toEqual([true]);}finally{budget.dispose();}
+  });
   it.each(["40001", "40P01"])("releases before backoff, retries %s and releases each lease once", async code => {
     const f = fixture(); let attempts = 0; const atBackoff: number[] = [];
     const original = globalThis.setTimeout;
