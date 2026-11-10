@@ -1,4 +1,4 @@
-import {createCipheriv,createDecipheriv,createHash,randomBytes} from 'node:crypto';
+import {createCipheriv,createDecipheriv,createHash,createHmac,randomBytes} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
 import {DomainError} from '@cisme/domain';
@@ -135,7 +135,14 @@ export class CareOnboardingService{
       ||Number(body.currentQuestion)<1||Number(body.currentQuestion)>10)invalid();
     if(body.consentChoice!==undefined&&(!['granted','declined'].includes(String(body.consentChoice))||body.consentVersion!==careConsentVersion))invalid('护理情况授权文本已更新，请重新选择');
     if(body.consentVersion!==undefined&&body.consentChoice===undefined)invalid();
-    const action=complete?'complete':'save',requestHash=hash({action,...body});
+    const action=complete?'complete':'save';
+    // Answers have a small vocabulary. A plain payload digest would allow
+    // dictionary guesses from database-only receipts even though answers are
+    // encrypted. Bind idempotency to the private environment key instead.
+    const hmacKey=this.config.contacts.hashKey;
+    if(hmacKey&&!/^[0-9a-f]{64}$/i.test(hmacKey))throw new DomainError('CARE_PROFILE_STORAGE_UNAVAILABLE','护理档案安全存储暂不可用，请稍后重试',503);
+    const requestHash=createHmac('sha256',hmacKey?Buffer.from(hmacKey,'hex'):key(this.config))
+      .update('care-profile-operation\0').update(JSON.stringify(canonical({action,...body}))).digest('hex');
     return transaction(this.pool,async client=>{
       const owner=await this.owner(client,memberId);
       const now=at??(await client.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
