@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "6bd0b9e112df125eb3dd9487c7ed62c7efe332dfcf9d150a5aa2d57021ebd104",
+  "migrationSetSha256": "cd4194a0e015bd797b99520a67fc8dc706ba7367ffe6ba4ba966a004a60f3bfc",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -7461,5 +7461,8 @@
     "source": "services/api/src/ugcSafety.ts; ugcSyncImage.ts; ugcDirectPublication.ts",
     "schemaChange": "Extends existing provider enum only; no new columns, subject relationships, exports, retention or erasure permissions.",
     "provider": "wechat_v1_sync: real explicit img_sec_check response bound to source SHA256 and the exact public JPEG SHA256; pending/error never passes; no invented v2 trace."
+  },
+  "commerceMediaReview20261110": {
+    "change": "Only two approved catalog image paths; table, column, subject and retention scope unchanged. No new member data or export fields."
   }
 }
