@@ -205,7 +205,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       }return true;}catch{return false;}},
       authorize:()=>{
         if(!dependencies.paymentProtocol?.authorizeCommerce)throw new DomainError("FORMAL_COMMERCE_NOT_AUTHORIZED","正式交易尚未授权",503);
-        for(const capability of ['order.create','payment.prepare','payment.close','refund.request','refund.approve','refund.submit'] as const)
+        // Purchase availability does not grant staff refund execution. Each refund
+        // action retains its own capability check in refundRequired below.
+        for(const capability of ['order.create','payment.prepare','payment.close','refund.request'] as const)
           dependencies.paymentProtocol.authorizeCommerce(capability);
       }}}:{})
   });
