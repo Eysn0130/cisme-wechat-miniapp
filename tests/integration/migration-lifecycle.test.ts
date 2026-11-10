@@ -31,7 +31,14 @@ beforeAll(async () => {
 afterAll(async () => {
   try {
     for (const pool of openPools) await closePool(pool);
-    if (databaseCreated) await admin.query(`DROP DATABASE ${databaseName} WITH (FORCE)`);
+    if(databaseCreated){
+      let remaining=0;
+      for(let attempt=0;attempt<100;attempt++){
+        remaining=(await admin.query('SELECT count(*)::int n FROM pg_stat_activity WHERE datname=$1',[databaseName])).rows[0].n;
+        if(!remaining)break;await new Promise(resolve=>setTimeout(resolve,20));
+      }
+      expect(remaining).toBe(0);await admin.query(`DROP DATABASE ${databaseName}`);
+    }
   } finally {
     await admin.end();
     if(prefixDirectory)await rm(prefixDirectory,{recursive:true,force:true});
