@@ -1,0 +1,46 @@
+{
+  "recordedAtUtc": "2026-11-10T21:26:35.281656+00:00",
+  "origin": "https://staging-api.cisme.cn",
+  "tlsVerification": true,
+  "requests": [
+    {
+      "path": "/health/ready",
+      "status": 200,
+      "body": {
+        "status": "ready"
+      }
+    },
+    {
+      "path": "/v1/capabilities",
+      "status": 200,
+      "body": {
+        "version": 1,
+        "communityPreviewEnabled": false,
+        "socialPreviewEnabled": false,
+        "transactionProfile": null,
+        "pointsRedemptionEnabled": true,
+        "ugcGoLiveGate": true,
+        "pointsRulesEnabled": true,
+        "directMediaUploadEnabled": false
+      }
+    },
+    {
+      "path": "/v1/commerce/orders/status",
+      "status": 200,
+      "body": {
+        "version": 2,
+        "orderFlowEnabled": true,
+        "paymentAvailable": true,
+        "paymentOnboarding": "READY",
+        "currency": "CNY",
+        "scope": "formal_commerce",
+        "formalMoneyOperationsAvailable": true,
+        "formalRecoveryAvailable": true,
+        "isolatedMoneyOperationsAvailable": false,
+        "isolatedTransferAvailable": false,
+        "isolatedCreditCheckoutAvailable": false
+      }
+    }
+  ],
+  "writes": 0
+}

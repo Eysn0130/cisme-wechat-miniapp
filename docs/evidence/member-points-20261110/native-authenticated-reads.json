@@ -1,0 +1,81 @@
+{
+  "scope": "Native wx.request using existing authenticated staging session; GET only; no UI navigation, no injected response.",
+  "origin": "https://staging-api.cisme.cn",
+  "sourceSha256": "bd3a6d69fbc21514cbd9dbc54456ec148f0cc0dcb316abc1d314d9598bf2132a",
+  "responses": [
+    {
+      "path": "/v1/me/points",
+      "status": 200
+    },
+    {
+      "path": "/v1/me/points/club",
+      "status": 200
+    },
+    {
+      "path": "/v1/me/points/gifts",
+      "status": 200
+    },
+    {
+      "path": "/v1/me/authority",
+      "status": 200
+    },
+    {
+      "path": "/v1/management/points",
+      "status": 200
+    }
+  ],
+  "wallet": {
+    "projection": {
+      "frozen": 0,
+      "available": 0,
+      "debt": 0,
+      "reserved": 0,
+      "version": 1
+    },
+    "totalCount": 0,
+    "rulesEnabled": true
+  },
+  "club": {
+    "enabled": true,
+    "policyVersion": "club-owner-20261110-v1",
+    "checkedIn": false
+  },
+  "gifts": {
+    "enabled": true,
+    "items": [
+      {
+        "name": "头皮紧致修护精华液",
+        "label": "头皮紧致修护精华液 100ml",
+        "points": 29800,
+        "availableQuantity": 100
+      },
+      {
+        "name": "净润小紫瓶 280mL",
+        "label": "净润小紫瓶 280mL",
+        "points": 19800,
+        "availableQuantity": 100
+      }
+    ]
+  },
+  "management": {
+    "policies": 1,
+    "offers": 5,
+    "redemptions": 0
+  },
+  "capabilities": [
+    "commerce.fulfillment.manage",
+    "commerce.inventory.manage",
+    "commerce.money.reconcile",
+    "commerce.order.read",
+    "commerce.product.manage",
+    "commerce.qualification.manage",
+    "community.moderate",
+    "editorial.manage",
+    "support.assign",
+    "support.read",
+    "support.reply"
+  ],
+  "routePreserved": true,
+  "sessionPreserved": true,
+  "actualCommandsSent": 0
+}

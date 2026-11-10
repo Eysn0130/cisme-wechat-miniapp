@@ -1,0 +1,46 @@
+{
+  "originalFactsPreserved": true,
+  "originalTableCount": 149,
+  "inventoryPreserved": true,
+  "memberAssetsPreserved": true,
+  "historicalBackfill": false,
+  "products": [
+    {
+      "code": "aigerong-moisture-shampoo-280",
+      "shoppingPointsMultiplier": 3,
+      "version": 4
+    },
+    {
+      "code": "aigerong-scalp-repair-essence-100",
+      "shoppingPointsMultiplier": 3,
+      "version": 4
+    }
+  ],
+  "policy": {
+    "version": "club-owner-20261110-v1",
+    "monthly_budget": null,
+    "ends_at": null,
+    "rules": {
+      "note": 5,
+      "post": 50,
+      "daily": 10,
+      "comment": 5,
+      "streak7": 50,
+      "featured": 100,
+      "streak30": 200,
+      "firstOrder": 300,
+      "discountBps": 2000,
+      "expiryMonths": 12,
+      "inviteFriend": 200,
+      "reminderDays": 30,
+      "inviteSponsor": 300,
+      "pointsPerYuan": 100,
+      "questionnaire": 100,
+      "postWeeklyLimit": 2,
+      "refundGraceDays": 30,
+      "commentDailyLimit": 2,
+      "birthdayMultiplier": 2
+    },
+    "approval_source": "owner_instruction_20261110"
+  }
+}
