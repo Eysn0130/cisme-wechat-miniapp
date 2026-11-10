@@ -83,3 +83,11 @@ condition = "AND"
 paths = ['''^docs/evidence/support-loop-20261101/native-automatic-poll-fbc/record\.json$''']
 regexTarget = "match"
 regexes = ['''productApiSourceDigest"\s*:\s*"2d6f8ba77cd58707165f7f77a6c019385e82c68638bc158a6e866f450bab2a19''']
+
+[[allowlists]]
+description = "XLSX integration fixture encryption version label; no secret bytes in the label"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/integration/fulfillment-xlsx-http\.test\.ts$''']
+regexTarget = "match"
+regexes = ["CONTACT_KEY_VERSION:'synthetic-xlsx-v1'"]

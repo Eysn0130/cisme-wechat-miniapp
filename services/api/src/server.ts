@@ -12,6 +12,7 @@ import { randomUUID } from "node:crypto";
 import Fastify, { LogController, type FastifyBaseLogger, type FastifyInstance, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import {parseFulfillmentWorkbook} from './fulfillmentImport.js';
 import rateLimit from "@fastify/rate-limit";
 import type pg from "pg";
 import { loadConfig, migrationReadOnly, type AppConfig } from "@cisme/config";
@@ -204,7 +205,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       }return true;}catch{return false;}},
       authorize:()=>{
         if(!dependencies.paymentProtocol?.authorizeCommerce)throw new DomainError("FORMAL_COMMERCE_NOT_AUTHORIZED","正式交易尚未授权",503);
-        for(const capability of ['order.create','payment.prepare','payment.close','refund.request','refund.approve','refund.submit'] as const)
+        // Purchase availability does not grant staff refund execution. Each refund
+        // action retains its own capability check in refundRequired below.
+        for(const capability of ['order.create','payment.prepare','payment.close','refund.request'] as const)
           dependencies.paymentProtocol.authorizeCommerce(capability);
       }}}:{})
   });
@@ -854,6 +857,17 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.post<{Body:{rows:unknown}}>("/v1/management/shipments/import",async request=>
     shipmentRequired().importRows(request.memberId,idempotencyKey(request),request.body?.rows));
+  app.post<{Body:{filename?:unknown;contentBase64?:unknown}}>("/v1/management/shipments/import-xlsx/preview",{bodyLimit:2_900_000},async request=>{
+    await authority.require(request.memberId,'commerce.fulfillment.manage');
+    shipmentRequired();
+    const input=request.body;
+    if(!input||Object.keys(input).some(k=>!['filename','contentBase64'].includes(k))||typeof input.filename!=='string'||input.filename.length>160||!input.filename.toLowerCase().endsWith('.xlsx')||typeof input.contentBase64!=='string'||input.contentBase64.length>2_800_000||!/^[A-Za-z0-9+/]+={0,2}$/.test(input.contentBase64))throw new DomainError('SHIPMENT_XLSX_INPUT','请选择2MB以内的XLSX文件',422);
+    const bytes=Buffer.from(input.contentBase64,'base64');
+    if(bytes.toString('base64')!==input.contentBase64)throw new DomainError('SHIPMENT_XLSX_INPUT','表格数据不完整，请重新选择',422);
+    const preview=parseFulfillmentWorkbook(bytes);
+    await authority.require(request.memberId,'commerce.fulfillment.manage');
+    return preview;
+  });
   app.post<{Body:{entries:unknown}}>("/v1/management/shipments/batch",async request=>
     shipmentRequired().dispatchBatch(request.memberId,idempotencyKey(request),request.body?.entries));
   app.post<{Params:{attestationId:string}}>("/v1/management/fulfillment/:attestationId/decision",async request=>

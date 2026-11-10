@@ -36,7 +36,7 @@ describe("WeChat release preflight", () => {
     const declared=[...app.pages,...app.subPackages.flatMap(pack=>pack.pages.map(page=>`${pack.root}/${page}`))];
     expect(declared.filter(route=>route==="pages/account/index")).toHaveLength(1);
     expect(app.tabBar.list.map(item=>item.pagePath)).toEqual([
-      "pages/home/index","pages/records/index","pages/community/index","pages/profile/index"
+      "pages/home/index","pages/shop/index","pages/community/index","pages/profile/index"
     ]);
   });
   it("permits source-only developer upload before trial acceptance while rejecting wrong AppID or unsafe origins",()=>{

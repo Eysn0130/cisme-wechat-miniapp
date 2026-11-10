@@ -10,6 +10,8 @@ import { SettlementCommandService } from "../../services/api/src/settlementComma
 import { ShoppingCreditService } from "../../services/api/src/shoppingCredit";
 import type { WechatPayV3Client } from "../../services/api/src/wechatPayV3";
 import { AuthorityService } from "../../services/api/src/authority";
+import {parseFulfillmentWorkbook} from '../../services/api/src/fulfillmentImport';
+import {fulfillmentWorkbook} from '../../services/api/src/fulfillmentWorkbook';
 
 const pool=testPool();
 const platform=generateKeyPairSync("rsa",{modulusLength:2048});
@@ -765,6 +767,9 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   await expect(service.managementList(buyer,{state:'all'},true)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   const exported=await service.managementList(actor,{state:'shipped',orderNumber:order.number},true);
   expect(exported.workbook?.subarray(0,2).toString()).toBe('PK');
+  const parsedExport=parseFulfillmentWorkbook(exported.workbook!);
+  expect(parsedExport.rowCount).toBe(1);expect(parsedExport.rows).toContain(order.number);expect(parsedExport.rows).toContain('SF123456789001');
+  expect(parsedExport.rows).not.toContain('13800000000');
   const audit=(await pool.query("SELECT principal_id,after_state,created_at FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows;
   expect(audit).toHaveLength(1);expect(audit[0].after_state.count).toBe(1);expect(JSON.stringify(audit)).not.toContain('13800000000');
   async function readyParcel(suffix:string){
@@ -779,7 +784,9 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   const bulkA=await readyParcel('LOCALBULKA'),bulkB=await readyParcel('LOCALBULKB');
   const bulkTime=(await dbNow()).toISOString();
   const rows=`${bulkA.number}\tSF\t顺丰速运\tSF123456789010\t${bulkTime}\n${bulkB.number}\tSF\t顺丰速运\tSF123456789011\t${bulkTime}`;
-  const bulk=await service.importRows(actor,'import-success-0001',rows);
+  const workbook=fulfillmentWorkbook([['订单号','快递代码','快递名称','运单号','实际交寄时间'],...rows.split('\n').map(row=>row.split('\t'))]);
+  const preview=parseFulfillmentWorkbook(workbook);expect(preview.rowCount).toBe(2);
+  const bulk=await service.importRows(actor,'import-success-0001',preview.rows);
   expect(bulk.results.map(r=>r.status)).toEqual(['accepted','accepted']);
   await pool.query('UPDATE commerce_order SET version=version+1 WHERE id=$1',[bulkA.id]); // Later independent order change.
   expect(await service.importRows(actor,'import-success-0001',rows)).toEqual(bulk);

@@ -179,7 +179,7 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     expect(view).toContain('<block wx:if="{{member && points}}">');
     expect(view).toContain('<view wx:if="{{hasCareCycle}}" class="care-progress">');
     expect(view).toMatch(/可用积分<\/small><\/view><block wx:if="\{\{hasCareCycle\}\}">/);
-    page.openRecords();expect((globalThis as any).wx.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/records/index"}));
+    page.openRecords();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/records/index"}));
   });
   it.each([
     {...care,phase:"waiting"},

@@ -17,6 +17,12 @@
       "evidenceFiles": []
     },
     {
+      "route": "pages/shop/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
       "route": "pages/records/index",
       "matrixComplete": false,
       "result": "blocked",
@@ -60,12 +66,6 @@
     },
     {
       "route": "pages/post/index",
-      "matrixComplete": false,
-      "result": "blocked",
-      "evidenceFiles": []
-    },
-    {
-      "route": "pages/shop/index",
       "matrixComplete": false,
       "result": "blocked",
       "evidenceFiles": []
@@ -257,7 +257,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "daed4d04b32274b98336a2734bcbca546e4260be29ac0c46d4ac32594d5104fe",
+  "packageSourceSha256": "0500b48fd09e45e2ce3e9edafca3844ea8d541896f17c4b479aaffdc6039d89b",
   "findings": [
     {
       "id": "CURRENT_SOURCE_40_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",

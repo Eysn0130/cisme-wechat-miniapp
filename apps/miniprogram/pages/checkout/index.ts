@@ -178,9 +178,9 @@ Page({
     if (!this.mounted || this.data.busy || this.data.loading || this.data.navigating) return;
     if (this.data.missingProduct) {
       this.setData({ navigating: true });
-      wx.redirectTo({ url: "/pages/shop/index", fail: () => {
+      wx.switchTab({ url: "/pages/shop/index", fail: () => {
         this.setData({ navigating: false });
-        wx.showToast({ title: "商品目录暂时无法打开，请重试", icon: "none" });
+        wx.showToast({ title: "商城暂时无法打开，请重试", icon: "none" });
       } });
       return;
     }

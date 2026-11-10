@@ -472,7 +472,7 @@ Page({
     };
     const openSource = () => {
       const path = returnUrl.split("?")[0] || "/pages/home/index";
-      if (["/pages/home/index", "/pages/records/index", "/pages/community/index", "/pages/profile/index"].includes(path)) {
+      if (["/pages/home/index", "/pages/shop/index", "/pages/community/index", "/pages/profile/index"].includes(path)) {
         wx.switchTab({ url: path, fail });
       } else {
         wx.redirectTo({ url: returnUrl, fail: () => wx.switchTab({ url: "/pages/home/index", fail }) });

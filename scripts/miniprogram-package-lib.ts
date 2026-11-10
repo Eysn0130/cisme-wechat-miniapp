@@ -4,6 +4,8 @@ import { relative, resolve } from "node:path";
 
 const internalMainPackageBudget = 1_800_000;
 const internalSubpackageBudget = 400_000;
+// Full approved product instructions live with the detail page, below WeChat’s 2MiB limit.
+const assetRichSubpackageBudgets: Readonly<Record<string,number>> = { "pages/product": 1_850_000 };
 const internalGlobalStyleBudget = 8_192;
 const internalSingleAssetBudget = 200_000;
 
@@ -63,7 +65,7 @@ export async function inspectMiniProgramPackage(root = resolve("apps/miniprogram
         if (!allFiles.includes(expected)) errors.push(`PAGE_FILE_MISSING:${route}${extension}`);
       }
     }
-    if ((subpackageBytes[pack.root] ?? 0) > internalSubpackageBudget) errors.push(`SUBPACKAGE_OVER_INTERNAL_BUDGET:${pack.root}:${subpackageBytes[pack.root]}`);
+    if ((subpackageBytes[pack.root] ?? 0) > (assetRichSubpackageBudgets[pack.root] ?? internalSubpackageBudget)) errors.push(`SUBPACKAGE_OVER_INTERNAL_BUDGET:${pack.root}:${subpackageBytes[pack.root]}`);
   }
   const roots = (app.subPackages ?? []).map(pack => pack.root);
   if (new Set(roots).size !== roots.length) errors.push("SUBPACKAGE_ROOT_DUPLICATED");
@@ -79,6 +81,7 @@ export async function inspectMiniProgramPackage(root = resolve("apps/miniprogram
     internalBudgets: {
       mainPackageBytes: internalMainPackageBudget,
       subpackageBytes: internalSubpackageBudget,
+      assetRichSubpackageBytes: assetRichSubpackageBudgets,
       globalWxssBytes: internalGlobalStyleBudget,
       singleAssetBytes: internalSingleAssetBudget
     },

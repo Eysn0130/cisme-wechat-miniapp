@@ -1,0 +1,94 @@
+{
+  "version": "v4-in-image-glass",
+  "date": "2026-11-10",
+  "method": "Built-in image_gen image edits. No image editing through Python, SVG, HTML or CSS.",
+  "authorization": "User explicitly requested ImageGen commercial noise inside the product photograph, translucent glass where needed, preserving the original below-image name, subline, qualified price and 查看商品.",
+  "scope": "Local visual design review only. Original14 files and clean v2 photographs retained. The native mini-program and live catalogue are outside this visual revision.",
+  "assets": [
+    {
+      "product": 1,
+      "file": "assets/promotional/v4/product1-glass-v4.png",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "9de14c9dab544b73e2784cb22de77dc1c71da58973493c0bf6ed43cf001c7789",
+      "generatedSource": "/Users/mini/.codex/generated_images/01a1c5dd-97cc-7870-8451-1939160d59d8/exec-c59dfd29-ff50-4ef6-9a9b-b99f14edb7a3.png",
+      "inputs": [
+        "assets/refined/v2/product1-card-v2.png",
+        "/Users/mini/Desktop/产品1/5358.PNG"
+      ],
+      "prompt": "Use case: precise-object-edit / compositing. EDIT IMAGE1, the already-approved clean product1 photograph. IMAGE2 is only an original copy/product-identity reference, not a layout to copy. Output the SAME4:3 photographic canvas, approximately1448x1086. Do not add any outer header, footer, frame, extra canvas, UI page, caption block or price area. The user's existing product name, offer description, price and 查看商品 button remain in the interface BELOW this image and must not be included or replaced here.\nCRITICAL LOCK: Preserve the existing photograph, camera, composition, bottle positions, silhouettes, lavender colors, exact AIGERONG 爱格荣 branding and package printing, ivory cup-shaped shampoo cap, white conditioner pump, six trial sachets and the folded lavender towel. Do not move, resize, redesign, replace, remove or add products. Keep the original image background and lighting. Only add a coordinated, restrained commercial information layer INSIDE the photograph's existing negative space. Do not change bottle/body/label pixels as a design choice.\nAdd exactly THREE small promotional elements in one coherent pearl/lilac transparent frosted-glass visual style, with deep plum (#56306f) Chinese type, subtle pale edges and restrained reflections, no flashy colored effects. Make these graphic information overlays, not physical objects added to the studio scene. Use existing free space on the RIGHT, keeping full product silhouettes and all important label/brand text visible:\n1. Upper-right, a small translucent glass circular seal, around x1210,y55,width200,height200 on the1448x1086 canvas. Exact text in three levels: “小程序”, large “3倍”, “积分”. Clear, bold number, legible smaller Chinese, fine plum rim, mostly transparent pearl glass.\n2. Mid-right, a slim rounded glass information plate around x1200,y345,width210,height280. Exact text ONLY “赠 正装护发素”, arranged over a few deliberate lines such as 赠 / 正装 / 护发素, maintaining that exact meaning. Keep this in the background to the right of the conditioner, avoid the bottle and towel labels. The material is translucent/frosted with a very soft lilac cast, a thin highlight and clean plum lettering, not an opaque sticker or heavy card.\n3. At the very bottom INSIDE the existing photo, a narrow transparent glass ribbon, approximately x30,y1008,width1388,height65. Exact text “运费险  |  7天无理由退货”. Keep it slim and legible. If its edge touches the very lowest gift/towel silhouette, retain high transparency and let the original object remain clearly visible beneath; never erase or hide any product. No opaque solid-purple bar, no large bottom block and no expansion of the photo.\nAll three elements must read as one family. Typography must be polished, Chinese characters correct, with only the exact provided copy. Do not include ¥198, ¥228, any other price, a new headline, discount, countdown, sales, official badge, brand claim, English design introduction or any extra wording. Do not add flowers, combs, stones, trays, plinths, extra fabric, hands, models, bubbles or unrelated props. The result should still be the SAME approved product photograph, with a small amount of commercial information elegantly integrated onto the picture, not a new poster surrounding it."
+    },
+    {
+      "product": 2,
+      "file": "assets/promotional/v4/product2-glass-v4.png",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "133bfbc192b4d6d2b18e3f0c94d224e432387cde47aeb3f756b7698dc106db8e",
+      "generatedSource": "/Users/mini/.codex/generated_images/01a1c5dd-97cc-7870-8451-1939160d59d8/exec-466547df-7e80-4527-91f4-74e05abce6fe.png",
+      "inputs": [
+        "assets/refined/v2/product2-card-v2.png",
+        "/Users/mini/Desktop/产品2/5365.PNG",
+        "assets/promotional/v4/product1-glass-v4.png (style only)"
+      ],
+      "prompt": "Use case: compositing / precise-object-edit.\nAsset type: 4:3 commerce product main photograph, matching an already approved related-product photograph.\nINPUT ROLES: Image 1 is the ONLY edit target: the clean silver scalp essence photograph. Image 2 is product identity and factual-copy reference ONLY; do not import its poster layout. Image 3 is STYLE-ONLY: match its three lilac translucent-glass promotional elements, their deep plum typography and their positions, but never import its different main product.\nPRIMARY REQUEST: add restrained commercial text noise INSIDE Image 1 using exactly the same unified glass-label design as Image 3. Keep the output 4:3, approximately 1448x1086. No outside border, separate header/footer, extra canvas or below-image caption: name, descriptive subline, price and shop action remain native fields BELOW this image.\nLOCK UNCHANGED: Image 1 camera, composition, background, lighting, product size and positioning. Keep its silver 100ml essence tube and horizontally crimped top, embossed circular-wave closed lower cap, existing brand/product labels, two lavender 280ml bottles with original ivory cup cap and white pump, exactly six lavender sachets three 01 and three 02, folded lavender textured drying cap with white button. Preserve all visible packaging appearance. Do not substitute products, invent a comb outside the tube or move/rebuild any objects.\nADD ONLY THREE ELEMENTS in current negative space, same material as Image 3:\n1. Upper-right transparent lilac glass circular seal, about x1210 y55 width200 height200, using the EXACT Chinese words on three centered lines: \"小程序\" / larger \"3倍\" / \"积分\". Keep it fully inside frame and above or clear of bottle silhouette. Pearl edge highlight, very subtle frosting, plum #56306f text.\n2. Mid-right narrow rounded transparent glass plate, about x1200 y345 width210 height280, with EXACT copy \"赠 洗护双正装\", typeset three centered lines \"赠\" / \"洗护双\" / \"正装\". Match Image 3 plate proportions, hairline pearl edge, gentle lavender frosting; no opaque purple rectangle. Place to right of pump bottle, DO NOT cover bottle branding, cap or pump.\n3. Very narrow transparent pill ribbon INSIDE the bottom of image, about x30 y1008 width1388 height65, same as Image 3: exact text \"运费险  |  7天无理由退货\". Keep all product silhouettes visible. Ribbon predominantly transparent glass with a pale edge and dark plum legible type, no opaque bar. It must be within original photo dimensions.\nText should be elegant clean Chinese sans, accurate legible characters and match Image 3's coherent visual hierarchy. The larger main silver tube remains the dominant focus. Any overlap with a shadow or the very lowest cap edge must remain visibly transparent.\nAVOID: any new price, ¥298, ¥763, extra headlines, discounts, countdowns, sales counts, stars, official/certification badges, claim text not listed above, English design commentary, decorative unrelated props, changed packaging, duplicated products or shapes. Image 2 is not the composition target. Only add the three stated glass text elements to Image 1."
+    }
+  ],
+  "copySources": [
+    {
+      "copy": "小程序 / 3倍 / 积分",
+      "source": [
+        "assets/products/1-5358.PNG",
+        "assets/products/2-5365.PNG"
+      ]
+    },
+    {
+      "copy": "赠 正装护发素",
+      "source": [
+        "assets/products/1-5358.PNG"
+      ]
+    },
+    {
+      "copy": "赠 洗护双正装",
+      "source": [
+        "assets/products/2-5365.PNG"
+      ]
+    },
+    {
+      "copy": "运费险 | 7天无理由退货",
+      "source": [
+        "assets/products/1-5358.PNG",
+        "assets/products/2-5365.PNG"
+      ]
+    }
+  ],
+  "constraints": [
+    "No new claim, unrelated copy, discount, sales count or promotional promise.",
+    "No price added inside the photograph; qualifiers and prices remain native text below.",
+    "Glass labels remain in photo negative space, separate from packaging.",
+    "Source gift values and bundle values do not become SKU prices.",
+    "Small generative packaging lettering is not a replacement for the original source materials; originals remain available in the detail gallery."
+  ],
+  "references": {
+    "user": "references/glass-v4/user-preserve-caption-add-in-image.png",
+    "impeccable": "references/impeccable-ebe9c265/manifest.json"
+  },
+  "supersedes": "archive/20261110-v3-superseded/manifest.json: external promotional frame was a working draft superseded by the user's more precise annotation.",
+  "visualReview": "Initial glass drafts retained; selected final v4b assets enlarge bottom benefit lettering only. Full-size and integrated render evidence is recorded in qa-summary-v4.json.",
+  "selectedAssets": [
+    {
+      "product": 1,
+      "file": "assets/promotional/v4/product1-glass-v4b.png",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "59bafac03e4220ba5586a6f8c63cda9a20babcb30cc05a1191bb03a93ad7557c"
+    },
+    {
+      "product": 2,
+      "file": "assets/promotional/v4/product2-glass-v4b.png",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "735e8ad954c26dec3eef8a7dbbd7a3df23e40ec1032cb55488694f177867d5cf"
+    }
+  ],
+  "finalPolishRecord": "generation-v4b.json"
+}

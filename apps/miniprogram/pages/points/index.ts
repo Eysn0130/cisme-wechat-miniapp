@@ -68,7 +68,7 @@ Page({
   openShop() {
     if (this.data.navigating) return;
     this.setData({ navigating: true });
-    wx.navigateTo({
+    wx.switchTab({
       url: "/pages/shop/index",
       fail: () => {
         if (this.data.pageAlive) this.setData({ navigating: false });

@@ -362,7 +362,7 @@ describe("native tab return presentation while real read paths revalidate", () =
 
   it("preserves a valid product selection while refreshing and clamps quantity to freshly confirmed inventory", async () => {
     const { page, rendered } = await mount("product"); page.setData({ id: "synthetic-product" }); await page.load();
-    page.selectSku({ currentTarget: { dataset: { id: "sku-b" } } }); page.setData({ quantity: 4 });
+    page.openSku(); page.selectSku({ currentTarget: { dataset: { id: "sku-b" } } }); page.confirmSku(); page.setData({ quantity: 4 });
     const pending = later(); held.set("/v1/catalog/synthetic-product", pending);
     const reading = page.load(); await flush();
     expect(page.data).toMatchObject({ selectedSku: { id: "sku-b" }, quantity: 4, loading: true });

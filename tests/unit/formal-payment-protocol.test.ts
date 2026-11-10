@@ -129,7 +129,9 @@ it('permits production command configuration only with both explicit grant paths
   expect(()=>protocol.authorizeCommerce!('order.create')).toThrow();
   expect(()=>protocol.authorizeRecovery('payment.callback')).toThrow();
   expect(()=>loadConfig({...environment,COMMERCE_FORMAL_RECOVERY_AUTHORIZATION_FILE:''})).toThrow('FORMAL_APPROVAL_REQUIRED');
-  expect(()=>loadConfig({...environment,APP_ENV:'staging'})).toThrow('FORMAL_COMMERCE_PRODUCTION_ONLY');
+  const experience=loadConfig({...environment,APP_ENV:'staging'});
+  expect(experience.commerce.formalProtocol?.commerceAuthorizationFile).toBe(environment.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE);
+  expect(()=>formalPaymentProtocol(experience,{} as pg.Pool)!.authorizeCommerce!('order.create')).toThrow();
 });
 
 it('loads, authorizes and dispatches the ordinary-merchant command with a bound certificate; missing, revoked and expired inputs fail closed',async()=>{

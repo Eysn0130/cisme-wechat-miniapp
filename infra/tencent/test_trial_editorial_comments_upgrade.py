@@ -553,7 +553,9 @@ class SourceNetworkTests(unittest.TestCase):
                 self.assertEqual(len(self.requests),2)
     def test_fallback_retains_all_source_permit_hash_and_candidate_checks(self):
         names=['package.json','package-lock.json','scripts/release-migrate.mjs','db/migrations/'+M.MIGRATION]
-        contents={name:(REPO/name).read_bytes()for name in names}
+        # This historical upgrader intentionally pins its original dependency inputs.
+        fixture_root=REPO/'infra/tencent/fixtures/approved-dependencies-before-commerce-20261110'
+        contents={name:((fixture_root if name in ['package.json','package-lock.json'] else REPO)/name).read_bytes()for name in names}
         binding={'sourceHead':self.head,'sourceTree':'b'*40,'ciRunId':123}
         main={'sha':self.head,'tree':'b'*40,'ciRunId':123}
         candidate={'directory':'/synthetic-reviewed-candidate','files':{'migrate.mjs':contents[names[2]],names[3]:contents[names[3]]}}

@@ -19,6 +19,13 @@ import zlib
 
 HERE=Path(__file__).resolve().parent
 PROJECT=HERE.parents[1]
+# Historical deployment guards retain their approved dependency bytes.
+# Today's dependency additions must not rewrite those immutable allowlists.
+def fixture_source(name):
+    base=PROJECT/'infra/tencent/fixtures/approved-dependencies-before-commerce-20261110' if str(name) in ('package.json','package-lock.json') else PROJECT
+    return (base/name).read_bytes()
+
+
 def load(name,path):
     spec=importlib.util.spec_from_file_location(name,path);value=importlib.util.module_from_spec(spec);spec.loader.exec_module(value);return value
 m=load('comments_stage',HERE/'trial-editorial-comments-stage.py')
@@ -253,8 +260,8 @@ class ContractTests(unittest.TestCase):
     def fixture_archive(self,head='a'*40):
         top='tencent-release-'+head[:12];old=sorted(p.name for p in (PROJECT/'db/migrations').glob('*.sql')if p.name<='202610260001_owned_editorial.sql');self.assertEqual(len(old),98)
         files={name:b'synthetic runtime'for name in m.ENTRIES};files['migrate.mjs']=(PROJECT/'scripts/release-migrate.mjs').read_bytes()
-        package=json.loads((PROJECT/'package.json').read_bytes());release={'name':'cisme-tencent-release','version':package['version'],'private':True,'type':'module','engines':package['engines'],'dependencies':package['dependencies']};files['package.json']=(json.dumps(release)+'\n').encode()
-        lock=json.loads((PROJECT/'package-lock.json').read_bytes());lock['name']=release['name'];lock['packages']['']={k:v for k,v in release.items()if k not in ('private','type')};lock['packages']={k:v for k,v in lock['packages'].items()if not k or(k.startswith('node_modules/')and not v.get('link'))};files['package-lock.json']=(json.dumps(lock)+'\n').encode()
+        package=json.loads(fixture_source('package.json'));release={'name':'cisme-tencent-release','version':package['version'],'private':True,'type':'module','engines':package['engines'],'dependencies':package['dependencies']};files['package.json']=(json.dumps(release)+'\n').encode()
+        lock=json.loads(fixture_source('package-lock.json'));lock['name']=release['name'];lock['packages']['']={k:v for k,v in release.items()if k not in ('private','type')};lock['packages']={k:v for k,v in lock['packages'].items()if not k or(k.startswith('node_modules/')and not v.get('link'))};files['package-lock.json']=(json.dumps(lock)+'\n').encode()
         for name in old+[m.MIGRATION]:files['db/migrations/'+name]=(PROJECT/'db/migrations'/name).read_bytes()
         manifest={'schemaVersion':1,'configurationIncluded':False,'sourceHead':head,'sourceTree':'b'*40,'sourceLockSha256':m.LOCK_PERMIT,'node':'v24.14.0','deployed':False,'releaseReady':False,'buildPlatform':{'os':'linux','arch':'x64','libc':'glibc'},'migrations':old+[m.MIGRATION],'hashes':{n:m.sha(v)for n,v in files.items()}}
         raw_manifest=(json.dumps(manifest)+'\n').encode();files['release-manifest.json']=raw_manifest;files['node_modules/demo/package.json']=b'{"name":"synthetic"}'
@@ -284,10 +291,10 @@ class ContractTests(unittest.TestCase):
         raw,digest,old=self.fixture_archive();head='a'*40
         def git(*args):
             self.assertEqual(args[:3],('ls-tree','-r','--name-only'));return ('\n'.join('db/migrations/'+n for n in (old if args[3]==f.BASELINE else old+[m.MIGRATION]))+'\n').encode()
-        with patch.object(f,'git',side_effect=git),patch.object(f,'source',side_effect=lambda h,p:(PROJECT/p).read_bytes()):
+        with patch.object(f,'git',side_effect=git),patch.object(f,'source',side_effect=lambda h,p:fixture_source(p)):
             f.check_archive(raw,m,head,'b'*40,digest)
             original=f.source
-            def changed(h,p):return b'changed'if h==f.BASELINE and p.endswith(old[0])else(PROJECT/p).read_bytes()
+            def changed(h,p):return b'changed'if h==f.BASELINE and p.endswith(old[0])else fixture_source(p)
             with patch.object(f,'source',side_effect=changed),self.assertRaisesRegex(ValueError,'OLD_MIGRATION_BYTES_CHANGED'):f.check_archive(raw,m,head,'b'*40,digest)
 
     def test_candidate_uses_new_upgrade_artifact_and_source_contract_and_actor_fence(self):

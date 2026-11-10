@@ -39,7 +39,7 @@ describe('checkout distinguishes incomplete navigation from member authenticatio
   expect(page.data).toMatchObject({loading:false,missingProduct:true,authenticationRequired:false,addresses:[],quote:null});
   expect(page.data.syncError).toContain('选择商品');expect(m.catalog).not.toHaveBeenCalled();expect(m.addresses).not.toHaveBeenCalled();
   expect(m.runtime).not.toHaveBeenCalled();expect(wxMock.navigateTo).not.toHaveBeenCalled();
-  await page.retryLoad();expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:'/pages/shop/index'}));
+  await page.retryLoad();expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:'/pages/shop/index'}));
   expect(m.order).not.toHaveBeenCalled();
  });
  it('keeps a public catalog 401 separate from a still-valid member session',async()=>{
@@ -96,7 +96,7 @@ describe('product selection, unavailable items and failed reads remain distinct'
   await import('../../apps/miniprogram/pages/product/index');const page=mount();page.onLoad({id});await page.load();
   expect(page.data).toMatchObject({loading:false,item:null,errorKind:'selection',errorTitle:'先选一件商品'});
   expect(m.catalog).not.toHaveBeenCalled();expect(wxMock.navigateTo).not.toHaveBeenCalled();page.back();
-  expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:'/pages/shop/index'}));expect(wxMock.navigateBack).not.toHaveBeenCalled();
+  expect(wxMock.navigateBack).toHaveBeenCalledOnce();wxMock.navigateBack.mock.calls[0][0].fail();expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:'/pages/shop/index'}));
  });
  it.each([{error:{status:404,code:'CATALOG_PRODUCT_NOT_FOUND'},kind:'missing'},
   {error:new Error('offline'),kind:'load'}])('preserves $kind recovery for an actual selected product',async({error,kind})=>{

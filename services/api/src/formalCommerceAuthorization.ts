@@ -1,6 +1,7 @@
 import type { AppConfig } from '@cisme/config';
 import { DomainError } from '@cisme/domain';
 import { protectedText, recoveryTransport, type RecoveryCapability } from './formalPaymentAuthorization.js';
+import {ownerExperienceCommerceScope} from './experienceCommerceScope.js';
 
 export type CommerceCapability = 'order.create' | 'payment.prepare' | 'payment.close' | 'refund.request' | 'refund.approve' | 'refund.submit';
 const capabilities: readonly string[] = ['order.create','payment.prepare','payment.close','refund.request','refund.approve','refund.submit'];
@@ -14,7 +15,7 @@ export function commerceAuthorization(config:AppConfig,profile:Profile,now=()=>D
     let grant:Record<string,unknown>;
     try{grant=JSON.parse(protectedText(profile.commerceAuthorizationFile));}catch{denied();}
     if(!grant||grant.schemaVersion!==1||grant.mode!=='ordinary-merchant-commerce-commands'
-      ||config.env!=='production'||grant.environment!==config.env
+      ||!(config.env==='production'||ownerExperienceCommerceScope(config,grant))||grant.environment!==config.env
       ||grant.appId!==profile.appId||grant.merchantId!==profile.merchantId
       ||typeof grant.approvalReference!=='string'||!/^[-A-Za-z0-9_:.]{8,120}$/.test(grant.approvalReference)
       ||typeof grant.expiresAt!=='string'||!Number.isFinite(Date.parse(grant.expiresAt))||Date.parse(grant.expiresAt)<=now()

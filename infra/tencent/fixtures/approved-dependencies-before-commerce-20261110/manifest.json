@@ -1,0 +1,6 @@
+{
+  "package.json": "c70b97f3ec0e6c339c5c27b0e9067549f9256287cfbfdf32f39ae46fcf54e231",
+  "package-lock.json": "2a14af4f1bfdd86d0108015b43df14d62b2cc6e8eedcd3831446970a26d7d32a",
+  "sourceCommit": "66dc6023a50f",
+  "scope": "Immutable package inputs for historical deployment fixture tests, not the current release or relaxed production guards."
+}

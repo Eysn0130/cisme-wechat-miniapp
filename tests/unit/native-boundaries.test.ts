@@ -143,7 +143,7 @@ describe("native mini program boundary", () => {
       "privacy-rights/index.wxml": 1,
       "management-privacy/index.wxml": 1,
       "management-fulfillment/index.wxml": 1,
-      "product/index.wxml": 2,
+      "product/index.wxml": 3,
       "referral/index.wxml": 2,
     });
 
@@ -224,7 +224,7 @@ describe("native mini program boundary", () => {
       "management-orders": ["back", "load", "open", "loadMore"],
       "management-order-detail": ["back", "back", "load", "reconcile", "submitShipment", "load"],
       aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit"],
-      "management-fulfillment": ["back", "retry", "retry", "next", "exportExcel", "submit", "reconcileBatch", "newBatch"],
+      "management-fulfillment": ["back", "retry", "retry", "next", "exportExcel", "chooseXlsx", "submit", "reconcileBatch", "newBatch", "openImportOrder"],
       "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "executeCorrection", "submit", "closeDetail"],
       "management-finance": ["back", "selectSection", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
       "management-support": ["back", "open", "retry"],
@@ -232,16 +232,16 @@ describe("native mini program boundary", () => {
       points: ["back", "openShop", "load"],
       post: ["replyComment", "deleteComment", "likeComment", "back", "load", "openAuthor", "toggleFollow", "loadSocial", "copySource", "loginToViewComments", "retryEditorialComments", "expandReplies", "loadMoreEditorialComments", "expandReplies", "load", "backToCommunity", "loadSocial", "cancelReply", "sendComment", "startComment", "toggleLike", "toggleSave", "@share", "sendComment", "toggleLike", "toggleSave", "showComments", "@share", "load", "editOwn", "deleteOwn", "closeEditorialBlocks", "loadEditorialBlocks", "unblockEditorialAuthor", "loadMoreEditorialBlocks"],
       "privacy-rights": ["back", "openSupport", "@contact", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "changeManifestPage", "changeManifestPage", "sendManifestPage", "changePart", "changePart", "sendPart", "copyRequestId", "loadMore", "login"],
-      product: ["back", "galleryPrevious", "galleryNext", "selectSku", "decrease", "increase", "openCheckout", "load", "back"],
+      product: ["back", "jumpAnchor", "jumpAnchor", "jumpAnchor", "previewGallery", "selectGallery", "load", "openSku", "previewDetail", "load", "back", "openSupport", "buy", "closeSku", "selectSku", "decrease", "increase", "confirmSku"],
       checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadSupportSheet", "loadShipment", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "preparePayment", "recheckPayment", "cancel"],
-      profile: ["openAccount", "openSettings", "openRecords", "load", "retryDailyStatus", "openSupport", "openPoints", "openShop", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openMyPosts", "openSettings"],
+      profile: ["openAccount", "openSettings", "openRecords", "load", "retryDailyStatus", "openSupport", "openPoints", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openMyPosts", "openSettings"],
       progress: ["returnToCommunity"],
-      records: ["selectCalendarDay", "authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "showRecentRecords", "retryDailyMutation", "retryDailyRecords", "undoDailyDelete", "retryDailyRecords", "deleteDailyRecord", "openRecordDetail", "loadMoreDailyRecords", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail", "deleteDailyRecord"],
+      records: ["backRecords", "selectCalendarDay", "authenticate", "retryLoad", "goHome", "changeCycle", "changeCycle", "changeCycle", "goHome", "showRecentRecords", "retryDailyMutation", "retryDailyRecords", "undoDailyDelete", "retryDailyRecords", "deleteDailyRecord", "openRecordDetail", "loadMoreDailyRecords", "openRecordDetail", "showEarlierCycles", "goHome", "goShop", "closeRecordDetail", "deleteDailyRecord"],
       referral: ["back", "preview", "confirm"],
       settings: ["back", "openAccount", "openAddresses", "chooseAvatar", "removeAvatar", "saveProfile", "bindPhone", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openMemberManagement", "openLegal", "openPrivacyRights", "toggleAbout", "copyMemberId", "logout", "reauthenticate", "load"],
-      shop: ["back", "openProduct", "openProduct", "load"],
+      shop: ["openOrders", "openProduct", "load", "openProduct"],
       submit: ["returnToCommunity"],
       support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "requestHuman", "startNewTopic", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
       task: ["returnToCommunity"]
@@ -344,8 +344,8 @@ describe("native mini program boundary", () => {
     expect(await readFile(resolve("apps/miniprogram/pages/home/index.wxss"), "utf8")).toMatch(/\.care-cta\s*\{[^}]*display:\s*flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s);
     expect(records).toContain(".cycle-button--single { grid-column:1/-1; width:100%; }");
     for (const styles of [product]) {
-      expect(styles).toMatch(/position:fixed;[^}]*right:20rpx;[^}]*bottom:calc\([^}]*\+ 16rpx\);[^}]*left:20rpx;/);
-      expect(styles).toContain("min-height:50px");
+      expect(styles).toMatch(/\.product-buybar\{[^}]*position:fixed;[^}]*bottom:0;[^}]*safe-area-inset-bottom/);
+      expect(styles).toContain("min-height:48px");
     }
     expect(customTab).toContain('font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif');
     expect(post).toMatch(/\.post-action \{[^}]*align-items:center;[^}]*justify-content:center;[^}]*min-height:44px;/);

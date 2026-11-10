@@ -22,11 +22,18 @@ PROFILE = {'name': 'trial', 'root': str(M.ROOT), 'units': ('cisme-trial-api.serv
            'domain': 'trial.synthetic.invalid', 'database': 'cisme_trial', 'user': 'cisme-trial'}
 
 
+# Historical deployment guards retain their approved dependency bytes.
+# Today's dependency additions must not rewrite those immutable allowlists.
+def fixture_source(name):
+    base=REPO/'infra/tencent/fixtures/approved-dependencies-before-commerce-20261110' if str(name) in ('package.json','package-lock.json') else REPO
+    return (base/name).read_bytes()
+
+
 def fixtures():
     names = sorted(path.name for path in (REPO / 'db/migrations').glob('*.sql')
                    if path.name <= '202610300003_support_explicit_ai_resume.sql')
     assert len(names) == 103
-    files = {name: (REPO / source).read_bytes() for name, source in (
+    files = {name: fixture_source(source) for name, source in (
         ('migrate.mjs', 'scripts/release-migrate.mjs'), ('package.json', 'package.json'), ('package-lock.json', 'package-lock.json'))}
     files.update({'db/migrations/' + name: (REPO / 'db/migrations' / name).read_bytes() for name in names})
     old = {'directory': str(M.ROOT / 'releases' / ('tencent-release-' + M.BASELINE_HEAD[:12])),
@@ -105,7 +112,7 @@ class SourceTests(unittest.TestCase):
         def run(value):
             with patch.object(M, 'response', side_effect=[json.dumps(commit).encode(), json.dumps(value).encode()]), \
                  patch.object(M, 'read', return_value=helper), patch.object(M, 'D', types.SimpleNamespace(command=command)), \
-                 patch.object(M, 'source_bytes', side_effect=lambda name, head: (REPO / name).read_bytes()):
+                 patch.object(M, 'source_bytes', side_effect=lambda name, head: fixture_source(name)):
                 M.source_permit(b, candidate)
         run(tree)
         command.assert_called_once_with([M.NODE, candidate['directory'] + '/migrate.mjs', 'verify'])
@@ -120,7 +127,7 @@ class SourceTests(unittest.TestCase):
         command.assert_not_called()
 
     def test_source_metadata_decodes_real_large_lock_and_refuses_secret_paths(self):
-        raw = (REPO / 'package-lock.json').read_bytes()
+        raw = fixture_source('package-lock.json')
         value = {'type': 'file', 'path': 'package-lock.json', 'encoding': 'base64', 'size': len(raw), 'sha': M.git_blob(raw), 'content': base64.b64encode(raw).decode()}
         with patch.object(M, 'response', return_value=json.dumps(value).encode()) as request:
             self.assertEqual(M.source_bytes('package-lock.json', '1' * 40), raw)

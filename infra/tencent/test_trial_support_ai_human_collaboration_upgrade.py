@@ -9,10 +9,17 @@ M=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(M)
 RUNNER=M.RUNNERS/('1'*12)/'trial-support-ai-human-collaboration-upgrade.py'
 PROFILE={'name':'trial','root':str(M.ROOT),'units':('cisme-trial-api.service','cisme-trial-worker.service'),'database':'cisme_trial','user':'cisme-trial'}
 
+# Historical deployment guards retain their approved dependency bytes.
+# Today's dependency additions must not rewrite those immutable allowlists.
+def fixture_source(name):
+    base=ROOT/'infra/tencent/fixtures/approved-dependencies-before-commerce-20261110' if str(name) in ('package.json','package-lock.json') else ROOT
+    return (base/name).read_bytes()
+
+
 def fixture():
  names=sorted(p.name for p in (ROOT/'db/migrations').glob('*.sql') if p.name<M.MIGRATION)
  assert len(names)==103
- files={name:(ROOT/path).read_bytes() for name,path in [('migrate.mjs','scripts/release-migrate.mjs'),('package.json','package.json'),('package-lock.json','package-lock.json')]}
+ files={name:fixture_source(path) for name,path in [('migrate.mjs','scripts/release-migrate.mjs'),('package.json','package.json'),('package-lock.json','package-lock.json')]}
  files.update({'db/migrations/'+name:(ROOT/'db/migrations'/name).read_bytes() for name in names})
  old={'directory':str(M.ROOT/'releases'/('tencent-release-'+M.BASELINE_HEAD[:12])),'files':files,'dependenciesSha256':M.DEPENDENCIES,'manifestSha256':M.BASELINE_MANIFEST,'manifest':{'sourceHead':M.BASELINE_HEAD,'sourceTree':M.BASELINE_TREE,'migrations':names}}
  candidate=copy.deepcopy(old)
@@ -72,7 +79,7 @@ class CommittedSourceTests(unittest.TestCase):
   tree={'sha':b['sourceTree'],'truncated':False,'tree':[{'path':name,'type':'blob','mode':'100644','sha':M.git_blob(raw)} for name,raw in sources.items()]}
   commit={'sha':b['sourceHead'],'tree':{'sha':b['sourceTree']}}
   command=Mock(return_value=json.dumps({'verified':True,'sourceHead':b['sourceHead'],'sourceTree':b['sourceTree'],'migrations':104}).encode())
-  package=lambda name,head:(ROOT/name).read_bytes()
+  package=lambda name,head:fixture_source(name)
   with patch.object(M,'response',side_effect=[json.dumps(commit).encode(),json.dumps(tree).encode()]),patch.object(M,'read',return_value=helper),patch.object(M,'source_bytes',side_effect=package),patch.object(M,'D',types.SimpleNamespace(command=command)):
    M.source_permit(b,candidate)
   self.assertEqual(command.call_args.args[0][-1],'verify');self.assertNotIn('up',command.call_args.args[0])

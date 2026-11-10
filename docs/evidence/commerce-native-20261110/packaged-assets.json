@@ -1,0 +1,205 @@
+{
+  "scope": "JPEG encoding only, full original dimensions and composition; PNG masters retained in design source. No new raster design or copy.",
+  "files": [
+    {
+      "file": "pages/product/assets/1-5358.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/1-5358.PNG",
+      "sourceSha256": "b67f05a80b03f21dd4724e62fbf854d960467ebe5e42626525969d4131f44966",
+      "sha256": "bbf3b3f26a7da8c853475d35eb1968c80a78f8eb5b44658df49200d331ae2890",
+      "bytes": 113593,
+      "width": 1254,
+      "height": 1254,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/1-5359.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/1-5359.PNG",
+      "sourceSha256": "0f0993f218c3b4539ba5e4ecba6bd039e349c1069227a679d59446ee3f5f0b3b",
+      "sha256": "3a887961cd0cfec4ddbf0a4130fef73ee515b811b37c93eb2c4179814eaf6dc6",
+      "bytes": 135056,
+      "width": 1122,
+      "height": 1402,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/1-5360.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/1-5360.PNG",
+      "sourceSha256": "849fa283e8528f5098efe3b0fdcb90243d2c26d3ae73414cf587e4b3b3a5a523",
+      "sha256": "6f7338aafdfdccf6be5c2375ad0521013615165c3b3aefba0962ced99f761eea",
+      "bytes": 117156,
+      "width": 1072,
+      "height": 1467,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/1-5361.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/1-5361.PNG",
+      "sourceSha256": "2a697dac37a725383099e09c2a0a02c7ff4ed0eaba79b6ceffb8b4e8a0e702b5",
+      "sha256": "8973946588be56ffc1fc856bf7d6305956366447f4a3c0d85cfc001b9e2446ed",
+      "bytes": 113204,
+      "width": 1122,
+      "height": 1402,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/1-5362.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/1-5362.PNG",
+      "sourceSha256": "bed05a454594c2d8cc6944f4c8f68c7357ee8d032175826c4f74ba0636ce2d36",
+      "sha256": "ad510565563d7e606bd4a8da5b9856b21bd292c3846fdd266bfb018a8a3d9b5a",
+      "bytes": 70301,
+      "width": 1536,
+      "height": 1024,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/1-5363.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/1-5363.PNG",
+      "sourceSha256": "daa247bbba4f4571564d7489dc5cd98d5346c9ca0bacdb0a6fbecbd2a5ac5222",
+      "sha256": "40426b3f4e1afac89c14cc714a8c7a475b86a1d5e2514c76b3aaf3336e92002b",
+      "bytes": 136432,
+      "width": 1122,
+      "height": 1402,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/1-5364.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/1-5364.PNG",
+      "sourceSha256": "5ce184439a496d4a035978bfff4c286dcbfebfc6ce2ae2f0dd6f0e520eba6d45",
+      "sha256": "23a338c51c1830204ffd510623603bc313c695904a7f2aa24fe7320a814d5cec",
+      "bytes": 54398,
+      "width": 1254,
+      "height": 836,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/2-5365.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/2-5365.PNG",
+      "sourceSha256": "1e0962b80ad3f933f613d0760fb62fd893f4ab8dd20691fee4e331da7226bb86",
+      "sha256": "f60676bd1934558d16e4e74e49fff439e727eb93a47b167471aef0f4f693e869",
+      "bytes": 121885,
+      "width": 1254,
+      "height": 1254,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/2-5366.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/2-5366.PNG",
+      "sourceSha256": "9aafdc1845d95176cf37fab998948808c7794d1245630ed298e539e25d8cc8c1",
+      "sha256": "665db156dbc70aa202ab06d709ccf1c575c5a674fa1da549acfe58cdd32642fb",
+      "bytes": 178951,
+      "width": 934,
+      "height": 1684,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/2-5367.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/2-5367.PNG",
+      "sourceSha256": "9bd7a9c90dfd43e6d554004ea415decc7fe73f0c4812067da444da698c81447f",
+      "sha256": "bd673af3d79af259233d9eddaeae1a353498b143039f9966bb77a59343c15167",
+      "bytes": 75174,
+      "width": 1254,
+      "height": 1254,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/2-5368.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/2-5368.PNG",
+      "sourceSha256": "429a696cc7fcd921aa4cd17d54bdfdf329ccaa4246b321afd31584282d4669cf",
+      "sha256": "12130f6bb6db16f1e42f0ce7e821e29cfb63265d5a4fce66d517cb736120f086",
+      "bytes": 135909,
+      "width": 1254,
+      "height": 1254,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/2-5369.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/2-5369.PNG",
+      "sourceSha256": "69ca79548c1e4c87a0aaef89fefbcf7a3ff6d501ccbff936f69627a547a3f2bc",
+      "sha256": "bb917138ea3dc84a8974d5514c0890aaaea9c955c22765dcac5c9da162d1ce8d",
+      "bytes": 83243,
+      "width": 1122,
+      "height": 1402,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/2-5370.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/2-5370.PNG",
+      "sourceSha256": "0acbd058c1c40f883dcde4be0f02aa28d56862b4f02578e25dc4b43b7fc2c874",
+      "sha256": "7b070dc1d0dfc33f2cb1362585a5751b4ac23ebece85cd3da334c2b42a31a15d",
+      "bytes": 112923,
+      "width": 1254,
+      "height": 1881,
+      "quality": 82
+    },
+    {
+      "file": "pages/product/assets/2-5371.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/products/2-5371.PNG",
+      "sourceSha256": "ed5d79971e56af1ba5194996ad56c71b848e0c623bd51f9b0df33387ecc519a1",
+      "sha256": "38a3b819a68cc32d3d6f16f4f7b07daa4d9df33829bf0d36067bcc28834c693c",
+      "bytes": 83694,
+      "width": 1254,
+      "height": 1254,
+      "quality": 82
+    },
+    {
+      "file": "assets/commerce/product1-glass-v4b.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/promotional/v4/product1-glass-v4b.png",
+      "sourceSha256": "59bafac03e4220ba5586a6f8c63cda9a20babcb30cc05a1191bb03a93ad7557c",
+      "sha256": "0562ea699aa479c6dc51b22fd2a357abef52b35228d6f02fdd8d5b12710b8132",
+      "bytes": 107201,
+      "width": 1448,
+      "height": 1086,
+      "quality": 88
+    },
+    {
+      "file": "assets/commerce/product2-glass-v4b.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/promotional/v4/product2-glass-v4b.png",
+      "sourceSha256": "735e8ad954c26dec3eef8a7dbbd7a3df23e40ec1032cb55488694f177867d5cf",
+      "sha256": "bdb0ae65d608f4cf0a5196e619a3af99d018752204ebafd021121d02a221b67b",
+      "bytes": 151432,
+      "width": 1448,
+      "height": 1086,
+      "quality": 88
+    },
+    {
+      "file": "pages/product/assets/product1-clean-v2.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/refined/v2/product1-card-v2.png",
+      "sourceSha256": "dd51a54a54f02fb9805cb7064b904a2670ab4c7c73f883f6bd466762a16a58d9",
+      "sha256": "2f3e1785653cae90ec15d6bb89ff4bbd9cfc54fafd8c2d3799df1c8d4937ad34",
+      "bytes": 65438,
+      "width": 1448,
+      "height": 1086,
+      "quality": 84
+    },
+    {
+      "file": "pages/product/assets/product2-clean-v2.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/refined/v2/product2-card-v2.png",
+      "sourceSha256": "889ab52a2e9406888ae1408db6ac5b4e46e7b78e564d972a7ed6cae7ee808105",
+      "sha256": "fde744a470da154ca49cf43925bfcbb0b3ab837a090b1fb17df88db3c25a4001",
+      "bytes": 106263,
+      "width": 1448,
+      "height": 1086,
+      "quality": 84
+    },
+    {
+      "file": "assets/commerce/product1-hero-v2.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/refined/v2/product1-hero-v2.png",
+      "sourceSha256": "5346ef822d90b3e379e8082e295a71a3146fc053b804ef7935a86f58a4b735b3",
+      "sha256": "40b8ddb46b7a656fbab2713df4b2404b5ed06a5f0bad10c6569545d70df13a77",
+      "bytes": 50488,
+      "width": 1870,
+      "height": 841,
+      "quality": 84
+    },
+    {
+      "file": "assets/commerce/product2-hero-v2.jpg",
+      "source": "/Users/mini/CISME/docs/design/commerce-20261110/assets/refined/v2/product2-hero-v2.png",
+      "sourceSha256": "5ed1d8f5565e3bf6f780b7d224d292b6f3f964a9f40cfa3704ad9f16b9e338ac",
+      "sha256": "7c4564e9494ab3dd150fb087d696b0e49ca560f287254260091c0c8c7a7640a7",
+      "bytes": 63350,
+      "width": 1870,
+      "height": 841,
+      "quality": 84
+    }
+  ]
+}

@@ -110,6 +110,19 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //111 adds only approved image paths. Down must not silently rewrite products in use.
+    expect(migrationTip).toBe('202611100003_commerce_approved_media.sql');
+    const imageConstraint=async()=>(await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='catalog_product_image_path_check'")).rows[0].definition as string;
+    expect(await imageConstraint()).toContain('/assets/commerce/product1-glass-v4b.jpg');
+    expect(await imageConstraint()).toContain('/assets/commerce/product2-glass-v4b.jpg');
+    const catalogBeforeMediaRollback=(await pool.query('SELECT id,image_path FROM catalog_product ORDER BY id LIMIT 1')).rows[0];
+    await pool.query('UPDATE catalog_product SET image_path=$2 WHERE id=$1',[catalogBeforeMediaRollback.id,'/assets/commerce/product1-glass-v4b.jpg']);
+    await closePool(pool);await expect(migrate('down')).rejects.toThrow();pool=migrationPool();
+    await pool.query('UPDATE catalog_product SET image_path=$2 WHERE id=$1',[catalogBeforeMediaRollback.id,catalogBeforeMediaRollback.image_path]);
+    await closePool(pool);await migrate('down');pool=migrationPool();expect(await imageConstraint()).not.toContain('/assets/commerce/');
+    await closePool(pool);await migrate('up');pool=migrationPool();expect(await imageConstraint()).toContain('/assets/commerce/product1-glass-v4b.jpg');
+    await closePool(pool);await migrate('down');pool=migrationPool();migrationCount-=1;extensionCount-=1;migrationTip='202611040004_ugc_comment_likes.sql';
+
     //110 adds empty owner-scoped comment likes without rewriting existing posts.
     expect(migrationTip).toBe('202611040004_ugc_comment_likes.sql');
     const commentLikeTable=async()=> (await pool.query("SELECT to_regclass('public.ugc_comment_like') name")).rows[0].name;

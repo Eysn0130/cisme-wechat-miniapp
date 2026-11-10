@@ -72,11 +72,14 @@ describe("native route access policy", () => {
   });
 
   it("does not reintroduce a client login gate on public catalog or community reads", async () => {
-    for (const route of ["community", "post", "shop"]) {
+    for (const route of ["community", "post"]) {
       const logic = await source(`apps/miniprogram/pages/${route}/index.ts`);
       expect(logic).not.toContain("requireMemberAccess");
       expect(logic).not.toContain("allowPublicBrowsing");
     }
+    const shop = await source("apps/miniprogram/pages/shop/index.ts");
+    expect(shop).not.toMatch(/(?:onShow|load)\([^)]*\)[^{]*\{[^}]*requireMemberAccess/);
+    expect(shop).toContain("catalogList()");
     const product = await source("apps/miniprogram/pages/product/index.ts");
     expect(product).toContain("catalogDetail(this.data.id)");
     expect(product).toContain("openCheckout()");

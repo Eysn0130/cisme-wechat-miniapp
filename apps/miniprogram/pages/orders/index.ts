@@ -44,6 +44,6 @@ Page({
   },
   open(event:WechatMiniprogram.TouchEvent){if(!this.canOpen())return;const id=String(event.currentTarget.dataset.id??"");if(!this.data.items.some(item=>item.id===id))return;
     this.setData({navigating:true});wx.navigateTo({url:`/pages/order-detail/index?id=${encodeURIComponent(id)}`,fail:()=>this.setData({navigating:false})});},
-  openShop(){if(this.data.closedRights||!this.data.visible||this.data.navigating)return;this.setData({navigating:true});wx.redirectTo({url:"/pages/shop/index",fail:()=>this.setData({navigating:false})});},
+  openShop(){if(this.data.closedRights||!this.data.visible||this.data.navigating)return;this.setData({navigating:true});wx.switchTab({url:"/pages/shop/index",fail:()=>this.setData({navigating:false})});},
   back(){if(!this.data.visible||this.data.navigating)return;this.setData({navigating:true});wx.navigateBack({fail:()=>this.data.closedRights?wx.redirectTo({url:"/pages/privacy-rights/index"}):wx.switchTab({url:"/pages/profile/index"})});}
 });

@@ -3,6 +3,7 @@ import type pg from 'pg';
 import type { AppConfig } from '@cisme/config';
 import { DomainError } from '@cisme/domain';
 import { protectedText } from './formalPaymentAuthorization.js';
+import {ownerExperienceCommerceScope} from './experienceCommerceScope.js';
 import { boundedWechatJson } from './boundedWechatJson.js';
 import { dependencySignal } from './operationBudget.js';
 import { AuthorityService } from './authority.js';
@@ -29,7 +30,7 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
       || !Array.isArray(grant.capabilities)||!grant.capabilities.length
       || grant.capabilities.some(x=>!['shipping.query','shipping.upload','logistics.accounts.read','logistics.tracking.read'].includes(String(x)))
       || new Set(grant.capabilities).size!==grant.capabilities.length
-      || (config.env==='staging'&&(grant.dataScope!=='isolated-test-only'||!Array.isArray(grant.orderNumbers)
+      || (config.env==='staging'&&!ownerExperienceCommerceScope(config,grant)&&(grant.dataScope!=='isolated-test-only'||!Array.isArray(grant.orderNumbers)
         || !grant.orderNumbers.length||grant.orderNumbers.length>100||grant.orderNumbers.some(x=>typeof x!=='string'||!/^[A-Za-z0-9_*-]{1,32}$/.test(x)))))denied();
     return grant;
   };
@@ -38,7 +39,7 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
   return (capability:ShippingCapability|LogisticsCapability,binding?:ShippingBinding&{appId?:string})=>{
     const grant=read();
     if(!(grant.capabilities as string[]).includes(capability)||capability==='logistics.tracking.read'&&binding?.appId!==profile!.appId||binding&&binding.merchantId!==profile!.merchantId
-      || binding&&config.env==='staging'&&!(grant.orderNumbers as string[]).includes(binding.merchantOrderNumber))denied();
+      || binding&&config.env==='staging'&&!ownerExperienceCommerceScope(config,grant)&&!(grant.orderNumbers as string[]).includes(binding.merchantOrderNumber))denied();
     return String(grant.approvalReference);
   };
 }

@@ -284,8 +284,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   // This configuration prepares trust and transport binding; it never grants
   // permission for orders, refunds or transfers. Independent live-capability
   // approvals are deliberately not defined by a single catch-all switch.
-  if(env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE&&(!formalProtocolEnabled||appEnv!=="production"))
-    throw new Error("FAIL_CLOSED:FORMAL_COMMERCE_PRODUCTION_ONLY");
+  if(env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE&&(!formalProtocolEnabled||!['production','staging'].includes(appEnv)))
+    throw new Error("FAIL_CLOSED:FORMAL_COMMERCE_DEPLOYED_ENVIRONMENT_REQUIRED");
   const formalProtocol=formalProtocolEnabled?{
     appId:required("WECHAT_APP_ID",env.WECHAT_APP_ID),
     ...(env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE?{commerceAuthorizationFile:env.COMMERCE_FORMAL_COMMERCE_AUTHORIZATION_FILE}:{}),

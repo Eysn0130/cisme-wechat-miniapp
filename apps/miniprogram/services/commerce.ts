@@ -15,7 +15,9 @@ export interface CatalogProduct {
 export interface CatalogPage { version?: number; checkoutEnabled?: boolean; items: CatalogProduct[]; nextCursor: string | null }
 
 export const packagedCatalogImages = [
-  "/assets/icons/spray-bottle-plum.svg"
+  "/assets/icons/spray-bottle-plum.svg",
+  "/assets/commerce/product1-glass-v4b.jpg",
+  "/assets/commerce/product2-glass-v4b.jpg"
 ] as const;
 
 export function parseYuanToCents(value: string): number {

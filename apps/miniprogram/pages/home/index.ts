@@ -311,7 +311,7 @@ Page({
     if (!care) { if (this.data.dailyLoading || !this.data.dailyReady && !(await this.loadDailyCare())) return; this.openCareSession(); return; }
     if (care.phase === "planned") { await this.confirmCycleStart(); return; }
     if (care.phase === "active" && care.due) { this.openCareSession(); return; }
-    wx.switchTab({ url: "/pages/records/index", fail: () => wx.showToast({ title: "护理记录页暂时无法打开", icon: "none" }) });
+    wx.navigateTo({ url: "/pages/records/index", fail: () => wx.showToast({ title: "护理记录页暂时无法打开", icon: "none" }) });
   },
   async confirmCycleStart() {
     const care = this.data.care;
