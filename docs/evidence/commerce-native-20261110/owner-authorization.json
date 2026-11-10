@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-10",
+  "scope": "Owner-approved native commerce preparation and latest experience version. Permission grant and real catalogue publication explicitly authorised in this chat.",
+  "ownerInstructions": [
+    "写入小程序，发布最新体验版",
+    "库存上调至100，并且库存按照原设计管理员可以在后台更改，所有用户直接购买都是¥298",
+    "现在就是为正式版做准备，要打通所有，HEHEHE就是管理员，管理员都要增加商品管理、商品审核、库存调整三项权限",
+    "打通闭环整个，用户购买，管理员后台能够查看到售出情况，管理员导出发货数据，管理员批量或单个上传xlsx完成物流编号，方便用户查看，缺哪些自行打通。"
+  ],
+  "products": [
+    {
+      "code": "aigerong-moisture-shampoo-280",
+      "priceCents": 19800,
+      "stock": 100,
+      "priceSource": "产品1提供主图首批预售价¥198及已确认设计"
+    },
+    {
+      "code": "aigerong-scalp-repair-essence-100",
+      "priceCents": 29800,
+      "stock": 100,
+      "priceSource": "所有者明确确认所有用户直接购买¥298"
+    }
+  ],
+  "adminIdentityVerification": {
+    "memberId": "8d2b65b6-c165-4186-b4d0-5fdda9c67456",
+    "identityId": "36eece5a-d79c-4fb4-8905-bc2c83688b7d",
+    "provider": "wechat_miniprogram",
+    "adapter": "wechat",
+    "appId": "wx4eac2d4fb11d299b",
+    "method": "Read-only database join against existing active member, canonical identity and existing authority grants; not inferred from display name."
+  },
+  "effects": [
+    "Grant commerce product, qualification and inventory capabilities to all already-authorised active canonical administrators in the experience environment.",
+    "Use existing versioned and audited commerce services for real products, prices, publication and inventory.",
+    "No payments, refunds, transfers, customer care facts or community interactions are authorised as test data by this operation.",
+    "Enable owner-approved real customer commerce and shipping on the isolated experience environment using the existing verified merchant configuration; complete XLSX upload and row-level results. Grant existing administrators order-read and fulfillment-management capabilities. No agent charge, refund, transfer or invented provider result."
+  ],
+  "productionBoundary": "Reusable source is prepared for formal release. This operation targets the isolated cisme_trial database; it does not invent a production identity or copy experience assets into member assets."
+}

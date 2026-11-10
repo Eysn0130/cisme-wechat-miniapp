@@ -1,0 +1,34 @@
+{
+  "version": "v4b-final-bottom-lettering-polish",
+  "method": "Built-in image_gen; single focused edit per product",
+  "purpose": "Enlarge only bottom benefits lettering for mobile-size legibility; preserve original product and other glass labels.",
+  "assets": [
+    {
+      "product": 1,
+      "file": "assets/promotional/v4/product1-glass-v4b.png",
+      "generatedSource": "/Users/mini/.codex/generated_images/01a1c5dd-97cc-7870-8451-1939160d59d8/exec-43f605d2-68ea-42c9-b544-9c9bd208ef64.png",
+      "inputs": [
+        "assets/promotional/v4/product1-glass-v4.png"
+      ],
+      "prompt": "Use case: precise-object-edit. This is a single targeted typography polish to the attached finished 4:3 product image. Keep output 1448x1086 and composition unchanged. KEEP ALL PRODUCT PHOTOGRAPHY, GLASS LABELS, COLOR, LIGHTING AND COPY unchanged except the bottom benefits ribbon. Preserve exactly the lavender shampoo and conditioner, ivory cup cap and white pump, all brand and packaging labels, six sachets, folded textured towel without button. Do not alter any packaging, product proportions or physical lettering. Do not touch the upper-right circular \"小程序 / 3倍 / 积分\" seal or the mid-right gift plate; keep their positions, wording and appearance.\nONLY CHANGE: improve legibility of the existing bottom transparent glass pill with the exact text \"运费险  |  7天无理由退货\". Increase its text size approximately 1.7 times, targeting a clean Chinese sans around 50–54 pixels tall and medium weight at this 1448px canvas width, deep plum #56306f. Place the enlarged line centered across the pill. Expand the pill gently upward to y990 through y1070 (about 80px high), width approximately x35 through x1410, entirely INSIDE the existing image. Subtle pearlescent outline, mostly transparent lilac glass; do not make it opaque or dark. Preserve the photo underneath and reveal any touched tiny shadow/lowest product edge through transparent glass. No extra canvas, header, frame, separate footer or new text. The effect should match the current elegant material, simply with readable bottom lettering at a 350px mobile display. Do not repeat the benefits text anywhere else.",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "59bafac03e4220ba5586a6f8c63cda9a20babcb30cc05a1191bb03a93ad7557c",
+      "bytes": 1651547
+    },
+    {
+      "product": 2,
+      "file": "assets/promotional/v4/product2-glass-v4b.png",
+      "generatedSource": "/Users/mini/.codex/generated_images/01a1c5dd-97cc-7870-8451-1939160d59d8/exec-46b49d13-594c-4eab-a5f4-555fe287ed0f.png",
+      "inputs": [
+        "assets/promotional/v4/product2-glass-v4.png"
+      ],
+      "prompt": "Use case: precise-object-edit. This is a single targeted typography polish to the attached finished 4:3 product image. Keep output 1448x1086 and composition unchanged. KEEP ALL PRODUCT PHOTOGRAPHY, GLASS LABELS, COLOR, LIGHTING AND COPY unchanged except the bottom benefits ribbon. Preserve exactly the silver 100ml tube with original crimped upper edge and closed pale lower cap with embossed circular wave, two lavender 280ml bottles, six sachets and folded drying cap with white button. Do not alter any packaging, product proportions or physical lettering. Do not touch the upper-right circular \"小程序 / 3倍 / 积分\" seal or the mid-right gift plate; keep their positions, wording and appearance.\nONLY CHANGE: improve legibility of the existing bottom transparent glass pill with the exact text \"运费险  |  7天无理由退货\". Increase its text size approximately 1.7 times, targeting a clean Chinese sans around 50–54 pixels tall and medium weight at this 1448px canvas width, deep plum #56306f. Place the enlarged line centered across the pill. Expand the pill gently upward to y990 through y1070 (about 80px high), width approximately x35 through x1410, entirely INSIDE the existing image. Subtle pearlescent outline, mostly transparent lilac glass; do not make it opaque or dark. Preserve the photo underneath and reveal any touched tiny shadow/lowest product edge through transparent glass. No extra canvas, header, frame, separate footer or new text. The effect should match the current elegant material, simply with readable bottom lettering at a 350px mobile display. Do not repeat the benefits text anywhere else.",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "735e8ad954c26dec3eef8a7dbbd7a3df23e40ec1032cb55488694f177867d5cf",
+      "bytes": 1785443
+    }
+  ],
+  "visualReview": "Both outputs inspected at full size; exact benefits text, distinct gift copy, original cap and pump types, essence closed cap, six sachets, product1 towel and product2 buttoned cap retained visually. Final integrated render is recorded in qa-summary-v4.json."
+}

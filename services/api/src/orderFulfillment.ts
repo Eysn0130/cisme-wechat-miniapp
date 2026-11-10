@@ -182,7 +182,7 @@ export class OrderFulfillmentService {
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
       const rows=(await client.query(`SELECT o.id,o.order_number,o.member_id,o.version,o.paid_at,
-        s.id AS shipment_id,s.logistics_state,s.carrier_name,s.receipt_confirmed_at,
+        s.id AS shipment_id,s.shipping_sync_id,s.shipped_at,s.logistics_state,s.carrier_name,s.receipt_confirmed_at,
         w.platform_order_state,w.in_complaint,w.observed_at,
         a.encrypted_payload,a.payload_hmac,a.key_version,
         (SELECT string_agg(l.product_name || ' × ' || l.quantity,'；' ORDER BY l.line_number) FROM commerce_order_line l WHERE l.order_id=o.id) AS items
@@ -200,11 +200,12 @@ export class OrderFulfillmentService {
         receiptConfirmedAt:r.receipt_confirmed_at?.toISOString()??null,
         wechatReceipt:r.observed_at?receiptView(r.platform_order_state,r.in_complaint,r.observed_at):null}));
       if(!exportPersonal)return {items,nextCursor:hasMore?selected.at(-1)!.id:null};
-      const cells=[['订单号','订单ID','订单版本','支付时间','商品','物流状态','收件人','手机号','省','市','区县','详细地址']];
+      const cells=[['订单号','订单ID','订单版本','支付时间','商品','物流状态','收件人','手机号','省','市','区县','详细地址','快递代码','快递名称','运单号','实际交寄时间']];
       for(const r of selected){
         if(!r.encrypted_payload)fail('SHIPMENT_ADDRESS_REQUIRED');
         const a=this.addresses.openOrderSnapshot(r.member_id,r.id,r.encrypted_payload,r.payload_hmac,r.key_version);
-        cells.push([r.order_number,r.id,String(r.version),r.paid_at.toISOString(),r.items,r.logistics_state??'awaiting_dispatch',a.recipientName,a.phone,a.province,a.city,a.district,a.detail]);
+        const parcel=r.shipping_sync_id?await this.sync.parcelWithClient(client,r.shipping_sync_id):null;
+        cells.push([r.order_number,r.id,String(r.version),r.paid_at.toISOString(),r.items,r.logistics_state??'awaiting_dispatch',a.recipientName,a.phone,a.province,a.city,a.district,a.detail,parcel?.carrierCode??'',r.carrier_name??'',parcel?.trackingNumber??'',r.shipped_at?.toISOString()??'']);
       }
       const workbook=fulfillmentWorkbook(cells);
       await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');

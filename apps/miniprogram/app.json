@@ -2,6 +2,7 @@
   "pages": [
     "pages/account/index",
     "pages/home/index",
+    "pages/shop/index",
     "pages/records/index",
     "pages/community/index",
     "pages/profile/index"
@@ -12,7 +13,6 @@
     { "root": "pages/progress", "pages": ["index"] },
     { "root": "pages/points", "pages": ["index"] },
     { "root": "pages/post", "pages": ["index"] },
-    { "root": "pages/shop", "pages": ["index"] },
     { "root": "pages/product", "pages": ["index"] },
     { "root": "pages/checkout", "pages": ["index"] },
     { "root": "pages/orders", "pages": ["index"] },
@@ -61,8 +61,8 @@
         "text": "护理"
       },
       {
-        "pagePath": "pages/records/index",
-        "text": "记录"
+        "pagePath": "pages/shop/index",
+        "text": "商城"
       },
       {
         "pagePath": "pages/community/index",

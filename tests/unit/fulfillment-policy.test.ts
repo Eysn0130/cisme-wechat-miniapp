@@ -22,7 +22,7 @@ it('exports bounded XLSX as literal text with valid ZIP CRCs, no formula/externa
     const body=data.subarray(offset+30+nameLength,offset+30+nameLength+length);
     expect(crc32(body)).toBe(data.readUInt32LE(offset+14));entries.set(name,body.toString());offset+=30+nameLength+length;
   }
-  expect(entries.size).toBe(5);expect(data.readUInt32LE(offset)).toBe(0x02014b50);
+  expect(entries.size).toBe(6);expect(data.readUInt32LE(offset)).toBe(0x02014b50);
   const sheet=entries.get('xl/worksheets/sheet1.xml')!;
   expect(sheet).toContain('t="inlineStr"');expect(sheet).toContain('0013800000000');expect(sheet).toContain('&lt;客户&gt;&amp;');expect(sheet).not.toContain('<f>');
   expect(()=>fulfillmentWorkbook(Array.from({length:502},()=>['x']))).toThrow();

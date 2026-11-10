@@ -15,6 +15,14 @@ beforeAll(async()=>{await resetDatabase(pool);app=await createApp({config,pool,s
 afterAll(async()=>{await app.close();await pool.end();});
 
 describe("R4-A first-party catalog",()=>{
+  it("accepts both approved commerce covers while keeping retired and unknown images blocked",async()=>{
+    for(const number of [1,2]){
+      const image=`/assets/commerce/product${number}-glass-v4b.jpg`;
+      const created=await app.inject({method:'POST',url:'/v1/management/catalog/products',headers:{...auth(operator.sessionToken),'idempotency-key':`approved-commerce-image-${number}`},payload:{code:`approved-commerce-cover-${number}`,name:'隔离图片契约验证',imagePath:image,sku:{code:`APPROVED_COVER_${number}`,label:'隔离规格',priceCents:100}}});
+      expect(created.statusCode,created.body).toBe(200);expect(created.json().image).toBe(image);
+      expect(created.json().publicationStatus).toBe('draft');expect(created.json().purchaseEnabled).toBe(false);
+    }
+  });
   it("keeps legacy previews private and completes capability-separated create-to-browse lifecycle",async()=>{
     const initial=await app.inject({method:"GET",url:"/v1/catalog"});expect(initial.statusCode).toBe(200);expect(initial.json()).toMatchObject({version:3,checkoutEnabled:false,items:[]});
     expect((await app.inject({method:"GET",url:"/v1/management/catalog/products",headers:auth(limited.sessionToken)})).statusCode).toBe(403);

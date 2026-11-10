@@ -7,7 +7,7 @@ import { RequestCoordinator } from "./request-coordinator";
 import { sendJsonRequest, type TransportHandle } from "./http";
 const app = { get globalData() { return getApp<IAppOption>().globalData; } };
 const authReturnKey = "cisme.authReturnUrl";
-const tabRoutes = new Set(["/pages/home/index", "/pages/records/index", "/pages/community/index", "/pages/profile/index"]);
+const tabRoutes = new Set(["/pages/home/index", "/pages/shop/index", "/pages/community/index", "/pages/profile/index"]);
 const reads = new RequestCoordinator();
 const privateDownloads = new Set<() => void>();
 let authRedirecting = false;

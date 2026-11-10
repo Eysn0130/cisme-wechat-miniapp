@@ -167,10 +167,9 @@ Page({
     else wx.navigateTo({ url, fail });
   },
   openAccount() { this.openRoute("/pages/settings/index", "navigate", "设置暂时无法打开"); },
-  openRecords() { this.openRoute("/pages/records/index", "tab", "护理记录暂时无法打开"); },
+  openRecords() { this.openRoute("/pages/records/index", "navigate", "护理记录暂时无法打开"); },
   openPoints() { this.openRoute("/pages/points/index", "navigate", "积分账本暂时无法打开"); },
   openSettings() { this.openRoute("/pages/settings/index", "navigate", "设置与隐私暂时无法打开"); },
-  openShop() { this.openRoute("/pages/shop/index", "navigate", "商品目录暂时无法打开"); },
   openOrders() { this.openRoute("/pages/orders/index", "navigate", "订单暂时无法打开"); },
   openSupport(){this.openRoute("/pages/support/index","navigate","客服暂时无法打开");},
   openManagement(){if(this.data.authorityState!=="ready"||!hasNativeManagementEntry(this.data.authority))return;this.openRoute("/pages/management/index","navigate","管理中心暂时无法打开");},

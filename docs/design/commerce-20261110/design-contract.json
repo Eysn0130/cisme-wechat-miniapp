@@ -1,0 +1,161 @@
+{
+  "date": "2026-11-10",
+  "status": "Selected direction2; v4 ImageGen promotional glass labels inside shop photographs; full v2 below-image captions retained. Local design review only.",
+  "baseline": "docs/product/CISME-产品需求文档-PRD-V2.1-R4.md §§6.1, 6.3, 8.1, 8.2; P15, P16, P17, P18, P21, P23; RELEASE-PARITY-01–04",
+  "approval_scope": "Latest user annotation: preserve below-image product name, subline, qualified price and 查看商品; add commercial text inside the photo using ImageGen, with translucent glass where needed. Two products share one visual theme.",
+  "source_policy": {
+    "original_files": 14,
+    "image_edits": "Original14 files remain byte-identical. Clean v2 ImageGen photographs are retained. Separate v4 derivatives add only source-grounded glass labels in photo negative space, retaining the packaging appearance and product group. Wide heroes and detail gallery stay on approved v2 clean images and original materials.",
+    "brand": "CISME identifies the mini-program. AIGERONG 爱格荣 on products and materials is retained.",
+    "copy": "Retain source wording, price qualifiers, gifts, units, ingredient spelling, usage and return conditions. Add only necessary interface labels.",
+    "prohibited": [
+      "Redesigned or substituted product packaging; source-grounded visual retouch is explicitly authorised.",
+      "Changed bottle proportions, colors, caps or comb teeth",
+      "Invented marketing copy or unrelated props",
+      "Treating a bundle value or a gift value as a sale price",
+      "Treating a lowest-price offer as a verified fixed SKU price",
+      "Fabricated inventory, sales or reviews"
+    ],
+    "product1_duplicate": "5362.PNG and 5364.PNG contain the same return-policy wording in two source sizes. Both originals are preserved; 5362 is used in the long detail and both remain in the gallery.",
+    "retouch_record": "generation-v2.json and generation-v4.json. v1/v2 and superseded working v3 source and screenshot history remain under archive/.",
+    "commercialLayer": "ImageGen raster assets only; glass-v4.css controls the review comparison layout without drawing promotional elements. No external promotional header/footer replaces the original caption."
+  },
+  "navigation": {
+    "bottom_order": [
+      "护理",
+      "商城",
+      "社区",
+      "我的"
+    ],
+    "shop_icon": "Reuse native storefront icon, not the records clipboard icon.",
+    "profile": "Remove 商品目录; keep 我的订单; expose 护理记录.",
+    "shop_orders": "Right side of the utility row below the native WeChat capsule; reuse the existing orders page.",
+    "records": "Preserve private care records and all persisted step facts. Keep home and profile entries. Audit switchTab, navigateTo, deep links, login resume and product fallbacks when removing records from tabBar.",
+    "package": "Shop becomes a main-package tab page. Records becomes a normal native page, with existing route compatibility and main-package size checked."
+  },
+  "layout": {
+    "reference_width": 393,
+    "reference_height": 852,
+    "width_checks": [
+      375,
+      393,
+      430
+    ],
+    "page_background": "#f7f4f8",
+    "ink": "--cisme-ink #352a3a / --cisme-ink-deep #2f2149",
+    "action": "--cisme-plum #56306f",
+    "body": "--cisme-text-body 14px; retain native font scaling",
+    "primary_action": "--cisme-text-action 16px",
+    "touch_target": "--cisme-hit-target 44px minimum",
+    "proposed_roles": "Hero radius 22px, standalone product block radius 22px, gap 18px and page gutter 14px are proposed commerce roles derived from current community geometry; no third-party UI dependency.",
+    "shop": "Retain the approved native header, orders row, automatic2.22:1 hero and floating tab bar. Shop card photographs gain a points seal, gift plate and narrow benefits ribbon inside the4:3 frame. Keep v2 native below-image name, subline, qualified price and 查看商品 markup and styling.",
+    "detail": "Native header with protected capsule, 商品/详情/评价 anchors,4:3 refined main photograph followed by full original gallery material, native qualified price and original benefits, SKU selector, original full detail materials, honest empty review and service/purchase bar.",
+    "large_type": "Wrap labels and grow rows; keep purchase action visible. Product images are unchanged and zoomable.",
+    "commercialArtwork": "Both in-photo compositions use pale lilac translucent glass and deep-plum lettering, avoiding packaging labels. Only gift copy differs. Full image remains visible with no crop or external frame. No new dependency."
+  },
+  "interactions": [
+    {
+      "name": "OpenProduct",
+      "trigger": "Tap hero or a full product block",
+      "result": "Open the exact product by stable product code; preserve shop scroll for return",
+      "failure": "Retain current list and show retryable navigation feedback"
+    },
+    {
+      "name": "HeroCarousel",
+      "result": "Automatic native swiper,5000ms cadence; retain manual swipe and slim progress indicator; no visible play/pause control per explicit user annotation.",
+      "guards": "Stop while page is hidden or hero is offscreen; respect reduced motion. A manual swipe resets the automatic cadence and does not leave an unresumable paused state.",
+      "preview": "Autoplay enabled by default unless OS reduced motion is active. No play/pause DOM control."
+    },
+    {
+      "name": "DetailAnchors",
+      "trigger": "Tap 商品, 详情 or 评价",
+      "result": "Position within the same long page; scroll synchronizes selected tab; native capsule and sticky-header height are excluded from destination offset",
+      "must_not": "Horizontally swipe the whole detail page or lose purchase selection"
+    },
+    {
+      "name": "ViewOriginal",
+      "trigger": "Tap any gallery or detail image",
+      "result": "Open full original image, support enlargement and close/back; never crop away source words in the full viewer"
+    },
+    {
+      "name": "SelectSku",
+      "trigger": "Tap selector or 选择规格",
+      "result": "Bottom sheet with verified SKU, source-qualified offer and quantity; confirm updates local selection; cancel retains last confirmed selection",
+      "guards": "SKU ownership, version, current price, active state, integer quantity, stock and idempotency remain server-authoritative; preview does not invent stock"
+    },
+    {
+      "name": "CheckoutAndResume",
+      "trigger": "Tap 立即购买 after selection",
+      "result": "Use existing native checkout. Guest logs in and returns to the same product/selection. Revalidate quote and inventory before order confirmation",
+      "guards": "No charge from detail-page clicks; actual money tests require separately specified order, amount, count and stop condition"
+    },
+    {
+      "name": "PurchasedReview",
+      "result": "New backend review contract required: server-verified completed order and item ownership, actual author, text safety, pagination, deletion and authorised moderation",
+      "empty": "暂无评价; no fabricated score or review count",
+      "privacy": "Do not repurpose private care records or community comments as product purchase reviews"
+    },
+    {
+      "name": "OrdersAndRecords",
+      "result": "Reuse existing owned orders and private care history; both old and new entry paths work; login and failed navigation recover"
+    }
+  ],
+  "states": [
+    {
+      "state": "loading",
+      "ui": "Honest loading presentation; retain an already confirmed list when refreshing"
+    },
+    {
+      "state": "ready",
+      "ui": "Only verified published product information and live purchase capabilities"
+    },
+    {
+      "state": "empty_catalog",
+      "ui": "商品正在准备中; permit refresh and navigation"
+    },
+    {
+      "state": "load_error_or_offline",
+      "ui": "Specific retry, preserved existing content and selection"
+    },
+    {
+      "state": "out_of_stock",
+      "ui": "暂时缺货 with explanation; no order creation; other products remain browseable"
+    },
+    {
+      "state": "unpublished",
+      "ui": "商品已下架 with return to shop; no stale purchase action"
+    },
+    {
+      "state": "price_or_stock_changed",
+      "ui": "Server refresh and user reconfirmation; preserve quantity as input but do not trust it"
+    },
+    {
+      "state": "guest_or_session_expired",
+      "ui": "Public browsing remains available; protected action resumes after authentic login"
+    },
+    {
+      "state": "empty_review",
+      "ui": "暂无评价"
+    },
+    {
+      "state": "interrupted_sheet_or_checkout",
+      "ui": "Retain confirmed SKU and quantity; recheck account, product and quote before continuing"
+    }
+  ],
+  "source_offer_notes": {
+    "product1": "Source says 首批预售价 ¥198; 赠 正装护发素 ¥228 is not an approved strike-through list price.",
+    "product2": "Source says 预售首推低至 ¥298 and 套组价值 ¥763; neither establishes an unconditional fixed SKU price.",
+    "benefits": "3倍积分、运费险、赠品与退货条件 remain verbatim design content and must be reconciled with actual configuration before publication.",
+    "unit_note": "Product1 main offer writes 洗护小样10mL×6 while small pouch artwork writes 净含量10g. Preserve both source images and do not silently normalize the units; actual fulfilment SKU requires reconciliation before listing.",
+    "aftersale_note": "Product1 includes specific unopened-bottle and gift-return terms; product2 includes a 7-day-return headline without an independent detailed conditions image. Do not automatically copy product1 conditions to product2."
+  },
+  "construction_slices": [
+    "Approve the real-product visual draft and lock source-to-view mapping.",
+    "Update active PRD navigation and review acceptance items, then implement native navigation/package/login-return migration.",
+    "Implement source-backed native shop/detail layout, verified multi-image and detail-media management with controlled upload and publication.",
+    "Implement purchased-review backend and native list/composer with real safety and ownership validation.",
+    "Verify real product SKU, exact sale-price conditions, gifts, stock, pre-sale delivery, loyalty, shipping insurance and aftersales before versioned catalogue publication.",
+    "Verify on current-package hashes in WeChat Developer Tools and authorised iOS/Android devices, distinguishing synthetic layout from real interface and account evidence."
+  ],
+  "validation_boundary": "HTML is a review artefact only; browser rendering and interactions are not native mini-program acceptance, product listing, business-rule activation, or payment evidence."
+}

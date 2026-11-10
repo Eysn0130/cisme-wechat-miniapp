@@ -2,7 +2,7 @@
 <view class="records-page records-page--calendar" style="{{chromeStyle}}">
   <view class="records-surface {{recordDetailMounted ? 'records-surface--inert' : ''}}" aria-hidden="{{recordDetailMounted}}">
   <view class="records-hero">
-    <view class="records-nav"><view class="records-nav__row"><text class="records-wordmark">CISME</text><text class="records-nav__title">护理记录</text></view></view>
+    <view class="records-nav"><view class="records-nav__row"><button class="records-back {{working || confirmingCycleAction || confirmingDailyDelete ? 'control--disabled' : ''}}" bindtap="backRecords" disabled="{{working || confirmingCycleAction || confirmingDailyDelete}}" aria-label="返回"><image src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="records-wordmark">CISME</text><text class="records-nav__title">护理记录</text></view></view>
     <block wx:if="{{authorityAvailable || dailyReady}}">
     <view wx:if="{{care}}" class="records-headline"><text class="records-headline__line">{{summary.headlineLine1}}</text><text wx:if="{{summary.headlineLine2}}" class="records-headline__line">{{summary.headlineLine2}}</text></view>
     <view class="records-summary"><text wx:if="{{care}}" class="records-summary__count">可查看 {{loadedRecordCount}} 条记录</text><text wx:elif="{{dailyReady && !dailyError}}" class="records-summary__count">已记录 {{dailyTotalCount}} 天</text><text wx:elif="{{dailyLoading}}" class="records-summary__status">正在加载日常记录…</text><text wx:elif="{{dailyError}}" class="records-summary__status">日常记录暂未更新</text></view>

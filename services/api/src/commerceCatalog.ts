@@ -25,7 +25,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const PRODUCT_CODE = /^[a-z0-9][a-z0-9-]{2,63}$/;
 const SKU_CODE = /^[A-Z0-9][A-Z0-9_-]{2,63}$/;
 const CATALOG_IMAGES = new Set([
-  "/assets/icons/spray-bottle-plum.svg"
+  "/assets/icons/spray-bottle-plum.svg",
+  "/assets/commerce/product1-glass-v4b.jpg",
+  "/assets/commerce/product2-glass-v4b.jpg"
 ]);
 // The generated picture is packaged solely to verify native image rendering
 // with disposable test products. Production catalog writes remain on the

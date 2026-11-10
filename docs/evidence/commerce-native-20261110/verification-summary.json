@@ -1,0 +1,25 @@
+{
+  "packageSourceSha256": "0500b48fd09e45e2ce3e9edafca3844ea8d541896f17c4b479aaffdc6039d89b",
+  "unit": {
+    "numTotalTests": 3134,
+    "numPassedTests": 3133,
+    "numFailedTests": 0,
+    "numPendingTests": 1
+  },
+  "integration": {
+    "numTotalTests": 42,
+    "numPassedTests": 42,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "integrationScope": "Disposable PostgreSQL/object storage: real catalog/order service, signed synthetic payment inbox, export→independent XLSX parser→shipment import; no live customer purchase or charge.",
+  "contracts": "291 mounted /v1 operations; 293 OpenAPI operations including health; 32 events match",
+  "typecheck": "passed",
+  "nativeEvidence": "Pending current-source DevTools verification; old root screenshots are initial scope only.",
+  "runtimeDependencyAudit": {
+    "high": 0,
+    "critical": 0,
+    "moderate": 1,
+    "existingTransitive": "qs; no fast-xml-parser finding"
+  }
+}

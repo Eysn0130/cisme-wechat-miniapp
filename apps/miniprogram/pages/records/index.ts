@@ -298,8 +298,6 @@ Page({
   onShow() {
     this.data.pageAlive = true; this.data.visible = true; this.syncSession();
     const tab = this.getTabBar?.();
-    if (tab) tab.setData({ active: 1, externalBusy: this.data.working });
-    tab?.syncActive?.(1);
     tab?.setPresentation?.("record-detail", false);
     if (!requireMemberAccess()) {
       this.dismissRecordDetailImmediately();
@@ -713,9 +711,13 @@ Page({
     if (this.data.working || this.data.confirmingCycleAction) { wx.showToast({ title: "周期操作确认中，请稍候", icon: "none" }); return; }
     wx.switchTab({ url: "/pages/home/index", fail: () => wx.showToast({ title: "护理首页暂时无法打开", icon: "none" }) });
   },
+  backRecords() {
+    if (this.data.working || this.data.confirmingCycleAction || this.data.confirmingDailyDelete) return;
+    wx.navigateBack({ fail: () => this.goHome() });
+  },
   goShop() {
     if (this.data.working || this.data.confirmingCycleAction) { wx.showToast({ title: "周期操作确认中，请稍候", icon: "none" }); return; }
-    wx.navigateTo({ url: "/pages/shop/index", fail: () => wx.showToast({ title: "护理商品暂时无法打开", icon: "none" }) });
+    wx.switchTab({ url: "/pages/shop/index", fail: () => wx.showToast({ title: "护理商品暂时无法打开", icon: "none" }) });
   },
   async changeCycle(event: WechatMiniprogram.TouchEvent) {
     if (!this.data.visible || !this.data.pageAlive || !this.data.writeReady || !this.data.care || !this.data.authorityAvailable || this.data.working || this.data.confirmingCycleAction) return;

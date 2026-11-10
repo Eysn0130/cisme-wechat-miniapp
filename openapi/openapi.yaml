@@ -1708,6 +1708,40 @@ paths:
                 rows: {type: string, maxLength: 16000, description: 'Tab-separated order number, carrier code, carrier name, tracking number, UTC shipped-at. No header.'}
       responses:
         '200': {description: Per-row accepted or rejected result; does not assert WeChat synchronization}
+  /v1/management/shipments/import-xlsx/preview:
+    post:
+      security: [{session: []}]
+      operationId: previewShipmentWorkbook
+      summary: 上传XLSX并预览1–500单物流；不保存原表，不修改订单或发货状态
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [filename, contentBase64]
+              properties:
+                filename: {type: string, maxLength: 160, pattern: '[.]xlsx$'}
+                contentBase64: {type: string, format: byte, maxLength: 2800000, description: 'At most 2MiB XLSX; formulas, macros, external links and lossy numeric tracking IDs are rejected.'}
+      responses:
+        '200':
+          description: Only logistics columns are returned; source recipient and address fields are discarded. Confirmed rows are submitted through importShipmentRows in stable 25-row chunks.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [version, sheetName, sha256, rowCount, skippedRows, rows]
+                properties:
+                  version: {type: integer, enum: [1]}
+                  sheetName: {type: string}
+                  sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+                  rowCount: {type: integer, minimum: 1, maximum: 500}
+                  skippedRows: {type: integer, minimum: 0, maximum: 500}
+                  rows: {type: string, maxLength: 320000}
+        '403': {description: Server-verified fulfillment capability required before parsing}
+        '422': {description: Invalid workbook; no dispatch is performed}
   /v1/management/shipments/batch:
     post:
       tags: [Commerce]

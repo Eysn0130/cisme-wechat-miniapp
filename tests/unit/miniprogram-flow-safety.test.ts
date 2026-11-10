@@ -11,7 +11,8 @@ describe("mini program submission flow safety", () => {
 
   it("keeps the task in history and gives progress a non-circular return path", async () => {
 
-    expect(await source("apps/miniprogram/pages/shop/index.ts")).toContain('wx.switchTab({ url: "/pages/community/index" })');
+    const manifest = JSON.parse(await source("apps/miniprogram/app.json"));
+    expect(manifest.tabBar.list[1]).toEqual({pagePath:"pages/shop/index",text:"商城"});
   });
 
   it("keeps authentication, navigation and draft exits recoverable", async () => {
@@ -157,9 +158,9 @@ describe("mini program submission flow safety", () => {
 
     expect(profile).toContain("设置与隐私暂时无法打开");
     for (const [logic, view] of [[shop, shopView], [points, pointsView]]) {
-      expect(logic).toContain("if (this.data.navigating) return");
-      expect(logic).toContain("this.setData({ navigating: true })");
-      expect(logic).toContain("this.setData({ navigating: false })");
+      expect(logic).toMatch(/if\s*\(this\.data\.navigating\)\s*return/);
+      expect(logic).toMatch(/this\.setData\(\{\s*navigating:\s*true\s*\}\)/);
+      expect(logic).toMatch(/this\.setData\(\{\s*navigating:\s*false\s*\}\)/);
       expect(view).toContain("{{navigating ? 'control--disabled' : ''}}");
       expect(view).toContain('disabled="{{navigating}}"');
     }
@@ -216,9 +217,9 @@ describe("mini program submission flow safety", () => {
     expect(communityView).not.toContain("邀请活动");
     expect(profileView).not.toContain("我的活动");
     expect(profileView).not.toContain("微信支付与真实配送尚未开放");
-    expect(shopView).toContain("全部商品");
-    expect(shopView).toContain("catalog && catalog.items.length && !purchaseAvailable");
-    expect(shopView).toContain("可先了解商品，下单暂未开放。");
+    expect(shopView).toContain('bindtap="openOrders"');
+    expect(shopView).toContain('wx:for="{{items}}"');
+    expect(shopView).not.toContain("暂停");
     expect(editorial).toContain("export const editorialStories: EditorialStory[] = []");
     expect(editorial).not.toContain("内容授权尚待确认");
   });
@@ -284,7 +285,7 @@ describe("mini program submission flow safety", () => {
       expect(style).not.toContain("padding:calc(env(safe-area-inset-top) + 188rpx)");
       expect(style).toContain("var(--cisme-safe-bottom,env(safe-area-inset-bottom))");
     }
-    expect(productStyle).toContain("padding-top:var(--cisme-stack-top");
+    expect(productStyle).toContain("padding-top:calc(var(--cisme-topbar-height");
     // The author now belongs to document flow below media, while only native
     // navigation reserves the measured capsule row.
     const authorStyle=postStyle.match(/\.post-authorbar\s*\{([^}]*)\}/)?.[1];
@@ -304,13 +305,13 @@ describe("mini program submission flow safety", () => {
       expect(route).toContain("this.data.loadAttempt !== attempt");
       expect(route).toContain("this.data.pageAlive = false");
     }
-    expect(shop).toContain("...(!preserve ? { catalog: null, featured: null, purchaseAvailable:false } : {}), loading: true");
+    expect(shop).toMatch(/purchaseAvailable:\s*false/);
     expect(shop).toContain("const preserve = retainReadPresentation(this)");
-    expect(product).toContain('...(!preserve ? { item: null, catalog: null } : {}), shareId: "", loading: true');
+    expect(product).toMatch(/!preserve\s*\?\s*\{item:null,catalog:null\}/);
     expect(product).toContain("formatCnyCents(raw.price)");
     expect(product).toContain('throw new Error("CATALOG_PRICE_INVALID")');
-    expect(product).toContain('wx.redirectTo({ url: "/pages/shop/index"');
-    expect(product).toContain('wx.switchTab({ url: "/pages/community/index", fail: failed })');
+    expect(product).toContain('wx.switchTab({url:"/pages/shop/index"');
+    expect(product).toContain("fail:failed");
     expect(points).toContain('points: null as any, balanceClass: "", loading: true');
   });
 

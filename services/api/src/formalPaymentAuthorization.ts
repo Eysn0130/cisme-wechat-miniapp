@@ -1,6 +1,7 @@
 import { constants, closeSync, fstatSync, openSync, readFileSync } from 'node:fs';
 import type { AppConfig } from '@cisme/config';
 import { DomainError } from '@cisme/domain';
+import {ownerExperienceCommerceScope} from './experienceCommerceScope.js';
 
 export type RecoveryCapability='payment.query'|'refund.query'|'bill.read'|'payment.callback'|'refund.callback';
 const capabilities:readonly string[]=['payment.query','refund.query','bill.read','payment.callback','refund.callback'];
@@ -27,6 +28,7 @@ export function recoveryAuthorization(config:AppConfig,profile:Profile,now=()=>D
     try{grant=JSON.parse(protectedText(path));}catch{throw new Error('FAIL_CLOSED:FORMAL_RECOVERY_GRANT_INVALID');}
     if(!grant||grant.schemaVersion!==1||grant.mode!=='ordinary-merchant-recovery-only'||
       !['staging','production'].includes(config.env)||grant.environment!==config.env||
+      config.env==='staging'&&grant.dataScope==='owner-authorized-experience-commerce'&&!ownerExperienceCommerceScope(config,grant)||
       grant.appId!==profile.appId||grant.merchantId!==profile.merchantId||
       typeof grant.approvalReference!=='string'||!/^[-A-Za-z0-9_:.]{8,120}$/.test(grant.approvalReference)||
       typeof grant.expiresAt!=='string'||!Number.isFinite(Date.parse(grant.expiresAt))||Date.parse(grant.expiresAt)<=now()||

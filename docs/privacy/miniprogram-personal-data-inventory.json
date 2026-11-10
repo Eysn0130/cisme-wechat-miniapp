@@ -1,11 +1,12 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-11-04",
+  "inventoryDate": "2026-11-10",
   "wechatApis": [
     "wx.canIUse",
     "wx.canvasToTempFilePath",
     "wx.chooseAddress",
     "wx.chooseMedia",
+    "wx.chooseMessageFile",
     "wx.compressImage",
     "wx.createSelectorQuery",
     "wx.createVideoContext",
@@ -683,6 +684,13 @@
       "activation": "当前有效图片编辑器上下文打开或释放时，且运行时方法可用",
       "serverStorage": "不发送、不存储，仅改变本机界面外观",
       "currentGate": "组件上下文与导航配色归属校验；不申请媒体权限，不新增第三方处理或业务事实"
+    },
+    {
+      "surface": "wx.chooseMessageFile",
+      "purpose": "有履约权限的管理员主动选择本次发货XLSX，读取订单号、承运商、运单号和交寄时间；服务端只在内存校验，忽略收件人、电话和地址列，原文件不落服务器磁盘。",
+      "data": "用户主动选择的XLSX文件，最多2MiB、500行；预览返回物流字段，受履约权限与会话保护。",
+      "recipient": "既有 staging-api.cisme.cn / api.cisme.cn",
+      "retention": "原文件不持久化；已确认的物流仍使用既有加密包裹及审计保留规则。"
     }
   ],
   "runtimeDataEgress": [
@@ -761,7 +769,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "09b596880c35c9ccd2f18df1e04a22e76cb31185e30c0d8ac45faee2cea916fb",
+  "migrationSetSha256": "bce57defc2f4e5713d41f70a14ab23dc24ea953b2fc0325f4694d77eb6423fdf",
   "egressSignatureSha256": "e12bd89786fdf36dba3c626c41bf974b504025dda042cecff65151769912ec6b",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1303,5 +1311,12 @@
     "writes": "Member biography routes bind the current session. Official biography uses canonical actor, explicitly granted editorial.manage, independent version, synchronous safety and locked authority recheck. No role inferred from a name or signature.",
     "following": "Independent official/member keys. Zero initial brand-linked following rows in the read-only trial baseline; no follow intent inferred or transferred.",
     "retention": "Existing source ownership, export, hold and closure boundaries remain; official business metadata is not the operator’s personal biography. No new automatic erasure or retention promise."
+  },
+  "commerceClosureReview20261110": {
+    "purpose": "用户明确要求购买、后台销售、导出并单笔或批量上传XLSX发货、用户查看物流的闭环。",
+    "schemaChange": "仅增加两条已批准商品本地图片路径，不新增个人字段。",
+    "import": "权限先于ZIP/XML解析；最多2MiB/500单；不保存源文件或丢弃的联系方式；无新第三方接收方。",
+    "experienceScope": "仅 cisme_trial 独立库、独立会员加密/会话、staging 回调；复用真实商户提供方凭据并保护授权文件，正式会员资产不混入。",
+    "fundsVerification": "代理未执行真实下单扣款、退款或转账；真实平台只读核验另留部署回执。"
   }
 }

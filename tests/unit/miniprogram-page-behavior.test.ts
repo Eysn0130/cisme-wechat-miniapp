@@ -439,7 +439,6 @@ describe("mini-program page behavior", () => {
     expect(wxMock.navigateBack).toHaveBeenCalledTimes(1);
     expect(wxMock.switchTab).not.toHaveBeenCalled();
     wxMock.navigateBack!.mock.calls[0]![0].fail();
-    if (route === "product") wxMock.redirectTo!.mock.calls[0]![0].fail();
     page.back();
     expect(wxMock.navigateBack).toHaveBeenCalledTimes(1);
     wxMock.switchTab!.mock.calls[0]![0].fail();
@@ -558,7 +557,7 @@ describe("mini-program page behavior", () => {
     expect(wxMock.navigateTo).toHaveBeenCalledTimes(2);
   });
 
-  it("serializes Points-to-Shop navigation and recovers after navigateTo failure", async () => {
+  it("serializes Points-to-Shop navigation and recovers after switchTab failure", async () => {
     await vi.importActual("../../apps/miniprogram/pages/points/index");
     const page = capturedPage!;
     const context = mountedPage(page, { pageAlive: true, navigating: false });
@@ -566,10 +565,10 @@ describe("mini-program page behavior", () => {
     page.openShop.call(context);
     page.openShop.call(context);
 
-    expect(wxMock.navigateTo).toHaveBeenCalledTimes(1);
+    expect(wxMock.switchTab).toHaveBeenCalledTimes(1);
     expect(context.data.navigating).toBe(true);
 
-    wxMock.navigateTo!.mock.calls[0]![0].fail();
+    wxMock.switchTab!.mock.calls[0]![0].fail();
     expect(context.data.navigating).toBe(false);
     expect(wxMock.showToast).toHaveBeenCalledWith({ title: "商品目录暂时无法打开", icon: "none" });
   });
