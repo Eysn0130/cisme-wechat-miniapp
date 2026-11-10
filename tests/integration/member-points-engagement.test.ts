@@ -130,3 +130,10 @@ it('renews expired invitation links while preserving the original request receip
  expect(fresh[0]!.shareId).not.toBe(original.shareId);expect(fresh[1]!.shareId).toBe(fresh[0]!.shareId);expect(Date.parse(fresh[0]!.expiresAt)).toBeGreaterThan(+late);
  expect((await pool.query("SELECT state,count(*)::int n FROM share_link WHERE member_id=$1 GROUP BY state ORDER BY state",[sponsor.memberId])).rows).toEqual([{state:'active',n:1},{state:'expired',n:1}]);
 });
+it('serves mixed concurrent capability and home reads without late rule-query cancellation affecting another request',async()=>{
+ const a=await identity('合成并发连接回收');
+ for(let batch=0;batch<50;batch++){
+  const replies=await Promise.all(Array.from({length:10},(_,i)=>app.inject({url:i%2?'/v1/capabilities':'/v1/bootstrap/home',headers:auth(a),remoteAddress:`127.1.0.${batch+1}`})));
+  for(const reply of replies)expect(reply.statusCode,reply.body).toBe(200);
+ }
+},30000);

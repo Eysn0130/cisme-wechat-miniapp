@@ -366,8 +366,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return { status: "ready" };
   });
 
-  app.get("/v1/capabilities", async () => ({ version: 1, communityPreviewEnabled: community.enabled(), socialPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile,
-    pointsRedemptionEnabled: Boolean(await memberPointsClub.publicPolicy()), ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: Boolean(await memberPointsClub.publicPolicy())||service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled }));
+  app.get("/v1/capabilities", async () => {
+    const clubPolicy=await memberPointsClub.publicPolicy();
+    return { version: 1, communityPreviewEnabled: community.enabled(), socialPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile,
+    pointsRedemptionEnabled: Boolean(clubPolicy), ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: Boolean(clubPolicy)||service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled };
+  });
 
   app.get("/v1/ugc/status", async () => ({ publicEnabled: await formalUgc.publicEnabled(), draftsEnabled: true }));
   app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/community/authors/:id",

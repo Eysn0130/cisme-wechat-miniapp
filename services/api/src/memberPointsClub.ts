@@ -48,7 +48,12 @@ async function attendance(client:DbClient,memberId:string,day:string,sourceId:st
 }
 export class MemberPointsClub{
   constructor(private pool:pg.Pool,private config:AppConfig,private authority:AuthorityService){}
-  async publicPolicy(now=new Date()) {const c=await this.pool.connect();try{const p=await activePointPolicy(c,now);return p?{version:p.version,rules:p.rules,startsAt:p.starts_at,endsAt:p.ends_at}:null;}finally{c.release();}}
+  async publicPolicy(now=new Date()) {
+    // Managed pool queries await request-budget cleanup before returning.
+    // A detached manual release can let response cancellation outlive a lease.
+    const p=await activePointPolicy(this.pool,now);
+    return p?{version:p.version,rules:p.rules,startsAt:p.starts_at,endsAt:p.ends_at}:null;
+  }
   async overview(memberId:string|undefined,now=new Date()){
     const id=owner(memberId);return transaction(this.pool,async c=>{
       await lockPointWallet(c,id,true);await sweepMemberPoints(c,id,now);

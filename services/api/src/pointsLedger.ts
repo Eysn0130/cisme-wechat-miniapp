@@ -24,7 +24,7 @@ export function validClubRules(input:unknown):ClubRules{
   if(r.pointsPerYuan!==100)throw new DomainError('POINTS_VALUE_CONTRACT_FIXED','积分兑换比例固定为100积分抵1元，规则更新不能降低已获得积分的权益',422);
   return {...r};
 }
-export async function activePointPolicy(client:DbClient,now=new Date()):Promise<PointsPolicy|null>{
+export async function activePointPolicy(client:Pick<DbClient,'query'>,now=new Date()):Promise<PointsPolicy|null>{
   const p=(await client.query<PointsPolicy>(`SELECT * FROM member_points_policy WHERE approved_at IS NOT NULL AND starts_at<=$1 AND (ends_at IS NULL OR ends_at>$1)
     AND (retired_at IS NULL OR retired_at>$1) ORDER BY starts_at DESC LIMIT 1`,[now])).rows[0];
   if(!p)return null;validClubRules(p.rules);return p;
