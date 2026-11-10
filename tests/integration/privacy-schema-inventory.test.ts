@@ -47,11 +47,14 @@ it("exports only migrated schema metadata as a complete policy-review denominato
   expect(subjectMap.migrationSetSha256).toBe(result.migrationSetSha256);
   expect(subjectMap.tables.map(t=>t.table).sort()).toEqual(tables.map(t=>t.table).sort());
   const optionalProfileErasure=new Set(['member','wechat_identity','member_contact','phone_authorization',
-    'member_profile','member_delivery_address']);
+    'member_profile','member_delivery_address','member_points_profile']);
+  const onboardingErasure:Record<string,string>={member_care_profile:'SELF_OPTIONAL_PROFILE_V1_AND_ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION',
+    member_care_consent_event:'SELF_OPTIONAL_PROFILE_V1_AND_ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION',
+    member_care_profile_operation:'ACCOUNT_CLOSURE_CASCADE_WITH_PROFILE; SCOPED_ERASURE_PRESERVES_VERSION_FENCE'};
   for(const table of tables){
     const policy=subjectMap.tables.find(t=>t.table===table.table)!;
     expect([...policy.exportFields,...policy.excludedFields].sort(),table.table).toEqual(table.columns.map(c=>c.name).sort());
-    expect(policy.productionErasure).toBe(['daily_care_record','daily_care_record_revision'].includes(table.table)?'ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION':optionalProfileErasure.has(table.table)?'SELF_OPTIONAL_PROFILE_V1':'DISABLED');
+    expect(policy.productionErasure,table.table).toBe(onboardingErasure[table.table]??(table.table==='member_points_checkin'?'ACCOUNT_CLOSURE_WITH_OPTIONAL_NOTE_ERASURE':['daily_care_record','daily_care_record_revision'].includes(table.table)?'ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION':optionalProfileErasure.has(table.table)?'SELF_OPTIONAL_PROFILE_V1':'DISABLED'));
   }
   for(const name of ['audit_log','commerce_order','commerce_refund_request','support_message'])
     expect(subjectMap.tables.find(t=>t.table===name)?.productionErasure).toBe('DISABLED');

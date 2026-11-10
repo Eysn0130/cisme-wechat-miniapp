@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-10",
+  "kind": "design_review_only",
+  "workspace": "/Users/mini/CISME",
+  "git_head": "66dc6023a50faaeeb27e100e6f3e6472684eabb8",
+  "production_mutations": 0,
+  "source_changes": 0,
+  "native_acceptance_performed": false,
+  "tool": "built-in image_gen",
+  "questionnaire_version": "v1.1",
+  "note": "Static generated visual concepts. Selected friend tile is fictional after-tap example, not a default or real user answer. No database migration, member data persistence, points grant or redemption has been performed.",
+  "source_documents": [
+    {
+      "path": "/Users/mini/Desktop/爱格荣会员打卡积分攻略.docx",
+      "sha256": "b54644d8a6439a26dd98e1dee8e6796f39bd590e6337f868353a03992bb51634"
+    },
+    {
+      "path": "/Users/mini/Desktop/爱格荣小样选品兑换MVP开发需求.docx",
+      "sha256": "bc81b074550d6ecb72870d6ebcced1e0f4315b8af3c5b65575ee2b10db8e42cc"
+    },
+    {
+      "path": "/Users/mini/CISME/docs/product/CISME-产品需求文档-PRD-V2.1-R4.md",
+      "role": "current product baseline"
+    }
+  ],
+  "reference_images": [
+    {
+      "path": "/Users/mini/CISME/apps/miniprogram/assets/cisme/cisme-home-background-v1.jpg",
+      "role": "existing brand asset"
+    },
+    {
+      "path": "/Users/mini/CISME/docs/evidence/tab-continuity-20261103/home-ready-e627214b.png",
+      "role": "historical synthetic native screenshot, visual reference only",
+      "sha256": "9e09b6df7750f58771c3decf5d564ba0a8839671242fe9f25d506cb93519a9d4",
+      "historical_package_sha256": "e627214bfdff6520d9febd04ad984e61849425e810511eae21d9da62881fbc29"
+    }
+  ],
+  "options": [
+    {
+      "displayed_option": 1,
+      "key": "cisme_survey_pearl",
+      "file": "01-pearl-dialog.png",
+      "source": "/Users/mini/.codex/generated_images/01a1c605-3d9b-73b2-88a5-38036e637359/exec-bb72e34f-4504-4841-a9a9-e702eac740c9.png",
+      "prompt": "Use case: ui-mockup. Create realistic, production-quality UI designs with clear hierarchy, strong typography, intentional imagery, and purposeful spacing.\nDesign direction name: 珍珠浮窗. This is ONE independent high-fidelity Chinese WeChat MINIPROGRAM UI design concept, not a website and not a standalone phone app.\nTarget dimensions: mobile content viewport 390 x 844, portrait. Render at a high-resolution equivalent of this exact natural ratio. One screen only. No device bezel, phone body, notch, Dynamic Island, OS status bar, clock, signal, battery, home indicator, browser chrome, external mockup stage, annotations, or numeric concept labels.\nInput reference image 1 is the actual CISME care page brand background: pearl-white translucent sphere with a few pale lilac water highlights and dark hair. Reuse its soft photographic language behind the modal, do not invent product packaging. Reference image 2 is a HISTORICAL SYNTHETIC native WeChat care-page screenshot only for brand, existing layout and proportions. Ignore its username, date, OS/device frame and all personal text. This reference is visual inspiration, not a screenshot to reproduce or proof of current functionality.\nProduct goal: a newly logged-in member on the existing 护理 page can answer a 10-question sample-selection survey. Open DIRECTLY to question 1, no welcome screen and no 开始答题 button. User can close and resume. Questionnaire submit is not a redemption order; no inventory reserved or points awarded on entry.\nPreserve CISME visual tokens: deep ink #2f2149, plum action #56306f, muted #75697a, white #fffcff, light lilac #eee4f2, faint plum borders. This plum belongs to the real brand; no neon, purple glow, tech mesh or rainbow gradients. Body uses PingFang SC style sans; small existing CISME serif wordmark can remain. Body 14-16 px equivalent; title 24-26 px; primary button 16 px. Strong AA text contrast. All interactive hit areas at least 44 logical px; close hit area 44, although cross icon smaller.\nLayout: preserve context with a 390-wide care canvas. Small restrained CISME wordmark near upper center and native WeChat menu capsule at the upper right with clear breathing space. Background care content is softly darkened and out of focus underneath, no readable name. A focused centered dialog, about 342px wide, from y=145 to y=724. Opaque pearl-white surface, 26px corner radius, extremely fine edge, soft restrained shadow. NOT glass for the questionnaire body. Tiny narrow photographic pearl/care image band at top cropped from the reference, height no more than 64px, integrated seamlessly in upper edge. Top row inside has label 小样选品问卷 and a visible 44px close target. Under it a small unobtrusive progress label 1/10. Clear title, allowed two lines:\n你是怎么知道\n爱格荣的？\nSupporting introductory copy exactly: 了解你的护理需求，帮助选择试用小样。\nFollow it with a short smaller line: 不愿回答的个人情况可跳过\nThen a compact SINGLE-SELECT source group in two balanced columns. Each is a spacious, tactile rounded rectangular radio tile, no decorative icons or emoji, no unnecessary nested cards. Seven source choices EXACTLY ONCE, with none omitted or added:\n朋友推荐\n朋友圈\n小红书\n抖音\n门店\n其他\n记不清\nUse three two-column rows, then a final full-width 记不清 row, each minimum44px tall. The 朋友推荐 tile is shown checked in plum with a small check and a tinted background as a fictional AFTER-TAP example, never imply default selection or actual user data. Other options unselected. Keep body restrained, precise spacing, ample margin. One dominant full-width plum button 下一题 below the group. Below it an underlined 信息用途说明 secondary link and a subtle 稍后再填 text action. Buttons and footer fit with at least24px bottom interior padding. No claims of free shipping, sample availability, automatic reward, medical diagnosis or promised efficacy. No +100 or fake balances, no countdown or pressure.\nDesign a focused primary screen, not a feature inventory. One clear primary action and only essential supporting controls. Differentiate sections through spacing and typography first, separators second, borders only for interactive options, shadow only on this modal. No extra cards, badges, dashboards or competing shopping actions. No multiple screens, labels A/B, screen captions or explanatory copy outside the UI.\nChinese text must be legible and accurate. Aim for a beautiful, carefully typeset real WeChat product screen. Current user-facing date anchor is 2026-11-10 but display no date here.",
+      "output_path": "/Users/mini/CISME/docs/design/care-onboarding-20261110/01-pearl-dialog.png",
+      "sha256": "fcc86bd32d94e1d184434d0fa8c41d3538498afab7e2e8c2a317781720e364ff"
+    },
+    {
+      "displayed_option": 2,
+      "key": "cisme_survey_sheet",
+      "file": "02-bottom-sheet.png",
+      "source": "/Users/mini/.codex/generated_images/01a1c605-3d9b-73b2-88a5-38036e637359/exec-826200cb-3a06-4151-ac59-e66e9b1628f7.png",
+      "prompt": "Use case: ui-mockup. Create realistic, production-quality UI designs with clear hierarchy, strong typography, intentional imagery, and purposeful spacing.\nDesign direction name: 轻盈底部问卷. ONE independent high-fidelity Chinese native WeChat miniprogram screen. Target logical dimensions 390 x 844 portrait, rendered high resolution at the same ratio. App content ONLY. Do not include a phone device, bezel, outer stage, notch, Dynamic Island, OS clock/status/battery/signal, home bar, browser UI, explanatory annotations or concept numbers.\nReference 1 is the real CISME care background. Reference 2 is a HISTORICAL SYNTHETIC care screenshot, for authentic brand and background layout only, not for username, OS frame or actual user information. Inspect the pearl-white and muted lilac photography, deep-plum type and the existing bottom 护理 / 记录 / 社区 / 我的 tabs. Keep that established system. The screenshot is not evidence of current functionality.\nDesign a focused primary screen, not a feature inventory. The sole use case is the FIRST question of a 10-question trial-sample survey, on first login within the 护理 page. No welcome page, no 开始答题 button. No fake points or product stock claims. This is questionnaire input, not order creation or care completion.\nVisual approach: a comfortable single-column native bottom sheet, full viewport width, leaving roughly the upper140px of the underlying care context visible. Sheet top y=154, rounded 28px upper corners, opaque near-white #fffcff, extends to viewport bottom with safe-area padding. Restrained photographic background remains softly dimmed behind; CISME centered above and native WeChat top-right menu capsule are unobstructed, no readable username or dates. The dimmed page is noninteractive while sheet open. No extra decorative background animations depicted.\nUse brand tokens #2f2149 ink, #56306f plum for primary action and selected state, #75697a muted, #eee4f2 pale lilac. PingFang SC-like Chinese sans. Title24px equivalent, body15px, secondary13px minimum. Close touch target44px, each radio row min48px, CTA50px. Excellent text contrast. Use space before dividers, and borders sparingly. No neon or bright gradients, no coins, gift boxes, emojis or synthetic packaging.\nSheet structure with precise pacing:\nA small horizontal drag handle, then top row 小样选品问卷 at left and 关闭 text action at right. Next slim row with STEP 01 on left and 1/10 on right, plus a fine line progress indicator showing one-tenth, no decoration numbers.\nA prominent Chinese title on two lines:\n你是怎么知道\n爱格荣的？\nTwo brief sentences: 了解你的护理需求，帮助选择试用小样。\n不愿回答的个人情况可跳过。\nThen seven single-choice rows, a quiet grouped list on one continuous surface, thin separators, NO enclosing cards for every item. Each row left aligned label, right aligned small radio control. Exact choices, each appearing ONCE, all present:\n朋友推荐\n朋友圈\n小红书\n抖音\n门店\n其他\n记不清\nShow 朋友推荐 with a filled plum radio and an extremely subtle horizontal lilac selection wash as a fictional AFTER-TAP state, not a preselected default and not real user data. Give all others open radios. The radio list should feel easy to scan and tap one-handed.\nBelow the list, a stable primary footer with full-width deep-plum 下一题 button with clean white label and a small right arrow icon on far right. Below the button a balanced bottom line 信息用途说明 at left and 稍后再填 at right. This bottom line remains legible and tap targets44px, with footer above safe area. Keep CTA visible without scrolling at390x844.\nNo inferred permission: entering never grants optional health-data consent. Later concerns/shedding/dandruff questions will separately request optional consent, not shown in this first-question frame. Do not add intrusive legal warning copy.\nNo redemption success, free shipping or cash reward promises. Show no money, point amount, date, diagnosis, claims of personalized medical advice, or countdown. No competing shopping CTA.\nProduction-quality editorial alignment and whitespace; beautiful through typography, material restraint and rhythm. App can have many later screens, but render one focused screen only. Current user-facing date anchor 2026-11-10, no dates displayed. Chinese must be accurate and easy to read.",
+      "output_path": "/Users/mini/CISME/docs/design/care-onboarding-20261110/02-bottom-sheet.png",
+      "sha256": "4f23d3aa295195bc0b59f7155918a638c82e707497ab5016b638e5ad4137308d"
+    },
+    {
+      "displayed_option": 3,
+      "key": "cisme_survey_booklet",
+      "file": "03-care-booklet.png",
+      "source": "/Users/mini/.codex/generated_images/01a1c605-3d9b-73b2-88a5-38036e637359/exec-e0a21e49-1864-4936-95dd-253df1b9eef0.png",
+      "prompt": "Use case ui-mockup. Create realistic, production-quality UI designs with clear hierarchy, strong typography, intentional imagery, and purposeful spacing.\nDesign direction name: 护理档案折页. ONE independent Chinese WeChat MINIPROGRAM UI concept, a focused modal component over the care page. Logical mobile dimensions390 x844, high-resolution rendering at the same portrait ratio. One screen, no multiple frames or explanatory collage. App content only: no device bezel/body/notch/Dynamic Island, no OS status/clock/signal/battery/home indicator, no browser chrome or external rounded device stage. Do not add numbered option labels or captions outside UI.\nUse actual attached inputs as inspiration: reference1 is CISME's care background, pearl-white glass sphere and muted lilac water with black hair; reference2 is a HISTORICAL SYNTHETIC native care screenshot for established care-page branding and backdrop only. Do not reuse its username, date, clock, OS frame or user facts. This is a new design concept, not live acceptance.\nUser goal: newly logged-in member on 护理 answers a trial-sample questionnaire, directly showing question1 of10. No extra welcome screen and no start button. Current page is a survey, not an order, not an awarded-points screen and not medical advice. Member can close and resume. Survey completion will lead to confirming a sample set later.\nArt direction: an elegant editorial FOLDOUT CARE FORM. A near-full-height floating dialog with vertical top-to-bottom rhythm, 350px wide, x20, y85 to about y775. Crisp near-white opaque main surface with22px radius. A shallow horizontal macro photo at the top, height115px max, showing an abstract luminous pearl/water fragment from the actual brand photograph, no fake product or bottles, no money, no gift packaging. The image is integrated into the panel, not placed inside another card. At the photo's lower edge a small CISME wordmark; on top-right a44px cross close target. The underlying care page has muted dimmed lilac photograph, no readable name. Preserve uncluttered top native WeChat capsule space.\nThe frame feels like opening a thoughtfully printed care booklet, translated to a real touch UI: broad left-aligned margins, a small vertical plum line beside survey identity, a big quiet question, tactile concise text choices. Never decorative handwritten typography, newspaper text columns or tiny labels.\nBrand colors exact: ink#2f2149, accent#56306f, muted#75697a, surface#fffcff, lilac#eee4f2. No neon, glow, random accent colors or dark tech gradients. Existing CISME wordmark may use its serif; all Chinese body uses PingFang SC-style sans. Main question25px, body15px, footer13px. One consistent radius system, AA contrast.\nBelow image:\nSmall row 小样选品问卷 left, 1/10 right.\nProminent exact question:\n你是怎么知道\n爱格荣的？\nOne support line: 了解你的护理需求，帮助选择试用小样。\nA second brief line: 不愿回答的个人情况可跳过\nSource choices as a TWO-COLUMN text-choice grid (NOT seven individual decorative cards); light thin borders and48px minimum hit heights. Six choices in three rows plus last full-width row, exact labels once each, no missing or extra:\n朋友推荐 / 朋友圈\n小红书 / 抖音\n门店 / 其他\n记不清\nShow 朋友推荐 with dark plum fill and white text plus small check as a fictional AFTER-TAP illustration, never default selection or actual user data. The six other choices have white backgrounds, plum text and light borders. Keep margins roomy and visual grouping simple.\nFooter: one dominant full-width50px plum button 下一题 with white text, then quiet 信息用途说明 and 稍后再填 actions, each has an invisible44px hit target. Maintain at least20px bottom internal padding and visible CTA at390x844. Do not add a second dominant action or any catalogue.\nNo +100积分, fake balances, sample costs, free shipping, stock, discounts, claims, countdowns, badges or unverified product packaging. The actual ten-question flow and separate optional consent occur later offscreen. The design has personality through integrated brand macro photography, precise typography, spatial hierarchy and the foldout-like form surface, not ornamental UI clutter. No cards-inside-cards.\nChinese text accurate and legible. Current user-facing date anchor2026-11-10; no visible date. Render one beautiful and practically implementable native product screen.",
+      "output_path": "/Users/mini/CISME/docs/design/care-onboarding-20261110/03-care-booklet.png",
+      "sha256": "4157b4a6dc7fea421f4097a2d24f4871ca28c785a083d9735c0229699a48b984"
+    }
+  ],
+  "research_sources": [
+    "https://raw.githubusercontent.com/wechat-miniprogram/api-typings/master/types/wx/lib.wx.api.d.ts",
+    "https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions"
+  ],
+  "review_document": {
+    "file": "CISME-护理积分与首登问卷设计说明.docx",
+    "sha256": "1fb33b456f389bef84530d896550935efa8a42015aa5f4baa8aa0fc0ab65230c",
+    "pages": 5,
+    "rendered_and_visually_reviewed": true,
+    "qa_scope": "All five final pages inspected; pages 1–4 verified byte-identical after last image layout change. This validates document layout only, not miniprogram or real backend behavior.",
+    "rendered_page_sha256": [
+      "80b03b1dd28b7b0932b1472f4fdc15045c866357dc576759cd3d21a62e9d6f67",
+      "7d1d946feb99901f2bc3e363936f1c0c93b10e9de0e9c795b0c455ed88c17d43",
+      "0091d368431632c2197a65462d5dff5abc8fa6c8144b898042bd3932bc147c8c",
+      "a683d1a93fa685c0fa80b8f07a917a7b3ba5817c58575031031d755b1c2df6a2",
+      "8a29e2cb6b243c8d08a8083c97ba1eda35c7466f3fc516b9414b0559b313e288"
+    ]
+  }
+}

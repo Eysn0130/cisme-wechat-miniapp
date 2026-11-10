@@ -10,11 +10,12 @@ interface Receipt { version: 1; memberId: string; kind: CommerceCommandKind; sta
   record: null | { id: string; state: string; orderId?: string; amountCents?: number } }
 const active = new Set<string>();
 const labels: Record<CommerceCommandKind, string> = { refund: "退款申请", settlement: "结算意向", credit: "权益转换",
-  "credit-cancel": "权益撤销", cancel: "取消订单", "cancel-verified": "取消订单" };
+  "credit-cancel": "权益撤销", cancel: "取消订单", "cancel-verified": "取消订单",'points-gift':'积分礼品兑换' };
 const states: Record<CommerceCommandKind, readonly string[]> = {
   refund: ["requested", "approved", "rejected"],
   settlement: ["requested", "reserved", "unknown", "processing", "succeeded", "failed", "cancelled", "rejected"],
-  credit: ["available", "cancelled"], "credit-cancel": ["cancelled"], cancel: ["cancelled"], "cancel-verified": ["cancelled"]
+  credit: ["available", "cancelled"], "credit-cancel": ["cancelled"], cancel: ["cancelled"], "cancel-verified": ["cancelled"],
+  'points-gift':['placed','shipped','received','cancelled','return_requested','returned']
 };
 const changed = () => ({ code: "COMMERCE_RECOVERY_CONTEXT", title: "页面或登录状态已变化，请回到原页面核对操作结果。" });
 const unresolved = () => ({ code: "COMMERCE_RECOVERY_PENDING", title: "上一笔操作尚未核实。请先核对或重试原操作，不要修改金额后另行提交。" });

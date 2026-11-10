@@ -1,6 +1,8 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { promisify } from "node:util";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -15,6 +17,7 @@ const migrationUrl = new URL(adminUrl);
 migrationUrl.pathname = `/${databaseName}`;
 const admin = new pg.Pool({ connectionString: adminUrl.toString() });
 let databaseCreated = false;
+let prefixDirectory:string|undefined;
 const openPools = new Set<pg.Pool>();
 function migrationPool() { const pool = new pg.Pool({ connectionString: migrationUrl.toString() }); openPools.add(pool); return pool; }
 async function closePool(pool: pg.Pool) { openPools.delete(pool); await pool.end(); }
@@ -31,6 +34,7 @@ afterAll(async () => {
     if (databaseCreated) await admin.query(`DROP DATABASE ${databaseName} WITH (FORCE)`);
   } finally {
     await admin.end();
+    if(prefixDirectory)await rm(prefixDirectory,{recursive:true,force:true});
   }
 });
 
@@ -38,17 +42,18 @@ describe("empty and N-1 database lifecycle", () => {
   it("migrates empty, rolls back latest, and reapplies", async () => {
     const env = { ...process.env, DATABASE_URL: migrationUrl.toString() };
     const migrationFiles = (await readdir("db/migrations")).filter((file) => file.endsWith(".sql")).sort();
-    // Keep historical fixture round-trips at their named schema boundary.
-    // Newer migrations are still exercised at the current tip, then removed
-    // only inside this separately owned disposable lifecycle database.
+    // Exercise the real runner against exact byte-for-byte migration prefixes.
+    // Do not apply future migrations and then destructively roll them back in
+    // order to manufacture an old fixture boundary.
+    prefixDirectory=await mkdtemp(join(tmpdir(),'cisme-owned-migration-prefix-'));
+    await mkdir(join(prefixDirectory,'db/migrations'),{recursive:true});
     let migrationTip = migrationFiles.at(-1)!;
     const migrate = async (direction:"up"|"down") => {
-      const result = await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", direction], { env });
-      if(direction === "up")for(const newer of migrationFiles.filter(name=>name>migrationTip).reverse()){
-        const rolled = await exec("./node_modules/.bin/tsx", ["scripts/migrate.ts", "down"], { env });
-        expect(rolled.stdout).toContain(`rolled back ${newer}`);
+      for(const name of migrationFiles){const target=join(prefixDirectory!,'db/migrations',name);
+        if(direction==='down'||name<=migrationTip)await writeFile(target,await readFile(join('db/migrations',name)));
+        else await rm(target,{force:true});
       }
-      return result;
+      return exec(resolve('node_modules/.bin/tsx'),[resolve('scripts/migrate.ts'),direction],{env,cwd:prefixDirectory});
     };
     let migrationCount = migrationFiles.length;
     let extensionCount = migrationFiles.filter((file) => file >= "202609120002_commercial_membership_referral.sql").length;
@@ -110,6 +115,34 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //113 preserves member assets even when a feature is disabled or rolled back.
+    expect(migrationTip).toBe('202611100005_member_points_club.sql');
+    const pointsHistoryBefore=(await pool.query('SELECT version,rules,starts_at FROM member_points_policy')).rows;
+    const pointsDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
+    const pointsGuard=await pool.connect();
+    try{await pointsGuard.query('BEGIN');await expect(pointsGuard.query(pointsDown)).rejects.toThrow('MEMBER_POINTS_ROLLBACK_REQUIRES_ASSET_PRESERVATION');}
+    finally{await pointsGuard.query('ROLLBACK');pointsGuard.release();}
+    expect((await pool.query('SELECT version,rules,starts_at FROM member_points_policy')).rows).toEqual(pointsHistoryBefore);
+    // Rebuild only this run's separately created disposable database for the
+    // historical prefix tests. Never use a rollback to remove points assets.
+    expect((await pool.query('SELECT current_database() name')).rows[0].name).toBe(databaseName);
+    await pool.query('DROP SCHEMA public CASCADE;CREATE SCHEMA public');
+    await closePool(pool);migrationTip='202611100003_commerce_approved_media.sql';migrationCount-=2;extensionCount-=2;
+    await migrate('up');pool=migrationPool();
+
+    //111 adds only approved image paths. Down must not silently rewrite products in use.
+    expect(migrationTip).toBe('202611100003_commerce_approved_media.sql');
+    const imageConstraint=async()=>(await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='catalog_product_image_path_check'")).rows[0].definition as string;
+    expect(await imageConstraint()).toContain('/assets/commerce/product1-glass-v4b.jpg');
+    expect(await imageConstraint()).toContain('/assets/commerce/product2-glass-v4b.jpg');
+    const catalogBeforeMediaRollback=(await pool.query('SELECT id,image_path FROM catalog_product ORDER BY id LIMIT 1')).rows[0];
+    await pool.query('UPDATE catalog_product SET image_path=$2 WHERE id=$1',[catalogBeforeMediaRollback.id,'/assets/commerce/product1-glass-v4b.jpg']);
+    await closePool(pool);await expect(migrate('down')).rejects.toThrow();pool=migrationPool();
+    await pool.query('UPDATE catalog_product SET image_path=$2 WHERE id=$1',[catalogBeforeMediaRollback.id,catalogBeforeMediaRollback.image_path]);
+    await closePool(pool);await migrate('down');pool=migrationPool();expect(await imageConstraint()).not.toContain('/assets/commerce/');
+    await closePool(pool);await migrate('up');pool=migrationPool();expect(await imageConstraint()).toContain('/assets/commerce/product1-glass-v4b.jpg');
+    await closePool(pool);await migrate('down');pool=migrationPool();migrationCount-=1;extensionCount-=1;migrationTip='202611040004_ugc_comment_likes.sql';
+
     //110 adds empty owner-scoped comment likes without rewriting existing posts.
     expect(migrationTip).toBe('202611040004_ugc_comment_likes.sql');
     const commentLikeTable=async()=> (await pool.query("SELECT to_regclass('public.ugc_comment_like') name")).rows[0].name;

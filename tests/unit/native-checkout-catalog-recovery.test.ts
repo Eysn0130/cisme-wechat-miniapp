@@ -96,7 +96,8 @@ describe('product selection, unavailable items and failed reads remain distinct'
   await import('../../apps/miniprogram/pages/product/index');const page=mount();page.onLoad({id});await page.load();
   expect(page.data).toMatchObject({loading:false,item:null,errorKind:'selection',errorTitle:'先选一件商品'});
   expect(m.catalog).not.toHaveBeenCalled();expect(wxMock.navigateTo).not.toHaveBeenCalled();page.back();
-  expect(wxMock.navigateBack).toHaveBeenCalledOnce();wxMock.navigateBack.mock.calls[0][0].fail();expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:'/pages/shop/index'}));
+  expect(wxMock.navigateBack).toHaveBeenCalledOnce();wxMock.navigateBack.mock.calls[0][0].fail();
+  expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:'/pages/shop/index'}));expect(wxMock.navigateBack).toHaveBeenCalledOnce();
  });
  it.each([{error:{status:404,code:'CATALOG_PRODUCT_NOT_FOUND'},kind:'missing'},
   {error:new Error('offline'),kind:'load'}])('preserves $kind recovery for an actual selected product',async({error,kind})=>{

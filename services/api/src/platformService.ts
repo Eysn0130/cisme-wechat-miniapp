@@ -8,6 +8,8 @@ import { type CareMilestone, type CareMilestoneCommandInput, type CarePhase, typ
 import { assertMilestone, assertTimezone, deriveDueMilestone, DomainError, milestoneDueOn } from "@cisme/domain";
 import type { AppConfig } from "@cisme/config";
 import { readSnapshot, transaction, type DbClient } from "./db.js";
+import {memberPointsExtras} from './memberPointsClub.js';
+import {activePointPolicy,sweepMemberPoints} from './pointsLedger.js';
 import { enqueue } from "./outbox.js";
 import { type ObjectStorage } from "./storage.js";
 import { EVENT_DELIVERY_POLICIES, type EventType } from "@cisme/contracts";
@@ -174,12 +176,16 @@ export class PlatformService {
       if (!memberId || !identityId) {
         memberId = randomUUID();
         identityId = randomUUID();
-        await client.query("INSERT INTO member(id, display_name) VALUES ($1,$2)", [memberId, displayName]);
+        // Registration, share visits and attribution use the same trusted
+        // service clock; database-host clock skew must not invert that order.
+        await client.query("INSERT INTO member(id, display_name, created_at) VALUES ($1,$2,$3)", [memberId, displayName, now]);
         await client.query(
           "INSERT INTO wechat_identity(id, member_id, provider, app_id, openid, unionid, adapter) VALUES ($1,$2,$3,$4,$5,$6,$7)",
           [identityId, memberId, input.provider, input.appId, input.openid, input.unionid ?? null, input.adapter]
         );
         await client.query("INSERT INTO points_projection(member_id) VALUES ($1) ON CONFLICT DO NOTHING", [memberId]);
+        await client.query(`INSERT INTO member_care_profile(member_id,required,created_at,updated_at)
+          VALUES($1,true,$2,$2)`,[memberId,now]);
       } else {
         const state=(await client.query<{status:string}>(
           'SELECT status FROM member WHERE id=$1 FOR UPDATE',[memberId])).rows[0]?.status;
@@ -198,7 +204,9 @@ export class PlatformService {
         eventType: "identity.accepted.v1", aggregateType: "member", aggregateId: memberId, aggregateVersion: 1,
         businessKey: `identity:${identityId}:accepted`, payload: { memberId, provider: input.provider, appId: input.appId }, occurredAt: now
       });
-      return { memberId, identityId, principalId };
+      const onboardingRequired=Boolean((await client.query(`SELECT 1 FROM member_care_profile
+        WHERE member_id=$1 AND required AND completed_at IS NULL`,[memberId])).rowCount);
+      return { memberId, identityId, principalId, onboardingRequired };
     });
   }
 
@@ -478,7 +486,9 @@ export class PlatformService {
       principalId: `member:${owner}`,
       operation: "share.create",
       idempotencyKey,
-      businessKey: `share:${owner}:${input.targetType}:${targetRef}`,
+      // The active-link index deduplicates the target while it is live.
+      // A new request after expiry must not replay an expired link forever.
+      businessKey: `share:${owner}:${input.targetType}:${targetRef}:request:${requestHash(idempotencyKey)}`,
       requestHash: requestHash({ targetType: input.targetType, targetRef })
     };
     return transaction(this.pool, async (client) => {
@@ -547,7 +557,7 @@ export class PlatformService {
   async attributeShareIdentity(memberId: string | undefined, shareId: string, visitKey: string, now: Date) {
     const owner = requireMember(memberId);
     return transaction(this.pool, async (client) => {
-      const visit = await client.query<{ visit_id: string; sharer_member_id: string; visitor_member_id: string | null; first_seen_at: Date; state: string }>(`SELECT sv.id AS visit_id, sl.member_id AS sharer_member_id, sv.visitor_member_id, sv.first_seen_at, sl.state
+      const visit = await client.query<{ target_type:string;visit_id: string; sharer_member_id: string; visitor_member_id: string | null; first_seen_at: Date; state: string }>(`SELECT sl.target_type,sv.id AS visit_id, sl.member_id AS sharer_member_id, sv.visitor_member_id, sv.first_seen_at, sl.state
         FROM share_visit sv JOIN share_link sl ON sl.id=sv.share_link_id
         WHERE sl.share_id=$1 AND sv.visit_key=$2 FOR UPDATE OF sv`, [shareId, visitKey]);
       const row = visit.rows[0];
@@ -569,6 +579,10 @@ export class PlatformService {
         eventType: "share.identity.attributed.v1", aggregateType: "share_attribution", aggregateId: attributionId, aggregateVersion: 1,
         businessKey: `share:${shareId}:identity:${owner}`, payload: { shareId, shareVisitId: row.visit_id, sharerMemberId: row.sharer_member_id, convertedMemberId: owner }, occurredAt: now
       });
+      const registered=(await client.query<{created_at:Date}>('SELECT created_at FROM member WHERE id=$1',[owner])).rows[0];
+      if(row.target_type==='invite'&&registered&&registered.created_at>=row.first_seen_at&&registered.created_at<=now&&await activePointPolicy(client,registered.created_at))
+        await client.query(`INSERT INTO member_points_referral(member_id,referrer_member_id,share_attribution_id,created_at)
+          VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[owner,row.sharer_member_id,attributionId,now]);
       return { shareId, credited: true, attributionId };
     }, "SERIALIZABLE");
   }
@@ -872,20 +886,29 @@ export class PlatformService {
     }, "SERIALIZABLE");
   }
 
-  private async pointsSnapshot(client: DbClient, owner: string, now: Date, options: { limit?: number; cursor?: string } = {}) {
+  private async pointsSnapshot(client: DbClient, owner: string, now: Date, options: { limit?: number; cursor?: string;source?:string } = {}) {
     const limit = pageLimit(options.limit, 50);
     const cursor = decodeCursor(options.cursor);
-    const projection = await client.query("SELECT frozen, available, debt, version FROM points_projection WHERE member_id=$1", [owner]);
-    const entries = await client.query(`SELECT id, entry_type, frozen_delta, available_delta, debt_delta, business_key, occurred_at,occurred_at::text AS cursor_at FROM points_entry
-      WHERE member_id=$1 AND ($2::timestamptz IS NULL OR (occurred_at,id)<($2,$3::uuid)) ORDER BY occurred_at DESC,id DESC LIMIT $4`, [owner, cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
+    const source=options.source??'all';if(!['all','earn','spend','expiry','adjustment'].includes(source))throw new DomainError('POINTS_FILTER_INVALID','积分筛选无效',422);
+    const projection = await client.query("SELECT frozen, available, debt,reserved, version FROM points_projection WHERE member_id=$1", [owner]);
+    const filter=`($5='all' OR $5='earn' AND e.entry_type IN ('grant_frozen','grant_available') OR $5='spend' AND e.entry_type='spend' OR $5='expiry' AND (e.entry_type='expire' OR e.expired_delta>0)
+      OR $5='adjustment' AND e.entry_type NOT IN ('grant_frozen','grant_available','spend','expire'))`;
+    const entries = await client.query(`SELECT e.id,e.entry_type,e.frozen_delta,e.available_delta,e.debt_delta,e.reserved_delta,e.used_delta,e.expired_delta,
+      e.business_key,e.occurred_at,e.occurred_at::text AS cursor_at,g.source_type,g.component,e.metadata->>'amount' AS amount_points
+      FROM points_entry e LEFT JOIN points_grant g ON g.id=e.grant_id
+      WHERE e.member_id=$1 AND ($2::timestamptz IS NULL OR (e.occurred_at,e.id)<($2,$3::uuid)) AND ${filter}
+      ORDER BY e.occurred_at DESC,e.id DESC LIMIT $4`, [owner, cursor?.at ?? null, cursor?.id ?? null, limit + 1,source]);
     const page = entries.rows.slice(0, limit);
     const last = entries.rows.length > limit ? page[page.length - 1] : null;
-    return { rulesEnabled: this.pointsPolicyEnabled(now), projection: projection.rows[0] ?? { frozen: 0, available: 0, debt: 0, version: 1 }, entries: page.map(({cursor_at: _cursorAt,...entry})=>entry),
+    const extras=await memberPointsExtras(client,owner,now);
+    const filtered=(await client.query(`SELECT count(*)::int AS n FROM points_entry e WHERE e.member_id=$1 AND ${filter.replaceAll('$5','$2')}`,[owner,source])).rows[0].n;
+    return { ...extras,totalCount:filtered,rulesEnabled: this.pointsPolicyEnabled(now)||Boolean(extras.clubPolicy), projection: projection.rows[0] ?? { frozen: 0, available: 0, debt: 0,reserved:0, version: 1 }, entries: page.map(({cursor_at: _cursorAt,...entry})=>entry),
       nextCursor: last ? pageCursor({ at: last.cursor_at, id: last.id }) : null };
   }
 
-  async getPoints(memberId: string | undefined, now = this.now(), options: { limit?: number; cursor?: string } = {}) {
+  async getPoints(memberId: string | undefined, now = this.now(), options: { limit?: number; cursor?: string;source?:string } = {}) {
     const owner = requireMember(memberId);
+    await transaction(this.pool,c=>sweepMemberPoints(c,owner,now));
     return readSnapshot(this.pool, (client) => this.pointsSnapshot(client, owner, now, options));
   }
 
@@ -930,10 +953,12 @@ export class PlatformService {
 
   async bootstrap(memberId: string | undefined, scope: "home" | "profile" | "settings", now = this.now()) {
     const owner = requireMember(memberId);
+    if(scope==='profile')await transaction(this.pool,c=>sweepMemberPoints(c,owner,now));
     return readSnapshot(this.pool, async (client, asOf) => {
       const member = await client.query(`SELECT m.id,m.display_name,m.status,m.created_at,p.wechat_handle,p.avatar_data_url,p.avatar_revision,
         COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.community_visible,false) AS community_visible,
-        COALESCE(p.public_status,'private') AS public_status,p.public_review_note,c.phone_masked,c.bound_at
+        COALESCE(p.public_status,'private') AS public_status,p.public_review_note,c.phone_masked,c.bound_at,
+        EXISTS(SELECT 1 FROM member_care_profile cp WHERE cp.member_id=m.id AND cp.required AND cp.completed_at IS NULL) AS care_onboarding_required
         FROM member m LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
       const memberRow = member.rows[0];
       if (!memberRow || memberRow.status !== "active") throw new DomainError("AUTH_REVOKED", "Member session is no longer active", 401);
@@ -942,7 +967,7 @@ export class PlatformService {
       const consents = scope === "settings" ? await client.query(`SELECT cg.id,cg.submission_id,cg.purpose,cg.granted_at,cg.granted_at::text AS cursor_at,rr.requested_at AS revoked_at,rr.reason AS revocation_reason
         FROM consent_grant cg LEFT JOIN revocation_request rr ON rr.consent_grant_id=cg.id WHERE cg.member_id=$1 ORDER BY cg.granted_at DESC,id DESC LIMIT 21`, [owner]) : null;
       const businessVersion = Math.max(Number(memberRow.profile_revision ?? 0), Number(care?.version ?? 0), Number(points?.projection?.version ?? 0));
-      return { scope, asOf: asOf.toISOString(), businessVersion, member: memberRow, care, points,
+      return { scope, asOf: asOf.toISOString(), businessVersion, member: memberRow, care, points, onboardingRequired:memberRow.care_onboarding_required,
         settings: scope === "settings" ? { profile: memberRow, phone: { enabled: Boolean(this.config.wechat.phoneBindingEnabled), bound: Boolean(memberRow.bound_at), masked: memberRow.phone_masked ?? null }, consents: consents!.rows.slice(0, 20).map(({cursor_at: _cursorAt,...grant})=>grant), consentsNextCursor: consents!.rows.length > 20 ? pageCursor({ at: consents!.rows[19].cursor_at, id: consents!.rows[19].id }) : null } : null };
     });
   }

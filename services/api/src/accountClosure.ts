@@ -396,7 +396,7 @@ export class AccountClosure {
           WHERE m.id=$1 AND m.status='active' AND NOT EXISTS(
             SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
             WHERE h.status='active' AND h.expires_at>clock_timestamp() AND
-              (b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=m.id::text
+              (b.object_type IN ('member','member_profile','member_care_profile','member_points_profile','member_points_checkin','member_contact','wechat_identity') AND b.object_id=m.id::text
                 OR b.object_type='member_delivery_address' AND b.object_id IN
                   (SELECT id::text FROM member_delivery_address WHERE member_id=m.id))) AND (
             (m.display_name<>'用户' AND encode(digest(m.display_name,'sha256'),'hex')=$2 AND
@@ -405,6 +405,9 @@ export class AccountClosure {
             EXISTS(SELECT 1 FROM wechat_identity WHERE member_id=m.id AND unionid IS NOT NULL) OR
             EXISTS(SELECT 1 FROM phone_authorization WHERE member_id=m.id AND consumed_at<=$3::timestamptz) OR
             EXISTS(SELECT 1 FROM member_profile WHERE member_id=m.id AND updated_at<=$3::timestamptz) OR
+            EXISTS(SELECT 1 FROM member_care_profile WHERE member_id=m.id AND erased_at IS NULL AND updated_at<=$3::timestamptz) OR
+            EXISTS(SELECT 1 FROM member_points_profile WHERE member_id=m.id AND birthday_month_day IS NOT NULL AND updated_at<=$3::timestamptz) OR
+            EXISTS(SELECT 1 FROM member_points_checkin WHERE member_id=m.id AND note_encrypted<>'' AND updated_at<=$3::timestamptz) OR
             EXISTS(SELECT 1 FROM member_delivery_address WHERE member_id=m.id AND key_version<>'erased'
               AND updated_at<=$3::timestamptz))) AS pending`,
           [marker.memberId,marker.displayNameSha256,marker.createdAt])).rows[0]?.pending;
@@ -416,7 +419,7 @@ export class AccountClosure {
         WHERE m.id=$1 AND (m.status<>'deleted' OR (
           NOT EXISTS(SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
             WHERE h.status='active' AND h.expires_at>clock_timestamp() AND
-              (b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=m.id::text
+              (b.object_type IN ('member','member_profile','member_care_profile','member_points_profile','member_points_checkin','member_contact','wechat_identity') AND b.object_id=m.id::text
                 OR b.object_type='member_delivery_address' AND b.object_id IN
                   (SELECT id::text FROM member_delivery_address WHERE member_id=m.id)))
           AND (m.display_name<>'已注销用户'
@@ -424,6 +427,9 @@ export class AccountClosure {
             OR EXISTS(SELECT 1 FROM member_contact WHERE member_id=m.id)
             OR EXISTS(SELECT 1 FROM phone_authorization WHERE member_id=m.id)
             OR EXISTS(SELECT 1 FROM member_profile WHERE member_id=m.id)
+            OR EXISTS(SELECT 1 FROM member_care_profile WHERE member_id=m.id)
+            OR EXISTS(SELECT 1 FROM member_points_profile WHERE member_id=m.id AND birthday_month_day IS NOT NULL)
+            OR EXISTS(SELECT 1 FROM member_points_checkin WHERE member_id=m.id)
             OR EXISTS(SELECT 1 FROM member_delivery_address WHERE member_id=m.id AND key_version<>'erased')
             OR EXISTS(SELECT 1 FROM daily_care_record d WHERE d.member_id=m.id AND NOT EXISTS(
               SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
@@ -460,7 +466,7 @@ export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) 
   // Keep financial, order, refund, aftersale and their support evidence intact.
   const held=Boolean((await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
     WHERE h.status='active' AND h.expires_at>now() AND
-      ((b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=$1)
+      ((b.object_type IN ('member','member_profile','member_care_profile','member_points_profile','member_points_checkin','member_contact','wechat_identity') AND b.object_id=$1)
        OR (b.object_type='member_delivery_address' AND b.object_id IN
           (SELECT id::text FROM member_delivery_address WHERE member_id=$2))) LIMIT 1`,
     [marker.memberId,marker.memberId])).rowCount);
@@ -473,6 +479,9 @@ export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) 
     changed+=(await client.query('DELETE FROM member_contact WHERE member_id=$1',[marker.memberId])).rowCount??0;
     changed+=(await client.query('DELETE FROM phone_authorization WHERE member_id=$1',[marker.memberId])).rowCount??0;
     changed+=(await client.query('DELETE FROM member_profile WHERE member_id=$1',[marker.memberId])).rowCount??0;
+    changed+=(await client.query('DELETE FROM member_care_profile WHERE member_id=$1',[marker.memberId])).rowCount??0;
+    changed+=(await client.query('DELETE FROM member_points_checkin WHERE member_id=$1',[marker.memberId])).rowCount??0;
+    changed+=(await client.query("UPDATE member_points_profile SET birthday_month_day=NULL,birthday_set_at=NULL,updated_at=now() WHERE member_id=$1 AND birthday_month_day IS NOT NULL",[marker.memberId])).rowCount??0;
     changed+=(await client.query(`UPDATE member_delivery_address SET encrypted_payload='',payload_hmac=encode(digest(id::text,'sha256'),'hex'),
       key_version='erased',is_default=false,deleted_at=COALESCE(deleted_at,now()),updated_at=now()
       WHERE member_id=$1 AND key_version<>'erased'`,[marker.memberId])).rowCount??0;
@@ -584,7 +593,7 @@ export async function applyProfileErasure(client:DbClient,marker:ProfileErasureM
   await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
   const held=Boolean((await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
     WHERE h.status='active' AND h.expires_at>now() AND
-      ((b.object_type IN ('member','member_profile','member_contact','wechat_identity') AND b.object_id=$1)
+      ((b.object_type IN ('member','member_profile','member_care_profile','member_points_profile','member_points_checkin','member_contact','wechat_identity') AND b.object_id=$1)
        OR (b.object_type='member_delivery_address' AND b.object_id IN
           (SELECT id::text FROM member_delivery_address WHERE member_id=$2))) LIMIT 1`,
     [marker.memberId,marker.memberId])).rowCount);
@@ -606,12 +615,21 @@ export async function applyProfileErasure(client:DbClient,marker:ProfileErasureM
     [marker.memberId,marker.createdAt]);
   const profile=await client.query('DELETE FROM member_profile WHERE member_id=$1 AND updated_at<=$2::timestamptz',
     [marker.memberId,marker.createdAt]);
+  const careProfile=await client.query(`UPDATE member_care_profile SET answers_encrypted='',key_version=NULL,
+    health_choice='unasked',health_text_version=NULL,health_decided_at=NULL,required=false,completed_at=NULL,
+    current_question=1,version=version+1,erased_at=$2,updated_at=clock_timestamp()
+    WHERE member_id=$1 AND erased_at IS NULL AND updated_at<=$2::timestamptz`,[marker.memberId,marker.createdAt]);
+  const careChoices=await client.query(`DELETE FROM member_care_consent_event WHERE member_id=$1 AND decided_at<=$2::timestamptz
+    AND NOT EXISTS(SELECT 1 FROM member_care_profile WHERE member_id=$1 AND erased_at IS NULL AND updated_at>$2::timestamptz)`,
+    [marker.memberId,marker.createdAt]);
   const addresses=await client.query(`UPDATE member_delivery_address SET encrypted_payload='',
     payload_hmac=encode(digest(id::text,'sha256'),'hex'),key_version='erased',is_default=false,
     deleted_at=COALESCE(deleted_at,now()),updated_at=now()
     WHERE member_id=$1 AND key_version<>'erased' AND updated_at<=$2::timestamptz`,
     [marker.memberId,marker.createdAt]);
-  const changed=[name,unionid,contact,authorization,profile,addresses].reduce((sum,result)=>sum+(result.rowCount??0),0);
+  const pointsProfile=await client.query(`UPDATE member_points_profile SET birthday_month_day=NULL,birthday_set_at=NULL,updated_at=clock_timestamp() WHERE member_id=$1 AND birthday_month_day IS NOT NULL AND updated_at<=$2::timestamptz`,[marker.memberId,marker.createdAt]);
+  const pointsNotes=await client.query(`UPDATE member_points_checkin SET note_encrypted='',key_version=NULL,version=version+1,updated_at=clock_timestamp() WHERE member_id=$1 AND note_encrypted<>'' AND updated_at<=$2::timestamptz`,[marker.memberId,marker.createdAt]);
+  const changed=[name,unionid,contact,authorization,profile,careProfile,careChoices,addresses,pointsProfile,pointsNotes].reduce((sum,result)=>sum+(result.rowCount??0),0);
   if(changed||request.status==='executing'){
     await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
       [marker.memberId]);

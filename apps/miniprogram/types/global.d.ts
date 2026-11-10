@@ -1,6 +1,8 @@
 interface IAppOption {
   globalData: {
     sessionToken: string;
+    onboardingReturnUrl?: string;
+    onboardingReturnToken?: string;
     privacyRightsToken: string;
     sessionStorageKey?: string;
     apiBaseUrl: string;

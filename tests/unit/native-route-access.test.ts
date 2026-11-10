@@ -33,6 +33,7 @@ const memberRoutes = [
   "/pages/community-review/index",
   "/pages/support/index",
   "/pages/management/index",
+  "/pages/management-points/index",
   "/pages/management-members/index",
   "/pages/management-member/index",
   "/pages/management-catalog/index",
@@ -78,8 +79,8 @@ describe("native route access policy", () => {
       expect(logic).not.toContain("allowPublicBrowsing");
     }
     const shop = await source("apps/miniprogram/pages/shop/index.ts");
-    expect(shop).not.toMatch(/(?:onShow|load)\([^)]*\)[^{]*\{[^}]*requireMemberAccess/);
-    expect(shop).toContain("catalogList()");
+    expect(shop).not.toMatch(/onShow\(\)[^{]*\{[^}]*requireMemberAccess/);
+    expect(shop).toContain('requireMemberAccess("/pages/orders/index")');
     const product = await source("apps/miniprogram/pages/product/index.ts");
     expect(product).toContain("catalogDetail(this.data.id)");
     expect(product).toContain("openCheckout()");

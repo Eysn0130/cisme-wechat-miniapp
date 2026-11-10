@@ -299,7 +299,7 @@ describe("mini program submission flow safety", () => {
     const product = await source("apps/miniprogram/pages/product/index.ts");
     const points = await source("apps/miniprogram/pages/points/index.ts");
 
-    for (const route of [shop, product, points]) {
+    for (const route of [shop, product]) {
       expect(route).toContain("loadAttempt: 0");
       expect(route).toContain("this.data.loadAttempt += 1");
       expect(route).toContain("this.data.loadAttempt !== attempt");
@@ -310,9 +310,11 @@ describe("mini program submission flow safety", () => {
     expect(product).toMatch(/!preserve\s*\?\s*\{item:null,catalog:null\}/);
     expect(product).toContain("formatCnyCents(raw.price)");
     expect(product).toContain('throw new Error("CATALOG_PRICE_INVALID")');
-    expect(product).toContain('wx.switchTab({url:"/pages/shop/index"');
-    expect(product).toContain("fail:failed");
-    expect(points).toContain('points: null as any, balanceClass: "", loading: true');
+    expect(product).toMatch(/wx\.switchTab\(\{\s*url:\s*"\/pages\/shop\/index"/);
+    expect(product).toMatch(/fail:\s*failed/);
+    expect(points).toContain('this.current(attempt)');
+    expect(points).toContain('this.visible=false;this.data.loadAttempt++');
+    expect(points).toContain('this.token===getApp<IAppOption>().globalData.sessionToken');
   });
 
   it("keeps care controls and progress recovery visually aligned with their busy predicates", async () => {
@@ -354,8 +356,9 @@ describe("mini program submission flow safety", () => {
     expect(profile).toContain('String(points.projection.available).length >= 8 ? "pass-stat__value--compact"');
     expect(profileStyle).toContain(".care-status__stats strong.pass-stat__value--compact");
     expect(profileStyle).toContain("overflow-wrap:anywhere;white-space:normal");
-    expect(points).toContain('balanceClass = String(points.projection.available).length >= 8 ? "points-hero__balance--compact"');
-    expect(points).toContain('throw new Error("POINTS_VALUE_INVALID")');
+    expect(points).toContain("String(points.projection.available).length>=8?'points-hero__balance--compact'");
+    expect(points).toContain('readMyPoints(this.data.source)');
+    expect(await source('apps/miniprogram/services/points.ts')).toContain('POINTS_INTEGER_INVALID');
     expect(pointsView).toContain("points-hero__balance {{balanceClass}}");
     expect(pointsStyle).toContain(".points-hero__balance--compact");
   });
@@ -364,8 +367,8 @@ describe("mini program submission flow safety", () => {
     const homeView = await source("apps/miniprogram/pages/home/index.wxml");
     const communityView = await source("apps/miniprogram/pages/community/index.wxml");
 
-    expect(homeView).toContain('disabled="{{accountOpening || sessionMounted}}" aria-hidden="{{sessionMounted}}"');
-    expect(homeView).toContain('class="care-console" aria-hidden="{{sessionMounted}}"');
+    expect(homeView).toContain('disabled="{{accountOpening || sessionMounted || onboardingOpen}}" aria-hidden="{{sessionMounted || onboardingOpen}}"');
+    expect(homeView).toContain('class="care-console" aria-hidden="{{sessionMounted || onboardingOpen}}"');
     expect(homeView).toContain('aria-role="dialog" aria-modal="true"');
     expect(communityView).toContain('aria-role="tablist" aria-label="社区内容分类"');
     expect(communityView.match(/aria-role="tab"/g)).toHaveLength(4);

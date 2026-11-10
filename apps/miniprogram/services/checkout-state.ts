@@ -38,6 +38,7 @@ const quoteDefaults = {
 };
 
 const privateDefaults = {
+  pointsInput:0,
   formalPayment:false,isolatedPayment:false,runtimeEnabled:false,
   addresses: [] as unknown[],
   selectedAddressId: "",

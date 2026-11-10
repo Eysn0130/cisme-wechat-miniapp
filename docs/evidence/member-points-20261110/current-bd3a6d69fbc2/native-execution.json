@@ -1,0 +1,87 @@
+{
+  "sourceSha256": "bd3a6d69fbc21514cbd9dbc54456ec148f0cc0dcb316abc1d314d9598bf2132a",
+  "scope": "Current native simulator rendering using fully intercepted synthetic transport. Programmatic page-handler calls, not physical taps, production API or device tests.",
+  "noRealRequestPassThrough": true,
+  "states": [
+    {
+      "label": "earn",
+      "route": "pages/points/index",
+      "section": "earn",
+      "points": {
+        "available": 850,
+        "frozen": 30,
+        "debt": 0,
+        "reserved": 20,
+        "version": 1
+      },
+      "clubEnabled": true,
+      "error": "",
+      "selectedProducts": [],
+      "giftQuantity": 1
+    },
+    {
+      "label": "multiple-products",
+      "route": "pages/points/index",
+      "section": "earn",
+      "points": {
+        "available": 850,
+        "frozen": 30,
+        "debt": 0,
+        "reserved": 20,
+        "version": 1
+      },
+      "clubEnabled": true,
+      "error": "",
+      "selectedProducts": [
+        "net_run",
+        "essence"
+      ],
+      "giftQuantity": 1
+    },
+    {
+      "label": "redemption-confirmation",
+      "route": "pages/points/index",
+      "section": "gifts",
+      "points": {
+        "available": 850,
+        "frozen": 30,
+        "debt": 0,
+        "reserved": 20,
+        "version": 1
+      },
+      "clubEnabled": true,
+      "error": "",
+      "selectedProducts": [
+        "net_run",
+        "essence"
+      ],
+      "giftQuantity": 2
+    },
+    {
+      "label": "points-management",
+      "route": "pages/management-points/index",
+      "error": "",
+      "canFulfill": true,
+      "canPolicy": true
+    },
+    {
+      "label": "my-wallet",
+      "route": "pages/profile/index",
+      "points": {
+        "available": 850,
+        "frozen": 30,
+        "debt": 0,
+        "reserved": 20,
+        "version": 1
+      },
+      "error": ""
+    }
+  ],
+  "restored": {
+    "active": false,
+    "originalRoute": "pages/home/index",
+    "hadSession": true,
+    "requestCount": 13,
+    "operationCount": 0
+  }
+}

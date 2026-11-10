@@ -13,7 +13,7 @@ type ProductRow = {
   id: string; code: string; name: string; subtitle: string; description: string; image_path: string | null;
   source_kind: "admin" | "legacy_preview" | "synthetic_test"; qualification_status: QualificationStatus;
   publication_status: PublicationStatus; version: number; published_at: Date | null; unpublished_at: Date | null;
-  created_at: Date; updated_at: Date;
+  shopping_points_multiplier:number;created_at: Date; updated_at: Date;
 };
 type SkuRow = {
   id: string; product_id: string; code: string; label: string; price_id: string; price_cents: number; price_version: number; currency: "CNY";
@@ -114,7 +114,7 @@ function mapProduct(row: ProductRow, skus: SkuRow[], orderFlowEnabled = false, d
   const purchaseEnabled = Boolean(variants.some((sku) => sku.purchaseEnabled));
   return { id: row.code, productId: row.id, code: row.code, name: row.name, subtitle: row.subtitle, description: row.description,
     image: row.image_path, sourceKind: row.source_kind, qualificationStatus: row.qualification_status,
-    publicationStatus: row.publication_status, version: row.version, publishedAt: iso(row.published_at),
+    shoppingPointsMultiplier:row.shopping_points_multiplier,publicationStatus: row.publication_status, version: row.version, publishedAt: iso(row.published_at),
     unpublishedAt: iso(row.unpublished_at), createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(),
     currency: "CNY" as const, price: defaultSku?.priceCents ?? null, stockOnHand: defaultSku?.stockOnHand ?? 0, inStock: defaultSku?.inStock ?? false,
     purchaseEnabled, sellability: purchaseEnabled ? "purchasable" : defaultSku?.inStock ? "browse_only" : "out_of_stock", variants };

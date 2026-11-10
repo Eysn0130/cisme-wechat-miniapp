@@ -8,6 +8,7 @@ import { currentChromeStyle } from "../../services/layout";
 import { authorityProjection, hasNativeManagementEntry, type AuthorityProjection } from "../../services/authority";
 import { readDailyCareRecords, type DailyCarePage } from "../../services/daily-care";
 import { commerceContextRevision } from "../../services/commerce-command-store";
+import {parsePointBalances} from '../../services/points';
 
 function profileCareView(care: any): { title: string; copy: string; status: string; hasCycle: boolean; unavailable: boolean } {
   if (care === null) return { title: "尚无护理周期", copy: "可先查看日常护理指引。", status: "尚无护理周期", hasCycle: false, unavailable: false };
@@ -133,7 +134,8 @@ Page({
       if (!Number.isSafeInteger(snapshot.businessVersion) || snapshot.businessVersion < 0 || !snapshot.member?.id || !snapshot.points?.projection) throw new Error("INVALID_PROFILE_SNAPSHOT");
       if (snapshot.businessVersion < this.data.snapshotVersion) return;
       const processingStarted = measurementClock();
-      const { member, points, care } = snapshot;
+      const { member, care } = snapshot;
+      const points={...snapshot.points,projection:parsePointBalances(snapshot.points.projection)};
       const known = memberIdentity();
       const normalizedMember = known && known.id === member.id && known.profile_revision > member.profile_revision ? { ...member, ...known } : member;
       const { avatar_data_url: _rawAvatar, ...visibleMember } = normalizedMember;

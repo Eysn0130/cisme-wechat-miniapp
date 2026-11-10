@@ -1,6 +1,8 @@
 import {execFile} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
-import {readFile,readdir} from 'node:fs/promises';
+import {readFile,readdir,mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+import {tmpdir} from 'node:os';
 import {promisify} from 'node:util';
 import pg from 'pg';
 import {afterAll,beforeAll,expect,it} from 'vitest';
@@ -16,7 +18,8 @@ const admin=new pg.Pool({connectionString:adminUrl.toString()});
 const db=new pg.Pool({connectionString:migrationUrl.toString()});
 const env={...process.env,DATABASE_URL:migrationUrl.toString()};
 const latest='202609250001_retire_unapproved_catalog_images.sql';
-let laterCount=0;
+let prefixDirectory:string|undefined;
+const migrate=(direction:'up'|'down')=>exec(resolve('node_modules/.bin/tsx'),[resolve('scripts/migrate.ts'),direction],{env,cwd:prefixDirectory});
 let databaseCreated=false;
 
 beforeAll(async()=>{
@@ -27,7 +30,9 @@ beforeAll(async()=>{
   await db.query('CREATE TABLE schema_migration(version text PRIMARY KEY,applied_at timestamptz NOT NULL DEFAULT now())');
   const files=(await readdir('db/migrations')).filter(file=>file.endsWith('.sql')).sort();
   expect(files).toContain(latest);
-  laterCount=files.filter(file=>file>latest).length;
+  prefixDirectory=await mkdtemp(join(tmpdir(),'cisme-owned-retirement-prefix-'));
+  await mkdir(join(prefixDirectory,'db/migrations'),{recursive:true});
+  for(const file of files.filter(file=>file<=latest))await writeFile(join(prefixDirectory,'db/migrations',file),await readFile('db/migrations/'+file));
   for(const file of files.filter(file=>file<latest)){
     const up=(await readFile('db/migrations/'+file,'utf8')).split('-- migrate:down')[0]!;
     await db.query(up);
@@ -38,7 +43,7 @@ afterAll(async()=>{
   try{
     await db.end();
     if(databaseCreated)await admin.query(`DROP DATABASE ${databaseName} WITH (FORCE)`);
-  }finally{await admin.end();}
+  }finally{await admin.end();if(prefixDirectory)await rm(prefixDirectory,{recursive:true,force:true});}
 },60_000);
 
 it('reviews unknown retired references, preserves admin images, and rolls back partial attempts atomically',async()=>{
@@ -48,7 +53,7 @@ it('reviews unknown retired references, preserves admin images, and rolls back p
     VALUES('synthetic-approved','Synthetic approved product',$1,'synthetic','synthetic'),
       ('synthetic-retired','Synthetic retired reference',$2,'synthetic','synthetic')`,[approved,retired]);
   const countBefore=(await db.query('SELECT count(*)::int n FROM schema_migration')).rows[0].n as number;
-  await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env})).rejects.toMatchObject({
+  await expect(migrate('up')).rejects.toMatchObject({
     stderr:expect.stringContaining('CATALOG_RETIRED_IMAGE_REVIEW_REQUIRED')
   });
   expect((await db.query('SELECT count(*)::int n FROM schema_migration')).rows[0].n).toBe(countBefore);
@@ -61,7 +66,7 @@ it('reviews unknown retired references, preserves admin images, and rolls back p
       RAISE EXCEPTION 'SYNTHETIC_JOURNAL_FAILURE'; END IF; RETURN NEW; END $$;
     CREATE TRIGGER reject_retirement_journal BEFORE INSERT ON schema_migration
       FOR EACH ROW EXECUTE FUNCTION reject_retirement_journal()`);
-  await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env})).rejects.toMatchObject({
+  await expect(migrate('up')).rejects.toMatchObject({
     stderr:expect.stringContaining('SYNTHETIC_JOURNAL_FAILURE')
   });
   expect((await db.query('SELECT count(*)::int n FROM schema_migration')).rows[0].n).toBe(countBefore);
@@ -69,8 +74,8 @@ it('reviews unknown retired references, preserves admin images, and rolls back p
     .toEqual({image_path:'/assets/cisme/community-card-purple-bottle-v1.jpg',version:1});
   await db.query('DROP TRIGGER reject_retirement_journal ON schema_migration; DROP FUNCTION reject_retirement_journal()');
 
-  await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
-  expect((await db.query('SELECT count(*)::int n FROM schema_migration')).rows[0].n).toBe(countBefore+1+laterCount);
+  await migrate('up');
+  expect((await db.query('SELECT count(*)::int n FROM schema_migration')).rows[0].n).toBe(countBefore+1);
   const seed=(await db.query(`SELECT code,image_path,version,updated_by FROM catalog_product
     WHERE source_kind='legacy_preview' ORDER BY code`)).rows;
   expect(seed).toHaveLength(3);
@@ -83,21 +88,20 @@ it('reviews unknown retired references, preserves admin images, and rolls back p
   await db.query(`INSERT INTO catalog_product(code,name,image_path,created_by,updated_by)
     VALUES('synthetic-placeholder','Synthetic placeholder',$1,'synthetic','synthetic')`,
     ['/assets/icons/spray-bottle-plum.svg']);
-  for(let n=0;n<laterCount;n++)await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
-  await expect(exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env})).rejects.toMatchObject({
+  await expect(migrate('down')).rejects.toMatchObject({
     stderr:expect.stringContaining('CATALOG_IMAGE_RETIREMENT_ROLLBACK_REQUIRES_DATA_PRESERVATION')
   });
   expect((await db.query('SELECT count(*)::int n FROM schema_migration')).rows[0].n).toBe(countBefore+1);
   await db.query("DELETE FROM catalog_product WHERE code='synthetic-placeholder'");
-  await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','down'],{env});
+  await migrate('down');
   expect((await db.query("SELECT image_path,version FROM catalog_product WHERE code='care-serum-30'")).rows[0])
     .toEqual({image_path:null,version:1});
   expect((await db.query("SELECT image_path,version FROM catalog_product WHERE code='synthetic-approved'")).rows[0])
     .toEqual({image_path:approved,version:1});
 
   // A retry after the safe down has zero matching retired references.
-  await exec('./node_modules/.bin/tsx',['scripts/migrate.ts','up'],{env});
+  await migrate('up');
   expect((await db.query("SELECT image_path,version FROM catalog_product WHERE code='care-serum-30'")).rows[0])
     .toEqual({image_path:null,version:1});
-  expect((await db.query('SELECT count(*)::int n FROM schema_migration')).rows[0].n).toBe(countBefore+1+laterCount);
+  expect((await db.query('SELECT count(*)::int n FROM schema_migration')).rows[0].n).toBe(countBefore+1);
 },90_000);

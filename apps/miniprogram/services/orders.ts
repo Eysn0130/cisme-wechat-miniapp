@@ -35,6 +35,7 @@ export function confirmMyReceipt(id:string,expectedVersion:number,idempotencyKey
   return request({path:`/v1/me/orders/${encodeURIComponent(id)}/confirm-receipt`,method:"POST",data:{expectedVersion},idempotencyKey,cacheTags:["orders"]});
 }
 export interface CheckoutQuote {
+  shoppingPointsMultiplier?:number;pointsSpent?:number;pointsMaximum?:number;pointsPolicyVersion?:string|null;
   fulfillmentPolicy?:FulfillmentPolicy|null;
   id: string; status: "active" | "consumed" | "expired"; currency: "CNY"; quantity: number; unitPriceCents: number;
   subtotalCents: number; memberDiscountCents: number; shippingCents: number; totalCents: number;
@@ -52,6 +53,7 @@ export interface MemberOrderAddress {
 }
 export interface ManagementOrderAddress { recipientNameMasked: string; phoneMasked: string; province: string; city: string; district: string }
 export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAddress> {
+  shoppingPointsMultiplier?:number;pointsSpent?:number;
   fulfillmentPolicy?:FulfillmentPolicy|null;
   id: string; orderNumber: string; status: PendingOrderStatus; currency: "CNY"; subtotalCents: number; memberDiscountCents: number;
   shippingCents: number; totalCents: number; creditTenderCents:number;cashPayableCents:number;
@@ -87,11 +89,11 @@ export function memberAddresses(): Promise<{ enabled: boolean; maxAddresses: num
   return request({ path: "/v1/me/addresses", cacheTags: ["member"] });
 }
 export function createCheckoutQuote(input: { skuId: string; quantity: number; addressId: string; addressVersion: number;
-  creditCents?:number }, idempotencyKey: string): Promise<CheckoutQuote> {
+  creditCents?:number;points?:number }, idempotencyKey: string): Promise<CheckoutQuote> {
   return request({ path: "/v1/me/commerce/quotes", method: "POST", data: input, idempotencyKey, cacheTags: ["catalog", "orders"] });
 }
 export function createPendingOrder(quoteId: string, idempotencyKey: string): Promise<CommerceOrder<MemberOrderAddress>> {
-  return request({ path: "/v1/me/orders", method: "POST", data: { quoteId }, idempotencyKey, cacheTags: ["orders", "catalog"] });
+  return request({ path: "/v1/me/orders", method: "POST", data: { quoteId }, idempotencyKey, cacheTags: ["orders", "catalog","points"] });
 }
 export function myOrders(cursor?: string, page?: object): Promise<CommerceOrderPage> {
   const options = { path: `/v1/me/orders?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, cacheTags: ["orders"] };

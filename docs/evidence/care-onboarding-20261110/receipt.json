@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-10T16:55:00.396Z",
+  "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+  "scope": "CARE-ONBOARD-01..08 scoped source + disposable real database tests + native synthetic UI; not a production or physical-device acceptance",
+  "userDecision": "完成基础建档后进入护理",
+  "designOption": 3,
+  "definitions": {
+    "questionnaireVersion": "care-account-v1.2",
+    "sensitiveConsentVersion": "care-profile-sensitive-v1"
+  },
+  "checks": {
+    "typecheck": "passed",
+    "unit": {
+      "files": 189,
+      "passed": 3129,
+      "skipped": 1
+    },
+    "integration": {
+      "files": 7,
+      "passed": 72,
+      "runId": "0080aa9c14f7ed91de8bba5a",
+      "disposableTargetsRemoved": true
+    },
+    "openapi": {
+      "registeredV1": 293,
+      "documentedIncludingHealth": 295,
+      "events": 32
+    },
+    "packageGate": "passed"
+  },
+  "native": {
+    "tool": "official wechatide CLI + CUA native app input",
+    "devtoolsVersion": "2.02.2611092",
+    "sdkVersion": "3.15.2",
+    "viewport": "390x844",
+    "hardware": false,
+    "fixtures": "wx.request temporarily replaced in the simulator, no pass-through; restored after QA",
+    "completed": true,
+    "appliedSyntheticOperations": 9,
+    "syntheticWriteAttempts": 10,
+    "errorConsoleFilterMatches": 0,
+    "realMemberWrites": 0,
+    "realDatabaseConnection": false,
+    "persistenceProof": "Separate disposable PostgreSQL integration tests",
+    "restoredState": {
+      "syntheticHarnessActive": false,
+      "hasSession": false,
+      "syntheticOrigin": false,
+      "route": "pages/home/index",
+      "onboardingOpen": false,
+      "guest": true
+    }
+  },
+  "motion": {
+    "implementedMs": {
+      "dialog": 240,
+      "pressAndSelection": 120,
+      "question": 180
+    },
+    "reducedMotionBranch": true,
+    "hardwarePerformanceMeasured": false
+  },
+  "release": {
+    "serverDeployed": false,
+    "formalDatabaseMigrated": false,
+    "trialUploaded": false,
+    "realDeviceVerified": false,
+    "global40RouteMatrixComplete": false
+  },
+  "screenshots": [
+    {
+      "file": "docs/evidence/care-onboarding-20261110/01-native-first-empty.png",
+      "sha256": "f5ebfd9a1f424977252910ab0a312f5500d3c96e3a6d252a4de707fd7273abb9",
+      "bytes": 167849,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-01-native-first-empty",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/02-native-doctor-friend.png",
+      "sha256": "6e8682eea2eafe9e532d8cc6aa11161cf26b27bc12b94d13ae405f587019ef9d",
+      "bytes": 170776,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-02-native-doctor-friend",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/03-native-multi-limit.png",
+      "sha256": "ef2ab2dd5e6187c7bf46caabb3c3798bf3e39d4a816f09ebc590613140d1779c",
+      "bytes": 175699,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-03-native-multi-limit",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/04-native-exclusive-unsure.png",
+      "sha256": "16fd914b2d00cd7b32de59ca26d10d94a89a062500a3cbe2fc1569e929318469",
+      "bytes": 170686,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-04-native-exclusive-unsure",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/05-native-age-question.png",
+      "sha256": "e2c68d3fd9cd174d44e717ee752943dae8369ffdf9fe804135a851ad58db0f3d",
+      "bytes": 161176,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-05-native-age-question",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/06-native-unknown-retry.png",
+      "sha256": "8dd51b096d9b31791b885dff8823266e512ac70fabd51fe863437de11628aa50",
+      "bytes": 180302,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-06-native-unknown-retry",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/07-native-sensitive-choice.png",
+      "sha256": "5d9606ad54f45602d97fcb2e00b924ff1e8f0bdefba322ffcadc96ce00aa3125",
+      "bytes": 169690,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-07-native-sensitive-choice",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/08-native-factors-top.png",
+      "sha256": "34dbdf70f4b6ee924d84adf0a4cb2d10b46a16a44bc53f162128d241a65ecfd2",
+      "bytes": 173319,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-08-native-factors-top",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/09-native-habits-top.png",
+      "sha256": "dc827da4d8d1c095bd28de90423ca5e9d9ae1ed9f9dba247cfe3b6ee0c7a13fb",
+      "bytes": 171882,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-09-native-habits-top",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/10-native-habits-scrolled.png",
+      "sha256": "7549b231bf7d10cb176dab8effc0dc8068fa277956404d7e1801107bc2e1604a",
+      "bytes": 164697,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-10-native-habits-scrolled",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/11-native-preference.png",
+      "sha256": "2a2807b4f0217939cacb989a64274202de1cfea3bc920de41589742f13ae167c",
+      "bytes": 159120,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-11-native-preference",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    },
+    {
+      "file": "docs/evidence/care-onboarding-20261110/12-native-completed-home.png",
+      "sha256": "0d3e15343842844bf96d83f285061754b7fc43e2597d40794fe07027f2cd1d00",
+      "bytes": 320778,
+      "mimeType": "image/png",
+      "widthPx": 390,
+      "heightPx": 844,
+      "kind": "route_native",
+      "packageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7",
+      "route": "pages/home/index",
+      "state": "care-onboarding-12-native-completed-home",
+      "viewport": "390x844",
+      "deviceModel": "iPhone 12/13 (Pro) simulator",
+      "hardware": false
+    }
+  ],
+  "logs": {
+    "unit-tests.log": {
+      "sha256": "9ee2ec5773f31d00921bd9ad041570482bc126a2a35986f03a68206f5fd3bb71",
+      "bytes": 230
+    },
+    "integration-tests.log": {
+      "sha256": "f6ac309373fecd73c35e5816769d1c83c06c58fd102cc2300c113377ee353367",
+      "bytes": 1142
+    },
+    "typecheck.log": {
+      "sha256": "e395c1b6bc818c5140d7c8307ceac2217080947bc5e2060942cb1403af082e3c",
+      "bytes": 106
+    },
+    "package-gate.json": {
+      "sha256": "ed8f60d0504359826350d0f981873deafa6cc445e859808b119f2f8ad568e08f",
+      "bytes": 1675
+    },
+    "route-audit.json": {
+      "sha256": "68d9c6ca00e2d47205ea8bd1e8fddd36fc9ef198631157cc254cf211efa56a92",
+      "bytes": 41954
+    }
+  },
+  "knownGaps": [
+    "Physical iOS/Android, small-screen and large-font checks, assistive technology and hardware animation performance remain unverified.",
+    "Settings profile entry has component/unit coverage, no native runtime interaction in this run.",
+    "No deployed WeChat-member to database end-to-end test.",
+    "Purpose-specific consent withdrawal clears live sensitive answers but has no independent restore suppression marker; full optional-profile erasure/account closure replay remains separate.",
+    "Sample fulfillment and new points incentives require separately verified product/activity/rule configuration."
+  ]
+}

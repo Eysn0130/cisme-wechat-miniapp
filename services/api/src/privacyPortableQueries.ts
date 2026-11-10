@@ -1,11 +1,17 @@
 /** Fixed owner projections shared with the bounded v2 portable export. Keep these
  * query fields aligned with privacyPortableData.ts until v1 is retired. */
+import {pointsPortableSpecs} from './pointsPrivacy.js';
+import {careProfilePortableQuery} from './careOnboarding.js';
 export const wechatReceiptPortableQuery=`SELECT w.order_id,w.shipment_id,w.platform_order_state,
         w.in_complaint,w.observed_at FROM commerce_wechat_receipt_observation w
         JOIN commerce_order o ON o.id=w.order_id WHERE o.member_id=$1 AND w.observed_at IS NOT NULL
         ORDER BY w.order_id`;
 
 export const portableQuerySpecs = [
+  ...pointsPortableSpecs,
+  {section:'account',collection:'careProfile',single:true,sql:careProfilePortableQuery},
+  {section:'account',collection:'careProfileChoices',single:false,sql:`SELECT choice,purpose,text_version,text_snapshot,decided_at
+    FROM member_care_consent_event WHERE member_id=$1 ORDER BY decided_at,id`},
   {section:'account',collection:'identity',single:false,sql:`SELECT provider,app_id,openid,unionid,created_at FROM wechat_identity
         WHERE member_id=$1`},
   {section:'account',collection:'profile',single:true,sql:`SELECT wechat_handle,avatar_data_url,public_status,community_bio,community_bio_revision,completed_at,updated_at
@@ -52,9 +58,9 @@ export const portableQuerySpecs = [
   {section:'participation',collection:'rewards',single:false,sql:`SELECT id,submission_id,amount,state,created_at FROM reward_claim
         WHERE member_id=$1 ORDER BY created_at,id`},
   {section:'participation',collection:'points',single:false,sql:`SELECT id,grant_id,lot_id,entry_type,frozen_delta,
-        available_delta,debt_delta,occurred_at FROM points_entry
+        available_delta,debt_delta,reserved_delta,used_delta,expired_delta,occurred_at FROM points_entry
         WHERE member_id=$1 ORDER BY occurred_at,id`},
-  {section:'participation',collection:'pointBalance',single:true,sql:`SELECT frozen,available,debt,updated_at FROM points_projection
+  {section:'participation',collection:'pointBalance',single:true,sql:`SELECT frozen,available,debt,reserved,updated_at FROM points_projection
         WHERE member_id=$1`},
   {section:'participation',collection:'consentGrants',single:false,sql:`SELECT submission_id,purpose,granted_at FROM consent_grant
         WHERE member_id=$1 ORDER BY granted_at,id`},
@@ -62,7 +68,7 @@ export const portableQuerySpecs = [
         FROM revocation_request r JOIN consent_grant g ON g.id=r.consent_grant_id
         WHERE g.member_id=$1 ORDER BY r.requested_at,r.id`},
   {section:'commerce',collection:'orders',single:false,sql:`SELECT id,order_number,status,subtotal_cents,member_discount_cents,
-        shipping_cents,total_cents,credit_tender_cents,created_at,updated_at
+        shipping_cents,total_cents,credit_tender_cents,points_spent,points_policy_version,shopping_points_multiplier,created_at,updated_at
         FROM commerce_order WHERE member_id=$1 ORDER BY created_at,id`},
   {section:'commerce',collection:'lines',single:false,sql:`SELECT l.order_id,l.line_number,l.product_name,l.sku_label,l.quantity,
         l.unit_price_cents,l.line_discount_cents,l.line_total_cents,l.credit_tender_cents

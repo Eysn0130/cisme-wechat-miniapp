@@ -2,7 +2,7 @@ import { careCommandConfirmed, type CareCommand } from "../../services/care-comm
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { memberIdentity } from "../../services/member-identity";
-import { requireMemberAccess, retainMemberSnapshot, request } from "../../services/api";
+import { requireMemberAccess, retainMemberSnapshot, request, navigateAfterAuthentication } from "../../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { registerIncomingShare } from "../../services/share";
 import { careDaypart, careGreeting, careProtocolSteps, careSelfAssessments, type CareProtocolStepView, type CareSelfAssessmentValue } from "../../services/care-protocol";
@@ -129,6 +129,7 @@ function dailyHomeProjection(state: { dailyReady: boolean; dailyLoading: boolean
 
 Page({
   data: {
+    onboardingRequired:false,onboardingOpen:false,
     dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null as DailyCareRecord | null, dailyAttempt: 0,
     chromeStyle: currentChromeStyle(), accountOpening: false, supportUnread: null as number | null, supportState: "unknown" as "unknown" | "loading" | "ready" | "error", care: null as CareView | null, view: homeView(null), selectedProtocolIndex: 0,
     loading: true, working: false, activationConfirming: false, authorityAvailable: false, needsAuthentication: false,
@@ -164,6 +165,7 @@ Page({
       mutationState: pending?.token === getApp<IAppOption>().globalData.sessionToken ? "unknown" : "idle" });
     const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 0 }); tab?.syncActive?.(0);
     tab?.setPresentation?.("care-sheet", this.data.sessionMounted);
+    tab?.setPresentation?.('care-onboarding',this.data.onboardingOpen);
     const identity = memberIdentity();
     if (identity) this.setData({ view: homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
     this.syncDailyHomeView();
@@ -177,6 +179,7 @@ Page({
     this.data.loadAttempt += 1;
     this.stopDaypartClock();
     this.getTabBar?.()?.setPresentation?.("care-sheet", false);
+    this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
     if (this.data.sessionClosing) this.finishCareSessionClose();
   },
   onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.pageVisible = false; this.data.lifecycleEpoch++; writeOwners.delete(this);
@@ -205,7 +208,8 @@ Page({
   restoreGuestIfExpired(attempt: number) {
     if (!this.data.pageAlive || this.data.loadAttempt !== attempt || getApp<IAppOption>().globalData.sessionToken) return;
     homeMemberNames.delete(this);
-    this.setData({ care: null, snapshotVersion: 0, supportUnread: null, supportState: "unknown", view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "" });
+    this.setData({ care: null, snapshotVersion: 0, supportUnread: null, supportState: "unknown", view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "",onboardingRequired:false,onboardingOpen:false });
+    this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
   },
   async loadSupport(attempt: number, token: string) {
     this.setData({ supportState: "loading" });
@@ -234,7 +238,8 @@ Page({
       wx.disableAlertBeforeUnload();
       this.getTabBar?.()?.setPresentation?.("care-sheet", false);
       this.finishCareSessionClose();
-      this.setData({ snapshotVersion: 0, dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null });
+      this.setData({ snapshotVersion: 0, dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null,onboardingRequired:false,onboardingOpen:false });
+      this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
     }
     if (!preserveSnapshot) this.setData({ dailyReady: false, dailyToday: null, serverDay: "" });
     this.setData(preserveSnapshot && sameSession && this.data.authorityAvailable
@@ -245,7 +250,7 @@ Page({
     void this.loadSupport(attempt, token);
     const dailyRead = this.loadDailyCare(attempt, token);
     try {
-      const snapshot = await pageRead<{ member: MemberView; care: CareView | null; businessVersion: number }>(this, { path: "/v1/bootstrap/home", authMode: "optional", cacheTags: ["member", "care"] });
+      const snapshot = await pageRead<{ member: MemberView; care: CareView | null; businessVersion: number; onboardingRequired?:boolean }>(this, { path: "/v1/bootstrap/home", authMode: "optional", cacheTags: ["member", "care"] });
       if (!this.isCurrentLoad(attempt, token)) { this.restoreGuestIfExpired(attempt); return false; }
       if (!Number.isSafeInteger(snapshot.businessVersion) || snapshot.businessVersion < 0 || !snapshot.member?.id
         || (snapshot.care && (!snapshot.care.id || !Number.isSafeInteger(snapshot.care.version)))) throw new Error("INVALID_CARE_SNAPSHOT");
@@ -254,7 +259,10 @@ Page({
       const { member, care } = snapshot;
       const displayName = homeDisplayName(this, member);
       const view = homeView(care, displayName || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes);
-      const core = { care, snapshotVersion: snapshot.businessVersion, view: care ? view : { ...view, ...dailyHomeProjection(this.data) }, authorityAvailable: true, needsAuthentication: false, loading: false };
+      const onboardingRequired=snapshot.onboardingRequired===true;
+      const core = { care, snapshotVersion: snapshot.businessVersion, view: care ? view : { ...view, ...dailyHomeProjection(this.data) }, authorityAvailable: true, needsAuthentication: false, loading: false,
+        onboardingRequired,onboardingOpen:onboardingRequired };
+      this.getTabBar?.()?.setPresentation?.('care-onboarding',onboardingRequired);
       recordClientMetric({ action: "home", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
       this.setData(core, () => {
@@ -296,6 +304,16 @@ Page({
     wx.navigateTo({url:"/pages/support/index",fail:()=>{this.setData({accountOpening:false});wx.showToast({title:"客服暂时无法打开，请重试",icon:"none"});}});
   },
   retryLoad() { void this.load(); },
+  async completeOnboarding(){
+    const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;
+    const confirmed=await this.load(true);
+    if(!confirmed||!this.isCurrentUi(epoch,token)||this.data.onboardingRequired)return;
+    this.setData({onboardingOpen:false});this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
+    const app=getApp<IAppOption>(),destination=app.globalData.onboardingReturnToken===token?app.globalData.onboardingReturnUrl:undefined;
+    delete app.globalData.onboardingReturnUrl;
+    delete app.globalData.onboardingReturnToken;
+    if(destination&&destination!=='/pages/home/index')await navigateAfterAuthentication(destination);
+  },
   selectProtocolStep(event: WechatMiniprogram.TouchEvent) {
     if (this.data.sessionOpen) return;
     const index = boundedStepIndex(Number(event.currentTarget.dataset.index));
@@ -304,6 +322,7 @@ Page({
   },
   async primaryAction() {
     if (!this.data.pageAlive || !this.data.pageVisible) return;
+    if(this.data.onboardingRequired){this.setData({onboardingOpen:true});this.getTabBar?.()?.setPresentation?.('care-onboarding',true);return;}
     if (this.data.needsAuthentication) { this.openAccount(); return; }
     if (this.data.mutationState === "unknown") { void this.retryCareMutation(); return; }
     if (this.data.loading || !this.data.authorityAvailable) { wx.showToast({ title: "护理状态尚未确认，请重试", icon: "none" }); return; }

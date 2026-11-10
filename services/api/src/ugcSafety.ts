@@ -347,6 +347,22 @@ export class UgcSafetyService{
           VALUES($1,$2,'wechat_v2',$3,$4)`,[id,fingerprint,state,kind==='editorial'?{errcode:response.errcode,suggest:response.result?.suggest,label:response.result?.label}:response]);
         await client.query(`UPDATE ${tables.claim} SET state='completed',lease_until=clock_timestamp(),
           updated_at=clock_timestamp() WHERE comment_id=$1 AND lease_token=$2`,[id,claim.lease_token]);
+        if(kind==='ugc'&&state==='safe'&&this.config.ugcGoLiveGate){
+          const published=await client.query<{id:string;post_id:string;version:number}>(`UPDATE ugc_comment c SET state='published',was_public=true,version=c.version+1,updated_at=clock_timestamp()
+            FROM ugc_post p,member author,member writer
+            WHERE c.id=$1 AND c.post_id=p.id AND author.id=p.author_member_id AND writer.id=c.author_member_id AND author.status='active' AND writer.status='active'
+              AND c.state='pending_review' AND c.deleted_at IS NULL AND p.state='published' AND p.visibility='public'
+              AND EXISTS(SELECT 1 FROM ugc_comment_direct_publication_policy policy WHERE policy.activated_at<=c.created_at)
+              AND EXISTS(SELECT 1 FROM emergency_switch s WHERE s.key='community' AND s.enabled)
+              AND EXISTS(SELECT 1 FROM ugc_go_live_approval a WHERE a.revoked_at IS NULL AND a.signed_at<=clock_timestamp() AND a.expires_at>clock_timestamp())
+              AND (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM ugc_comment root JOIN member rm ON rm.id=root.author_member_id AND rm.status='active' WHERE root.id=c.parent_id AND root.state='published'))
+              AND (c.reply_to_id IS NULL OR EXISTS(SELECT 1 FROM ugc_comment reply JOIN member rm ON rm.id=reply.author_member_id AND rm.status='active' WHERE reply.id=c.reply_to_id AND reply.state='published'))
+              AND EXISTS(SELECT 1 FROM ugc_comment_safety_scan safe WHERE safe.comment_id=c.id AND safe.body_sha256=encode(digest(c.body,'sha256'),'hex') AND safe.provider='wechat_v2' AND safe.state='safe')
+              AND NOT EXISTS(SELECT 1 FROM ugc_comment_safety_scan risk WHERE risk.comment_id=c.id AND risk.body_sha256=encode(digest(c.body,'sha256'),'hex') AND risk.state IN ('review','risky'))
+            RETURNING c.id,c.post_id,c.version`,[id]);
+          for(const row of published.rows)await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+            VALUES('worker:content-safety','ugc.comment_auto_published','ugc_comment',$1,'CURRENT_SAFE_PUBLIC_INTENT',$2,gen_random_uuid()::text)`,[row.id,{postId:row.post_id,version:row.version}]);
+        }
         if(kind==='editorial'&&current.state==='published'&&(state==='review'||state==='risky')){
           await client.query("UPDATE editorial_comment SET state='hidden',version=version+1,updated_at=now() WHERE id=$1",[id]);
           await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)

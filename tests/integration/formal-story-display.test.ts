@@ -75,8 +75,7 @@ it('keeps pending comments private to the authenticated reader view',async()=>{
 it('gives the common comment heart a real idempotent owner-scoped like',async()=>{
  const safety=new UgcSafetyService(pool,config,storage,safeProvider);
  expect(await safety.scanComment(comment.id)).toMatchObject({state:'safe'});
- const service=new FormalUgcService(pool,config,storage,new AuthorityService(pool,'test'));
- await service.reviewComment(moderator.id,comment.id,{decision:'approve',reason:'isolated safe comment'});
+ expect((await pool.query('SELECT state FROM ugc_comment WHERE id=$1',[comment.id])).rows[0].state).toBe('published');
  const url=`/v1/ugc/posts/${post.id}/comments/${comment.id}/like`;
  expect((await app.inject({method:'PUT',url,payload:{active:true}})).statusCode).toBe(401);
  for(let i=0;i<2;i++)expect((await app.inject({method:'PUT',url,headers:headers(),payload:{active:true}})).json()).toEqual({id:comment.id,liked:true,likeCount:1});

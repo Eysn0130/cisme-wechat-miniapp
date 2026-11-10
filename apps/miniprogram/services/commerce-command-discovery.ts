@@ -11,7 +11,7 @@ interface Fact { id: string; objectId: string; state: string; recordVersion: num
 interface FactsPage { version: number; kind: string; coverage: string; absenceIsFailure: boolean;
   items: Fact[]; nextCursor: string | null; hasMore: boolean }
 const titles: Record<CommerceCommandKind, string> = { refund: '退款申请记录', settlement: '结算意向记录',
-  credit: '权益转换记录', 'credit-cancel': '权益撤销记录', cancel: '订单取消记录', 'cancel-verified': '渠道核对取消记录' };
+  credit: '权益转换记录', 'credit-cancel': '权益撤销记录', cancel: '订单取消记录', 'cancel-verified': '渠道核对取消记录','points-gift':'积分礼品兑换记录' };
 const states: Record<string, string> = { requested: '已记录申请，等待处理', approved: '申请已通过，处理结果待确认',
   rejected: '申请未通过', reserved: '已预占，尚未确认到账', unknown: '渠道结果待核对', processing: '渠道处理中',
   succeeded: '记录显示已完成', failed: '记录显示未完成', cancelled: '已取消', available: '权益已记录' };

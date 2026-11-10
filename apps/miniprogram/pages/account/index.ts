@@ -342,7 +342,7 @@ Page({
       // this default only for a new member; later logins retain saved profile.
       const base = { displayName: "CISME 会员", consents: [{ documentType: "privacy", version: legalDocuments.privacy }, { documentType: "terms", version: legalDocuments.terms }] };
       if (legalDocuments.crossBorder) base.consents.push({documentType:"cross_border",version:legalDocuments.crossBorder});
-      let result: { sessionToken: string; phoneBindingEnabled?: boolean };
+      let result: { sessionToken: string; phoneBindingEnabled?: boolean; onboardingRequired?:boolean };
       const runtime = getApp<IAppOption>().globalData;
       if (shouldUseDevelopmentIdentity(account.miniProgram.envVersion, wx.getDeviceInfo().platform, runtime.remoteDebugMode, Boolean(runtime.cloudFunction))) {
         const deviceId = wx.getStorageSync<string>("cisme.devUserId") || `device-${Date.now()}`;
@@ -367,7 +367,9 @@ Page({
       if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
       setSessionToken(result.sessionToken);
       void attributePendingShare();
-      const pendingDestination = this.authenticationReturnUrl;
+      if(result.onboardingRequired){runtime.onboardingReturnUrl=this.authenticationReturnUrl;runtime.onboardingReturnToken=result.sessionToken;}
+      else {delete runtime.onboardingReturnUrl;delete runtime.onboardingReturnToken;}
+      const pendingDestination = result.onboardingRequired ? '/pages/home/index' : this.authenticationReturnUrl;
       this.setData({ pendingDestination });
       wx.disableAlertBeforeUnload();
       if(phoneCode) {
