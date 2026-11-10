@@ -36,6 +36,8 @@ function runtimeLabel(): string {
 }
 
 Page({
+  openCareProfile(){if(this.data.profileBusy||this.data.avatarBusy||this.data.phoneBusy||this.data.addressBusy)return;this.setData({careProfileOpen:true});},
+  closeCareProfile(){this.setData({careProfileOpen:false});},
   profileSessionToken: "",
   profileVisible: true,
   requestedAddressSection: false,
@@ -44,7 +46,7 @@ Page({
   clipboardAttempt: 0,
   addressImportAttempt: 0,
   avatarAttempt: 0,
-  data: { avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "", runtimeLabel: runtimeLabel(), profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, aboutOpen:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
+  data: { careProfileOpen:false, avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "", runtimeLabel: runtimeLabel(), profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, aboutOpen:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
   onLoad(query:Record<string,string|undefined>) { this.data.pageAlive = true; this.requestedAddressSection=query.section==="addresses"; this.requestedProfileSection=query.section==="profile"; if(this.requestedAddressSection)this.setData({editingAddresses:true}); else if(this.requestedProfileSection)this.setData({editingProfile:true}); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
@@ -66,6 +68,7 @@ Page({
     if (this.data.avatarBusy) this.setData({ avatarBusy: false });
   },
   clearMemberSnapshot() {
+    this.setData({careProfileOpen:false});
     this.profileSessionToken = "";
     this.addressRecoverySnapshot = null;
     this.setData({

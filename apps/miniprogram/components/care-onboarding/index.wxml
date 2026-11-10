@@ -1,0 +1,38 @@
+<view class="care-onboarding-root {{reducedMotion ? 'care-onboarding--reduced' : ''}}" style="{{chromeStyle}}" catchtouchmove="stopPropagation" aria-role="dialog" aria-modal="true" aria-label="{{forced || required ? '创建护理档案' : '护理档案'}}">
+  <view class="care-onboarding-mask"></view>
+  <view class="care-onboarding-dialog">
+    <view class="care-onboarding-photo"><image class="care-onboarding-photo-image" src="/assets/cisme/cisme-home-background-v1.jpg" mode="aspectFill" aria-hidden="true"/><text class="care-onboarding-brand">CISME</text></view>
+    <button wx:if="{{!forced && !required}}" class="care-onboarding-close" bindtap="close" disabled="{{busy || unknown}}" aria-label="关闭护理档案"><image src="/assets/icons/close-plum.svg" mode="aspectFit"/></button>
+    <view class="care-onboarding-heading"><text class="care-onboarding-heading-title">{{completed && !forced ? '护理档案' : '创建护理档案'}}</text><text class="care-onboarding-heading-progress">{{questionNumber}}/10</text></view>
+    <scroll-view class="care-onboarding-scroll" scroll-y enhanced show-scrollbar="{{false}}" scroll-top="{{scrollTop}}" catchtouchmove="stopPropagation">
+      <view class="care-onboarding-content">
+        <view wx:if="{{loading}}" class="care-onboarding-state" aria-live="polite">正在读取你的护理档案…</view>
+        <block wx:elif="{{ready}}">
+          <block wx:if="{{consentMode}}">
+            <view class="care-onboarding-question"><view>护理情况</view><view>由你决定</view></view>
+            <text class="care-onboarding-consent">{{consentText}}</text>
+            <view class="care-onboarding-choices"><button class="care-onboarding-main {{busy || unknown ? 'care-onboarding-main--disabled' : ''}}" bindtap="acceptSensitive" loading="{{busy}}" disabled="{{busy || unknown}}">同意并继续</button><button class="care-onboarding-decline" bindtap="declineSensitive" disabled="{{busy || unknown}}">不同意，继续建档</button></view>
+          </block>
+          <block wx:else>
+            <view wx:for="{{questionFrames}}" wx:key="id" wx:for-item="frame" wx:for-index="frameIndex" class="care-onboarding-form">
+            <view class="care-onboarding-question" aria-live="polite">{{question.title}}</view>
+            <text wx:if="{{question.id === 'source'}}" class="care-onboarding-intro">了解你的护理需求，帮助选择试用小样。</text>
+            <text class="care-onboarding-selection">{{selectionLabel}}{{question.optional ? ' · 可跳过' : ''}}</text>
+            <view class="care-onboarding-options {{question.id === 'buying_habit' ? 'care-onboarding-options--list' : ''}}">
+              <button wx:for="{{options}}" wx:key="value" class="care-onboarding-option {{item.selected ? 'is-selected' : ''}}" hover-class="care-onboarding-pressed" bindtap="choose" data-value="{{item.value}}" disabled="{{busy || unknown}}" aria-role="{{question.multiple ? 'checkbox' : 'radio'}}" aria-checked="{{item.selected}}"><text>{{item.label}}</text><image wx:if="{{item.selected}}" src="/assets/icons/check-white.svg" mode="aspectFit" aria-hidden="true"/></button>
+            </view>
+            <button wx:if="{{question.optional}}" class="care-onboarding-skip" bindtap="skip" disabled="{{busy || unknown}}">跳过本题</button>
+            <button wx:if="{{completed && healthChoice === 'granted'}}" class="care-onboarding-skip" bindtap="openSensitiveChoice" disabled="{{busy || unknown}}">修改护理情况授权</button>
+            <text wx:if="{{question.id === 'preference'}}" class="care-onboarding-note">本次保存你的选品偏好，不会创建兑换订单或占用库存。</text>
+            </view>
+          </block>
+        </block>
+        <view wx:if="{{error}}" class="care-onboarding-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{!ready || unknown || reloadNeeded}}" class="care-onboarding-retry" bindtap="load" disabled="{{busy}}">{{unknown || reloadNeeded ? '核对最新档案' : '重新加载'}}</button></view>
+      </view>
+    </scroll-view>
+    <view wx:if="{{ready && (!consentMode || unknown)}}" class="care-onboarding-footer">
+      <button wx:if="{{questionNumber > 1 && !unknown}}" class="care-onboarding-previous" bindtap="previous" disabled="{{busy}}">上一题</button>
+      <button class="care-onboarding-main {{busy || (!canAdvance && !unknown) ? 'care-onboarding-main--disabled' : ''}}" hover-class="care-onboarding-pressed" bindtap="next" loading="{{busy}}" disabled="{{busy || (!canAdvance && !unknown)}}">{{busy ? '正在保存…' : unknown ? '重试保存' : questionNumber === 10 ? '完成建档' : '下一题'}}</button>
+    </view>
+  </view>
+</view>

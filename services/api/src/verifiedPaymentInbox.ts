@@ -6,6 +6,7 @@ import { enqueue } from "./outbox.js";
 import { assertPaymentBinding, decodePaymentNotification, type PaymentTransaction, WechatPayV3Client } from "./wechatPayV3.js";
 import { claimDueMoneyInbox, recordMoneyInboxFailure } from "./moneyInboxRetry.js";
 import { consumeReservedCreditForCheckout } from "./shoppingCredit.js";
+import {settleOrderPoints} from './pointsLedger.js';
 
 const orderPattern=/^CM[0-9]{8}[A-Z0-9]{12}$/;
 const safeMoney=(value:unknown)=>{
@@ -166,6 +167,7 @@ export class VerifiedPaymentInbox {
         safeMoney(snapshot.cash_merchandise_cents)>merchandise))
         return exception("COMMISSION_SNAPSHOT_MISMATCH");
       await consumeReservedCreditForCheckout(client,order.id,safeMoney(order.credit_tender_cents));
+      await settleOrderPoints(client,order.id,'spend',paidAt);
       for(const reservation of reservations.rows){
         const stock=await client.query(`UPDATE catalog_inventory_level SET
           stock_on_hand=stock_on_hand-$2,reserved_quantity=reserved_quantity-$2,version=version+1,

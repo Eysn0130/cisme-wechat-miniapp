@@ -220,6 +220,11 @@ async function leaseWithinBudget(pool: pg.Pool, budget: OperationBudget, options
           await rawQuery("SELECT set_config('statement_timeout',$1,false), set_config('lock_timeout',$2,false)", [String(options.statementTimeoutMs), String(options.lockTimeoutMs)]);
         } catch { releaseOnce(true); return; }
       }
+      // The response may finish while the session-reset query is in flight.
+      // Its CancelRequest must settle and that connection must be retired;
+      // handing it to the pool here could cancel the next borrower's query.
+      await cancellation;
+      if (budget.signal.aborted) { releaseOnce(true); return; }
       releaseOnce(false);
     })();
     return cleanup;

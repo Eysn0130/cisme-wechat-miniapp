@@ -1,0 +1,81 @@
+{
+  "sourceSha256": "04d2856f4c37652e64741f3b7983ce4685e50bfab2a62aa873b1cd7bdced9e43",
+  "scope": "Official native per-file WXML/WXSS compiler summaries. Not whole-package, physical-device or real-server acceptance.",
+  "compile": [
+    {
+      "file": "pages/points/index.wxml",
+      "success": true,
+      "codeLength": 40085
+    },
+    {
+      "file": "pages/points/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20928
+    },
+    {
+      "file": "pages/management-points/index.wxml",
+      "success": true,
+      "codeLength": 40085
+    },
+    {
+      "file": "pages/management-points/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20928
+    },
+    {
+      "file": "pages/checkout/index.wxml",
+      "success": true,
+      "codeLength": 40085
+    },
+    {
+      "file": "pages/checkout/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20928
+    },
+    {
+      "file": "pages/profile/index.wxml",
+      "success": true,
+      "codeLength": 40085
+    },
+    {
+      "file": "pages/profile/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20928
+    },
+    {
+      "file": "components/care-onboarding/index.wxml",
+      "success": true,
+      "codeLength": 40085
+    },
+    {
+      "file": "components/care-onboarding/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20928
+    }
+  ]
+}

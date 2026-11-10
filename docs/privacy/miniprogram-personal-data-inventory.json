@@ -686,6 +686,29 @@
       "currentGate": "组件上下文与导航配色归属校验；不申请媒体权限，不新增第三方处理或业务事实"
     },
     {
+      "surface": "member_care_profile",
+      "informationType": "自报了解渠道、年龄段、性别、护理困扰、染烫及选购偏好；个人题可跳过，敏感护理情况独立可选授权。",
+      "purpose": "首次账号基础建档和自选试用偏好；不作医疗诊断或营销回访。",
+      "activation": "新会员创建一份待完成档案；题目由本人明确选择，敏感题先独立同意。拒绝授权仍可完成建档。",
+      "serverStorage": "仅绑定会话 canonical member_id 的 AES-256-GCM 密文；领域与会员绑定 AAD。授权决定另存版本和文本证据，操作回执不存答案全文。",
+      "currentGate": "本人 GET/PUT/完成接口、版本与幂等校验；不改系统推荐人，不产生医生资质、管理权限、积分或订单。本人导出解密白名单，明确范围资料删除及注销含恢复抑制。"
+    },
+    {
+      "surface": "member_points_checkin",
+      "purpose": "Private product-use record and optional encrypted feeling; server-day earning facts; no automatic public sharing.",
+      "authorization": "Canonical owner only; account closure and cutoff optional note erasure supported."
+    },
+    {
+      "surface": "member_points_profile",
+      "purpose": "Optional birthday month/day for first birthday-month order bonus; no birth year.",
+      "authorization": "Owner may clear; yearly change fence does not retain birthday after erasure."
+    },
+    {
+      "surface": "member_points_redemption",
+      "purpose": "Owner-authorized stock fulfillment using separately sealed address; point allocation and immutable event evidence.",
+      "authorization": "Owner and explicitly authorized fulfillment personnel; no arbitrary member-address browse."
+    },
+    {
       "surface": "wx.chooseMessageFile",
       "purpose": "有履约权限的管理员主动选择本次发货XLSX，读取订单号、承运商、运单号和交寄时间；服务端只在内存校验，忽略收件人、电话和地址列，原文件不落服务器磁盘。",
       "data": "用户主动选择的XLSX文件，最多2MiB、500行；预览返回物流字段，受履约权限与会话保护。",
@@ -769,7 +792,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "bce57defc2f4e5713d41f70a14ab23dc24ea953b2fc0325f4694d77eb6423fdf",
+  "migrationSetSha256": "07d78dbdead5c5888e6ffba692ed4f93ce32c2335a28ee5aa141b731bf808ad8",
   "egressSignatureSha256": "e12bd89786fdf36dba3c626c41bf974b504025dda042cecff65151769912ec6b",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1311,6 +1334,15 @@
     "writes": "Member biography routes bind the current session. Official biography uses canonical actor, explicitly granted editorial.manage, independent version, synchronous safety and locked authority recheck. No role inferred from a name or signature.",
     "following": "Independent official/member keys. Zero initial brand-linked following rows in the read-only trial baseline; no follow intent inferred or transferred.",
     "retention": "Existing source ownership, export, hold and closure boundaries remain; official business metadata is not the operator’s personal biography. No new automatic erasure or retention promise."
+  },
+  "careAccountReview20261110": {
+    "scope": "Selected concept 3 with doctor source, mandatory new-account basic setup, no info/defer/close actions in required setup. Existing members are not backfilled.",
+    "multiSelect": "source, concerns and purchase_factors have a three-value cap; unsure/none/undisclosed are exclusive where declared; other questions single-choice.",
+    "privacy": "Data minimization; no birthdate, real doctor identity, diagnosis, third-party profiling or automatic follow-up contact. Sensitive choices have separate evidence; ordinary skip and denied collection remain distinct.",
+    "storage": "All answers encrypted using existing per-environment contact key and version; no new provider. User answer strings are absent from audit/outbox/idempotency payloads.",
+    "lifecycle": "Both owner portable export formats decrypt only this member. Existing member_optional_profile_v1 erase clears stale ciphertext while retaining a version fence; account closure deletes unheld care profiles and keeps held facts inaccessible. Backups replay existing erasure/closure markers.",
+    "retention": "No new permanent-retention or automatic-expiry promise; existing purpose and scoped privacy lifecycle apply. No production dataset was used for tests.",
+    "business": "Preference collection only. No automatic recommendation, redemption, stock reservation or unconfigured point grant."
   },
   "commerceClosureReview20261110": {
     "purpose": "用户明确要求购买、后台销售、导出并单笔或批量上传XLSX发货、用户查看物流的闭环。",

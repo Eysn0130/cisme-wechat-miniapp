@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "cd4194a0e015bd797b99520a67fc8dc706ba7367ffe6ba4ba966a004a60f3bfc",
+  "migrationSetSha256": "4ad19fdd493066c2f7ee553a838d40a778bef307ad9409e8fa021df7fbd6709b",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -326,7 +326,8 @@
         "created_at",
         "updated_at",
         "published_at",
-        "unpublished_at"
+        "unpublished_at",
+        "shopping_points_multiplier"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -788,7 +789,12 @@
         "consumed_at",
         "created_at",
         "credit_tender_cents",
-        "fulfillment_policy"
+        "fulfillment_policy",
+        "shopping_points_multiplier",
+        "points_spent",
+        "points_policy_version",
+        "points_offer_version",
+        "points_maximum"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -942,7 +948,11 @@
         "terminal_reason",
         "paid_at",
         "transaction_source_kind",
-        "fulfillment_policy"
+        "fulfillment_policy",
+        "shopping_points_multiplier",
+        "points_spent",
+        "points_policy_version",
+        "points_birthday_month"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -4825,6 +4835,94 @@
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
+      "table": "member_care_consent_event",
+      "subjectPaths": [
+        [
+          "member_care_consent_event.member_id -> member_care_profile.member_id",
+          "member_care_profile.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner-only explicit granted/declined purpose evidence. No answer snapshots, names, diagnoses or marketing consent. Export only to the verified owner; internal member/operation identifiers excluded. Scoped optional-profile erasure clears eligible evidence with the profile cutoff; account closure cascades unheld evidence.",
+      "exportFields": [
+        "id",
+        "choice",
+        "purpose",
+        "text_version",
+        "text_sha256",
+        "text_snapshot",
+        "decided_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "operation_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1_AND_ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "OWNER_SESSION_PROJECTOR_IMPLEMENTED"
+    },
+    {
+      "table": "member_care_profile",
+      "subjectPaths": [
+        [
+          "member_care_profile.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Private owner care-account questionnaire. Canonical active member owns the row; the client cannot choose member_id. All answers are AES-256-GCM encrypted with member-bound AAD. Owner exports decrypt and project allowlisted answer states/options; ciphertext, keys, required gate, erasure markers and operation identifiers never leave the service. doctor is only a self-reported source, not a medical identity, commercial relation or privilege. Scoped optional-profile erasure clears answers and consent under a version fence; independent erasure suppression replays after backup restore. A current sensitive-consent withdrawal clears sensitive answers in the live row; purpose-specific backup withdrawal replay is not implemented.",
+      "exportFields": [
+        "version",
+        "questionnaire_version",
+        "current_question",
+        "health_choice",
+        "health_text_version",
+        "health_decided_at",
+        "completed_at",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "required",
+        "latest_operation_id",
+        "answers_encrypted",
+        "key_version",
+        "erased_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1_AND_ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "OWNER_SESSION_PROJECTOR_IMPLEMENTED"
+    },
+    {
+      "table": "member_care_profile_operation",
+      "subjectPaths": [
+        [
+          "member_care_profile_operation.member_id -> member_care_profile.member_id",
+          "member_care_profile.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner-scoped request receipt for idempotency and concurrency; contains a request hash and applied version, never raw answers or response snapshots. Internal operation keys and hashes are excluded from exports. Preserve the version fence through scoped profile erasure so old retries cannot resurrect erased answers; account closure cascades unheld receipts.",
+      "exportFields": [],
+      "excludedFields": [
+        "member_id",
+        "operation_id",
+        "request_sha256",
+        "applied_version",
+        "action",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "ACCOUNT_CLOSURE_CASCADE_WITH_PROFILE; SCOPED_ERASURE_PRESERVES_VERSION_FENCE",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "OWNER_SESSION_PROJECTOR_IMPLEMENTED"
+    },
+    {
       "table": "member_contact",
       "subjectPaths": [
         [
@@ -4877,6 +4975,428 @@
       "syntheticErasureFields": [],
       "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_allocation",
+      "subjectPaths": [
+        [
+          "member_points_allocation.lot_id -> points_lot.id"
+        ],
+        [
+          "member_points_allocation.order_id -> commerce_order.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "order_id",
+        "lot_id",
+        "amount",
+        "state",
+        "returned"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_attendance",
+      "subjectPaths": [
+        [
+          "member_points_attendance.member_id -> member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [
+        "care_day",
+        "qualified_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "first_source"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_badge",
+      "subjectPaths": [
+        [
+          "member_points_badge.member_id -> member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [
+        "code",
+        "earned_at"
+      ],
+      "excludedFields": [
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_budget",
+      "subjectPaths": [
+        [
+          "member_points_budget.policy_version -> member_points_policy.version"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "policy_version",
+        "month_bucket",
+        "issued"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_checkin",
+      "subjectPaths": [
+        [
+          "member_points_checkin.member_id -> member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Private products and encrypted note; decrypt only own portable copy. Account closure deletes unheld rows, optional profile erasure clears cutoff notes. Minimal attendance, unique command and financial ledger retain anti-replay facts; never publish.",
+      "exportFields": [
+        "id",
+        "care_day",
+        "products",
+        "version",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "note_encrypted",
+        "key_version",
+        "note_qualifies",
+        "operation_id",
+        "request_sha256"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "ACCOUNT_CLOSURE_WITH_OPTIONAL_NOTE_ERASURE",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_command",
+      "subjectPaths": [
+        [
+          "member_points_command.member_id -> member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "member_id",
+        "operation_id",
+        "action",
+        "source_id",
+        "request_sha256",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_featured",
+      "subjectPaths": [
+        [
+          "member_points_featured.post_id -> ugc_post.id"
+        ],
+        [
+          "member_points_featured.selected_by -> member.id"
+        ]
+      ],
+      "actorColumns": [
+        "selected_by"
+      ],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "post_id",
+        "selected_by",
+        "selected_at",
+        "reason"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_gift_allocation",
+      "subjectPaths": [
+        [
+          "member_points_gift_allocation.lot_id -> points_lot.id"
+        ],
+        [
+          "member_points_gift_allocation.redemption_id -> member_points_redemption.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "redemption_id",
+        "lot_id",
+        "amount",
+        "returned"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_policy",
+      "subjectPaths": [
+        [
+          "member_points_policy.approved_by -> member.id"
+        ],
+        [
+          "member_points_policy.created_by -> member.id"
+        ]
+      ],
+      "actorColumns": [
+        "created_by",
+        "approved_by"
+      ],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "version",
+        "rules",
+        "monthly_budget",
+        "state",
+        "starts_at",
+        "ends_at",
+        "created_by",
+        "created_at",
+        "approved_by",
+        "approved_at",
+        "approval_evidence",
+        "retired_at",
+        "approval_source"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_profile",
+      "subjectPaths": [
+        [
+          "member_points_profile.member_id -> member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Optional birthday month/day, no year; clear on owner optional profile erasure or closure, preserve only change fence for reward anti-replay.",
+      "exportFields": [
+        "birthday_month_day",
+        "birthday_set_at",
+        "birthday_change_after",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_redemption",
+      "subjectPaths": [
+        [
+          "member_points_redemption.member_id -> member.id"
+        ],
+        [
+          "member_points_redemption.policy_version -> member_points_policy.version"
+        ],
+        [
+          "member_points_redemption.sku_id -> catalog_sku.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Gift owner, sealed recipient address and fulfillment operator have distinct roles. Decrypt address only for owner export and authorized fulfillment. Pure points orders have no WeChat payment or cash commission. Transaction retention and legal holds apply.",
+      "exportFields": [
+        "id",
+        "sku_id",
+        "quantity",
+        "points_cost",
+        "item_snapshot",
+        "state",
+        "version",
+        "carrier_name",
+        "tracking_number",
+        "policy_version",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "offer_version",
+        "encrypted_address",
+        "address_hmac",
+        "key_version",
+        "operation_id",
+        "request_sha256"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_redemption_event",
+      "subjectPaths": [
+        [
+          "member_points_redemption_event.actor_member_id -> member.id"
+        ],
+        [
+          "member_points_redemption_event.redemption_id -> member_points_redemption.id"
+        ]
+      ],
+      "actorColumns": [
+        "actor_member_id"
+      ],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [
+        "redemption_id",
+        "action",
+        "reason",
+        "occurred_at"
+      ],
+      "excludedFields": [
+        "id",
+        "operation_id",
+        "actor_member_id",
+        "request_sha256"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_referral",
+      "subjectPaths": [
+        [
+          "member_points_referral.member_id -> member.id"
+        ],
+        [
+          "member_points_referral.referrer_member_id -> member.id"
+        ],
+        [
+          "member_points_referral.share_attribution_id -> share_attribution.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "member_id",
+        "referrer_member_id",
+        "share_attribution_id",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_reward_fingerprint",
+      "subjectPaths": [
+        [
+          "member_points_reward_fingerprint.member_id -> member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "member_id",
+        "kind",
+        "fingerprint",
+        "source_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_source_event",
+      "subjectPaths": [
+        [
+          "member_points_source_event.member_id -> member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "kind",
+        "source_id",
+        "member_id",
+        "occurred_at",
+        "payload",
+        "state",
+        "attempts",
+        "next_attempt_at",
+        "last_error",
+        "processed_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_wallet_check",
+      "subjectPaths": [
+        [
+          "member_points_wallet_check.member_id -> member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Internal financial reconciliation facts; owner and audit operator remain distinct. Never raw-export other members or internal command hashes.",
+      "exportFields": [],
+      "excludedFields": [
+        "member_id",
+        "projection_version",
+        "status",
+        "detail",
+        "checked_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
@@ -5170,7 +5690,11 @@
         "debt_delta",
         "business_key",
         "occurred_at",
-        "metadata"
+        "metadata",
+        "transaction_id",
+        "reserved_delta",
+        "used_delta",
+        "expired_delta"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -5209,7 +5733,13 @@
         "created_at",
         "version",
         "available_after",
-        "expires_at"
+        "expires_at",
+        "source_type",
+        "source_id",
+        "component",
+        "rule_version",
+        "rule_snapshot",
+        "reversed_total"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -5249,7 +5779,13 @@
         "available_amount",
         "expires_at",
         "expired_amount",
-        "reversed_amount"
+        "reversed_amount",
+        "reserved_amount",
+        "used_amount",
+        "offset_amount",
+        "invalid_reserved",
+        "invalid_used",
+        "invalid_offset"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -5273,11 +5809,43 @@
         "available",
         "debt",
         "version",
-        "updated_at"
+        "updated_at",
+        "reserved"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "points_transaction",
+      "subjectPaths": [
+        [
+          "points_transaction.member_id -> member.id"
+        ],
+        [
+          "points_transaction.reverse_of -> points_transaction.id"
+        ]
+      ],
+      "actorColumns": [
+        "actor_principal_id"
+      ],
+      "specialHandling": "Owner and audit operator are separate. Financial rows retained under transaction policy and legal holds; no raw cross-member export.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "member_id",
+        "business_key",
+        "kind",
+        "reverse_of",
+        "occurred_at",
+        "actor_principal_id",
+        "rule_version",
+        "reason"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
@@ -6199,6 +6767,23 @@
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "ugc_comment_direct_publication_policy",
+      "subjectPaths": [],
+      "actorColumns": [],
+      "specialHandling": "Immutable effective policy and owner implementation decision; contains no member comments, personal rows or operator identity. Does not authorize publishing any historical pending or private material.",
+      "exportFields": [],
+      "excludedFields": [
+        "version",
+        "activated_at",
+        "decision_source",
+        "evidence"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "IMMUTABLE_CONFIGURATION_HISTORY_NO_MEMBER_CONTENT",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {

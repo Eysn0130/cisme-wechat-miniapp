@@ -1,4 +1,8 @@
 import type { CommerceCapability } from "./formalCommerceAuthorization.js";
+import {CareOnboardingService} from './careOnboarding.js';
+import {MemberPointsClub} from './memberPointsClub.js';
+import {PointsGiftService} from './pointsGifts.js';
+import {clubRulesV1} from './pointsLedger.js';
 import { operationalSignals } from './operationalSignals.js';
 import { exchangeWechatIdentity } from './wechatIdentity.js';
 import { discoverCommerceCommands } from "./commerceCommandDiscovery.js";
@@ -158,6 +162,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   const service = new PlatformService(pool, config, storage,undefined,accountClosure);
   const dailyCare = new DailyCareService(pool,accountClosure);
+  const careOnboarding = new CareOnboardingService(pool,config);
   const community = new CommunityService(pool, config);
   const authority = new AuthorityService(pool, config.env);
   const editorial = new EditorialService(pool,config,storage,authority);
@@ -177,6 +182,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const phone = new PhoneBinding(pool, config, config.env === "test" ? dependencies.phoneFetcher : undefined);
   const deliveryAddresses = new DeliveryAddressService(pool, config,
     config.privacy.suppressionDirectory?accountClosure:undefined);
+  const memberPointsClub=new MemberPointsClub(pool,config,authority);
+  const pointsGifts=new PointsGiftService(pool,authority,deliveryAddresses,config.env);
   // Formal commands require separate revocable per-capability approvals.
   const formalTestProfile=config.env==="test"&&dependencies.paymentProtocol?.isolatedSyntheticTransport===true
     ?config.commerce.formalProtocol:undefined;
@@ -359,8 +366,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return { status: "ready" };
   });
 
-  app.get("/v1/capabilities", async () => ({ version: 1, communityPreviewEnabled: community.enabled(), socialPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile,
-    pointsRedemptionEnabled: config.pointsRedemptionEnabled, ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled }));
+  app.get("/v1/capabilities", async () => {
+    const clubPolicy=await memberPointsClub.publicPolicy();
+    return { version: 1, communityPreviewEnabled: community.enabled(), socialPreviewEnabled: community.enabled(), transactionProfile: config.selectedTransactionProfile,
+    pointsRedemptionEnabled: Boolean(clubPolicy), ugcGoLiveGate: config.ugcGoLiveGate, pointsRulesEnabled: Boolean(clubPolicy)||service.pointsPolicyEnabled(), directMediaUploadEnabled: config.media.directUploadEnabled };
+  });
 
   app.get("/v1/ugc/status", async () => ({ publicEnabled: await formalUgc.publicEnabled(), draftsEnabled: true }));
   app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/community/authors/:id",
@@ -544,6 +554,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post("/v1/care-cycles", async (request) => service.planCycle(request.memberId, request.body as { qualificationFactId: string; timezone: string; protocolVersion: string }, service.now(devClock(request))));
   app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/care", async (request) => service.getCare(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
   app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/daily-care-records", request => dailyCare.list(request.memberId, request.query,service.now()));
+  app.get('/v1/me/care-profile',request=>careOnboarding.get(request.memberId));
+  app.put('/v1/me/care-profile',request=>careOnboarding.save(request.memberId,idempotencyKey(request),request.body,false));
+  app.post('/v1/me/care-profile/complete',request=>careOnboarding.save(request.memberId,idempotencyKey(request),request.body,true));
   app.post("/v1/me/daily-care-records", request => dailyCare.create(request.memberId, idempotencyKey(request), request.body, service.now()));
   app.put<{Params:{id:string}}>("/v1/me/daily-care-records/:id",request=>dailyCare.update(request.memberId,request.params.id,idempotencyKey(request),request.body,service.now()));
   app.delete<{Params:{id:string}}>("/v1/me/daily-care-records/:id",request=>dailyCare.visibility(request.memberId,request.params.id,idempotencyKey(request),request.body,'delete',service.now()));
@@ -1036,7 +1049,36 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return service.appeal(request.memberId, request.params.submissionId, idempotencyKey(request), body.reason, body.expectedVersion, service.now(devClock(request)));
   });
   app.post<{ Params: { consentGrantId: string } }>("/v1/consents/:consentGrantId/revoke", async (request) => service.revokeConsent(request.memberId, request.params.consentGrantId, idempotencyKey(request), (request.body as { reason: string }).reason, service.now(devClock(request))));
-  app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/me/points", async (request) => service.getPoints(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
+  app.get<{ Querystring: { limit?: string; cursor?: string;source?:string } }>("/v1/me/points", async (request) => service.getPoints(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}),...(request.query.source?{source:request.query.source}:{}) }));
+  app.get('/v1/me/points/club',request=>memberPointsClub.overview(request.memberId,service.now(devClock(request))));
+  app.post('/v1/me/points/checkin',request=>memberPointsClub.checkin(request.memberId,idempotencyKey(request),request.body,service.now(devClock(request))));
+  app.put('/v1/me/points/birthday',request=>memberPointsClub.birthday(request.memberId,request.body,service.now(devClock(request))));
+  app.get('/v1/me/points/gifts',request=>pointsGifts.offers(request.memberId,service.now(devClock(request))));
+  app.get<{Querystring:{cursor?:string}}>('/v1/me/points/redemptions',request=>pointsGifts.list(request.memberId,false,request.query));
+  app.get<{Querystring:{cursor?:string;state?:string}}>('/v1/management/points/redemptions',request=>pointsGifts.list(request.memberId,true,request.query));
+  app.post('/v1/me/points/redemptions',request=>pointsGifts.redeem(request.memberId,idempotencyKey(request),request.body,service.now(devClock(request))));
+  app.get<{Params:{operationId:string}}>('/v1/me/points/commands/:operationId',request=>pointsGifts.commandReceipt(request.memberId,request.params.operationId));
+  app.post<{Params:{operationId:string}}>('/v1/me/points/commands/:operationId/abandon',request=>pointsGifts.commandReceipt(request.memberId,request.params.operationId,true,service.now(devClock(request))));
+  app.post<{Params:{id:string;action:string}}>('/v1/me/points/redemptions/:id/:action',request=>{
+    if(!['cancel','receive','request_return'].includes(request.params.action))throw new DomainError('POINTS_GIFT_ACTION_INVALID','兑换操作无效',422);
+    return pointsGifts.operate(request.memberId,request.params.id,idempotencyKey(request),request.params.action,request.body,service.now(devClock(request)));
+  });
+  app.get('/v1/management/points',async request=>{
+    const view=await authority.projection(request.memberId);
+    const has=(capability:string)=>view.capabilities.includes(capability as never);
+    await authority.requireAny(request.memberId,['commerce.money.reconcile','commerce.product.manage','commerce.fulfillment.manage','community.moderate']);
+    return {reconciliation:has('commerce.money.reconcile')?(await pool.query("SELECT member_id,projection_version,status,checked_at FROM member_points_wallet_check WHERE status='mismatch' ORDER BY checked_at LIMIT 100")).rows:[],defaultRules:clubRulesV1,policies:has('commerce.money.reconcile')?await memberPointsClub.policies(request.memberId):[],
+      offers:has('commerce.product.manage')?(await pointsGifts.managementOffers(request.memberId)).items:[],
+      redemptions:has('commerce.fulfillment.manage')?(await pointsGifts.list(request.memberId,true)).items:[]};
+  });
+  app.put<{Params:{productId:string}}>('/v1/management/points/products/:productId/multiplier',request=>pointsGifts.configureMultiplier(request.memberId,request.params.productId,request.body));
+  app.post('/v1/management/points/policies',request=>memberPointsClub.proposePolicy(request.memberId,request.body,service.now(devClock(request))));
+  app.post<{Params:{version:string}}>('/v1/management/points/policies/:version/approve',request=>memberPointsClub.approvePolicy(request.memberId,request.params.version,request.body,service.now(devClock(request))));
+  app.post<{Params:{postId:string}}>('/v1/management/points/featured/:postId',request=>memberPointsClub.selectFeatured(request.memberId,request.params.postId,request.body,devClock(request)?service.now(devClock(request)):undefined));
+  app.post<{Params:{id:string;action:string}}>('/v1/management/points/redemptions/:id/:action',request=>{
+    if(!['ship','return_received'].includes(request.params.action))throw new DomainError('POINTS_GIFT_ACTION_INVALID','履约操作无效',422);
+    return pointsGifts.operate(request.memberId,request.params.id,idempotencyKey(request),request.params.action,request.body,service.now(devClock(request)));
+  });
   app.get("/v1/feed", async () => service.feed());
   app.get<{ Querystring: { limit?: string; cursor?: string } }>("/v1/feed/page", async request => service.feedPage(undefined, { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}) }));
   app.get<{ Params: { postId: string } }>("/v1/feed/:postId", async request => service.feedItem(request.params.postId));

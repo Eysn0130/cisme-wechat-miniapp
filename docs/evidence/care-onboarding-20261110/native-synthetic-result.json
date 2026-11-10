@@ -1,0 +1,145 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "synthetic": true,
+        "onboardingOpen": false,
+        "onboardingRequired": false,
+        "care": null,
+        "dailyToday": null,
+        "completed": true,
+        "version": 10,
+        "currentQuestion": 10,
+        "answers": {
+          "source": {
+            "status": "answered",
+            "values": [
+              "friend",
+              "doctor"
+            ]
+          },
+          "age_group": {
+            "status": "skipped",
+            "values": []
+          },
+          "gender": {
+            "status": "undisclosed",
+            "values": []
+          },
+          "concerns": {
+            "status": "not_authorized",
+            "values": []
+          },
+          "dye_perm": {
+            "status": "skipped",
+            "values": []
+          },
+          "shedding": {
+            "status": "not_authorized",
+            "values": []
+          },
+          "dandruff": {
+            "status": "not_authorized",
+            "values": []
+          },
+          "purchase_factors": {
+            "status": "answered",
+            "values": [
+              "feel",
+              "brand",
+              "ingredients"
+            ]
+          },
+          "buying_habit": {
+            "status": "answered",
+            "values": [
+              "trial_first"
+            ]
+          },
+          "preference": {
+            "status": "answered",
+            "values": [
+              "net_run"
+            ]
+          }
+        },
+        "healthChoice": "declined",
+        "operationCount": 9,
+        "requests": [
+          {
+            "path": "/v1/me/support/summary",
+            "method": "GET"
+          },
+          {
+            "path": "/v1/me/daily-care-records?limit=20",
+            "method": "GET"
+          },
+          {
+            "path": "/v1/bootstrap/home",
+            "method": "GET"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "GET"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile",
+            "method": "PUT"
+          },
+          {
+            "path": "/v1/me/care-profile/complete",
+            "method": "POST"
+          },
+          {
+            "path": "/v1/me/support/summary",
+            "method": "GET"
+          },
+          {
+            "path": "/v1/me/daily-care-records?limit=20",
+            "method": "GET"
+          },
+          {
+            "path": "/v1/bootstrap/home",
+            "method": "GET"
+          }
+        ]
+      }
+    }
+  }
+}

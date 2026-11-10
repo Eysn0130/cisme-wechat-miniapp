@@ -1,3 +1,4 @@
+import {pointsPortableSpecs,pointsPortableRow} from './pointsPrivacy.js';
 import { createDecipheriv } from 'node:crypto';
 import type { AppConfig } from '@cisme/config';
 import { DomainError } from '@cisme/domain';
@@ -6,6 +7,7 @@ import { DeliveryAddressService } from './deliveryAddress.js';
 import type { ObjectStorage } from './storage.js';
 import { assertOperationActive } from './operationBudget.js';
 import { wechatReceiptPortableQuery } from './privacyPortableQueries.js';
+import {careProfilePortableQuery,careProfilePortableRow} from './careOnboarding.js';
 
 const maxCopyBytes=64*1024*1024;
 type MediaRow={id:string;object_key:string;mime_type:string;size_bytes:string|null;kind:string};
@@ -35,13 +37,20 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
   const contact=(await client.query<{phone_encrypted:string;key_version:string}>(
     'SELECT phone_encrypted,key_version FROM member_contact WHERE member_id=$1',[memberId])).rows[0];
   const addressRows=await addresses.exportOwned(client,memberId);
+  const careProfile=(await client.query(careProfilePortableQuery,[memberId])).rows[0];
+  const pointsClub:Record<string,unknown>={};
+  for(const spec of pointsPortableSpecs){const rows=(await client.query(spec.sql,[memberId])).rows.map(r=>pointsPortableRow(config,addresses,spec.collection,r));pointsClub[spec.collection]=spec.single?rows[0]??null:rows;}
   const sections:Record<string,unknown>={
+    pointsClub,
     account:{id:member.id,displayName:member.display_name,createdAt:member.created_at,
       identity:(await client.query(`SELECT provider,app_id,openid,unionid,created_at FROM wechat_identity
         WHERE member_id=$1`,[memberId])).rows,
       profile:(await client.query(`SELECT wechat_handle,avatar_data_url,public_status,community_bio,community_bio_revision,completed_at,updated_at
         FROM member_profile WHERE member_id=$1`,[memberId])).rows[0]??null,
-      phone:openContact(config,memberId,contact),addresses:addressRows},
+      phone:openContact(config,memberId,contact),addresses:addressRows,
+      careProfile:careProfile?careProfilePortableRow(config,careProfile):null,
+      careProfileChoices:(await client.query(`SELECT choice,purpose,text_version,text_snapshot,decided_at
+        FROM member_care_consent_event WHERE member_id=$1 ORDER BY decided_at,id`,[memberId])).rows},
     care:{cycles:(await client.query(`SELECT id,phase,started_on,timezone,protocol_version,created_at,updated_at
         FROM care_cycle WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
       dailyRecords:(await client.query(`SELECT id,care_day,version,completed_at,updated_at,timezone,protocol_version,step_codes,self_assessment
@@ -84,9 +93,9 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
       rewards:(await client.query(`SELECT id,submission_id,amount,state,created_at FROM reward_claim
         WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
       points:(await client.query(`SELECT id,grant_id,lot_id,entry_type,frozen_delta,
-        available_delta,debt_delta,occurred_at FROM points_entry
+        available_delta,debt_delta,reserved_delta,used_delta,expired_delta,occurred_at FROM points_entry
         WHERE member_id=$1 ORDER BY occurred_at,id`,[memberId])).rows,
-      pointBalance:(await client.query(`SELECT frozen,available,debt,updated_at FROM points_projection
+      pointBalance:(await client.query(`SELECT frozen,available,debt,reserved,updated_at FROM points_projection
         WHERE member_id=$1`,[memberId])).rows[0]??null,
       consentGrants:(await client.query(`SELECT submission_id,purpose,granted_at FROM consent_grant
         WHERE member_id=$1 ORDER BY granted_at,id`,[memberId])).rows,
@@ -94,7 +103,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         FROM revocation_request r JOIN consent_grant g ON g.id=r.consent_grant_id
         WHERE g.member_id=$1 ORDER BY r.requested_at,r.id`,[memberId])).rows},
     commerce:{orders:(await client.query(`SELECT id,order_number,status,subtotal_cents,member_discount_cents,
-        shipping_cents,total_cents,credit_tender_cents,created_at,updated_at
+        shipping_cents,total_cents,credit_tender_cents,points_spent,points_policy_version,shopping_points_multiplier,created_at,updated_at
         FROM commerce_order WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
       lines:(await client.query(`SELECT l.order_id,l.line_number,l.product_name,l.sku_label,l.quantity,
         l.unit_price_cents,l.line_discount_cents,l.line_total_cents,l.credit_tender_cents

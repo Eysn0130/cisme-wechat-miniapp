@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "scope": "Current requirements and interaction contract; not a declaration of native or physical-device acceptance.",
+  "routes": [
+    {
+      "route": "pages/points/index",
+      "primaryContract": "PRD §7.9 PTS-CLUB-01–16: member-owned earn, wallet, expiry and all-catalog redemption.",
+      "acceptanceReferences": [
+        "PTS-CLUB-01",
+        "PTS-CLUB-02",
+        "PTS-CLUB-08",
+        "PTS-CLUB-09",
+        "PTS-CLUB-12",
+        "PTS-CLUB-13",
+        "PTS-CLUB-14"
+      ],
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "interruption",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events",
+        "unknown_result"
+      ],
+      "contract": [
+        "Wallet and care actions appear independently of optional address/catalog reads. Loading, missing data and request failure are separate states.",
+        "Daily product chips allow multiple selections. A pending unknown command freezes its submitted content and retries the original key and payload.",
+        "Redemption shows real product, quantity, stock, points total and chosen address before explicit confirmation. Stock/price/policy/address changes require another confirmation.",
+        "A saved unknown redemption is resolved only under the original canonical member and environment. Absence is not failure; abandoning writes a serialized server tombstone.",
+        "Hide/unload invalidates reads; account change clears private state. Ledger and redemptions have explicit loading-more and retry states.",
+        "Native scroll and safe-area footer keep actions reachable with large text and keyboard; buttons show busy/disabled state. Motion must not determine business success."
+      ]
+    },
+    {
+      "route": "pages/management-points/index",
+      "primaryContract": "PRD §7.9 PTS-CLUB-04/09/10/15: capability-scoped fulfillment, catalog promotion, rule version approval and ledger reconciliation.",
+      "acceptanceReferences": [
+        "PTS-CLUB-04",
+        "PTS-CLUB-09",
+        "PTS-CLUB-10",
+        "PTS-CLUB-15"
+      ],
+      "statesRequired": [
+        "loading",
+        "success",
+        "empty",
+        "error",
+        "offline",
+        "permission",
+        "cancel",
+        "interruption",
+        "resume",
+        "navigation",
+        "accessibility",
+        "events",
+        "unknown_result"
+      ],
+      "contract": [
+        "Show only sections supported by current server-issued capabilities; each mutation independently rechecks authority and version.",
+        "Fulfillment uses an exact redemption, expected version, real carrier/tracking facts and explicit action. Returns require an owner request and actual returned-goods confirmation.",
+        "Every normal catalog SKU derives points from its published price; no separate gift whitelist or member quota. Product promotion can be 1x or 3x with expected version and an audit reason; existing orders retain their snapshot.",
+        "A future rule is proposed with all fields and approved by another authorized member before effect. Monthly issuance is reporting/reminder only. Reconciliation exposes discrepancies without rewriting a balance.",
+        "Unknown writes require original-result verification before another action; stale/read failures retain known facts and expose retry. Hide/unload and session change invalidate ownership.",
+        "All operations remain reachable through native scrolling, safe areas and labeled controls, including large text; no UI action grants authority."
+      ]
+    }
+  ]
+}

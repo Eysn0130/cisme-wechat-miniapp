@@ -70,7 +70,10 @@ async function mount(route: string, template?: string) {
     }
   };
   pages.push(page);
-  const id = simulate.load({ template: template ?? nativePageTemplate(`apps/miniprogram/pages/${route}/index.wxml`), data: structuredClone(page.data) });
+  // This suite exercises tab snapshots with onboarding closed. The full native
+  // onboarding component is exercised by care-onboarding-native.test.ts.
+  const id = simulate.load({ template: template ?? nativePageTemplate(`apps/miniprogram/pages/${route}/index.wxml`), data: structuredClone(page.data),
+    usingComponents:{'care-onboarding':simulate.load({template:'<view></view>'})} });
   rendered = simulate.render(id);
   rendered.attach(document.body);
   components.push(rendered);
@@ -84,7 +87,7 @@ beforeEach(() => {
   const member = { id: "member-a", display_name: "合成会员", profile_revision: 1 };
   replies = new Map<string, any>([
     ["/v1/bootstrap/home", { member, care: null, businessVersion: 1 }],
-    ["/v1/bootstrap/profile", { member, points: { projection: { available: 20 } }, care: null, businessVersion: 1 }],
+    ["/v1/bootstrap/profile", { member, points: { projection: { available: 20, frozen: 0, debt: 0, reserved: 0, version: 1 } }, care: null, businessVersion: 1 }],
     ["/v1/me/care", null], ["/v1/me/daily-care-records?limit=20", dailyPage()],
     ["/v1/me/tasks", [task]], ["/v1/me/support/summary", { unreadCount: 2 }],
     ["/v1/me/commercial-membership", { eligible: true, membershipState: "active", verifiedOrderCount: 1, commission: { netEarnedCents: 0 } }],
@@ -92,7 +95,9 @@ beforeEach(() => {
     ["/v1/feed/page?limit=30", { items: [], authors: {} }], ["/v1/ugc/posts?limit=30", { items: [], nextCursor: null }],
     ["/v1/editorial/articles?limit=20", { items: [story], nextCursor: null }], ["/v1/me/community-access", { canReview: false }]
   ]);
-  replies.set("/v1/me/points", { projection: { available: 20, frozen: 0, debt: 0 }, entries: [], rulesEnabled: false });
+  replies.set("/v1/me/points?limit=20&source=all", { projection: { available: 20, frozen: 0, debt: 0,reserved:0,version:1 }, entries: [], rulesEnabled: true,nextCursor:null,totalCount:0,lifetimeEarned:20,used:0,expired:0,expiring:{points:0,earliestAt:null,withinDays:30},clubPolicy:null });
+  replies.set('/v1/me/points/club',{memberId:authorId,enabled:false,policy:null,serverDay:'2026-11-10',checkedIn:false,streak:0,today:null,badges:[],pendingRewardSources:0,birthday:null,questionnaireCompleted:false});
+  replies.set('/v1/me/points/gifts',{enabled:false,items:[]});replies.set('/v1/me/points/redemptions',{items:[],nextCursor:null});replies.set('/v1/me/addresses',{addresses:[]});
   replies.set("/v1/tasks/synthetic-task", { ...task, reward_enabled: false });
   replies.set("/v1/submissions/synthetic-submission", { id: "synthetic-submission", status: "rejected", media: [], version: 1, review: { reason_summary: "合成审核说明" } });
   replies.set("/v1/catalog?limit=20", { items: [product], nextCursor: null });
@@ -225,10 +230,10 @@ describe("native tab return presentation while real read paths revalidate", () =
     expect(rendered.dom.textContent).not.toContain("正在查看活动");
     page.openManagement(); expect(wxMock.navigateTo).not.toHaveBeenCalled();
     samples.length = 0;
-    held.get("/v1/bootstrap/profile")!.resolve({ ...replies.get("/v1/bootstrap/profile"), points: { projection: { available: 35 } }, businessVersion: 2 });
+    held.get("/v1/bootstrap/profile")!.resolve({ ...replies.get("/v1/bootstrap/profile"), points: { projection: { available: 35, frozen: 0, debt: 0, reserved: 0, version: 1 } }, businessVersion: 2 });
     await flush();
     expect(samples.join("\n")).not.toMatch(/尚无护理周期|正在读取日常护理记录/);
-    expect(card.textContent).toContain("35");
+    expect(rendered.querySelector(".profile-points-entry").dom.textContent).toContain("35");
     held.get("/v1/me/daily-care-records?limit=20")!.resolve(dailyPage([]));
     held.get("/v1/me/tasks")!.resolve([]);
     held.get("/v1/me/commercial-membership")!.resolve({ eligible: false, membershipState: "none", verifiedOrderCount: 0, commission: { netEarnedCents: 0 } });
@@ -323,7 +328,7 @@ describe("native tab return presentation while real read paths revalidate", () =
   });
 
   it.each([
-    ["points", "/v1/me/points", ".points-hero", {}],
+    ["points", "/v1/me/points?limit=20&source=all", ".points-hero", {}],
     ["shop", "/v1/catalog?limit=20", ".shop-hero", {}],
     ["product", "/v1/catalog/synthetic-product", ".product-gallery", { id: "synthetic-product" }],
     ["community-author", `/v1/community/authors/${authorId}?limit=20`, ".author-head", { authorId, editorialSource: true }],
@@ -332,6 +337,7 @@ describe("native tab return presentation while real read paths revalidate", () =
   ])("keeps %s content mounted on return while its actual read remains pending", async (route, path, selector, initial) => {
     const { page, rendered } = await mount(route as string); page.setData(initial);
     if (route === "community-author") page.lastSessionToken = m.token;
+    if(route==='points'){page.visible=true;page.token=m.token;page.context=m.revision;}
     await page.load(); await flush();
     const card = rendered.querySelector(selector).dom, text = card.textContent;
     const pending = later(); held.set(path as string, pending);

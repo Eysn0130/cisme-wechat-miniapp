@@ -1,1 +1,1 @@
-{"navigationBarTitleText":"护理","disableScroll":true}
+{"navigationBarTitleText":"护理","disableScroll":true,"usingComponents":{"care-onboarding":"/components/care-onboarding/index"}}

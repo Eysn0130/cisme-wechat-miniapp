@@ -19,7 +19,7 @@ const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve()
 let page: any;
 const member = { id: "a", display_name: "合成会员", profile_revision: 1, avatar_data_url: "synthetic-avatar", avatar_revision: "synthetic-revision" };
 const care = { id: "cycle-a", version: 1, phase: "planned", startedOn: null, timezone: "Asia/Shanghai", completed: [], records: [], due: null, next: "D1", scheduleOffsetDays: 0 };
-const snapshot = { member, care, points: { projection: { available: 12 } }, businessVersion: 100 };
+const snapshot = { member, care, points: { projection: { available: 12, frozen: 0, debt: 0, reserved: 0, version: 1 } }, businessVersion: 100 };
 let support: ReturnType<typeof deferred>, commercial: ReturnType<typeof deferred>, authority: ReturnType<typeof deferred>, avatar: ReturnType<typeof deferred>;
 async function loadPage(name: "home" | "profile") {
   if (name === "home") await import("../../apps/miniprogram/pages/home/index");
@@ -178,7 +178,8 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     const view=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
     expect(view).toContain('<block wx:if="{{member && points}}">');
     expect(view).toContain('<view wx:if="{{hasCareCycle}}" class="care-progress">');
-    expect(view).toMatch(/可用积分<\/small><\/view><block wx:if="\{\{hasCareCycle\}\}">/);
+    expect(view).toContain('class="profile-points-entry');
+    expect(view).toContain('{{points.projection.available}}');
     page.openRecords();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/records/index"}));
   });
   it.each([

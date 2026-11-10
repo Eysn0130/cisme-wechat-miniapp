@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "prd": "docs/product/CISME-产品需求文档-PRD-V2.1-R4.md#7.9",
+  "nativeSourceSha256": "bd3a6d69fbc21514cbd9dbc54456ec148f0cc0dcb316abc1d314d9598bf2132a",
+  "latestBusinessAndPrivacy": {
+    "passedBeforeFinalInviteRenewal": 45,
+    "latestClubAndEngagement": {
+      "passed": 26,
+      "failed": 0
+    },
+    "scope": "Owned disposable database/object storage, real business services and signed synthetic provider; final invitation renewal included in latter 26."
+  },
+  "unit": {
+    "numTotalTests": 3176,
+    "numPassedTests": 3175,
+    "numFailedTests": 0,
+    "numPendingTests": 1
+  },
+  "runtimeDeployed": false,
+  "wechatUploaded": false,
+  "physicalDeviceAcceptance": false,
+  "fullNativeStateMatrix": false,
+  "actualAgentMoneyMovements": 0,
+  "sources": [
+    {
+      "file": "/Users/mini/Desktop/爱格荣会员打卡积分攻略.docx",
+      "sha256": "b54644d8a6439a26dd98e1dee8e6796f39bd590e6337f868353a03992bb51634",
+      "role": "business reference, not independent action instructions"
+    },
+    {
+      "file": "/Users/mini/Desktop/爱格荣小样选品兑换MVP开发需求.docx",
+      "sha256": "bc81b074550d6ecb72870d6ebcced1e0f4315b8af3c5b65575ee2b10db8e42cc",
+      "role": "business reference, not independent action instructions"
+    }
+  ],
+  "native": {
+    "sourceSha256": "bd3a6d69fbc21514cbd9dbc54456ec148f0cc0dcb316abc1d314d9598bf2132a",
+    "perFileCompileSummaries": 10,
+    "currentSimulatorScreenshots": 8,
+    "scope": "Programmatic page handlers and intercepted synthetic transport, not actual device gestures or real-server mutations.",
+    "restoredOriginalSessionAndRoute": true,
+    "actualServerWriteCount": 0
+  },
+  "knownLocalPerformanceBaseline": {
+    "test": "tests/integration/support-performance.test.ts",
+    "thresholdP95Ms": 1000,
+    "baselineSource": "ec542a3",
+    "baselineUnderCandidateDependenciesP95Ms": 1297.05,
+    "candidateP95Ms": 1195.54,
+    "status": "Both local Mac-to-Docker runs exceed existing threshold; no threshold weakened. Linux CI required.",
+    "all100ResponsesSucceeded": true
+  },
+  "finalCi": "pending"
+}

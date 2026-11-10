@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "selectedOption": 3,
+  "userConfirmed": "完成基础建档后进入护理",
+  "approvedRevisions": [
+    "增加医生推荐",
+    "来源可多选，最多3项",
+    "移除信息用途说明链接",
+    "移除稍后再填",
+    "首次基础建档没有关闭入口",
+    "个人情况可跳过，拒绝可选授权仍可完成基础建档"
+  ],
+  "image": {
+    "file": "03-care-booklet-approved-v2.png",
+    "origin": "/Users/mini/.codex/generated_images/01a1c605-3d9b-73b2-88a5-38036e637359/exec-606c9a97-e8de-4b3e-a335-01cd0da95d83.png",
+    "prompt": "Edit this revised CISME native WeChat miniprogram onboarding UI exactly. The user has now explicitly confirmed that new members must complete basic account setup before entering care. Remove ONLY the top-right circular close/X control from the dialog and make the underlying photographic header continuous in that small area. Preserve EVERYTHING else: exact overall 390x844 mobile content aspect ratio, brand photograph and CISME wordmark, 创建护理档案, 1/10, question 你是怎么知道爱格荣的？, supporting sentence, 可多选，最多3项, eight source options with friends and 医生推荐 both selected in this fictional example, and 下一题. Keep no footer links, no 信息用途说明 and no 稍后再填. Do not add a back/defer/close control, medical claims, phone bezel, status bar, annotation, labels or new UI. The form still permits skipping optional personal data at later questions, and still requires separate optional sensitive-data consent later; do not render those later steps here. One faithful edited image only.",
+    "scope": "AI visual direction. The two checked choices are illustrative, never a default or actual member fact. Not native runtime evidence.",
+    "sha256": "89a4946715a6a1bbcbe4a0c9993de46e4e4f6e57e718f2ec88e9fcdba34f5956",
+    "bytes": 1626722
+  },
+  "nativeEvidence": "../../evidence/care-onboarding-20261110/README.md",
+  "sourceManifest": "source-manifest.json",
+  "sourceManifestScope": "Historical first-round three options and report; preserved unchanged. Latest user choices supersede defer/close/link treatments there.",
+  "nativePackageSourceSha256": "36410bdc187c560c361c820c917e64c3909b275549aab1d9d4c0ff2c36aa63a7"
+}

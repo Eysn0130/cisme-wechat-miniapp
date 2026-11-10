@@ -7,6 +7,7 @@ export interface CatalogSku {
   stockOnHand: number; reservedQuantity?: number; availableQuantity: number; inventoryVersion: number; inStock: boolean; purchaseEnabled: boolean; active: boolean; version: number;
 }
 export interface CatalogProduct {
+  shoppingPointsMultiplier?:number;
   id: string; productId: string; code: string; name: string; subtitle: string; description: string;
   image: string | null; sourceKind: "admin" | "legacy_preview" | "synthetic_test";
   qualificationStatus: QualificationStatus; publicationStatus: PublicationStatus; version: number;

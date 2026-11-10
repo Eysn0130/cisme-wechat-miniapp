@@ -48,10 +48,23 @@ class TrialBackupTests(unittest.TestCase):
 
     def test_production_object_and_suppression_paths_are_refused(self):
         for key, value in (('PRIVACY_SUPPRESSION_DIR', '/var/lib/cisme/privacy-suppression'),
-                           ('OBJECT_STORAGE_DRIVER', 'cos_gateway'), ('APP_ENV', 'production'),
-                           ('UGC_GO_LIVE_GATE', 'true')):
+                           ('OBJECT_STORAGE_DRIVER', 'cos_gateway'), ('APP_ENV', 'production')):
             with self.assertRaises(m.Refused):
                 m.pg_environment({**self.config(), key: value})
+
+    def test_live_features_do_not_disable_the_same_isolated_read_only_backup(self):
+        live = {**self.config(), **{key: 'true' for key in (
+            'COMMERCE_ORDER_FLOW_ENABLED', 'COMMERCE_FULFILLMENT_ENABLED',
+            'POINTS_REDEMPTION_ENABLED', 'POINTS_RULES_ENABLED',
+            'UGC_GO_LIVE_GATE', 'COS_DIRECT_UPLOAD_ENABLED')}}
+        env = m.pg_environment(live)
+        self.assertEqual((env['PGDATABASE'], env['PGUSER']), ('cisme_trial', 'cisme_trial'))
+        self.assertEqual(env['PGOPTIONS'], '-c default_transaction_read_only=on')
+        with self.assertRaisesRegex(m.Refused, 'SIMULATED_PAYMENTS_REFUSED'):
+            m.pg_environment({**live, 'COMMERCE_SIMULATED_PAYMENT_ENABLED': 'true'})
+        for invalid in ('', '1', 'yes', 'FALSE'):
+            with self.assertRaisesRegex(m.Refused, 'CAPABILITY_FLAG_INVALID'):
+                m.pg_environment({**live, 'UGC_GO_LIVE_GATE': invalid})
 
     def test_database_role_cannot_have_production_target_or_privileges(self):
         facts = {'database': 'cisme_trial', 'role': 'cisme_trial', 'owner': 'cisme_trial',

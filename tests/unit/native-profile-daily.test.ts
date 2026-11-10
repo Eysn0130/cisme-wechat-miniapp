@@ -12,7 +12,7 @@ let page:any, identity:typeof import("../../apps/miniprogram/services/member-ide
 beforeEach(async()=>{
  vi.resetModules();vi.clearAllMocks();m.token="actor-a";care=null;member={id:"actor-a",display_name:"规范昵称",profile_revision:2,avatar_data_url:"synthetic",avatar_revision:"avatar-2"};avatar=later();m.avatar.mockReturnValue(avatar.promise);readDaily=()=>dailyPage();
  m.request.mockImplementation(async(o:any)=>{
-  if(o.path==="/v1/bootstrap/profile")return {member,points:{projection:{available:0}},care,businessVersion:2};
+  if(o.path==="/v1/bootstrap/profile")return {member,points:{projection: { available: 0, frozen: 0, debt: 0, reserved: 0, version: 1 }},care,businessVersion:2};
   if(o.path.startsWith("/v1/me/daily-care-records"))return readDaily();
   if(o.path==="/v1/me/commercial-membership")return {eligible:false,membershipState:"none",verifiedOrderCount:0,commission:{netEarnedCents:0}};
   if(o.path==="/v1/me/support/summary")return {unreadCount:0};

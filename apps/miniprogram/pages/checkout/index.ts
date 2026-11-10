@@ -39,6 +39,7 @@ Page({
   mounted: false,
   visible: false,
   data: {
+    pointsInput:0,
     chromeStyle: currentChromeStyle(), productCode: "", requestedSkuId: "", quantity: 1, product: null as CatalogProduct | null,
     selectedSku: null as CatalogSku | null, addresses: [] as CheckoutAddress[], selectedAddressId: "", runtimeEnabled: false,
     formalPayment:false,isolatedPayment:false,creditEnabled:false,creditAvailableCents:0,creditAvailableYuan:"0.00",
@@ -139,6 +140,7 @@ Page({
         selected && quoteAddress &&
         selected.id === this.data.quote.item.skuId &&
         effectiveQuantity === this.data.quote.quantity &&
+        (this.data.quote.pointsSpent??0)===this.data.pointsInput &&
         (this.data.quote.creditTenderCents===0||credit!==null)&&
         this.data.quote.creditTenderCents===(this.data.creditInput?creditCents(this.data.creditInput):0) &&
         quoteAddress.version === this.data.quote.addressVersion &&
@@ -171,7 +173,7 @@ Page({
   },
   invalidateQuote(patch: WechatMiniprogram.IAnyObject = {}, preserveError = false) {
     this.stopCountdown();
-    this.setData({ ...invalidateCheckoutQuote(this.data, patch, preserveError), quoteExpired: false });
+    this.setData({ ...invalidateCheckoutQuote(this.data, {pointsInput:0,...patch}, preserveError), quoteExpired: false });
   },
   checkoutBlocked() { return this.data.busy || this.data.loading || this.data.navigating || Boolean(this.data.syncError); },
   async retryLoad() {
@@ -225,7 +227,7 @@ Page({
     this.setData({ busy: true, error: "", quoteKey });
     try {
       const quote = await createCheckoutQuote({ skuId: sku.id, quantity: this.data.quantity,
-        addressId: address.id, addressVersion: address.version,...(credit?{creditCents:credit}:{}) }, quoteKey);
+        addressId: address.id, addressVersion: address.version,...(credit?{creditCents:credit}:{}),...(this.data.pointsInput?{points:this.data.pointsInput}:{}) }, quoteKey);
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const quoteClock = createQuoteClock(quote.expiresAt, quote.serverTime);
       this.setData({
@@ -246,6 +248,8 @@ Page({
     this.setData({ error: "请确认最新费用后再提交订单。" });
     void this.requestQuote();
   },
+  applyPoints(){if(this.checkoutBlocked()||!this.data.quote)return;const points=this.data.quote.pointsSpent?0:(this.data.quote.pointsMaximum??0);
+    if(points===0&&!this.data.quote.pointsSpent)return;this.invalidateQuote({pointsInput:points});void this.requestQuote();},
   async confirmOrder() {
     const quote = this.data.quote;
     if (this.checkoutBlocked() || !quote) return;

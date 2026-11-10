@@ -9,9 +9,11 @@ import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
 import { receiptView } from './wechatReceipt.js';
 import { releaseReservedCreditForCheckout, reserveCreditForCheckout } from "./shoppingCredit.js";
+import {quoteMemberPoints,reserveMemberPoints,settleOrderPoints} from './pointsLedger.js';
 
 type OrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 type QuoteRow = {
+  shopping_points_multiplier:number;points_spent:number;points_policy_version:string|null;points_offer_version:number|null;points_maximum:number;
   fulfillment_policy: ReturnType<typeof launchFulfillmentPolicy>|null;
   id: string; member_id: string; product_id: string; sku_id: string; address_id: string; address_version: number;
   quantity: number; currency: "CNY"; unit_price_cents: number; subtotal_cents: string; member_discount_cents: string;
@@ -21,12 +23,13 @@ type QuoteRow = {
   expires_at: Date; consumed_at: Date | null; created_at: Date;
 };
 type CatalogCheckoutRow = {
-  product_id: string; product_code: string; product_name: string; product_image: string | null; source_kind: string;
+  shopping_points_multiplier:number;product_id: string; product_code: string; product_name: string; product_image: string | null; source_kind: string;
   qualification_status: string; publication_status: string; product_version: number; sku_id: string; sku_code: string;
   sku_label: string; sku_active: boolean; sku_version: number; currency: "CNY"; amount_cents: number; price_version: number;
   stock_on_hand: number; reserved_quantity: number; inventory_version: number;
 };
 type OrderRow = {
+  shopping_points_multiplier:number;points_spent:number;points_policy_version:string|null;
   fulfillment_policy: ReturnType<typeof launchFulfillmentPolicy>|null;
   id: string; order_number: string; member_id: string; source_quote_id: string; status: OrderStatus; currency: "CNY";
   subtotal_cents: string; member_discount_cents: string; shipping_cents: string; total_cents: string;
@@ -130,6 +133,9 @@ export class CommerceOrderService {
 
   private requireFormalRefundableQuote(quote:QuoteRow):void {
     if(!this.options.formalPayment)return;
+    if(quote.pricing_rule_version==='member-points-discount-v1'&&quote.points_spent>0&&quote.points_policy_version&&
+      money(quote.member_discount_cents)>0&&money(quote.shipping_cents)===0&&money(quote.credit_tender_cents)===0&&
+      money(quote.subtotal_cents)-money(quote.member_discount_cents)===money(quote.total_cents))return;
     if(quote.pricing_rule_version!=="launch-base-price-free-shipping-v1"||
       money(quote.member_discount_cents)!==0||money(quote.shipping_cents)!==0||
       money(quote.credit_tender_cents)!==0||money(quote.subtotal_cents)!==money(quote.total_cents))
@@ -139,7 +145,7 @@ export class CommerceOrderService {
   private async catalogRow(client: DbClient, skuId: string, lockInventory: boolean, requireSellable = true): Promise<CatalogCheckoutRow> {
     const suffix = lockInventory ? " FOR UPDATE OF i" : " FOR SHARE OF p,s,pr,i";
     const result = await client.query<CatalogCheckoutRow>(`SELECT p.id product_id,p.code product_code,p.name product_name,p.image_path product_image,p.source_kind,
-      p.qualification_status,p.publication_status,p.version product_version,s.id sku_id,s.code sku_code,s.label sku_label,
+      p.shopping_points_multiplier,p.qualification_status,p.publication_status,p.version product_version,s.id sku_id,s.code sku_code,s.label sku_label,
       s.active sku_active,s.version sku_version,pr.currency,pr.amount_cents,pr.version price_version,
       i.stock_on_hand,i.reserved_quantity,i.version inventory_version
       FROM catalog_product p JOIN catalog_sku s ON s.product_id=p.id JOIN catalog_price pr ON pr.sku_id=s.id
@@ -160,6 +166,7 @@ export class CommerceOrderService {
       subtotalCents: money(row.subtotal_cents), memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents),
       totalCents: money(row.total_cents),creditTenderCents:money(row.credit_tender_cents),
       cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
+      shoppingPointsMultiplier:row.shopping_points_multiplier,pointsSpent:row.points_spent??0,pointsPolicyVersion:row.points_policy_version,pointsMaximum:row.points_maximum??0,
       fulfillmentPolicy: row.fulfillment_policy??null, pricingRuleVersion: row.pricing_rule_version, addressId: row.address_id,
       addressVersion: row.address_version, expiresAt: row.expires_at.toISOString(), serverTime: new Date().toISOString(), paymentAvailable: this.status().paymentAvailable,
       item: { productId: item.product_id, productCode: item.product_code, productName: item.product_name, image: item.product_image,
@@ -168,13 +175,15 @@ export class CommerceOrderService {
 
   async quote(memberId: string | undefined, principalId: string | undefined, keyInput: string, input: Record<string, unknown>, now = new Date()) {
     this.requireEnabled(); const owner = member(memberId); const actor = principal(principalId); const idempotencyKey = key(keyInput);
-    supportedCheckoutFields(input,["skuId","quantity","addressId","addressVersion","creditCents"]);
+    supportedCheckoutFields(input,["skuId","quantity","addressId","addressVersion","creditCents","points"]);
+    const requestedPoints=input.points===undefined?0:integer(input.points,'POINTS_AMOUNT_INVALID',0,2147483647);
     const creditCents=input.creditCents===undefined?0:integer(input.creditCents,"CREDIT_AMOUNT_INVALID",0,MAX_TOTAL_CENTS);
     if(creditCents&&!this.options.isolatedCreditCheckout)
       throw new DomainError("SHOPPING_CREDIT_LIVE_DISABLED","购物权益下单仅供隔离合成测试",503);
     const normalized = { skuId: uuid(input.skuId, "SKU_ID_INVALID"), quantity: integer(input.quantity, "ORDER_QUANTITY_INVALID", 1, 99),
       addressId: uuid(input.addressId, "DELIVERY_ADDRESS_NOT_FOUND"), addressVersion: version(input.addressVersion),
-      creditCents };
+      creditCents,...(requestedPoints?{points:requestedPoints}:{}) };
+    if(creditCents&&requestedPoints)throw new DomainError('POINTS_CREDIT_COMBINATION_UNSUPPORTED','本次请单独选择积分抵扣或购物权益',422);
     const requestHash = hash(normalized);
     return transaction(this.pool, async client => {
       await requireActiveMemberWithClient(client,owner);
@@ -197,18 +206,22 @@ export class CommerceOrderService {
         throw new DomainError("CREDIT_CASH_COMPONENT_REQUIRED","隔离测试订单至少保留一分渠道现金支付",422);
       // Launch freight is owner-approved as zero. Sales/payment remain gated;
       // no member discount or carrier reachability is inferred from this policy.
-      const pricingRuleVersion = this.options.formalPayment?"launch-base-price-free-shipping-v1":"r4b-synthetic-base-price-v1";
+      const pointsQuote=await quoteMemberPoints(client,owner,item.sku_id,subtotal,requestedPoints,now);
+      const pricingRuleVersion = requestedPoints?'member-points-discount-v1':this.options.formalPayment?"launch-base-price-free-shipping-v1":"r4b-synthetic-base-price-v1";
+      const total=subtotal-pointsQuote.discount;
       const expiresAt = new Date(now.getTime() + this.options.quoteTtlMinutes * 60_000);
       const inserted = await client.query<QuoteRow>(`INSERT INTO commerce_checkout_quote(member_id,product_id,sku_id,address_id,address_version,quantity,currency,
         unit_price_cents,subtotal_cents,member_discount_cents,shipping_cents,total_cents,credit_tender_cents,
         pricing_rule_version,product_version,sku_version,price_version,
-        idempotency_key,request_hash,expires_at,created_at,fulfillment_policy) VALUES($1,$2,$3,$4,$5,$6,'CNY',$7,$8,0,0,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+        idempotency_key,request_hash,expires_at,created_at,fulfillment_policy,points_spent,points_policy_version,points_offer_version,points_maximum,shopping_points_multiplier)
+        VALUES($1,$2,$3,$4,$5,$6,'CNY',$7,$8,$19,0,$20,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$21,$22,$23,$24,$25) RETURNING *`,
         [owner,item.product_id,item.sku_id,normalized.addressId,normalized.addressVersion,normalized.quantity,item.amount_cents,subtotal,
-          creditCents,pricingRuleVersion,item.product_version,item.sku_version,item.price_version,idempotencyKey,requestHash,expiresAt,now,fulfillmentPolicy]);
+          creditCents,pricingRuleVersion,item.product_version,item.sku_version,item.price_version,idempotencyKey,requestHash,expiresAt,now,fulfillmentPolicy,
+          pointsQuote.discount,total,requestedPoints,pointsQuote.policyVersion,pointsQuote.offerVersion,pointsQuote.maximum,item.shopping_points_multiplier]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
         VALUES($1,'commerce.quote.create','commerce_checkout_quote',$2,$3,gen_random_uuid()::text)`, [actor, inserted.rows[0]!.id,
         { skuId: item.sku_id, quantity: normalized.quantity, totalCents: subtotal, expiresAt: expiresAt.toISOString() }]);
-      return this.quoteView(inserted.rows[0]!, item);
+      return {...this.quoteView(inserted.rows[0]!, item),pointsMaximum:pointsQuote.maximum,pointsEnabled:pointsQuote.enabled};
     }, "SERIALIZABLE");
   }
 
@@ -224,6 +237,7 @@ export class CommerceOrderService {
     return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
+      shoppingPointsMultiplier:row.shopping_points_multiplier,pointsSpent:row.points_spent??0,
       fulfillmentPolicy: row.fulfillment_policy??null, pricingRuleVersion: row.pricing_rule_version, version: row.version, expiresAt: row.expires_at.toISOString(),
       cancelledAt: row.cancelled_at?.toISOString() ?? null, expiredAt: row.expired_at?.toISOString() ?? null,
       terminalReason: row.terminal_reason, createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(), paymentAvailable: this.status().paymentAvailable,
@@ -308,6 +322,10 @@ export class CommerceOrderService {
         throw new DomainError("QUOTE_EXPIRED", "结算报价已过期，请重新获取", 409);
       }
       this.requireFormalRefundableQuote(quote);
+      if(quote.points_spent){
+        const offer=(await client.query('SELECT version FROM catalog_price WHERE sku_id=$1 FOR SHARE',[quote.sku_id])).rows[0];
+        if(!offer||offer.version!==quote.points_offer_version)throw new DomainError('POINTS_OFFER_CHANGED','商品价格已有更新，请重新确认',409);
+      }
       const item = await this.catalogRow(client, quote.sku_id, true);
       if (item.product_id !== quote.product_id || item.product_version !== quote.product_version || item.sku_version !== quote.sku_version ||
           item.price_version !== quote.price_version || item.amount_cents !== quote.unit_price_cents) {
@@ -321,15 +339,18 @@ export class CommerceOrderService {
       this.options.formalPayment?.authorize();
       const paymentBinding=this.options.simulatedPayment??this.options.formalTestPayment??this.options.formalPayment;
       const transactionSource=paymentBinding?"verified_commerce":"synthetic_nonproduction";
+      const birthday=(await client.query<{month:number}>(`SELECT substring(birthday_month_day,1,2)::int AS month FROM member_points_profile
+        WHERE member_id=$1 AND birthday_month_day IS NOT NULL AND birthday_set_at<=$2`,[owner,now])).rows[0]?.month??null;
       const creditCents=money(quote.credit_tender_cents),cashPayable=money(quote.total_cents)-creditCents;
       if(creditCents&&(!this.options.isolatedCreditCheckout||!paymentBinding||cashPayable<1))
         throw new DomainError("SHOPPING_CREDIT_LIVE_DISABLED","购物权益支付组成仅供隔离合成测试",503);
       const order = (await client.query<OrderRow>(`INSERT INTO commerce_order(id,order_number,member_id,source_quote_id,status,currency,subtotal_cents,
         member_discount_cents,shipping_cents,total_cents,credit_tender_cents,pricing_rule_version,
-        expires_at,created_at,updated_at,transaction_source_kind,fulfillment_policy)
-        VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$13,$13,$14,$15) RETURNING *`,
+        expires_at,created_at,updated_at,transaction_source_kind,fulfillment_policy,points_spent,points_policy_version,points_birthday_month,shopping_points_multiplier)
+        VALUES($1,$2,$3,$4,'pending_payment',$5,$6,$7,$8,$9,$10,$11,$12,$13,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
         [orderId,number,owner,quote.id,quote.currency,quote.subtotal_cents,quote.member_discount_cents,
-          quote.shipping_cents,quote.total_cents,creditCents,quote.pricing_rule_version,expiresAt,now,transactionSource,quote.fulfillment_policy])).rows[0]!;
+          quote.shipping_cents,quote.total_cents,creditCents,quote.pricing_rule_version,expiresAt,now,transactionSource,quote.fulfillment_policy,quote.points_spent,quote.points_policy_version,birthday,quote.shopping_points_multiplier])).rows[0]!;
+      if(quote.points_spent)await reserveMemberPoints(client,owner,orderId,quote.points_spent,now);
       if(creditCents)await reserveCreditForCheckout(client,owner,orderId,creditCents);
       if(paymentBinding){
         const identity=(await client.query<{openid:string}>(`SELECT openid FROM wechat_identity
@@ -368,6 +389,7 @@ export class CommerceOrderService {
   }
 
   private async release(client: DbClient, orderId: string, reason: string, now: Date, actor: string): Promise<void> {
+    await settleOrderPoints(client,orderId,'release',now);
     const credit=(await client.query<{credit_tender_cents:string}>(
       "SELECT credit_tender_cents FROM commerce_order WHERE id=$1",[orderId])).rows[0];
     if(credit&&money(credit.credit_tender_cents)>0)
@@ -472,6 +494,7 @@ export async function expirePendingOrders(pool: pg.Pool, now = new Date(), limit
       AND transaction_source_kind='synthetic_nonproduction' AND expires_at<=$1
       ORDER BY expires_at,id LIMIT $2 FOR UPDATE SKIP LOCKED`,[now,limit]);
     for(const order of orders.rows){
+      await settleOrderPoints(client,order.id,'release',now);
       const reservations=await client.query<{id:string;sku_id:string;quantity:number}>("SELECT id,sku_id,quantity FROM commerce_inventory_reservation WHERE order_id=$1 AND status='active' FOR UPDATE",[order.id]);
       for(const reservation of reservations.rows){
         const inventory=await client.query<{reserved_quantity:number}>("SELECT reserved_quantity FROM catalog_inventory_level WHERE sku_id=$1 FOR UPDATE",[reservation.sku_id]);
