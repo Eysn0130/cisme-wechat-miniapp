@@ -90,10 +90,15 @@ def pg_environment(config):
     require(match and config.get('APP_ENV') == 'staging'
             and config.get('PRIVACY_SUPPRESSION_DIR') == '/opt/cisme-trial/privacy-suppression'
             and config.get('OBJECT_STORAGE_DRIVER') == 'api_gateway', 'TRIAL_BACKUP_RUNTIME_REQUIRED')
-    for name in ('COMMERCE_ORDER_FLOW_ENABLED', 'COMMERCE_SIMULATED_PAYMENT_ENABLED',
-                 'COMMERCE_FULFILLMENT_ENABLED', 'POINTS_REDEMPTION_ENABLED',
+    # Backing up the fixed isolated database does not authorize any business
+    # command. Owner-approved live commerce/community must keep their backups.
+    # Target, dedicated read-only role, independent key and fixed COS prefix
+    # remain the authority boundary; simulated payments remain prohibited.
+    require(config.get('COMMERCE_SIMULATED_PAYMENT_ENABLED') == 'false',
+            'TRIAL_BACKUP_SIMULATED_PAYMENTS_REFUSED')
+    for name in ('COMMERCE_ORDER_FLOW_ENABLED', 'COMMERCE_FULFILLMENT_ENABLED', 'POINTS_REDEMPTION_ENABLED',
                  'POINTS_RULES_ENABLED', 'UGC_GO_LIVE_GATE', 'COS_DIRECT_UPLOAD_ENABLED'):
-        require(config.get(name) == 'false', 'TRIAL_BACKUP_CLOSED_CAPABILITIES_REQUIRED')
+        require(config.get(name) in ('true', 'false'), 'TRIAL_BACKUP_CAPABILITY_FLAG_INVALID')
     return {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'PGHOST': '127.0.0.1',
             'PGPORT': '5432', 'PGUSER': ROLE, 'PGDATABASE': DATABASE,
             'PGPASSWORD': match[1], 'PGCONNECT_TIMEOUT': '5',
