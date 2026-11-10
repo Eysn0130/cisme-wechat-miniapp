@@ -17,7 +17,7 @@
     "numPendingTests": 1
   },
   "runtimeDeployed": true,
-  "wechatUploaded": false,
+  "wechatUploaded": true,
   "physicalDeviceAcceptance": false,
   "fullNativeStateMatrix": false,
   "actualAgentMoneyMovements": 0,
@@ -46,6 +46,13 @@
       "writes": 0,
       "uiAndSessionPreserved": true,
       "evidence": "native-authenticated-reads.json"
+    },
+    "officialUploadCompilation": {
+      "totalBytes": 4144174,
+      "mainBytes": 1291315,
+      "pointsBytes": 51075,
+      "managementPointsBytes": 20730,
+      "sourceHashUnchanged": true
     }
   },
   "knownLocalPerformanceBaseline": {
@@ -69,7 +76,7 @@
   },
   "runtimeEnvironment": "isolated-trial",
   "runtimeSourceHead": "f1ff02927d7d7ed445ff933808e9c0726c9339e9",
-  "wechatUploadState": "awaiting explicit owner instruction for version 0.1.32",
+  "wechatUploadState": "success",
   "realMemberTestWrites": 0,
   "financialBackfill": false,
   "productionRuntimeChanged": false,
@@ -92,5 +99,7 @@
     "Current-source iOS/Android physical-device validation and full route-state matrix",
     "Formal environment cutover requires real production catalogue/inventory and verified canonical administrator; never copy trial member assets or duplicate the same physical inventory",
     "Independent trial offsite backup credential /etc/cisme-trial-backup/cos.json, backup key and scheduled backup not provisioned; same-host snapshot is not full recovery qualification"
-  ]
+  ],
+  "wechatVersion": "0.1.32",
+  "wechatUploadEvidence": "delivery-0.1.32.json"
 }
