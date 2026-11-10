@@ -23,11 +23,18 @@ M=importlib.util.module_from_spec(spec);spec.loader.exec_module(M)
 PROFILE={'root':'/opt/cisme-trial','user':'cisme-trial','database':'cisme_trial','domain':'staging-api.cisme.cn',
  'units':('cisme-trial-api.service','cisme-trial-worker.service'),'lock':'/run/lock/cisme-production-trial.lock','name':'trial'}
 
+# Historical deployment guards retain their approved dependency bytes.
+# Today's dependency additions must not rewrite those immutable allowlists.
+def fixture_source(name):
+    base=REPO/'infra/tencent/fixtures/approved-dependencies-before-commerce-20261110' if str(name) in ('package.json','package-lock.json') else REPO
+    return (base/name).read_bytes()
+
+
 def fixtures():
     sql=sorted(p.name for p in (REPO/'db/migrations').glob('*.sql') if p.name<M.MIGRATION)
     assert len(sql)==99
     files={name:('synthetic:'+name).encode() for name in ('index.js','worker.js','worker-once.js')}
-    files.update({'package.json':(REPO/'package.json').read_bytes(),'package-lock.json':(REPO/'package-lock.json').read_bytes(),
+    files.update({'package.json':fixture_source('package.json'),'package-lock.json':fixture_source('package-lock.json'),
                   'migrate.mjs':(REPO/'scripts/release-migrate.mjs').read_bytes()})
     files.update({'db/migrations/'+name:(REPO/'db/migrations'/name).read_bytes() for name in sql})
     manifest={'schemaVersion':1,'sourceHead':M.BASELINE_HEAD,'sourceTree':M.BASELINE_TREE,'sourceLockSha256':M.SOURCE_LOCK,

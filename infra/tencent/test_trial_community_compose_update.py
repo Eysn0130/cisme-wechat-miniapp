@@ -25,10 +25,17 @@ PROFILE = {'name': 'trial', 'root': str(M.ROOT), 'units': ('cisme-trial-api.serv
 RUNNER = M.RUNNERS / ('1' * 12) / 'trial-community-compose-update.py'
 
 
+# Historical deployment guards retain their approved dependency bytes.
+# Today's dependency additions must not rewrite those immutable allowlists.
+def fixture_source(name):
+    base=REPO/'infra/tencent/fixtures/approved-dependencies-before-commerce-20261110' if str(name) in ('package.json','package-lock.json') else REPO
+    return (base/name).read_bytes()
+
+
 def fixtures():
     names = sorted(p.name for p in (REPO / 'db/migrations').glob('*.sql') if p.name <= '202610310001_support_ai_human_collaboration.sql')
     assert len(names) == 104 and names[-1] == '202610310001_support_ai_human_collaboration.sql'
-    files = {name: (REPO / path).read_bytes() for name, path in [('migrate.mjs', 'scripts/release-migrate.mjs'),
+    files = {name: fixture_source(path) for name, path in [('migrate.mjs', 'scripts/release-migrate.mjs'),
         ('package.json', 'package.json'), ('package-lock.json', 'package-lock.json')]}
     files.update({'db/migrations/' + name: (REPO / 'db/migrations' / name).read_bytes() for name in names})
     old = {'directory': str(M.ROOT / 'releases' / ('tencent-release-' + M.BASELINE_HEAD[:12])), 'files': files,
@@ -368,7 +375,7 @@ class ArtifactTests(unittest.TestCase):
         command = Mock(return_value=json.dumps({'verified': True, 'sourceHead': b['sourceHead'], 'sourceTree': b['sourceTree'], 'migrations': 105}).encode())
         def run(value):
             with patch.object(M, 'candidate_ci'), patch.object(M, 'response', side_effect=[json.dumps(commit).encode(), json.dumps(value).encode()]), patch.object(M, 'read', return_value=helper), \
-                 patch.object(M, 'D', types.SimpleNamespace(command=command)), patch.object(M, 'source_bytes', side_effect=lambda p, head: (REPO / p).read_bytes()):
+                 patch.object(M, 'D', types.SimpleNamespace(command=command)), patch.object(M, 'source_bytes', side_effect=lambda p, head: fixture_source(p)):
                 M.source_permit(b, candidate)
         run(tree); command.assert_called_once_with([M.NODE, candidate['directory'] + '/migrate.mjs', 'verify']); command.reset_mock()
         for change in ('truncated', 'missing', 'sql', 'symlink'):

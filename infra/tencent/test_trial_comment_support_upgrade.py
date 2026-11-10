@@ -17,10 +17,17 @@ M = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(M)
 
 
+# Historical deployment guards retain their approved dependency bytes.
+# Today's dependency additions must not rewrite those immutable allowlists.
+def fixture_source(name):
+    base=REPO/'infra/tencent/fixtures/approved-dependencies-before-commerce-20261110' if str(name) in ('package.json','package-lock.json') else REPO
+    return (base/name).read_bytes()
+
+
 def fixtures():
     names = sorted(path.name for path in (REPO / 'db/migrations').glob('*.sql') if path.name < M.MIGRATIONS[0])
     assert len(names) == 101
-    files = {name: (REPO / source).read_bytes() for name, source in (
+    files = {name: fixture_source(source) for name, source in (
         ('migrate.mjs', 'scripts/release-migrate.mjs'), ('package.json', 'package.json'), ('package-lock.json', 'package-lock.json'))}
     files.update({'db/migrations/' + name: (REPO / 'db/migrations' / name).read_bytes() for name in names})
     old = {'directory': '/synthetic/old', 'files': files, 'dependenciesSha256': M.DEPENDENCIES,
@@ -86,7 +93,7 @@ class SourceTests(unittest.TestCase):
         return json.dumps(value).encode()
 
     def test_real331169_byte_lock_file_and_git_blob_parse_with_narrow_large_limit(self):
-        raw = (REPO / 'package-lock.json').read_bytes()
+        raw = fixture_source('package-lock.json')
         self.assertEqual(len(raw), 331169)
         with patch.object(M, 'response', return_value=self.source('package-lock.json', raw)) as request:
             self.assertEqual(M.source_bytes('package-lock.json', '1' * 40), raw)
