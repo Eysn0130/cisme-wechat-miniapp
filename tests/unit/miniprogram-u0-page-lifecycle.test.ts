@@ -82,8 +82,8 @@ describe("U0 native page lifecycle regressions", () => {
     expect(page.load).not.toHaveBeenCalled();
     requestMock.mockResolvedValueOnce({ version: 1, managementAvailable: true, capabilities: ["support.read", "support.reply"] });
     await page.retry();
-    expect(requestMock).toHaveBeenCalledTimes(2);
-    expect(requestMock.mock.calls.every(([options]) => options.path === "/v1/me/authority")).toBe(true);
+    expect(requestMock.mock.calls.filter(([options]) => options.path === "/v1/me/authority")).toHaveLength(2);
+    expect(requestMock.mock.calls.every(([options]) => ["/v1/me/authority", "/v1/me/profile"].includes(options.path))).toBe(true);
     expect(page.load).toHaveBeenCalledOnce();
     expect(page.data).toMatchObject({ loading: false, visible: true, canReply: true, error: "" });
   });

@@ -27,11 +27,11 @@
         </view>
       </view>
       <view wx:else id="operator-{{item.sequence}}" class="operator-message operator-message--{{item.senderType}} {{item.groupStart ? 'operator-message--group-start' : 'operator-message--grouped'}}">
-        <view wx:if="{{item.senderType !== 'admin'}}" class="operator-avatar-slot">
-          <view wx:if="{{item.groupStart}}" class="operator-avatar operator-avatar--{{item.avatarKind}}"><image src="{{item.senderType === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : '/assets/icons/user-circle-plum.svg'}}" mode="aspectFit"/></view>
+        <view class="operator-avatar-slot">
+          <view wx:if="{{item.groupStart}}" class="operator-avatar operator-avatar--{{item.avatarKind}} {{item.senderType === 'ai' || item.avatarPath !== '/assets/icons/user-circle-plum.svg' ? 'operator-avatar--photo' : ''}}"><image src="{{item.senderType === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : item.avatarPath}}" mode="aspectFill" data-key="{{item.sender.key}}" binderror="onAvatarError" aria-label="{{item.senderLabel}}的头像"/></view>
         </view>
         <view class="operator-message__content">
-          <text wx:if="{{item.groupStart && item.senderType !== 'admin'}}" class="operator-message__sender">{{item.senderLabel}}</text>
+          <text wx:if="{{item.groupStart}}" class="operator-message__sender">{{item.senderLabel}}</text>
           <text wx:if="{{item.replyReferenceLabel}}" class="operator-reply-reference">{{item.replyReferenceLabel}}</text>
           <button wx:if="{{item.senderType === 'user' && canReply && assignedToMe && conversation.status === 'human_active'}}" class="operator-bubble operator-bubble--question {{replyTarget && replyTarget.id === item.id ? 'operator-bubble--selected' : ''}} {{busy || sendAttempt ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="selectReplyTarget" aria-label="{{replyTarget && replyTarget.id === item.id ? '当前回复的问题：' : '选择回复这个问题：'}}{{item.body || '图片或订单咨询'}}" disabled="{{busy || sendAttempt}}">{{item.body || '图片或订单咨询'}}</button>
           <view wx:elif="{{item.body}}" class="operator-bubble">{{item.body}}</view>
@@ -52,6 +52,7 @@
     </block>
 
     <view wx:if="{{pendingMessage}}" class="operator-message operator-message--admin operator-message--pending">
+      <view class="operator-avatar-slot"><view class="operator-avatar {{ownAvatar !== '/assets/icons/user-circle-plum.svg' ? 'operator-avatar--photo' : ''}}"><image src="{{ownAvatar}}" mode="aspectFill" binderror="onAvatarError" aria-label="你的头像"/></view></view>
       <view class="operator-message__content">
         <view class="operator-bubble">{{pendingMessage.body}}</view>
         <view class="operator-message__meta operator-message__meta--{{pendingMessage.deliveryLabel === '发送失败' ? 'failed' : 'pending'}}">
@@ -62,7 +63,7 @@
     </view>
 
     <view wx:if="{{presence.memberTyping}}" class="operator-typing" aria-live="polite">
-      <view class="operator-avatar operator-avatar--member"><image src="/assets/icons/user-circle-plum.svg"/></view>
+      <view class="operator-avatar operator-avatar--member {{memberAvatar !== '/assets/icons/user-circle-plum.svg' ? 'operator-avatar--photo' : ''}}"><image src="{{memberAvatar}}" mode="aspectFill" data-key="{{identityMemberKey}}" binderror="onAvatarError"/></view>
       <view class="operator-typing__body"><view class="operator-typing__dots"><view class="operator-typing__dot"></view><view class="operator-typing__dot operator-typing__dot--two"></view><view class="operator-typing__dot operator-typing__dot--three"></view></view><text class="operator-typing__copy">{{memberDisplayName}}正在输入…</text></view>
     </view>
     <view wx:if="{{error}}" class="operator-error" aria-live="assertive"><text>{{error}}</text><button bindtap="retry">刷新</button></view>

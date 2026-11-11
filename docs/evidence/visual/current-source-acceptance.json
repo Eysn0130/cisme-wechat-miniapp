@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "c6491331943c475c8f98b0f2b77fbed10649c2cd65f43169bb7a613e30a2d893",
+  "packageSourceSha256": "e57cc6ea67fdb5b2c86dbd3d1c0820547281ec21aa91b8e9663487fc2ea7b12a",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Checkout points are an explicit opt-in, buyer copy is concise, shipping/returns disclose full order snapshots, and text actions have no border. Scoped current-source evidence: docs/evidence/commerce-polish-20261111. All-route and physical-device matrices remain blocked; original screenshots retain their source hashes.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-0417ae2f3e0d.json",
+  "note": "Support participant identity and AI current-care/catalog changes. Scoped native synthetic checks are in docs/evidence/support-identity-ai-20261111. All 41 routes and physical-device acceptance remain blocked; old screenshots retain their actual source scope.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-c6491331943c.json",
   "pendingSourceRebind": false
 }

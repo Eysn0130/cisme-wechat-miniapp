@@ -160,8 +160,10 @@
 }
 
 .operator-message--admin {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
 }
+.operator-message--admin .operator-avatar-slot { margin-right: 0; margin-left: 12rpx; width: 68rpx; }
+.operator-avatar.operator-avatar--photo image { width: 100%; height: 100%; }
 
 .operator-avatar-slot {
   flex: none;

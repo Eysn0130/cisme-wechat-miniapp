@@ -15,10 +15,14 @@ const ok = (value: unknown = output, finish = "stop") => new Response(JSON.strin
 describe("DeepSeek customer support integration", () => {
   it("versions the current care entry and published human hours without inventing consent or immediate staffing", () => {
     expect(knowledge).toHaveLength(3);
-    expect(knowledge.every(source => source.version === "2026-10-31-collaboration-1")).toBe(true);
+    expect(knowledge.every(source => source.version === "2026-11-11-care-catalog-1")).toBe(true);
     const care = knowledge.find(source => source.id === "cisme.care-guide")!;
-    expect(care.content).toContain("在护理首页完成当前四步护理流程，填写护理后自我感受并点击保存");
-    expect(care.content).toContain("护理记录页只用于回看，不能在那里填写或保存感受");
+    expect(care.content).toContain("可多选今天实际用过的净润洗发水、净屑洗发水、护理精华");
+    expect(care.content).toContain("普通日护理感受选填");
+    expect(care.content).toContain("当天从‘调整今日记录’修改原记录，不重复领取已发积分");
+    expect(care.content).toContain("仅当真实周期到期时");
+    expect(care.content).toContain("今日记录胶囊右侧‘详情’进入护理记录");
+    expect(care.content).toContain("已弃用的‘周期与四步历史’入口不可用");
     const policy = knowledge.find(source => source.id === "cisme.support-policy")!;
     expect(policy.content).toContain("只有用户在客服会话明确点击申请人工后，会话才进入等待人工队列");
     expect(policy.content).toContain("每日北京时间 09:00–22:00，其他时间可以留言");
@@ -68,7 +72,7 @@ describe("DeepSeek customer support integration", () => {
       system = JSON.parse(String(init?.body)).messages[0].content; return ok();
     });
     await provider.suggest({ conversation: projection, knowledge });
-    for (const instruction of ["通常30–100字、1–3句话", "护理四步时可用4个短项", "每轮最多1个澄清问题", "0–1个emoji", "不无故重复欢迎或自我介绍", "用户问身份时如实说明是AI", "不自称人工", "不声称已查询、已办理", "困难时只提示用户点击“申请人工”", "由用户主动决定", "不代表已转人工"])
+    for (const instruction of ["通常30–100字、1–3句话", "护理四步时可用4个短项", "每轮最多1个澄清问题", "0–1个emoji", "不无故重复欢迎或自我介绍", "用户问身份时如实说明是AI", "不自称人工", "不声称已查询个人订单、已办理", "困难时只提示用户点击“申请人工”", "由用户主动决定", "不代表已转人工"])
       expect(system).toContain(instruction);
     expect(system).not.toContain("500个汉字");
   });

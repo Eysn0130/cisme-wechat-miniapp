@@ -32,8 +32,8 @@
         </view>
       </view>
       <view wx:else id="support-{{item.sequence}}" class="support-message support-message--{{item.senderType}} {{item.groupStart ? 'support-message--group-start' : 'support-message--grouped'}}">
-        <view wx:if="{{item.senderType !== 'user'}}" class="support-avatar-slot">
-          <view wx:if="{{item.groupStart}}" class="support-avatar support-avatar--{{item.avatarKind}}"><image src="{{item.avatarKind === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : '/assets/icons/chat-circle-plum.svg'}}" mode="aspectFit"/></view>
+        <view class="support-avatar-slot">
+          <view wx:if="{{item.groupStart}}" class="support-avatar support-avatar--{{item.avatarKind}} {{item.avatarKind === 'ai' || item.avatarPath !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{item.avatarKind === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : item.avatarPath}}" mode="aspectFill" data-key="{{item.sender.key}}" binderror="onAvatarError" aria-label="{{item.senderLabel}}的头像"/></view>
         </view>
         <view class="support-message__content">
           <text wx:if="{{item.groupStart && item.senderType !== 'user'}}" class="support-message__sender">{{item.senderLabel}}</text>
@@ -56,6 +56,7 @@
     </block>
 
     <view wx:if="{{pendingMessage}}" class="support-message support-message--user support-message--pending">
+      <view class="support-avatar-slot"><view class="support-avatar {{ownAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{ownAvatar}}" mode="aspectFill" binderror="onAvatarError" aria-label="你的头像"/></view></view>
       <view class="support-message__content">
         <view wx:if="{{pendingMessage.body}}" class="support-bubble">{{pendingMessage.body}}</view>
         <view wx:if="{{pendingMessage.attachments.length}}" class="support-media-grid"><view class="support-media"><image src="{{pendingMessage.attachments[0].localPath}}" mode="aspectFill"/></view></view>
@@ -65,7 +66,7 @@
     </view>
 
     <view wx:if="{{aiReplyWaiting || presence.operatorTyping}}" id="support-ai-wait" class="support-typing {{aiReplyWaiting ? 'support-typing--ai' : ''}}" aria-live="polite">
-      <view class="support-avatar support-avatar--{{aiReplyWaiting ? 'ai' : 'human'}}"><image src="{{aiReplyWaiting ? '/assets/cisme/cisme-ai-avatar-v1.png' : '/assets/icons/chat-circle-plum.svg'}}" mode="aspectFit" aria-hidden="true"/></view>
+      <view class="support-avatar support-avatar--{{aiReplyWaiting ? 'ai' : 'human'}} {{aiReplyWaiting || agentAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{aiReplyWaiting ? '/assets/cisme/cisme-ai-avatar-v1.png' : agentAvatar}}" mode="aspectFill" data-key="{{identityAgentKey}}" binderror="onAvatarError" aria-hidden="true"/></view>
       <view class="support-typing__body"><view class="support-typing__dots" aria-hidden="true"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{aiReplyWaiting ? '正在思考…' : presence.agentDisplayName + '正在输入…'}}</text></view>
     </view>
     <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重试</button><button wx:elif="{{errorAction === 'handoff'}}" class="{{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="retryHandoff" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}">{{handoffFailed ? '重试申请' : '申请人工'}}</button></view>
