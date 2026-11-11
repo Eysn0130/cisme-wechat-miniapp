@@ -1,0 +1,71 @@
+{
+  "nativeSourceSha256": "927263bd6c718e70c0f0fc3fd1f9de980c3b1ddc13ccc5a527be3d1a59bc994e",
+  "scope": "Official native simulator; synthetic transport; no real server pass-through.",
+  "compile": [
+    {
+      "file": "pages/profile/index.wxml",
+      "success": true,
+      "codeLength": 40085
+    },
+    {
+      "file": "pages/profile/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20928
+    }
+  ],
+  "start": {
+    "originalRoute": "pages/home/index",
+    "originalHadSession": true,
+    "allRequestsIntercepted": true,
+    "mutationsBlocked": true
+  },
+  "cardSize": {
+    "success": true,
+    "width": 362,
+    "height": 185
+  },
+  "cardLabel": "会员卡，CISME 会员，可用积分 850 分，查看积分明细与兑换",
+  "longPress": {
+    "route": "pages/profile/index",
+    "active": false,
+    "hapticAttempts": 1,
+    "points": {
+      "available": 850,
+      "frozen": 30,
+      "debt": 0,
+      "reserved": 20,
+      "version": 1
+    }
+  },
+  "sheenReplay": {
+    "active": true
+  },
+  "tapDestination": {
+    "success": true,
+    "currentPage": {
+      "pageId": 257,
+      "path": "pages/points/index",
+      "query": {}
+    }
+  },
+  "recordsDestination": {
+    "success": true,
+    "currentPage": {
+      "pageId": 258,
+      "path": "pages/records/index",
+      "query": {}
+    }
+  },
+  "finish": {
+    "active": false,
+    "originalRoute": "pages/home/index",
+    "requestCount": 15,
+    "writeAttempts": 0,
+    "actualServerWrites": 0
+  }
+}

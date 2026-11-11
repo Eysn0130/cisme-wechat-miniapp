@@ -7,40 +7,44 @@
   display: block;
   width: 100%;
   margin: 22rpx 0 0;
-  padding: 24px;
+  padding: 20px;
   overflow: hidden;
   border: 1px solid rgba(238, 220, 249, .7);
-  border-radius: 24px;
+  border-radius: 16px;
   color: #fbf6ff;
   background: radial-gradient(ellipse at 96% 0, rgba(206, 181, 229, .28), transparent 55%), linear-gradient(125deg, #665077, #4b355b 58%, #37273f);
-  box-shadow: 0 16px 32px rgba(53, 34, 64, .15), inset 0 1px 0 rgba(255, 255, 255, .22);
   text-align: left;
   line-height: 1.5;
   transition: opacity var(--cisme-motion-press);
 }
 .member-card__contour {
   position: absolute;
-  top: -114px;
-  right: -100px;
-  width: 300px;
-  height: 300px;
-  border: 1px solid rgba(237, 221, 250, .12);
+  top: -145px;
+  right: -96px;
+  width: 240px;
+  height: 240px;
+  border: 1px solid rgba(237, 221, 250, .09);
   border-radius: 50%;
   pointer-events: none;
 }
-.member-card__head, .member-card__body, .member-card__footer { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.member-card__head, .member-card__body, .member-card__footer { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .member-card__head { flex-wrap: wrap; }
-.member-card__brand { font: 25px/1.2 Georgia, serif; letter-spacing: 5px; }
-.member-card__identity { color: #f2e7f9; font-size: .8125rem; line-height: 1.5; }
-.member-card__body { align-items: flex-end; flex-wrap: wrap; margin-top: 30px; }
+.member-card__brand { font: 23px/1.2 Georgia, serif; letter-spacing: 4px; }
+.member-card__identity { color: #fbf6ff; font-size: .8125rem; line-height: 1.5; }
+.member-card__body { align-items: flex-end; flex-wrap: wrap; margin-top: 14px; }
 .member-card__points { flex: 1 1 144px; min-width: 0; max-width: 100%; }
-.member-card__label { display: block; color: #e2d3eb; font-size: .75rem; }
-.member-card__balance { display: block; margin-top: 5px; color: #fff; font: 2.75rem/1.15 Georgia, serif; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; white-space: normal; }
+.member-card__label { display: block; color: #f0e7f5; font-size: .75rem; }
+.member-card__balance { display: block; margin-top: 3px; color: #fff; font: 2.375rem/1.1 Georgia, serif; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; white-space: normal; }
 .member-card__balance.pass-stat__value--compact { font-size: 2rem; }
-.member-card__entry { display: flex; align-items: center; gap: 4px; padding-bottom: 6px; color: #f5eafb; font-size: .75rem; }
+.member-card__entry { display: flex; align-items: center; gap: 4px; padding-bottom: 4px; color: #f5eafb; font-size: .75rem; }
 .member-card__entry image { flex: none; width: 16px; height: 16px; }
-.member-card__footer { align-items: flex-start; flex-wrap: wrap; margin-top: 22px; padding-top: 13px; border-top: 1px solid rgba(237, 221, 250, .2); color: #dfd0e7; font-size: .6875rem; line-height: 1.6; }
-.member-card__notice { position: relative; display: block; margin-top: 10px; color: #f5dce8; font-size: .75rem; line-height: 1.6; }
-.member-card--pressed { opacity: .88; }
+.member-card__footer { align-items: flex-start; flex-wrap: wrap; margin-top: 12px; padding-top: 9px; border-top: 1px solid rgba(237, 221, 250, .2); color: #dfd0e7; font-size: .6875rem; line-height: 1.5; }
+.member-card__notice { position: relative; z-index: 2; display: block; margin-top: 10px; color: #f5dce8; font-size: .75rem; line-height: 1.6; }
+.member-card--pressed { opacity: .94; }
 @media (max-width: 340px) { .member-card { padding: 20px; } }
 @media (prefers-reduced-motion: reduce) { .member-card { transition: none; } }
+
+.member-card__glint { position: absolute; z-index: 1; top: -50%; left: -45%; width: 45%; height: 220%; opacity: 0; pointer-events: none; background: linear-gradient(90deg,transparent,rgba(249,240,255,.04) 30%,rgba(249,240,255,.12) 52%,rgba(249,240,255,.04) 72%,transparent); }
+.member-card__glint--active { animation: member-card-sheen 640ms cubic-bezier(.45,0,.2,1) both; }
+@keyframes member-card-sheen { 0% { opacity: 0; transform: translate3d(0,0,0) skewX(-18deg); } 15% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; transform: translate3d(340%,0,0) skewX(-18deg); } }
+@media (prefers-reduced-motion: reduce) { .member-card__glint, .member-card__glint--active { display: none; animation: none; } }
