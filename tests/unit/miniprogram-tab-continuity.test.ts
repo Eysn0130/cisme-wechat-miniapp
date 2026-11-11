@@ -38,6 +38,8 @@ const dailyPage = (items: any[] = [dailyRecord]) => ({
   items, loadedCount: items.length, hasMore: false, nextCursor: null, serverDay: "2026-11-03",
   today: items.find(row => row.careDay === "2026-11-03") ?? null, totalCount: items.length
 });
+const usageRecord = {id:"product-use-a",careDay:"2026-11-03",products:["essence"],note:"使用精华后的合成护理感受",version:1,completedAt:"2026-11-03T10:00:00Z",updatedAt:"2026-11-03T10:00:00Z"};
+const usagePage = (items:any[]=[usageRecord]) => ({items,totalCount:items.length,nextBefore:null,serverDay:"2026-11-03",streak:items.length?1:0});
 const task = { id: "synthetic-task", name: "合成邀请", claimable: true };
 const story = { id: "22222222-2222-4222-8222-222222222222", title: "合成护理故事", author: "合成作者", authorId: "author-a", coverUrl: null, avatar: "", likeCount: 0, saveCount: 0, publishedAt: "2026-11-03T10:00:00Z" };
 const authorId = "33333333-3333-4333-8333-333333333333";
@@ -91,6 +93,7 @@ beforeEach(() => {
     ["/v1/me/care", null], ["/v1/me/daily-care-records?limit=20", dailyPage()],
     ["/v1/me/points/club", {serverDay:"2026-11-03",enabled:true,streak:1,today:{id:"usage-a",products:["essence"],note:"",version:1}}],
     ["/v1/me/care-usage-records?limit=20", {items:[],totalCount:0,nextBefore:null}],
+    ["/v1/me/care-usage-calendar?from=2026-10-28&through=2026-11-03",{from:"2026-10-28",through:"2026-11-03",serverDay:"2026-11-03",recordedDays:["2026-11-03"]}],
     ["/v1/me/tasks", [task]], ["/v1/me/support/summary", { unreadCount: 2 }],
     ["/v1/me/commercial-membership", { eligible: true, membershipState: "active", verifiedOrderCount: 1, commission: { netEarnedCents: 0 } }],
     ["/v1/capabilities", { communityPreviewEnabled: false }], ["/v1/ugc/status", { publicEnabled: false, draftsEnabled: false }],
@@ -305,31 +308,34 @@ describe("native tab return presentation while real read paths revalidate", () =
     expect(rendered.dom.textContent).toContain("还没有精选内容");
   });
 
-  it("retains the Records count and list during refresh and replaces them with new confirmed facts", async () => {
-    const { page, rendered } = await mount("records"); await page.load(); await flush(); page.toggleLegacy(); await flush();
-    const row = rendered.querySelector(".record-row").dom;
-    const daily = later(); held.set("/v1/me/daily-care-records?limit=20", daily);
+  it("retains the product count and row while refreshing without reviving retired history", async () => {
+    replies.set("/v1/me/care-usage-records?limit=20", usagePage());
+    const { page, rendered } = await mount("records"); await page.load(); await flush();
+    const row = rendered.querySelector(".usage-entry").dom;
+    const usage = later(); held.set("/v1/me/care-usage-records?limit=20", usage);
     page.onHide(); page.onShow(); await flush();
-    expect(rendered.querySelector(".record-row").dom).toBe(row);
-    expect(rendered.querySelector(".records-summary").dom.textContent).toBe("四步护理已记录 1 天");
-    expect(rendered.dom.textContent).not.toMatch(/正在加载日常/);
-    daily.resolve(dailyPage([])); await flush();
-    expect(rendered.querySelector(".records-summary").dom.textContent).toBe("四步护理已记录 0 天");
-    expect(rendered.dom.textContent).toContain("还没有护理记录");
+    expect(rendered.querySelector(".usage-entry").dom).toBe(row);
+    expect(page.data.usageTotal).toBe(1);
+    expect(rendered.dom.textContent).not.toContain("周期与四步历史");
+    expect(rendered.querySelector(".cycle-controls")).toBeFalsy();
+    expect(rendered.querySelector(".review-week")).toBeFalsy();
+    usage.resolve(usagePage([])); await flush();
+    expect(page.data.usageTotal).toBe(0);
+    expect(rendered.dom.textContent).toContain("这一天还没有护理记录");
   });
 
-  it("retains a confirmed empty Records card while rechecking instead of replacing it with a loading list", async () => {
-    replies.set("/v1/me/daily-care-records?limit=20", dailyPage([]));
-    const { page, rendered } = await mount("records"); await page.load(); await flush(); page.toggleLegacy(); await flush();
-    const empty = rendered.querySelector(".records-empty").dom;
-    const daily = later(); held.set("/v1/me/daily-care-records?limit=20", daily);
+  it("retains a confirmed empty product view while rechecking", async () => {
+    replies.set("/v1/me/care-usage-records?limit=20", usagePage([]));
+    const { page, rendered } = await mount("records"); await page.load(); await flush();
+    const empty = rendered.querySelector(".usage-empty").dom;
+    const usage = later(); held.set("/v1/me/care-usage-records?limit=20", usage);
     page.onHide(); page.onShow(); await flush();
-    expect(rendered.querySelector(".records-empty").dom).toBe(empty);
-    expect(rendered.querySelector(".record-list--recent")).toBeFalsy();
-    expect(rendered.dom.textContent).not.toContain("正在加载日常");
-    daily.resolve(dailyPage()); await flush();
-    expect(rendered.querySelector(".records-empty")).toBeFalsy();
-    expect(rendered.querySelector(".record-row")).toBeTruthy();
+    expect(rendered.querySelector(".usage-empty").dom).toBe(empty);
+    expect(rendered.querySelector(".usage-entry")).toBeFalsy();
+    expect(rendered.dom.textContent).not.toContain("正在读取护理记录");
+    usage.resolve(usagePage()); await flush();
+    expect(rendered.querySelector(".usage-empty")).toBeFalsy();
+    expect(rendered.querySelector(".usage-entry")).toBeTruthy();
   });
 
   it.each([
@@ -445,14 +451,17 @@ describe("native tab return presentation while real read paths revalidate", () =
     pending.resolve({ items: [], nextCursor: null }); await flush();
   });
 
-  it("keeps the selected empty care-day row in place while revalidating its coverage", async () => {
-    const { page, rendered } = await mount("records"); await page.load(); await flush(); page.toggleLegacy(); await flush();
-    page.selectCalendarDay({ currentTarget: { dataset: { day: "2026-11-02" } } });
-    const empty = rendered.querySelector(".review-calendar-empty").dom;
-    const pending = later(); held.set("/v1/me/daily-care-records?limit=20", pending);
+  it("retains the selected product date across revalidation", async () => {
+    replies.set("/v1/me/care-usage-records?limit=20",usagePage());
+    replies.set("/v1/me/care-usage-records?limit=20&day=2026-11-02",usagePage([]));
+    const { page, rendered } = await mount("records"); await page.load(); await flush();
+    await page.chooseUsageDay("2026-11-02"); await flush();
+    expect(rendered.querySelector(".usage-empty")).toBeTruthy();
+    const pending = later(); held.set("/v1/me/care-usage-records?limit=20", pending);
     page.onHide(); page.onShow(); await flush();
-    expect(page.data).toMatchObject({ calendarSelectedDay: "2026-11-02", calendarStale: true, dailyLoading: true });
-    expect(rendered.querySelector(".review-calendar-empty").dom).toBe(empty);
-    pending.resolve(dailyPage()); await flush();
+    expect(page.data.usageSelectedDay).toBe("2026-11-02");
+    pending.resolve(usagePage()); await flush();
+    expect(page.data).toMatchObject({usageSelectedDay:"2026-11-02",usageDateLoading:false,usageVisibleRows:[]});
+    expect(rendered.querySelector(".usage-empty")).toBeTruthy();
   });
 });

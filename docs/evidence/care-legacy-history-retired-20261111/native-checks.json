@@ -1,0 +1,19 @@
+{
+  "synthetic": true,
+  "realWrites": 0,
+  "requestWrites": 0,
+  "originalSessionRestorable": true,
+  "oldCycleFactsStillPresent": [
+    "00",
+    "01",
+    "02",
+    "03"
+  ],
+  "checks": [
+    "retired entry, content and cycle management absent with old facts present",
+    "current product record remains available",
+    "current product note and source rewards detail works",
+    "empty product date remains accurate"
+  ],
+  "physicalDevice": false
+}

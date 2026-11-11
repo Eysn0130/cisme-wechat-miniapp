@@ -1,0 +1,29 @@
+{
+  "packageSourceSha256": "0417ae2f3e0de03198c97277f8b313b5570b87aaba8cb346b4ed6cdbbf8a1dde",
+  "width": 390,
+  "physicalDevice": false,
+  "allRequestsIntercepted": true,
+  "realMemberTestWrites": 0,
+  "screenshots": [
+    {
+      "path": "docs/evidence/care-legacy-history-retired-20261111/empty-date.png",
+      "sha256": "77aecc83bc461125ac4eee57e8f19742da127926724b297c5e98ed8700ec71f7"
+    },
+    {
+      "path": "docs/evidence/care-legacy-history-retired-20261111/product-detail.png",
+      "sha256": "0226cb331292d890a58c3a2c1a166fa2b251d3c0c6e5335c710476297f7cd387"
+    },
+    {
+      "path": "docs/evidence/care-legacy-history-retired-20261111/records-current.png",
+      "sha256": "7a23d5ddfc9d7e87dd6e49698f2e6a7e0ff6004fc16a7b200c478a6112af6ba9"
+    }
+  ],
+  "unitPassed": 3218,
+  "unitSkipped": 1,
+  "typecheck": true,
+  "contracts": 317,
+  "events": 32,
+  "wxmlCompile": true,
+  "wxssCompile": true,
+  "fullNativeMatrix": "blocked"
+}

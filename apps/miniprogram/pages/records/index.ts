@@ -248,7 +248,7 @@ Page({
     usageRecords: [] as CareUsageRow[], usageTotal: 0, usageReady: false, usageLoading: false, usageError: "", usageBefore: null as string | null, usageAttempt: 0,
     usageServerDay:'',usageStreak:null as number|null,usageSelectedDay:'',usageSelectedLabel:'',usageVisibleRows:[] as CareUsageRow[],
     usageDays:[] as ReturnType<typeof usageWeekDays>,usageCalendarLoading:false,usageCalendarError:'',usageDateLoading:false,usageDateError:'',usageDateAttempt:0,
-    usageDetail:null as CareUsageRow|null,legacyOpen:false,
+    usageDetail:null as CareUsageRow|null,
     openDailyKey: "", draggingDailyKey: "", dailyMutationState: "idle" as "idle" | "sending" | "unknown", dailyMutationError: "", confirmingDailyDelete: false, undoAvailable: false,
     ...emptyDaily, dailyAttempt: 0, loadedRecordCount: 0, loadedRecordCountClass: "",
     care: null as any,
@@ -293,7 +293,7 @@ Page({
         working: false, workingAction: "", confirmingCycleAction: false, writeReady: false,
         authorityAvailable: false, accessRequired: !token, operationStatus: "", error: "", lastSyncedLabel: "",
         usageRecords: [], usageTotal: 0, usageReady: false, usageLoading: false, usageError: "", usageBefore: null,
-        usageServerDay:'',usageStreak:null,usageSelectedDay:'',usageSelectedLabel:'',usageVisibleRows:[],usageDays:[],usageCalendarLoading:false,usageCalendarError:'',usageDateLoading:false,usageDateError:'',usageDetail:null,legacyOpen:false,
+        usageServerDay:'',usageStreak:null,usageSelectedDay:'',usageSelectedLabel:'',usageVisibleRows:[],usageDays:[],usageCalendarLoading:false,usageCalendarError:'',usageDateLoading:false,usageDateError:'',usageDetail:null,
         ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "", dailyMutationState: "idle", dailyMutationError: "", confirmingDailyDelete: false, undoAvailable: false, openDailyKey: "", draggingDailyKey: "" });
       this.getTabBar?.()?.setData({ externalBusy: false }); wx.disableAlertBeforeUnload();
     }
@@ -404,7 +404,7 @@ Page({
       selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, writeReady: false, accessRequired: true,
       loading: false, refreshing: false, error: "", ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "",
       usageRecords:[],usageVisibleRows:[],usageDays:[],usageTotal:0,usageReady:false,usageLoading:false,usageError:'',usageBefore:null,
-      usageServerDay:'',usageStreak:null,usageSelectedDay:'',usageSelectedLabel:'',usageCalendarLoading:false,usageCalendarError:'',usageDateLoading:false,usageDateError:'',usageDetail:null,legacyOpen:false });
+      usageServerDay:'',usageStreak:null,usageSelectedDay:'',usageSelectedLabel:'',usageCalendarLoading:false,usageCalendarError:'',usageDateLoading:false,usageDateError:'',usageDetail:null });
     return true;
   },
   async loadUsageRecords(more = false) {
@@ -483,7 +483,6 @@ Page({
   closeUsageDetail(){this.setData({usageDetail:null});this.getTabBar?.()?.setPresentation?.('record-detail',false);},
   openUsagePoints(){this.closeUsageDetail();wx.navigateTo({url:'/pages/points/index'});},
   adjustUsageToday(){if(!this.data.usageDetail?.canAdjust)return;this.closeUsageDetail();this.goHome();},
-  toggleLegacy(){if(!this.data.working&&!this.data.recordDetailMounted&&!this.data.usageDetail)this.setData({legacyOpen:!this.data.legacyOpen});},
   async loadDailyRecords(more = false) {
     if (!this.data.pageAlive || !this.data.visible || this.data.dailyLoading || (more && (!this.data.dailyHasMore || !this.data.dailyCursor))) return;
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();

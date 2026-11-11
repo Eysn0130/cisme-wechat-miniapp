@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
 import { careCommandConfirmed } from "../../apps/miniprogram/services/care-command-state";
 const m = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), authenticate: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/api", () => ({ request: m.request, requireMemberAccess: () => Boolean(m.token), retainMemberSnapshot: () => true, clearAuthenticationRedirectSuppression: vi.fn(), resumeAuthentication: m.authenticate }));
@@ -36,13 +35,6 @@ afterEach(() => { page?.stopDaypartClock?.(); page?.stopCalendarRefresh?.(); });
 async function home() { await import("../../apps/miniprogram/pages/home/index"); await page.load(); await flush(); }
 async function records() { await import("../../apps/miniprogram/pages/records/index"); await page.load(); await flush(); }
 function complete() { page.openCareSession(); for (let i = 0; i < 4; i++) page.advanceCareStep(); page.selectAssessment({ currentTarget: { dataset: { value: "comfortable" } } }); }
-function emptyCardVisible(): boolean {
-  const markup = readFileSync("apps/miniprogram/pages/records/index.wxml", "utf8");
-  const expression = markup.match(/<view wx:elif="\{\{([^"}]+)\}\}" class="glass records-empty"/)?.[1];
-  if (!expression) throw new Error("Records empty-state condition missing");
-  return new Function(...Object.keys(page.data), `return Boolean(${expression});`)(...Object.values(page.data));
-}
-
 describe("daily care exact DTO and read-only confirmation", () => {
   it.each([
     { id: [record().id] }, { source: "cycle" }, { operationId: "" }, { completedAt: "not-a-time" },
@@ -73,14 +65,14 @@ describe("daily care exact DTO and read-only confirmation", () => {
 });
 
 describe("Records progressive daily group, paging and identity", () => {
-  it("does not render an empty archive while the independent daily request is still pending", async () => {
+  it("keeps historical daily readiness unknown while its request is pending", async () => {
     const held = deferred(); dailyRead = () => held.promise; await records();
-    expect(page.data).toMatchObject({ authorityAvailable: true, care: null, dailyLoading: true }); expect(emptyCardVisible()).toBe(false);
-    held.resolve(pageOf()); await flush(); expect(page.data.dailyReady).toBe(true); expect(emptyCardVisible()).toBe(true);
+    expect(page.data).toMatchObject({ authorityAvailable: true, care: null, dailyLoading: true }); expect(page.data.dailyReady).toBe(false);
+    held.resolve(pageOf()); await flush(); expect(page.data.dailyReady).toBe(true); expect(page.data).toMatchObject({dailyReady:true,dailyTotalCount:0});
   });
-  it("does not render an unknown failed daily archive as empty and recovers after a confirmed empty retry", async () => {
-    dailyRead = () => { throw { status: 503 }; }; await records(); expect(page.data.dailyError).toBeTruthy(); expect(emptyCardVisible()).toBe(false);
-    dailyRead = () => pageOf(); await page.loadDailyRecords(); expect(page.data.dailyError).toBe(""); expect(emptyCardVisible()).toBe(true);
+  it("keeps failed historical reads distinct from confirmed empty results", async () => {
+    dailyRead = () => { throw { status: 503 }; }; await records(); expect(page.data.dailyError).toBeTruthy(); expect(page.data.dailyReady).toBe(false);
+    dailyRead = () => pageOf(); await page.loadDailyRecords(); expect(page.data.dailyError).toBe(""); expect(page.data).toMatchObject({dailyReady:true,dailyTotalCount:0});
   });
   it("renders real daily details without a cycle and reuses the record detail sheet", async () => {
     dailyRead = () => pageOf([record()]); await records();
