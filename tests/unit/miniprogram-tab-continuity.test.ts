@@ -218,12 +218,12 @@ describe("native tab return presentation while real read paths revalidate", () =
   it("keeps Profile cards mounted through independent core, daily, tasks and authority reads", async () => {
     const { page, rendered, samples } = await mount("profile");
     await page.load(); await flush();
-    const card = rendered.querySelector(".care-status").dom;
+    const card = rendered.querySelector(".member-card").dom;
     const original = card.textContent;
     for (const path of ["/v1/bootstrap/profile", "/v1/me/daily-care-records?limit=20", "/v1/me/tasks", "/v1/me/commercial-membership", "/v1/me/support/summary"]) held.set(path, later());
     const authority = later(); m.authority.mockReturnValue(authority.promise);
     page.onHide(); page.onShow(); await flush();
-    expect(rendered.querySelector(".care-status").dom).toBe(card);
+    expect(rendered.querySelector(".member-card").dom).toBe(card);
     expect(card.textContent).toBe(original);
     expect(rendered.querySelector(".profile-sync-status")).toBeFalsy();
     expect(rendered.dom.textContent).toContain("2 条未读回复");
@@ -233,13 +233,14 @@ describe("native tab return presentation while real read paths revalidate", () =
     held.get("/v1/bootstrap/profile")!.resolve({ ...replies.get("/v1/bootstrap/profile"), points: { projection: { available: 35, frozen: 0, debt: 0, reserved: 0, version: 1 } }, businessVersion: 2 });
     await flush();
     expect(samples.join("\n")).not.toMatch(/尚无护理周期|正在读取日常护理记录/);
-    expect(rendered.querySelector(".profile-points-entry").dom.textContent).toContain("35");
+    expect(rendered.querySelector(".member-card").dom.textContent).toContain("35");
     held.get("/v1/me/daily-care-records?limit=20")!.resolve(dailyPage([]));
     held.get("/v1/me/tasks")!.resolve([]);
     held.get("/v1/me/commercial-membership")!.resolve({ eligible: false, membershipState: "none", verifiedOrderCount: 0, commission: { netEarnedCents: 0 } });
     held.get("/v1/me/support/summary")!.resolve({ unreadCount: 0 });
     authority.resolve({ managementAvailable: false, capabilities: [] }); await flush();
-    expect(card.textContent).toContain("今天还未记录");
+    expect(card.textContent).toContain("35");
+    expect(card.textContent).not.toContain("护理");
     expect(rendered.dom.textContent).not.toMatch(/管理中心|商业资格与佣金|2 条未读回复/);
   });
 
@@ -264,7 +265,8 @@ describe("native tab return presentation while real read paths revalidate", () =
     const daily = later(); held.set("/v1/me/daily-care-records?limit=20", daily);
     const reading = page.load(undefined, true);
     commercial.reject({ status: 503 }); daily.reject({ status: 503 }); await reading; await flush();
-    expect(rendered.dom.textContent).toContain("日常护理记录暂未更新");
+    expect(rendered.dom.textContent).toContain("身份待更新");
+    expect(rendered.dom.textContent).not.toContain("日常护理记录暂未更新");
     expect(rendered.dom.textContent).toContain("重试");
     expect(rendered.dom.textContent).not.toMatch(/管理中心|商业资格与佣金/);
     page.openManagement(); expect(wxMock.navigateTo).not.toHaveBeenCalled();

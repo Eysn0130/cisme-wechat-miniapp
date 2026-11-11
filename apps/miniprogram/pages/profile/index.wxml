@@ -1,22 +1,30 @@
+<page-meta root-font-size="system"/>
 <view class="page profile-page" style="{{chromeStyle}}">
   <view wx:if="{{loading && !member}}" class="profile-skeleton" aria-live="polite"><view class="skeleton-line skeleton-line--short"></view><view class="skeleton-block"></view><view class="skeleton-block skeleton-block--list"></view></view>
   <block wx:if="{{member && points}}">
     <view class="profile-identity">
       <view class="profile-avatar-wrap"><button class="profile-avatar-button {{navigating ? 'control--disabled' : ''}}" bindtap="openAccount" aria-label="前往设置修改头像与昵称{{commercialEligible ? '，CISME 商业会员' : ''}}" disabled="{{navigating}}"><image class="profile-avatar" src="{{memberAvatar}}" mode="aspectFill"/></button><image wx:if="{{commercialEligible}}" class="profile-member-seal" src="/assets/icons/member-seal-plum.svg" mode="aspectFit" aria-hidden="true"/></view>
-      <view class="profile-identity__copy"><text class="profile-identity__eyebrow">CISME 会员</text><strong class="profile-identity__title">{{member.display_name || 'CISME 会员'}}</strong><small class="profile-identity__meta">{{careStatus}}</small></view>
+      <view class="profile-identity__copy"><text class="profile-identity__eyebrow">CISME 会员</text><strong class="profile-identity__title">{{member.display_name || 'CISME 会员'}}</strong></view>
       <button class="profile-settings {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}" aria-label="打开设置"><image src="/assets/icons/gear-plum.svg" mode="aspectFit"/></button>
     </view>
 
-    <button class="care-status {{navigating ? 'control--disabled' : ''}}" bindtap="openRecords" disabled="{{navigating}}" aria-label="查看护理进度与记录">
-      <view class="care-status__head"><view><text class="care-status__label">当前护理</text><strong class="care-status__title">{{careTitle}}</strong></view><image class="care-status__caret" src="/assets/icons/caret-right-white.svg" mode="aspectFit"/></view>
-      <text class="care-status__copy">{{careCopy}}</text><view wx:if="{{hasCareCycle}}" class="care-progress"><view class="care-progress__bar" style="width: {{progressPercent}}%"></view></view>
-      <view wx:if="{{hasCareCycle}}" class="care-status__stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><view><strong>{{care.due || care.next || '待安排'}}</strong><small>当前节点</small></view><view><strong>{{care.completed.length}} / 4</strong><small>已完成</small></view></view>
+    <button class="member-card {{navigating ? 'control--disabled' : ''}}" bindtap="openPoints" disabled="{{navigating}}" hover-class="member-card--pressed" aria-label="{{commercialState === 'ready' || (retainingSnapshot && commercialState === 'loading') ? (commercialEligible ? '商业会员' : 'CISME 会员') : commercialState === 'error' ? '身份待更新' : '身份同步中'}}会员卡，可用积分 {{points.projection.available}} 分，查看积分明细与兑换">
+      <view class="member-card__contour" aria-hidden="true"></view>
+      <view class="member-card__head">
+        <text class="member-card__brand">CISME</text>
+        <text class="member-card__identity">{{commercialState === 'ready' || (retainingSnapshot && commercialState === 'loading') ? (commercialEligible ? '商业会员' : 'CISME 会员') : commercialState === 'error' ? '身份待更新' : '身份同步中'}}</text>
+      </view>
+      <view class="member-card__body">
+        <view class="member-card__points"><text class="member-card__label">会员积分 · 可用</text><text class="member-card__balance {{pointsBalanceClass}}">{{points.projection.available}}</text></view>
+        <view class="member-card__entry"><text>积分明细与兑换</text><image src="/assets/icons/caret-right-white.svg" mode="aspectFit" aria-hidden="true"/></view>
+      </view>
+      <view class="member-card__footer"><text>会员卡</text><text>冻结 {{points.projection.frozen}} · 预占 {{points.projection.reserved}}</text></view>
+      <text wx:if="{{points.expiring && points.expiring.points > 0}}" class="member-card__notice">{{points.expiring.withinDays}} 天内到期 {{points.expiring.points}} 分</text>
+      <text wx:if="{{points.projection.debt > 0}}" class="member-card__notice">待冲抵欠分 {{points.projection.debt}}，后续所得优先冲抵</text>
     </button>
-    <button class="profile-points-entry {{navigating ? 'control--disabled' : ''}}" bindtap="openPoints" disabled="{{navigating}}" aria-label="我的积分，可用 {{points.projection.available}} 分，查看赚分、明细与兑换"><view><text class="profile-points-label">我的积分 · 可用</text><text class="profile-points-number {{pointsBalanceClass}}">{{points.projection.available}}</text><text class="profile-points-meta">冻结 {{points.projection.frozen}} · 预占 {{points.projection.reserved}}</text><text wx:if="{{points.expiring && points.expiring.points > 0}}" class="profile-points-expiry">{{points.expiring.withinDays}} 天内到期 {{points.expiring.points}} 分</text><text wx:if="{{points.projection.debt > 0}}" class="profile-points-expiry">待冲抵欠分 {{points.projection.debt}}，后续所得优先冲抵</text></view><text class="profile-points-link">赚积分 · 兑换好礼 →</text></button>
   </block>
 
-  <view wx:if="{{error || careUnavailable}}" class="state state--error" aria-live="assertive"><text wx:if="{{error}}">{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
-  <view wx:if="{{dailyStatusError && member && !hasCareCycle}}" class="state state--error" aria-live="polite"><text>{{dailyStatusError}}</text><button class="text-button {{dailyStatusLoading ? 'control--disabled' : ''}}" bindtap="retryDailyStatus" disabled="{{dailyStatusLoading}}">重新加载日常记录</button></view>
+  <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text wx:if="{{error}}">{{error}}</text><button class="text-button" bindtap="load">重新加载</button></view>
 
   <block wx:if="{{member || coreUnavailable}}">
     <view class="profile-label">常用服务</view>

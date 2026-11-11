@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "baseHead": "c4d6bc5ef6cbcc79577b6f675f2128bbabd08a63",
+  "nativeSourceSha256": "7c18867fe6f592e4c10226712c3c954b282f4f0be37caecc2916d8fd3853849e",
+  "routes": 41,
+  "nativeFilesChanged": 6,
+  "localUnit": {
+    "passed": 103,
+    "failed": 0,
+    "files": 4
+  },
+  "typecheck": "passed",
+  "packageGate": "passed",
+  "contracts": "passed",
+  "native": {
+    "compilerSummaries": 4,
+    "standardViewport": "390x844",
+    "additionalViewports": [
+      "375x812",
+      "430x932"
+    ],
+    "detailsTouchTarget": {
+      "widthPx": 56,
+      "heightPx": 44
+    },
+    "memberCardDestination": "pages/points/index",
+    "careDetailsDestination": "pages/records/index",
+    "transport": "Fully intercepted synthetic fixtures; no real server pass-through.",
+    "realServerWrites": 0,
+    "restoredSessionAndOriginalDevice": true,
+    "actualSystemLargeFontTested": false,
+    "physicalDeviceTested": false,
+    "boundIdentityLabelsInspected": true
+  },
+  "changesBackend": false,
+  "changesDatabase": false,
+  "wechatUploaded": false,
+  "historicalEvidenceReusedAsCurrent": false,
+  "previousVisualRevision": {
+    "sourceHead": "caf64e76a9a1c2fd924f6408d0f89965fae39634",
+    "nativeSourceSha256": "93a881acfd85642bebfd06ea06bd0bcdcd3a564f4fa72a6033c249b477a581a7",
+    "fullCi": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/42939341543",
+    "fullCiStatus": "success",
+    "scope": "Prior revision before member card accessibility label refinement. Current images and tap checks recaptured; current targeted unit tests rerun."
+  }
+}

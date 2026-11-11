@@ -354,8 +354,8 @@ describe("mini program submission flow safety", () => {
     expect(homeView).toContain("care-greeting {{view.greetingClass}}");
     expect(homeStyle).toContain(".care-greeting--very-long");
     expect(profile).toContain('String(points.projection.available).length >= 8 ? "pass-stat__value--compact"');
-    expect(profileStyle).toContain(".care-status__stats strong.pass-stat__value--compact");
-    expect(profileStyle).toContain("overflow-wrap:anywhere;white-space:normal");
+    expect(profileStyle).toContain(".member-card__balance.pass-stat__value--compact");
+    expect(profileStyle.replace(/\s+/g, "")).toContain("overflow-wrap:anywhere;white-space:normal");
     expect(points).toContain("String(points.projection.available).length>=8?'points-hero__balance--compact'");
     expect(points).toContain('readMyPoints(this.data.source)');
     expect(await source('apps/miniprogram/services/points.ts')).toContain('POINTS_INTEGER_INVALID');

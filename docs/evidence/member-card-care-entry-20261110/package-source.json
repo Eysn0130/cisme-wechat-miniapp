@@ -1,0 +1,58 @@
+{
+  "ok": true,
+  "internalBudgets": {
+    "mainPackageBytes": 1800000,
+    "subpackageBytes": 400000,
+    "assetRichSubpackageBytes": {
+      "pages/product": 1850000
+    },
+    "globalWxssBytes": 8192,
+    "singleAssetBytes": 200000
+  },
+  "actual": {
+    "files": 337,
+    "routes": 41,
+    "totalBytes": 4266745,
+    "mainPackageBytes": 1373637,
+    "subpackageBytes": {
+      "pages/task": 435,
+      "pages/submit": 435,
+      "pages/progress": 435,
+      "pages/points": 47811,
+      "pages/post": 114394,
+      "pages/product": 1728634,
+      "pages/checkout": 29958,
+      "pages/orders": 9072,
+      "pages/order-detail": 87902,
+      "pages/settings": 76931,
+      "pages/invite": 15809,
+      "pages/legal": 3776,
+      "pages/privacy-rights": 53276,
+      "pages/support": 104068,
+      "pages/management": 20075,
+      "pages/management-catalog": 7945,
+      "pages/management-product": 21901,
+      "pages/management-orders": 9005,
+      "pages/management-order-detail": 17609,
+      "pages/management-support": 10831,
+      "pages/management-support-chat": 87836,
+      "pages/management-members": 34110,
+      "pages/management-member": 34740,
+      "pages/referral": 6863,
+      "pages/community-compose": 143872,
+      "pages/community-post": 1682,
+      "pages/community-author": 20087,
+      "pages/community-review": 22681,
+      "pages/community-activity": 24705,
+      "pages/management-finance": 30063,
+      "pages/commission": 36445,
+      "pages/management-privacy": 17895,
+      "pages/aftersale": 33475,
+      "pages/management-fulfillment": 19477,
+      "pages/management-points": 18875
+    },
+    "globalStyleBytes": 8190,
+    "sourceSha256": "7c18867fe6f592e4c10226712c3c954b282f4f0be37caecc2916d8fd3853849e"
+  },
+  "errors": []
+}

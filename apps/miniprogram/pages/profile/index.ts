@@ -169,7 +169,6 @@ Page({
     else wx.navigateTo({ url, fail });
   },
   openAccount() { this.openRoute("/pages/settings/index", "navigate", "设置暂时无法打开"); },
-  openRecords() { this.openRoute("/pages/records/index", "navigate", "护理记录暂时无法打开"); },
   openPoints() { this.openRoute("/pages/points/index", "navigate", "积分账本暂时无法打开"); },
   openSettings() { this.openRoute("/pages/settings/index", "navigate", "设置与隐私暂时无法打开"); },
   openOrders() { this.openRoute("/pages/orders/index", "navigate", "订单暂时无法打开"); },

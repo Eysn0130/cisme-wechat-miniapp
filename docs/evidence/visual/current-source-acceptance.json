@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "50265eacfc6aff9993f09892e401f45778e4b781ecc1de76f637cc2db20afbf7",
+  "packageSourceSha256": "7c18867fe6f592e4c10226712c3c954b282f4f0be37caecc2916d8fd3853849e",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Current package source measured. Historical Points stage1 and 04d2856f native screenshots retain their actual hashes. Current scoped native rendering is recorded separately; full 41-route and physical-device matrices remain pending.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-points-preintegration-36410bdc187c.json",
+  "note": "Current member-card/care-entry package measured. Scoped native rendering and tap evidence lives in docs/evidence/member-card-care-entry-20261110. All 41-route and physical-device matrices remain incomplete; historical images retain original hashes.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-member-card-before-93a881acfd85.json",
   "pendingSourceRebind": false
 }

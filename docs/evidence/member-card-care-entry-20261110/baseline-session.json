@@ -1,0 +1,16 @@
+{
+  "scope": "Native simulator; fully intercepted synthetic data, no real server writes.",
+  "start": {
+    "originalRoute": "pages/home/index",
+    "originalHadSession": true,
+    "allRequestsIntercepted": true,
+    "mutationsBlocked": true
+  },
+  "finish": {
+    "active": false,
+    "originalRoute": "pages/home/index",
+    "requestCount": 8,
+    "writeAttempts": 0,
+    "actualServerWrites": 0
+  }
+}

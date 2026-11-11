@@ -18,10 +18,14 @@
           <text class="step-code">{{item.code}}</text><text class="step-label">{{item.label}}</text><view class="step-state"><image wx:if="{{item.done}}" class="step-state__icon" src="/assets/icons/check-white.svg" mode="aspectFit"/><image wx:elif="{{item.active}}" class="step-state__icon" src="/assets/icons/drop-active.svg" mode="aspectFit"/></view>
         </button>
       </view>
-      <view class="care-signal" aria-live="polite"><image class="care-signal__icon" src="{{view.signalIcon}}" mode="aspectFit" /><view class="care-signal__copy"><strong class="care-signal__title">{{view.signalTitle}}</strong><text class="care-signal__meta">{{view.signalMeta}}</text></view></view>
     </block>
     <view wx:elif="{{loading}}" class="home-authority-state" aria-live="polite">正在加载护理安排…</view>
     <view wx:else class="home-authority-state" aria-live="assertive">护理状态暂不可用，请重试。</view>
+    <view class="care-signal" aria-live="polite">
+      <image class="care-signal__icon" src="{{view.signalIcon}}" mode="aspectFit" aria-hidden="true"/>
+      <view class="care-signal__copy"><strong class="care-signal__title">{{authorityAvailable || needsAuthentication ? view.signalTitle : loading ? '护理安排同步中' : '护理安排暂未更新'}}</strong><text class="care-signal__meta">{{authorityAvailable || needsAuthentication ? view.signalMeta : '可从详情回看已保存的护理记录'}}</text></view>
+      <button class="care-signal__details {{accountOpening || sessionMounted || onboardingOpen ? 'control--disabled' : ''}}" bindtap="openRecords" disabled="{{accountOpening || sessionMounted || onboardingOpen}}" hover-class="care-signal__details--pressed" aria-label="{{needsAuthentication ? '登录后查看护理记录' : '查看护理记录详情'}}"><text>详情</text><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit" aria-hidden="true"/></button>
+    </view>
   </view>
   <view wx:if="{{error && !sessionMounted}}" class="home-error" aria-live="assertive"><text class="home-error__copy">{{error}}</text><button class="text-button" bindtap="retryLoad">刷新状态</button><button wx:if="{{mutationState === 'unknown'}}" class="text-button {{working || loading ? 'control--disabled' : ''}}" bindtap="retryCareMutation" disabled="{{working || loading}}">重试操作</button></view>
 

@@ -177,10 +177,10 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     expect(page.data.careCopy).not.toMatch(/资格|确认|已完成|下一次/);
     const view=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
     expect(view).toContain('<block wx:if="{{member && points}}">');
-    expect(view).toContain('<view wx:if="{{hasCareCycle}}" class="care-progress">');
-    expect(view).toContain('class="profile-points-entry');
+    expect(view).not.toContain('bindtap="openRecords"');
+    expect(view).toContain('class="member-card');
     expect(view).toContain('{{points.projection.available}}');
-    page.openRecords();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/records/index"}));
+    page.openPoints();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/points/index"}));
   });
   it.each([
     {...care,phase:"waiting"},
@@ -195,7 +195,8 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
       careTitle:"护理状态暂不可用",careStatus:"护理状态暂不可用",careCopy:"请重新加载护理状态。"});
     expect(page.data.careCopy+page.data.careStatus+page.data.careTitle).not.toMatch(/尚无|资格|待确认/);
     const view=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
-    expect(view).toMatch(/wx:if="\{\{error \|\| careUnavailable\}\}"[\s\S]*?bindtap="load"/);
+    expect(view).toContain('bindtap="openPoints"');
+    expect(view).not.toContain('{{careTitle}}');
   });
   it("removes old cycle nodes and progress when a newer snapshot confirms there is no cycle",async()=>{
     await loadPage("profile");await page.load();expect(page.data.care.id).toBe(care.id);
@@ -246,5 +247,27 @@ describe("PERF-02/09: native Profile consistent core, independent auxiliary stat
     await loadPage("profile"); void page.load(); await flush();
     mocks.token = "member-b"; mocks.request.mockImplementation(async ({ path }) => path.includes("bootstrap") ? { ...snapshot, member: { ...member, id: "b" }, businessVersion: 2 } : []);
     await page.load(undefined, false); expect(page.data.member.id).toBe("b"); expect(page.data.snapshotVersion).toBe(2);
+  });
+});
+
+
+describe("Care capsule record navigation", () => {
+  it("opens the records independently of failed care reads and deduplicates taps", async () => {
+    await loadPage("home"); page.setData({pageAlive:true,pageVisible:true,authorityAvailable:false,loading:false});
+    page.openRecords();page.openRecords();
+    expect((globalThis as any).wx.navigateTo).toHaveBeenCalledTimes(1);
+    expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/records/index"}));
+    expect(page.data.accountOpening).toBe(true);
+  });
+  it("keeps the guest home in place and respects an open care/onboarding sheet", async () => {
+    await loadPage("home");page.setData({pageAlive:true,pageVisible:true});mocks.token="";page.openRecords();
+    mocks.token="actor-a";page.setData({sessionMounted:true});page.openRecords();page.setData({sessionMounted:false,onboardingOpen:true});page.openRecords();
+    expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();
+  });
+  it("releases the navigation guard after a failed route so details can be retried", async () => {
+    await loadPage("home");page.setData({pageAlive:true,pageVisible:true});
+    (globalThis as any).wx.navigateTo.mockImplementation((o:any)=>o.fail());page.openRecords();page.openRecords();
+    expect(page.data.accountOpening).toBe(false);expect((globalThis as any).wx.navigateTo).toHaveBeenCalledTimes(2);
+    expect((globalThis as any).wx.showToast).toHaveBeenCalledWith(expect.objectContaining({title:"护理记录暂时无法打开，请重试"}));
   });
 });
