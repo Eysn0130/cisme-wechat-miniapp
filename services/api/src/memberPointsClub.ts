@@ -1,3 +1,4 @@
+import {saveMemberBirthday} from './memberBirthday.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
@@ -67,51 +68,30 @@ export class MemberPointsClub{
       const attending=((await c.query('SELECT 1 FROM member_points_attendance WHERE member_id=$1 AND care_day=$2',[id,day])).rowCount??0)>0;
       const streakDay=attending?day:pointDay(new Date(now.getTime()-86400000));
       return {memberId:id,upcomingPolicies:upcoming,enabled:Boolean(p),policy:p?{version:p.version,rules:p.rules,startsAt:p.starts_at,endsAt:p.ends_at}:null,
-        serverDay:day,today:today?{id:today.id,products:today.products,note:openPointsNote(this.config,today),version:today.version}:null,
+        serverDay:day,today:today?{id:today.id,operationId:today.operation_id,products:today.products,note:openPointsNote(this.config,today),version:today.version}:null,
         checkedIn:attending,streak:await streakFor(c,id,streakDay),badges,pendingRewardSources:pending,questionnaireCompleted:Boolean(questionnaire?.completed_at),
         birthday:profile?.birthday_month_day??null,birthdayChangeAfter:profile?.birthday_change_after??null,...await memberPointsExtras(c,id,now)};
     });
   }
   async checkin(memberId:string|undefined,keyInput:string,input:unknown,now=new Date()){
-    const id=owner(memberId),key=operation(keyInput),b=object(input,['products','note','serverDay','expectedVersion']);
-    if(!Array.isArray(b.products)||b.products.length<1||b.products.length>3||new Set(b.products).size!==b.products.length||b.products.some(x=>!['net_run','net_xie','essence'].includes(String(x))))fail('POINTS_PRODUCTS_INVALID','请如实选择今天使用的产品');
-    const products=(b.products as string[]).sort(),note=typeof b.note==='string'?b.note.trim():'';
-    if(Array.from(note).length>500||b.note!==undefined&&typeof b.note!=='string')fail('POINTS_NOTE_INVALID','护理感受最多500字');
-    const requestHash=createHmac('sha256',textKey(this.config)).update(JSON.stringify(['points-checkin-command',id,products,note,b.serverDay,b.expectedVersion??null])).digest('hex');
-    return transaction(this.pool,async c=>{
-      await lockPointWallet(c,id,true);
-      const priorCommand=(await c.query('SELECT action,request_sha256 FROM member_points_command WHERE member_id=$1 AND operation_id=$2',[id,key])).rows[0];
-      if(priorCommand&&(priorCommand.action!=='checkin'||priorCommand.request_sha256!==requestHash))fail('IDEMPOTENCY_CONFLICT','本次操作编号已用于其他内容',409);
-      const replay=(await c.query(`SELECT m.*,r.care_day::text FROM member_points_command m JOIN member_points_checkin r ON r.id=m.source_id WHERE m.member_id=$1 AND m.operation_id=$2`,[id,key])).rows[0];
-      if(replay){if(replay.request_sha256!==requestHash||replay.action!=='checkin')fail('IDEMPOTENCY_CONFLICT','本次操作编号已用于其他内容',409);return {recordId:replay.source_id,replayed:true,careDay:replay.care_day};}
-      const day=pointDay(now);if(b.serverDay!==day)fail('POINTS_DAY_CHANGED','日期已更新，请重新加载后打卡',409);
-      const policy=await activePointPolicy(c,now);if(!policy)fail('POINTS_POLICY_UNAVAILABLE','积分活动当前未开放，仍可正常记录四步护理',503);
-      const old=(await c.query(`SELECT * FROM member_points_checkin WHERE member_id=$1 AND care_day=$2 FOR UPDATE`,[id,day])).rows[0];
-      if(old&&old.version!==b.expectedVersion||!old&&b.expectedVersion!==undefined)fail('POINTS_CHECKIN_CHANGED','今天的记录已有更新，请重新加载',409);
-      const recordId=old?.id??randomUUID(),encrypted=sealNote(this.config,id,recordId,note),chars=Array.from(note.replace(/\s/g,''));
-      const noteQualifies=chars.length>=10&&new Set(chars).size>=4;
-      const row=(await c.query(`INSERT INTO member_points_checkin(id,member_id,care_day,products,note_encrypted,key_version,note_qualifies,operation_id,request_sha256,created_at,updated_at)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10) ON CONFLICT(member_id,care_day) DO UPDATE SET products=$4,note_encrypted=$5,key_version=$6,
-          note_qualifies=$7,operation_id=$8,request_sha256=$9,version=member_points_checkin.version+1,updated_at=$10 RETURNING *`,
-        [recordId,id,day,products,encrypted,encrypted?this.config.contacts.keyVersion:null,noteQualifies,key,requestHash,now])).rows[0];
-      const streak=await attendance(c,id,day,recordId,policy,now);
-      if(noteQualifies)await grantMemberPoints(c,{owner:id,sourceType:'care_day',sourceId:day,component:'note',amount:policy.rules.note,policy,now});
-      await c.query(`INSERT INTO member_points_command(member_id,operation_id,action,source_id,request_sha256,created_at) VALUES($1,$2,'checkin',$3,$4,$5)`,[id,key,recordId,requestHash,now]);
-      return {recordId:row.id,replayed:false,careDay:day,version:row.version,streak};
-    });
+    return transaction(this.pool,c=>saveMemberUsage(c,this.config,memberId,keyInput,input,now));
   }
   async birthday(memberId:string|undefined,input:unknown,now=new Date()){
-    const id=owner(memberId),b=object(input,['monthDay']);
-    if(b.monthDay!==null&&(typeof b.monthDay!=='string'||!/^\d{2}-\d{2}$/.test(b.monthDay)||!Number.isFinite(+new Date('2000-'+b.monthDay+'T00:00:00Z'))||new Date('2000-'+b.monthDay+'T00:00:00Z').toISOString().slice(5,10)!==b.monthDay))fail('POINTS_BIRTHDAY_INVALID','请选择有效的生日月日');
+    const id=owner(memberId),body=object(input,['monthDay']);
+    return transaction(this.pool,c=>saveMemberBirthday(c,id,body.monthDay,now,this.config));
+  }
+  async usageHistory(memberId:string|undefined,options:{before?:unknown;limit?:unknown}={}){
+    const id=owner(memberId),before=options.before??null,limit=options.limit===undefined?20:Number(options.limit);
+    if(before!==null&&(typeof before!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(before)||!Number.isFinite(+new Date(before+'T00:00:00Z'))||new Date(before+'T00:00:00Z').toISOString().slice(0,10)!==before)
+      ||!Number.isInteger(limit)||limit<1||limit>50)fail('CARE_USAGE_PAGE_INVALID','请重新加载护理记录');
     return transaction(this.pool,async c=>{
-      await lockPointWallet(c,id,true);const old=(await c.query('SELECT * FROM member_points_profile WHERE member_id=$1 FOR UPDATE',[id])).rows[0];
-      if(old?.birthday_month_day===b.monthDay)return {saved:true,monthDay:b.monthDay};
-      if(b.monthDay!==null&&old?.birthday_change_after>now&&old.birthday_month_day!==b.monthDay)fail('POINTS_BIRTHDAY_LOCKED','生日一年内可设置一次，仍可随时删除',409);
-      await c.query(`INSERT INTO member_points_profile(member_id,birthday_month_day,birthday_set_at,birthday_change_after,updated_at)
-        VALUES($1,$2,$3,$4,$3) ON CONFLICT(member_id) DO UPDATE SET birthday_month_day=$2,
-          birthday_set_at=CASE WHEN $2 IS NULL THEN NULL ELSE COALESCE(member_points_profile.birthday_set_at,$3) END,
-          birthday_change_after=GREATEST(member_points_profile.birthday_change_after,$4),updated_at=$3`,[id,b.monthDay,now,b.monthDay===null?old?.birthday_change_after??null:new Date(now.getTime()+365*86400000)]);
-      return {saved:true,monthDay:b.monthDay};
+      if(!(await c.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[id])).rowCount)fail('AUTH_REVOKED','账号状态已变化',401);
+      const rows=(await c.query(`SELECT *,care_day::text AS day FROM member_points_checkin WHERE member_id=$1
+        AND ($2::date IS NULL OR care_day<$2::date) ORDER BY care_day DESC LIMIT $3`,[id,before,limit+1])).rows;
+      const total=(await c.query('SELECT count(*)::int AS n FROM member_points_checkin WHERE member_id=$1',[id])).rows[0].n;
+      const items=rows.slice(0,limit).map(r=>({id:r.id,careDay:r.day,products:r.products,note:openPointsNote(this.config,r),version:r.version,
+        completedAt:r.created_at.toISOString(),updatedAt:r.updated_at.toISOString()}));
+      return {items,totalCount:total,nextBefore:rows.length>limit?items.at(-1)!.careDay:null};
     });
   }
   async policies(memberId:string|undefined){await this.authority.require(memberId,'commerce.money.reconcile');return (await this.pool.query(`SELECT p.*,COALESCE((SELECT jsonb_agg(jsonb_build_object('month',b.month_bucket,'issued',b.issued::text,'overReminder',p.monthly_budget IS NOT NULL AND b.issued>=p.monthly_budget) ORDER BY b.month_bucket DESC) FROM member_points_budget b WHERE b.policy_version=p.version),'[]'::jsonb) AS monthly_issuance FROM member_points_policy p ORDER BY p.created_at DESC LIMIT 50`)).rows;}
@@ -255,4 +235,35 @@ export async function processMemberPointSources(pool:pg.Pool,now=new Date(),limi
     WHERE (l.available_amount>0 OR l.frozen_amount>0) AND (l.expires_at<=$1 OR l.frozen_amount>0 AND g.available_after<=$1) LIMIT $2`,[now,limit])).rows;
   for(const row of members)await transaction(pool,c=>sweepMemberPoints(c,row.member_id,now));
   return processed;
+}
+
+export async function saveMemberUsage(c:DbClient,config:AppConfig,memberId:string|undefined,keyInput:string,input:unknown,now:Date){
+    const id=owner(memberId),key=operation(keyInput),b=object(input,['products','note','serverDay','expectedVersion']);
+    if(!Array.isArray(b.products)||b.products.length<1||b.products.length>3||new Set(b.products).size!==b.products.length||b.products.some(x=>!['net_run','net_xie','essence'].includes(String(x))))fail('POINTS_PRODUCTS_INVALID','请如实选择今天使用的产品');
+    const products=(b.products as string[]).sort(),note=typeof b.note==='string'?b.note.trim():'';
+    if(Array.from(note).length>500||b.note!==undefined&&typeof b.note!=='string')fail('POINTS_NOTE_INVALID','护理感受最多500字');
+    const requestHash=createHmac('sha256',textKey(config)).update(JSON.stringify(['points-checkin-command',id,products,note,b.serverDay,b.expectedVersion??null])).digest('hex');
+      await lockPointWallet(c,id,true);
+      const priorCommand=(await c.query('SELECT action,request_sha256 FROM member_points_command WHERE member_id=$1 AND operation_id=$2',[id,key])).rows[0];
+      if(priorCommand&&(priorCommand.action!=='checkin'||priorCommand.request_sha256!==requestHash))fail('IDEMPOTENCY_CONFLICT','本次操作编号已用于其他内容',409);
+      const replay=(await c.query(`SELECT m.*,r.care_day::text FROM member_points_command m JOIN member_points_checkin r ON r.id=m.source_id WHERE m.member_id=$1 AND m.operation_id=$2`,[id,key])).rows[0];
+      if(replay){if(replay.request_sha256!==requestHash||replay.action!=='checkin')fail('IDEMPOTENCY_CONFLICT','本次操作编号已用于其他内容',409);return {recordId:replay.source_id,operationId:key,replayed:true,careDay:replay.care_day};}
+      const day=pointDay(now);if(b.serverDay!==day)fail('POINTS_DAY_CHANGED','日期已更新，请重新加载后打卡',409);
+      const policy=await activePointPolicy(c,now);
+      const old=(await c.query(`SELECT * FROM member_points_checkin WHERE member_id=$1 AND care_day=$2 FOR UPDATE`,[id,day])).rows[0];
+      if(old&&old.version!==b.expectedVersion||!old&&b.expectedVersion!==undefined)fail('POINTS_CHECKIN_CHANGED','今天的记录已有更新，请重新加载',409);
+      const recordId=old?.id??randomUUID(),encrypted=sealNote(config,id,recordId,note),chars=Array.from(note.replace(/\s/g,''));
+      const noteQualifies=chars.length>=10&&new Set(chars).size>=4;
+      const row=(await c.query(`INSERT INTO member_points_checkin(id,member_id,care_day,products,note_encrypted,key_version,note_qualifies,operation_id,request_sha256,created_at,updated_at)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10) ON CONFLICT(member_id,care_day) DO UPDATE SET products=$4,note_encrypted=$5,key_version=$6,
+          note_qualifies=$7,operation_id=$8,request_sha256=$9,version=member_points_checkin.version+1,updated_at=$10 RETURNING *`,
+        [recordId,id,day,products,encrypted,encrypted?config.contacts.keyVersion:null,noteQualifies,key,requestHash,now])).rows[0];
+      const streak=policy?await attendance(c,id,day,recordId,policy,now):await streakFor(c,id,day);
+      if(noteQualifies&&policy)await grantMemberPoints(c,{owner:id,sourceType:'care_day',sourceId:day,component:'note',amount:policy.rules.note,policy,now});
+      await c.query(`INSERT INTO member_points_command(member_id,operation_id,action,source_id,request_sha256,created_at) VALUES($1,$2,'checkin',$3,$4,$5)`,[id,key,recordId,requestHash,now]);
+      return {recordId:row.id,operationId:key,replayed:false,careDay:day,version:row.version,streak};
+}
+
+export function privateUsageDigest(config:AppConfig,memberId:string,input:unknown){
+  return createHmac('sha256',textKey(config)).update(JSON.stringify(['care-usage',memberId,input])).digest('hex');
 }

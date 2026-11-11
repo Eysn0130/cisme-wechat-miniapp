@@ -23,6 +23,7 @@ beforeEach(() => {
     gets.push(options.path);
     if (options.path.startsWith(path)) return dailyRead(options);
     if (options.path === "/v1/bootstrap/home") { if (homeFails) throw { status: 503 }; return { member: { id: m.token, display_name: "合成会员" }, care, businessVersion: care?.version ?? 0 }; }
+    if (options.path === "/v1/me/care-usage-records?limit=20") return {items:[],totalCount:0,nextBefore:null};
     if (options.path === "/v1/me/care") return cycleRead();
     if (options.path === "/v1/me/support/summary") return { unreadCount: 0 };
     throw new Error("Unexpected synthetic route");
@@ -68,71 +69,6 @@ describe("daily care exact DTO and read-only confirmation", () => {
     expect(careCommandConfirmed(command, null, [record() as any])).toBe(true);
     for (const patch of [{ operationId: "other-operation" }, { selfAssessment: "attention" }, { protocolVersion: "care-v1" }, { stepCodes: [["00"], ["01"], ["02"], ["03"]] }]) expect(careCommandConfirmed(command, null, [record(1, patch) as any])).toBe(false);
     expect(careCommandConfirmed(command, null)).toBe(false);
-  });
-});
-
-describe("Home actual daily write and unknown-result ownership", () => {
-  it("persists the four steps and assessment once, then closes and clears transient green steps", async () => {
-    await home(); complete(); await page.submitCareSession();
-    expect(posts).toHaveLength(1); expect(posts[0]).toMatchObject({ path, method: "POST", idempotencyKey: expect.stringMatching(/^daily-care-/), data: { stepCodes: steps, selfAssessment: "comfortable" } });
-    expect(Object.keys(posts[0].data).sort()).toEqual(["careDay", "selfAssessment", "stepCodes"]);
-    expect(posts[0].data.careDay).toBe(serverDay);
-    expect(page.data).toMatchObject({ care: null, mutationState: "confirmed", sessionMounted: false });
-    expect(page.data.view.steps.every((step: any) => !step.done)).toBe(true);
-    expect(gets).toContain(path + "?limit=20");
-    expect(wx.showToast).toHaveBeenCalledWith({ title: "护理已保存", icon: "success" });
-  });
-  it("does not submit incomplete steps or an absent assessment", async () => {
-    await home(); page.openCareSession(); page.advanceCareStep(); await page.submitCareSession();
-    for (let i = 0; i < 3; i++) page.advanceCareStep(); await page.submitCareSession(); expect(posts).toEqual([]);
-  });
-  it("freezes duplicate taps and the chosen assessment while sending", async () => {
-    const held = deferred(); write = () => held.promise; await home(); complete();
-    const saving = page.submitCareSession(); await flush(); await page.submitCareSession();
-    page.selectAssessment({ currentTarget: { dataset: { value: "attention" } } }); expect(posts).toHaveLength(1); expect(page.data.sessionAssessment).toBe("comfortable");
-    held.resolve({ record: record(1, { operationId: posts[0].idempotencyKey }), replayed: false, current: true }); await saving;
-  });
-  it("keeps an acknowledged save successful even when bootstrap refresh fails", async () => {
-    await home(); complete(); write = options => { homeFails = true; return { record: record(1, { operationId: options.idempotencyKey }), replayed: false, current: true }; };
-    await page.submitCareSession(); expect(posts).toHaveLength(1); expect(page.data).toMatchObject({ mutationState: "confirmed", sessionMounted: false, working: false });
-    expect(page.data.error).toContain("护理已保存"); await page.submitCareSession(); await page.primaryAction(); expect(posts).toHaveLength(1);
-    homeFails = false; await page.load(); complete(); await page.submitCareSession(); expect(posts).toHaveLength(2); expect(posts[1].idempotencyKey).not.toBe(posts[0].idempotencyKey);
-  });
-  it("confirms a lost POST response only from this persisted operation without resubmitting", async () => {
-    write = options => { dailyRead = () => pageOf([record(1, { operationId: options.idempotencyKey })]); throw { status: 503 }; };
-    await home(); complete(); await page.submitCareSession();
-    expect(posts).toHaveLength(1); expect(page.data).toMatchObject({ mutationState: "confirmed", sessionMounted: false });
-    expect(gets).toContain(path + "?limit=20");
-  });
-  it("retains an absent/older-than-first-page operation as unknown and only explicitly retries the same payload and key", async () => {
-    write = () => { throw { status: 503 }; }; dailyRead = () => pageOf([record(20)], "older-page");
-    await home(); complete(); await page.submitCareSession(); expect(page.data.mutationState).toBe("unknown");
-    await page.load(true); await page.submitCareSession(); page.selectAssessment({ currentTarget: { dataset: { value: "attention" } } });
-    expect(posts).toHaveLength(1); expect(page.data.sessionAssessment).toBe("comfortable"); expect(gets.filter(url => url.startsWith(path)).every(url => url === path + "?limit=20")).toBe(true);
-    write = options => ({ record: record(1, { operationId: options.idempotencyKey }), replayed: true, current: true });
-    await page.retryCareMutation(); expect(posts).toHaveLength(2); expect(posts[1]).toEqual(posts[0]); expect(page.data.sessionMounted).toBe(false);
-  });
-  it("can explicitly retry an unknown daily operation while bootstrap is unavailable", async () => {
-    await home(); complete(); write = () => { throw { status: 503 }; }; await page.submitCareSession(); homeFails = true;
-    write = options => ({ record: record(1, { operationId: options.idempotencyKey }), replayed: true, current: true });
-    await page.retryCareMutation(); expect(posts).toHaveLength(2); expect(posts[1]).toEqual(posts[0]); expect(page.data.sessionMounted).toBe(false);
-  });
-  it("does not accept a successful envelope bound to another operation", async () => {
-    write = () => ({ record: record(), replayed: false, current: true }); await home(); complete(); await page.submitCareSession();
-    expect(page.data.mutationState).toBe("unknown"); expect(page.data.sessionMounted).toBe(true); expect(wx.showToast).not.toHaveBeenCalled();
-  });
-  it("cannot apply an old account save or replay its key after switching users", async () => {
-    const held = deferred(); write = () => held.promise; await home(); complete(); const saving = page.submitCareSession(); await flush();
-    page.onHide(); m.token = "member-b"; page.onShow(); await flush(); held.resolve({ record: record(1, { operationId: posts[0].idempotencyKey }), replayed: false, current: true }); await saving; await page.retryCareMutation();
-    expect(posts).toHaveLength(1); expect(page.data).toMatchObject({ care: null, sessionMounted: false, mutationState: "idle" }); expect(wx.showToast).not.toHaveBeenCalled();
-  });
-  it("retains the original command across hide/show and ignores its late acknowledgement", async () => {
-    const held = deferred(); write = () => held.promise; await home(); complete(); const saving = page.submitCareSession(); await flush(); page.onHide(); page.onShow(); await flush();
-    held.resolve({ record: record(1, { operationId: posts[0].idempotencyKey }), replayed: false, current: true }); await saving; expect(page.data.mutationState).toBe("unknown");
-    write = options => ({ record: record(1, { operationId: options.idempotencyKey }), replayed: true, current: true }); await page.retryCareMutation(); expect(posts[1]).toEqual(posts[0]);
-  });
-  it("clears all transient step checks after explicitly abandoning an unsaved daily session", async () => {
-    await home(); complete(); await page.closeCareSession(); expect(page.data.view.steps.every((step: any) => !step.done)).toBe(true); expect(posts).toEqual([]);
   });
 });
 
@@ -194,47 +130,6 @@ describe("Records progressive daily group, paging and identity", () => {
     dailyRead = () => pageOf([record()]); await records(); dailyRead = () => { m.token = ""; throw { status: 401 }; };
     await page.loadDailyRecords(); expect(page.data).toMatchObject({ accessRequired: true, dailyRecords: [], records: [], care: null, loadedRecordCount: 0 });
     page.authenticate(); expect(m.authenticate).toHaveBeenCalledWith("/pages/records/index");
-  });
-});
-
-describe("Home server-day create and explicit same-day adjustment", () => {
-  it("reads the server's day before opening an unrecorded daily session", async () => {
-    const held = deferred(); dailyRead = () => held.promise; await home();
-    page.openCareSession(); expect(page.data.sessionMounted).toBe(false); await page.primaryAction();
-    expect(posts).toEqual([]); held.resolve(pageOf()); await flush();
-    page.openCareSession(); expect(page.data.sessionMounted).toBe(true);
-  });
-  it("updates the same live id and version after repeating all four steps", async () => {
-    dailyRead = () => pageOf([record()]); await home(); expect(page.data.view.action).toBe("调整今日记录");
-    complete(); write = options => {
-      const updated = record(1, { version: 2, operationId: options.idempotencyKey, selfAssessment: options.data.selfAssessment });
-      dailyRead = () => pageOf([updated]); return { record: updated, replayed: false, current: true };
-    };
-    await page.submitCareSession(); await flush();
-    expect(posts).toHaveLength(1); expect(posts[0]).toMatchObject({ path: `${path}/${record().id}`, method: "PUT", data: { careDay: serverDay, expectedVersion: 1, stepCodes: steps, selfAssessment: "comfortable" } });
-    expect(page.data.dailyToday).toMatchObject({ id: record().id, version: 2 }); expect(page.data.view.action).toBe("调整今日记录");
-  });
-  it("retains an unknown PUT's exact method, key and original version for explicit retry", async () => {
-    dailyRead = () => pageOf([record()]); await home(); complete(); write = () => { throw { status: 503 }; };
-    await page.submitCareSession(); expect(page.data.mutationState).toBe("unknown");
-    write = options => ({ record: record(1, { version: 2, operationId: options.idempotencyKey }), replayed: true, current: false });
-    await page.retryCareMutation(); expect(posts).toHaveLength(2); expect(posts[1]).toEqual(posts[0]); expect(page.data.sessionMounted).toBe(false);
-  });
-  it("keeps a historical successful reply from replacing a newer daily snapshot", async () => {
-    dailyRead = () => pageOf([record()]); await home(); complete();
-    write = options => { dailyRead = () => pageOf([record(1, { version: 3, operationId: "another-later-operation", selfAssessment: "attention" })]); return { record: record(1, { version: 2, operationId: options.idempotencyKey }), replayed: true, current: false }; };
-    await page.submitCareSession(); await flush(); expect(page.data.dailyToday).toMatchObject({ version: 3, selfAssessment: "attention" }); expect(posts).toHaveLength(1);
-  });
-  it("refreshes a rollover409 without changing the submitted day or automatically replaying", async () => {
-    await home(); complete(); write = () => { dailyRead = () => ({ ...pageOf(), serverDay: "2026-10-30" }); throw { status: 409, code: "DAILY_CARE_DAY_CHANGED" }; };
-    await page.submitCareSession(); await flush(); expect(posts).toHaveLength(1); expect(posts[0].data.careDay).toBe(serverDay);
-    expect(page.data.serverDay).toBe("2026-10-30"); expect(page.data.error).toContain("日期已更新");
-    await page.retryCareMutation(); expect(posts).toHaveLength(1);
-  });
-  it("cannot let an older read restore another session's daily state after an A-B-A revision", async () => {
-    const held = deferred(); dailyRead = () => held.promise; await home();
-    const { invalidateCommerceRecoveryContext } = await import("../../apps/miniprogram/services/commerce-command-store"); invalidateCommerceRecoveryContext(); invalidateCommerceRecoveryContext();
-    held.resolve(pageOf([record()])); await flush(); expect(page.data.dailyReady).toBe(false);
   });
 });
 

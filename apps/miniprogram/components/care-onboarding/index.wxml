@@ -21,7 +21,12 @@
             <view class="care-onboarding-options {{question.id === 'buying_habit' ? 'care-onboarding-options--list' : ''}}">
               <button wx:for="{{options}}" wx:key="value" class="care-onboarding-option {{item.selected ? 'is-selected' : ''}}" hover-class="care-onboarding-pressed" bindtap="choose" data-value="{{item.value}}" disabled="{{busy || unknown}}" aria-role="{{question.multiple ? 'checkbox' : 'radio'}}" aria-checked="{{item.selected}}"><text>{{item.label}}</text><image wx:if="{{item.selected}}" src="/assets/icons/check-white.svg" mode="aspectFit" aria-hidden="true"/></button>
             </view>
-            <button wx:if="{{question.optional}}" class="care-onboarding-skip" bindtap="skip" disabled="{{busy || unknown}}">跳过本题</button>
+            <view wx:if="{{question.id === 'age_group' && !completed && birthdaySupported}}" class="care-birthday-field">
+              <text class="care-birthday-label">生日<text> · 选填月日</text></text>
+              <picker mode="multiSelector" range="{{birthdayRanges}}" value="{{birthdayIndex}}" bindcolumnchange="birthdayColumn" bindchange="chooseBirthday" disabled="{{busy || unknown || birthdayLocked}}"><view class="care-birthday-value">{{birthday ? birthdayLabel : '选择生日月日'}}<text>›</text></view></picker>
+              <button wx:if="{{birthday}}" class="care-birthday-clear" bindtap="clearBirthday" disabled="{{busy || unknown}}">清空生日</button>
+            </view>
+            <button wx:if="{{question.optional}}" class="care-onboarding-skip" bindtap="skip" disabled="{{busy || unknown}}">{{question.id === 'age_group' ? '跳过年龄段' : '跳过本题'}}</button>
             <button wx:if="{{completed && healthChoice === 'granted'}}" class="care-onboarding-skip" bindtap="openSensitiveChoice" disabled="{{busy || unknown}}">修改护理情况授权</button>
             <text wx:if="{{question.id === 'preference'}}" class="care-onboarding-note">本次保存你的选品偏好，不会创建兑换订单或占用库存。</text>
             </view>

@@ -426,7 +426,7 @@ describe("mini-program page behavior", () => {
     vi.useFakeTimers();
     await vi.importActual("../../apps/miniprogram/pages/home/index");
     const tab = { setPresentation: vi.fn() };
-    const page = mountedPage(capturedPage!, { care: null, working: false, authorityAvailable: true, reducedMotion: false, dailyReady:true, serverDay:"2026-10-29" });
+    const page = mountedPage(capturedPage!, { care: null, working: false, authorityAvailable: true, reducedMotion: false, usageReady:true, usageDay:"2026-10-29" });
     page.getTabBar = () => tab;
 
     page.openCareSession();
@@ -691,13 +691,16 @@ describe("mini-program page behavior", () => {
     await vi.importActual("../../apps/miniprogram/pages/home/index");
     const page = capturedPage!;
     const care = { id: "cycle-1", version: 4, phase: "active", due: "D7", next: "D7", completed: ["D1"], records: [] };
-    const context = mountedPage(page, { pageAlive: true, care, authorityAvailable: true, working: false });
+    const context = mountedPage(page, { pageAlive: true, care, authorityAvailable: true, working: false, usageReady: true, usageDay: "2026-10-29" });
     const act = vi.fn(async () => true);
     const resetCareSession = vi.fn();
     context.act = act;
     context.resetCareSession = resetCareSession;
 
     page.openCareSession.call(context);
+    expect(context.data.sessionStage).toBe("usage");
+    page.toggleCareProduct.call(context,{currentTarget:{dataset:{id:"essence"}}});
+    await page.continueCareUsage.call(context);
     expect(context.data.sessionStep.code).toBe("00");
     expect(context.data.view.signalTitle).toBe("完成后保存第 2 次护理");
     for (let index = 0; index < 4; index += 1) page.advanceCareStep.call(context);
@@ -709,18 +712,18 @@ describe("mini-program page behavior", () => {
     await page.submitCareSession.call(context);
 
     expect(act).toHaveBeenCalledWith(
-      "/v1/care-cycles/cycle-1/milestones/D7/complete",
-      "care-milestone-cycle-1-D7-v4",
-      { expectedVersion: 4, stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable" }
+      "/v1/care-cycles/cycle-1/milestones/D7/complete-with-usage",
+      "care-milestone-usage-cycle-1-D7-v4",
+      { expectedVersion: 4, stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable", dailyUsage: {products:["essence"],note:"",serverDay:"2026-10-29"} }
     );
     expect(resetCareSession).toHaveBeenCalledTimes(1);
-    expect(wxMock.vibrateShort).toHaveBeenCalledTimes(6);
+    expect(wxMock.vibrateShort).toHaveBeenCalledTimes(7);
   });
 
-  it("saves a complete daily care intent without creating a dedicated cycle", async () => {
+  it("saves essence-only product use without inventing four-step completion or a cycle", async () => {
     await vi.importActual("../../apps/miniprogram/pages/home/index");
     const page = capturedPage!;
-    const context = mountedPage(page, { pageAlive: true, care: null, authorityAvailable: true, loading: false, working: false, dailyReady:true, serverDay:"2026-10-29" });
+    const context = mountedPage(page, { pageAlive: true, care: null, authorityAvailable: true, loading: false, working: false, usageReady:true, usageDay:"2026-10-29" });
     const resetCareSession = vi.fn(page.resetCareSession.bind(context));
     context.resetCareSession = resetCareSession;
     const act = vi.fn().mockResolvedValue({ record: { source: "daily" }, replayed: false });
@@ -733,14 +736,14 @@ describe("mini-program page behavior", () => {
     expect(context.data.sessionLabel).toBe("DAILY CARE");
     expect(context.data.sessionSubmitLabel).toBe("保存今日记录");
     expect(wxMock.navigateTo).not.toHaveBeenCalled();
-    for (let index = 0; index < 4; index += 1) page.advanceCareStep.call(context);
-    page.selectAssessment.call(context, { currentTarget: { dataset: { value: "comfortable" } } });
-    await page.submitCareSession.call(context);
+    page.toggleCareProduct.call(context,{currentTarget:{dataset:{id:"essence"}}});
+    await page.continueCareUsage.call(context);
+    expect(act).toHaveBeenCalledWith("/v1/me/points/checkin",expect.any(String),{products:["essence"],note:"",serverDay:"2026-10-29"});
+    expect(context.data.sessionCompletedCodes).toEqual([]);
 
     expect(resetCareSession).toHaveBeenCalledTimes(1);
-    expect(act).toHaveBeenCalledWith("/v1/me/daily-care-records", expect.stringMatching(/^daily-care-/), { careDay:"2026-10-29", stepCodes: ["00", "01", "02", "03"], selfAssessment: "comfortable" }, false, "POST");
     expect(act).toHaveBeenCalledTimes(1);
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "护理已保存", icon: "success" });
+    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "今日护理已记录", icon: "success" });
   });
 
   it("requires explicit confirmation before activating a planned Home care cycle", async () => {

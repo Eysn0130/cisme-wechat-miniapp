@@ -46,3 +46,8 @@ button::after{border:0;}
 @media(max-height:740px){.care-onboarding-photo{height:76px;}.care-onboarding-brand{bottom:12px;font-size:1.5rem;}.care-onboarding-content{padding-top:14px;}.care-onboarding-question{font-size:1.5rem;}.care-onboarding-selection{margin-top:14px;}.care-onboarding-footer{padding-bottom:14px;}}
 @media(max-width:350px){.care-onboarding-dialog{right:10px;left:10px;}.care-onboarding-heading{padding-right:16px;padding-left:16px;}.care-onboarding-content{padding-right:16px;padding-left:16px;}.care-onboarding-footer{padding-right:16px;padding-left:16px;}.care-onboarding-option{font-size:.875rem;}}
 @media(prefers-reduced-motion:reduce){.care-onboarding-mask,.care-onboarding-dialog,.care-onboarding-form{animation:none;}.care-onboarding-root button{transition:none;transform:none!important;}}
+
+.care-birthday-field{margin-top:20px;padding-top:16px;border-top:1px solid rgba(86,53,102,.1)}
+.care-birthday-label{display:block;color:#423149;font-size:15px;line-height:1.5}.care-birthday-label text{color:#8a7b91;font-size:12px}
+.care-birthday-value{display:flex;justify-content:space-between;align-items:center;min-height:48px;margin-top:8px;padding:0 14px;border:1px solid rgba(86,53,102,.12);border-radius:12px;background:#faf7fb;color:#50375f;font-size:15px}
+.care-birthday-clear{min-height:44px;margin:4px 0 0;padding:0;background:transparent;color:#795987;text-align:left;font-size:13px}

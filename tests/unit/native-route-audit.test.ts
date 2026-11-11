@@ -11,6 +11,7 @@ describe("native route source audit", () => {
     expect(audit.routes.find(row => row.route === "pages/points/index")).toMatchObject({
       access: "member", sourceMarkers: { memberAccessCall: true, snapshotOwnerCall: true }
     });
-    expect(audit.routes.find(row => row.route === "pages/points/index")?.apiPathExpressions).toContain("/v1/me/points/checkin");
+    expect(audit.routes.find(row => row.route === "pages/points/index")?.apiPathExpressions).not.toContain("/v1/me/points/checkin");
+    expect(audit.routes.find(row => row.route === "pages/home/index")?.serviceCallsites).toContain("readCareUsage");
   });
 });

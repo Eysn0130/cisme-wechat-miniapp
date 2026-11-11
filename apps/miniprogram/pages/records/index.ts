@@ -1,3 +1,4 @@
+import { readCareUsageHistory, careProducts, type CareUsageRecord } from '../../services/care-usage';
 import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
@@ -242,6 +243,7 @@ Page({
   lastSessionToken: undefined as string | undefined,
   lastSessionRevision: 0,
   data: {
+    usageRecords: [] as Array<CareUsageRecord & { productLabel: string }>, usageTotal: 0, usageReady: false, usageLoading: false, usageError: "", usageBefore: null as string | null, usageAttempt: 0,
     openDailyKey: "", draggingDailyKey: "", dailyMutationState: "idle" as "idle" | "sending" | "unknown", dailyMutationError: "", confirmingDailyDelete: false, undoAvailable: false,
     ...emptyDaily, dailyAttempt: 0, loadedRecordCount: 0, loadedRecordCountClass: "",
     care: null as any,
@@ -285,6 +287,7 @@ Page({
         visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null,
         working: false, workingAction: "", confirmingCycleAction: false, writeReady: false,
         authorityAvailable: false, accessRequired: !token, operationStatus: "", error: "", lastSyncedLabel: "",
+        usageRecords: [], usageTotal: 0, usageReady: false, usageLoading: false, usageError: "", usageBefore: null,
         ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "", dailyMutationState: "idle", dailyMutationError: "", confirmingDailyDelete: false, undoAvailable: false, openDailyKey: "", draggingDailyKey: "" });
       this.getTabBar?.()?.setData({ externalBusy: false }); wx.disableAlertBeforeUnload();
     }
@@ -346,7 +349,7 @@ Page({
     this.setData(preserveSnapshot && this.data.authorityAvailable
       ? { loadAttempt: attempt, loading: true, refreshing: true, accessRequired: false, error: "" }
       : { loadAttempt: attempt, care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary, selectedRecord: null, recordDetailOpen: false, loading: true, refreshing: false, authorityAvailable: false, accessRequired: false, loadedRecordCount: this.data.dailyRecords.length, loadedRecordCountClass: recordCountClass(this.data.dailyRecords.length), error: "" });
-    if (token) void this.loadDailyRecords();
+    if (token) { void this.loadDailyRecords(); void this.loadUsageRecords(); }
     try {
       const care = await pageRead<CareCycleApi | null>(this, { path: "/v1/me/care" });
       if (!this.sameSession(token, revision) || !this.data.visible || this.data.loadAttempt !== attempt) return false;
@@ -392,6 +395,26 @@ Page({
       loading: false, refreshing: false, error: "", ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "" });
     return true;
   },
+  async loadUsageRecords(more = false) {
+    if (!this.data.pageAlive || !this.data.visible || more && (this.data.usageLoading || !this.data.usageBefore)) return;
+    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = ++this.data.usageAttempt;
+    if (!token) return;
+    const current = () => this.sameSession(token, revision) && this.data.visible && this.data.usageAttempt === attempt;
+    const before = more ? this.data.usageBefore : null;
+    this.setData({ usageLoading: true, usageError: "" });
+    try {
+      const result = await readCareUsageHistory(this, before);
+      if (!current()) return;
+      const rows = result.items.map(row => ({ ...row, productLabel: careProducts.filter(p => row.products.includes(p.id)).map(p => p.label).join('、') }));
+      const ids = new Set(more ? this.data.usageRecords.map(row => row.id) : []);
+      this.setData({ usageRecords: more ? this.data.usageRecords.concat(rows.filter(row => !ids.has(row.id))) : rows,
+        usageTotal: result.totalCount, usageReady: true, usageBefore: result.nextBefore });
+    } catch {
+      if (current()) this.setData({ usageError: "每日产品记录暂未更新，请重试。" });
+    } finally { if (current()) this.setData({ usageLoading: false }); }
+  },
+  retryUsageRecords() { void this.loadUsageRecords(); },
+  moreUsageRecords() { void this.loadUsageRecords(true); },
   async loadDailyRecords(more = false) {
     if (!this.data.pageAlive || !this.data.visible || this.data.dailyLoading || (more && (!this.data.dailyHasMore || !this.data.dailyCursor))) return;
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();

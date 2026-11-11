@@ -32,17 +32,33 @@
   <view wx:if="{{sessionMounted}}" class="care-session {{sessionVisible ? 'care-session--visible' : ''}} {{sessionClosing ? 'care-session--closing' : ''}} {{reducedMotion ? 'care-session--reduced' : ''}}" catchtap="closeCareSession" aria-label="本次护理步骤" aria-role="dialog" aria-modal="true">
     <view class="care-session__sheet" catchtap="stopPropagation">
       <view class="care-session__handle"></view>
-      <view class="care-session__topline"><view class="care-session__summary"><text class="care-session__milestone">{{sessionLabel}}</text><text class="care-session__progress" aria-live="polite">{{sessionProgressLabel}}</text></view><button class="care-session__close sheet-dismiss {{working ? 'control--disabled' : ''}}" bindtap="closeCareSession" disabled="{{working}}" aria-label="关闭护理步骤">关闭</button></view>
+      <view class="care-session__topline"><view class="care-session__summary"><text class="care-session__milestone">{{sessionLabel}}</text><text wx:if="{{sessionStage !== 'usage'}}" class="care-session__progress" aria-live="polite">{{sessionProgressLabel}}</text></view><button class="care-session__close sheet-dismiss {{working ? 'control--disabled' : ''}}" bindtap="closeCareSession" disabled="{{working}}" aria-label="关闭本次护理">关闭</button></view>
       <view wx:if="{{error || mutationState === 'unknown'}}" class="session-error" aria-live="assertive">
         <text>{{error || '保存结果尚未确认，请先查看最新记录。'}}</text>
         <button class="text-button {{working || loading ? 'control--disabled' : ''}}" bindtap="retryLoad" disabled="{{working || loading}}">刷新记录</button>
         <button wx:if="{{mutationState === 'unknown'}}" class="text-button {{working || loading ? 'control--disabled' : ''}}" bindtap="retryCareMutation" disabled="{{working || loading}}">重试保存</button>
       </view>
-      <view class="session-rail">
+      <view wx:if="{{sessionStage !== 'usage'}}" class="session-rail">
         <view class="session-rail__line"><view class="session-rail__fill" style="{{sessionProgressStyle}}"></view></view>
         <view wx:for="{{sessionSteps}}" wx:key="code" class="session-node {{item.done ? 'is-done' : ''}} {{item.current ? 'is-current' : ''}} {{item.justDone ? 'is-just-done' : ''}}"><view class="session-node__disc"><image wx:if="{{item.done}}" class="session-node__check" src="/assets/icons/check-white.svg" mode="aspectFit"/><text wx:else class="session-node__code">{{item.code}}</text></view><small class="session-node__label">{{item.label}}</small></view>
       </view>
-      <block wx:if="{{sessionStage === 'steps'}}">
+      <block wx:if="{{sessionStage === 'usage'}}">
+        <view class="session-usage">
+          <strong class="session-step__title">今天，如何照顾头皮？</strong>
+          <text class="session-step__instruction">选择今天用过的产品，可多选。</text>
+          <view class="usage-products" aria-label="今日使用产品，可多选">
+            <button wx:for="{{productOptions}}" wx:key="id" class="usage-product {{item.selected ? 'is-selected' : ''}} {{working || mutationState === 'unknown' ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="toggleCareProduct" disabled="{{working || mutationState === 'unknown'}}" aria-role="checkbox" aria-checked="{{item.selected}}">
+              <view class="usage-product__copy"><text class="usage-product__name">{{item.label}}</text><text class="usage-product__hint">{{item.hint}}</text></view>
+              <view class="usage-product__check"><image wx:if="{{item.selected}}" src="/assets/icons/check-white.svg" mode="aspectFit"/></view>
+            </button>
+          </view>
+          <view class="usage-note-label"><text>护理感受</text><text class="usage-note-label__optional">选填</text></view>
+          <textarea class="usage-note" value="{{sessionNote}}" bindinput="careNoteInput" maxlength="500" placeholder="留下一点今天的感受…" disabled="{{working || mutationState === 'unknown'}}" cursor-spacing="28" aria-label="护理感受，选填，最多500字"/>
+        </view>
+        <button class="session-primary {{!sessionProducts.length || working || mutationState === 'unknown' ? 'control--disabled' : ''}}" bindtap="continueCareUsage" disabled="{{!sessionProducts.length || working || mutationState === 'unknown'}}" loading="{{working}}">{{working ? '正在保存…' : sessionCycleDue ? '继续四步护理' : sessionSubmitLabel}}</button>
+        <text class="session-footnote">{{sessionCycleDue ? '完成四步并记录护理后感受，一起保存本次护理。' : '同一天调整记录不会重复获得打卡积分。'}}</text>
+      </block>
+      <block wx:elif="{{sessionStage === 'steps'}}">
         <view class="session-step" aria-live="polite">
           <text class="session-step__eyebrow">{{sessionStep.eyebrow}} · STEP {{sessionStep.code}}</text>
           <strong class="session-step__title">{{sessionStep.title}}</strong>

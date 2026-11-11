@@ -110,3 +110,13 @@ it('keeps native nickname-review refusal fail-closed and does not send a write',
  page.reviewNickname({detail:{pass:false}});await page.saveProfile({detail:{value:{nickname:'未审核名字'}}});
  expect(page.data.nicknameInvalid).toBe(true);expect(mocks.request).not.toHaveBeenCalled();
 });
+it('saves birthday with the same private profile CAS and accepts only the matching canonical receipt',async()=>{
+ page.data.birthdaySupported=true;page.chooseBirthday({detail:{value:[1,28]}});expect(page.data.birthday).toBe('02-29');expect(page.data.birthdayDirty).toBe(true);
+ mocks.request.mockResolvedValue({...saved,birthday_month_day:'02-29'});await page.saveProfile();expect(mocks.request.mock.calls[0]![0].data).toMatchObject({birthdayMonthDay:'02-29',expectedVersion:2});expect(page.data).toMatchObject({birthday:'02-29',birthdayDirty:false,profileDirty:false});
+});
+it('keeps birthday edits dirty if an older backend ignores them, rather than showing a false saved state',async()=>{
+ page.data.birthdaySupported=true;page.chooseBirthday({detail:{value:[10,9]}});await page.saveProfile();expect(page.data.birthdayDirty).toBe(true);expect(page.data.profileDirty).toBe(true);expect(wxMock.showToast).not.toHaveBeenCalled();
+});
+it('does not send a birthday write during an unrelated nickname edit',async()=>{
+ await page.saveProfile();expect(mocks.request.mock.calls[0]![0].data).not.toHaveProperty('birthdayMonthDay');
+});

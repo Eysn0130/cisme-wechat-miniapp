@@ -139,3 +139,47 @@ describe('private care account onboarding',()=>{
     expect((await pool.query('SELECT choice FROM member_care_consent_event WHERE member_id=$1',[a.id])).rows).toEqual([{choice:'granted'}]);
   });
 });
+
+describe('birthday belongs to registration and the canonical private account profile',()=>{
+  const completeBody=(version:number,birthday?:string|null)=>({questionnaireVersion:careQuestionnaireVersion,expectedVersion:version,currentQuestion:10,
+    answers:completedAnswers(),consentChoice:'declined',consentVersion:careConsentVersion,...(birthday===undefined?{}:{birthdayMonthDay:birthday})});
+  it('encrypts an optional birthday draft, allows correcting it, and registers it only when onboarding completes',async()=>{
+    const a=await actor();let r=await save(a,{...payload(),birthdayMonthDay:'02-29'});expect(r.statusCode,r.body).toBe(200);
+    expect(r.json().profile.birthdayMonthDay).toBe('02-29');expect((await get(a)).json()).toMatchObject({birthdayMonthDay:null,profile:{birthdayMonthDay:'02-29'}});
+    expect((await pool.query('SELECT 1 FROM member_points_profile WHERE member_id=$1',[a.id])).rowCount).toBe(0);
+    r=await save(a,{...payload(1),birthdayMonthDay:'03-01'});expect(r.statusCode,r.body).toBe(200);
+    const encrypted=(await pool.query('SELECT answers_encrypted FROM member_care_profile WHERE member_id=$1',[a.id])).rows[0].answers_encrypted;
+    expect(encrypted).not.toContain('03-01');
+    r=await save(a,completeBody(2),randomUUID(),true);expect(r.statusCode,r.body).toBe(200);expect(r.json().profile.birthdayMonthDay).toBe('03-01');
+    const profile=await app.inject({url:'/v1/me/profile',headers:headers(a)});expect(profile.json().birthday_month_day).toBe('03-01');
+    expect((await pool.query('SELECT birthday_change_after FROM member_points_profile WHERE member_id=$1',[a.id])).rows[0].birthday_change_after).toBeTruthy();
+    const {openPrivateCarePayload}=await import('../../services/api/src/careProfileStorage');
+    const row=(await pool.query('SELECT * FROM member_care_profile WHERE member_id=$1',[a.id])).rows[0];
+    expect(openPrivateCarePayload(config,row)).toEqual(normalizedCompletedAnswers());
+  });
+  function normalizedCompletedAnswers(){return Object.fromEntries(Object.entries(completedAnswers()).map(([id,value])=>[id,id==='source'?{status:'answered',values:['friend','doctor']}:value]));}
+  it.each(['2000-02-29','02-30','13-01','2-01',123])('rejects invalid/full-year birthday %j without creating any private draft',async birthday=>{
+    const a=await actor(),r=await save(a,{...payload(),birthdayMonthDay:birthday});expect(r.statusCode,r.body).toBe(422);expect((await get(a)).json().profile).toBeNull();
+  });
+  it('does not register a birthday when the rest of required onboarding fails',async()=>{
+    const a=await actor(),r=await save(a,{...payload(),birthdayMonthDay:'11-10'},randomUUID(),true);expect(r.statusCode).toBe(422);
+    expect((await pool.query('SELECT 1 FROM member_points_profile WHERE member_id=$1',[a.id])).rowCount).toBe(0);
+  });
+  it('invalidates unfinished birthday drafts when the owner clears account data, preventing stale resume from restoring it',async()=>{
+    const a=await actor();expect((await save(a,{...payload(),birthdayMonthDay:'11-10'})).statusCode).toBe(200);
+    const deleted=await app.inject({method:'PUT',url:'/v1/me/profile',headers:headers(a),payload:{displayName:'合成建档会员',expectedVersion:0,birthdayMonthDay:null}});
+    expect(deleted.statusCode,deleted.body).toBe(200);expect(deleted.json().birthday_month_day).toBeNull();
+    const read=(await get(a)).json();expect(read.profile).toMatchObject({version:2,birthdayMonthDay:null});
+    const stale=await save(a,completeBody(1,'11-10'),randomUUID(),true);expect(stale.json().code).toBe('CARE_PROFILE_CHANGED');
+    expect((await app.inject({url:'/v1/me/profile',headers:headers(a)})).json().birthday_month_day).toBeNull();
+  });
+  it('uses one annual fence across registration/settings/legacy points, rolls back mixed profile edits, and permits deletion without a second copy',async()=>{
+    const a=await actor();expect((await save(a,completeBody(0,'02-29'),randomUUID(),true)).statusCode).toBe(200);
+    const changed=await app.inject({method:'PUT',url:'/v1/me/profile',headers:headers(a),payload:{displayName:'不应写入的改名',expectedVersion:0,birthdayMonthDay:'03-01'}});
+    expect(changed.json().code).toBe('POINTS_BIRTHDAY_LOCKED');expect((await pool.query('SELECT display_name FROM member WHERE id=$1',[a.id])).rows[0].display_name).toBe('合成建档会员');
+    const removed=await app.inject({method:'PUT',url:'/v1/me/profile',headers:headers(a),payload:{displayName:'合成建档会员',expectedVersion:0,birthdayMonthDay:null}});expect(removed.statusCode,removed.body).toBe(200);
+    expect((await get(a)).json().profile.birthdayMonthDay).toBeNull();
+    const reset=await app.inject({method:'PUT',url:'/v1/me/points/birthday',headers:headers(a),payload:{monthDay:'02-29'}});expect(reset.json().code).toBe('POINTS_BIRTHDAY_LOCKED');
+    const other=await actor();expect((await app.inject({url:'/v1/me/profile',headers:headers(other)})).json().birthday_month_day).toBeNull();
+  });
+});

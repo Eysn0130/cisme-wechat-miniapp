@@ -217,3 +217,42 @@ describe('member club points closed loop',()=>{
  });
 
 });
+
+describe('Care product-use entry and atomic cycle completion',()=>{
+ async function cycle(a:any){
+  const fact=(await pool.query("INSERT INTO qualification_fact(member_id,source,external_ref,occurred_at) VALUES($1,'synthetic-care-flow',$2,$3) RETURNING id",[a.memberId,randomUUID(),base])).rows[0];
+  return (await pool.query("INSERT INTO care_cycle(member_id,qualification_fact_id,phase,started_on,timezone,protocol_version) VALUES($1,$2,'active',$3,'Asia/Shanghai','care-r0-v1') RETURNING *",[a.memberId,fact.id,pointDay(base)])).rows[0];
+ }
+ const usage=(version?:number)=>({products:['net_run','essence'],note:'今天使用后头皮感觉清爽舒适',serverDay:pointDay(base),...(version?{expectedVersion:version}:{})});
+ const details=(dailyUsage:any)=>({expectedVersion:1,stepCodes:['00','01','02','03'],selfAssessment:'comfortable',dailyUsage});
+ const complete=(a:any,c:any,input:any,key=randomUUID())=>app.inject({method:'POST',url:`/v1/care-cycles/${c.id}/milestones/D1/complete-with-usage`,headers:headers(a,key),payload:input});
+ it('stores owner-only product days with pagination and private feelings without creating four-step facts',async()=>{
+  const a=await actor(),other=await actor();for(let i=0;i<3;i++)expect((await checkin(a,day(i))).statusCode).toBe(200);
+  const first=await get(a,'/v1/me/care-usage-records?limit=2');expect(first.statusCode,first.body).toBe(200);expect(first.headers['cache-control']).toBe('private, no-store');
+  const p=first.json();expect(p).toMatchObject({totalCount:3,nextBefore:pointDay(day(1))});expect(p.items.map((r:any)=>r.careDay)).toEqual([pointDay(day(2)),pointDay(day(1))]);expect(p.items[0]).toMatchObject({products:['essence'],note:'今天护理后头皮感觉舒适清爽'});expect(p.items[0]).not.toHaveProperty('stepCodes');
+  const next=(await get(a,'/v1/me/care-usage-records?limit=2&before='+p.nextBefore)).json();expect(next.items).toHaveLength(1);expect(next.nextBefore).toBeNull();expect((await get(other,'/v1/me/care-usage-records')).json().totalCount).toBe(0);
+  expect((await app.inject({url:'/v1/me/care-usage-records'})).statusCode).toBe(401);expect((await get(a,'/v1/me/care-usage-records?before=2026-02-30')).statusCode).toBe(422);
+  expect((await pool.query('SELECT 1 FROM daily_care_record WHERE member_id=$1',[a.memberId])).rowCount).toBe(0);
+ });
+ it('persists selected products and all ordered four-step facts in one transaction, replays exactly once and shares the day reward',async()=>{
+  const a=await actor(),c=await cycle(a),key=randomUUID(),body=details(usage());
+  const results=await Promise.all([complete(a,c,body,key),complete(a,c,body,key)]);results.forEach(r=>expect(r.statusCode,r.body).toBe(200));
+  expect((await pool.query('SELECT step_code FROM care_record_step s JOIN care_record r ON r.id=s.record_id WHERE r.cycle_id=$1 ORDER BY sequence',[c.id])).rows.map(r=>r.step_code)).toEqual(['00','01','02','03']);
+  expect((await get(a,'/v1/me/points/club')).json().today).toMatchObject({products:['essence','net_run'],operationId:`cycle-usage:${c.id}:D1:1`,version:1});expect((await invariant(a)).available).toBe(15);
+  await processMemberPointSources(pool,base,100);expect((await invariant(a)).available).toBe(15);
+  const adjusted=await checkin(a,base,randomUUID(),{...usage(1),products:['essence']});expect(adjusted.statusCode,adjusted.body).toBe(200);expect((await invariant(a)).available).toBe(15);
+ });
+ it('does not partially complete a cycle or pay points when selected products are stale or invalid',async()=>{
+  const a=await actor(),c=await cycle(a);expect((await checkin(a)).statusCode).toBe(200);
+  const before=(await invariant(a)).available;
+  for(const body of [details(usage()),details({...usage(1),products:[]}),details({...usage(1),serverDay:pointDay(day(-1))}),{...details(usage(1)),stepCodes:['00','02','01','03']},details(undefined)]){
+   const r=await complete(a,c,body);expect(r.statusCode,r.body).toBeGreaterThanOrEqual(400);
+   expect((await pool.query('SELECT 1 FROM care_record WHERE cycle_id=$1',[c.id])).rowCount).toBe(0);expect((await pool.query('SELECT version FROM care_cycle WHERE id=$1',[c.id])).rows[0].version).toBe(1);
+   expect((await invariant(a)).available).toBe(before);
+  }
+ });
+ it('stores private care when no points policy is active, without inventing rewards or blocking the record',async()=>{
+  const a=await actor(),beforePolicy=new Date(base.getTime()-20000),r=await checkin(a,beforePolicy,randomUUID(),{serverDay:pointDay(beforePolicy)});expect(r.statusCode,r.body).toBe(200);
+  expect((await get(a,'/v1/me/care-usage-records')).json().totalCount).toBe(1);expect((await invariant(a)).available).toBe(0);
+ });
+});

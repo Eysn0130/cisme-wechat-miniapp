@@ -364,6 +364,7 @@ paths:
                 wechatHandle: {type: string, maxLength: 20}
                 avatarDataUrl: {type: [string, 'null'], maxLength: 100000, description: JPEG data URI only; decoded with dimension/memory limits and re-encoded as a 128-pixel thumbnail. External and temporary URLs are rejected.}
                 communityVisible: {type: boolean}
+                birthdayMonthDay: {$ref: '#/components/schemas/BirthdayMonthDay'}
                 expectedVersion: {type: integer, minimum: 0}
       responses: {'200': {description: Saved own profile with incremented revision}, '409': {description: Profile changed; reload before retry}, '422': {description: Invalid nickname or avatar}}
   /v1/team/member-profiles:
@@ -763,6 +764,25 @@ paths:
       parameters: [{$ref: '#/components/parameters/CycleId'}, {name: milestone, in: path, required: true, schema: {$ref: '#/components/schemas/Milestone'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CareMilestoneCommandInput'}}}}
       responses: {'200': {description: Versioned milestone record and optional task, or exact command replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/care-cycles/{cycleId}/milestones/{milestone}/complete-with-usage:
+    post:
+      tags: [Care]
+      operationId: completeCareMilestoneWithUsage
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/CycleId'}, {name: milestone, in: path, required: true, schema: {$ref: '#/components/schemas/Milestone'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/CareMilestoneCommandInput'}, {type: object, required: [dailyUsage]}]}}}}
+      responses: {'200': {description: Versioned milestone record and optional task, or exact command replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/me/care-usage-records:
+    get:
+      tags: [Care]
+      operationId: getMemberCareUsageRecords
+      security: [{session: []}]
+      parameters:
+        - {name: before, in: query, schema: {type: string, format: date}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}
+      responses:
+        '200': {description: Owner-only product-use days and decrypted private feelings, descending Shanghai date, with totalCount and nextBefore; no four-step completion is inferred}
+        '422': {$ref: '#/components/responses/Problem'}
   /v1/me/tasks:
     get: {"tags":["Read models"],"operationId":"getEligibleTasks","security":[{"session":[]}],"responses":{"200":{"description":"Member-owned effective invitations"}},"deprecated":true,"description":"Removed pre-publication workflow. Authorized legacy clients receive an empty list; no new review or task is offered."}
   /v1/tasks/{taskId}:
@@ -2649,6 +2669,9 @@ components:
         answers: {$ref: '#/components/schemas/CareProfileAnswers'}
         consentChoice: {type: string, enum: [granted, declined]}
         consentVersion: {const: care-profile-sensitive-v1}
+        birthdayMonthDay: {$ref: '#/components/schemas/BirthdayMonthDay'}
+    BirthdayMonthDay: {type: [string, 'null'], pattern: '^\d{2}-\d{2}$', description: Optional valid month and day without year; registration drafts stay encrypted until completion, later editable in private profile under the annual setting fence}
+    CareUsageInput: {type: object, additionalProperties: false, required: [products, serverDay], properties: {products: {type: array, minItems: 1, maxItems: 3, uniqueItems: true, items: {enum: [net_run, net_xie, essence]}}, note: {type: string, maxLength: 500}, serverDay: {type: string, format: date}, expectedVersion: {type: integer, minimum: 1}}}
     CareProfile:
       type: object
       required: [version, questionnaireVersion, required, currentQuestion, latestOperationId, answers, healthChoice, completedAt, updatedAt]
@@ -2762,7 +2785,7 @@ components:
     DailyCareVersionInput: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}
     DailyCareRecordResult: {type: object, required: [record, replayed, current], properties: {current: {type: boolean, description: False when this acknowledged operation was superseded; never applies the old content again}, record: {$ref: '#/components/schemas/DailyCareRecord'}, replayed: {type: boolean}}}
     DailyCareRecordPage: {type: object, required: [items, loadedCount, hasMore, nextCursor, serverDay, today, totalCount], properties: {serverDay: {type: string, format: date}, today: {oneOf: [{$ref: '#/components/schemas/DailyCareRecord'}, {type: 'null'}]}, totalCount: {type: integer, minimum: 0}, items: {type: array, items: {$ref: '#/components/schemas/DailyCareRecord'}}, loadedCount: {type: integer, minimum: 0}, hasMore: {type: boolean}, nextCursor: {type: [string, 'null']}}}
-    CareMilestoneCommandInput: {type: object, additionalProperties: false, required: [expectedVersion, stepCodes, selfAssessment], properties: {expectedVersion: {type: integer, minimum: 1}, stepCodes: {type: array, minItems: 4, maxItems: 4, prefixItems: [{const: '00'}, {const: '01'}, {const: '02'}, {const: '03'}], items: false}, selfAssessment: {type: string, enum: [comfortable, neutral, attention]}}}
+    CareMilestoneCommandInput: {type: object, additionalProperties: false, required: [expectedVersion, stepCodes, selfAssessment], properties: {expectedVersion: {type: integer, minimum: 1}, stepCodes: {type: array, minItems: 4, maxItems: 4, prefixItems: [{const: '00'}, {const: '01'}, {const: '02'}, {const: '03'}], items: false}, selfAssessment: {type: string, enum: [comfortable, neutral, attention]}, dailyUsage: {$ref: '#/components/schemas/CareUsageInput'}}}
     Uuid: {type: string, format: uuid}
     Id: {type: object, required: [id], properties: {id: {$ref: '#/components/schemas/Uuid'}}}
     Milestone: {type: string, enum: [D1, D7, D14, D28]}

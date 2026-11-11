@@ -1,3 +1,5 @@
+import {saveMemberUsage,privateUsageDigest} from './memberPointsClub.js';
+import {lockPointWallet} from './pointsLedger.js';
 import {memberCardNumberProjection} from './memberCard.js';
 import { taskProofRetired } from "./taskProofRetired.js";
 import { requireActiveUploadOwner } from "./uploadAuthority.js";
@@ -392,8 +394,9 @@ export class PlatformService {
         operation: "care.milestone.complete",
         idempotencyKey,
         businessKey: `care:${cycleId}:${milestone}:v${expectedVersion}:complete`,
-        requestHash: requestHash({ cycleId, milestone, ...(input ?? {}) })
+        requestHash: requestHash({ cycleId, milestone, ...(input ?? {}), ...(input?.dailyUsage!==undefined?{dailyUsage:privateUsageDigest(this.config,owner,input.dailyUsage)}:{}) })
       };
+      if(input?.dailyUsage!==undefined)await lockPointWallet(client,owner,true);
       let cycle = await this.lockCycle(client, cycleId, owner);
       const replay = await this.idempotencyLookup<Record<string, unknown>>(client, idem);
       if (replay) return replay;
@@ -409,6 +412,7 @@ export class PlatformService {
       const due = deriveDueMilestone(dateString(cycle.started_on), records.rows.map((row) => row.milestone), now, cycle.timezone, cycle.schedule_offset_days);
       if (!due) throw new DomainError("CARE_NO_DUE_MILESTONE", "No care milestone is due", 409);
       if (due !== milestone) throw new DomainError("CARE_MILESTONE_NOT_DUE", `${milestone} is not the current due milestone`, 409);
+      if(input?.dailyUsage!==undefined)await saveMemberUsage(client,this.config,owner,`cycle-usage:${cycleId}:${milestone}:${expectedVersion}`,input.dailyUsage,now);
       const recordId = randomUUID();
       const dueOn = milestoneDueOn(dateString(cycle.started_on)!, milestone, cycle.schedule_offset_days);
       await client.query(`INSERT INTO care_record(id, cycle_id, milestone, due_on, completed_at, protocol_version, self_assessment)
@@ -464,7 +468,7 @@ export class PlatformService {
 
   async getMember(memberId: string | undefined) {
     const owner = requireMember(memberId);
-    const member = await this.pool.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,m.display_name,m.status,m.created_at,p.avatar_data_url,p.avatar_revision,COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.public_status,'private') AS public_status,c.phone_masked FROM member m LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
+    const member = await this.pool.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.avatar_data_url,p.avatar_revision,COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.public_status,'private') AS public_status,c.phone_masked FROM member m LEFT JOIN member_points_profile bp ON bp.member_id=m.id LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
     if (!member.rows[0]) throw new DomainError("MEMBER_NOT_FOUND", "Member not found", 404);
     return member.rows[0];
   }
@@ -956,11 +960,11 @@ export class PlatformService {
     const owner = requireMember(memberId);
     if(scope==='profile')await transaction(this.pool,c=>sweepMemberPoints(c,owner,now));
     return readSnapshot(this.pool, async (client, asOf) => {
-      const member = await client.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,m.display_name,m.status,m.created_at,p.wechat_handle,p.avatar_data_url,p.avatar_revision,
+      const member = await client.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.wechat_handle,p.avatar_data_url,p.avatar_revision,
         COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.community_visible,false) AS community_visible,
         COALESCE(p.public_status,'private') AS public_status,p.public_review_note,c.phone_masked,c.bound_at,
         EXISTS(SELECT 1 FROM member_care_profile cp WHERE cp.member_id=m.id AND cp.required AND cp.completed_at IS NULL) AS care_onboarding_required
-        FROM member m LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
+        FROM member m LEFT JOIN member_points_profile bp ON bp.member_id=m.id LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
       const memberRow = member.rows[0];
       if (!memberRow || memberRow.status !== "active") throw new DomainError("AUTH_REVOKED", "Member session is no longer active", 401);
       const care = scope === "settings" ? null : await this.careSnapshot(client, owner, now, { limit: scope === "home" ? 5 : 10 });

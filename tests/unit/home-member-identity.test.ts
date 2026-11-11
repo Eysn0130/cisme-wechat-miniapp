@@ -23,6 +23,7 @@ beforeEach(async () => {
   mocks.token = "member-a"; mocks.bootstrap.mockResolvedValue(snapshot());
   mocks.request.mockImplementation(async ({ path }: { path: string }) => {
     if (path === "/v1/bootstrap/home") return mocks.bootstrap();
+    if (path === "/v1/me/points/club") return {serverDay:"2026-10-30",today:null,enabled:true,streak:0};
     if (path === "/v1/me/support/summary") return { unreadCount: 0 };
     if (path.startsWith("/v1/me/daily-care-records")) return {
       items: [], loadedCount: 0, hasMore: false, nextCursor: null,

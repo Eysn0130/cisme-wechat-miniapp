@@ -1,3 +1,5 @@
+import {sealPrivateCarePayload,openPrivateCarePayload} from './careProfileStorage.js';
+import {birthdayMonthDay,readMemberBirthday,saveMemberBirthday} from './memberBirthday.js';
 import {createCipheriv,createDecipheriv,createHash,createHmac,randomBytes} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
@@ -88,23 +90,22 @@ function key(config:AppConfig){
     throw new DomainError('CARE_PROFILE_STORAGE_UNAVAILABLE','护理档案安全存储暂不可用，请稍后重试',503);
   return Buffer.from(config.contacts.encryptionKey!,'hex');
 }
-function seal(config:AppConfig,memberId:string,answers:CareAnswers){
-  const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key(config),iv);cipher.setAAD(Buffer.from(`care-profile:${memberId}`));
-  const data=Buffer.concat([cipher.update(JSON.stringify(answers),'utf8'),cipher.final()]);
-  return Buffer.concat([iv,cipher.getAuthTag(),data]).toString('base64');
+function seal(config:AppConfig,memberId:string,answers:CareAnswers,birthdayDraft?:string|null){
+  return sealPrivateCarePayload(config,memberId,birthdayDraft===undefined?answers:{format:'care-registration-v1',answers,birthdayMonthDay:birthdayDraft});
 }
-export function openCareAnswers(config:AppConfig,row:Pick<Row,'member_id'|'answers_encrypted'|'key_version'|'health_choice'>):CareAnswers{
-  if(!row.answers_encrypted)return emptyCareAnswers();
-  if(row.key_version!==config.contacts.keyVersion)throw new DomainError('CARE_PROFILE_KEY_UNAVAILABLE','护理档案暂无法安全读取，请联系客服',503);
-  try{
-    const bytes=Buffer.from(row.answers_encrypted,'base64'),decipher=createDecipheriv('aes-256-gcm',key(config),bytes.subarray(0,12));
-    decipher.setAAD(Buffer.from(`care-profile:${row.member_id}`));decipher.setAuthTag(bytes.subarray(12,28));
-    return normalizeCareAnswers(JSON.parse(Buffer.concat([decipher.update(bytes.subarray(28)),decipher.final()]).toString('utf8')),row.health_choice);
-  }catch(e){if(e instanceof DomainError)throw e;throw new DomainError('CARE_PROFILE_UNREADABLE','护理档案暂无法安全读取，请联系客服',503);}
+function openCarePayload(config:AppConfig,row:Pick<Row,'member_id'|'answers_encrypted'|'key_version'|'health_choice'>):{answers:CareAnswers;birthdayMonthDay?:string|null}{
+  if(!row.answers_encrypted)return {answers:emptyCareAnswers()};
+  const value=openPrivateCarePayload(config,row);
+  return value?.format==='care-registration-v1'
+    ?{answers:normalizeCareAnswers(value.answers,row.health_choice),birthdayMonthDay:birthdayMonthDay(value.birthdayMonthDay)}
+    :{answers:normalizeCareAnswers(value,row.health_choice)};
 }
-function profile(config:AppConfig,row:Row|null){
+export function openCareAnswers(config:AppConfig,row:Pick<Row,'member_id'|'answers_encrypted'|'key_version'|'health_choice'>):CareAnswers{return openCarePayload(config,row).answers;}
+function profile(config:AppConfig,row:Row|null,canonicalBirthday?:string|null){
+  const payload=row?openCarePayload(config,row):null;
   return row?{version:row.version,questionnaireVersion:row.questionnaire_version,required:row.required&&!row.completed_at,
-    currentQuestion:row.current_question,latestOperationId:row.latest_operation_id,answers:openCareAnswers(config,row),healthChoice:row.health_choice,
+    currentQuestion:row.current_question,latestOperationId:row.latest_operation_id,answers:payload!.answers,
+    birthdayMonthDay:row.completed_at?canonicalBirthday:payload!.birthdayMonthDay===undefined?canonicalBirthday:payload!.birthdayMonthDay,healthChoice:row.health_choice,
     healthTextVersion:row.health_text_version,healthDecidedAt:row.health_decided_at?.toISOString()??null,
     completedAt:row.completed_at?.toISOString()??null,updatedAt:row.updated_at.toISOString()}:null;
 }
@@ -123,18 +124,20 @@ export class CareOnboardingService{
   async get(memberId:string|undefined){
     return transaction(this.pool,async client=>{
       const owner=await this.owner(client,memberId),row=(await client.query<Row>(careProfilePortableQuery,[owner])).rows[0]??null;
-      return {questionnaireVersion:careQuestionnaireVersion,questions:careQuestions,
-        sensitiveConsent:{version:careConsentVersion,text:careConsentText},profile:profile(this.config,row)};
+      const birthday=await readMemberBirthday(client,owner);
+      return {questionnaireVersion:careQuestionnaireVersion,questions:careQuestions,birthdayMonthDay:birthday.monthDay,birthdayChangeAfter:birthday.changeAfter,
+        sensitiveConsent:{version:careConsentVersion,text:careConsentText},profile:profile(this.config,row,birthday.monthDay)};
     });
   }
   async save(memberId:string|undefined,operationId:string,input:unknown,complete=false,at?:Date){
     if(typeof operationId!=='string'||operationId.length<8||operationId.length>200)throw new DomainError('IDEMPOTENCY_KEY_INVALID','操作编号无效',400);
-    const body=object(input,['questionnaireVersion','expectedVersion','currentQuestion','answers','consentChoice','consentVersion']);
+    const body=object(input,['questionnaireVersion','expectedVersion','currentQuestion','answers','consentChoice','consentVersion','birthdayMonthDay']);
     if(body.questionnaireVersion!==careQuestionnaireVersion)throw new DomainError('CARE_PROFILE_VERSION_CHANGED','问卷已更新，请重新加载',409);
     if(!Number.isSafeInteger(body.expectedVersion)||Number(body.expectedVersion)<0||!Number.isInteger(body.currentQuestion)
       ||Number(body.currentQuestion)<1||Number(body.currentQuestion)>10)invalid();
     if(body.consentChoice!==undefined&&(!['granted','declined'].includes(String(body.consentChoice))||body.consentVersion!==careConsentVersion))invalid('护理情况授权文本已更新，请重新选择');
     if(body.consentVersion!==undefined&&body.consentChoice===undefined)invalid();
+    if(body.birthdayMonthDay!==undefined)birthdayMonthDay(body.birthdayMonthDay);
     const action=complete?'complete':'save';
     // Answers have a small vocabulary. A plain payload digest would allow
     // dictionary guesses from database-only receipts even though answers are
@@ -151,11 +154,17 @@ export class CareOnboardingService{
         'SELECT request_sha256,applied_version FROM member_care_profile_operation WHERE member_id=$1 AND operation_id=$2',[owner,operationId])).rows[0];
       if(replay){
         if(replay.request_sha256!==requestHash)throw new DomainError('IDEMPOTENCY_CONFLICT','同一操作编号不能用于不同答案',409);
-        return {profile:profile(this.config,row),operationId,replayed:true,current:row?.version===replay.applied_version,appliedVersion:replay.applied_version};
+        return {profile:profile(this.config,row,(await readMemberBirthday(client,owner)).monthDay),operationId,replayed:true,current:row?.version===replay.applied_version,appliedVersion:replay.applied_version};
       }
       if((row?.version??0)!==body.expectedVersion)throw new DomainError('CARE_PROFILE_CHANGED','档案已在其他页面更新，请重新加载后核对',409);
       const health=(body.consentChoice??row?.health_choice??'unasked') as CareHealthChoice;
-      const answers=normalizeCareAnswers(body.answers,health,complete),encrypted=seal(this.config,owner,answers);
+      const answers=normalizeCareAnswers(body.answers,health,complete);
+      const previousDraft=row&&!row.completed_at?openCarePayload(this.config,row).birthdayMonthDay:undefined;
+      const birthdayDraft=body.birthdayMonthDay===undefined?previousDraft:birthdayMonthDay(body.birthdayMonthDay);
+      if(complete&&birthdayDraft!==undefined)await saveMemberBirthday(client,owner,birthdayDraft,now,this.config,true);
+      // A completed draft must not retain a second birthday copy after the
+      // canonical account field is deleted or changed later.
+      const encrypted=seal(this.config,owner,answers,complete||row?.completed_at?undefined:birthdayDraft);
       const consentChanged=body.consentChoice!==undefined&&body.consentChoice!==row?.health_choice;
       const result=await client.query<Row>(`INSERT INTO member_care_profile(member_id,version,questionnaire_version,current_question,answers_encrypted,key_version,latest_operation_id,
         health_choice,health_text_version,health_decided_at,completed_at,created_at,updated_at)
@@ -174,7 +183,7 @@ export class CareOnboardingService{
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
         VALUES($1,$2,'member_care_profile',$3,'MEMBER_CARE_PROFILE',$4,gen_random_uuid()::text)`,
         [`member:${owner}`,`care_profile.${action}`,owner,{version:row.version,questionnaireVersion:careQuestionnaireVersion}]);
-      return {profile:profile(this.config,row),operationId,replayed:false,current:true,appliedVersion:row.version};
+      return {profile:profile(this.config,row,(await readMemberBirthday(client,owner)).monthDay),operationId,replayed:false,current:true,appliedVersion:row.version};
     });
   }
 }

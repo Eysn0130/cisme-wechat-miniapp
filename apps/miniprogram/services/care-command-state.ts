@@ -14,7 +14,7 @@ export function careCommandConfirmed(command: CareCommand, care: CareFact | null
   const activate = /^\/v1\/care-cycles\/([^/]+)\/activate$/.exec(command.path);
   if (activate) return care.id === activate[1] && typeof care.startedOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(care.startedOn)
     && Number.isSafeInteger(command.data.expectedVersion) && care.version > command.data.expectedVersion;
-  const complete = /^\/v1\/care-cycles\/([^/]+)\/milestones\/(D1|D7|D14|D28)\/complete$/.exec(command.path);
+  const complete = /^\/v1\/care-cycles\/([^/]+)\/milestones\/(D1|D7|D14|D28)\/complete(?:-with-usage)?$/.exec(command.path);
   if (!complete || care.id !== complete[1]) return false;
   return Boolean(care.records?.some(record => record.milestone === complete[2]
     && typeof record.completedAt === "string" && Number.isFinite(Date.parse(record.completedAt))

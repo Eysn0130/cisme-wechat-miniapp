@@ -185,3 +185,14 @@ page { --cisme-text-micro:.6875rem; --cisme-text-small:.75rem; --cisme-text-body
 .review-calendar-empty { display:flex; align-items:center; justify-content:center; min-height:96px; padding:20px 16px; border:1rpx solid rgba(101,72,120,.05); border-radius:18px; color:#84728e; background:#fffdfd; font-size:.875rem; line-height:1.6; text-align:center; }
 @media (max-width:359px) { .review-week { margin-right:4px; margin-left:4px; padding-right:0; padding-left:0; } .review-week__head { padding-right:12px; padding-left:12px; } }
 @media (prefers-reduced-motion:reduce) { .review-week__day,.review-calendar-reset { transition:none; } }
+
+.usage-history { padding: 32rpx; margin-bottom: 28rpx; }
+.usage-history__head { display: flex; align-items: baseline; justify-content: space-between; gap: 20rpx; color: #49384f; font-size: var(--cisme-text-body); }
+.usage-history__count { color: #786881; font-size: var(--cisme-text-small); }
+.usage-history__row { padding: 26rpx 0; border-bottom: 1rpx solid #e9e1ec; }
+.usage-history__date,.usage-history__products,.usage-history__note { display: block; }
+.usage-history__date { color: #86738f; font-size: var(--cisme-text-small); font-variant-numeric: tabular-nums; }
+.usage-history__products { margin-top: 10rpx; color: #49384f; font-size: var(--cisme-text-body); line-height: 1.6; }
+.usage-history__note { margin-top: 12rpx; color: #776b7d; font-size: var(--cisme-text-small); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.usage-history__status { display: block; margin-top: 24rpx; color: #776b7d; font-size: var(--cisme-text-small); line-height: 1.7; }
+.usage-history__more { width: 100%; margin-top: 20rpx; }
