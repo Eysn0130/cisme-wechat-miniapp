@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "0417ae2f3e0de03198c97277f8b313b5570b87aaba8cb346b4ed6cdbbf8a1dde",
+  "packageSourceSha256": "c6491331943c475c8f98b0f2b77fbed10649c2cd65f43169bb7a613e30a2d893",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Owner retired the cycle/four-step history surface. Current Care records show product/date/note/source rewards only. Scoped evidence: docs/evidence/care-legacy-history-retired-20261111. All-route and physical-device matrices remain blocked; historical captures keep their original hashes.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-53beb67e565a.json",
+  "note": "Checkout points are an explicit opt-in, buyer copy is concise, shipping/returns disclose full order snapshots, and text actions have no border. Scoped current-source evidence: docs/evidence/commerce-polish-20261111. All-route and physical-device matrices remain blocked; original screenshots retain their source hashes.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-0417ae2f3e0d.json",
   "pendingSourceRebind": false
 }

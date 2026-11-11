@@ -1,0 +1,135 @@
+{
+  "observedAt": "2026-11-11T14:36:40.869078+00:00",
+  "probes": [
+    {
+      "origin": "https://api.cisme.cn",
+      "path": "/health/ready",
+      "status": 200,
+      "body": {
+        "status": "ready"
+      }
+    },
+    {
+      "origin": "https://api.cisme.cn",
+      "path": "/v1/commerce/orders/status",
+      "status": 200,
+      "body": {
+        "version": 2,
+        "orderFlowEnabled": false,
+        "paymentAvailable": false,
+        "paymentOnboarding": "IN_PROGRESS",
+        "currency": "CNY",
+        "scope": "formal_commerce",
+        "formalMoneyOperationsAvailable": false,
+        "formalRecoveryAvailable": true,
+        "isolatedMoneyOperationsAvailable": false,
+        "isolatedTransferAvailable": false,
+        "isolatedCreditCheckoutAvailable": false
+      }
+    },
+    {
+      "origin": "https://api.cisme.cn",
+      "path": "/v1/ugc/status",
+      "status": 200,
+      "body": {
+        "publicEnabled": false,
+        "draftsEnabled": true
+      }
+    },
+    {
+      "origin": "https://api.cisme.cn",
+      "path": "/v1/capabilities",
+      "status": 200,
+      "body": {
+        "version": 1,
+        "communityPreviewEnabled": false,
+        "socialPreviewEnabled": false,
+        "transactionProfile": null,
+        "pointsRedemptionEnabled": false,
+        "ugcGoLiveGate": false,
+        "pointsRulesEnabled": false,
+        "directMediaUploadEnabled": false
+      }
+    },
+    {
+      "origin": "https://api.cisme.cn",
+      "path": "/v1/identity/capabilities",
+      "status": 200,
+      "body": {
+        "phoneBindingEnabled": false,
+        "avatarSelection": "chooseAvatar"
+      }
+    },
+    {
+      "origin": "https://api.cisme.cn",
+      "path": "/v1/legal/current",
+      "error": "HTTPError",
+      "status": 401
+    },
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "path": "/health/ready",
+      "status": 200,
+      "body": {
+        "status": "ready"
+      }
+    },
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "path": "/v1/commerce/orders/status",
+      "status": 200,
+      "body": {
+        "version": 2,
+        "orderFlowEnabled": true,
+        "paymentAvailable": true,
+        "paymentOnboarding": "READY",
+        "currency": "CNY",
+        "scope": "formal_commerce",
+        "formalMoneyOperationsAvailable": true,
+        "formalRecoveryAvailable": true,
+        "isolatedMoneyOperationsAvailable": false,
+        "isolatedTransferAvailable": false,
+        "isolatedCreditCheckoutAvailable": false
+      }
+    },
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "path": "/v1/ugc/status",
+      "status": 200,
+      "body": {
+        "publicEnabled": true,
+        "draftsEnabled": true
+      }
+    },
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "path": "/v1/capabilities",
+      "status": 200,
+      "body": {
+        "version": 1,
+        "communityPreviewEnabled": false,
+        "socialPreviewEnabled": false,
+        "transactionProfile": null,
+        "pointsRedemptionEnabled": true,
+        "ugcGoLiveGate": true,
+        "pointsRulesEnabled": true,
+        "directMediaUploadEnabled": false
+      }
+    },
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "path": "/v1/identity/capabilities",
+      "status": 200,
+      "body": {
+        "phoneBindingEnabled": true,
+        "avatarSelection": "chooseAvatar"
+      }
+    },
+    {
+      "origin": "https://staging-api.cisme.cn",
+      "path": "/v1/legal/current",
+      "error": "HTTPError",
+      "status": 401
+    }
+  ]
+}

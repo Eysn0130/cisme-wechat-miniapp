@@ -47,7 +47,7 @@
 
 @media(max-width:350px){.club-gifts{grid-template-columns:minmax(0,1fr);}.club-card{padding:16px;}.club-streak{font-size:.75rem;}}
 
-.club-stepper{display:inline-flex;align-items:center;gap:14px;margin:18px 0;padding:3px;border:1px solid #dac7e3;border-radius:999px;background:#f5eef8;}
+.club-stepper{display:inline-flex;align-items:center;gap:14px;margin:18px 0;padding:3px;border:0;border-radius:0;background:transparent;}
 .club-stepper .club-text{flex:none;width:44px;min-height:44px;padding:0;font-size:1.25rem;}
 .club-stepper-value{min-width:56px;color:#3f2d4c;text-align:center;font-size:1rem;font-variant-numeric:tabular-nums;}
 .club-sheet--gift{top:auto;height:560px;max-height:calc(100vh - var(--cisme-topbar-height,64px) - var(--cisme-safe-bottom,0px) - 24px);}

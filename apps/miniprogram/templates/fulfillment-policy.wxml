@@ -1,0 +1,19 @@
+<template name="fulfillment-policy">
+  <view class="fulfillment-policy">
+    <view class="fulfillment-policy__head">
+      <strong>配送与售后</strong>
+      <button wx:if="{{policy.version==='cisme-launch-fulfillment-20260922-v1'}}" class="text-button" bindtap="toggleFulfillment" aria-expanded="{{open}}" aria-label="{{open?'收起配送与售后详情':'查看配送与售后详情'}}">{{open?'收起':'详情'}}</button>
+    </view>
+    <block wx:if="{{policy.version==='cisme-launch-fulfillment-20260922-v1'}}">
+      <text class="fulfillment-policy__summary">大陆包邮 · 72小时内发货</text>
+      <text class="fulfillment-policy__summary">7天无理由，退货条件见详情</text>
+    </block>
+    <view wx:if="{{open||policy.version!=='cisme-launch-fulfillment-20260922-v1'}}" class="fulfillment-policy__details">
+      <text>{{policy.shippingPromise}}</text>
+      <text>{{policy.dispatchPromise}}</text>
+      <text>{{policy.returnsPromise}}</text>
+      <text wx:if="{{policy.returnFreight.noReason==='consumer'}}">无理由退货运费由你承担。</text>
+      <text wx:if="{{policy.returnFreight.qualityWrongMissingTransport==='merchant_reasonable_cost'}}">质量、错发、漏发及运输问题的合理费用由商家承担。</text>
+    </view>
+  </view>
+</template>

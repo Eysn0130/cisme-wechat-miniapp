@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "c6491331943c475c8f98b0f2b77fbed10649c2cd65f43169bb7a613e30a2d893",
+  "scope": "Static copy and text-action scan; not an all-route native state/device pass",
+  "routes": [
+    {
+      "route": "pages/account/index",
+      "staticTextNodes": 22,
+      "sharedTextButtons": 5,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/home/index",
+      "staticTextNodes": 28,
+      "sharedTextButtons": 4,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/shop/index",
+      "staticTextNodes": 6,
+      "sharedTextButtons": 0,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/records/index",
+      "staticTextNodes": 38,
+      "sharedTextButtons": 6,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/community/index",
+      "staticTextNodes": 45,
+      "sharedTextButtons": 6,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/profile/index",
+      "staticTextNodes": 27,
+      "sharedTextButtons": 2,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/task/index",
+      "staticTextNodes": 2,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/submit/index",
+      "staticTextNodes": 2,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/progress/index",
+      "staticTextNodes": 2,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/points/index",
+      "staticTextNodes": 58,
+      "sharedTextButtons": 0,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/post/index",
+      "staticTextNodes": 49,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/product/index",
+      "staticTextNodes": 23,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/checkout/index",
+      "staticTextNodes": 33,
+      "sharedTextButtons": 3,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/orders/index",
+      "staticTextNodes": 7,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/order-detail/index",
+      "staticTextNodes": 83,
+      "sharedTextButtons": 12,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/settings/index",
+      "staticTextNodes": 69,
+      "sharedTextButtons": 7,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/invite/index",
+      "staticTextNodes": 21,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/legal/index",
+      "staticTextNodes": 6,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "staticTextNodes": 53,
+      "sharedTextButtons": 11,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/support/index",
+      "staticTextNodes": 40,
+      "sharedTextButtons": 2,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management/index",
+      "staticTextNodes": 49,
+      "sharedTextButtons": 2,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "staticTextNodes": 11,
+      "sharedTextButtons": 1,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-product/index",
+      "staticTextNodes": 39,
+      "sharedTextButtons": 0,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-orders/index",
+      "staticTextNodes": 6,
+      "sharedTextButtons": 1,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "staticTextNodes": 26,
+      "sharedTextButtons": 3,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-support/index",
+      "staticTextNodes": 9,
+      "sharedTextButtons": 1,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "staticTextNodes": 40,
+      "sharedTextButtons": 1,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-members/index",
+      "staticTextNodes": 30,
+      "sharedTextButtons": 3,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-member/index",
+      "staticTextNodes": 43,
+      "sharedTextButtons": 4,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/referral/index",
+      "staticTextNodes": 10,
+      "sharedTextButtons": 0,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/community-compose/index",
+      "staticTextNodes": 57,
+      "sharedTextButtons": 16,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/community-post/index",
+      "staticTextNodes": 2,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/community-author/index",
+      "staticTextNodes": 16,
+      "sharedTextButtons": 5,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/community-review/index",
+      "staticTextNodes": 12,
+      "sharedTextButtons": 3,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/community-activity/index",
+      "staticTextNodes": 19,
+      "sharedTextButtons": 0,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-finance/index",
+      "staticTextNodes": 32,
+      "sharedTextButtons": 1,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/commission/index",
+      "staticTextNodes": 51,
+      "sharedTextButtons": 6,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "staticTextNodes": 25,
+      "sharedTextButtons": 5,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/aftersale/index",
+      "staticTextNodes": 40,
+      "sharedTextButtons": 1,
+      "category": "consumer",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "staticTextNodes": 22,
+      "sharedTextButtons": 2,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    },
+    {
+      "route": "pages/management-points/index",
+      "staticTextNodes": 26,
+      "sharedTextButtons": 9,
+      "category": "management",
+      "review": "static",
+      "nativeMatrixComplete": false
+    }
+  ],
+  "componentFilesScanned": 4,
+  "textActionDecision": "Shared text buttons, settings inline actions and error retry text have no border or background; all product/checkout/gift/aftersale steppers also use borderless icons with 44px hit targets"
+}

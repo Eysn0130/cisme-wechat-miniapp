@@ -20,11 +20,19 @@ function problemCopy(error: unknown): string {
     CATALOG_READ_UNAVAILABLE: "商品资料暂时无法加载，请稍后重试。",
     INVENTORY_NOT_AVAILABLE: "库存不足，请调整数量后重新确认。", QUOTE_STALE: "商品或价格有变化，请重新确认。",
     QUOTE_EXPIRED: "费用已过期，请重新确认。", DELIVERY_ADDRESS_CHANGED: "收货地址有变化，请重新选择并确认费用。",
+    DELIVERY_ADDRESS_NOT_FOUND:"地址已失效，请重新选择。",
+    DELIVERY_REGION_UNSUPPORTED:"该地址暂不支持配送，请更换地址。",
     CATALOG_PRODUCT_NOT_SELLABLE: "商品当前不可售，请返回商品页刷新。", COMMERCE_ORDER_FLOW_DISABLED: "下单暂未开放，可先查看商品。",
     CREDIT_CHECKOUT_INSUFFICIENT:"可用测试购物权益已变化，请刷新后重新确认费用。",
-    CREDIT_CASH_COMPONENT_REQUIRED:"测试订单仍需保留至少 ¥0.01 的模拟支付金额。"
+    CREDIT_CASH_COMPONENT_REQUIRED:"测试订单仍需保留至少 ¥0.01 的模拟支付金额。",
+    POINTS_AMOUNT_INVALID:"可用积分已变化，请重新确认金额。",
+    POINTS_OFFER_CHANGED:"积分抵扣已变化，请重新确认金额。",
+    POINTS_INSUFFICIENT:"积分不足，可选择不用积分继续。",
+    POINTS_DISCOUNT_UNAVAILABLE:"可抵扣积分已变化，可选择不用积分继续。",
+    POINTS_DISCOUNT_TOO_SMALL:"本单积分暂不能抵扣，可选择不用积分。",
+    POINTS_CREDIT_COMBINATION_UNSUPPORTED:"积分和购物权益不能同时使用。"
   };
-  return known[problem.code ?? ""] ?? problem.title ?? "操作未完成，请检查网络后重试。";
+  return known[problem.code ?? ""] ?? "操作未完成，请重试或联系客服。";
 }
 
 function currentSessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
@@ -40,12 +48,14 @@ Page({
   visible: false,
   data: {
     pointsInput:0,
+    pointsMaximum:null as number|null,
+    fulfillmentOpen:false,
     chromeStyle: currentChromeStyle(), productCode: "", requestedSkuId: "", quantity: 1, product: null as CatalogProduct | null,
     selectedSku: null as CatalogSku | null, addresses: [] as CheckoutAddress[], selectedAddressId: "", runtimeEnabled: false,
     formalPayment:false,isolatedPayment:false,creditEnabled:false,creditAvailableCents:0,creditAvailableYuan:"0.00",
     creditInput:"",creditReadError:"",
     loading: true, busy: false, navigating: false, authenticationRequired: false, missingProduct: false,
-    error: "", syncError: "", quote: null as CheckoutQuote | null,
+    error: "", syncError: "", quote: null as CheckoutQuote | null, quoteView:null as CheckoutQuote|null,
     quoteClock: null as QuoteClock | null, quoteExpired: false, unitPriceYuan: "", subtotalYuan: "", discountYuan: "",
     shippingYuan: "", totalYuan: "",creditYuan:"",cashYuan:"",
     countdown: "", quoteKey: "", createKey: "", sessionToken: ""
@@ -71,6 +81,7 @@ Page({
       this.setData({ ...clearCheckoutPrivateState(this.data), syncError: "", quoteExpired: false, sessionToken: token });
     } else {
       this.setData({ sessionToken: token });
+      if(!this.data.quote&&this.data.quoteView)this.invalidateQuote();
       if (this.data.quote && this.data.quoteClock) this.startCountdown(this.data.quoteClock);
     }
     if (!validProductCode(this.data.productCode)) { this.showMissingProduct(); return; }
@@ -161,7 +172,7 @@ Page({
       };
       if (!quoteStillMatches) {
         this.stopCountdown();
-        this.setData({ ...invalidateCheckoutQuote(this.data, publicPatch, true), quoteExpired: false, error: "收货地址或商品信息已变化，请重新确认价格。" });
+        this.setData({ ...invalidateCheckoutQuote(this.data, {...publicPatch,pointsInput:0,pointsMaximum:null,fulfillmentOpen:false}, true), quoteExpired: false, error: "地址或商品已变化，请重新确认金额。" });
       } else {
         this.setData(publicPatch);
         if (this.data.quote && this.data.quoteClock) this.startCountdown(this.data.quoteClock);
@@ -173,7 +184,7 @@ Page({
   },
   invalidateQuote(patch: WechatMiniprogram.IAnyObject = {}, preserveError = false) {
     this.stopCountdown();
-    this.setData({ ...invalidateCheckoutQuote(this.data, {pointsInput:0,...patch}, preserveError), quoteExpired: false });
+    this.setData({ ...invalidateCheckoutQuote(this.data, {pointsInput:0,pointsMaximum:null,fulfillmentOpen:false,...patch}, preserveError), quoteExpired: false });
   },
   checkoutBlocked() { return this.data.busy || this.data.loading || this.data.navigating || Boolean(this.data.syncError); },
   async retryLoad() {
@@ -231,7 +242,9 @@ Page({
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const quoteClock = createQuoteClock(quote.expiresAt, quote.serverTime);
       this.setData({
-        quote, quoteClock, quoteExpired: false, createKey: "", subtotalYuan: centsToYuan(quote.subtotalCents),
+        quote, quoteView:quote, quoteClock, quoteExpired: false, createKey: "", subtotalYuan: centsToYuan(quote.subtotalCents),
+        pointsInput:quote.pointsSpent??0,
+        pointsMaximum:Number.isSafeInteger(quote.pointsMaximum)&&(quote.pointsMaximum??-1)>=0?quote.pointsMaximum!:null,
         discountYuan: centsToYuan(quote.memberDiscountCents), shippingYuan: centsToYuan(quote.shippingCents),
         totalYuan: centsToYuan(quote.totalCents),creditYuan:centsToYuan(quote.creditTenderCents),
         cashYuan:centsToYuan(quote.cashPayableCents)
@@ -239,7 +252,7 @@ Page({
       this.startCountdown(quoteClock);
     } catch (error) {
       if (this.authenticationFailure(error, epoch, ownerToken)) return;
-      if (requestStillOwned(this.ownership(), epoch, ownerToken)) this.setData({ error: problemCopy(error) });
+      if (requestStillOwned(this.ownership(), epoch, ownerToken)) this.setData({ quoteView:null, error: problemCopy(error) });
     } finally { if (requestStillOwned(this.ownership(), epoch, ownerToken)) this.setData({ busy: false }); }
   },
   refreshQuote() {
@@ -248,8 +261,20 @@ Page({
     this.setData({ error: "请确认最新费用后再提交订单。" });
     void this.requestQuote();
   },
-  applyPoints(){if(this.checkoutBlocked()||!this.data.quote)return;const points=this.data.quote.pointsSpent?0:(this.data.quote.pointsMaximum??0);
-    if(points===0&&!this.data.quote.pointsSpent)return;this.invalidateQuote({pointsInput:points});void this.requestQuote();},
+  selectPoints(event:WechatMiniprogram.RadioGroupChange){
+    if(this.checkoutBlocked()||this.data.quoteExpired||this.data.pointsMaximum===null)return;
+    const credit=this.data.creditInput?creditCents(this.data.creditInput):0;
+    if(!Number.isFinite(credit)||credit>0)return;
+    const choice=event.detail.value;
+    if(choice!=="use"&&choice!=="none")return;
+    const points=choice==="use"?this.data.pointsMaximum:0;
+    if(choice==="use"&&points<=0||points===this.data.pointsInput)return;
+    // The view snapshot only preserves layout while prices are blank. Discard
+    // the executable quote first; confirmOrder must never use quoteView.
+    this.invalidateQuote({pointsInput:points,pointsMaximum:this.data.pointsMaximum,fulfillmentOpen:this.data.fulfillmentOpen,quoteView:this.data.quoteView});
+    void this.requestQuote();
+  },
+  toggleFulfillment(){this.setData({fulfillmentOpen:!this.data.fulfillmentOpen});},
   async confirmOrder() {
     const quote = this.data.quote;
     if (this.checkoutBlocked() || !quote) return;
@@ -263,7 +288,7 @@ Page({
       const order = await createPendingOrder(quote.id, createKey);
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       this.stopCountdown();
-      this.setData({ quote: null, quoteClock: null, quoteExpired: false });
+      this.setData({ quote: null, quoteView:null, quoteClock: null, quoteExpired: false });
       wx.redirectTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(order.id)}`, fail: () => { this.setData({ busy: false, error: "订单已创建，但详情页暂时无法打开；可从“我的订单”查看。" }); } });
     } catch (error) {
       if (this.authenticationFailure(error, epoch, ownerToken)) return;

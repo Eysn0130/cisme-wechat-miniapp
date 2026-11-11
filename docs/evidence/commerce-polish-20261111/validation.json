@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "c6491331943c475c8f98b0f2b77fbed10649c2cd65f43169bb7a613e30a2d893",
+  "typecheck": "passed",
+  "unit": {
+    "files": 200,
+    "passed": 3229,
+    "skipped": 1
+  },
+  "contracts": "passed",
+  "packageGate": "passed",
+  "routeStructure": "passed",
+  "nativeCompile": [
+    {
+      "file": "pages/checkout/index.wxml",
+      "result": {
+        "success": true,
+        "codeLength": 44438
+      }
+    },
+    {
+      "file": "pages/order-detail/index.wxml",
+      "result": {
+        "success": true,
+        "codeLength": 44438
+      }
+    },
+    {
+      "file": "pages/checkout/index.wxss",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20801
+      }
+    },
+    {
+      "file": "pages/order-detail/index.wxss",
+      "result": {
+        "success": true,
+        "files": 2,
+        "fileList": [
+          "comm",
+          "page"
+        ],
+        "totalCodeLength": 20801
+      }
+    }
+  ],
+  "nativeEdgeCases": {
+    "offAfterUse": {
+      "points": 0,
+      "total": "198.00",
+      "quote": true
+    },
+    "insufficient": {
+      "quote": null,
+      "total": "",
+      "error": "积分不足，可选择不用积分继续。"
+    },
+    "recoveredWithoutPoints": {
+      "points": 0,
+      "total": "198.00",
+      "quote": true
+    },
+    "zero": {
+      "maximum": 0,
+      "points": 0,
+      "total": "198.00"
+    },
+    "expired": {
+      "expired": true
+    },
+    "paymentCalls": 0
+  },
+  "simulatorSizes": [
+    {
+      "width": 375,
+      "device": "iPhone 12/13 mini",
+      "result": "passed-scoped-synthetic",
+      "restored": true
+    },
+    {
+      "width": 430,
+      "device": "iPhone 14/15 Pro Max",
+      "result": "passed-scoped-synthetic",
+      "restored": true
+    }
+  ],
+  "screenshots": 18,
+  "currentSourceAllRouteMatrix": "blocked",
+  "physicalDevices": "not run",
+  "actualMoneyOperations": 0,
+  "serverChanges": "none"
+}

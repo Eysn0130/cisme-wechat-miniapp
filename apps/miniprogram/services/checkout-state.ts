@@ -24,6 +24,7 @@ export function quoteClockView(clock: QuoteClock, nowMs = Date.now()): { expired
 
 const quoteDefaults = {
   quote: null,
+  quoteView: null,
   quoteClock: null,
   quoteKey: "",
   createKey: "",
@@ -39,6 +40,8 @@ const quoteDefaults = {
 
 const privateDefaults = {
   pointsInput:0,
+  pointsMaximum:null as number|null,
+  fulfillmentOpen:false,
   formalPayment:false,isolatedPayment:false,runtimeEnabled:false,
   addresses: [] as unknown[],
   selectedAddressId: "",

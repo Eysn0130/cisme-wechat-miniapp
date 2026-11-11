@@ -41,7 +41,7 @@ Page({
   wechatReturn:null as 'success'|'fail'|'cancel'|null,shipmentAttempt:0,receiptQueryAttempt:0,
   launchAftersale:false,
   sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,sheetValidationError:false,
-  data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
+  data:{recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
     tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
@@ -66,7 +66,7 @@ Page({
     }
     void this.load();},
   syncSession(){const token=historicalCommerceToken(),changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
-    if(changed){clearWechatReceiptReturn();this.wechatReturn=null;this.receiptQueryAttempt+=1;this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
+    if(changed){clearWechatReceiptReturn();this.wechatReturn=null;this.receiptQueryAttempt+=1;this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.sheetValidationError=false;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetContextVersion:0,sheetContextStartSequence:0,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
     },
@@ -86,6 +86,8 @@ Page({
   finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
     this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
 
+  toggleFulfillment(){this.setData({fulfillmentOpen:!this.data.fulfillmentOpen});},
+  toggleRecordedHistory(){this.setData({recordedHistoryOpen:!this.data.recordedHistoryOpen});},
   refreshRecordedCommands(){
     if(!this.data.visible||!this.data.coreReady)return;
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken();
@@ -151,7 +153,7 @@ Page({
     this.setData({shipmentLoading:true,shipmentError:""});
     try{const row=await myShipment(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch)||attempt!==this.shipmentAttempt)return;
-      const labels:Record<string,string>={not_ready:"待支付后安排发货",awaiting_dispatch:"待发货",shipped:"已发货",delivered:"快递已签收",exception:"物流异常，请联系客服"};
+      const labels:Record<string,string>={not_ready:"付款后安排发货",awaiting_dispatch:"待发货",shipped:"已发货",delivered:"快递已签收",exception:"物流异常，请联系客服"};
       if(row.orderId!==this.data.id||!labels[row.logisticsState]||row.id&&(!Number.isSafeInteger(row.version)||row.version!<1))throw new Error("Invalid shipment");
       this.setData({shipment:{...row,stateLabel:labels[row.logisticsState]!,wechatReceipt:row.wechatReceipt?
         {...row.wechatReceipt,displayLabel:receiptLabels[row.wechatReceipt.status]??"微信记录：需人工核对",observedLabel:row.wechatReceipt.observedAt?

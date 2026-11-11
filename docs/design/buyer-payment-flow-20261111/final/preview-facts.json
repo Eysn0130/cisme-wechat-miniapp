@@ -1,0 +1,146 @@
+{
+  "syntheticOrderAndAddress": true,
+  "allRequestsIntercepted": true,
+  "requests": [
+    {
+      "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/addresses",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/commerce/orders/status",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/catalog?limit=20",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/catalog?limit=20",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/shares",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/addresses",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/commerce/orders/status",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/commerce/quotes",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/commerce/orders/status",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/orders/cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/profile",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/commerce/recorded-commands/refund?limit=10&objectId=cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/commerce/recorded-commands/cancel?limit=10&objectId=cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/commerce/recorded-commands/cancel-verified?limit=10&objectId=cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/orders/cccccccc-cccc-4ccc-8ccc-cccccccccccc/shipment",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/refund-requests?orderId=cccccccc-cccc-4ccc-8ccc-cccccccccccc&limit=10",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/commerce/orders/status",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/orders/cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/profile",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/commerce/recorded-commands/refund?limit=10&objectId=cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/commerce/recorded-commands/cancel?limit=10&objectId=cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/commerce/recorded-commands/cancel-verified?limit=10&objectId=cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/orders/cccccccc-cccc-4ccc-8ccc-cccccccccccc/shipment",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/refund-requests?orderId=cccccccc-cccc-4ccc-8ccc-cccccccccccc&limit=10",
+      "method": "GET"
+    }
+  ],
+  "paymentCalls": 0,
+  "status": "paid",
+  "logisticsState": "awaiting_dispatch",
+  "error": ""
+}

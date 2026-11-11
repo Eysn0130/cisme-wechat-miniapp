@@ -1,0 +1,26 @@
+{
+  "offAfterUse": {
+    "points": 0,
+    "total": "198.00",
+    "quote": true
+  },
+  "insufficient": {
+    "quote": null,
+    "total": "",
+    "error": "积分不足，可选择不用积分继续。"
+  },
+  "recoveredWithoutPoints": {
+    "points": 0,
+    "total": "198.00",
+    "quote": true
+  },
+  "zero": {
+    "maximum": 0,
+    "points": 0,
+    "total": "198.00"
+  },
+  "expired": {
+    "expired": true
+  },
+  "paymentCalls": 0
+}

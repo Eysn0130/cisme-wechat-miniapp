@@ -47,7 +47,7 @@
   <block wx:if="{{mode !== 'review'}}">
   <view wx:if="{{mode === 'recommend' && (!loading || feedReady) && !displayFeedCount && !error}}" class="state">还没有已发布的护理故事，请稍后再来。</view>
   <view wx:if="{{mode === 'featured' && (!loading || feedReady) && !displayFeedCount && !error}}" class="state">还没有精选内容，请稍后再来。</view>
-  <view wx:if="{{mode === 'following' && (!loading || feedReady) && !displayFeedCount && !error}}" class="state community-following-empty"><text>还没有可见的关注动态。关注作者后，新公开帖子会出现在这里。</text><button class="text-button" data-mode="featured" bindtap="selectMode">去精选发现作者</button></view>
+  <view wx:if="{{mode === 'following' && (!loading || feedReady) && !displayFeedCount && !error}}" class="state community-following-empty"><text>关注作者后，在这里看新动态。</text><button class="text-button" data-mode="featured" bindtap="selectMode">去精选发现作者</button></view>
   <view wx:if="{{loading && !feedReady && !displayFeedCount}}" class="page-read-loading" aria-role="status" aria-label="正在加载护理故事"><view class="page-read-loading__indicator"/></view>
   <view wx:if="{{error}}" class="state state--error community-sync-error" aria-live="assertive"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="load">重新加载</button></view>
 

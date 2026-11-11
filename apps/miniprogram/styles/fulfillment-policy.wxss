@@ -1,0 +1,7 @@
+.fulfillment-policy__head{display:flex;align-items:center;justify-content:space-between;gap:16rpx;min-height:44px}
+.fulfillment-policy__head strong{font-size:var(--cisme-text-action);font-weight:500;color:var(--cisme-ink)}
+.fulfillment-policy__head .text-button{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:0;padding:0 4rpx;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--cisme-plum);font-size:var(--cisme-text-body)}
+.fulfillment-policy__head .text-button::after{border:0}
+.fulfillment-policy__summary{display:block;color:var(--cisme-muted);font-size:var(--cisme-text-body);line-height:1.7}
+.fulfillment-policy__details{display:flex;flex-direction:column;gap:14rpx;margin-top:20rpx;padding-top:20rpx;border-top:1rpx solid var(--cisme-line)}
+.fulfillment-policy__details text{color:var(--cisme-muted);font-size:var(--cisme-text-body);line-height:1.65;word-break:break-word}

@@ -269,7 +269,7 @@ image {
   opacity: .58;
 }
 
-.text-button{display:inline-flex;align-items:center;justify-content:center;min-height:var(--cisme-hit-target);padding:6rpx 18rpx;border:1rpx solid rgba(86,48,111,.16);border-radius:999rpx;color:#56306f;background:rgba(255,255,255,.74);font-size:var(--cisme-text-small);line-height:1.25;text-align:center;}.primary,.secondary,.text-button{transition:opacity var(--cisme-motion-press) ease-out;}.primary:active,.secondary:active,.text-button:active{opacity:.84;}@media (prefers-reduced-motion:reduce){.primary,.secondary,.text-button{transition:none;}}
+.text-button{display:inline-flex;align-items:center;justify-content:center;min-height:var(--cisme-hit-target);padding:6rpx 18rpx;border:0;border-radius:0;color:#56306f;background:transparent;box-shadow:none;font-size:var(--cisme-text-small);line-height:1.25;text-align:center;}.primary,.secondary,.text-button{transition:opacity var(--cisme-motion-press) ease-out;}.primary:active,.secondary:active,.text-button:active{opacity:.84;}@media (prefers-reduced-motion:reduce){.primary,.secondary,.text-button{transition:none;}}
 
 .state-error__copy {
   display: block;

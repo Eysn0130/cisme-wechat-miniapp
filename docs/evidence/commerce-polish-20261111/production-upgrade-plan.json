@@ -1,0 +1,214 @@
+{
+  "historicalProductionSource": "dbd2b88a47f622621c2b226b03339677b183fef8",
+  "observedProductionMigrations": 97,
+  "candidateMigrations": 114,
+  "pendingCount": 17,
+  "inferredFromExactProductionSourceTree": true,
+  "entries": [
+    {
+      "path": "db/migrations/202610260001_owned_editorial.sql",
+      "sha256": "8bbcd0d80d8fa1636a3e63778ebc032169bff941c64f1e36396ba0d5793c6bf7",
+      "lines": 70,
+      "changes": {
+        "createsTables": true,
+        "altersTables": true,
+        "containsDataUpdate": true,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202610280001_editorial_comments.sql",
+      "sha256": "cd945b213a0c546d27ff2a1ef6e7d1a90a232ec25d680415d45aa7113c64f3c1",
+      "lines": 101,
+      "changes": {
+        "createsTables": true,
+        "altersTables": false,
+        "containsDataUpdate": true,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202610290001_daily_care_records.sql",
+      "sha256": "d27269793c5be0111b53eaa6d655a2e63e04ff486bb044aaa0cdac6b6b468b49",
+      "lines": 29,
+      "changes": {
+        "createsTables": true,
+        "altersTables": false,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202610300001_daily_care_daily_latest.sql",
+      "sha256": "ec196bd930234a5b70b1f8b87d64f6164c04a0030b0a5e9511de95fd79338241",
+      "lines": 76,
+      "changes": {
+        "createsTables": true,
+        "altersTables": true,
+        "containsDataUpdate": true,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202610300002_editorial_comment_direct_publication.sql",
+      "sha256": "cc0eb56f5a938aa5fa4bc31f224113a24dea3ef05069357902dbdcfa8636fc5b",
+      "lines": 24,
+      "changes": {
+        "createsTables": false,
+        "altersTables": true,
+        "containsDataUpdate": true,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202610300003_support_explicit_ai_resume.sql",
+      "sha256": "e9989da464e740125e5a46980cc56d683f7e97390d264728b5790b2432490d06",
+      "lines": 46,
+      "changes": {
+        "createsTables": false,
+        "altersTables": false,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202610310001_support_ai_human_collaboration.sql",
+      "sha256": "ddb39dc44dc70514ddfd012906cfe39ef7a2082448831b0ad42540b5de03b543",
+      "lines": 127,
+      "changes": {
+        "createsTables": false,
+        "altersTables": true,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611020001_ugc_publish_intent.sql",
+      "sha256": "8b9fd5aed32f0583161f1be6de867eb59bb1c7b3a6ac33fcea2d30d9104d6eb8",
+      "lines": 90,
+      "changes": {
+        "createsTables": false,
+        "altersTables": false,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611030001_direct_publication_lookup.sql",
+      "sha256": "f69195ea062737f462026be02af20c0c462cb9c9c7ab03612df672e1aa2022c2",
+      "lines": 10,
+      "changes": {
+        "createsTables": false,
+        "altersTables": false,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611040001_ugc_synchronous_image_safety.sql",
+      "sha256": "851e559d7a3d35d129b4042f0dcc4e68095934935ec2f77e21462158569464f5",
+      "lines": 14,
+      "changes": {
+        "createsTables": false,
+        "altersTables": true,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611040002_community_biography.sql",
+      "sha256": "dda9bf7741cd352321d77cd43c99b874ca9a1350a99f0f6212cb273f5fde5c3b",
+      "lines": 12,
+      "changes": {
+        "createsTables": false,
+        "altersTables": true,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611040003_official_editorial_publisher.sql",
+      "sha256": "727715606cada754f07f73dc008f2f2c1494f5151194444879d18ea8dddf405f",
+      "lines": 30,
+      "changes": {
+        "createsTables": true,
+        "altersTables": true,
+        "containsDataUpdate": true,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611040004_ugc_comment_likes.sql",
+      "sha256": "9726ac504c824dc23c0cca74c384c8757284b68a8d7165eb30cc5e04d61d0c4d",
+      "lines": 16,
+      "changes": {
+        "createsTables": true,
+        "altersTables": false,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611100003_commerce_approved_media.sql",
+      "sha256": "8d017feb85f17d9f988a46fac2e6649950a2b35b3244934981738876e559e3b6",
+      "lines": 46,
+      "changes": {
+        "createsTables": false,
+        "altersTables": true,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611100004_member_care_onboarding.sql",
+      "sha256": "77ad49a437336a88e8a7502e4cc2b764e0bba6e4283e45c3d625c7a2f07276dc",
+      "lines": 53,
+      "changes": {
+        "createsTables": true,
+        "altersTables": false,
+        "containsDataUpdate": false,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611100005_member_points_club.sql",
+      "sha256": "a4a5fe725a0437dabde996162d182695c999e7faecfbb123816d0c22b5d7e0dd",
+      "lines": 264,
+      "changes": {
+        "createsTables": true,
+        "altersTables": true,
+        "containsDataUpdate": true,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    },
+    {
+      "path": "db/migrations/202611100006_member_card_number.sql",
+      "sha256": "5b04064f4ffb234de7d8d16fca93677029ca520b6b4d1bd15a721e0eb6a84955",
+      "lines": 43,
+      "changes": {
+        "createsTables": true,
+        "altersTables": false,
+        "containsDataUpdate": true,
+        "containsDataDelete": false
+      },
+      "review": "requires production migration qualification; not executed"
+    }
+  ],
+  "executed": false
+}

@@ -1,0 +1,28 @@
+{
+  "status": "prepared_not_applied",
+  "ownerConfirmedStock": {
+    "aigerong-moisture-shampoo-280": 100,
+    "aigerong-scalp-repair-essence-100": 100
+  },
+  "source": "Owner reply in current chat, 2026-11-11; real inventory confirmed",
+  "noAdditionalInventoryInferred": true,
+  "cutoverRequired": "Reconcile paid and reserved trial orders; do not allocate a second independent 100 per SKU to the same physical stock",
+  "items": [
+    {
+      "code": "aigerong-moisture-shampoo-280",
+      "name": "净润小紫瓶 280mL",
+      "priceCents": 19800,
+      "shoppingPointsMultiplier": 3,
+      "stockOnHand": 100
+    },
+    {
+      "code": "aigerong-scalp-repair-essence-100",
+      "name": "头皮紧致修护精华液",
+      "priceCents": 29800,
+      "shoppingPointsMultiplier": 3,
+      "stockOnHand": 100
+    }
+  ],
+  "productionWrites": 0,
+  "memberAssetsCopied": false
+}

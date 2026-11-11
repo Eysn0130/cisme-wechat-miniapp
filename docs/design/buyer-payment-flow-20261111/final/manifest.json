@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "c6491331943c475c8f98b0f2b77fbed10649c2cd65f43169bb7a613e30a2d893",
+  "baseCommit": "bd60e4059ae9b0a3ec6f83b168b6a95800e8e412",
+  "captureSource": "WeChat DevTools simulator_screenshot",
+  "scope": "native presentation and intercepted fixture interactions; not actual financial or physical-device acceptance",
+  "sourceUnchangedDuringFinalCaptures": true,
+  "data": {
+    "product": "published public catalog, read-only",
+    "order": "synthetic",
+    "address": "synthetic",
+    "paymentState": "synthetic"
+  },
+  "allFixtureHttpIntercepted": true,
+  "fixtureStorageIsolated": true,
+  "actualOrdersCreated": 0,
+  "actualPaymentCalls": 0,
+  "originalSessionAndStorageRestored": true,
+  "originalDeviceRestored": true,
+  "screenshots": [
+    {
+      "file": "01-shop.png",
+      "sha256": "20df0394871777f054bd496cb69b2a88d2b7d910d511ad521a88892f9740ed1e",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "02-product.png",
+      "sha256": "5531bcac30b63a73765d3e7ab1ac2de4dbb481ee0d1513c4a593b2aeb6832060",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "03-sku.png",
+      "sha256": "db9c888d1e42f807fa3a046ff0e31ada4fba10a2713f380a0559ca5f2f4c4753",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "04-checkout-top.png",
+      "sha256": "911ee81b6ebecdf3dd88514015abe418d0eb7457d40f6719d19af2b7dede85a6",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "05-checkout-fees.png",
+      "sha256": "3669e45b1b6d70bf2c7cb057bdc45b5a525f3ed1fc5d49e3df98aa5054b344dc",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "05a-points-off.png",
+      "sha256": "03100917b7f582539614ee62d0b865447ce9a7701028fdfcd083031fae94b625",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "05b-policy-details.png",
+      "sha256": "ccb3d12aa89d9156ae3ddeae14732cb780a3aaedff9c97d8f55cb4a065080cf3",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "06-pending-order.png",
+      "sha256": "9c6d96812fe75186a75d738cf14484406e95aaf7a08e2305df7806559e69bafe",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "07-paid-order.png",
+      "sha256": "028d3949c0213b6888b1475e36e50f815615eb563576a044f0517a6cab332d86",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/checkout-375.png",
+      "sha256": "efb71d80b16c9b8610452d19fbe7c5cf3bcfadac98acef33cc50ab2a744bbaef",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/checkout-430.png",
+      "sha256": "4a940cdfa7a8d0b98eeb0dd4aadcfdcf05540a772f86c9d43c6a767d1bbc1417",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/expired.png",
+      "sha256": "21434bae3d5b42611c9c74c781415a05ee4416ddc8e0e2d99c65343bf52f402f",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/insufficient.png",
+      "sha256": "ab101e6c7028d895fbaa4e8e398819bd2ff6b4ec043c495aa912db2eea078086",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/order-paid-375.png",
+      "sha256": "9a9e3417c5d2ce403b495ebe23241377c281ef3ec182f27acfbba80d019e56ed",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/order-paid-430.png",
+      "sha256": "3a5a9ab86c36ac250036e2b4f362b03aaaac7bb824356138417984bf076a006c",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/order-pending-375.png",
+      "sha256": "24dd2534ae8ccfd482ad71210c02d1269854d4b68092f4fc65a663ae2af562b3",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/order-pending-430.png",
+      "sha256": "31bfbc5876851a12321801acb6772f2e1c23d7799df3e39a4d64604451ac44fe",
+      "width": 65536,
+      "height": 4293001768
+    },
+    {
+      "file": "qa/zero-points.png",
+      "sha256": "d19595b9df283aa85032dc139aedf84aaaea8a0c92038b3456f21bf5be7302da",
+      "width": 65536,
+      "height": 4293001768
+    }
+  ]
+}

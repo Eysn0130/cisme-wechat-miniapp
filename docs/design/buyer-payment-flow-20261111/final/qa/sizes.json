@@ -1,0 +1,38 @@
+{
+  "physicalDevice": false,
+  "all": [
+    {
+      "device": "iPhone 12/13 mini",
+      "width": 375,
+      "setup": {
+        "installed": true,
+        "allRequestsIntercepted": true,
+        "storageIsolated": true,
+        "paymentBlocked": true,
+        "originalRoute": "pages/account/index"
+      },
+      "fixtureActive": true,
+      "status": "paid",
+      "error": "",
+      "paymentCalls": 0,
+      "restored": true
+    },
+    {
+      "device": "iPhone 14/15 Pro Max",
+      "width": 430,
+      "setup": {
+        "installed": true,
+        "allRequestsIntercepted": true,
+        "storageIsolated": true,
+        "paymentBlocked": true,
+        "originalRoute": "pages/account/index"
+      },
+      "fixtureActive": true,
+      "status": "paid",
+      "error": "",
+      "paymentCalls": 0,
+      "restored": true
+    }
+  ],
+  "originalDeviceRestored": true
+}

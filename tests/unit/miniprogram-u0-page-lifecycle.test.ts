@@ -238,7 +238,7 @@ describe("U0 native page lifecycle regressions", () => {
     await page.load();
 
     expect(page.data).toMatchObject({ quote: null, quoteClock: null, totalYuan: "", selectedAddressId: "address-1" });
-    expect(page.data.error).toBe("收货地址或商品信息已变化，请重新确认价格。");
+    expect(page.data.error).toBe("地址或商品已变化，请重新确认金额。");
   });
 
   it("retains a stale-order failure while clearing the unusable quote", async () => {
