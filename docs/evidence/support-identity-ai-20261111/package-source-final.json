@@ -12,7 +12,7 @@
   "actual": {
     "files": 343,
     "routes": 41,
-    "totalBytes": 4312117,
+    "totalBytes": 4311978,
     "mainPackageBytes": 1413962,
     "subpackageBytes": {
       "pages/task": 435,
@@ -28,14 +28,14 @@
       "pages/invite": 15809,
       "pages/legal": 3776,
       "pages/privacy-rights": 53276,
-      "pages/support": 107735,
+      "pages/support": 107524,
       "pages/management": 20075,
       "pages/management-catalog": 7963,
       "pages/management-product": 21901,
       "pages/management-orders": 9005,
       "pages/management-order-detail": 17609,
       "pages/management-support": 10831,
-      "pages/management-support-chat": 91730,
+      "pages/management-support-chat": 91802,
       "pages/management-members": 34089,
       "pages/management-member": 34740,
       "pages/referral": 6778,
@@ -52,7 +52,7 @@
       "pages/management-points": 18875
     },
     "globalStyleBytes": 8162,
-    "sourceSha256": "e57cc6ea67fdb5b2c86dbd3d1c0820547281ec21aa91b8e9663487fc2ea7b12a"
+    "sourceSha256": "c62ae3dbbeb557efedb7e8307b3662162b8ae5376f531d956c84c9a11cd01147"
   },
   "routes": [
     "pages/account/index",

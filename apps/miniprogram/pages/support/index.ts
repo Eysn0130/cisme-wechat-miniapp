@@ -324,7 +324,7 @@ Page({
     if (this.data.closedRights) return "";
     const status = this.data.conversation?.status;
     const human = status === "waiting_human" || status === "human_active";
-    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (human || this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
+    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
       ? this.data.newTopicBusy ? ":topic-busy" : this.data.newTopicAttempt ? ":topic-retry" : ":topic" : "";
     if (human) return status + topic;
     if (!this.data.loading && this.data.errorAction !== "handoff" && (!status || status === "ai_active" || status === "resolved"))

@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "e57cc6ea67fdb5b2c86dbd3d1c0820547281ec21aa91b8e9663487fc2ea7b12a",
+  "packageSourceSha256": "c62ae3dbbeb557efedb7e8307b3662162b8ae5376f531d956c84c9a11cd01147",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -273,6 +273,6 @@
     }
   ],
   "note": "Support participant identity and AI current-care/catalog changes. Scoped native synthetic checks are in docs/evidence/support-identity-ai-20261111. All 41 routes and physical-device acceptance remain blocked; old screenshots retain their actual source scope.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-c6491331943c.json",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-341bf552b5df.json",
   "pendingSourceRebind": false
 }

@@ -84,7 +84,7 @@ Page({
     freightOptions:['商家承担','用户承担'],
     returnAttempt:null as {key:string;caseId:string;payload:Record<string,unknown>}|null,
     aiStatus: "PROVIDER INTEGRATION PENDING",
-    aiProviderAvailable: false,
+    aiProviderAvailable: false, aiDraftBusy: false,
     input: "",
     sendAttempt: null as SendAttempt | null,
     pendingMessage: null as Message | null,
@@ -132,7 +132,7 @@ Page({
       this.inputRevision += 1;
       this.clearSensitiveThread();
     }
-    this.setData({ loading: true, busy: false, statusLabel: "正在加载", statusTone: "neutral" });
+    this.setData({ loading: true, busy: false, aiDraftBusy: false, statusLabel: "正在加载", statusTone: "neutral" });
     try {
       const authority = await authorityProjection(this);
       if (!this.owns(epoch, ownerToken)) return;
@@ -777,7 +777,7 @@ Page({
     const ownerToken = sessionToken();
     const contextVersion = this.data.contextVersion;
     const replyTarget = this.data.replyTarget;
-    this.setData({ busy: true, error: "" });
+    this.setData({ busy: true, aiDraftBusy: true, error: "" });
     try {
       const draft = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/suggested-reply`, method: "POST", data: { replyToMessageId: replyTarget.id,
         expectedHumanRequestGeneration: replyTarget.generation, contextVersion: replyTarget.contextVersion }, cacheTags: ["support"] });
@@ -789,7 +789,7 @@ Page({
     } catch {
       if (this.owns(epoch, ownerToken)) this.setData({ error: "AI 建议回复不可用，请继续人工处理。草稿不会自动发送。" });
     } finally {
-      if (this.owns(epoch, ownerToken)) this.setData({ busy: false });
+      if (this.owns(epoch, ownerToken)) this.setData({ busy: false, aiDraftBusy: false });
     }
   },
   pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {

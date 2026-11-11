@@ -1,0 +1,11 @@
+{
+  "input": "可以先告诉我你的日常使用习惯，我帮你一起核对合适的产品。",
+  "busy": false,
+  "target": {
+    "replyToMessageId": "synthetic-message-3",
+    "expectedHumanRequestGeneration": 1,
+    "contextVersion": 0
+  },
+  "syntheticDraftRequests": 1,
+  "syntheticMessageSends": 0
+}

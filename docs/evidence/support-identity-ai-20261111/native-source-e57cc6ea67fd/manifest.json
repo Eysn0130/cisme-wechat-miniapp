@@ -1,0 +1,56 @@
+{
+  "packageSourceSha256": "e57cc6ea67fdb5b2c86dbd3d1c0820547281ec21aa91b8e9663487fc2ea7b12a",
+  "captureSource": "WeChat DevTools simulator_screenshot",
+  "scope": "Two sides at 375/390px; new user with profile request failure; synthetic identities and JPEG thumbnails; no physical devices",
+  "allHttpIntercepted": true,
+  "originalSessionAndStorageRestored": true,
+  "originalDeviceRestored": true,
+  "actualMemberWrites": 0,
+  "syntheticMessageSends": 0,
+  "shots": [
+    {
+      "file": "native/member-375.png",
+      "sha256": "eb586a3c766f65de0eb7256a893b9ec41508e66eba65291b8304164cd932ffaf",
+      "width": 376,
+      "height": 812,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/operator-375.png",
+      "sha256": "4138d2519dfe596bb190fb5feee1e1200954defdbd04f43c1b26c34ef2c91cc9",
+      "width": 376,
+      "height": 812,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/member-390.png",
+      "sha256": "d6478a1aed2d275657bfd6ce5fbad05fc9fbcfdbe30b70511c8d1c043000aab4",
+      "width": 390,
+      "height": 844,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/operator-390.png",
+      "sha256": "a132b10f64b3b0d3bbc6088683c214e12abbaf7e3e13a44879ee4fa695610473",
+      "width": 390,
+      "height": 844,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/new-user-profile-offline-375.png",
+      "sha256": "6799a220b674289094192ce0e56907687b5ce6a681b2e3436300de83e4d8b939",
+      "width": 376,
+      "height": 812,
+      "format": "JPEG"
+    }
+  ],
+  "final": {
+    "route": "pages/account/index",
+    "qaPresent": false,
+    "hasSession": false,
+    "requestIsIntercepted": false,
+    "storageIsIntercepted": false,
+    "exactSyntheticFilesRemoved": 0
+  },
+  "excluded": "430px run interrupted by simulator reinitialization; not qualified. Interim diagnostic captures are not final evidence."
+}

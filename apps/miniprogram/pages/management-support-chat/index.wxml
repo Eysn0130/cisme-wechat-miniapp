@@ -83,17 +83,17 @@
     <view wx:elif="{{conversation && conversation.status === 'human_active' && !assignedToMe}}" class="operator-owned">这次会话正由其他客服处理</view>
     <view wx:elif="{{conversation && conversation.status === 'resolved'}}" class="operator-owned">本次服务已结束，等待会员再次发起</view>
     <block wx:if="{{assignedToMe && conversation.status === 'human_active'}}">
-      <view class="operator-ai-row">
-        <button wx:if="{{aiProviderAvailable}}" class="{{busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh ? 'control--disabled' : ''}}" bindtap="suggest" disabled="{{busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}" aria-label="为当前选择的问题生成 AI 回复草稿，确认后发送">AI 回复草稿</button>
-      </view>
       <view class="operator-compose {{composerFocused ? 'operator-compose--focused' : ''}}">
-        <view class="operator-reply-target" aria-live="polite"><text class="operator-reply-target__label">{{replyTarget ? '回复：' : replyTargetNeedsRefresh ? '请刷新后确认回复问题' : '请点选要回复的用户消息'}}</text><text wx:if="{{replyTarget}}" class="operator-reply-target__summary">{{replyTarget.summary}}</text></view>
+        <view class="operator-compose__head">
+          <view class="operator-reply-target" aria-live="polite"><text class="operator-reply-target__label">{{replyTarget ? '回复：' : replyTargetNeedsRefresh ? '请刷新后确认回复问题' : '请点选要回复的用户消息'}}</text><text wx:if="{{replyTarget}}" class="operator-reply-target__summary">{{replyTarget.summary}}</text></view>
+          <button wx:if="{{aiProviderAvailable && canReply}}" class="operator-ai-action {{busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh ? 'control--disabled' : ''}}" hover-class="operator-text-action--pressed" bindtap="suggest" disabled="{{busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}" aria-label="{{aiDraftBusy ? '正在生成回复草稿' : '让 AI 为当前问题起草回复，确认后发送'}}">{{aiDraftBusy ? '生成中…' : 'AI 帮写'}}</button>
+        </view>
         <textarea class="operator-input {{composerCapped ? 'operator-input--capped' : ''}}" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="true" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{sendAttempt ? '请先核对上条回复' : replyTarget ? '以人工客服身份回复' : '先选择要回复的问题'}}" placeholder-class="operator-input__placeholder" disabled="{{busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}"/>
         <view class="operator-compose__tools">
           <button class="operator-send {{!composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh ? 'control--disabled' : ''}} {{composerSendEnabled && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? 'operator-send--active' : 'operator-send--disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}" aria-label="{{busy ? '正在发送回复' : '发送回复'}}"><image src="{{composerSendEnabled && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
         </view>
       </view>
-      <button class="operator-resolve {{busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="resolve" disabled="{{busy || sendAttempt}}" aria-label="{{sendAttempt ? '请先核对上条回复，再结束人工事项' : '标记已解决'}}">{{sendAttempt ? '请先核对上条回复' : '标记已解决'}}</button>
+      <button hover-class="operator-text-action--pressed" class="operator-resolve {{busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="resolve" disabled="{{busy || sendAttempt}}" aria-label="{{sendAttempt ? '请先核对上条回复，再结束人工事项' : '结束本次服务'}}">{{sendAttempt ? '请先核对上条回复' : '结束本次服务'}}</button>
     </block>
   </view>
 

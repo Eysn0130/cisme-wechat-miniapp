@@ -20,7 +20,7 @@ describe("role-aware native support UX",()=>{
   for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("?after=");expect(logic).toContain("?before=");expect(logic).toContain("mergeSyncPage");expect(logic).toContain("pollInFlight");expect(logic).not.toContain("setInterval");}
   expect(state).toContain("Only a response from the synchronization endpoint may advance");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("retainMemberSnapshot(this)");
- expect(state).toContain("CISME AI 客服");expect(userView).toContain("{{item.senderLabel}}");expect(userView).toContain("handoffBusy ? '正在申请人工…' : '申请人工'");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("标记已解决");
+ expect(state).toContain("CISME AI 客服");expect(userView).toContain("{{item.senderLabel}}");expect(userView).toContain("handoffBusy ? '正在申请人工…' : '申请人工'");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("结束本次服务");
   expect(operatorLogic).toContain("wx.showModal");expect(operatorLogic).toContain("member.support_view");
   expect(userLogic).toContain("const sendAttempt = previous ??");expect(userLogic).toContain("linkedOrderId = previous ? previous.linkedOrderId");expect(operatorLogic).toContain("const sendAttempt = previous ??");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("sendAttempt.id");
@@ -46,11 +46,11 @@ describe("role-aware native support UX",()=>{
   }
   expect(style).not.toContain('.support-bubble--welcome');
  });
- it('keeps lightweight handoff pills above the composer and submits only through its explicit send button',async()=>{
+ it('keeps handoff status and text actions above the composer and submits only through its explicit send button',async()=>{
   const [view,style]=await Promise.all([read('apps/miniprogram/pages/support/index.wxml'),read('apps/miniprogram/pages/support/index.wxss')]);
   const actionStart=view.indexOf('class="support-composer__actions"'),surfaceStart=view.indexOf('class="support-composer__surface ');
   expect(actionStart).toBeGreaterThan(0);expect(actionStart).toBeLessThan(surfaceStart);
-  const actions=view.slice(actionStart,surfaceStart);expect(actions).toContain('bindtap="requestHuman"');expect(actions).not.toContain('resumeAi');expect(actions).toContain('人工已申请');expect(actions).toContain('人工接待中');expect(actions).toContain('support-action-pill');
+  const actions=view.slice(actionStart,surfaceStart);expect(actions).toContain('bindtap="requestHuman"');expect(actions).not.toContain('resumeAi');expect(actions).toContain('人工已申请');expect(actions).toContain('人工接待中');expect(actions).not.toContain('support-action-pill');
   const textarea=view.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toContain('confirm-type="done"');expect(textarea).not.toContain('bindconfirm');expect(textarea).not.toContain('confirm-hold="true"');
   expect(view.match(/bindtap="send"/g)).toHaveLength(1);
   expect(view).not.toContain('support-ai-notice');expect(view).not.toContain('AI 可能出错，请勿发敏感信息。');expect(view).not.toContain('DeepSeek');

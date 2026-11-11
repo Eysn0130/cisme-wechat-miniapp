@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "c62ae3dbbeb557efedb7e8307b3662162b8ae5376f531d956c84c9a11cd01147",
+  "unitPassed": 3241,
+  "unitSkipped": 1,
+  "typecheck": "passed",
+  "contracts": "passed",
+  "packageGate": "passed",
+  "routeStructure": "passed",
+  "nativeCompileFiles": 4,
+  "nativeScreenshots": 8,
+  "logicalWidths": [
+    375,
+    390
+  ],
+  "nativeDraftRequests": 2,
+  "nativeMessageSends": 0,
+  "realMemberWrites": 0,
+  "realProviderSyntheticCases": 6,
+  "realProviderCasesPassed": 6,
+  "backendIntegrationPassed": 1293,
+  "backendDeployedSource": "6cc4f5172e5ec8581e5dbd789ade1236a8267c21",
+  "backendSchemaChanges": 0,
+  "fullRouteAndPhysicalDevices": "blocked"
+}

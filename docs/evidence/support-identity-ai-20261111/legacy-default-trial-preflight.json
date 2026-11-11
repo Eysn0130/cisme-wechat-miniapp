@@ -1,0 +1,4 @@
+
+> cisme-wechat-miniapp@0.1.0 wechat:preflight:trial
+> tsx scripts/wechat-release.ts preflight trial
+

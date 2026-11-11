@@ -1,0 +1,113 @@
+{
+  "mode": "member",
+  "route": "pages/support/index",
+  "ownAvatar": "/assets/icons/user-circle-plum.svg",
+  "ownDisplayName": "CISME 会员",
+  "memberAvatar": "/assets/icons/user-circle-plum.svg",
+  "messages": [],
+  "error": "",
+  "loading": false,
+  "requests": [
+    {
+      "path": "/v1/me/profile",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/messages",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/read",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/support/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/support/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/support/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/support/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/authority",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/profile",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/ai/status",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/read",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/profile",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/messages",
+      "method": "GET"
+    }
+  ],
+  "privateWrites": 0
+}
