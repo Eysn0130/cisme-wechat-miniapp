@@ -91,3 +91,11 @@ condition = "AND"
 paths = ['''^tests/integration/fulfillment-xlsx-http\.test\.ts$''']
 regexTarget = "match"
 regexes = ["CONTACT_KEY_VERSION:'synthetic-xlsx-v1'"]
+
+[[allowlists]]
+description = "Exact public API hostname and approved product-code arguments in logistics photo fixture; not a credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/unit/wechat-logistics-query\.test\.ts$''']
+regexTarget = "match"
+regexes = ["staging-api\\.cisme\\.cn','aigerong-moisture-shampoo-280"]

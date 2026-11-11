@@ -73,3 +73,5 @@
 
 .support-sheet__stepper button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;flex:none;line-height:1}
 .support-sheet__stepper-icon{width:18px;height:18px;flex:none}
+
+.shipment-card__actions{display:flex;flex-wrap:wrap;gap:16rpx;margin-top:20rpx}.shipment-card__actions button{flex:1;min-width:220rpx;margin:0}

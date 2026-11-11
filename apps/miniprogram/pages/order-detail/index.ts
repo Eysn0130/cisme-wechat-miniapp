@@ -7,7 +7,7 @@ import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner
 import { historicalCommerceClosed, historicalCommerceToken, request, requireHistoricalCommerceAccess } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
 import { nativeCatalogImage } from "../../services/catalog";
-import { clientOperationKey, myOrder, myShipment, myTracking, confirmMyReceipt, queryMyWechatReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
+import { clientOperationKey, myOrder, myShipment, myTracking, myLogisticsView, confirmMyReceipt, queryMyWechatReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { beginWechatReceiptReturn, clearWechatReceiptReturn, takeWechatReceiptReturn } from "../../services/wechat-receipt-return";
 import { currentChromeStyle } from "../../services/layout";
 import { createSupportThreadState,mergeAcknowledgement,mergeSyncPage,presentSupportMessages,supportPollDelay,type SupportThreadState } from "../../services/support-thread-state";
@@ -81,8 +81,8 @@ Page({
   normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,image:nativeCatalogImage(line.image),unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===historicalCommerceToken()&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
-  onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;this.receiptQueryAttempt+=1;
-    this.stopSheetPoll();this.sheetReadEpoch+=1;this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,receiptQueryLoading:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
+  onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;this.receiptQueryAttempt+=1;this.trackingAttempt+=1;
+    this.stopSheetPoll();this.sheetReadEpoch+=1;this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,receiptQueryLoading:false,trackingLoading:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
   finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
     this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
 
@@ -158,6 +158,28 @@ Page({
           new Date(row.wechatReceipt.observedAt).toLocaleString('zh-CN',{hour12:false}):''}:null},shipmentLoading:false,
         ...(row.receiptConfirmedAt?{receiptKey:"",receiptVersion:0}:{})});
     }catch(error){if(this.readCurrent(epoch,token,readEpoch)&&attempt===this.shipmentAttempt)this.setData({shipment:null,shipmentLoading:false,shipmentError:errorTitle(error,"物流记录暂时无法读取，请重试或联系客服。")});}
+  },
+  async copyWaybill(){
+    if(!this.canAct()||this.data.shipmentLoading||!this.data.shipment?.id||!this.data.shipment.trackingNumber)return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken();
+    try{await wx.setClipboardData({data:this.data.shipment.trackingNumber});}
+    catch{if(this.readCurrent(epoch,token,readEpoch))this.setData({trackingError:'复制未完成，可以长按上方运单号复制。'});}
+  },
+  async openLogistics(){
+    if(this.data.closedRights||!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id
+      ||this.data.order?.transactionSourceKind!=='verified_commerce')return;
+    const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken(),shipmentId=this.data.shipment.id,attempt=++this.trackingAttempt;
+    const current=()=>this.readCurrent(epoch,token,readEpoch)&&attempt===this.trackingAttempt&&this.data.shipment?.id===shipmentId;
+    this.setData({trackingLoading:true,trackingError:''});
+    try{
+      const result=await myLogisticsView(this.data.id);if(!current())return;
+      if(result.orderId!==this.data.id||result.shipmentId!==shipmentId||result.source!=='wechat_logistics_plugin'
+        ||typeof result.waybillToken!=='string'||result.waybillToken.length<20||result.waybillToken.length>4096||/[\s\u0000-\u001f\u007f]/.test(result.waybillToken))throw Error('Invalid logistics view');
+      // A buyer-only capability stays in this call, never page data or storage.
+      const plugin=requirePlugin('logisticsPlugin') as {openWaybillTracking:(options:{waybillToken:string})=>void};
+      plugin.openWaybillTracking({waybillToken:result.waybillToken});
+    }catch(error){if(current())this.setData({trackingError:errorTitle(error,'暂时无法打开物流详情，可以复制运单号查询或联系客服。')});}
+    finally{if(current())this.setData({trackingLoading:false});}
   },
   async loadTracking(){
     if(!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id)return;

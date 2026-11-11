@@ -31,6 +31,9 @@ export interface OrderTracking {orderId:string;shipmentId:string;source:"wechat_
 export function myTracking(id:string,page:object):Promise<OrderTracking>{
   return pageRead<OrderTracking>(page,{path:`/v1/me/orders/${encodeURIComponent(id)}/shipment/tracking`});
 }
+export function myLogisticsView(id:string):Promise<{orderId:string;shipmentId:string;source:'wechat_logistics_plugin';waybillToken:string}>{
+  return request({path:`/v1/me/orders/${encodeURIComponent(id)}/shipment/logistics-view`,method:'POST',data:{}});
+}
 export function confirmMyReceipt(id:string,expectedVersion:number,idempotencyKey:string){
   return request({path:`/v1/me/orders/${encodeURIComponent(id)}/confirm-receipt`,method:"POST",data:{expectedVersion},idempotencyKey,cacheTags:["orders"]});
 }
