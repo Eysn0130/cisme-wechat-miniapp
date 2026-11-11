@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "oldHead": "3311dec5ba3326417ed48cf85a1a783e071f296d",
+  "reviewedHead": "301836e800bb381a1d7620f5623786fd68e034a3",
+  "mainHead": "cda9844270d4612d9774afc6d51c89c81fcd6328",
+  "reviewedTreeEqualsMain": true,
+  "preservedUnrelatedLocalPaths": 164,
+  "allUnrelatedLocalFactsPreserved": true,
+  "incorporatedFiles": 35,
+  "backupDirectory": "/private/tmp/cisme-member-type-root-final-backup",
+  "incorporatedStash": "fc0a678f3785120b53b5f52aecfc67e8508153cf",
+  "stashNotReapplied": true
+}
