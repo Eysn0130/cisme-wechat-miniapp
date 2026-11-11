@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6",
+  "sourceCommit": "7799f45099cc94834f0c0a13e09cbd89b967fb20",
+  "nativeEvidenceScope": "WeChat DevTools, all HTTP requests intercepted; synthetic data, no real member writes",
+  "mainFlowChecks": 18,
+  "devices": [
+    {
+      "name": "iPhone 12/13 (Pro)",
+      "size": "390x844",
+      "physical": false
+    },
+    {
+      "name": "iPhone 12/13 mini",
+      "size": "375x812",
+      "physical": false
+    },
+    {
+      "name": "Pixel 9",
+      "size": "412x923",
+      "physical": false
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-calendar-error-390.png",
+      "sha256": "fc9449c63914c77c8033206e76d9e2bb11a371f7677b28ca5de0ff23ac0ae065",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-cycle-assessment-390.png",
+      "sha256": "4a57dfae34900be306563b2b2531f2c1e8c11210f67b400fd94754d49b23dd38",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-cycle-first-step-390.png",
+      "sha256": "33ab9c980988ef9e14b7a1ec6eba80da40142fac14e2f4c9574bdc85eecc351a",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-detail-mini.png",
+      "sha256": "cf8d74dc2dd0627e8904ff5486083046b0c73ea41b2a439ad6d1b93c50742161",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-detail-pixel.png",
+      "sha256": "6a5ba8b6fdd284e79c15c55f440c9bdf1a01fca0e1e34e7c2be418874313ce9b",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-home-guest-390.png",
+      "sha256": "408f0d5ae650573aab17b9e214b00fe1a253397fe6c551f2c3167254ed578008",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-home-mini.png",
+      "sha256": "641aa87ed58b847f4f9c99696fc883b36c48b511ef17ff82480e9a857a7618a2",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-home-pixel.png",
+      "sha256": "752a7a0c894eb2d37ab095ba00ebc306021fd49487fc90b7a2170d26852a16bf",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-home-saved-390.png",
+      "sha256": "96ee53b208540236b482cedf30cb01aa70ca1ce6e93922c5572a9ea96471c656",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-home-unrecorded-390.png",
+      "sha256": "6feb3891f2784f8e6a22fff20387e687f3e379627a00f32741e72abce542862c",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-legacy-disclosure-390.png",
+      "sha256": "b3c219c2cf32e4082fcb17d8f96cb7407fcad3f5481b196cd1db989f57a7f4f8",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-past-detail-390.png",
+      "sha256": "35e7594170823567c0377eb7d550b85e7e5a7d5f3f1a3626bff17f835bcd0243",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-products-selected-390.png",
+      "sha256": "77478ab080181d31d2d3de89bde44e10ee75a06ec24b775be99759d78742231d",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-records-mini.png",
+      "sha256": "5d896e4fe9e23344454d87d46fe0aed618c05c853b9d43e65fe34f5e80d67b52",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-records-pixel.png",
+      "sha256": "eb81aa605bf86e08d50331063457af1fd81ca9650749afcbfda2eb05b842fa12",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-records-primary-390.png",
+      "sha256": "9a1292e701a9acbc619b7ce2a12cc97e4e23b6a4016e6ff7167b7474bbfafdc2",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-reward-pending-390.png",
+      "sha256": "5db97ac4752311fab31f9d134655a9c130a57b478efbdb1ca6757757c66d5efa",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-save-unknown-390.png",
+      "sha256": "55a8f02161152b416111908c0df51a763857b9e961478291a777bd82b95046e0",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-sheet-mini.png",
+      "sha256": "3b42cd4c25630e0b4e6805c96de8b8f1980569d59043ae86a98d0bd39fe3e752",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-sheet-pixel.png",
+      "sha256": "f63d4a8ea3a67ed47c5a52d0922510ae42af9c2658f3ec9a690fc788c99a6973",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    },
+    {
+      "path": "docs/evidence/care-centered-release-20261111/final-usage-detail-390.png",
+      "sha256": "391e65c0b498530a2615e0f3b4b2444dc624bd83b29e9f1d17b05600b917f378",
+      "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6"
+    }
+  ],
+  "localChecks": {
+    "typecheck": true,
+    "unitPassed": 3218,
+    "unitSkipped": 1,
+    "contractMethods": 317,
+    "registeredV1Methods": 315,
+    "events": 32,
+    "packageBudget": true,
+    "routeStructureAudit": true,
+    "fullNativeStateAndPhysicalDeviceGate": "blocked"
+  },
+  "realProviderOrMoneyTests": false,
+  "unverified": [
+    "320px device",
+    "OS large text",
+    "iOS/Android physical devices",
+    "actual user phone authorization",
+    "real payment/refund/transfer"
+  ],
+  "deployment": "not yet performed",
+  "experienceUpload": "not yet performed"
+}

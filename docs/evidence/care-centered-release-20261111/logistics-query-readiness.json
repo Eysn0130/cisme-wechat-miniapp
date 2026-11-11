@@ -1,0 +1,1 @@
+{"readOnly": true, "appId": "wx4eac2d4fb11d299b", "environment": "staging", "pluginListErrcode": 0, "logisticsQueryPlugin": [{"appid": "wx9ad912bf20548d92", "status": 2, "name": "物流服务"}], "queryCarrierListErrcode": 48001, "queryCarrierCount": null, "queryResponseKeys": ["errcode"], "waybillOrOrderCreated": false, "customerDataSent": false}

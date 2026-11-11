@@ -1,0 +1,29 @@
+{
+  "synthetic": true,
+  "rects": {
+    ".care-cta": {
+      "offset": {
+        "left": 46.796875,
+        "top": 533.328125
+      },
+      "size": {
+        "success": true,
+        "width": 318,
+        "height": 50
+      }
+    },
+    ".care-signal--centered": {
+      "offset": {
+        "left": 32.953125,
+        "top": 775
+      },
+      "size": {
+        "success": true,
+        "width": 346,
+        "height": 60
+      }
+    }
+  },
+  "physicalDevice": false,
+  "osFontScalingVerified": false
+}

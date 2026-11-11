@@ -1,0 +1,5 @@
+{
+  "route": "pages/home/index",
+  "guest": true,
+  "action": "授权身份并开始"
+}

@@ -1,0 +1,25 @@
+{
+  "synthetic": true,
+  "noRealWrites": true,
+  "cases": [
+    "all requests intercepted",
+    "server streak rendered before first record",
+    "primary CTA opens product sheet",
+    "one save persists two selected products and server streak",
+    "source receipt includes 10 + 5 + 50",
+    "capsule details opens primary product records",
+    "record detail has actual source components",
+    "past date reads exact owned product fact",
+    "past records have no adjust action",
+    "four-step history remains separate disclosure",
+    "calendar error does not fabricate empty coverage",
+    "lost receipt and failed read preserve unknown result",
+    "retry confirms original command",
+    "unknown retry confirms original operation without resubmission",
+    "pending reward does not block private record",
+    "due cycle still requires actual four steps",
+    "all four steps lead to assessment",
+    "bundled cycle completion retains ordered facts"
+  ],
+  "complete": true
+}

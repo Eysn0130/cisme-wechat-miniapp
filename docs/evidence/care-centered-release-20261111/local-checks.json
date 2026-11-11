@@ -1,0 +1,11 @@
+{
+  "typecheck": true,
+  "unitPassed": 3218,
+  "unitSkipped": 1,
+  "contractMethods": 317,
+  "registeredV1Methods": 315,
+  "events": 32,
+  "packageBudget": true,
+  "routeStructureAudit": true,
+  "fullNativeStateAndPhysicalDeviceGate": "blocked"
+}

@@ -1,0 +1,8 @@
+{
+  "scope": "filtered existing simulator buffer, no clean timestamp boundary",
+  "matchedApplicationFileError": false,
+  "observed": "Function(...) is not a function in official logistics plugin wx9ad912bf20548d92 2.1.5 appservice.js",
+  "implication": "simulator cannot qualify official logistics plugin; existing order-detail catches unavailable plugin and offers copy waybill/support",
+  "zeroConsoleErrorClaim": false,
+  "realWaybillPluginAcceptance": false
+}
