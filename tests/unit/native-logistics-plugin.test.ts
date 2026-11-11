@@ -17,7 +17,7 @@ beforeEach(async()=>{
 it('opens one official view after duplicate taps and keeps the token out of page data',async()=>{
   const pending=deferred();mocks.request.mockReturnValue(pending.promise);
   const first=page.openLogistics();await page.openLogistics();expect(mocks.request).toHaveBeenCalledTimes(1);
-  expect(mocks.request.mock.calls[0][0]).toEqual({path:`/v1/me/orders/${id}/shipment/logistics-view`,method:'POST',data:{}});
+  expect(mocks.request.mock.calls[0]![0]).toEqual({path:`/v1/me/orders/${id}/shipment/logistics-view`,method:'POST',data:{}});
   pending.resolve(result);await first;
   expect(open).toHaveBeenCalledExactlyOnceWith({waybillToken:result.waybillToken});expect(JSON.stringify(page.data)).not.toContain(result.waybillToken);
   expect(page.data.trackingLoading).toBe(false);
