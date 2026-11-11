@@ -299,7 +299,10 @@ export interface CareVersionCommandInput {
   expectedVersion: number;
 }
 
+export interface CareUsageInput { products: Array<'net_run'|'net_xie'|'essence'>; note?: string; serverDay: string; expectedVersion?: number }
+
 export interface CareMilestoneCommandInput extends CareVersionCommandInput {
+  dailyUsage?: CareUsageInput;
   stepCodes: CareProtocolStep[];
   selfAssessment: CareSelfAssessment;
 }

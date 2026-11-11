@@ -644,7 +644,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       :privacyExecution.revoke(request.memberId,request.params.requestId));
   app.post<{Params:{requestId:string}}>("/v1/me/privacy-requests/:requestId/export-retry", async request =>
     formalPrivacyExecution.retry(request.memberId,request.params.requestId,request.authScope==='privacy_rights'));
-  const memberProfile = new MemberProfile(pool,config.env);
+  const memberProfile = new MemberProfile(pool,config.env,config);
   app.get("/v1/me/authority", async request => authority.projection(request.memberId));
   app.get("/v1/me/commercial-membership", async request => commercial.myStatus(request.memberId));
   app.post("/v1/me/commercial-membership/code", async request => commercial.ensureCode(request.memberId));
@@ -1003,6 +1003,12 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   for (const action of ["pause", "resume", "terminate"] as const) {
     app.post<{ Params: { cycleId: string } }>(`/v1/care-cycles/:cycleId/${action}`, async (request) => service.changeCyclePhase(request.memberId, request.params.cycleId, action, idempotencyKey(request), request.body as { reasonCode: string; expectedVersion: number }, service.now(devClock(request))));
   }
+  app.post<{ Params: { cycleId: string; milestone: string } }>("/v1/care-cycles/:cycleId/milestones/:milestone/complete-with-usage", async (request) => {
+    const input = request.body as CareMilestoneCommandInput;
+    if (!input?.dailyUsage) throw new DomainError('CARE_USAGE_REQUIRED', '请先选择今天使用的护理产品', 422);
+    return service.completeMilestone(request.memberId, request.params.cycleId, request.params.milestone,
+      idempotencyKey(request), input, service.now(devClock(request)));
+  });
   app.post<{ Params: { cycleId: string; milestone: string } }>("/v1/care-cycles/:cycleId/milestones/:milestone/complete", async (request) => service.completeMilestone(
     request.memberId,
     request.params.cycleId,
@@ -1063,6 +1069,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{ Params: { consentGrantId: string } }>("/v1/consents/:consentGrantId/revoke", async (request) => service.revokeConsent(request.memberId, request.params.consentGrantId, idempotencyKey(request), (request.body as { reason: string }).reason, service.now(devClock(request))));
   app.get<{ Querystring: { limit?: string; cursor?: string;source?:string } }>("/v1/me/points", async (request) => service.getPoints(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}),...(request.query.source?{source:request.query.source}:{}) }));
   app.get('/v1/me/points/club',request=>memberPointsClub.overview(request.memberId,service.now(devClock(request))));
+  app.get<{Querystring:{before?:string;limit?:string}}>('/v1/me/care-usage-records',request=>memberPointsClub.usageHistory(request.memberId,request.query));
   app.post('/v1/me/points/checkin',request=>memberPointsClub.checkin(request.memberId,idempotencyKey(request),request.body,service.now(devClock(request))));
   app.put('/v1/me/points/birthday',request=>memberPointsClub.birthday(request.memberId,request.body,service.now(devClock(request))));
   app.get('/v1/me/points/gifts',request=>pointsGifts.offers(request.memberId,service.now(devClock(request))));

@@ -177,7 +177,7 @@ export function safeLoggerOptions(level: string) {
     level,
     // Fastify's standard request serializer omits headers. Redaction remains a
     // second line of defence for any future structured log fields.
-    redact: { paths: ["req.headers", "request.headers", "headers", "env", "*.token", "*.secret", "*.password"], censor: "[REDACTED]" }
+    redact: { paths: ["req.headers", "request.headers", "req.body", "request.body", "body", "headers", "env", "*.token", "*.secret", "*.password"], censor: "[REDACTED]" }
   };
 }
 

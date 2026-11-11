@@ -1382,5 +1382,17 @@
     "migrationReviewed": "202611100006_member_card_number.sql",
     "productionErasureExpanded": false,
     "liveDeploymentVerified": false
+  },
+  "careRegistrationFlowReview20261110": {
+    "scope": "PTS-CLUB-01,06,13,16; owner requested Care product-use sheet and registration birthday",
+    "newRecipient": false,
+    "newDatabaseColumn": false,
+    "newPersistentClientStorage": false,
+    "birthday": "Optional valid MM-DD, no year. Encrypted in unfinished member_care_profile answers envelope; canonical member_points_profile only on completed setup. Remove draft copy on completion; external change/delete removes unfinished copy and advances version fence. Existing annual setting rule and immutable order snapshots unchanged.",
+    "productUse": "Existing owner member_points_checkin, encrypted private note, sorted real products, one Shanghai day. Read-only owner history /v1/me/care-usage-records; no public feed, no inferred four-step completion. Bundled due-cycle command saves usage and four ordered steps atomically.",
+    "entryPoints": "Care primary sheet; birthday initial basic registration and later Settings personal profile. Points wallet has no daily/birthday/onboarding editors.",
+    "logging": "No raw note or birthday in audit; keyed idempotency digests, req/body redaction. No external provider call or new SDK.",
+    "evidence": "docs/evidence/care-registration-flow-20261110/README.md",
+    "physicalDeviceAccepted": false
   }
 }

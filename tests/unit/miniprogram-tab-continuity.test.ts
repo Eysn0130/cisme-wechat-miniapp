@@ -89,6 +89,8 @@ beforeEach(() => {
     ["/v1/bootstrap/home", { member, care: null, businessVersion: 1 }],
     ["/v1/bootstrap/profile", { member, points: { projection: { available: 20, frozen: 0, debt: 0, reserved: 0, version: 1 } }, care: null, businessVersion: 1 }],
     ["/v1/me/care", null], ["/v1/me/daily-care-records?limit=20", dailyPage()],
+    ["/v1/me/points/club", {serverDay:"2026-11-03",enabled:true,streak:1,today:{id:"usage-a",products:["essence"],note:"",version:1}}],
+    ["/v1/me/care-usage-records?limit=20", {items:[],totalCount:0,nextBefore:null}],
     ["/v1/me/tasks", [task]], ["/v1/me/support/summary", { unreadCount: 2 }],
     ["/v1/me/commercial-membership", { eligible: true, membershipState: "active", verifiedOrderCount: 1, commission: { netEarnedCents: 0 } }],
     ["/v1/capabilities", { communityPreviewEnabled: false }], ["/v1/ugc/status", { publicEnabled: false, draftsEnabled: false }],
@@ -96,7 +98,7 @@ beforeEach(() => {
     ["/v1/editorial/articles?limit=20", { items: [story], nextCursor: null }], ["/v1/me/community-access", { canReview: false }]
   ]);
   replies.set("/v1/me/points?limit=20&source=all", { projection: { available: 20, frozen: 0, debt: 0,reserved:0,version:1 }, entries: [], rulesEnabled: true,nextCursor:null,totalCount:0,lifetimeEarned:20,used:0,expired:0,expiring:{points:0,earliestAt:null,withinDays:30},clubPolicy:null });
-  replies.set('/v1/me/points/club',{memberId:authorId,enabled:false,policy:null,serverDay:'2026-11-10',checkedIn:false,streak:0,today:null,badges:[],pendingRewardSources:0,birthday:null,questionnaireCompleted:false});
+  replies.set('/v1/me/points/club',{memberId:authorId,enabled:false,policy:null,serverDay:'2026-11-10',checkedIn:true,streak:1,today:{id:'usage-a',products:['essence'],note:'',version:1},badges:[],pendingRewardSources:0,birthday:null,questionnaireCompleted:false});
   replies.set('/v1/me/points/gifts',{enabled:false,items:[]});replies.set('/v1/me/points/redemptions',{items:[],nextCursor:null});replies.set('/v1/me/addresses',{addresses:[]});
   replies.set("/v1/tasks/synthetic-task", { ...task, reward_enabled: false });
   replies.set("/v1/submissions/synthetic-submission", { id: "synthetic-submission", status: "rejected", media: [], version: 1, review: { reason_summary: "合成审核说明" } });
@@ -181,13 +183,14 @@ describe("native tab return presentation while real read paths revalidate", () =
   });
 
   it("retains the Home signal throughout a delayed return and applies the new daily fact", async () => {
+    replies.set("/v1/me/daily-care-records?limit=20", dailyPage([]));
     const { page, rendered, samples } = await mount("home");
     await page.load(); await flush();
     const signal = rendered.querySelector(".care-signal").dom;
     const daily = later(), core = later();
-    held.set("/v1/me/daily-care-records?limit=20", daily); held.set("/v1/bootstrap/home", core);
+    held.set("/v1/me/points/club", daily); held.set("/v1/bootstrap/home", core);
     page.onHide(); page.onShow(); await flush();
-    expect(page.data).toMatchObject({ loading: true, dailyLoading: true, supportUnread: 2 });
+    expect(page.data).toMatchObject({ loading: true, usageLoading: true, supportUnread: 2 });
     expect(rendered.querySelector(".care-signal").dom).toBe(signal);
     expect(signal.textContent).toContain("今天的护理已记录");
     expect(signal.textContent).not.toMatch(/加载|读取/);
@@ -195,7 +198,7 @@ describe("native tab return presentation while real read paths revalidate", () =
     samples.length = 0;
     core.resolve(replies.get("/v1/bootstrap/home")); await flush();
     expect(samples.join("\n")).not.toMatch(/从四步护理开始|正在读取|正在加载/);
-    daily.resolve(dailyPage([])); await flush();
+    daily.resolve({serverDay:"2026-11-03",today:null,enabled:true,streak:0}); await flush();
     expect(signal.textContent).toContain("今天还未记录");
     expect(m.request.mock.calls.filter(([options]) => options.method && options.method !== "GET")).toEqual([]);
   });
@@ -207,12 +210,12 @@ describe("native tab return presentation while real read paths revalidate", () =
     expect(rendered.dom.textContent).toContain("正在加载护理安排");
     read.resolve(replies.get("/v1/bootstrap/home")); await cold; await flush();
     held.delete("/v1/bootstrap/home");
-    const daily = later(); held.set("/v1/me/daily-care-records?limit=20", daily);
+    const daily = later(); held.set("/v1/me/points/club", daily);
     await page.load(false);
-    expect(page.data).toMatchObject({ dailyReady: false, dailyToday: null, serverDay: "" });
-    expect(page.data.view.signalTitle).toBe("正在读取日常护理记录");
-    page.onHide(); daily.resolve(dailyPage()); await flush();
-    expect(page.data.dailyToday).toBeNull();
+    expect(page.data).toMatchObject({ usageReady: false, usageToday: null, usageDay: "" });
+    expect(page.data.view.signalTitle).toBe("正在读取今日护理记录");
+    page.onHide(); daily.resolve({serverDay:"2026-11-03",today:null,enabled:true,streak:0}); await flush();
+    expect(page.data.usageToday).toBeNull();
   });
 
   it("keeps Profile cards mounted through independent core, daily, tasks and authority reads", async () => {
@@ -308,10 +311,10 @@ describe("native tab return presentation while real read paths revalidate", () =
     const daily = later(); held.set("/v1/me/daily-care-records?limit=20", daily);
     page.onHide(); page.onShow(); await flush();
     expect(rendered.querySelector(".record-row").dom).toBe(row);
-    expect(rendered.querySelector(".records-summary").dom.textContent).toBe("已记录 1 天");
+    expect(rendered.querySelector(".records-summary").dom.textContent).toBe("四步护理已记录 1 天");
     expect(rendered.dom.textContent).not.toMatch(/正在加载日常/);
     daily.resolve(dailyPage([])); await flush();
-    expect(rendered.querySelector(".records-summary").dom.textContent).toBe("已记录 0 天");
+    expect(rendered.querySelector(".records-summary").dom.textContent).toBe("四步护理已记录 0 天");
     expect(rendered.dom.textContent).toContain("还没有护理记录");
   });
 

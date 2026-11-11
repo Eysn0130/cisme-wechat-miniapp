@@ -15,7 +15,7 @@ vi.mock('../../apps/miniprogram/services/care-onboarding',async original=>({...a
 const simulate=createRequire(import.meta.url)('miniprogram-simulate');
 const template=readFileSync('apps/miniprogram/components/care-onboarding/index.wxml','utf8');
 let definition:any,rendered:any,instance:any,profile:any;
-const survey=()=>({questionnaireVersion:careQuestionnaireVersion,questions:structuredClone(careQuestions),sensitiveConsent:{version:careConsentVersion,text:careConsentText},profile:structuredClone(profile)});
+const survey=()=>({questionnaireVersion:careQuestionnaireVersion,questions:structuredClone(careQuestions),sensitiveConsent:{version:careConsentVersion,text:careConsentText},birthdayMonthDay:null,birthdayChangeAfter:null,profile:structuredClone(profile)});
 const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
 async function mount(required=true){
   (globalThis as any).Component=(d:any)=>{definition=d;};
@@ -32,7 +32,7 @@ beforeEach(()=>{
   m.read.mockImplementation(async()=>survey());
   m.save.mockImplementation(async(body:any,key:string,complete:boolean)=>{
     const health=body.consentChoice??profile?.healthChoice??'unasked';
-    profile={version:(profile?.version??0)+1,questionnaireVersion:careQuestionnaireVersion,currentQuestion:body.currentQuestion,
+    profile={birthdayMonthDay:Object.prototype.hasOwnProperty.call(body,'birthdayMonthDay')?body.birthdayMonthDay:profile?.birthdayMonthDay??null,version:(profile?.version??0)+1,questionnaireVersion:careQuestionnaireVersion,currentQuestion:body.currentQuestion,
       required:!complete,latestOperationId:key,answers:normalizeCareAnswers(body.answers,health,complete),healthChoice:health,
       healthTextVersion:health==='unasked'?null:careConsentVersion,healthDecidedAt:health==='unasked'?null:new Date().toISOString(),
       completedAt:complete?new Date().toISOString():null,updatedAt:new Date().toISOString()};
@@ -99,4 +99,15 @@ describe('native onboarding interaction contract',()=>{
     expect(nextCareQuestion(careQuestions,7,-1,'declined')).toBe(4);
     expect(()=>parseCareSurvey(survey())).not.toThrow();
   });
+});
+
+it('keeps the registration birthday optional, supports leap day and persists it in the same draft',async()=>{
+ const c=await mount();c.choose({currentTarget:{dataset:{value:'doctor'}}});await c.next();
+ expect(rendered.dom.textContent).toContain('生日');c.chooseBirthday({detail:{value:[1,28]}});expect(c.data.birthday).toBe('02-29');
+ c.skip();await flush();expect(m.save.mock.calls.at(-1)?.[0]).toMatchObject({birthdayMonthDay:'02-29',answers:{age_group:{status:'skipped',values:[]}}});
+ expect(c.data.birthday).toBe('02-29');c.previous();expect(c.data.birthday).toBe('02-29');
+});
+it('clamps the day picker when changing month and clears only the optional birthday',async()=>{
+ const c=await mount();c.chooseBirthday({detail:{value:[0,30]}});c.birthdayColumn({detail:{column:0,value:1}});expect(c.data.birthdayRanges[1]).toHaveLength(29);expect(c.data.birthdayIndex).toEqual([1,28]);
+ c.clearBirthday();expect(c.data.birthday).toBe('');expect(c.data.answers.source.status).toBe('unanswered');
 });

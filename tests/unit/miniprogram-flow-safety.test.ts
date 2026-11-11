@@ -200,9 +200,9 @@ describe("mini program submission flow safety", () => {
     const home = await source("apps/miniprogram/pages/home/index.ts");
 
     expect(home).toContain("care-activate-${care.id}-v${care.version}");
-    expect(home).toContain("care-milestone-${care.id}-${care.due}-v${care.version}");
+    expect(home).toContain("care-milestone-usage-${care.id}-${care.due}-v${care.version}");
     expect(home).toContain("stepCodes: this.data.sessionCompletedCodes, selfAssessment: this.data.sessionAssessment");
-    expect(home).toContain('await request<T>({ path, method: "POST", idempotencyKey, data: command.data })');
+    expect(home).toContain('await request<T>({ path, method: "POST", idempotencyKey, data: command.data, cacheTags: ["care", "points", "member"] })');
   });
 
   it("removes task invitations while keeping publication gates and catalog states truthful", async () => {

@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "c7dcd9560ed374f6154f8c1123e9c6b364430c8e92c91454f54d151f199d73df",
+  "packageSourceSha256": "0ba5d01d51ae9f957f02eb9259f186206cc7d0e5fe8cc2579a5c6bd49cab09b7",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Member-card numeric typography scoped native evidence in docs/evidence/member-card-typography-20261110. Private number service was independently validated and deployed from 81a7700; this pass changes only native numeric styling. Whole-package route-state and physical-device matrices remain incomplete.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-before-member-type-e06473639f07.json",
+  "note": "Care product-use entry and registration birthday source rebind. Scoped native evidence is pending in docs/evidence/care-registration-flow-20261110; historical card/records captures retain their original source and scope. All 41-route state and physical-device matrices remain blocked.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-before-care-flow-c7dcd9560ed3.json",
   "pendingSourceRebind": false
 }

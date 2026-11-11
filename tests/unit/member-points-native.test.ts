@@ -27,13 +27,14 @@ it('does not fabricate zero on a failed or malformed balance and still offers re
  m.request.mockImplementation(async({path}:any)=>path.startsWith('/v1/me/points?')?{...wallet(),projection:{available:'broken'}}:path.endsWith('/club')?club():{items:[],nextCursor:null});page.onShow();await flush();expect(page.data.points).toBeNull();expect(page.data.error).toContain('重新查询');
 });
 it('clears private state on account change and ignores a response after hiding',async()=>{
- page.onShow();await flush();page.setData({note:'上一位私人感受',checkinOpen:true});m.token='';m.retain=false;page.onShow();expect(page.data).toMatchObject({points:null,note:'',checkinOpen:false});
+ page.onShow();await flush();page.setData({giftSelected:{name:'上一位礼品'},club:club()});m.token='';m.retain=false;page.onShow();expect(page.data).toMatchObject({points:null,club:null,giftSelected:null});
  m.token='member-b';let resolve!:(v:unknown)=>void;const p=new Promise(r=>resolve=r);m.request.mockReturnValue(p);page.onShow();page.onHide();resolve(wallet());await flush();expect(page.data.points).toBeNull();
 });
-it('supports product multi-select and retries the identical private checkin after an unknown response',async()=>{
- page.onShow();await flush();page.openCheckin();for(const id of ['net_run','essence'])page.chooseProduct({currentTarget:{dataset:{id}}});page.inputNote({detail:{value:'今天护理后感受到清爽舒适没有紧绷'}});
- const intents:any[]=[];let count=0;const previous=m.request.getMockImplementation()!;m.request.mockImplementation(async(o:any)=>{if(o.path==='/v1/me/points/checkin'){intents.push(structuredClone(o));if(!count++)throw {title:'network unknown'};return {recordId:'checkin-1'}}return previous(o)});
- await page.submitCheckin();expect(page.data.unknown).toBe(true);page.chooseProduct({currentTarget:{dataset:{id:'net_xie'}}});expect(page.data.selectedProducts).toEqual(['net_run','essence']);await page.retryCheckin();expect(intents[0]).toEqual(intents[1]);expect(page.data.checkinOpen).toBe(false);
+it('keeps daily care, birthday and onboarding editors out of the points wallet',async()=>{
+ page.onShow();await flush();expect(page.openCheckin).toBeUndefined();expect(page.writeBirthday).toBeUndefined();expect(page.openCareProfile).toBeUndefined();
+ const {readFileSync}=await import('node:fs');const markup=readFileSync('apps/miniprogram/pages/points/index.wxml','utf8');
+ for(const removed of ['查看或补充今日记录','记录今日使用','记下生日','care-onboarding','birthdayRanges'])expect(markup).not.toContain(removed);
+ expect(page.data.sections.map((s:any)=>s.label)).toEqual(['赚积分','积分明细','积分兑换']);
 });
 it('protects a saved redemption recovery command from a different canonical member',async()=>{
  const {preparePointsGift,dispatchPointsGift}=await import('../../apps/miniprogram/services/points-gift-recovery');
@@ -49,4 +50,4 @@ it('displays bucket transfers correctly and refuses negative or unconfirmed bala
  expect(presentPointEntry({...entry,entry_type:'expire',available_delta:-20,frozen_delta:0})).toMatchObject({displayAmount:'-20'});expect(()=>parsePointBalances({available:20,frozen:0,reserved:0,debt:3,version:1})).toThrow();
 });
 
-it('makes the balance and care action available while optional address reads remain pending',async()=>{m.addresses.mockReturnValue(new Promise(()=>{}));page.onShow();await flush();expect(page.data.points.projection.available).toBe(900);expect(page.data.club.enabled).toBe(true);expect(page.data.addressesState).toBe('loading');});
+it('makes the balance and earning rules available while optional address reads remain pending',async()=>{m.addresses.mockReturnValue(new Promise(()=>{}));page.onShow();await flush();expect(page.data.points.projection.available).toBe(900);expect(page.data.club.enabled).toBe(true);expect(page.data.addressesState).toBe('loading');});

@@ -426,6 +426,20 @@ page { --cisme-text-micro:.6875rem; --cisme-text-small:.75rem; --cisme-text-body
 .session-error { margin: 12rpx 0; padding: 16rpx 20rpx; border: 1rpx solid rgba(91,64,105,.18); border-radius: 20rpx; font-size: var(--cisme-text-micro); line-height: 1.5; }
 .session-error text { display: block; }
 .session-error .text-button { margin-top: 8rpx; min-height: var(--cisme-hit-target); }
+.session-usage { margin-top: 16rpx; }
+.usage-products { display: flex; flex-direction: column; gap: 14rpx; margin-top: 24rpx; }
+.usage-product { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 112rpx; margin: 0; padding: 20rpx 24rpx; border: 2rpx solid #e7dfea; border-radius: 24rpx; color: #403347; background: #fff; text-align: left; line-height: 1.4; transition: background 180ms ease, border-color 180ms ease; }
+.usage-product.is-selected { border-color: #876b98; background: #f0e8f4; }
+.usage-product__copy { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.usage-product__name { font-size: var(--cisme-text-body); font-weight: 500; }
+.usage-product__hint { margin-top: 6rpx; color: #75697b; font-size: var(--cisme-text-small); }
+.usage-product__check { display: flex; flex: none; align-items: center; justify-content: center; width: 40rpx; height: 40rpx; margin-left: 24rpx; border: 2rpx solid #bcaec5; border-radius: 12rpx; }
+.is-selected .usage-product__check { border-color: #6b4e7d; background: #6b4e7d; }
+.usage-product__check image { width: 28rpx; height: 28rpx; }
+.usage-note-label { display: flex; align-items: baseline; gap: 12rpx; margin: 26rpx 0 14rpx; color: #493b51; font-size: var(--cisme-text-body); }
+.usage-note-label__optional { color: #81728a; font-size: var(--cisme-text-small); }
+.usage-note { box-sizing: border-box; width: 100%; height: 144rpx; padding: 20rpx 24rpx; border: 1rpx solid #e3dae8; border-radius: 24rpx; color: #493b51; background: #fff; font-size: var(--cisme-text-body); line-height: 1.6; }
+.home-page--reduced .usage-product { transition: none; }
 
 .care-signal__details { display: flex; align-items: center; justify-content: center; flex: none; gap: 2px; min-width: 56px; min-height: var(--cisme-hit-target,44px); margin: 0 -5px 0 0; padding: 0 2px; border: 0; border-radius: 14px; color: var(--cisme-plum,#56306f); background: transparent; font-size: .8125rem; font-weight: 600; line-height: 1.4; text-align: center; transition: background-color var(--cisme-motion-press); }
 .care-signal__details image { flex: none; width: 14px; height: 14px; }

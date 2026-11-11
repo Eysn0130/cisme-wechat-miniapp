@@ -1,3 +1,4 @@
+import {birthdayPicker,birthdayMonthColumn,selectedBirthday} from '../../services/member-birthday';
 import { memberIdentity, publishMemberIdentity } from "../../services/member-identity";
 import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../../services/member-avatar";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
@@ -46,7 +47,7 @@ Page({
   clipboardAttempt: 0,
   addressImportAttempt: 0,
   avatarAttempt: 0,
-  data: { careProfileOpen:false, avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "", memberCardNumber: "", runtimeLabel: runtimeLabel(), profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, aboutOpen:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
+  data: { careProfileOpen:false, avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "", memberCardNumber: "",...birthdayPicker(),birthdayDirty:false,birthdaySupported:false, runtimeLabel: runtimeLabel(), profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, aboutOpen:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
   onLoad(query:Record<string,string|undefined>) { this.data.pageAlive = true; this.requestedAddressSection=query.section==="addresses"; this.requestedProfileSection=query.section==="profile"; if(this.requestedAddressSection)this.setData({editingAddresses:true}); else if(this.requestedProfileSection)this.setData({editingProfile:true}); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
@@ -78,7 +79,7 @@ Page({
       avatarUrl: defaultMemberAvatar, avatarPayload: null, avatarChanged: false, avatarBusy: false,
       profileVersion: 0, profileCompleted: false, profileDirty: false, communityVisible: false,
       publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "",
-      memberId: "", memberCode: "", memberCardNumber: "", profileBusy: false, profileReady: false, profileError: "",
+      memberId: "", memberCode: "", memberCardNumber: "",...birthdayPicker(),birthdayDirty:false,birthdaySupported:false, profileBusy: false, profileReady: false, profileError: "",
       authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "",
       phoneBusy: false, phoneError: "", leavePromptOpen: false, editingProfile: false, editingAddresses: false,
       canManageMembers: false, addresses: [], addressesReady: false, addressesLoading: false, addressesError: "",
@@ -154,7 +155,7 @@ Page({
     const avatarUrl=!profile.avatar_data_url ? defaultMemberAvatar : sameMember ? this.data.avatarUrl : known && known.id === profile.id ? known.avatarUrl : defaultMemberAvatar;
     this.profileSessionToken=token;
     publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision || 0,completed_at:profile.completed_at,public_status:profile.public_status});
-    this.setData({displayName:profile.display_name,wechatHandle:profile.wechat_handle || "",avatarUrl,memberId:profile.id,memberCardNumber:profile.card_number || "",memberCode:String(profile.id || "").slice(0,8).toUpperCase(),avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true,nicknameInvalid:false},()=>this.checkAddressDraftRecovery(profile.id));
+    this.setData({...birthdayPicker(profile.birthday_month_day),birthdayDirty:false,birthdaySupported:Object.prototype.hasOwnProperty.call(profile,"birthday_month_day"),displayName:profile.display_name,wechatHandle:profile.wechat_handle || "",avatarUrl,memberId:profile.id,memberCardNumber:profile.card_number || "",memberCode:String(profile.id || "").slice(0,8).toUpperCase(),avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true,nicknameInvalid:false},()=>this.checkAddressDraftRecovery(profile.id));
     return true;
   },
   async loadProfileAvatar(profile:any,token:string,current:()=>boolean) {
@@ -175,6 +176,15 @@ Page({
     if (this.data.profileDirty || this.data.addressDirty || this.data.workingConsentId || this.data.addressBusy) wx.enableAlertBeforeUnload({message:"还有未完成的修改，请保存或放弃后再离开。"});
     else wx.disableAlertBeforeUnload();
   },
+  birthdayColumn(event:{detail:{column:number;value:number}}){
+    if(!this.data.profileReady||!this.data.birthdaySupported||this.data.profileBusy||this.data.avatarBusy)return;
+    const patch=birthdayMonthColumn(this.data.birthdayRanges,this.data.birthdayIndex,event.detail);if(patch)this.setData(patch);
+  },
+  chooseBirthday(event:{detail:{value:number[]}}){
+    if(!this.data.profileReady||!this.data.birthdaySupported||this.data.profileBusy||this.data.avatarBusy)return;
+    const patch=selectedBirthday(event.detail.value);if(patch){this.setData({...patch,birthdayDirty:true});this.markProfileDirty();}
+  },
+  clearBirthday(){if(this.data.profileReady&&this.data.birthdaySupported&&!this.data.profileBusy&&!this.data.avatarBusy){this.setData({...birthdayPicker(),birthdayDirty:true});this.markProfileDirty();}},
   editDisplayName(event:WechatMiniprogram.Input) { if(this.data.displayName === event.detail.value)return; this.setData({displayName:event.detail.value,nicknameInvalid:false}); this.markProfileDirty(); },
   editWechatHandle(event:WechatMiniprogram.Input) { if(this.data.wechatHandle === event.detail.value)return; this.setData({wechatHandle:event.detail.value}); this.markProfileDirty(); },
   reviewNickname(event:WechatMiniprogram.CustomEvent) {
@@ -211,13 +221,15 @@ Page({
     const token = getApp<IAppOption>().globalData.sessionToken;
     const memberId = this.data.memberId;
     const version = this.data.profileVersion;
+    const submittedBirthday = this.data.birthdayDirty ? this.data.birthday || null : undefined;
     const attempt = ++this.data.profileAttempt;
     const current = () => this.data.pageAlive && this.profileVisible && !this.data.leaving && attempt === this.data.profileAttempt && token === getApp<IAppOption>().globalData.sessionToken;
     this.setData({profileBusy:true, profileError:""});
     try {
-      const profile = await request<any>({path:"/v1/me/profile", method:"PUT", data:{displayName:this.data.displayName,wechatHandle:this.data.wechatHandle,communityVisible:this.data.communityVisible,expectedVersion:version,...(this.data.avatarChanged ? {avatarDataUrl:this.data.avatarPayload} : {})}});
+      const profile = await request<any>({path:"/v1/me/profile", method:"PUT", data:{displayName:this.data.displayName,wechatHandle:this.data.wechatHandle,communityVisible:this.data.communityVisible,expectedVersion:version,...(this.data.birthdayDirty?{birthdayMonthDay:this.data.birthday||null}:{}),...(this.data.avatarChanged ? {avatarDataUrl:this.data.avatarPayload} : {})}});
       if(!current())return;
       if(profile?.id !== memberId || typeof profile.display_name !== "string" || !profile.display_name.trim() || !Number.isSafeInteger(profile.profile_revision) || profile.profile_revision <= version)throw new Error("INVALID_SAVED_PROFILE");
+      if(submittedBirthday !== undefined && profile.birthday_month_day !== submittedBirthday)throw new Error("INVALID_SAVED_BIRTHDAY");
       this.profileSessionToken=token;
       const known=memberIdentity();
       if(known && known.id === profile.id && known.profile_revision > profile.profile_revision){
@@ -229,7 +241,7 @@ Page({
       // The server receipt owns the saved name and revision. Local avatar work
       // must not delay them or turn a successful save into a stale edit.
       publish(fallbackAvatar);
-      this.setData({displayName:profile.display_name,wechatHandle:profile.wechat_handle || "",memberId:profile.id,memberCardNumber:profile.card_number || "",profileVersion:profile.profile_revision,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileDirty:false,profileReady:true,profileBusy:false,nicknameInvalid:false,avatarPayload:null,avatarChanged:false,avatarUrl:fallbackAvatar});
+      this.setData({...birthdayPicker(profile.birthday_month_day),birthdayDirty:false,birthdaySupported:Object.prototype.hasOwnProperty.call(profile,"birthday_month_day"),displayName:profile.display_name,wechatHandle:profile.wechat_handle || "",memberId:profile.id,memberCardNumber:profile.card_number || "",profileVersion:profile.profile_revision,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileDirty:false,profileReady:true,profileBusy:false,nicknameInvalid:false,avatarPayload:null,avatarChanged:false,avatarUrl:fallbackAvatar});
       this.syncUnloadGuard();
       wx.showToast({title:"会员资料已保存",icon:"success"});
       try {

@@ -1,3 +1,4 @@
+import {birthdayPicker,birthdayMonthColumn,selectedBirthday} from '../../services/member-birthday';
 import {cancelPageReads} from '../../services/page-requests';
 import {currentChromeStyle,shouldReduceMotion} from '../../services/layout';
 import {commerceContextRevision} from '../../services/commerce-command-store';
@@ -11,7 +12,7 @@ const owners=new WeakMap<object,Owner>(),pending=new WeakMap<object,Pending>();
 function current(component:object,attempt?:number){const o=owners.get(component);return Boolean(o?.alive&&o.visible&&o.token===getApp<IAppOption>().globalData.sessionToken
   &&o.context===commerceContextRevision()&&(attempt===undefined||o.attempt===attempt));}
 const initial={loading:true,ready:false,busy:false,unknown:false,reloadNeeded:false,error:'',questionnaireVersion:'',questions:[] as CareQuestion[],answers:{} as CareAnswers,
-  index:0,questionNumber:1,question:null as CareQuestion|null,questionFrames:[] as CareQuestion[],options:[] as Array<{value:string;label:string;selected:boolean}>,profileVersion:0,
+  ...birthdayPicker(),birthdayLocked:false,birthdaySupported:false,index:0,questionNumber:1,question:null as CareQuestion|null,questionFrames:[] as CareQuestion[],options:[] as Array<{value:string;label:string;selected:boolean}>,profileVersion:0,
   completed:false,forced:false,healthChoice:'unasked' as CareHealthChoice,consentMode:false,consentVersion:'',consentText:'',canAdvance:false,selectionLabel:'',scrollTop:0};
 Component({
   properties:{required:{type:Boolean,value:false}},
@@ -37,7 +38,8 @@ Component({
       try{
         const result=await readCareSurvey(this);if(!current(this,attempt))return;
         this.setData({ready:true,loading:false,questionnaireVersion:result.questionnaireVersion,questions:result.questions,
-          consentVersion:result.sensitiveConsent.version,consentText:result.sensitiveConsent.text});
+          consentVersion:result.sensitiveConsent.version,consentText:result.sensitiveConsent.text,
+          birthdaySupported:Object.prototype.hasOwnProperty.call(result,"birthdayMonthDay"),birthdayLocked:Boolean(result.birthdayMonthDay&&result.birthdayChangeAfter&&new Date(result.birthdayChangeAfter)>new Date()),...birthdayPicker(result.birthdayMonthDay)});
         const intent=pending.get(this);
         if(intent&&result.profile?.latestOperationId===intent.key){
           pending.delete(this);this.applyProfile(result.profile);this.setData({unknown:false});
@@ -50,7 +52,7 @@ Component({
       }catch{if(current(this,attempt))this.setData({loading:false,error:'护理档案暂时无法加载，请检查网络后重试。'});}
     },
     applyProfile(profile:CareProfile|null,initialLoad=false){
-      this.setData({profileVersion:profile?.version??0,answers:profile?.answers??emptyCareAnswers(this.data.questions),
+      this.setData({...birthdayPicker(profile?profile.birthdayMonthDay:this.data.birthday),profileVersion:profile?.version??0,answers:profile?.answers??emptyCareAnswers(this.data.questions),
         healthChoice:profile?.healthChoice??'unasked',completed:Boolean(profile?.completedAt),
         forced:this.properties.required||Boolean(profile?.required),consentMode:false,
         index:initialLoad&&profile?.completedAt&&!this.properties.required?0:(profile?.currentQuestion??1)-1});
@@ -70,6 +72,15 @@ Component({
       const next=toggleCareOption(q,this.data.answers[q.id],value);
       this.setData({answers:{...this.data.answers,[q.id]:next.answer},error:next.error});this.project();
     },
+    birthdayColumn(event:{detail:{column:number;value:number}}){
+      if(!current(this)||this.data.busy||this.data.unknown||this.data.birthdayLocked)return;
+      const patch=birthdayMonthColumn(this.data.birthdayRanges,this.data.birthdayIndex,event.detail);if(patch)this.setData(patch);
+    },
+    chooseBirthday(event:{detail:{value:number[]}}){
+      if(!current(this)||this.data.busy||this.data.unknown||this.data.birthdayLocked)return;
+      const patch=selectedBirthday(event.detail.value);if(patch)this.setData(patch);
+    },
+    clearBirthday(){if(current(this)&&!this.data.busy&&!this.data.unknown)this.setData(birthdayPicker());},
     previous(){
       if(!current(this)||this.data.busy||this.data.unknown||this.data.index===0)return;
       this.setData({index:nextCareQuestion(this.data.questions,this.data.index,-1,this.data.healthChoice),error:''});this.project();
@@ -98,7 +109,8 @@ Component({
     },
     async retrySave(){const intent=pending.get(this);if(intent&&!this.data.busy)await this.send(intent);},
     async submit(body:CareSave,complete:boolean,consent:boolean){
-      const intent={body:JSON.parse(JSON.stringify(body)) as CareSave,key:clientOperationKey('care-profile'),complete,consent};pending.set(this,intent);await this.send(intent);
+      const command={...body,...(!this.data.completed&&this.data.birthdaySupported?{birthdayMonthDay:this.data.birthday||null}:{})};
+      const intent={body:JSON.parse(JSON.stringify(command)) as CareSave,key:clientOperationKey('care-profile'),complete,consent};pending.set(this,intent);await this.send(intent);
     },
     async send(intent:Pending){
       const o=owners.get(this);if(!o||!current(this))return;const attempt=++o.attempt;

@@ -8,15 +8,17 @@ vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare:
 const deferred = <T = any>() => { let resolve!: (value:T)=>void, reject!:(value:unknown)=>void; const promise = new Promise<T>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject}; };
 const flush = async () => { for (let i=0;i<40;i++) await Promise.resolve(); };
 const initial = () => ({ id: "cycle-a", phase: "active", version: 2, startedOn: "2026-09-20", timezone: "Asia/Shanghai", due: "D1", next: "D1", completed: [] as string[], records: [] as any[], scheduleOffsetDays: 0 });
+let usage: any;
 let care: ReturnType<typeof initial>, page: any, wxMock: any, posts: any[], postResult: ReturnType<typeof deferred>, version: number;
 async function mount() { await import("../../apps/miniprogram/pages/home/index"); await page.load(); }
-function steps() { page.openCareSession(); for(let i=0;i<4;i++)page.advanceCareStep(); page.selectAssessment({currentTarget:{dataset:{value:"comfortable"}}}); }
-function saved() { care = {...care,version:3,due:null as any,next:"D7",completed:["D1"],records:[{milestone:"D1",completedAt:"2026-09-20T22:00:00Z",stepCodes:["00","01","02","03"],selfAssessment:"comfortable"}]}; version++; }
+function steps() { page.openCareSession(); page.toggleCareProduct({currentTarget:{dataset:{id:"essence"}}}); void page.continueCareUsage(); for(let i=0;i<4;i++)page.advanceCareStep(); page.selectAssessment({currentTarget:{dataset:{value:"comfortable"}}}); }
+function saved() { care = {...care,version:3,due:null as any,next:"D7",completed:["D1"],records:[{milestone:"D1",completedAt:"2026-09-20T22:00:00Z",stepCodes:["00","01","02","03"],selfAssessment:"comfortable"}]}; version++; usage={id:"usage-a",operationId:"cycle-usage:cycle-a:D1:2",products:["essence"],note:"",version:1}; }
 beforeEach(()=>{
-  vi.resetModules(); mocks.request.mockReset();mocks.token="session-a"; care=initial();version=100;posts=[];postResult=deferred();
+  vi.resetModules(); mocks.request.mockReset();mocks.token="session-a"; care=initial();usage=null;version=100;posts=[];postResult=deferred();
   mocks.request.mockImplementation(async (options:any)=>{
     if(options.method==="POST"){posts.push(structuredClone(options));return postResult.promise;}
     if(options.path==="/v1/bootstrap/home")return {member:{id:mocks.token,display_name:"合成会员"},care:structuredClone(care),businessVersion:version};
+    if(options.path==="/v1/me/points/club")return {serverDay:"2026-09-21",today:usage,enabled:true,streak:usage?1:0};
     if(options.path==="/v1/me/support/summary")return {unreadCount:0};
     throw new Error("Unexpected synthetic route");
   });
