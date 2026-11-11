@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "nativeSourceSha256": "f2056f0dfcafce8f1bec8737b75634eb25ddf15a0b17e45ab976a2c912b2d0ed",
+  "nativeSourceSha256": "5fc02368425349fd263fcfaae7c85274045efdf39f05b7baf2898c0099b28ef3",
   "baseHead": "fa2e647d427abf4aa7ac83c079cf55483ac692da",
   "unit": {
     "filesPassed": 5,
@@ -14,8 +14,10 @@
     "viewport": "390x844",
     "widthPx": 362,
     "heightBeforePx": 237,
-    "heightAfterPx": 185,
-    "reductionPercent": 21.9
+    "heightAfterPx": 160,
+    "reductionPercent": 32.5,
+    "statusCopyInCard": false,
+    "fullLedgerDetailsRemainOnPointsPage": true
   },
   "native": {
     "otherViewports": [
@@ -35,12 +37,13 @@
     "physicalDevicesTested": false,
     "realServerWrites": 0,
     "syntheticFixtures": true,
-    "sessionAndDeviceRestored": true
+    "sessionAndDeviceRestored": true,
+    "statusNodesInDebtAndExpiryFixtures": 0
   },
   "changesBackend": false,
   "changesDatabase": false,
   "wechatUploaded": false,
   "requestedExperienceVersion": "0.1.35",
   "uploadAuthorized": true,
-  "finalCi": "pending"
+  "finalCi": "pending latest source"
 }

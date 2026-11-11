@@ -1,5 +1,5 @@
 {
-  "nativeSourceSha256": "f2056f0dfcafce8f1bec8737b75634eb25ddf15a0b17e45ab976a2c912b2d0ed",
+  "nativeSourceSha256": "5fc02368425349fd263fcfaae7c85274045efdf39f05b7baf2898c0099b28ef3",
   "scope": "Official native simulator; synthetic transport; no real server pass-through.",
   "compile": [
     {
@@ -27,7 +27,7 @@
   "cardSize": {
     "success": true,
     "width": 362,
-    "height": 185
+    "height": 160
   },
   "cardLabel": "会员卡，CISME 会员，可用积分 850 分，查看积分明细与兑换",
   "longPress": {
@@ -49,8 +49,8 @@
       "animation-timing-function": "cubic-bezier(0.45, 0, 0.2, 1)",
       "width": "162px",
       "left": "-162px",
-      "opacity": "0.991417",
-      "transform": "matrix(1, 0, -0.32492, 1, 20.7599, 0)"
+      "opacity": "0.990062",
+      "transform": "matrix(1, 0, -0.32492, 1, 20.285, 0)"
     },
     "second": {
       "animation-name": "member-card-sheen",
@@ -59,7 +59,7 @@
       "width": "162px",
       "left": "-162px",
       "opacity": "1",
-      "transform": "matrix(1, 0, -0.32492, 1, 393.739, 0)"
+      "transform": "matrix(1, 0, -0.32492, 1, 415.631, 0)"
     }
   },
   "sheenReplay": {
@@ -68,7 +68,7 @@
   "tapDestination": {
     "success": true,
     "currentPage": {
-      "pageId": 267,
+      "pageId": 322,
       "path": "pages/points/index",
       "query": {}
     }
@@ -76,7 +76,7 @@
   "recordsDestination": {
     "success": true,
     "currentPage": {
-      "pageId": 268,
+      "pageId": 323,
       "path": "pages/records/index",
       "query": {}
     }

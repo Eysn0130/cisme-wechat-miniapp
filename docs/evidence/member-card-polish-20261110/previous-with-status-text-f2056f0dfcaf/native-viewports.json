@@ -1,0 +1,271 @@
+{
+  "nativeSourceSha256": "f2056f0dfcafce8f1bec8737b75634eb25ddf15a0b17e45ab976a2c912b2d0ed",
+  "scenarios": [
+    {
+      "device": "iPhone 12/13 mini",
+      "start": {
+        "originalRoute": "pages/home/index",
+        "originalHadSession": true,
+        "allRequestsIntercepted": true,
+        "mutationsBlocked": true
+      },
+      "cardSize": {
+        "success": true,
+        "width": 347,
+        "height": 178
+      },
+      "finish": {
+        "active": false,
+        "originalRoute": "pages/home/index",
+        "requestCount": 5,
+        "writeAttempts": 0,
+        "actualServerWrites": 0
+      }
+    },
+    {
+      "device": "iPhone 14/15 Pro Max",
+      "start": {
+        "originalRoute": "pages/home/index",
+        "originalHadSession": true,
+        "allRequestsIntercepted": true,
+        "mutationsBlocked": true
+      },
+      "cardSize": {
+        "success": true,
+        "width": 398,
+        "height": 185
+      },
+      "finish": {
+        "active": false,
+        "originalRoute": "pages/home/index",
+        "requestCount": 5,
+        "writeAttempts": 0,
+        "actualServerWrites": 0
+      }
+    }
+  ],
+  "physicalDevice": false,
+  "finalDevice": {
+    "success": true,
+    "current": {
+      "name": "iPhone 12/13 (Pro)",
+      "model": "iPhone 12/13 (Pro)",
+      "desc": "390 x 844 | Dpr:3",
+      "os": "iOS",
+      "current": true
+    },
+    "devices": [
+      {
+        "name": "iPhone 12/13 mini",
+        "model": "iPhone 12/13 mini",
+        "desc": "375 x 812 | Dpr:3",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPhone 12/13 (Pro)",
+        "model": "iPhone 12/13 (Pro)",
+        "desc": "390 x 844 | Dpr:3",
+        "os": "iOS",
+        "current": true
+      },
+      {
+        "name": "iPhone 12/13 Pro Max",
+        "model": "iPhone 12/13 Pro Max",
+        "desc": "428 x 926 | Dpr:3",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPhone 14/15 Pro Max",
+        "model": "iPhone 14/15 Pro Max",
+        "desc": "430 x 932 | Dpr:3",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPhone 16",
+        "model": "iPhone 16",
+        "desc": "393 x 852 | Dpr:3",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPhone 17",
+        "model": "iPhone 17",
+        "desc": "402 x 874 | Dpr:3",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "Pixel 9",
+        "model": "Pixel 9",
+        "desc": "412 x 923 | Dpr:2.625",
+        "os": "Android",
+        "current": false
+      },
+      {
+        "name": "Pixel 9 Pro",
+        "model": "Pixel 9 Pro",
+        "desc": "410 x 914 | Dpr:3.125",
+        "os": "Android",
+        "current": false
+      },
+      {
+        "name": "Windows",
+        "model": "Windows",
+        "desc": "480 x 800 | Dpr:2",
+        "os": "Windows",
+        "current": false
+      },
+      {
+        "name": "Mac 13-inch and below",
+        "model": "Mac 13-inch and below",
+        "desc": "375 x 667 | Dpr:2",
+        "os": "macOS",
+        "current": false
+      },
+      {
+        "name": "Mac 15-inch",
+        "model": "Mac 15-inch",
+        "desc": "375 x 736 | Dpr:2",
+        "os": "macOS",
+        "current": false
+      },
+      {
+        "name": "Mac 21-inch and above",
+        "model": "Mac 21-inch and above",
+        "desc": "414 x 896 | Dpr:2",
+        "os": "macOS",
+        "current": false
+      },
+      {
+        "name": "iPad mini 6/7",
+        "model": "iPad mini 6/7",
+        "desc": "744 x 1133 | Dpr:2",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPad (10th)/Air 11",
+        "model": "iPad (10th)/Air 11",
+        "desc": "820 x 1180 | Dpr:2",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPad Pro 11 (M4)",
+        "model": "iPad Pro 11 (M4)",
+        "desc": "834 x 1210 | Dpr:2",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPad Pro 13 (M4)",
+        "model": "iPad Pro 13 (M4)",
+        "desc": "1032 x 1376 | Dpr:2",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPhone Duo 外",
+        "model": "iPhone Duo 外",
+        "desc": "466 x 678 | Dpr:3",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "iPhone Duo 内",
+        "model": "iPhone Duo 内",
+        "desc": "669 x 951 | Dpr:3",
+        "os": "iOS",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Mate 80",
+        "model": "HUAWEI Mate 80",
+        "desc": "366 x 809 | Dpr:3.5",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Mate 70 Pro",
+        "model": "HUAWEI Mate 70 Pro",
+        "desc": "376 x 809 | Dpr:3.5",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Pura 80 Pro",
+        "model": "HUAWEI Pura 80 Pro",
+        "desc": "365 x 814 | Dpr:3.5",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI nova 13",
+        "model": "HUAWEI nova 13",
+        "desc": "361 x 804 | Dpr:3",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI nova 14 Ultra",
+        "model": "HUAWEI nova 14 Ultra",
+        "desc": "363 x 817 | Dpr:3.5",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Pocket 2",
+        "model": "HUAWEI Pocket 2",
+        "desc": "364 x 861 | Dpr:3.125",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Pura X内",
+        "model": "HUAWEI Pura X内",
+        "desc": "440 x 707 | Dpr:3",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Pura X外",
+        "model": "HUAWEI Pura X外",
+        "desc": "327 x 327 | Dpr:3",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Pura X Max内",
+        "model": "HUAWEI Pura X Max内",
+        "desc": "940 x 665 | Dpr:2.75",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Pura X Max外",
+        "model": "HUAWEI Pura X Max外",
+        "desc": "460 x 672 | Dpr:2.75",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Mate X6内",
+        "model": "HUAWEI Mate X6内",
+        "desc": "717 x 781 | Dpr:3.125",
+        "os": "ohos",
+        "current": false
+      },
+      {
+        "name": "HUAWEI Mate X6外",
+        "model": "HUAWEI Mate X6外",
+        "desc": "346 x 781 | Dpr:3.125",
+        "os": "ohos",
+        "current": false
+      }
+    ]
+  },
+  "originalDeviceRestored": true
+}

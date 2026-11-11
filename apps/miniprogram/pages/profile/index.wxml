@@ -19,9 +19,6 @@
         <view class="member-card__points"><text class="member-card__label">会员积分 · 可用</text><text class="member-card__balance {{pointsBalanceClass}}">{{points.projection.available}}</text></view>
         <view class="member-card__entry"><text>积分明细与兑换</text><image src="/assets/icons/caret-right-white.svg" mode="aspectFit" aria-hidden="true"/></view>
       </view>
-      <view class="member-card__footer"><text>会员卡</text><text>冻结 {{points.projection.frozen}} · 预占 {{points.projection.reserved}}</text></view>
-      <text wx:if="{{points.expiring && points.expiring.points > 0}}" class="member-card__notice">{{points.expiring.withinDays}} 天内到期 {{points.expiring.points}} 分</text>
-      <text wx:if="{{points.projection.debt > 0}}" class="member-card__notice">待冲抵欠分 {{points.projection.debt}}，后续所得优先冲抵</text>
     </button>
   </block>
 

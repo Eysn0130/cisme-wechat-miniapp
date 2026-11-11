@@ -27,19 +27,17 @@
   border-radius: 50%;
   pointer-events: none;
 }
-.member-card__head, .member-card__body, .member-card__footer { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.member-card__head, .member-card__body { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .member-card__head { flex-wrap: wrap; }
 .member-card__brand { font: 23px/1.2 Georgia, serif; letter-spacing: 4px; }
 .member-card__identity { color: #fbf6ff; font-size: .8125rem; line-height: 1.5; }
-.member-card__body { align-items: flex-end; flex-wrap: wrap; margin-top: 14px; }
+.member-card__body { align-items: flex-end; flex-wrap: wrap; margin-top: 28px; }
 .member-card__points { flex: 1 1 144px; min-width: 0; max-width: 100%; }
 .member-card__label { display: block; color: #f0e7f5; font-size: .75rem; }
 .member-card__balance { display: block; margin-top: 3px; color: #fff; font: 2.375rem/1.1 Georgia, serif; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; white-space: normal; }
 .member-card__balance.pass-stat__value--compact { font-size: 2rem; }
 .member-card__entry { display: flex; align-items: center; gap: 4px; padding-bottom: 4px; color: #f5eafb; font-size: .75rem; }
 .member-card__entry image { flex: none; width: 16px; height: 16px; }
-.member-card__footer { align-items: flex-start; flex-wrap: wrap; margin-top: 12px; padding-top: 9px; border-top: 1px solid rgba(237, 221, 250, .2); color: #dfd0e7; font-size: .6875rem; line-height: 1.5; }
-.member-card__notice { position: relative; z-index: 2; display: block; margin-top: 10px; color: #f5dce8; font-size: .75rem; line-height: 1.6; }
 .member-card--pressed { opacity: .94; }
 @media (max-width: 340px) { .member-card { padding: 20px; } }
 @media (prefers-reduced-motion: reduce) { .member-card { transition: none; } }
