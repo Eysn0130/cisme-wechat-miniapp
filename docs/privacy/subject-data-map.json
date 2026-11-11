@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "4ad19fdd493066c2f7ee553a838d40a778bef307ad9409e8fa021df7fbd6709b",
+  "migrationSetSha256": "90e1ea413e32685e8e00092b59e3705a78de4186eb629545b3f1a43e129fc5ac",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -4835,6 +4835,28 @@
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
+      "table": "member_card_number",
+      "subjectPaths": [
+        [
+          "member_card_number.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Stable private display number, independent of UUID authentication and authority. Project only formatted number and issued_at to its owner. Registration assigns atomically; backfill preserves original member facts. Never raw-export member_id or publish in community author data. Issued numbers are immutable and sequences do not cycle; runtime rollback retains the mapping. No general erasure or indefinite unrelated-content retention permission is added.",
+      "exportFields": [
+        "number",
+        "issued_at"
+      ],
+      "excludedFields": [
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "ACCOUNT_IDENTITY_REFERENCE_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
       "table": "member_care_consent_event",
       "subjectPaths": [
         [
@@ -8049,5 +8071,12 @@
   },
   "commerceMediaReview20261110": {
     "change": "Only two approved catalog image paths; table, column, subject and retention scope unchanged. No new member data or export fields."
+  },
+  "memberCardReview20261110": {
+    "newTable": "member_card_number",
+    "originalMemberFactsUnchanged": true,
+    "publicProjection": false,
+    "newThirdPartyRecipient": false,
+    "genericProductionErasureExpanded": false
   }
 }
