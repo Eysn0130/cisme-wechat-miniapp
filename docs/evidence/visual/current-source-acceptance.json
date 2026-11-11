@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "e06473639f073f34f25a72e1b3cc6365802c79897de8bdde0b41a4501ebb02fb",
+  "packageSourceSha256": "c7dcd9560ed374f6154f8c1123e9c6b364430c8e92c91454f54d151f199d73df",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Final selected 185px member card and private membership number native evidence scoped in docs/evidence/member-card-number-20261110. Prior iterations retain original source hashes. Whole-package route-state and physical-device matrices remain incomplete.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-before-member-number-5fc023684253.json",
+  "note": "Member-card numeric typography scoped native evidence in docs/evidence/member-card-typography-20261110. Private number service was independently validated and deployed from 81a7700; this pass changes only native numeric styling. Whole-package route-state and physical-device matrices remain incomplete.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-before-member-type-e06473639f07.json",
   "pendingSourceRebind": false
 }

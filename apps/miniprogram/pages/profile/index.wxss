@@ -34,8 +34,8 @@
 .member-card__body { align-items: flex-end; flex-wrap: wrap; margin-top: 14px; }
 .member-card__points { flex: 1 1 144px; min-width: 0; max-width: 100%; }
 .member-card__label { display: block; color: #f0e7f5; font-size: .75rem; }
-.member-card__balance { display: block; margin-top: 3px; color: #fff; font: 2.375rem/1.1 Georgia, serif; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; white-space: normal; }
-.member-card__balance.pass-stat__value--compact { font-size: 2rem; }
+.member-card__balance { display: block; margin-top: 3px; color: #fff; font: 400 2.375rem/1.1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif; font-variant-numeric: lining-nums tabular-nums; overflow-wrap: anywhere; white-space: normal; }
+.member-card__balance.pass-stat__value--compact { font-size: 1.75rem; }
 .member-card__entry { display: flex; align-items: center; gap: 4px; padding-bottom: 4px; color: #f5eafb; font-size: .75rem; }
 .member-card__entry image { flex: none; width: 16px; height: 16px; }
 .member-card__footer { align-items: flex-start; flex-wrap: wrap; margin-top: 12px; padding-top: 9px; border-top: 1px solid rgba(237, 221, 250, .2); color: #dfd0e7; font-size: .6875rem; line-height: 1.5; }

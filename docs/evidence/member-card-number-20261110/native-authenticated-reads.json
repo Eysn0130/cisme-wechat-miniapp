@@ -1,0 +1,17 @@
+{
+  "authenticatedOwnMember": true,
+  "origin": "https://staging-api.cisme.cn",
+  "paths": [
+    "/v1/me/profile",
+    "/v1/me",
+    "/v1/bootstrap/settings"
+  ],
+  "allHttp200": true,
+  "allReturnSameNumber": true,
+  "validPaddedNumber": true,
+  "numberLength": 5,
+  "realMemberNumberOmitted": true,
+  "requestsReadOnly": true,
+  "mutatingRequests": 0,
+  "realMemberTestWrites": 0
+}

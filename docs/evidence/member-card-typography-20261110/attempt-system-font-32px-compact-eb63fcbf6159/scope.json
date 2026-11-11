@@ -1,0 +1,4 @@
+{
+  "nativeSourceSha256": "eb63fcbf61591b004faaa13c72941fa38b64a2373857c1cc13b033ef6e5954ff",
+  "scope": "Initial system-font iteration. Regular 850 aligned, but compact 32px max-int wrapped on 375px viewport. Not final acceptance; superseded by tighter compact numeral size."
+}

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "nativeSourceSha256": "c7dcd9560ed374f6154f8c1123e9c6b364430c8e92c91454f54d151f199d73df",
+  "baseMain": "3311dec5ba3326417ed48cf85a1a783e071f296d",
+  "changes": "native numeric typography only",
+  "impeccable": {
+    "sourceHead": "f2baa414a87d9acf1e21ccf776bfaec0262ad6df",
+    "version": "4.8.2",
+    "playbooks": [
+      "typeset",
+      "polish"
+    ],
+    "independentTypographicAssessment": true,
+    "independentMechanicalScan": true,
+    "manualScansBeforeAndAfter": true,
+    "detectorReports": [],
+    "detectorIsNotNativeAcceptance": true
+  },
+  "native": {
+    "cardSize": {
+      "success": true,
+      "width": 362,
+      "height": 185
+    },
+    "computedNumericStyle": {
+      "font-family": "-apple-system, \"system-ui\", \"SF Pro Text\", \"PingFang SC\", sans-serif",
+      "font-weight": "400",
+      "font-size": "38px",
+      "line-height": "41.8px",
+      "font-variant-numeric": "lining-nums tabular-nums"
+    },
+    "compactFontRem": 1.75,
+    "viewports": [
+      "390x844",
+      "375x812",
+      "430x932"
+    ],
+    "maxPointsFixture": 2147483647,
+    "largeMemberNumberFixture": "9223372036854775807",
+    "cardTapToPoints": true,
+    "careDetailsToRecords": true,
+    "longPressMotionRetained": true,
+    "syntheticFixtures": true,
+    "realServerWrites": 0,
+    "originalSessionAndDeviceRestored": true,
+    "physicalDevicesTested": false
+  },
+  "backendChanges": false,
+  "databaseChanges": false,
+  "backendDeployedSource": "81a77003ba5a7d3f29e10a1d9a538337da40d706",
+  "backendCi": 42952509458,
+  "requestedExperienceVersion": "0.1.35",
+  "uploadAuthorized": true,
+  "wechatUploaded": false,
+  "finalUiCi": "pending"
+}
