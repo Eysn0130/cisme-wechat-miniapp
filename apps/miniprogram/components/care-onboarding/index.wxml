@@ -26,7 +26,6 @@
               <picker mode="multiSelector" range="{{birthdayRanges}}" value="{{birthdayIndex}}" bindcolumnchange="birthdayColumn" bindchange="chooseBirthday" disabled="{{busy || unknown || birthdayLocked}}"><view class="care-birthday-value">{{birthday ? birthdayLabel : '选择生日月日'}}<text>›</text></view></picker>
               <button wx:if="{{birthday}}" class="care-birthday-clear" bindtap="clearBirthday" disabled="{{busy || unknown}}">清空生日</button>
             </view>
-            <button wx:if="{{question.optional}}" class="care-onboarding-skip" bindtap="skip" disabled="{{busy || unknown}}">{{question.id === 'age_group' ? '跳过年龄段' : '跳过本题'}}</button>
             <button wx:if="{{completed && healthChoice === 'granted'}}" class="care-onboarding-skip" bindtap="openSensitiveChoice" disabled="{{busy || unknown}}">修改护理情况授权</button>
             <text wx:if="{{question.id === 'preference'}}" class="care-onboarding-note">本次保存你的选品偏好，不会创建兑换订单或占用库存。</text>
             </view>
@@ -37,6 +36,7 @@
     </scroll-view>
     <view wx:if="{{ready && (!consentMode || unknown)}}" class="care-onboarding-footer">
       <button wx:if="{{questionNumber > 1 && !unknown}}" class="care-onboarding-previous" bindtap="previous" disabled="{{busy}}">上一题</button>
+      <button wx:if="{{question.optional && !unknown}}" class="care-onboarding-skip care-onboarding-footer-skip" bindtap="skip" disabled="{{busy}}" aria-label="{{question.id === 'age_group' ? '跳过年龄段，保留已填生日' : '跳过本题'}}">跳过</button>
       <button class="care-onboarding-main {{busy || (!canAdvance && !unknown) ? 'care-onboarding-main--disabled' : ''}}" hover-class="care-onboarding-pressed" bindtap="next" loading="{{busy}}" disabled="{{busy || (!canAdvance && !unknown)}}">{{busy ? '正在保存…' : unknown ? '重试保存' : questionNumber === 10 ? '完成建档' : '下一题'}}</button>
     </view>
   </view>

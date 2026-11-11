@@ -51,3 +51,5 @@ button::after{border:0;}
 .care-birthday-label{display:block;color:#423149;font-size:15px;line-height:1.5}.care-birthday-label text{color:#8a7b91;font-size:12px}
 .care-birthday-value{display:flex;justify-content:space-between;align-items:center;min-height:48px;margin-top:8px;padding:0 14px;border:1px solid rgba(86,53,102,.12);border-radius:12px;background:#faf7fb;color:#50375f;font-size:15px}
 .care-birthday-clear{min-height:44px;margin:4px 0 0;padding:0;background:transparent;color:#795987;text-align:left;font-size:13px}
+
+.care-onboarding-footer-skip{flex:none;margin:0;}
