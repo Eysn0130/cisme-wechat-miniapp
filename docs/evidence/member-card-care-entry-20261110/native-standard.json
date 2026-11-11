@@ -1,0 +1,91 @@
+{
+  "scope": "Current native source, fully intercepted synthetic fixtures, no real server mutations.",
+  "compile": [
+    {
+      "file": "pages/profile/index.wxml",
+      "success": true,
+      "codeLength": 40085
+    },
+    {
+      "file": "pages/profile/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20928
+    },
+    {
+      "file": "pages/home/index.wxml",
+      "success": true,
+      "codeLength": 40085
+    },
+    {
+      "file": "pages/home/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20928
+    }
+  ],
+  "start": {
+    "originalRoute": "pages/home/index",
+    "originalHadSession": true,
+    "allRequestsIntercepted": true,
+    "mutationsBlocked": true
+  },
+  "finish": {
+    "active": false,
+    "originalRoute": "pages/home/index",
+    "requestCount": 27,
+    "writeAttempts": 0,
+    "actualServerWrites": 0
+  },
+  "actions": [
+    {
+      "success": true
+    },
+    {
+      "success": true
+    }
+  ],
+  "cardSize": {
+    "success": true,
+    "width": 362,
+    "height": 237
+  },
+  "pointsDestination": {
+    "success": true,
+    "currentPage": {
+      "pageId": 191,
+      "path": "pages/points/index",
+      "query": {}
+    }
+  },
+  "detailsSize": {
+    "success": true,
+    "width": 56,
+    "height": 44
+  },
+  "detailsOffset": {
+    "left": 278.1953125,
+    "top": 588.328125
+  },
+  "recordsDestination": {
+    "success": true,
+    "currentPage": {
+      "pageId": 192,
+      "path": "pages/records/index",
+      "query": {}
+    }
+  },
+  "errorDetailsSize": {
+    "success": true,
+    "width": 56,
+    "height": 44
+  }
+}

@@ -303,6 +303,12 @@ Page({
     this.setData({accountOpening:true});
     wx.navigateTo({url:"/pages/support/index",fail:()=>{this.setData({accountOpening:false});wx.showToast({title:"客服暂时无法打开，请重试",icon:"none"});}});
   },
+  openRecords() {
+    if (!this.data.pageAlive || !this.data.pageVisible || this.data.accountOpening || this.data.sessionMounted || this.data.onboardingOpen) return;
+    if (!requireMemberAccess("/pages/records/index")) return;
+    this.setData({ accountOpening: true });
+    wx.navigateTo({ url: "/pages/records/index", fail: () => { this.setData({ accountOpening: false }); wx.showToast({ title: "护理记录暂时无法打开，请重试", icon: "none" }); } });
+  },
   retryLoad() { void this.load(); },
   async completeOnboarding(){
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;
