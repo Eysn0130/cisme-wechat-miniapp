@@ -3,6 +3,10 @@ import {WechatLogisticsQueryClient,LogisticsRegistrationRejected} from '../../se
 import {catalogPublicImage,catalogPublicImageByName,catalogPublicImageUrl} from '../../services/api/src/catalogPublicMedia';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import type pg from 'pg';
+import {loadConfig} from '@cisme/config';
+import {createApp} from '../../services/api/src/server';
+import type {ObjectStorage} from '../../services/api/src/storage';
 const binding={appId:'wx4eac2d4fb11d299b',merchantId:'1234567890',merchantOrderNumber:'SYNTHETIC_QUERY001',transactionId:'42000000000000000001',payerOpenid:'synthetic-query-buyer',payerTotalCents:19800};
 const input={binding,carrierCode:'SF',trackingNumber:'SF123456789001',receiverPhone:'13800000000',
   goods:[{goods_name:'净润小紫瓶 280mL',goods_img_url:catalogPublicImageUrl('https://staging-api.cisme.cn','aigerong-moisture-shampoo-280')}],orderDetailPath:'pages/order-detail/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};
@@ -44,4 +48,21 @@ it('serves only byte-identical approved photographs with immutable names and pin
   }
   expect(()=>catalogPublicImageByName('../runtime.env')).toThrow();expect(()=>catalogPublicImage('__proto__')).toThrow();
   expect(()=>catalogPublicImageUrl('https://external.invalid','aigerong-moisture-shampoo-280')).toThrow();
+});
+it('serves both public photos through the real HTTP router within its parameter limit, keeping unknown media private',async()=>{
+  const config=loadConfig({APP_ENV:'test',DATABASE_URL:'postgres://unused',APP_SESSION_SECRET:'route-test',ADMIN_API_TOKEN:'route-test',UPLOAD_TOKEN_SECRET:'route-test'});
+  const pool={connect:()=>{throw Error('Public photos must not read member data');},query:()=>{throw Error('Public photos must not read member data');}} as unknown as pg.Pool;
+  const app=await createApp({config,pool,storage:{} as ObjectStorage});
+  try{
+    for(const code of ['aigerong-moisture-shampoo-280','aigerong-scalp-repair-essence-100']){
+      const asset=catalogPublicImage(code);expect(asset.name.length).toBeLessThanOrEqual(100);
+      const response=await app.inject({method:'GET',url:`/v1/catalog/public-images/${asset.name}`});
+      expect(response.statusCode).toBe(200);expect(response.rawPayload).toEqual(asset.bytes);
+      expect(response.headers['cache-control']).toBe('public, max-age=31536000, immutable');expect(response.headers.etag).toBe(`"${asset.sha256}"`);
+    }
+    const missing=await app.inject({method:'GET',url:'/v1/catalog/public-images/unknown.jpg'});
+    expect(missing.statusCode).toBe(404);expect(missing.headers['cache-control']).toBe('private, no-store');
+    const denied=await app.inject({method:'POST',url:'/v1/me/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment/logistics-view',payload:{}});
+    expect(denied.statusCode).toBe(401);
+  }finally{await app.close();}
 });

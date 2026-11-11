@@ -63,7 +63,8 @@ Page({
     this.data.profileAttempt += 1;
     if(this.data.profileBusy)this.setData({profileBusy:false,profileError:"资料保存结果尚未确认，请重新加载后核对。"});
     this.clipboardAttempt = (this.clipboardAttempt ?? 0) + 1;
-    this.addressImportAttempt = (this.addressImportAttempt ?? 0) + 1;
+    // wx.chooseAddress temporarily hides this page. Its explicit selection
+    // remains bound to the same member, editor and attempt until return.
     this.avatarAttempt = (this.avatarAttempt ?? 0) + 1;
     if (this.data.avatarBusy) this.setData({ avatarBusy: false });
   },
@@ -398,10 +399,12 @@ Page({
   },
   changeAddressDefault(event:WechatMiniprogram.CustomEvent){this.updateAddressDraft(touchAddressField(this.data.addressDraft,"isDefault",Boolean((event.detail as unknown as {value?:boolean}).value)));},
   importWechatAddress(){
-    if(this.data.addressBusy)return;
+    if(this.data.addressBusy||!this.data.addressEditorOpen||this.data.leaving)return;
     const token=getApp<IAppOption>().globalData.sessionToken,ownerId=this.data.memberId;
+    const draftKey=this.data.addressDraft.id||this.data.addressDraft.clientRequestKey;
     const attempt=this.addressImportAttempt=(this.addressImportAttempt??0)+1;
-    const current=()=>this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken&&ownerId===this.data.memberId&&attempt===this.addressImportAttempt;
+    const current=()=>this.data.pageAlive&&!this.data.leaving&&this.data.addressEditorOpen&&token===getApp<IAppOption>().globalData.sessionToken
+      &&ownerId===this.data.memberId&&draftKey===(this.data.addressDraft.id||this.data.addressDraft.clientRequestKey)&&attempt===this.addressImportAttempt;
     if(!token||!ownerId){this.setData({addressesError:"暂时无法确认登录状态，请稍后重试。"});return;}
     wx.chooseAddress({
       success:(result)=>{if(!current())return;const region=[result.provinceName||"",result.cityName||"",result.countyName||""];const districtCode=result.nationalCode||"";const next=mergeAddressDraft(this.data.addressDraft,{recipientName:result.userName||"",phone:result.telNumber||"",region,regionCodes:["","",districtCode],regionSource:"wechat",regionNeedsConfirmation:true,detail:(result as typeof result & {detailInfoNew?:string}).detailInfoNew||[result.streetName,result.detailInfo].filter(Boolean).join(""),postalCode:result.postalCode||"",nationalCode:districtCode},true);this.setData({addressEditorOpen:true,addressDirty:true,addressDraft:next,addressParseStatus:"partial",addressParseSummary:"已补入微信收货地址，手动填写的内容已保留。",addressParseWarnings:["请重新选择并核对省、市、区县。"]},()=>{if(current())this.persistAddressDraft();});if(current())this.syncUnloadGuard();},
