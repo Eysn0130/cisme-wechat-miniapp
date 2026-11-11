@@ -1069,7 +1069,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{ Params: { consentGrantId: string } }>("/v1/consents/:consentGrantId/revoke", async (request) => service.revokeConsent(request.memberId, request.params.consentGrantId, idempotencyKey(request), (request.body as { reason: string }).reason, service.now(devClock(request))));
   app.get<{ Querystring: { limit?: string; cursor?: string;source?:string } }>("/v1/me/points", async (request) => service.getPoints(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}),...(request.query.source?{source:request.query.source}:{}) }));
   app.get('/v1/me/points/club',request=>memberPointsClub.overview(request.memberId,service.now(devClock(request))));
-  app.get<{Querystring:{before?:string;limit?:string}}>('/v1/me/care-usage-records',request=>memberPointsClub.usageHistory(request.memberId,request.query));
+  app.get<{Querystring:{before?:string;limit?:string;day?:string}}>('/v1/me/care-usage-records',request=>memberPointsClub.usageHistory(request.memberId,request.query,service.now(devClock(request))));
+  app.get<{Querystring:{from?:string;through?:string}}>('/v1/me/care-usage-calendar',request=>memberPointsClub.usageCalendar(request.memberId,request.query,service.now(devClock(request))));
   app.post('/v1/me/points/checkin',request=>memberPointsClub.checkin(request.memberId,idempotencyKey(request),request.body,service.now(devClock(request))));
   app.put('/v1/me/points/birthday',request=>memberPointsClub.birthday(request.memberId,request.body,service.now(devClock(request))));
   app.get('/v1/me/points/gifts',request=>pointsGifts.offers(request.memberId,service.now(devClock(request))));
