@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "tool": "official wechatide upload",
+  "requestedVersion": "0.1.35",
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "appId": "wx4eac2d4fb11d299b",
+  "ownerAuthorization": "明确回答上传0.1.35体验版；后续选图、真实编号及数字排版为同一任务修订，授权持续有效。",
+  "uiSourceHead": "301836e800bb381a1d7620f5623786fd68e034a3",
+  "rootMainHead": "cda9844270d4612d9774afc6d51c89c81fcd6328",
+  "nativeSourceSha256": "c7dcd9560ed374f6154f8c1123e9c6b364430c8e92c91454f54d151f199d73df",
+  "ciRunId": 42954866719,
+  "backendHead": "81a77003ba5a7d3f29e10a1d9a538337da40d706",
+  "backendCiRunId": 42952509458,
+  "expectedPriorExperienceVersion": "0.1.34",
+  "uploadCalls": 1,
+  "createdAt": "2026-11-11T03:57:47.263190+00:00",
+  "submittedForFormalReview": false
+}

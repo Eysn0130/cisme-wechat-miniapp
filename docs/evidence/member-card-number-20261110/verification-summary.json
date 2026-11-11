@@ -51,12 +51,14 @@
   },
   "requestedExperienceVersion": "0.1.35",
   "uploadAuthorized": true,
-  "wechatUploaded": false,
+  "wechatUploaded": true,
   "authenticatedOwnMemberReads": {
     "paths": 3,
     "allReturnSameValidNumber": true,
     "actualNumberOmitted": true,
     "realMemberTestWrites": 0
   },
-  "followupTypography": "../member-card-typography-20261110"
+  "followupTypography": "../member-card-typography-20261110",
+  "experienceVersion": "0.1.35",
+  "delivery": "../member-card-typography-20261110/delivery-0.1.35.json"
 }

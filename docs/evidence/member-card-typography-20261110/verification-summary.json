@@ -51,6 +51,12 @@
   "backendCi": 42952509458,
   "requestedExperienceVersion": "0.1.35",
   "uploadAuthorized": true,
-  "wechatUploaded": false,
-  "finalUiCi": "pending"
+  "wechatUploaded": true,
+  "finalUiCi": {
+    "runId": 42954866719,
+    "result": "passed",
+    "head": "301836e800bb381a1d7620f5623786fd68e034a3"
+  },
+  "experienceVersion": "0.1.35",
+  "delivery": "delivery-0.1.35.json"
 }
