@@ -1,0 +1,3 @@
+{
+  "scope": "Incomplete harness attempt: viewport runner overlapped standard-page navigation and caused simulator reload; not final acceptance. Original QA harness finally restored transport/session; rerun sequentially after restoring original device."
+}

@@ -122,10 +122,14 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //114 preserves issued display identifiers across runtime rollback.
+    expect(migrationTip).toBe('202611100006_member_card_number.sql');
+    await expect(migrate('down')).rejects.toThrow();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
     //113 preserves member assets even when a feature is disabled or rolled back.
-    expect(migrationTip).toBe('202611100005_member_points_club.sql');
+    const pointsMigration='202611100005_member_points_club.sql';
     const pointsHistoryBefore=(await pool.query('SELECT version,rules,starts_at FROM member_points_policy')).rows;
-    const pointsDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
+    const pointsDown=(await readFile('db/migrations/'+pointsMigration,'utf8')).split('-- migrate:down')[1]!;
     const pointsGuard=await pool.connect();
     try{await pointsGuard.query('BEGIN');await expect(pointsGuard.query(pointsDown)).rejects.toThrow('MEMBER_POINTS_ROLLBACK_REQUIRES_ASSET_PRESERVATION');}
     finally{await pointsGuard.query('ROLLBACK');pointsGuard.release();}
@@ -134,7 +138,7 @@ describe("empty and N-1 database lifecycle", () => {
     // historical prefix tests. Never use a rollback to remove points assets.
     expect((await pool.query('SELECT current_database() name')).rows[0].name).toBe(databaseName);
     await pool.query('DROP SCHEMA public CASCADE;CREATE SCHEMA public');
-    await closePool(pool);migrationTip='202611100003_commerce_approved_media.sql';migrationCount-=2;extensionCount-=2;
+    await closePool(pool);migrationTip='202611100003_commerce_approved_media.sql';migrationCount-=3;extensionCount-=3;
     await migrate('up');pool=migrationPool();
 
     //111 adds only approved image paths. Down must not silently rewrite products in use.

@@ -4,7 +4,7 @@ import { defaultMemberAvatar, localMemberAvatar } from "../../services/member-av
 import { memberIdentity, publishMemberIdentity } from "../../services/member-identity";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression } from "../../services/api";
-import { currentChromeStyle } from "../../services/layout";
+import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { authorityProjection, hasNativeManagementEntry, type AuthorityProjection } from "../../services/authority";
 import { readDailyCareRecords, type DailyCarePage } from "../../services/daily-care";
 import { commerceContextRevision } from "../../services/commerce-command-store";
@@ -40,6 +40,21 @@ function dailyCareView(daily: DailyCarePage | null, error: string) {
 }
 
 Page({
+  cardSparkTimer: null as ReturnType<typeof setTimeout> | null,
+  clearCardSpark() {
+    if (this.cardSparkTimer !== null) clearTimeout(this.cardSparkTimer);
+    this.cardSparkTimer = null;
+    if (this.data.cardSparkActive) this.setData({cardSparkActive:false});
+  },
+  revealCardSpark() {
+    if (!this.data.pageAlive || this.data.navigating || !this.data.member || !this.data.points || this.data.cardSparkActive || shouldReduceMotion()) return;
+    this.setData({cardSparkActive:true});
+    this.cardSparkTimer = setTimeout(() => {
+      this.cardSparkTimer = null;
+      if (this.data.pageAlive) this.setData({cardSparkActive:false});
+    }, 700);
+    if (typeof wx.vibrateShort === "function") wx.vibrateShort({type:"light",fail:()=>{}});
+  },
   dailySnapshot: null as DailyCarePage | null,
   dailyStatusAttempt: 0,
   projectDailyCare() {
@@ -60,12 +75,12 @@ Page({
     }
   },
   retryDailyStatus() { const token = getApp<IAppOption>().globalData.sessionToken; if (token && this.data.member) void this.loadDailyStatus(this.data.loadAttempt, token); },
-  data: { retainingSnapshot: false, dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
+  data: { cardSparkActive:false, retainingSnapshot: false, dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
-  onShow() { if (!requireMemberAccess()) { this.dailySnapshot=null; this.dailyStatusAttempt++; this.setData({retainingSnapshot:false,dailyStatusError:"",dailyStatusLoading:false,hasCareCycle:false,careUnavailable:false,member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
-  onHide() { cancelPageReads(this); this.data.loadAttempt += 1;  },
-  onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1;  },
+  onShow() { this.clearCardSpark(); if (!requireMemberAccess()) { this.dailySnapshot=null; this.dailyStatusAttempt++; this.setData({retainingSnapshot:false,dailyStatusError:"",dailyStatusLoading:false,hasCareCycle:false,careUnavailable:false,member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
+  onHide() { this.clearCardSpark(); cancelPageReads(this); this.data.loadAttempt += 1;  },
+  onUnload() { this.clearCardSpark(); cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1;  },
   isCurrentLoad(attempt: number, token: string): boolean {
     return this.data.pageAlive && this.data.loadAttempt === attempt && getApp<IAppOption>().globalData.sessionToken === token;
   },
@@ -116,6 +131,7 @@ Page({
   },
   async load(event?: WechatMiniprogram.TouchEvent, preserveSnapshot = false) {
     if (event?.type) clearAuthenticationRedirectSuppression();
+    this.clearCardSpark();
     cancelPageReads(this);
     const loadStarted = measurementClock();
     const attempt = this.data.loadAttempt + 1;

@@ -1,3 +1,4 @@
+import {memberCardPortableQuery} from './memberCard.js';
 import {pointsPortableSpecs,pointsPortableRow} from './pointsPrivacy.js';
 import { createDecipheriv } from 'node:crypto';
 import type { AppConfig } from '@cisme/config';
@@ -43,6 +44,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
   const sections:Record<string,unknown>={
     pointsClub,
     account:{id:member.id,displayName:member.display_name,createdAt:member.created_at,
+      membershipCard:(await client.query(memberCardPortableQuery,[memberId])).rows[0]??null,
       identity:(await client.query(`SELECT provider,app_id,openid,unionid,created_at FROM wechat_identity
         WHERE member_id=$1`,[memberId])).rows,
       profile:(await client.query(`SELECT wechat_handle,avatar_data_url,public_status,community_bio,community_bio_revision,completed_at,updated_at

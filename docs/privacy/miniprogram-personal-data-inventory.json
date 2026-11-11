@@ -714,6 +714,13 @@
       "data": "用户主动选择的XLSX文件，最多2MiB、500行；预览返回物流字段，受履约权限与会话保护。",
       "recipient": "既有 staging-api.cisme.cn / api.cisme.cn",
       "retention": "原文件不持久化；已确认的物流仍使用既有加密包裹及审计保留规则。"
+    },
+    {
+      "surface": "member_card_number",
+      "purpose": "本人会员卡上的固定显示编号；不替代认证、权限、UUID或等级。",
+      "data": "一对一member_id关联、数据库唯一number和issued_at；已发行不可更新，至少5位显示，长号保留精度。",
+      "authorization": "仅当前会员本人的账号、资料、bootstrap、设置和可携数据读取；不按编号公开查人，不传到社区作者或新第三方。",
+      "retention": "Canonical账号身份映射，不循环复用；原账号ID及法律保全规则不变，114下行迁移禁止静默删除。"
     }
   ],
   "runtimeDataEgress": [
@@ -792,7 +799,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "07d78dbdead5c5888e6ffba692ed4f93ce32c2335a28ee5aa141b731bf808ad8",
+  "migrationSetSha256": "6ec7d238cd8f0aa08c668047350cad0cd317b180108b38041660f3b60781c34e",
   "egressSignatureSha256": "e97c111fd430a9c6554f6aab9ca50f60eb184320a27aeca01534b8f24ab29195",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1367,5 +1374,13 @@
     "failure": "Definite permission error creates no dispatch journal; unknown registration outcome stays fenced against redispatch and requires operator reconciliation. Official plugin approved is not proof of query-component business permission. Manual copy-waybill path remains.",
     "retention": "Follows the existing order-dispute and idempotency evidence policy; no new automatic purge or unapproved retention duration. Closed or blocked accounts cannot register new queries or receive cached capabilities.",
     "publicAssets": "Only the two owner-approved public product JPEGs are bundled. Exact content-hashed allowlist, immutable caching; no arbitrary filesystem read or external fetch."
+  },
+  "memberCardReview20261110": {
+    "scope": "新增独立编号映射，不修改原会员、微信身份、权限、订单或积分事实。原子注册分配、并发唯一、存量一次性回填。",
+    "recipient": "既有自有HTTPS API与本人会员客户端，无新增第三方、微信隐私接口或遥测。",
+    "export": "v1/v2本人可携数据包含格式化number与issued_at，排除member_id关联；公开社区不包含。",
+    "migrationReviewed": "202611100006_member_card_number.sql",
+    "productionErasureExpanded": false,
+    "liveDeploymentVerified": false
   }
 }

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "nativeSourceSha256": "e06473639f073f34f25a72e1b3cc6365802c79897de8bdde0b41a4501ebb02fb",
+  "selectedStyle": "185px card with divider and footer; no frozen/reserved/debt/expiry messages",
+  "unit": {
+    "memberAndFlowFilesPassed": 5,
+    "passed": 110,
+    "settingsReceipt": "see CI and native-settings.json"
+  },
+  "typecheck": "passed",
+  "contracts": "passed",
+  "packageGate": "passed",
+  "native": {
+    "cardSize": {
+      "success": true,
+      "width": 362,
+      "height": 185
+    },
+    "viewports": [
+      "390x844",
+      "375x812",
+      "430x932"
+    ],
+    "longPressStaysOnProfile": true,
+    "nextTapOpensPoints": true,
+    "careDetailsOpensRecords": true,
+    "settingsNumberMatches": true,
+    "syntheticNumber": "00001",
+    "syntheticLargeNumber": "9223372036854775807",
+    "realServerWrites": 0,
+    "originalSessionAndDeviceRestored": true,
+    "physicalDeviceTested": false,
+    "hardwareHapticTested": false
+  },
+  "changesBackend": true,
+  "additiveMigration": "202611100006_member_card_number.sql",
+  "migrationCount": 114,
+  "backendIntegration": "pending CI",
+  "deployment": "pending isolated-trial activation",
+  "requestedExperienceVersion": "0.1.35",
+  "uploadAuthorized": true,
+  "wechatUploaded": false
+}

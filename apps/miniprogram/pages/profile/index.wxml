@@ -8,7 +8,8 @@
       <button class="profile-settings {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}" aria-label="打开设置"><image src="/assets/icons/gear-plum.svg" mode="aspectFit"/></button>
     </view>
 
-    <button class="member-card {{navigating ? 'control--disabled' : ''}}" bindtap="openPoints" disabled="{{navigating}}" hover-class="member-card--pressed" aria-label="{{commercialState === 'ready' || (retainingSnapshot && commercialState === 'loading') ? (commercialEligible ? '商业会员' : 'CISME 会员') : commercialState === 'error' ? '身份待更新' : '身份同步中'}}会员卡，可用积分 {{points.projection.available}} 分，查看积分明细与兑换">
+    <button class="member-card {{navigating ? 'control--disabled' : ''}}" bindtap="openPoints" bindlongpress="revealCardSpark" disabled="{{navigating}}" hover-class="member-card--pressed" aria-label="会员卡，{{commercialState === 'ready' || (retainingSnapshot && commercialState === 'loading') ? (commercialEligible ? '商业会员' : 'CISME 会员') : commercialState === 'error' ? '身份待更新' : '身份同步中'}}{{member.card_number ? '，会员编号 No. ' + member.card_number : ''}}，可用积分 {{points.projection.available}} 分，查看积分明细与兑换">
+      <view class="member-card__glint {{cardSparkActive ? 'member-card__glint--active' : ''}}" aria-hidden="true"></view>
       <view class="member-card__contour" aria-hidden="true"></view>
       <view class="member-card__head">
         <text class="member-card__brand">CISME</text>
@@ -18,9 +19,7 @@
         <view class="member-card__points"><text class="member-card__label">会员积分 · 可用</text><text class="member-card__balance {{pointsBalanceClass}}">{{points.projection.available}}</text></view>
         <view class="member-card__entry"><text>积分明细与兑换</text><image src="/assets/icons/caret-right-white.svg" mode="aspectFit" aria-hidden="true"/></view>
       </view>
-      <view class="member-card__footer"><text>会员卡</text><text>冻结 {{points.projection.frozen}} · 预占 {{points.projection.reserved}}</text></view>
-      <text wx:if="{{points.expiring && points.expiring.points > 0}}" class="member-card__notice">{{points.expiring.withinDays}} 天内到期 {{points.expiring.points}} 分</text>
-      <text wx:if="{{points.projection.debt > 0}}" class="member-card__notice">待冲抵欠分 {{points.projection.debt}}，后续所得优先冲抵</text>
+      <view class="member-card__footer"><text>会员卡</text><text wx:if="{{member.card_number}}" class="member-card__number">No. {{member.card_number}}</text></view>
     </button>
   </block>
 

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "nativeSourceSha256": "f2056f0dfcafce8f1bec8737b75634eb25ddf15a0b17e45ab976a2c912b2d0ed",
+  "baseHead": "fa2e647d427abf4aa7ac83c079cf55483ac692da",
+  "unit": {
+    "filesPassed": 5,
+    "passed": 110,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "contracts": "passed",
+  "packageGate": "passed",
+  "card": {
+    "viewport": "390x844",
+    "widthPx": 362,
+    "heightBeforePx": 237,
+    "heightAfterPx": 185,
+    "reductionPercent": 21.9
+  },
+  "native": {
+    "otherViewports": [
+      "375x812",
+      "430x932"
+    ],
+    "longPressStaysOnProfile": true,
+    "nextTapOpensPoints": true,
+    "detailsOpensRecords": true,
+    "actualMotionComputed": {
+      "duration": "0.64s",
+      "timingFunction": "cubic-bezier(0.45, 0, 0.2, 1)",
+      "twoDistinctTransforms": true
+    },
+    "hardwareHapticTested": false,
+    "actualSystemReduceMotionTested": false,
+    "physicalDevicesTested": false,
+    "realServerWrites": 0,
+    "syntheticFixtures": true,
+    "sessionAndDeviceRestored": true
+  },
+  "changesBackend": false,
+  "changesDatabase": false,
+  "wechatUploaded": false,
+  "requestedExperienceVersion": "0.1.35",
+  "uploadAuthorized": true,
+  "finalCi": "pending"
+}
