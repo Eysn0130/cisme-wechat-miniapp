@@ -216,7 +216,7 @@ describe("mini-program page behavior", () => {
     (globalThis as any).getApp = () => ({ globalData: { sessionToken: session } });
     wxMock.chooseAddress = vi.fn();
     await vi.importActual("../../apps/miniprogram/pages/settings/index");
-    const settings = mountedPage(capturedPage!, { memberId: "member-a", addressesReady: true });
+    const settings = mountedPage(capturedPage!, { memberId: "member-a", addressesReady: true, addressEditorOpen:true });
     settings.importWechatAddress();
     const callback = wxMock.chooseAddress.mock.calls[0]![0].success as (result: Record<string, string>) => void;
     session = "member-b";
@@ -225,6 +225,41 @@ describe("mini-program page behavior", () => {
     expect(settings.data.addressDraft.recipientName).toBe("");
     expect(settings.data.addressDraft.phone).toBe("");
     expect(wxMock.setStorageSync).not.toHaveBeenCalled();
+  });
+
+  it.each(['before show','after show'])('fills the same address editor when WeChat returns %s',async timing=>{
+    (globalThis as any).getApp=()=>({globalData:{sessionToken:'member-a'}});wxMock.chooseAddress=vi.fn();
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const settings=mountedPage(capturedPage!,{memberId:'member-a',addressesReady:true,addressEditorOpen:true,editingAddresses:true});
+    settings.loadSettingsBootstrap=vi.fn();settings.loadAddresses=vi.fn();settings.loadManagementAccess=vi.fn();
+    settings.importWechatAddress();const options=wxMock.chooseAddress.mock.calls[0]![0];settings.onHide();
+    if(timing==='after show')settings.onShow();
+    options.success({userName:'合成收件人',telNumber:'13800000000',provinceName:'广东省',cityName:'深圳市',countyName:'南山区',nationalCode:'440305',detailInfoNew:'合成地址1号',postalCode:'518000'});
+    if(timing==='before show')settings.onShow();
+    expect(settings.data.addressDraft).toMatchObject({recipientName:'合成收件人',phone:'13800000000',region:['广东省','深圳市','南山区'],regionText:'广东省 深圳市 南山区',detail:'合成地址1号',postalCode:'518000',nationalCode:'440305'});
+    expect(settings.data).toMatchObject({addressEditorOpen:true,addressDirty:true,editingAddresses:true});
+    expect(wxMock.setStorageSync).toHaveBeenCalledWith('cisme.addressDraft.v1',expect.objectContaining({ownerMemberId:'member-a'}));
+    expect(requestMock).not.toHaveBeenCalled();
+  });
+  it.each(['unload','closed editor','another editor','leaving'])('discards the WeChat address after %s',async change=>{
+    (globalThis as any).getApp=()=>({globalData:{sessionToken:'member-a'}});wxMock.chooseAddress=vi.fn();
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const settings=mountedPage(capturedPage!,{memberId:'member-a',addressEditorOpen:true});settings.importWechatAddress();
+    const options=wxMock.chooseAddress.mock.calls[0]![0];
+    if(change==='unload')settings.onUnload();else if(change==='closed editor')settings.data.addressEditorOpen=false;
+    else if(change==='another editor')settings.data.addressDraft={...settings.data.addressDraft,clientRequestKey:'another-editor'};else settings.data.leaving=true;
+    options.success({userName:'过期合成地址',telNumber:'13800000000'});
+    expect(settings.data.addressDraft.recipientName).toBe('');expect(wxMock.setStorageSync).not.toHaveBeenCalled();
+  });
+  it('keeps manual address fields and leaves an existing draft intact after picker cancellation',async()=>{
+    (globalThis as any).getApp=()=>({globalData:{sessionToken:'member-a'}});wxMock.chooseAddress=vi.fn();
+    await vi.importActual("../../apps/miniprogram/pages/settings/index");
+    const {emptyAddressDraft,touchAddressField}=await vi.importActual<typeof import('../../apps/miniprogram/services/address-draft')>('../../apps/miniprogram/services/address-draft');
+    const settings=mountedPage(capturedPage!,{memberId:'member-a',addressEditorOpen:true,addressDraft:touchAddressField(emptyAddressDraft(),'recipientName','手工收件人')});
+    settings.importWechatAddress();let options=wxMock.chooseAddress.mock.calls[0]![0];settings.onHide();options.fail({errMsg:'chooseAddress:fail cancel'});
+    expect(settings.data.addressDraft.recipientName).toBe('手工收件人');expect(settings.data.addressesError).toBe('');
+    settings.importWechatAddress();options=wxMock.chooseAddress.mock.calls[1]![0];options.success({userName:'微信收件人',telNumber:'13800000000'});
+    expect(settings.data.addressDraft).toMatchObject({recipientName:'手工收件人',phone:'13800000000'});
   });
 
   it("leaves no settings PII visible if the login relaunch fails after logout", async () => {

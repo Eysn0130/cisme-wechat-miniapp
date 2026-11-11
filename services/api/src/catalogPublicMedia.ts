@@ -7,10 +7,10 @@ const images=data as Record<string,{sha256:string;base64:string}>;
 export function catalogPublicImage(code:string){
   const row=Object.hasOwn(images,code)?images[code]:undefined;
   if(!row)throw new DomainError('LOGISTICS_PRODUCT_IMAGE_UNAVAILABLE','商品图片暂未准备好，请使用已保存的运单查询',503);
-  return {name:`${code}-${row.sha256}.jpg`,sha256:row.sha256,bytes:Buffer.from(row.base64,'base64')};
+  return {name:`${row.sha256}.jpg`,sha256:row.sha256,bytes:Buffer.from(row.base64,'base64')};
 }
 export function catalogPublicImageByName(name:string){
-  const code=Object.keys(images).find(code=>name===`${code}-${images[code]!.sha256}.jpg`);
+  const code=Object.keys(images).find(code=>name===`${images[code]!.sha256}.jpg`);
   if(!code)throw new DomainError('CATALOG_IMAGE_NOT_FOUND','图片不存在',404);
   return catalogPublicImage(code);
 }
