@@ -1,7 +1,7 @@
 <template name="recorded-commands">
   <view class="state" aria-live="polite">
-    <view>历史处理记录</view>
-    <view>记录为空不代表操作失败，付款、退款或到账情况请核对订单和收款账户。</view>
+    <view wx:if="{{!compact}}">历史处理记录</view>
+    <view wx:if="{{!compact}}">付款及到账情况以订单和收款账户为准。</view>
     <view wx:for="{{recordedGroups}}" wx:key="kind" wx:for-item="group">
       <view>{{group.title}}</view>
       <view wx:for="{{group.rows}}" wx:key="id" wx:for-item="fact"><view>{{fact.createdLabel}} · {{fact.label}}</view><text selectable="{{true}}">记录编号 {{fact.id}}</text></view>

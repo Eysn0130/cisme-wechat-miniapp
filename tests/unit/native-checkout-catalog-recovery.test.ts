@@ -91,6 +91,65 @@ describe('checkout distinguishes incomplete navigation from member authenticatio
  });
 });
 
+describe('explicit checkout points choice uses only a freshly confirmed server quote',()=>{
+ function quote(points=0,maximum:number|undefined=850){return {id:'quote-'+points,pointsSpent:points,pointsMaximum:maximum,
+  subtotalCents:2000,memberDiscountCents:points,shippingCents:0,totalCents:2000-points,
+  creditTenderCents:0,cashPayableCents:2000-points,quantity:2,addressId:'address',addressVersion:1,item:{skuId:'sku'},
+  expiresAt:new Date(Date.now()+60000).toISOString(),serverTime:new Date().toISOString()};}
+ async function ready(){const page=await checkout();await page.load();page.setData({runtimeEnabled:true});
+  m.quote.mockImplementation(async(body:any)=>quote(body.points??0));await page.requestQuote();return page;}
+ const choose=(value:string)=>({detail:{value}});
+ async function settled(page:any){await vi.waitFor(()=>expect(page.data.busy).toBe(false));}
+ afterEach(()=>vi.clearAllTimers());
+ it('defaults to no points and reprices each explicit choice without creating an order',async()=>{
+  const page=await ready();expect(m.quote.mock.calls[0]![0]).not.toHaveProperty('points');
+  expect(page.data).toMatchObject({pointsInput:0,pointsMaximum:850,totalYuan:'20.00'});
+  page.selectPoints(choose('use'));await settled(page);
+  expect(m.quote.mock.calls[1]![0]).toMatchObject({points:850});expect(page.data).toMatchObject({pointsInput:850,totalYuan:'11.50'});
+  page.selectPoints(choose('none'));await settled(page);
+  expect(m.quote.mock.calls[2]![0]).not.toHaveProperty('points');expect(page.data).toMatchObject({pointsInput:0,totalYuan:'20.00'});
+  expect(m.order).not.toHaveBeenCalled();page.onUnload();
+ });
+ it('clears the previous payable amount while repricing, blocks repeated input and then submits the latest quote',async()=>{
+  const page=await ready(),read=deferred();m.quote.mockReturnValueOnce(read.promise);page.selectPoints(choose('use'));
+  expect(page.data).toMatchObject({busy:true,quote:null,quoteView:{id:'quote-0'},totalYuan:'',pointsInput:850,pointsMaximum:850});
+  page.selectPoints(choose('none'));page.increase();await page.confirmOrder();expect(m.quote).toHaveBeenCalledTimes(2);expect(m.order).not.toHaveBeenCalled();
+  read.resolve(quote(850));await settled(page);m.order.mockResolvedValue({id:'created-order'});await page.confirmOrder();
+  expect(m.order).toHaveBeenCalledExactlyOnceWith('quote-850',expect.any(String));page.onUnload();
+ });
+ it.each([0,undefined])('does not infer spendable points when the server returns %j',async(maximum)=>{
+  const page=await ready();m.quote.mockResolvedValueOnce({...quote(),pointsMaximum:maximum});await page.requestQuote();
+  const calls=m.quote.mock.calls.length;page.selectPoints(choose('use'));expect(m.quote).toHaveBeenCalledTimes(calls);
+  expect(page.data.pointsInput).toBe(0);page.onUnload();
+ });
+ it.each(['POINTS_INSUFFICIENT','POINTS_DISCOUNT_UNAVAILABLE'])('leaves no spendable quote after %s and allows a fresh no-points choice',async(code)=>{
+  const page=await ready();m.quote.mockRejectedValueOnce({code,title:'internal ledger details'});
+  page.selectPoints(choose('use'));await settled(page);expect(page.data.quote).toBeNull();expect(page.data.quoteView).toBeNull();expect(page.data.error).toContain('积分');
+  expect(page.data.error).not.toContain('internal');await page.confirmOrder();expect(m.order).not.toHaveBeenCalled();
+  page.selectPoints(choose('none'));await settled(page);expect(page.data.quote.id).toBe('quote-0');page.onUnload();
+ });
+ it('requires a new quote after expiry or selection changes and clears private points on logout',async()=>{
+  const page=await ready();page.setData({quoteExpired:true});page.selectPoints(choose('use'));expect(m.quote).toHaveBeenCalledTimes(1);
+  page.refreshQuote();await settled(page);expect(page.data.pointsInput).toBe(0);
+  page.selectPoints(choose('use'));await settled(page);page.increase();expect(page.data).toMatchObject({quote:null,pointsInput:0,pointsMaximum:null});
+  page.setData({pointsMaximum:850,pointsInput:850});page.showLoginRequired();expect(page.data).toMatchObject({quote:null,pointsInput:0,pointsMaximum:null});page.onUnload();
+ });
+ it.each(['hidden','other-member'])('rejects a delayed reprice for a %s checkout',async(change)=>{
+  const page=await ready(),read=deferred();m.quote.mockReturnValueOnce(read.promise);page.selectPoints(choose('use'));
+  if(change==='hidden')page.onHide();else app.globalData.sessionToken='member-b';
+  read.resolve(quote(850));await Promise.resolve();await Promise.resolve();
+  expect(page.data.quote).toBeNull();expect(page.data.totalYuan).toBe('');expect(m.order).not.toHaveBeenCalled();page.onUnload();
+ });
+ it('keeps incompatible credit and unknown input from changing the selected points',async()=>{
+  const page=await ready();page.selectPoints(choose('unexpected'));expect(m.quote).toHaveBeenCalledTimes(1);
+  page.setData({creditInput:'1.00'});page.selectPoints(choose('use'));expect(m.quote).toHaveBeenCalledTimes(1);page.onUnload();
+ });
+ it('treats zero credit as no tender and still allows an explicit points choice',async()=>{
+  const page=await ready();page.setData({creditInput:'0.00'});page.selectPoints(choose('use'));await settled(page);
+  expect(m.quote.mock.calls[1]![0]).toMatchObject({points:850});expect(m.quote.mock.calls[1]![0]).not.toHaveProperty('creditCents');page.onUnload();
+ });
+});
+
 describe('product selection, unavailable items and failed reads remain distinct',()=>{
  it.each(['','../bad'])('keeps invalid selection %j local and opens the directory without authentication',async(id)=>{
   await import('../../apps/miniprogram/pages/product/index');const page=mount();page.onLoad({id});await page.load();

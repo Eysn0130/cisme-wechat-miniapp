@@ -47,7 +47,7 @@
         <text class="composer-result__title">已发布</text>
         <view class="composer-result__actions"><button class="text-button composer-action--primary" bindtap="openPublicationResult" aria-label="查看已发布的帖子">查看帖子</button><button class="text-button composer-action--quiet" bindtap="returnToCommunity">返回社区</button></view>
       </view>
-      <view wx:if="{{state === 'deleted'}}" class="composer-status"><text>这篇内容已删除</text><text class="composer-help">已停止公开展示，不能继续编辑或提交。</text><text wx:if="{{dirty}}" class="composer-help">修改暂留本页，请先复制需要的文字或查看图片；离开后无法从投稿列表找回。</text></view>
+      <view wx:if="{{state === 'deleted'}}" class="composer-status"><text>这篇内容已删除</text><text class="composer-help">已停止公开展示，不能继续编辑或提交。</text><text wx:if="{{dirty}}" class="composer-help">修改尚未保存，离开前请复制文字或保存图片。</text></view>
       <view wx:if="{{state === 'pending_review' || state === 'awaiting_publication'}}" class="composer-result" aria-live="polite">
         <text class="composer-result__title">{{directPublication ? '正在发布' : '待重新发布'}}</text>
         <text class="composer-help">{{directPublication ? '安全检查完成后自动公开。' : '内容尚未公开，请修改后重新发布。'}}</text>
@@ -56,7 +56,7 @@
       <view wx:if="{{state === 'hidden'}}" class="composer-status">这篇内容已下架。{{hiddenReason ? '处理依据：' + hiddenReason : '请查看处理记录。'}}
         <view wx:if="{{hiddenPublished}}" class="composer-hidden-summary"><text>被下架的公开版本</text><text>{{hiddenPublished.title || '图片护理故事'}}</text><text wx:if="{{hiddenPublished.body}}">{{hiddenPublished.body}}</text></view>
         <text wx:if="{{appeal}}">{{appeal.state === 'received' ? '申诉已收到，等待另一名工作人员复核。' : appeal.state === 'resolved' ? '申诉通过，内容已恢复。' : '申诉未通过。'}}{{appeal.decisionReason ? ' · ' + appeal.decisionReason : ''}}</text>
-        <text wx:if="{{dirty}}" class="composer-help">申诉与本页修改独立。请先复制需要的文字或查看图片；这些修改暂留本页，离开后无法从投稿列表找回。重新打开后可申请申诉。</text>
+        <text wx:if="{{dirty}}" class="composer-help">修改尚未保存，离开前请复制文字或保存图片。重新打开后可申请申诉。</text>
         <button wx:if="{{!appeal}}" class="secondary {{busy || recoveryBusy || dirty ? 'secondary--disabled' : ''}}" bindtap="submitAppeal" disabled="{{busy || recoveryBusy || dirty}}" loading="{{operation === 'appealing'}}">申请内容申诉</button>
       </view>
       <view wx:if="{{state === 'rejected'}}" class="composer-status"><text>需要修改后重新提交</text><text class="composer-help">{{reviewNote || '请核对内容说明并修改后，再发布。'}}{{reviewedLabel ? ' · ' + reviewedLabel : ''}}</text></view>
