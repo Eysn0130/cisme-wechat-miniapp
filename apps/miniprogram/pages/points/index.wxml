@@ -1,3 +1,4 @@
+<page-meta root-font-size="system"/>
 <view class="chrome-root" style="{{chromeStyle}}">
 <view aria-hidden="{{rulesOpen || giftSelected !== null}}">
 <view class="topbar points-topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">我的积分</text><button class="points-rules-link" bindtap="openRules">积分规则</button></view>
@@ -14,7 +15,7 @@
  <block wx:if="{{section === 'earn'}}">
   <text wx:if="{{club && !club.enabled}}" class="club-copy">新积分活动尚未生效，历史余额和记录仍可查询。</text>
   <view wx:if="{{club.pendingRewardSources > 0}}" class="club-notice" aria-live="polite">有 {{club.pendingRewardSources}} 项来源正在核对，尚未计入可用积分。<button class="club-text {{loading || busy ? 'control--disabled' : ''}}" bindtap="load" disabled="{{loading || busy}}">刷新到账情况</button></view>
-  <view wx:if="{{club.enabled}}" class="club-card club-tasks"><button class="club-task" bindtap="openCommunity"><view><text class="club-task-title">分享与交流</text><text class="club-copy">原创笔记、有效互动，按规则计分</text></view><text>去社区</text></button><button class="club-task {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}"><view><text class="club-task-title">购物积分</text><text class="club-copy">真实实付商品，确认收货后到账</text></view><text>去选购</text></button><button class="club-task" bindtap="openInvite"><view><text class="club-task-title">邀请好友</text><text class="club-copy">分享注册并完成首购收货，双方获奖励</text></view><text>去邀请</text></button></view>
+  <view wx:if="{{club.enabled}}" class="club-tasks"><button class="club-task" bindtap="openCommunity"><view><text class="club-task-title">分享与交流</text><text class="club-copy">原创笔记、有效互动，按规则计分</text></view><text>去社区</text></button><button class="club-task {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}"><view><text class="club-task-title">购物积分</text><text class="club-copy">真实实付商品，确认收货后到账</text></view><text>去选购</text></button><button class="club-task club-task--last" bindtap="openInvite"><view><text class="club-task-title">邀请好友</text><text class="club-copy">分享注册并完成首购收货，双方获奖励</text></view><text>去邀请</text></button></view>
   <view wx:if="{{clubError}}" class="club-error">{{clubError}}<button class="club-text" bindtap="load">重新加载活动</button></view>
  </block>
  <block wx:elif="{{section === 'ledger' && points}}">
