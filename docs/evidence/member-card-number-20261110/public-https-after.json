@@ -1,0 +1,37 @@
+{
+  "/health/ready": {
+    "status": 200,
+    "result": {
+      "status": "ready"
+    }
+  },
+  "/v1/capabilities": {
+    "status": 200,
+    "result": {
+      "version": 1,
+      "communityPreviewEnabled": false,
+      "socialPreviewEnabled": false,
+      "transactionProfile": null,
+      "pointsRedemptionEnabled": true,
+      "ugcGoLiveGate": true,
+      "pointsRulesEnabled": true,
+      "directMediaUploadEnabled": false
+    }
+  },
+  "/v1/commerce/orders/status": {
+    "status": 200,
+    "result": {
+      "version": 2,
+      "orderFlowEnabled": true,
+      "paymentAvailable": true,
+      "paymentOnboarding": "READY",
+      "currency": "CNY",
+      "scope": "formal_commerce",
+      "formalMoneyOperationsAvailable": true,
+      "formalRecoveryAvailable": true,
+      "isolatedMoneyOperationsAvailable": false,
+      "isolatedTransferAvailable": false,
+      "isolatedCreditCheckoutAvailable": false
+    }
+  }
+}

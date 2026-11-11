@@ -35,9 +35,28 @@
   "changesBackend": true,
   "additiveMigration": "202611100006_member_card_number.sql",
   "migrationCount": 114,
-  "backendIntegration": "pending CI",
-  "deployment": "pending isolated-trial activation",
+  "backendIntegration": {
+    "result": "passed",
+    "ciRunId": 42952509458,
+    "head": "81a77003ba5a7d3f29e10a1d9a538337da40d706"
+  },
+  "deployment": {
+    "result": "deployed",
+    "environment": "isolated-trial",
+    "source": "81a77003ba5a7d3f29e10a1d9a538337da40d706",
+    "migrations": 114,
+    "originalTablesPreserved": 170,
+    "existingMemberNumbersAssigned": 7,
+    "productionPreserved": true
+  },
   "requestedExperienceVersion": "0.1.35",
   "uploadAuthorized": true,
-  "wechatUploaded": false
+  "wechatUploaded": false,
+  "authenticatedOwnMemberReads": {
+    "paths": 3,
+    "allReturnSameValidNumber": true,
+    "actualNumberOmitted": true,
+    "realMemberTestWrites": 0
+  },
+  "followupTypography": "../member-card-typography-20261110"
 }
