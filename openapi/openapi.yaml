@@ -772,6 +772,16 @@ paths:
       parameters: [{$ref: '#/components/parameters/CycleId'}, {name: milestone, in: path, required: true, schema: {$ref: '#/components/schemas/Milestone'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {allOf: [{$ref: '#/components/schemas/CareMilestoneCommandInput'}, {type: object, required: [dailyUsage]}]}}}}
       responses: {'200': {description: Versioned milestone record and optional task, or exact command replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/me/care-usage-calendar:
+    get:
+      tags: [Care]
+      operationId: getMemberCareUsageCalendar
+      security: [{session: []}]
+      description: Owner-only product-use calendar coverage for an explicit date range of at most 93 inclusive days. Dates come from the Shanghai server day; future dates never carry a recorded mark. This does not fabricate four-step or cycle completion.
+      parameters:
+        - {in: query, name: from, required: true, schema: {type: string, format: date}}
+        - {in: query, name: through, required: true, schema: {type: string, format: date}}
+      responses: {'200': {description: Requested coverage, authoritative serverDay and recordedDays}, '401': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /v1/me/care-usage-records:
     get:
       tags: [Care]
@@ -779,9 +789,10 @@ paths:
       security: [{session: []}]
       parameters:
         - {name: before, in: query, schema: {type: string, format: date}}
+        - {name: day, in: query, schema: {type: string, format: date}, description: Optional exact day; mutually exclusive with before.}
         - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}
       responses:
-        '200': {description: Owner-only product-use days and decrypted private feelings, descending Shanghai date, with totalCount and nextBefore; no four-step completion is inferred}
+        '200': {description: Owner-only product-use days and decrypted private feelings, descending Shanghai date, with totalCount, nextBefore, serverDay, streak and source-bound day reward receipts; no four-step completion is inferred}
         '422': {$ref: '#/components/responses/Problem'}
   /v1/me/tasks:
     get: {"tags":["Read models"],"operationId":"getEligibleTasks","security":[{"session":[]}],"responses":{"200":{"description":"Member-owned effective invitations"}},"deprecated":true,"description":"Removed pre-publication workflow. Authorized legacy clients receive an empty list; no new review or task is offered."}
