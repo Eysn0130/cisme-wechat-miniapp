@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 2,
+  "finalResult": "blocked",
+  "evidenceIndex": {},
+  "devtools": null,
+  "routeCoverage": [
+    {
+      "route": "pages/account/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/home/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/shop/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/records/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/profile/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/task/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/submit/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/progress/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/points/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/post/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/product/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/checkout/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/orders/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/order-detail/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/settings/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/invite/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/legal/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/support/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-product/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-orders/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-support/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-members/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-member/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/referral/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-compose/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-post/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-author/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-review/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/community-activity/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-finance/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/commission/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/aftersale/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-points/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    }
+  ],
+  "devices": [
+    {
+      "platform": "ios",
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "platform": "android",
+      "result": "blocked",
+      "evidenceFiles": []
+    }
+  ],
+  "packageSourceSha256": "7c2d6a198f0d60d91e6aec579fa846b213c69eaf27eef4dfe42ca9e9b2676c5c",
+  "findings": [
+    {
+      "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
+      "severity": "P1",
+      "status": "blocked",
+      "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
+    }
+  ],
+  "note": "Current package source measured. Historical Points stage1 and 04d2856f native screenshots retain their actual hashes. Current scoped native rendering is recorded separately; full 41-route and physical-device matrices remain pending.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-points-preintegration-36410bdc187c.json",
+  "pendingSourceRebind": false
+}

@@ -756,6 +756,31 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.tracking_read' AND object_id=$1",[one.id])).rows[0].n).toBe(1);
   await expect(tracked.logisticsCapabilities(buyer)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   expect(await tracked.logisticsCapabilities(actor)).toMatchObject({accounts:[{carrierCode:'SF'}]});
+  const {LogisticsViewService}=await import('../../services/api/src/logisticsView.js');
+  const {LogisticsRegistrationRejected}=await import('../../services/api/src/wechatLogisticsQuery.js');
+  const queryOptions={encryptionKey:'c'.repeat(64),hashKey:'d'.repeat(64),keyVersion:'synthetic-query-v1',appId,merchantId,
+    imageUrl:()=>`https://staging-api.cisme.cn/v1/catalog/public-images/synthetic-test-only.jpg`};
+  let registrations=0,ready=true,blockQuery=false;
+  const queryView=new LogisticsViewService(pool,addresses,sync,{assertReady:async()=>{if(!ready)throw Error('synthetic no permission');},register:async input=>{
+    registrations++;expect(input).toMatchObject({receiverPhone:'13800000000',binding:{appId,merchantId,payerOpenid:'verified-buyer-openid'}});
+    const check=await pool.connect();try{await check.query('BEGIN');await check.query('SELECT id FROM member WHERE id=$1 FOR UPDATE NOWAIT',[buyer]);await check.query('ROLLBACK');}finally{check.release();}
+    if(blockQuery)await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[buyer]);
+    return 'synthetic-private-waybill-token-12345';
+  }},queryOptions);
+  await expect(queryView.view(actor,order.id)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});expect(registrations).toBe(0);
+  ready=false;await expect(queryView.view(buyer,order.id)).rejects.toThrow('synthetic no permission');
+  expect((await pool.query("SELECT count(*)::int n FROM idempotency_operation WHERE operation='commerce.logistics.query' AND idempotency_key=$1",[one.id])).rows[0].n).toBe(0);
+  ready=true;blockQuery=true;
+  await expect(queryView.view(buyer,order.id)).rejects.toMatchObject({code:'MEMBER_NOT_ACTIVE'});
+  await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer]);
+  blockQuery=false;
+  const queryResult=await queryView.view(buyer,order.id);
+  expect(queryResult).toMatchObject({orderId:order.id,shipmentId:one.id,source:'wechat_logistics_plugin',waybillToken:'synthetic-private-waybill-token-12345'});
+  expect(registrations).toBe(1);
+  const journal=(await pool.query("SELECT response_body,request_hash FROM idempotency_operation WHERE operation='commerce.logistics.query' AND idempotency_key=$1",[one.id])).rows[0];
+  expect(journal.response_body.state).toBe('ready');expect(JSON.stringify(journal)).not.toContain('synthetic-private-waybill-token');
+  expect(JSON.stringify(journal)).not.toContain('13800000000');expect(JSON.stringify(journal)).not.toContain('verified-buyer-openid');
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({logisticsState:'shipped',deliveredAt:null,receiptConfirmedAt:null});
   const job=(await pool.query('SELECT shipping_sync_id FROM commerce_shipment WHERE id=$1',[one.id])).rows[0].shipping_sync_id;
   expect(await sync.processOne(job)).toBe('prepared');
   expect(await service.detailMine(buyer,order.id)).toMatchObject({logisticsState:'shipped',wechatSyncState:'prepared'});
@@ -794,6 +819,16 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   const importPlan=(await pool.query("SELECT response_body FROM idempotency_operation WHERE operation='commerce.shipment.import_plan' AND idempotency_key='import-success-0001'")).rows[0].response_body;
   expect(importPlan).toEqual([{orderId:bulkA.id,expectedOrderVersion:bulkA.version},{orderId:bulkB.id,expectedOrderVersion:bulkB.version}]);
   expect((await pool.query('SELECT count(*)::int n FROM commerce_shipment WHERE order_id=ANY($1::uuid[])',[[bulkA.id,bulkB.id]])).rows[0].n).toBe(2);
+  let uncertainCalls=0;
+  const unknownQuery=new LogisticsViewService(pool,addresses,sync,{assertReady:async()=>{},register:async()=>{uncertainCalls++;throw Error('synthetic response lost');}},queryOptions);
+  await expect(unknownQuery.view(buyer,bulkA.id)).rejects.toThrow('synthetic response lost');
+  await expect(unknownQuery.view(buyer,bulkA.id)).rejects.toMatchObject({code:'LOGISTICS_QUERY_OUTCOME_UNKNOWN'});expect(uncertainCalls).toBe(1);
+  let rejectedCalls=0;
+  const rejectedQuery=new LogisticsViewService(pool,addresses,sync,{assertReady:async()=>{},register:async()=>{rejectedCalls++;if(rejectedCalls===1)throw new LogisticsRegistrationRejected(9300559);return 'synthetic-second-waybill-token-12345';}},queryOptions);
+  await expect(rejectedQuery.view(buyer,bulkB.id)).rejects.toMatchObject({code:'LOGISTICS_QUERY_REJECTED'});
+  const concurrentViews=await Promise.allSettled([rejectedQuery.view(buyer,bulkB.id),rejectedQuery.view(buyer,bulkB.id)]);
+  expect(concurrentViews.some(r=>r.status==='fulfilled')).toBe(true);expect(rejectedCalls).toBe(2);
+
   const partialOrder=await readyParcel('LOCALPARTIAL');
   const partialEntries=[{orderId:partialOrder.id,...input,shippedAt:(await dbNow()).toISOString(),expectedOrderVersion:partialOrder.version},
     {orderId:randomUUID(),...input}];

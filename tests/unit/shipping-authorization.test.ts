@@ -14,9 +14,12 @@ it('binds revocable shipping grants to environment, app, merchant and isolated s
  expect(auth('shipping.query',binding)).toBe('synthetic-only');
  expect(()=>auth('shipping.upload',binding)).toThrow();
  expect(()=>auth('shipping.query',{...binding,merchantOrderNumber:'PRODUCTIONORDER'})).toThrow();
- await writeFile(path,JSON.stringify({...grant,capabilities:['logistics.tracking.read','logistics.accounts.read']}));
+ await writeFile(path,JSON.stringify({...grant,capabilities:['logistics.tracking.read','logistics.accounts.read','logistics.query.register']}));
  expect(auth('logistics.tracking.read',{...binding,appId:grant.appId})).toBe('synthetic-only');
  expect(auth('logistics.accounts.read')).toBe('synthetic-only');
+ expect(auth('logistics.query.register',{...binding,appId:grant.appId})).toBe('synthetic-only');
+ expect(()=>auth('logistics.query.register',binding)).toThrow();
+ expect(()=>auth('logistics.query.register',{...binding,appId:'wx0000000000000000'})).toThrow();
  expect(()=>auth('logistics.tracking.read',binding)).toThrow();
  expect(()=>auth('logistics.tracking.read',{...binding,appId:'wx0000000000000000'})).toThrow();
  expect(()=>auth('logistics.tracking.read',{...binding,appId:grant.appId,merchantOrderNumber:'PRODUCTIONORDER'})).toThrow();

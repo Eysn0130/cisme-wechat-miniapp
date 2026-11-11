@@ -793,7 +793,7 @@
     }
   ],
   "migrationSetSha256": "07d78dbdead5c5888e6ffba692ed4f93ce32c2335a28ee5aa141b731bf808ad8",
-  "egressSignatureSha256": "e12bd89786fdf36dba3c626c41bf974b504025dda042cecff65151769912ec6b",
+  "egressSignatureSha256": "e97c111fd430a9c6554f6aab9ca50f60eb184320a27aeca01534b8f24ab29195",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -1350,5 +1350,22 @@
     "import": "权限先于ZIP/XML解析；最多2MiB/500单；不保存源文件或丢弃的联系方式；无新第三方接收方。",
     "experienceScope": "仅 cisme_trial 独立库、独立会员加密/会话、staging 回调；复用真实商户提供方凭据并保护授权文件，正式会员资产不混入。",
     "fundsVerification": "代理未执行真实下单扣款、退款或转账；真实平台只读核验另留部署回执。"
+  },
+  "logisticsQueryReview20261110": {
+    "purpose": "Buyer-initiated view of the official WeChat logistics component for the mini program own verified paid shipment; no unrelated waybill queries, shipment purchases or new subscription request.",
+    "recipient": "WeChat official api.weixin.qq.com and approved logisticsPlugin provider wx9ad912bf20548d92 version 2.1.5.",
+    "payload": [
+      "verified payer OpenID",
+      "verified payment transaction ID",
+      "frozen delivery phone",
+      "actual existing carrier and waybill",
+      "immutable purchased goods names and approved public photos",
+      "own order detail route"
+    ],
+    "storage": "idempotency_operation operation commerce.logistics.query stores only HMAC binding, state and AES-256-GCM sealed waybill token with owner/shipment/key-version AAD. Clear phone, OpenID and token are excluded from journal and audit details. Native token remains a call-local variable, never page data or persistent storage.",
+    "authority": "Active member owns verified paid order; same app/merchant full-cash applied payment, frozen address and local shipment checked before and after provider I/O. Separately revocable logistics.query.register grant; no token projection in management routes or privacy-rights sessions.",
+    "failure": "Definite permission error creates no dispatch journal; unknown registration outcome stays fenced against redispatch and requires operator reconciliation. Official plugin approved is not proof of query-component business permission. Manual copy-waybill path remains.",
+    "retention": "Follows the existing order-dispute and idempotency evidence policy; no new automatic purge or unapproved retention duration. Closed or blocked accounts cannot register new queries or receive cached capabilities.",
+    "publicAssets": "Only the two owner-approved public product JPEGs are bundled. Exact content-hashed allowlist, immutable caching; no arbitrary filesystem read or external fetch."
   }
 }

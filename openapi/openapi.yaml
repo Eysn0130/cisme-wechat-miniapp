@@ -895,6 +895,14 @@ paths:
       security: []
       parameters: [{name: postId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
       responses: {'200': {description: One currently visible publication with public author projection and asOf}, '404': {$ref: '#/components/responses/Problem'}}
+  /v1/catalog/public-images/{name}:
+    get:
+      tags: [Commerce]
+      operationId: publicApprovedCatalogImage
+      security: []
+      parameters: [{name: name, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9-]+\.jpg$'}}]
+      description: Exact allowlist of two owner-approved immutable product JPEGs. No arbitrary path, external fetch, member media or customer data. Content-hashed name and ETag permit public caching.
+      responses: {'200': {description: Immutable public product image, content: {image/jpeg: {schema: {type: string, format: binary}}}}, '404': {$ref: '#/components/responses/Problem'}}
   /v1/catalog:
     get:
       tags: [Read models, Commerce]
@@ -1647,6 +1655,15 @@ paths:
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/OrderId'}]
       responses: {'200': {description: Owner-only physical shipment, local receipt and separately observed WeChat receipt state}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/me/orders/{orderId}/shipment/logistics-view:
+    post:
+      tags: [Commerce]
+      operationId: myShipmentLogisticsView
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/OrderId'}]
+      description: Explicit active-buyer action for this application's verified paid shipment. Registers the existing waybill with the official query component, using a separately revocable logistics.query.register grant. Encrypted durable per-shipment token cache and dispatch-before-network journal prevent automatic redispatch after unknown outcomes. No courier purchase, local receipt, refund or settlement change. Token is an owner-only capability and must never enter page data or storage.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false}}}}
+      responses: {'200': {description: Buyer-only official plugin capability, content: {application/json: {schema: {type: object, additionalProperties: false, required: [orderId, shipmentId, source, waybillToken], properties: {orderId: {$ref: '#/components/schemas/Uuid'}, shipmentId: {$ref: '#/components/schemas/Uuid'}, source: {type: string, const: wechat_logistics_plugin}, waybillToken: {type: string, minLength: 20, maxLength: 4096}}}}}}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/me/orders/{orderId}/shipment/tracking:
     get:
       operationId: myShipmentTracking

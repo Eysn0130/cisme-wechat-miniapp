@@ -24,6 +24,7 @@ const publicOperations = new Set([
   "GET /v1/feed/page",
   "GET /v1/feed/{postId}",
   "GET /v1/catalog",
+  "GET /v1/catalog/public-images/{name}",
   "GET /v1/catalog/{productCode}",
   "GET /v1/commerce/orders/status",
   "POST /v1/payments/wechat/callback",

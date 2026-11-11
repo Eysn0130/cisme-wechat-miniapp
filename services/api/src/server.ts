@@ -16,6 +16,8 @@ import { randomUUID } from "node:crypto";
 import Fastify, { LogController, type FastifyBaseLogger, type FastifyInstance, type FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import {catalogPublicImageByName} from './catalogPublicMedia.js';
+import type {LogisticsQueryChannel} from './wechatLogisticsQuery.js';
 import {parseFulfillmentWorkbook} from './fulfillmentImport.js';
 import rateLimit from "@fastify/rate-limit";
 import type pg from "pg";
@@ -96,6 +98,7 @@ interface AppDependencies {
   loggerInstance?: FastifyBaseLogger;
   phoneFetcher?: typeof fetch;
   shippingTestChannel?: Pick<WechatOrderShippingClient,'query'|'uploadOnce'> & Partial<Pick<WechatOrderShippingClient,'queryOrder'>>;
+  logisticsQueryTestChannel?:LogisticsQueryChannel;
   wechatIdentityFetcher?: typeof fetch;
   suppressionRemote?: SuppressionRemote;
 }
@@ -156,7 +159,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   // Public API caching requires a separately reviewed invalidation policy.
   app.addHook("onSend", async (request, reply, payload) => {
     if ((request.routeOptions.url ?? request.url).startsWith("/v1/")) {
-      reply.header("Cache-Control", "private, no-store");
+      reply.header("Cache-Control", request.routeOptions.url==='/v1/catalog/public-images/:name'&&reply.statusCode===200?"public, max-age=31536000, immutable":"private, no-store");
     }
     return payload;
   });
@@ -233,7 +236,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       dependencies.paymentProtocol.refundInbox,{merchantId:paymentProfile.merchantId,
       notifyUrl:dependencies.paymentProtocol.refundNotifyUrl}):null;
   const fulfillment=new FulfillmentReleaseService(pool,authority,config.env);
-  const localFulfillment=fulfillmentRuntime(config,pool,dependencies.shippingTestChannel);
+  const localFulfillment=fulfillmentRuntime(config,pool,dependencies.shippingTestChannel,dependencies.logisticsQueryTestChannel);
   const shipmentRequired=()=>{
     if(!localFulfillment)throw new DomainError('FULFILLMENT_NOT_ENABLED','发货与物流功能尚未在当前环境开放',503);
     return localFulfillment.service;
@@ -316,7 +319,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const publicEditorialRead = request.method === "GET" && !request.headers.authorization &&
       (path === "/v1/editorial/articles" || /^\/v1\/editorial\/(articles|authors)\/[^/]+$/.test(path) ||
         /^\/v1\/editorial\/media\/[0-9a-f-]{36}\/[0-9a-f]{64}$/i.test(path));
-    const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
+    const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || /^\/v1\/catalog\/public-images\/[a-z0-9-]+\.jpg$/.test(path) || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
     if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
@@ -840,6 +843,15 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (request.body??{}) as Record<string,unknown>));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/fulfillment/pending",async request=>
     fulfillment.pending(request.memberId,request.query));
+  app.get<{Params:{name:string}}>("/v1/catalog/public-images/:name",async(request,reply)=>{
+    const asset=catalogPublicImageByName(request.params.name);
+    return reply.header('ETag',`"${asset.sha256}"`).type('image/jpeg').send(asset.bytes);
+  });
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/shipment/logistics-view",async request=>{
+    if(!localFulfillment)throw new DomainError('FULFILLMENT_NOT_ENABLED','物流详情暂不可用',503);
+    if(Object.keys((request.body??{}) as object).length)throw new DomainError('LOGISTICS_QUERY_INPUT_INVALID','请从原订单查看物流',422);
+    return localFulfillment.logisticsView.view(request.memberId,request.params.orderId);
+  });
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/shipment",async request=>
     shipmentRequired().detailMine(request.memberId,request.params.orderId,request.authScope==='privacy_rights'));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/shipment/tracking",async(request,reply)=>{
