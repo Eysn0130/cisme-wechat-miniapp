@@ -11,9 +11,10 @@ const pool=testPool(),base=new Date(Date.now()+120000),day=(n:number)=>new Date(
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'member-points-test',UPLOAD_TOKEN_SECRET:'member-points-upload',
  OBJECT_STORAGE_DRIVER:'api_gateway',ALLOW_DEV_ADAPTERS:'true',CONTACT_ENCRYPTION_KEY:'19'.repeat(32),CONTACT_HASH_KEY:'29'.repeat(32),COMMERCE_ORDER_FLOW_ENABLED:'true'});
 let app:Awaited<ReturnType<typeof createApp>>,maker:any,checker:any,policy:any,sku:any;
+let actorAddress=0;
 const headers=(a:any,key=randomUUID(),now=base)=>({authorization:`Bearer ${a.sessionToken}`,'idempotency-key':key,'x-dev-clock':now.toISOString()});
 async function actor(label='合成积分会员'){
- const r=await app.inject({method:'POST',url:'/v1/identity/dev',headers:{'x-dev-clock':base.toISOString()},payload:{externalUserId:randomUUID(),displayName:label,
+ const r=await app.inject({method:'POST',url:'/v1/identity/dev',remoteAddress:`192.0.2.${++actorAddress}`,headers:{'x-dev-clock':base.toISOString()},payload:{externalUserId:randomUUID(),displayName:label,
   consents:[{documentType:'privacy',version:'fixture-v1'},{documentType:'terms',version:'fixture-v1'}]}});expect(r.statusCode,r.body).toBe(200);return r.json();
 }
 const get=(a:any,path='/v1/me/points',now=base)=>app.inject({url:path,headers:headers(a,randomUUID(),now)});
