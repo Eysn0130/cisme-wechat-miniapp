@@ -83,5 +83,5 @@
       </block>
     </view>
   </view>
-  <care-onboarding wx:if="{{onboardingOpen}}" required="{{true}}" bindcomplete="completeOnboarding"/>
+  <care-onboarding id="care-onboarding" wx:if="{{onboardingOpen}}" required="{{true}}" bindcomplete="completeOnboarding"/>
 </view>

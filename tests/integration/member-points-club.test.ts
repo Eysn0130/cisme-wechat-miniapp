@@ -252,7 +252,11 @@ describe('Care product-use entry and atomic cycle completion',()=>{
   }
  });
  it('stores private care when no points policy is active, without inventing rewards or blocking the record',async()=>{
-  const a=await actor(),beforePolicy=new Date(base.getTime()-20000),r=await checkin(a,beforePolicy,randomUUID(),{serverDay:pointDay(beforePolicy)});expect(r.statusCode,r.body).toBe(200);
+  const a=await actor(),firstPolicy=(await pool.query('SELECT min(starts_at) AS first_at FROM member_points_policy')).rows[0].first_at;
+  // The migration policy remains effective until the custom fixture starts.
+  // Use a known synthetic pre-launch clock, not an assumed 20-second gap.
+  const beforePolicy=new Date(firstPolicy.getTime()-1000);expect((await get(a,'/v1/me/points/club',beforePolicy)).json().enabled).toBe(false);
+  const r=await checkin(a,beforePolicy,randomUUID(),{serverDay:pointDay(beforePolicy)});expect(r.statusCode,r.body).toBe(200);
   expect((await get(a,'/v1/me/care-usage-records')).json().totalCount).toBe(1);expect((await invariant(a)).available).toBe(0);
  });
 });
