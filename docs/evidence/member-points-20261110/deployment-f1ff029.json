@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "deployed": true,
+  "environment": "isolated-trial",
+  "host": "124.223.74.198",
+  "sourceHead": "f1ff02927d7d7ed445ff933808e9c0726c9339e9",
+  "ciRunId": 42901560992,
+  "archiveSha256": "28f6c980713ee49185989e33f45bf0f50fb56821bf0bb1a5eaad38e9067fe524",
+  "migrations": 113,
+  "backup": {
+    "backupReference": "POINTS-PREDEPLOY-f1ff02927d7d",
+    "readOnlySnapshot": true,
+    "authenticated": true,
+    "pgRestoreListVerified": true,
+    "encryptedBytes": 757853,
+    "scope": "same-host-database-only",
+    "restorePerformed": false,
+    "fullRecoveryQualified": false
+  },
+  "preservation": {
+    "originalFactsPreserved": true,
+    "originalTableCount": 149,
+    "inventoryPreserved": true,
+    "memberAssetsPreserved": true,
+    "historicalBackfill": false,
+    "products": [
+      {
+        "code": "aigerong-moisture-shampoo-280",
+        "shoppingPointsMultiplier": 3,
+        "version": 4
+      },
+      {
+        "code": "aigerong-scalp-repair-essence-100",
+        "shoppingPointsMultiplier": 3,
+        "version": 4
+      }
+    ],
+    "policy": {
+      "version": "club-owner-20261110-v1",
+      "monthly_budget": null,
+      "ends_at": null,
+      "rules": {
+        "note": 5,
+        "post": 50,
+        "daily": 10,
+        "comment": 5,
+        "streak7": 50,
+        "featured": 100,
+        "streak30": 200,
+        "firstOrder": 300,
+        "discountBps": 2000,
+        "expiryMonths": 12,
+        "inviteFriend": 200,
+        "reminderDays": 30,
+        "inviteSponsor": 300,
+        "pointsPerYuan": 100,
+        "questionnaire": 100,
+        "postWeeklyLimit": 2,
+        "refundGraceDays": 30,
+        "commentDailyLimit": 2,
+        "birthdayMultiplier": 2
+      },
+      "approval_source": "owner_instruction_20261110"
+    }
+  },
+  "capabilities": {
+    "version": 1,
+    "communityPreviewEnabled": false,
+    "socialPreviewEnabled": false,
+    "transactionProfile": null,
+    "pointsRedemptionEnabled": true,
+    "ugcGoLiveGate": true,
+    "pointsRulesEnabled": true,
+    "directMediaUploadEnabled": false
+  },
+  "commerceStatus": {
+    "version": 2,
+    "orderFlowEnabled": true,
+    "paymentAvailable": true,
+    "paymentOnboarding": "READY",
+    "currency": "CNY",
+    "scope": "formal_commerce",
+    "formalMoneyOperationsAvailable": true,
+    "formalRecoveryAvailable": true,
+    "isolatedMoneyOperationsAvailable": false,
+    "isolatedTransferAvailable": false,
+    "isolatedCreditCheckoutAvailable": false
+  },
+  "productionPreserved": true,
+  "runtimeEnvironmentPreserved": true,
+  "agentMoneyMovements": 0,
+  "realMemberTestWrites": 0,
+  "stateDirectory": "/opt/cisme-trial/points-upgrades/apply-f1ff02927d7d",
+  "fullRecoveryQualified": false
+}

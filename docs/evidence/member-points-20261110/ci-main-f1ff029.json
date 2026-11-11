@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "f1ff02927d7d7ed445ff933808e9c0726c9339e9",
+  "runId": 42903618619,
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/42903618619",
+  "conclusion": "success",
+  "counts": {
+    "unit": [
+      "Test Files  195 passed (195)",
+      "Tests  3176 passed | 1 skipped (3177)"
+    ],
+    "integration": [
+      "Test Files  78 passed (78)",
+      "Tests  1258 passed (1258)"
+    ]
+  },
+  "gates": [
+    "diff-hygiene",
+    "gitleaks",
+    "production-dependency-audit",
+    "dev-high-severity-audit",
+    "typecheck",
+    "offline-deployment-guards",
+    "native-package",
+    "native-routes",
+    "unit",
+    "integration",
+    "synthetic-restore",
+    "build",
+    "contracts",
+    "same-runner-performance"
+  ],
+  "nativeDeviceAcceptance": false,
+  "actualMoneyMovements": 0
+}

@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "sourceHead": "53ec16d1ce52680730467011b1119503cdd973ad",
+  "mergedMainHead": "f1ff02927d7d7ed445ff933808e9c0726c9339e9",
+  "mergedTreeIdentical": true,
+  "runId": 42901560992,
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/42901560992",
+  "conclusion": "success",
+  "unit": {
+    "filesPassed": 195,
+    "passed": 3176,
+    "skipped": 1,
+    "failed": 0
+  },
+  "integration": {
+    "filesPassed": 78,
+    "passed": 1258,
+    "failed": 0
+  },
+  "performance": [
+    {
+      "file": "ci-baseline-capacity.json",
+      "sha256": "c5fb44418ab31b77ea4c6c3b9a0a9ffe23a4a1fd9eb9250b53cd57948f4a4ca9",
+      "scope": "real loopback HTTP/1.1 + isolated DB; no public DNS/TLS or native rendering",
+      "syntheticMembers": 100,
+      "rounds": [
+        {
+          "concurrency": 10,
+          "round": 1,
+          "samples": 500,
+          "errors": 0,
+          "timeouts": 0,
+          "maxRouteP95Ms": 20.2
+        },
+        {
+          "concurrency": 10,
+          "round": 2,
+          "samples": 500,
+          "errors": 0,
+          "timeouts": 0,
+          "maxRouteP95Ms": 19.17
+        },
+        {
+          "concurrency": 20,
+          "round": 1,
+          "samples": 1000,
+          "errors": 0,
+          "timeouts": 0,
+          "maxRouteP95Ms": 38.17
+        },
+        {
+          "concurrency": 20,
+          "round": 2,
+          "samples": 1000,
+          "errors": 0,
+          "timeouts": 0,
+          "maxRouteP95Ms": 34.01
+        }
+      ]
+    },
+    {
+      "file": "ci-candidate-capacity.json",
+      "sha256": "8c38323c8a32c20385d61c2e37c9bb5f63def012dd8cea31224cf7bf33c9cbda",
+      "scope": "real loopback HTTP/1.1 + isolated DB; no public DNS/TLS or native rendering",
+      "syntheticMembers": 100,
+      "rounds": [
+        {
+          "concurrency": 10,
+          "round": 1,
+          "samples": 500,
+          "errors": 0,
+          "timeouts": 0,
+          "maxRouteP95Ms": 44.82
+        },
+        {
+          "concurrency": 10,
+          "round": 2,
+          "samples": 500,
+          "errors": 0,
+          "timeouts": 0,
+          "maxRouteP95Ms": 41.28
+        },
+        {
+          "concurrency": 20,
+          "round": 1,
+          "samples": 1000,
+          "errors": 0,
+          "timeouts": 0,
+          "maxRouteP95Ms": 124.45
+        },
+        {
+          "concurrency": 20,
+          "round": 2,
+          "samples": 1000,
+          "errors": 0,
+          "timeouts": 0,
+          "maxRouteP95Ms": 177.5
+        }
+      ]
+    }
+  ],
+  "nativeAcceptance": false,
+  "actualMoneyMovements": 0
+}

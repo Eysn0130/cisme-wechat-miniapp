@@ -11,13 +11,13 @@
     "scope": "Owned disposable database/object storage, real business services and signed synthetic provider; final invitation renewal included in latter 26."
   },
   "unit": {
-    "numTotalTests": 3176,
-    "numPassedTests": 3175,
+    "numTotalTests": 3177,
+    "numPassedTests": 3176,
     "numFailedTests": 0,
     "numPendingTests": 1
   },
-  "runtimeDeployed": false,
-  "wechatUploaded": false,
+  "runtimeDeployed": true,
+  "wechatUploaded": true,
   "physicalDeviceAcceptance": false,
   "fullNativeStateMatrix": false,
   "actualAgentMoneyMovements": 0,
@@ -39,7 +39,21 @@
     "currentSimulatorScreenshots": 8,
     "scope": "Programmatic page handlers and intercepted synthetic transport, not actual device gestures or real-server mutations.",
     "restoredOriginalSessionAndRoute": true,
-    "actualServerWriteCount": 0
+    "actualServerWriteCount": 0,
+    "authenticatedLiveReads": {
+      "requests": 5,
+      "allHttp200": true,
+      "writes": 0,
+      "uiAndSessionPreserved": true,
+      "evidence": "native-authenticated-reads.json"
+    },
+    "officialUploadCompilation": {
+      "totalBytes": 4144174,
+      "mainBytes": 1291315,
+      "pointsBytes": 51075,
+      "managementPointsBytes": 20730,
+      "sourceHashUnchanged": true
+    }
   },
   "knownLocalPerformanceBaseline": {
     "test": "tests/integration/support-performance.test.ts",
@@ -47,8 +61,45 @@
     "baselineSource": "ec542a3",
     "baselineUnderCandidateDependenciesP95Ms": 1297.05,
     "candidateP95Ms": 1195.54,
-    "status": "Both local Mac-to-Docker runs exceed existing threshold; no threshold weakened. Linux CI required.",
+    "status": "Earlier Mac-to-Docker investigation retained; final Linux CI integration and same-runner comparison passed without threshold changes.",
     "all100ResponsesSucceeded": true
   },
-  "finalCi": "pending"
+  "finalCi": {
+    "status": "success",
+    "sourceHead": "f1ff02927d7d7ed445ff933808e9c0726c9339e9",
+    "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/42903618619"
+  },
+  "integration": {
+    "filesPassed": 78,
+    "passed": 1258,
+    "failed": 0
+  },
+  "runtimeEnvironment": "isolated-trial",
+  "runtimeSourceHead": "f1ff02927d7d7ed445ff933808e9c0726c9339e9",
+  "wechatUploadState": "success",
+  "realMemberTestWrites": 0,
+  "financialBackfill": false,
+  "productionRuntimeChanged": false,
+  "backup": {
+    "reference": "POINTS-PREDEPLOY-f1ff02927d7d",
+    "authenticated": true,
+    "pgRestoreListVerified": true,
+    "scope": "same-host database snapshot only",
+    "offsiteScheduledBackupConfigured": false,
+    "fullRecoveryQualified": false
+  },
+  "postLiveIntegrity": {
+    "originalTables": 149,
+    "allOriginalFactsPreserved": true,
+    "inventoryPreserved": true,
+    "noHistoricalBackfill": true,
+    "evidence": "post-live-integrity.json"
+  },
+  "pendingFormalRelease": [
+    "Current-source iOS/Android physical-device validation and full route-state matrix",
+    "Formal environment cutover requires real production catalogue/inventory and verified canonical administrator; never copy trial member assets or duplicate the same physical inventory",
+    "Independent trial offsite backup credential /etc/cisme-trial-backup/cos.json, backup key and scheduled backup not provisioned; same-host snapshot is not full recovery qualification"
+  ],
+  "wechatVersion": "0.1.32",
+  "wechatUploadEvidence": "delivery-0.1.32.json"
 }

@@ -1,0 +1,34 @@
+{
+  "applied": true,
+  "environment": "isolated-trial",
+  "verifiedCanonicalAdministrator": true,
+  "previousCapabilities": [
+    "commerce.fulfillment.manage",
+    "commerce.inventory.manage",
+    "commerce.order.read",
+    "commerce.product.manage",
+    "commerce.qualification.manage",
+    "editorial.manage",
+    "support.assign",
+    "support.read",
+    "support.reply"
+  ],
+  "requestedCapabilities": [
+    "community.moderate",
+    "commerce.money.reconcile"
+  ],
+  "added": [
+    {
+      "capability": "community.moderate",
+      "grantId": "9071a0a5-fe28-43f8-afd1-4414765712d7"
+    },
+    {
+      "capability": "commerce.money.reconcile",
+      "grantId": "48ac66a2-f875-4f84-bfda-d20ad76b1d1d"
+    }
+  ],
+  "automaticDatabaseAudit": true,
+  "memberProfileUnchanged": true,
+  "otherMembersUnchanged": true,
+  "actualMoneyMovements": 0
+}
