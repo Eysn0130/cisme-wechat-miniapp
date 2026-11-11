@@ -2,5 +2,5 @@
   <text class="eyebrow">DIRECT REFERRAL</text><view class="page-title">确认你的推荐人</view><text class="subtitle">输入朋友提供的 CISME 会员推荐码，核对推荐人后再确认。推荐关系一经确认，不能更换。</text>
   <view class="referral-card"><text>会员推荐码</text><input value="{{code}}" bindinput="editCode" maxlength="12" placeholder="CM 开头的 12 位代码" aria-label="会员推荐码"/><text class="referral-help">你的推荐人无法查看你的电话、地址、私聊或完整订单。</text><button wx:if="{{!preview}}" class="primary {{busy||confirmed?'primary--disabled':''}}" bindtap="preview" disabled="{{busy||confirmed}}" loading="{{busy}}">查看推荐人</button><block wx:else><text class="referral-help">推荐人：{{preview.sponsorLabel}} · 一级关系</text><text wx:if="{{preview.relationState==='already_bound_other'}}" class="state state--error">你已确认其他直接推荐关系。</text><button wx:else class="primary {{busy||confirmed?'primary--disabled':''}}" bindtap="confirm" disabled="{{busy||confirmed}}" loading="{{busy}}">{{confirmed?'已确认':'确认推荐关系'}}</button></block></view>
   <view wx:if="{{status}}" class="state" aria-live="polite">{{status}}</view><view wx:if="{{error}}" class="state state--error" aria-live="assertive">{{error}}</view>
-  <view class="referral-note">支付与佣金结算暂未开放。推荐资格、费率和退款后的佣金处理，以生效规则为准。</view>
+  <view class="referral-note">推荐资格、费率与结算以生效规则为准，退款会调整对应佣金。</view>
 </view></view>

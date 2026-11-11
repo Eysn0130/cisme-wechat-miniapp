@@ -1,18 +1,42 @@
 <page-meta root-font-size="system"/>
-<view class="records-page records-page--calendar" style="{{chromeStyle}}">
-  <view class="records-surface {{recordDetailMounted ? 'records-surface--inert' : ''}}" aria-hidden="{{recordDetailMounted}}">
-  <view class="records-hero">
-    <view class="records-nav"><view class="records-nav__row"><button class="records-back {{working || confirmingCycleAction || confirmingDailyDelete ? 'control--disabled' : ''}}" bindtap="backRecords" disabled="{{working || confirmingCycleAction || confirmingDailyDelete}}" aria-label="返回"><image src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="records-wordmark">CISME</text><text class="records-nav__title">护理记录</text></view></view>
-    <block wx:if="{{authorityAvailable || dailyReady}}">
-    <view wx:if="{{care}}" class="records-headline"><text class="records-headline__line">{{summary.headlineLine1}}</text><text wx:if="{{summary.headlineLine2}}" class="records-headline__line">{{summary.headlineLine2}}</text></view>
-    <view class="records-summary"><text wx:if="{{care}}" class="records-summary__count">可查看 {{loadedRecordCount}} 条四步护理记录</text><text wx:elif="{{usageReady && usageTotal > 0 && !dailyTotalCount}}" class="records-summary__count">产品使用已记录 {{usageTotal}} 天</text><text wx:elif="{{dailyReady && !dailyError}}" class="records-summary__count">四步护理已记录 {{dailyTotalCount}} 天</text><text wx:elif="{{dailyLoading}}" class="records-summary__status">正在加载日常记录…</text><text wx:elif="{{dailyError}}" class="records-summary__status">日常记录暂未更新</text></view>
-    <view class="records-subline">{{care ? summary.completed + ' / 4 个当前周期阶段护理，' + summary.phaseLabel : usageTotal > 0 ? '用过的产品与感受，都在这里' : dailyRecords.length ? '日常护理的步骤与感受已保存' : '完成护理并保存后，可在这里查看记录'}}<text wx:if="{{lastSyncedLabel}}" class="records-sync-label"> · {{refreshing ? '正在更新' : lastSyncedLabel}}</text></view>
-    </block>
-    <view wx:elif="{{accessRequired}}" class="records-hero-status"><strong class="records-hero-status__title">登录后查看护理档案</strong></view>
-    <view wx:elif="{{loading}}" class="records-hero-status" aria-live="polite"><strong class="records-hero-status__title">正在加载护理档案…</strong></view>
-    <view wx:else class="records-hero-status" aria-live="assertive"><strong class="records-hero-status__title">护理档案暂不可用</strong></view>
-  </view>
-
+<view class="records-page records-page--usage" style="{{chromeStyle}}">
+  <view class="records-surface {{recordDetailMounted || usageDetail ? 'records-surface--inert' : ''}}" aria-hidden="{{recordDetailMounted || usageDetail}}">
+    <view class="records-hero">
+      <view class="records-nav"><view class="records-nav__row"><button class="records-back {{working || confirmingCycleAction || confirmingDailyDelete ? 'control--disabled' : ''}}" bindtap="backRecords" disabled="{{working || confirmingCycleAction || confirmingDailyDelete}}" aria-label="返回"><image src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="records-nav__title">护理记录</text><text class="usage-private">仅自己可见</text></view></view>
+      <view wx:if="{{!accessRequired}}" class="usage-heading"><text class="usage-heading__line">护理有迹，</text><text class="usage-heading__line">感受有回应。</text><view class="usage-heading__copy">用过的产品，和当时的自己。</view></view>
+      <view wx:if="{{usageReady && !accessRequired}}" class="usage-stats"><view class="usage-stat"><text class="usage-stat__number">{{usageTotal}}</text><text>天已记录</text></view><view wx:if="{{usageStreak !== null}}" class="usage-stat"><text class="usage-stat__number">{{usageStreak}}</text><text>天连续护理</text></view></view>
+    </view>
+    <view class="records-content">
+      <view wx:if="{{!accessRequired}}" class="usage-primary">
+        <view wx:if="{{usageError}}" class="state state--error" aria-live="assertive"><text>{{usageError}}</text><button class="text-button" bindtap="retryUsageRecords">重新加载</button></view>
+        <view wx:if="{{usageLoading && !usageReady}}" class="state" aria-live="polite">正在读取护理记录…</view>
+        <view wx:if="{{usageServerDay}}" class="usage-week">
+          <view class="usage-week__head"><text>最近 7 天</text><text wx:if="{{usageDays.length}}" class="usage-week__range">{{usageDays[0].day}}—{{usageServerDay}}</text></view>
+          <view wx:if="{{usageCalendarLoading}}" class="usage-status" aria-live="polite">正在读取日期记录…</view>
+          <view wx:elif="{{usageCalendarError}}" class="usage-status" aria-live="assertive"><text>{{usageCalendarError}}</text><button class="text-button" bindtap="retryUsageRecords">重新加载日期</button></view>
+          <view wx:else class="usage-week__days">
+            <button wx:for="{{usageDays}}" wx:key="day" class="usage-day {{item.selected ? 'is-selected' : ''}} {{usageDateLoading || usageLoading ? 'control--disabled' : ''}}" data-day="{{item.day}}" bindtap="selectUsageDay" disabled="{{usageDateLoading || usageLoading}}" aria-label="{{item.day}}，{{item.recorded ? '已记录' : '未记录'}}{{item.isToday ? '，今天' : ''}}{{item.selected ? '，已选择' : ''}}"><text class="usage-day__week">{{item.label}}</text><text class="usage-day__number">{{item.number}}</text><image wx:if="{{item.recorded}}" src="{{item.selected ? '/assets/icons/check-white.svg' : '/assets/icons/check-plum.svg'}}" mode="aspectFit" aria-hidden="true"/><view wx:else class="usage-day__empty"></view></button>
+          </view>
+        </view>
+        <block wx:if="{{usageReady && usageServerDay}}">
+          <view class="usage-date-heading"><strong>{{usageSelectedDay === usageServerDay ? '今天' : usageSelectedLabel}}</strong><text class="usage-date-heading__date">{{usageSelectedDay}}</text></view>
+          <view wx:if="{{usageDateLoading}}" class="usage-status" aria-live="polite">正在读取这一天的记录…</view>
+          <view wx:elif="{{usageDateError}}" class="usage-status" aria-live="assertive"><text>{{usageDateError}}</text><button class="text-button" bindtap="retryUsageDate">重新读取这一天</button></view>
+          <block wx:else>
+            <button wx:for="{{usageVisibleRows}}" wx:key="id" class="usage-entry" data-id="{{item.id}}" bindtap="openUsageRecord" aria-label="查看 {{item.dateLabel}} 产品与感受详情">
+              <view class="usage-entry__head"><text>{{item.updatedTime}} · 已保存</text><text class="usage-entry__reward">{{item.rewardLabel}}</text></view>
+              <view class="usage-entry__title"><strong>{{item.productLabel}}</strong><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></view>
+              <text wx:if="{{item.note}}" class="usage-entry__note">{{item.note}}</text><text wx:else class="usage-entry__note">这一天没有填写护理感受。</text>
+              <text class="usage-entry__private">仅自己可见{{item.canAdjust ? ' · 当日可调整' : ''}}</text>
+            </button>
+            <view wx:if="{{!usageVisibleRows.length && !usageError}}" class="usage-empty"><text class="usage-empty__copy">这一天还没有护理记录</text><button wx:if="{{usageSelectedDay === usageServerDay}}" class="text-button" bindtap="goHome">前往护理</button></view>
+          </block>
+          <picker mode="date" value="{{usageSelectedDay}}" end="{{usageServerDay}}" bindchange="pickUsageDate" disabled="{{usageDateLoading || usageLoading || working}}"><view class="usage-history-link"><view><strong>查看更多日期</strong><text>按日期回看产品记录</text></view><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></view></picker>
+        </block>
+      </view>
+      <button wx:if="{{!accessRequired}}" class="usage-history-link usage-legacy-toggle {{working || recordDetailMounted || usageDateLoading ? 'control--disabled' : ''}}" bindtap="toggleLegacy" aria-expanded="{{legacyOpen}}" disabled="{{working || recordDetailMounted || usageDateLoading}}"><view><strong>周期与四步历史</strong><text>按真实阶段事实单独查看</text></view><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+      <view wx:if="{{legacyOpen || accessRequired}}" class="usage-legacy records-page--calendar">
+        <view wx:if="{{dailyReady && !accessRequired}}" class="records-summary"><text class="records-summary__count">四步护理已记录 {{dailyTotalCount}} 天</text></view>
   <view wx:if="{{!accessRequired && dailyReady && calendarDays.length}}" class="review-week" aria-label="本周四步护理记录">
     <view class="review-week__head"><text class="review-week__title">本周四步护理</text><text class="review-week__range">{{calendarWeekLabel}}</text></view>
     <view class="review-week__days">
@@ -23,18 +47,6 @@
     </view>
   </view>
 
-  <view class="records-content">
-    <view wx:if="{{!accessRequired}}" class="glass usage-history">
-      <view class="usage-history__head"><strong>每日产品记录</strong><text wx:if="{{usageReady}}" class="usage-history__count">{{usageTotal}} 天</text></view>
-      <view wx:if="{{usageLoading && !usageReady}}" class="usage-history__status" aria-live="polite">正在读取产品记录…</view>
-      <view wx:if="{{usageError}}" class="usage-history__status" aria-live="assertive"><text>{{usageError}}</text><button class="text-button {{usageLoading ? 'control--disabled' : ''}}" bindtap="retryUsageRecords" disabled="{{usageLoading}}">重新加载</button></view>
-      <text wx:if="{{usageReady && !usageRecords.length && !usageError}}" class="usage-history__status">还没有产品记录，在护理页记录今天用过的产品。</text>
-      <view wx:for="{{usageRecords}}" wx:key="id" class="usage-history__row">
-        <text class="usage-history__date">{{item.careDay}}</text><text class="usage-history__products">{{item.productLabel}}</text>
-        <text wx:if="{{item.note}}" class="usage-history__note">{{item.note}}</text>
-      </view>
-      <button wx:if="{{usageBefore}}" class="text-button usage-history__more {{usageLoading ? 'control--disabled' : ''}}" bindtap="moreUsageRecords" disabled="{{usageLoading}}" loading="{{usageLoading}}">加载更多产品记录</button>
-    </view>
     <view wx:if="{{operationStatus}}" class="records-operation-status" aria-live="polite" aria-atomic="true">{{operationStatus}}</view>
     <view wx:if="{{accessRequired}}" class="glass records-access" aria-live="polite"><image class="records-access__icon" src="/assets/icons/user-circle-plum.svg" mode="aspectFit"/><strong class="records-access__title">你的护理记录，只为你保存</strong><text class="records-access__copy">登录后，可查看属于你的护理周期和记录。</text><button class="primary records-access__action" bindtap="authenticate" aria-label="登录并返回护理档案">登录并查看档案</button></view>
     <view wx:if="{{error}}" id="records-error-summary" class="state state--error records-error" aria-live="assertive" aria-atomic="true"><text class="state-error__copy">{{error}}</text><button class="text-button state-error__action" bindtap="retryLoad" aria-label="重新加载护理档案">重新加载</button></view>
@@ -93,9 +105,20 @@
     </view>
 
     <view wx:if="{{authorityAvailable && care && care.phase !== 'planned'}}" class="records-actions {{care.phase === 'completed' || care.phase === 'terminated' ? 'records-actions--two' : ''}}"><button class="records-home {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goHome" disabled="{{working || confirmingCycleAction}}"><image class="records-home__icon" src="/assets/icons/drop-active.svg" mode="aspectFit"/>查看护理首页</button><button wx:if="{{care.phase === 'completed' || care.phase === 'terminated'}}" class="records-home records-shop {{working || confirmingCycleAction ? 'control--disabled' : ''}}" bindtap="goShop" disabled="{{working || confirmingCycleAction}}"><image class="records-home__icon" src="/assets/icons/storefront-plum.svg" mode="aspectFit"/>浏览护理商品</button></view>
-  </view>
+      </view>
+    </view>
   </view>
 
+  <view wx:if="{{usageDetail}}" class="record-detail record-detail--visible usage-detail" catchtap="closeUsageDetail" aria-role="dialog" aria-modal="true" aria-label="护理记录详情">
+    <view class="record-detail__sheet" catchtap="stopPropagation">
+      <view class="record-detail__handle"></view><view class="record-detail__head"><view><strong class="record-detail__title">记录详情</strong></view><button class="record-detail__close sheet-dismiss" bindtap="closeUsageDetail">关闭</button></view>
+      <view class="usage-detail__date">{{usageDetail.dateLabel}}</view><text class="usage-detail__meta">{{usageDetail.careDay}} · {{usageDetail.savedTime}} 保存{{usageDetail.updatedAt !== usageDetail.completedAt ? ' · ' + usageDetail.updatedTime + ' 更新' : ''}} · 仅自己可见</text>
+      <view class="usage-detail__section"><text class="usage-detail__label">使用产品</text><view wx:for="{{usageDetail.productNames}}" wx:key="*this" class="usage-detail__product"><image src="/assets/icons/drop-active.svg" mode="aspectFit"/><text>{{item}}</text></view></view>
+      <view class="usage-detail__section"><text class="usage-detail__label">护理感受</text><text class="usage-detail__note">{{usageDetail.note || '这一天没有填写护理感受。'}}</text></view>
+      <view class="usage-detail__section"><view class="usage-detail__reward-head"><strong>当日积分</strong><text class="usage-detail__reward-total">{{usageDetail.rewards ? '+' + usageDetail.rewards.pointsGranted : '待确认'}}</text></view><view wx:for="{{usageDetail.rewardItems}}" wx:key="grantId" class="usage-detail__reward-row"><text>{{item.label}}</text><text class="usage-detail__reward-points">+{{item.points}}{{item.reversed ? '（已撤回 ' + item.reversed + '）' : ''}}</text></view><text class="usage-detail__meta">{{usageDetail.rewardLabel}}</text><text wx:if="{{usageDetail.rewards && usageDetail.rewards.pointsGranted}}" class="usage-detail__meta">以上为该日已发奖励，同日调整不重复领取。</text></view>
+      <view class="usage-detail__actions"><button wx:if="{{usageDetail.canAdjust}}" class="secondary" bindtap="adjustUsageToday">返回护理页调整</button><button class="text-button" bindtap="openUsagePoints">查看全部积分明细</button></view>
+    </view>
+  </view>
   <view wx:if="{{recordDetailMounted && selectedRecord}}" class="record-detail {{recordDetailVisible ? 'record-detail--visible' : ''}} {{recordDetailClosing ? 'record-detail--closing' : ''}} {{reducedMotion ? 'record-detail--reduced' : ''}}" catchtap="closeRecordDetail" aria-role="dialog" aria-modal="true" aria-label="{{selectedRecord.milestone}} 护理记录详情">
     <view class="record-detail__sheet" catchtap="stopPropagation">
       <view class="record-detail__handle"></view>
