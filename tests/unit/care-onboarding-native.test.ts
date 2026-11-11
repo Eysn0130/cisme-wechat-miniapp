@@ -62,17 +62,17 @@ describe('native onboarding interaction contract',()=>{
     definition.pageLifetimes.hide.call(c);m.token='owner-b';m.context++;profile=null;definition.pageLifetimes.show.call(c);await flush();
     expect(c.data.options.filter((v:any)=>v.selected)).toHaveLength(0);
   });
-  it('skips optional personal questions, separately declines sensitive collection, and completes all basic setup without sensitive answers',async()=>{
+  it('records explicit privacy choices, separately declines sensitive collection, and completes all basic setup without sensitive answers',async()=>{
     const c=await mount();c.choose({currentTarget:{dataset:{value:'doctor'}}});await c.next();
-    c.skip();await flush();expect(c.data.index).toBe(2);c.skip();await flush();expect(c.data.consentMode).toBe(true);
+    c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();expect(c.data.index).toBe(2);c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();expect(c.data.consentMode).toBe(true);
     await c.decideSensitive('declined');expect(c.data.index).toBe(4);expect(c.data.answers.concerns.status).toBe('not_authorized');
-    c.skip();await flush();expect(c.data.index).toBe(7);c.skip();await flush();expect(c.data.index).toBe(8);
-    expect(rendered.dom.innerHTML).toContain('care-onboarding-options--list');c.skip();await flush();
+    c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();expect(c.data.index).toBe(7);c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();expect(c.data.index).toBe(8);
+    expect(rendered.dom.innerHTML).toContain('care-onboarding-options--list');c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();
     expect(c.data.index).toBe(9);expect(rendered.querySelector('.care-onboarding-note')).toBeTruthy();c.choose({currentTarget:{dataset:{value:'net_xie'}}});await c.next();
-    expect(c.triggerEvent).toHaveBeenCalledWith('complete');expect(profile.answers.gender.status).toBe('skipped');expect(profile.answers.dandruff.status).toBe('not_authorized');
+    expect(c.triggerEvent).toHaveBeenCalledWith('complete');expect(profile.answers.gender.status).toBe('undisclosed');expect(profile.answers.dandruff.status).toBe('not_authorized');
   });
   it('resets unavailable sensitive fields after granting, so no prior skip is misrepresented as an answer',async()=>{
-    const c=await mount();c.choose({currentTarget:{dataset:{value:'friend'}}});await c.next();c.skip();await flush();c.skip();await flush();
+    const c=await mount();c.choose({currentTarget:{dataset:{value:'friend'}}});await c.next();c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();
     await c.decideSensitive('granted');expect(c.data.index).toBe(3);expect(c.data.answers.concerns.status).toBe('unanswered');expect(c.data.canAdvance).toBe(false);
   });
   it('retries an unknown save using the same frozen request and ignores late responses after identity changes',async()=>{
@@ -80,7 +80,7 @@ describe('native onboarding interaction contract',()=>{
     m.save.mockRejectedValueOnce({status:503});await c.next();expect(c.data.unknown).toBe(true);
     await c.retrySave();expect(m.save.mock.calls[1]?.[1]).toBe(m.save.mock.calls[0]?.[1]);expect(m.save.mock.calls[1]?.[0]).toEqual(m.save.mock.calls[0]?.[0]);
     let resolve!:(v:any)=>void;m.save.mockImplementationOnce(()=>new Promise(yes=>{resolve=yes;}));
-    c.skip();await flush();definition.pageLifetimes.hide.call(c);m.token='owner-b';m.context++;profile=null;definition.pageLifetimes.show.call(c);await flush();
+    c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();definition.pageLifetimes.hide.call(c);m.token='owner-b';m.context++;profile=null;definition.pageLifetimes.show.call(c);await flush();
     const before=structuredClone(c.data);resolve(await normal(m.save.mock.calls[2]![0],m.save.mock.calls[2]![1],false));await flush();
     expect(c.data.answers).toEqual(before.answers);expect(c.triggerEvent).not.toHaveBeenCalledWith('complete');
   });
@@ -104,10 +104,18 @@ describe('native onboarding interaction contract',()=>{
 it('keeps the registration birthday optional, supports leap day and persists it in the same draft',async()=>{
  const c=await mount();c.choose({currentTarget:{dataset:{value:'doctor'}}});await c.next();
  expect(rendered.dom.textContent).toContain('生日');c.chooseBirthday({detail:{value:[1,28]}});expect(c.data.birthday).toBe('02-29');
- c.skip();await flush();expect(m.save.mock.calls.at(-1)?.[0]).toMatchObject({birthdayMonthDay:'02-29',answers:{age_group:{status:'skipped',values:[]}}});
+ c.choose({currentTarget:{dataset:{value:'undisclosed'}}});void c.next();await flush();expect(m.save.mock.calls.at(-1)?.[0]).toMatchObject({birthdayMonthDay:'02-29',answers:{age_group:{status:'undisclosed',values:[]}}});
  expect(c.data.birthday).toBe('02-29');c.previous();expect(c.data.birthday).toBe('02-29');
 });
 it('clamps the day picker when changing month and clears only the optional birthday',async()=>{
  const c=await mount();c.chooseBirthday({detail:{value:[0,30]}});c.birthdayColumn({detail:{column:0,value:1}});expect(c.data.birthdayRanges[1]).toHaveLength(29);expect(c.data.birthdayIndex).toEqual([1,28]);
  c.clearBirthday();expect(c.data.birthday).toBe('');expect(c.data.answers.source.status).toBe('unanswered');
+});
+
+it('has no skip action and never treats an old skipped age as a new explicit answer',async()=>{
+ const c=await mount();c.choose({currentTarget:{dataset:{value:'doctor'}}});await c.next();
+ expect(c.skip).toBeUndefined();expect(rendered.querySelector('.care-onboarding-footer-skip')).toBeFalsy();expect(rendered.dom.textContent).not.toContain('可跳过');
+ const calls=m.save.mock.calls.length;await c.next();expect(m.save).toHaveBeenCalledTimes(calls);expect(c.data.index).toBe(1);
+ c.data.answers.age_group={status:'skipped',values:[]};c.project();expect(c.data.canAdvance).toBe(false);
+ c.choose({currentTarget:{dataset:{value:'undisclosed'}}});await c.next();expect(c.data.index).toBe(2);expect(profile.answers.age_group.status).toBe('undisclosed');
 });

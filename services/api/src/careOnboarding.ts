@@ -38,10 +38,10 @@ export const careQuestions:CareQuestion[]=[
     ['often','经常'],['sometimes','偶尔'],['none','基本没有'],['unsure','不确定'],['undisclosed','不愿回答']
   ],true,false,true),
   question('purchase_factors','你选洗发水最看重什么？',[
-    ['feel','洗后感受'],['needs','对应护理需求'],['brand','品牌'],['ingredients','成分'],['fragrance','香味'],['price','价格与优惠'],['recommendation','朋友或博主推荐'],['other','其他'],['unsure','不确定']
-  ],true,true,false,['unsure']),
+    ['feel','洗后感受'],['needs','对应护理需求'],['brand','品牌'],['ingredients','成分'],['fragrance','香味'],['price','价格与优惠'],['recommendation','朋友或博主推荐'],['other','其他'],['unsure','不确定'],['undisclosed','不愿回答']
+  ],true,true,false,['unsure','undisclosed']),
   question('buying_habit','哪种更接近你选洗发水的习惯？',[
-    ['repurchase','固定回购常用款'],['needs_switch','按当下需求换产品'],['reviews','先看测评或口碑'],['friends','听熟人推荐'],['promotion','优惠合适会尝新'],['trial_first','先试小样再买正装'],['flexible','没有固定习惯']]),
+    ['repurchase','固定回购常用款'],['needs_switch','按当下需求换产品'],['reviews','先看测评或口碑'],['friends','听熟人推荐'],['promotion','优惠合适会尝新'],['trial_first','先试小样再买正装'],['flexible','没有固定习惯'],['undisclosed','不愿回答']]),
   question('preference','你更想体验哪一套？',[
     ['net_run','净润洗护套'],['net_xie','净屑洗护套'],['recommend','请帮我推荐']
   ],false)
@@ -81,7 +81,7 @@ export function normalizeCareAnswers(value:unknown,health:CareHealthChoice,compl
     }
     if(q.sensitive&&health==='granted'&&out[q.id]!.status==='not_authorized')out[q.id]={status:'unanswered',values:[]};
     if(complete&&(out[q.id]!.status==='unanswered'||!q.optional&&out[q.id]!.status!=='answered'))
-      invalid(`请完成第${careQuestions.indexOf(q)+1}题，个人情况可以选择跳过`);
+      invalid(`请完成第${careQuestions.indexOf(q)+1}题，个人情况可以选择不愿透露或不愿回答`);
   }
   return out;
 }
