@@ -184,3 +184,12 @@ describe('birthday belongs to registration and the canonical private account pro
     const other=await actor();expect((await app.inject({url:'/v1/me/profile',headers:headers(other)})).json().birthday_month_day).toBeNull();
   });
 });
+
+describe('explicit private choices without a frontend skip action',()=>{
+ it('allows refusing non-sensitive shopping preferences while completing all basic setup',async()=>{
+  const a=await actor(),answers=completedAnswers();for(const id of ['age_group','gender','dye_perm','purchase_factors','buying_habit'])answers[id]={status:'undisclosed',values:[]};
+  const result=await save(a,{questionnaireVersion:careQuestionnaireVersion,expectedVersion:0,currentQuestion:10,answers,consentChoice:'declined',consentVersion:careConsentVersion},randomUUID(),true);
+  expect(result.statusCode,result.body).toBe(200);expect(result.json().profile.answers.purchase_factors).toEqual({status:'undisclosed',values:[]});expect(result.json().profile.answers.buying_habit).toEqual({status:'undisclosed',values:[]});
+  expect((await get(a)).json().profile.required).toBe(false);
+ });
+});

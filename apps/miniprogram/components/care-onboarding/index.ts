@@ -63,7 +63,7 @@ Component({
       const a=this.data.answers[q.id],chosen=a?.status==='answered'?a.values.length:a?.status==='undisclosed'?1:0;
       this.setData({question:q,questionFrames:[q],questionNumber:this.data.index+1,consentMode:q.sensitive&&this.data.healthChoice==='unasked',
         options:q.options.map(option=>({...option,selected:selectedCareOption(a,option.value)})),
-        canAdvance:chosen>0||a?.status==='skipped'||a?.status==='not_authorized',
+        canAdvance:chosen>0||a?.status==='not_authorized',
         selectionLabel:q.multiple?`可多选，最多 ${q.max} 项${chosen?` · 已选 ${chosen} 项`:''}`:'单选',scrollTop:0});
     },
     choose(event:WechatMiniprogram.TouchEvent){
@@ -85,10 +85,6 @@ Component({
       if(!current(this)||this.data.busy||this.data.unknown||this.data.index===0)return;
       this.setData({index:nextCareQuestion(this.data.questions,this.data.index,-1,this.data.healthChoice),error:''});this.project();
     },
-    skip(){
-      const q=this.data.question;if(!q?.optional||this.data.busy||this.data.unknown||this.data.consentMode)return;
-      this.setData({answers:{...this.data.answers,[q.id]:{status:'skipped',values:[]}},error:''});this.project();void this.next();
-    },
     acceptSensitive(){void this.decideSensitive('granted');},
     declineSensitive(){void this.decideSensitive('declined');},
     async decideSensitive(choice:'granted'|'declined'){
@@ -102,7 +98,7 @@ Component({
     async next(){
       if(!current(this)||this.data.busy)return;
       if(this.data.unknown){await this.retrySave();return;}
-      if(!this.data.canAdvance){this.setData({error:'请选择本题答案；个人情况可选择跳过。'});return;}
+      if(!this.data.canAdvance){this.setData({error:'请选择本题答案；个人情况可选择不愿透露或不愿回答。'});return;}
       const complete=this.data.index===this.data.questions.length-1;
       const index=complete?this.data.index:nextCareQuestion(this.data.questions,this.data.index,1,this.data.healthChoice);
       await this.submit({questionnaireVersion:this.data.questionnaireVersion,expectedVersion:this.data.profileVersion,currentQuestion:index+1,answers:this.data.answers},complete,false);

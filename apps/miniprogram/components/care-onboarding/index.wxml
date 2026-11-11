@@ -17,7 +17,7 @@
             <view wx:for="{{questionFrames}}" wx:key="id" wx:for-item="frame" wx:for-index="frameIndex" class="care-onboarding-form">
             <view class="care-onboarding-question" aria-live="polite">{{question.title}}</view>
             <text wx:if="{{question.id === 'source'}}" class="care-onboarding-intro">了解你的护理需求，帮助选择试用小样。</text>
-            <text class="care-onboarding-selection">{{selectionLabel}}{{question.optional ? ' · 可跳过' : ''}}</text>
+            <text class="care-onboarding-selection">{{selectionLabel}}</text>
             <view class="care-onboarding-options {{question.id === 'buying_habit' ? 'care-onboarding-options--list' : ''}}">
               <button wx:for="{{options}}" wx:key="value" class="care-onboarding-option {{item.selected ? 'is-selected' : ''}}" hover-class="care-onboarding-pressed" bindtap="choose" data-value="{{item.value}}" disabled="{{busy || unknown}}" aria-role="{{question.multiple ? 'checkbox' : 'radio'}}" aria-checked="{{item.selected}}"><text>{{item.label}}</text><image wx:if="{{item.selected}}" src="/assets/icons/check-white.svg" mode="aspectFit" aria-hidden="true"/></button>
             </view>
@@ -36,7 +36,6 @@
     </scroll-view>
     <view wx:if="{{ready && (!consentMode || unknown)}}" class="care-onboarding-footer">
       <button wx:if="{{questionNumber > 1 && !unknown}}" class="care-onboarding-previous" bindtap="previous" disabled="{{busy}}">上一题</button>
-      <button wx:if="{{question.optional && !unknown}}" class="care-onboarding-skip care-onboarding-footer-skip" bindtap="skip" disabled="{{busy}}" aria-label="{{question.id === 'age_group' ? '跳过年龄段，保留已填生日' : '跳过本题'}}">跳过</button>
       <button class="care-onboarding-main {{busy || (!canAdvance && !unknown) ? 'care-onboarding-main--disabled' : ''}}" hover-class="care-onboarding-pressed" bindtap="next" loading="{{busy}}" disabled="{{busy || (!canAdvance && !unknown)}}">{{busy ? '正在保存…' : unknown ? '重试保存' : questionNumber === 10 ? '完成建档' : '下一题'}}</button>
     </view>
   </view>

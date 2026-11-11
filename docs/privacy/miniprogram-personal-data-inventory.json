@@ -1393,6 +1393,7 @@
     "entryPoints": "Care primary sheet; birthday initial basic registration and later Settings personal profile. Points wallet has no daily/birthday/onboarding editors.",
     "logging": "No raw note or birthday in audit; keyed idempotency digests, req/body redaction. No external provider call or new SDK.",
     "evidence": "docs/evidence/care-registration-flow-20261110/README.md",
-    "physicalDeviceAccepted": false
+    "physicalDeviceAccepted": false,
+    "explicitChoices": "Owner removed the frontend skip action. Age/gender/dye and non-sensitive shopping questions allow explicit undisclosed answers; sensitive consent may still be declined. Existing skipped facts remain readable; no answer is inferred or backfilled."
   }
 }
