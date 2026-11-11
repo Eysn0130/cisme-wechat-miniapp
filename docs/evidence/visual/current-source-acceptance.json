@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "93a881acfd85642bebfd06ea06bd0bcdcd3a564f4fa72a6033c249b477a581a7",
+  "packageSourceSha256": "7c18867fe6f592e4c10226712c3c954b282f4f0be37caecc2916d8fd3853849e",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -273,6 +273,6 @@
     }
   ],
   "note": "Current member-card/care-entry package measured. Scoped native rendering and tap evidence lives in docs/evidence/member-card-care-entry-20261110. All 41-route and physical-device matrices remain incomplete; historical images retain original hashes.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-member-card-before-50265eacfc6a.json",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-member-card-before-93a881acfd85.json",
   "pendingSourceRebind": false
 }

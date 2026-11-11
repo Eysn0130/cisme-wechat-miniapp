@@ -61,7 +61,7 @@
   "pointsDestination": {
     "success": true,
     "currentPage": {
-      "pageId": 191,
+      "pageId": 227,
       "path": "pages/points/index",
       "query": {}
     }
@@ -78,7 +78,7 @@
   "recordsDestination": {
     "success": true,
     "currentPage": {
-      "pageId": 192,
+      "pageId": 228,
       "path": "pages/records/index",
       "query": {}
     }
@@ -87,5 +87,6 @@
     "success": true,
     "width": 56,
     "height": 44
-  }
+  },
+  "nativeSourceSha256": "7c18867fe6f592e4c10226712c3c954b282f4f0be37caecc2916d8fd3853849e"
 }

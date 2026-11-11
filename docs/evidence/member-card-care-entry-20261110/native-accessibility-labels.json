@@ -1,0 +1,20 @@
+{
+  "scope": "Native bound accessibility labels; not a physical screen-reader test.",
+  "start": {
+    "originalRoute": "pages/home/index",
+    "originalHadSession": true,
+    "allRequestsIntercepted": true,
+    "mutationsBlocked": true
+  },
+  "ordinary": "CISME 会员会员卡，可用积分 850 分，查看积分明细与兑换",
+  "commercial": "商业会员会员卡，可用积分 850 分，查看积分明细与兑换",
+  "unconfirmed": "身份待更新会员卡，可用积分 850 分，查看积分明细与兑换",
+  "finish": {
+    "active": false,
+    "originalRoute": "pages/home/index",
+    "requestCount": 10,
+    "writeAttempts": 0,
+    "actualServerWrites": 0
+  },
+  "nativeSourceSha256": "7c18867fe6f592e4c10226712c3c954b282f4f0be37caecc2916d8fd3853849e"
+}
