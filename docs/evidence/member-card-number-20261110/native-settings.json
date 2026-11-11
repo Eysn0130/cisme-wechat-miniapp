@@ -1,0 +1,26 @@
+{
+  "nativeSourceSha256": "e06473639f073f34f25a72e1b3cc6365802c79897de8bdde0b41a4501ebb02fb",
+  "start": {
+    "originalRoute": "pages/home/index",
+    "originalHadSession": true,
+    "allRequestsIntercepted": true,
+    "mutationsBlocked": true
+  },
+  "compile": {
+    "success": true,
+    "codeLength": 40085
+  },
+  "state": {
+    "memberCardNumber": "00001",
+    "profileReady": true,
+    "profileError": ""
+  },
+  "about": "会员编号\nNo. 00001\n账号 ID\n11111111-1111-4111-8111-111111111111\n复制\n小程序版本\n开发版\n联系客服或查询数据权利申请时可提供账号 ID，请勿公开发布。订单支付与配送状态请以对应订单为准。",
+  "finish": {
+    "active": false,
+    "originalRoute": "pages/home/index",
+    "requestCount": 3,
+    "writeAttempts": 0,
+    "actualServerWrites": 0
+  }
+}

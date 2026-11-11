@@ -1,3 +1,4 @@
+import {memberCardNumberProjection} from './memberCard.js';
 import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { transaction } from './db.js';
@@ -14,11 +15,11 @@ export class MemberProfile {
   constructor(private pool: pg.Pool,private environment:AppEnvironment='test') {}
   async get(memberId: string | undefined) {
     if (!memberId) throw new DomainError('AUTH_REQUIRED', '请先登录会员账号', 401);
-    const row = await this.pool.query(`SELECT m.id, m.display_name, p.wechat_handle, p.handle_source,
+    const row = await this.pool.query(`SELECT m.id, ${memberCardNumberProjection} AS card_number, m.display_name, p.wechat_handle, p.handle_source,
       p.avatar_data_url, p.avatar_revision, COALESCE(p.profile_revision,0) AS profile_revision,
       p.completed_at, COALESCE(p.community_visible,false) AS community_visible,
       COALESCE(p.public_status,'private') AS public_status, p.public_review_note
-      FROM member m LEFT JOIN member_profile p ON p.member_id=m.id WHERE m.id=$1 AND m.status='active'`, [memberId]);
+      FROM member m LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id WHERE m.id=$1 AND m.status='active'`, [memberId]);
     if (!row.rows[0]) throw new DomainError('MEMBER_NOT_FOUND', '会员不存在或已停用', 404);
     return row.rows[0];
   }

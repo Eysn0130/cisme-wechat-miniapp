@@ -1,3 +1,4 @@
+import {memberCardPortableQuery} from './memberCard.js';
 /** Fixed owner projections shared with the bounded v2 portable export. Keep these
  * query fields aligned with privacyPortableData.ts until v1 is retired. */
 import {pointsPortableSpecs} from './pointsPrivacy.js';
@@ -9,6 +10,7 @@ export const wechatReceiptPortableQuery=`SELECT w.order_id,w.shipment_id,w.platf
 
 export const portableQuerySpecs = [
   ...pointsPortableSpecs,
+  {section:'account',collection:'membershipCard',single:true,sql:memberCardPortableQuery},
   {section:'account',collection:'careProfile',single:true,sql:careProfilePortableQuery},
   {section:'account',collection:'careProfileChoices',single:false,sql:`SELECT choice,purpose,text_version,text_snapshot,decided_at
     FROM member_care_consent_event WHERE member_id=$1 ORDER BY decided_at,id`},

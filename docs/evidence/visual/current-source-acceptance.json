@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "5fc02368425349fd263fcfaae7c85274045efdf39f05b7baf2898c0099b28ef3",
+  "packageSourceSha256": "e06473639f073f34f25a72e1b3cc6365802c79897de8bdde0b41a4501ebb02fb",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Member-card status copy removed per latest user request. Current native evidence is scoped in docs/evidence/member-card-polish-20261110; older card/copy evidence remains archived with original hashes. Whole-package route-state and physical-device matrices remain incomplete.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-member-card-copy-before-f2056f0dfcaf.json",
+  "note": "Final selected 185px member card and private membership number native evidence scoped in docs/evidence/member-card-number-20261110. Prior iterations retain original source hashes. Whole-package route-state and physical-device matrices remain incomplete.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-before-member-number-5fc023684253.json",
   "pendingSourceRebind": false
 }
