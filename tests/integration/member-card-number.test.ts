@@ -83,6 +83,6 @@ it('backfills existing accounts in a deterministic order without changing member
     const before=(await c.query('SELECT * FROM member ORDER BY created_at,id')).rows;
     await c.query(sql);
     expect((await c.query('SELECT * FROM member ORDER BY created_at,id')).rows).toEqual(before);
-    expect((await c.query('SELECT member_id,number::text FROM member_card_number ORDER BY number')).rows).toEqual(before.map((r,i)=>({member_id:r.id,number:String(i+1)})));
+    expect((await c.query('SELECT member_id,number::text FROM member_card_number ORDER BY member_card_number.number')).rows).toEqual(before.map((r,i)=>({member_id:r.id,number:String(i+1)})));
   }finally{await c.query('ROLLBACK');c.release();}
 });
