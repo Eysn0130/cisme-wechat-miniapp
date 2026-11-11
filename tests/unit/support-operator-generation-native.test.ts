@@ -193,4 +193,12 @@ describe('operator replies bind an explicit question',()=>{
   await p.suggest();expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:expect.stringContaining('/suggested-reply'),data:{replyToMessageId:'synthetic-3',expectedHumanRequestGeneration:1,contextVersion:0}}));
   expect(p.data.input).toBe('draft for selected question');expect(p.data.replyTarget.id).toBe('synthetic-3');
  });
+ it('shows AI drafting progress, keeps the selected question and never auto-sends the draft',async()=>{
+  await loadHuman();p.data.aiProviderAvailable=true;await select('synthetic-3');const response=deferred();
+  m.request.mockImplementation(input=>input.path.endsWith('/suggested-reply')?response.promise:Promise.resolve({}));
+  const writing=p.suggest();expect(p.data.aiDraftBusy).toBe(true);expect(p.data.busy).toBe(true);
+  response.resolve({text:'请先告诉我今天实际使用的产品。'});await writing;
+  expect(p.data.aiDraftBusy).toBe(false);expect(p.data.busy).toBe(false);expect(p.data.input).toBe('请先告诉我今天实际使用的产品。');
+  expect(p.data.replyTarget.id).toBe('synthetic-3');expect(m.request.mock.calls.some(([input])=>input.path.endsWith('/messages'))).toBe(false);
+ });
 });

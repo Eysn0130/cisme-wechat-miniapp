@@ -196,11 +196,22 @@ export interface CommerceOrderView {
 }
 export type CommerceOrderSummaryView = Omit<CommerceOrderView, "address"> & { address: null };
 
+/** Display-only identity, scoped to this conversation. Never an authority token. */
+export interface SupportSenderIdentityView {
+  key: string;
+  displayName: string;
+  profileRevision: number;
+  operatorUpdatedAt: string | null;
+  avatarRevision: string | null;
+  avatarDataUrl?: string | null;
+  redacted?: boolean;
+}
 export interface SupportMessageView {
   id: string;
   replyToMessageId?: string | null;
   sequence: number;
   senderType: SupportSenderType;
+  sender?: SupportSenderIdentityView | undefined;
   body: string;
   contentType: SupportMessageContentType;
   attachments: Array<{ id: string; mimeType: "image/jpeg" | "image/png" | "image/webp"; sizeBytes: number; previewPath: string }>;

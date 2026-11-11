@@ -1,3 +1,6 @@
+import { SupportIdentityCache, supportOwnIdentity, type SupportSender } from '../../services/support-identity';
+import { defaultMemberAvatar } from '../../services/member-avatar';
+import { memberIdentity } from '../../services/member-identity';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { downloadPrivateMedia, historicalCommerceClosed, historicalCommerceToken, requireHistoricalCommerceAccess, requireMemberAccess, request, retainMemberSnapshot, uploadAuthorized } from "../../services/api";
@@ -25,7 +28,7 @@ import {
 type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath: string; localPath?: string };
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null;
-  replyToMessageId?: string | null;
+  replyToMessageId?: string | null; sender?: SupportSender; avatarPath?: string;
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
   deliveryState: "server_accepted" | "read" };
 type Message = PresentedSupportMessage<RawMessage>;
@@ -50,6 +53,7 @@ function memberComposerCanSend(input: string, image: SelectedImage | null, order
 }
 
 Page({
+  identityCache: null as SupportIdentityCache | null,
   linkedOrderId:"",
   snapshotToken:"",
   readRevision:commerceContextRevision(),
@@ -76,6 +80,7 @@ Page({
   uploadAbort: null as (() => void) | null,
   mediaDownloads: [] as Array<() => void>,
   data: {
+    ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar, identityMemberKey: "", identityAgentKey: "",
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, historyStartLoaded: false, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
@@ -108,6 +113,8 @@ Page({
     this.orderPickerToken = "";
     this.setData({ sending: false, handoffBusy: false, newTopicBusy: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
     if (!preserve) {
+      this.identityCache?.reset();
+      this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar });
       this.inputRevision += 1;
       this.orderSelectionRevision += 1;
       this.linkedOrderDismissed = false;
@@ -121,6 +128,7 @@ Page({
     }
     if(closedRights&&!this.linkedOrderId){this.data.visible=false;wx.redirectTo({url:'/pages/privacy-rights/index'});return;}
     if (!(closedRights?requireHistoricalCommerceAccess(`/pages/support/index?orderId=${this.linkedOrderId}`):requireMemberAccess("/pages/support/index"))) { this.data.visible = false; return; }
+    if (!closedRights) void this.loadOwnIdentity();
     const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
     if(!this.data.sendAttempt){
       const pending=takeSupportSendAttempt(sessionToken(),draftScope);
@@ -245,11 +253,41 @@ Page({
     }catch{if(current())this.setComposerState({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
   },
   clearPresenceTimer() { if (this.presenceTimer) clearTimeout(this.presenceTimer); this.presenceTimer = null; },
+  identityPage(page: any) {
+    const epoch = this.lifecycleEpoch, token = sessionToken();
+    if (!this.identityCache) this.identityCache = new SupportIdentityCache();
+    const cache = this.identityCache;
+    const changed = () => {
+      if (!this.owns(epoch, token) || this.identityCache !== cache) return;
+      this.applyThreadState(this.threadState(), { memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey) });
+    };
+    cache.absorb(page, changed);
+    for (const message of page.messages ?? []) cache.accept(message.sender, changed);
+    this.setData({ memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), identityMemberKey: cache.memberKey, identityAgentKey: cache.agentKey });
+  },
+  async loadOwnIdentity() {
+    const epoch = this.lifecycleEpoch, token = sessionToken();
+    const current = () => this.owns(epoch, token);
+    const cached = memberIdentity();
+    this.setData({ ownAvatar: cached?.avatarUrl || defaultMemberAvatar, ownDisplayName: cached?.display_name || 'CISME 会员' });
+    const identity = await supportOwnIdentity(current);
+    if (current() && identity) this.setData({ ownAvatar: identity.avatarUrl || defaultMemberAvatar, ownDisplayName: identity.display_name });
+  },
+  onAvatarError(event: WechatMiniprogram.TouchEvent) {
+    const key = event.currentTarget.dataset.key as string | undefined;
+    if (key) { this.identityCache?.fail(key); this.applyThreadState(this.threadState(), {
+      memberAvatar: this.identityCache?.avatar(this.identityCache.memberKey), agentAvatar: this.identityCache?.avatar(this.identityCache.agentKey) }); }
+    else this.setData({ ownAvatar: defaultMemberAvatar });
+  },
   threadState(): SupportThreadState<Message> { return { messages: this.data.messages, syncCursor: this.data.syncCursor, maxSeenSequence: this.data.maxSeenSequence, readCursor: this.data.readCursor }; },
   present(messages: readonly RawMessage[], conversation?: Conversation | null, presence?: Presence): Message[] {
     const activeConversation = conversation === undefined ? this.data.conversation : conversation;
     const activePresence = presence ?? this.data.presence ?? emptyPresence;
-    return presentSupportMessages(messages, { ownSenderType: "user", counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName });
+    const identityEpoch = this.lifecycleEpoch, identityToken = sessionToken(), cache = this.identityCache;
+    return presentSupportMessages(messages.map(item => {
+      this.identityCache?.accept(item.sender, () => { if (this.owns(identityEpoch, identityToken) && cache === this.identityCache) this.applyThreadState(this.threadState()); });
+      return this.identityCache?.resolve(item) ?? item;
+    }), { ownSenderType: "user", memberDisplayName: this.data.ownDisplayName, counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName });
   },
   headerPatch(conversation: Conversation | null, presence: Presence, aiAvailable?: boolean) {
     if (!conversation) return (aiAvailable ?? this.data.supportAiAvailable) && !this.data.closedRights
@@ -286,7 +324,7 @@ Page({
     if (this.data.closedRights) return "";
     const status = this.data.conversation?.status;
     const human = status === "waiting_human" || status === "human_active";
-    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (human || this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
+    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
       ? this.data.newTopicBusy ? ":topic-busy" : this.data.newTopicAttempt ? ":topic-retry" : ":topic" : "";
     if (human) return status + topic;
     if (!this.data.loading && this.data.errorAction !== "handoff" && (!status || status === "ai_active" || status === "resolved"))
@@ -351,6 +389,7 @@ Page({
       if (!this.owns(epoch, ownerToken)) return;
       if (requestConversationId !== this.data.conversation?.id && page.conversation?.id !== this.data.conversation?.id) return;
       if (this.staleTopic(page)) { this.setComposerState({ loading: false }); return; }
+      this.identityPage(page);
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
       const conversation = this.currentConversation(page.conversation);
       const boundary = this.topicBoundary(page, conversation);
@@ -393,6 +432,7 @@ Page({
       const boundary = this.topicBoundary(page, conversation);
       const contextVersion = this.topicVersion(page, conversation);
       const changedTopic = this.changedTopic(conversation, contextVersion, boundary);
+      this.identityPage(page);
       const presence = { ...emptyPresence, ...(page.presence ?? (changedTopic ? emptyPresence : this.data.presence)) } as Presence;
       const incoming = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       const knownIds = new Set(this.data.messages.map((item) => item.id));
@@ -435,6 +475,7 @@ Page({
       if (page.conversation && page.conversation.id !== conversationId) { await this.load(); return; }
       if (this.staleTopic(page)) return;
       if (this.topicVersion(page, this.currentConversation(page.conversation)) > contextVersion || this.topicBoundary(page, this.currentConversation(page.conversation)) > boundary) { await this.load(); return; }
+      this.identityPage(page);
       const older = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       this.applyThreadState(mergeHistoryPage(this.threadState(), this.present(older)), { olderCursor: page.olderCursor ?? null,
         historyStartLoaded: this.data.historyStartLoaded || page.olderCursor == null, anchor: preserve ? `support-${preserve}` : "" });

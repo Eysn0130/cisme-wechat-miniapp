@@ -1,0 +1,182 @@
+[
+  {
+    "path": "/health/ready",
+    "status": 200,
+    "body": {
+      "status": "ready"
+    }
+  },
+  {
+    "path": "/v1/capabilities",
+    "status": 200,
+    "body": {
+      "version": 1,
+      "communityPreviewEnabled": false,
+      "socialPreviewEnabled": false,
+      "transactionProfile": null,
+      "pointsRedemptionEnabled": true,
+      "ugcGoLiveGate": true,
+      "pointsRulesEnabled": true,
+      "directMediaUploadEnabled": false
+    }
+  },
+  {
+    "path": "/v1/commerce/orders/status",
+    "status": 200,
+    "body": {
+      "version": 2,
+      "orderFlowEnabled": true,
+      "paymentAvailable": true,
+      "paymentOnboarding": "READY",
+      "currency": "CNY",
+      "scope": "formal_commerce",
+      "formalMoneyOperationsAvailable": true,
+      "formalRecoveryAvailable": true,
+      "isolatedMoneyOperationsAvailable": false,
+      "isolatedTransferAvailable": false,
+      "isolatedCreditCheckoutAvailable": false
+    }
+  },
+  {
+    "path": "/v1/identity/capabilities",
+    "status": 200,
+    "body": {
+      "phoneBindingEnabled": true,
+      "avatarSelection": "chooseAvatar"
+    }
+  },
+  {
+    "path": "/v1/legal",
+    "status": 200,
+    "body": {
+      "keys": [
+        "ready",
+        "documents"
+      ]
+    }
+  },
+  {
+    "path": "/v1/catalog",
+    "status": 200,
+    "body": {
+      "version": 3,
+      "source": "cisme_catalog",
+      "checkoutEnabled": true,
+      "items": [
+        {
+          "id": "aigerong-scalp-repair-essence-100",
+          "productId": "dd1b7337-a1e5-4b4c-81e3-885177863c9a",
+          "code": "aigerong-scalp-repair-essence-100",
+          "name": "头皮紧致修护精华液",
+          "subtitle": "买正装头皮精华，赠洗护双正装",
+          "description": "头皮紧实，发根立得住。买正装头皮精华，赠洗护双正装。",
+          "image": "/assets/commerce/product2-glass-v4b.jpg",
+          "sourceKind": "admin",
+          "qualificationStatus": "eligible",
+          "shoppingPointsMultiplier": 3,
+          "publicationStatus": "published",
+          "version": 4,
+          "publishedAt": "2026-11-10T18:52:09.582Z",
+          "unpublishedAt": null,
+          "createdAt": "2026-11-10T18:52:09.548Z",
+          "updatedAt": "2026-11-10T21:25:44.460Z",
+          "currency": "CNY",
+          "price": 29800,
+          "stockOnHand": 100,
+          "inStock": true,
+          "purchaseEnabled": true,
+          "sellability": "purchasable",
+          "variants": [
+            {
+              "id": "65961129-c61a-4c2d-9bf9-7bce26b964b1",
+              "code": "AIGERONG_SCALP_ESSENCE_100",
+              "label": "头皮紧致修护精华液 100ml",
+              "currency": "CNY",
+              "priceCents": 29800,
+              "priceVersion": 1,
+              "stockOnHand": 100,
+              "availableQuantity": 100,
+              "inventoryVersion": 2,
+              "inventoryUpdatedAt": "2026-11-10T18:52:09.571Z",
+              "inStock": true,
+              "purchaseEnabled": true,
+              "active": true,
+              "sortOrder": 0,
+              "version": 1,
+              "createdAt": "2026-11-10T18:52:09.548Z",
+              "updatedAt": "2026-11-10T18:52:09.548Z"
+            }
+          ]
+        },
+        {
+          "id": "aigerong-moisture-shampoo-280",
+          "productId": "c09a1311-e973-460c-aae4-545ed0427b06",
+          "code": "aigerong-moisture-shampoo-280",
+          "name": "净润小紫瓶 280mL",
+          "subtitle": "买 280 mL，享 620 mL",
+          "description": "发根要蓬，头皮要润。买 280 mL，享 620 mL。",
+          "image": "/assets/commerce/product1-glass-v4b.jpg",
+          "sourceKind": "admin",
+          "qualificationStatus": "eligible",
+          "shoppingPointsMultiplier": 3,
+          "publicationStatus": "published",
+          "version": 4,
+          "publishedAt": "2026-11-10T18:52:09.532Z",
+          "unpublishedAt": null,
+          "createdAt": "2026-11-10T18:52:09.482Z",
+          "updatedAt": "2026-11-10T21:25:44.449Z",
+          "currency": "CNY",
+          "price": 19800,
+          "stockOnHand": 100,
+          "inStock": true,
+          "purchaseEnabled": true,
+          "sellability": "purchasable",
+          "variants": [
+            {
+              "id": "7ef19381-2361-448c-8c18-0391d43c4d57",
+              "code": "AIGERONG_MOISTURE_280",
+              "label": "净润小紫瓶 280mL",
+              "currency": "CNY",
+              "priceCents": 19800,
+              "priceVersion": 1,
+              "stockOnHand": 100,
+              "availableQuantity": 100,
+              "inventoryVersion": 6,
+              "inventoryUpdatedAt": "2026-11-11T00:58:15.335Z",
+              "inStock": true,
+              "purchaseEnabled": true,
+              "active": true,
+              "sortOrder": 0,
+              "version": 1,
+              "createdAt": "2026-11-10T18:52:09.482Z",
+              "updatedAt": "2026-11-10T18:52:09.482Z"
+            }
+          ]
+        }
+      ],
+      "nextCursor": null
+    }
+  },
+  {
+    "path": "/v1/me/support/messages",
+    "status": 401,
+    "body": {
+      "type": "https://cisme.example/problems/AUTH_REQUIRED",
+      "title": "Bearer session required",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "trace_id": "b643acd4-b398-4b4e-a08a-95fd351bbb98"
+    }
+  },
+  {
+    "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+    "status": 401,
+    "body": {
+      "type": "https://cisme.example/problems/AUTH_REQUIRED",
+      "title": "Bearer session required",
+      "status": 401,
+      "code": "AUTH_REQUIRED",
+      "trace_id": "ac339ecd-e970-490f-b495-f2d0bbd825cd"
+    }
+  }
+]

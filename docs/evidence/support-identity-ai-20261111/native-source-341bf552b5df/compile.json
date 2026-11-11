@@ -1,0 +1,44 @@
+[
+  {
+    "tool": "compile_wxml",
+    "path": "pages/support/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "tool": "compile_wxss",
+    "path": "pages/support/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "tool": "compile_wxml",
+    "path": "pages/management-support-chat/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "tool": "compile_wxss",
+    "path": "pages/management-support-chat/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  }
+]

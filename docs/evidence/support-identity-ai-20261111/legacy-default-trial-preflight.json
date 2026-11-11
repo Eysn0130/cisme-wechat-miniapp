@@ -1,0 +1,28 @@
+{
+  "ok": false,
+  "command": "preflight",
+  "target": "trial",
+  "errors": [
+    "EXPECTED_WECHAT_APP_ID_REQUIRED",
+    "PRIVACY_GUIDE_CONSOLE_PROOF_REQUIRED",
+    "LEGAL_TEXTS_APPROVAL_REQUIRED",
+    "SERVER_DOMAIN_ALLOWLIST_PROOF_REQUIRED",
+    "DEMO_SCOPE_APPROVAL_REQUIRED",
+    "EXPERIENCE_MEMBERS_PROOF_REQUIRED",
+    "DEVELOPER_UPLOAD_PROOF_REQUIRED",
+    "REAL_WECHAT_IDENTITY_PROOF_REQUIRED",
+    "INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED",
+    "INTERNAL_TEST_PAYMENTS_DISABLED_PROOF_REQUIRED",
+    "INTERNAL_TEST_PUBLIC_UGC_DISABLED_PROOF_REQUIRED",
+    "INTERNAL_TEST_MEMBERS_SCOPE_PROOF_REQUIRED"
+  ],
+  "editorialBundledFiles": [],
+  "publicLegalProbe": {
+    "origin": "https://staging-api.cisme.cn",
+    "path": "/v1/legal",
+    "ok": true,
+    "code": "LEGAL_BOOTSTRAP_READY",
+    "status": 200,
+    "elapsedMs": 188
+  }
+}

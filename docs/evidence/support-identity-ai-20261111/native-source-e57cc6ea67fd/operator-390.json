@@ -1,0 +1,118 @@
+{
+  "mode": "operator",
+  "route": "pages/management-support-chat/index",
+  "ownAvatar": "http://usr/cisme-avatar-mwcc4ln9-0-ab913a1f759808ef9767c81611f04f951d6d83dbe65a177e2cbe2d1579431ddb.jpg",
+  "ownDisplayName": "客服小明",
+  "memberAvatar": "http://usr/cisme-avatar-mwcc4ln9-0-1fb58c1139b0b98090bdbca199643b460c194a1ecb942a220d8d77a17eef4acd.jpg",
+  "memberDisplayName": "新会员 · 小雨",
+  "messages": [
+    {
+      "senderType": "user",
+      "senderLabel": "新会员 · 小雨",
+      "avatarPath": "http://usr/cisme-avatar-mwcc4ln9-0-1fb58c1139b0b98090bdbca199643b460c194a1ecb942a220d8d77a17eef4acd.jpg",
+      "groupStart": true,
+      "rawAvatarPresent": false
+    },
+    {
+      "senderType": "ai",
+      "senderLabel": "CISME AI 客服",
+      "avatarPath": "/assets/icons/user-circle-plum.svg",
+      "groupStart": true,
+      "rawAvatarPresent": false
+    },
+    {
+      "senderType": "user",
+      "senderLabel": "新会员 · 小雨",
+      "avatarPath": "http://usr/cisme-avatar-mwcc4ln9-0-1fb58c1139b0b98090bdbca199643b460c194a1ecb942a220d8d77a17eef4acd.jpg",
+      "groupStart": true,
+      "rawAvatarPresent": false
+    },
+    {
+      "senderType": "admin",
+      "senderLabel": "客服小熹 · 人工客服",
+      "avatarPath": "http://usr/cisme-avatar-mwcc4ln9-0-7e9aa1580b6ecf3d6317d295def61e21c7141d065f8876c651c886eb20b487b2.jpg",
+      "groupStart": true,
+      "rawAvatarPresent": false
+    },
+    {
+      "senderType": "admin",
+      "senderLabel": "客服小明 · 人工客服",
+      "avatarPath": "http://usr/cisme-avatar-mwcc4ln9-0-ab913a1f759808ef9767c81611f04f951d6d83dbe65a177e2cbe2d1579431ddb.jpg",
+      "groupStart": true,
+      "rawAvatarPresent": false
+    }
+  ],
+  "error": "",
+  "loading": false,
+  "requests": [
+    {
+      "path": "/v1/me/profile",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/messages",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/read",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/support/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/support/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/support/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/support/messages?after=5&limit=50",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/support/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/me/authority",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me/profile",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/ai/status",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/read",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/presence",
+      "method": "POST"
+    },
+    {
+      "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=5&limit=50",
+      "method": "GET"
+    }
+  ],
+  "privateWrites": 0
+}

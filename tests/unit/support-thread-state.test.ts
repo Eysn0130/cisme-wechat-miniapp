@@ -71,8 +71,8 @@ describe("support thread state", () => {
 
   it("groups only the same identity within five minutes and uses sparse server-time separators", () => {
     const presented = presentSupportMessages([
-      { ...message(1, "admin"), createdAt: "2026-09-12T02:00:00.000Z" },
-      { ...message(2, "admin"), createdAt: "2026-09-12T02:02:00.000Z" },
+      { ...message(1, "admin"), sender: { key:"same-agent", displayName:"CISME 客服", profileRevision:0, operatorUpdatedAt:null, avatarRevision:null }, createdAt: "2026-09-12T02:00:00.000Z" },
+      { ...message(2, "admin"), sender: { key:"same-agent", displayName:"CISME 客服", profileRevision:0, operatorUpdatedAt:null, avatarRevision:null }, createdAt: "2026-09-12T02:02:00.000Z" },
       { ...message(3, "user"), createdAt: "2026-09-12T02:03:00.000Z" },
       { ...message(4, "user"), createdAt: "2026-09-12T02:09:01.000Z" }
     ], { ownSenderType: "user", counterpartyReadSequence: 3, now: new Date("2026-09-12T03:00:00.000Z"), timezoneOffsetMinutes: -480 });

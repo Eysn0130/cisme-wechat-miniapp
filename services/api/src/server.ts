@@ -72,6 +72,7 @@ import { CommercialMembershipService } from "./commercialMembership.js";
 import { FormalUgcService } from "./formalUgc.js";
 import { UgcSafetyService, startUgcSafetyLoop } from "./ugcSafety.js";
 import { createSupportAiBoundary } from "./deepseekSupportAi.js";
+import { supportCatalogKnowledge } from './supportCatalogKnowledge.js';
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
 import { registerCloudHttpTransport } from "./cloudHttpTransport.js";
@@ -179,7 +180,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const ugcSafety = new UgcSafetyService(pool, config, storage);
   const communityProfile = new CommunityProfileService(pool,config,editorial,formalUgc,ugcSafety,authority);
   const supportAi = createSupportAiBoundary(config.supportAi);
-  const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi);
+  const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi, async () => {
+    try { return [supportCatalogKnowledge(await catalog.publicList({ limit: 50 }))]; }
+    catch { return [supportCatalogKnowledge(null)]; }
+  });
   const access = new CommunityAccess(pool, config, authority);
   const cloudUpload = new CloudUpload(pool, config, service);
   const phone = new PhoneBinding(pool, config, config.env === "test" ? dependencies.phoneFetcher : undefined);
@@ -985,7 +989,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/suggested-reply", async request => {
     const projection=await support.modelProjectionForAssignedOperator(request.memberId,request.principalId,request.params.conversationId,
       (request.body??{}) as {replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown});
-    return supportAi.suggestedReply(projection);
+    return support.suggestedReply(projection);
   });
   app.post("/v1/shares", async (request) => {
     return service.createShare(request.memberId, idempotencyKey(request), request.body as never, service.now(devClock(request)));

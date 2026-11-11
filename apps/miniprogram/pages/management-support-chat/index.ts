@@ -1,3 +1,6 @@
+import { SupportIdentityCache, supportOwnIdentity, type SupportSender } from '../../services/support-identity';
+import { defaultMemberAvatar } from '../../services/member-avatar';
+import { memberIdentity } from '../../services/member-identity';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { authorityProjection, hasCapability } from "../../services/authority";
@@ -23,7 +26,7 @@ import {
 type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath: string; localPath?: string };
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType?: string; createdAt?: string; attachments?: Attachment[]; orderCard?: OrderCard | null;
-  replyToMessageId?: string | null;
+  replyToMessageId?: string | null; sender?: SupportSender; avatarPath?: string;
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
   deliveryState?: "server_accepted" | "read" };
 type Message = PresentedSupportMessage<RawMessage>;
@@ -40,6 +43,7 @@ const orderStatusLabels: Record<string, string> = { pending_payment: "待支付"
 function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
 
 Page({
+  identityCache: null as SupportIdentityCache | null,
   readRevision:commerceContextRevision(),
   pollTimer: null as ReturnType<typeof setTimeout> | null,
   pollInFlight: false,
@@ -52,6 +56,7 @@ Page({
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
   mediaDownloads: [] as Array<() => void>,
   data: {
+    ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar, identityMemberKey: "", identityAgentKey: "",
     chromeStyle: currentChromeStyle(),
     id: "",
     memberDisplayName: "CISME 会员",
@@ -79,7 +84,7 @@ Page({
     freightOptions:['商家承担','用户承担'],
     returnAttempt:null as {key:string;caseId:string;payload:Record<string,unknown>}|null,
     aiStatus: "PROVIDER INTEGRATION PENDING",
-    aiProviderAvailable: false,
+    aiProviderAvailable: false, aiDraftBusy: false,
     input: "",
     sendAttempt: null as SendAttempt | null,
     pendingMessage: null as Message | null,
@@ -127,7 +132,7 @@ Page({
       this.inputRevision += 1;
       this.clearSensitiveThread();
     }
-    this.setData({ loading: true, busy: false, statusLabel: "正在加载", statusTone: "neutral" });
+    this.setData({ loading: true, busy: false, aiDraftBusy: false, statusLabel: "正在加载", statusTone: "neutral" });
     try {
       const authority = await authorityProjection(this);
       if (!this.owns(epoch, ownerToken)) return;
@@ -148,6 +153,7 @@ Page({
       this.setData({ canAssign, canReply, canViewContext,canManageAftersale,
         ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}),
         ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],returnFormCaseId:"",returnAttempt:null}:{}) });
+      void this.loadOwnIdentity();
       await Promise.all([this.load(), this.loadAiStatus()]);
       if(canManageAftersale&&this.owns(epoch,ownerToken))void this.loadAftersales();
       if (this.owns(epoch, ownerToken)) this.startPolling();
@@ -195,6 +201,8 @@ Page({
     this.presenceTimer = null;
   },
   clearSensitiveThread() {
+    this.identityCache?.reset();
+    this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar });
     this.clearPresenceTimer();
     this.abortDownloads();
     this.setData({
@@ -237,6 +245,32 @@ Page({
       composerSendEnabled: false
     });
   },
+  identityPage(page: any) {
+    const epoch = this.lifecycleEpoch, token = sessionToken();
+    if (!this.identityCache) this.identityCache = new SupportIdentityCache();
+    const cache = this.identityCache;
+    const changed = () => {
+      if (!this.owns(epoch, token) || this.identityCache !== cache) return;
+      this.applyThreadState(this.threadState(), { memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey) });
+    };
+    cache.absorb(page, changed);
+    for (const message of page.messages ?? []) cache.accept(message.sender, changed);
+    this.setData({ memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), identityMemberKey: cache.memberKey, identityAgentKey: cache.agentKey, memberDisplayName: cache.name(cache.memberKey) || page.memberDisplayName || this.data.memberDisplayName });
+  },
+  async loadOwnIdentity() {
+    const epoch = this.lifecycleEpoch, token = sessionToken();
+    const current = () => this.owns(epoch, token);
+    const cached = memberIdentity();
+    this.setData({ ownAvatar: cached?.avatarUrl || defaultMemberAvatar, ownDisplayName: cached?.display_name || 'CISME 会员' });
+    const identity = await supportOwnIdentity(current);
+    if (current() && identity) this.setData({ ownAvatar: identity.avatarUrl || defaultMemberAvatar, ownDisplayName: identity.display_name });
+  },
+  onAvatarError(event: WechatMiniprogram.TouchEvent) {
+    const key = event.currentTarget.dataset.key as string | undefined;
+    if (key) { this.identityCache?.fail(key); this.applyThreadState(this.threadState(), {
+      memberAvatar: this.identityCache?.avatar(this.identityCache.memberKey), agentAvatar: this.identityCache?.avatar(this.identityCache.agentKey) }); }
+    else this.setData({ ownAvatar: defaultMemberAvatar });
+  },
   threadState(): SupportThreadState<Message> {
     return { messages: this.data.messages, syncCursor: this.data.syncCursor, maxSeenSequence: this.data.maxSeenSequence, readCursor: this.data.readCursor };
   },
@@ -276,6 +310,7 @@ Page({
     return Boolean(current && incoming?.id === current.id && incoming.version < current.version);
   },
   mergeOlderConversationMessages(page: { messages?: RawMessage[]; latestCursor?: number }) {
+    this.identityPage(page);
     const incoming = this.normalize(page.messages || []).filter(item => item.sequence > this.data.contextStartSequence);
     const knownIds = new Set(this.data.messages.map(item => item.id));
     const freshCount = incoming.filter(item => !knownIds.has(item.id)).length;
@@ -335,8 +370,12 @@ Page({
   present(messages: readonly RawMessage[], conversation?: Conversation | null, presence?: Presence, memberDisplayName?: string): Message[] {
     const activeConversation = conversation === undefined ? this.data.conversation : conversation;
     const activePresence = presence ?? this.data.presence ?? emptyPresence;
-    const activeMemberName = memberDisplayName ?? this.data.memberDisplayName;
-    return presentSupportMessages(messages, {
+    const activeMemberName = this.identityCache?.name(this.identityCache.memberKey) || memberDisplayName || this.data.memberDisplayName;
+    const identityEpoch = this.lifecycleEpoch, identityToken = sessionToken(), cache = this.identityCache;
+    return presentSupportMessages(messages.map(item => {
+      this.identityCache?.accept(item.sender, () => { if (this.owns(identityEpoch, identityToken) && cache === this.identityCache) this.applyThreadState(this.threadState()); });
+      return this.identityCache?.resolve(item) ?? item;
+    }), {
       ownSenderType: "admin",
       counterpartyReadSequence: activeConversation?.memberReadSequence ?? 0,
       memberDisplayName: activeMemberName,
@@ -452,7 +491,8 @@ Page({
       if (topic.stale) { this.setData({ loading: false }); return; }
       if (!topic.changed && this.olderConversationMetadata(page)) { this.mergeOlderConversationMessages(page); await this.markRead(); return; }
       if (this.staleHumanRequest(page)) { this.setData({ loading: false }); return; }
-      const memberDisplayName = page.memberDisplayName || "CISME 会员";
+      this.identityPage(page);
+      const memberDisplayName = this.identityCache?.name(this.identityCache.memberKey) || page.memberDisplayName || "CISME 会员";
       const conversation = newestSupportConversation(this.data.conversation, page.conversation) as Conversation;
       const assignedToMe = page.assignedToMe === true;
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
@@ -576,6 +616,7 @@ Page({
       if (topic.stale) return;
       if (!topic.changed && this.olderConversationMetadata(page)) { this.mergeOlderConversationMessages(page); this.pollFailures = 0; await this.markRead(); return; }
       if (this.staleHumanRequest(page)) return;
+      this.identityPage(page);
       const conversation = newestSupportConversation(this.data.conversation, page.conversation) as Conversation;
       const presence = { ...emptyPresence, ...(page.presence ?? (topic.changed ? emptyPresence : this.data.presence)) } as Presence;
       const incoming = this.normalize(page.messages || []).filter(item => item.sequence > topic.contextStartSequence);
@@ -630,6 +671,7 @@ Page({
       const olderMetadata = this.olderConversationMetadata(page);
       if (topic.stale || !olderMetadata && this.staleHumanRequest(page)) return;
       if (topic.changed) { await this.load(); return; }
+      this.identityPage(page);
       const older = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       const state = mergeHistoryPage(this.threadState(), this.present(older));
       this.applyThreadState(state, { olderCursor: page.olderCursor ?? null, anchor: preserve ? `operator-${preserve}` : "",
@@ -735,7 +777,7 @@ Page({
     const ownerToken = sessionToken();
     const contextVersion = this.data.contextVersion;
     const replyTarget = this.data.replyTarget;
-    this.setData({ busy: true, error: "" });
+    this.setData({ busy: true, aiDraftBusy: true, error: "" });
     try {
       const draft = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/suggested-reply`, method: "POST", data: { replyToMessageId: replyTarget.id,
         expectedHumanRequestGeneration: replyTarget.generation, contextVersion: replyTarget.contextVersion }, cacheTags: ["support"] });
@@ -747,7 +789,7 @@ Page({
     } catch {
       if (this.owns(epoch, ownerToken)) this.setData({ error: "AI 建议回复不可用，请继续人工处理。草稿不会自动发送。" });
     } finally {
-      if (this.owns(epoch, ownerToken)) this.setData({ busy: false });
+      if (this.owns(epoch, ownerToken)) this.setData({ busy: false, aiDraftBusy: false });
     }
   },
   pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {

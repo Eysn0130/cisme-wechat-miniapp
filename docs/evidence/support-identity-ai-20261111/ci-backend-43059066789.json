@@ -1,0 +1,16 @@
+{
+  "runId": 43059066789,
+  "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/43059066789",
+  "sourceHead": "6cc4f5172e5ec8581e5dbd789ade1236a8267c21",
+  "conclusion": "success",
+  "unitPassed": 3240,
+  "unitSkipped": 1,
+  "integrationPassed": 1293,
+  "integrationFiles": 80,
+  "newIdentityIntegrationPassed": 2,
+  "includesRestoreBuildContractsAndPerformance": true,
+  "scope": "Backend identity/AI fixes; prior to owner text-action polish",
+  "jobId": 130656346853,
+  "evidenceArtifactId": 13872682905,
+  "evidenceArtifactSha256": "b9e8a647606594f11aa624db53933cfc66121f05e0884f7e41c9646f23c070da"
+}

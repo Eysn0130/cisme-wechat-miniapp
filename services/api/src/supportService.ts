@@ -9,8 +9,9 @@ import type { PlatformService } from "./platformService.js";
 import type { ObjectStorage } from "./storage.js";
 import type {AccountClosure} from './accountClosure.js';
 import {recordWholeSuppression} from './supportRetention.js';
-import type {SupportAiBoundary,SupportAiSuggestion} from './supportAiBoundary.js';
+import type {SupportAiBoundary,SupportAiSuggestion,ApprovedKnowledgeSource,ModelSafeSupportProjection} from './supportAiBoundary.js';
 import {applySupportConversationReset,supportNewTopicOperation} from './supportConversationReset.js';
+import { supportIdentities } from './supportIdentity.js';
 
 type ConversationRow = {
   id: string; member_id: string; status: SupportConversationStatus; priority: "normal" | "high" | "urgent";
@@ -20,7 +21,7 @@ type ConversationRow = {
   human_request_generation?:number;human_request_anchor_sequence?:string|null;human_request_context_version?:number;
 };
 type OrderCard = { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
-type MessageRow = { id: string; conversation_id:string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; body: string; attachment_refs: string[];
+type MessageRow = { id: string; conversation_id:string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; sender_principal_id: string | null; body: string; attachment_refs: string[];
   content_type: SupportMessageContentType; linked_order_id: string | null; order_snapshot: OrderCard | null;
   linked_case_id:string|null;return_instruction_snapshot:Omit<NonNullable<SupportMessageView['returnInstruction']>,'caseId'>|null;created_at: Date;reply_to_message_id?:string|null };
 type MediaRow = { id: string; mime_type: "image/jpeg" | "image/png" | "image/webp"; size_bytes: string | number };
@@ -87,7 +88,7 @@ function contentType(body: string, images: readonly string[], orderId: string | 
   return "text";
 }
 function messageColumns(): string {
-  return "id,conversation_id,sequence,sender_type,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at,reply_to_message_id";
+  return "id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at,reply_to_message_id";
 }
 function view(row: MessageRow, input: { counterpartyReadSequence: number; previewPrefix: string; media: ReadonlyMap<string, MediaRow> }): SupportMessageView {
   const attachments = (Array.isArray(row.attachment_refs) ? row.attachment_refs : []).flatMap((id) => {
@@ -118,7 +119,13 @@ export function modelSafeSupportProjection(input: { conversation: ConversationRo
 
 export class SupportService {
   constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService, private readonly platform: PlatformService, private readonly storage: ObjectStorage,
-    private readonly suppression?:AccountClosure,private readonly ai?:Pick<SupportAiBoundary,'status'|'suggestedReply'>) {}
+    private readonly suppression?:AccountClosure,private readonly ai?:Pick<SupportAiBoundary,'status'|'suggestedReply'>,
+    private readonly publicKnowledge?:()=>Promise<ApprovedKnowledgeSource[]>) {}
+
+  async suggestedReply(projection: ModelSafeSupportProjection) {
+    if (!this.ai?.status().providerAvailable) throw new DomainError('SUPPORT_AI_PROVIDER_PENDING','AI 客服暂不可用',503);
+    return this.ai.suggestedReply(projection, await this.publicKnowledge?.() ?? []);
+  }
 
   private automaticAiAvailable():boolean {
     const status=this.ai?.status();return status?.providerAvailable===true&&status.autoSendEnabled===true;
@@ -248,7 +255,7 @@ export class SupportService {
       if(source.content_type!=='text')failure='SUPPORT_AI_HUMAN_CONTEXT_REQUIRED';
       else if(this.automaticAiAvailable()){
         try{
-          suggestion=await this.ai!.suggestedReply({...modelSafeSupportProjection({conversation:snapshot,messages}),
+          suggestion=await this.suggestedReply({...modelSafeSupportProjection({conversation:snapshot,messages}),
             question:{sequence:Number(source.sequence),body:source.body},...(human?{humanRequest:human}:{})});
           const route=suggestion.route??'general';
           if(human&&route!=='clarify'&&(suggestion.confidence<0.75||(['general','mixed'].includes(route)&&suggestion.handoffReason)))
@@ -374,14 +381,15 @@ export class SupportService {
 
   private async messageView(client:DbClient|pg.Pool,row: MessageRow, conversationRow: ConversationRow, perspective: "member" | "operator", media?: ReadonlyMap<string, MediaRow>,verifiedReplyTarget?:string) {
     const mediaRows = media ?? await this.mediaMap(client, [row]);
+    const identities = await supportIdentities(client, conversationRow, [row]);
     // Fresh inserts are validated by the sender trigger while this transaction
     // still holds the conversation lock. Historical receipts must recheck links.
     const validTarget=row.reply_to_message_id&&(row.reply_to_message_id===verifiedReplyTarget||(await client.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2',[row.reply_to_message_id,row.conversation_id])).rowCount);
-    return view({...row,reply_to_message_id:validTarget?row.reply_to_message_id??null:null}, {
+    return { ...view({...row,reply_to_message_id:validTarget?row.reply_to_message_id??null:null}, {
       counterpartyReadSequence: Number(perspective === "member" ? conversationRow.team_last_read_sequence : conversationRow.member_last_read_sequence),
       previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${conversationRow.id}/media`,
       media: mediaRows
-    });
+    }), sender: identities.sender(row, true) };
   }
 
   private async replyTarget(client:DbClient,row:ConversationRow,input:ReplyTargetInput,requiredTarget=false){
@@ -499,16 +507,20 @@ export class SupportService {
       WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id,boundary,pageLimit + 1]);
     const hasOlder = after === null && result.rows.length > pageLimit;
     const pageRows = hasOlder ? result.rows.slice(result.rows.length - pageLimit) : result.rows;
+    const identityPage = await supportIdentities(client, row, pageRows);
     const media = await this.mediaMap(client, pageRows);
     const replyIds=pageRows.flatMap(message=>message.reply_to_message_id?[message.reply_to_message_id]:[]);
     const validTargets=new Set((replyIds.length?(await client.query<{id:string}>(`SELECT id FROM support_message WHERE id=ANY($1::uuid[]) AND conversation_id=$2 AND sequence>$3`,[replyIds,row.id,boundary])).rows:[]).map(target=>target.id));
-    const messages = pageRows.map((messageRow) => view({...messageRow,reply_to_message_id:messageRow.reply_to_message_id&&validTargets.has(messageRow.reply_to_message_id)?messageRow.reply_to_message_id:null}, {
+    const messages = pageRows.map((messageRow) => ({ ...view({...messageRow,reply_to_message_id:messageRow.reply_to_message_id&&validTargets.has(messageRow.reply_to_message_id)?messageRow.reply_to_message_id:null}, {
       counterpartyReadSequence: Number(perspective === "member" ? row.team_last_read_sequence : row.member_last_read_sequence),
       previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
       media
-    }));
+    }), sender: identityPage.sender(messageRow) }));
     const olderCursor:number|null=hasOlder?messages[0]!.sequence:null;
-    return { conversation: conversation(row), presence: await this.presence(row,new Date(),client), messages,
+    const presence = await this.presence(row,new Date(),client);
+    if (identityPage.agentIdentityKey) presence.agentDisplayName = identityPage.identities[identityPage.agentIdentityKey]?.displayName ?? 'CISME 客服';
+    return { conversation: conversation(row), presence, messages,
+      identities: identityPage.identities, memberIdentityKey: identityPage.memberIdentityKey, agentIdentityKey: identityPage.agentIdentityKey,
       latestCursor: messages.at(-1)?.sequence ?? Number(row.next_sequence) - 1, olderCursor };
   }
 

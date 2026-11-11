@@ -1,4 +1,6 @@
 import { nativeCatalogImage } from "./catalog";
+import { defaultMemberAvatar } from './member-avatar';
+import type { SupportSender } from './support-identity';
 
 export interface SupportSequenceMessage {
   id: string;
@@ -6,6 +8,8 @@ export interface SupportSequenceMessage {
   senderType: string;
   createdAt?: string;
   replyToMessageId?: string | null;
+  sender?: SupportSender;
+  avatarPath?: string;
 }
 
 export type SupportHeaderTone = "ai" | "waiting" | "online" | "neutral" | "resolved";
@@ -131,6 +135,7 @@ function separatorLabel(time: number, now: Date, timezoneOffsetMinutes: number):
 
 function sameMessageGroup(left: SupportSequenceMessage | undefined, right: SupportSequenceMessage | undefined): boolean {
   if (!left || !right || left.senderType === "system" || right.senderType === "system" || left.senderType !== right.senderType) return false;
+  if (left.sender?.key !== right.sender?.key || left.senderType === 'admin' && !left.sender?.key) return false;
   const leftTime = parsedTime(left.createdAt);
   const rightTime = parsedTime(right.createdAt);
   return leftTime !== null && rightTime !== null && rightTime >= leftTime && rightTime - leftTime <= 5 * 60_000;
@@ -175,8 +180,8 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
     const time = parsedTime(item.createdAt);
     const previousTime = parsedTime(previous?.createdAt);
     const needsSeparator = time !== null && (!previous || previousTime === null || dateKey(time, timezoneOffsetMinutes) !== dateKey(previousTime, timezoneOffsetMinutes) || time - previousTime > 5 * 60_000);
-    const senderLabel = item.senderType === "user" ? options.memberDisplayName ?? "CISME 会员"
-      : item.senderType === "admin" ? `${options.agentDisplayName ?? "CISME 客服"} · 人工客服`
+    const senderLabel = item.senderType === "user" ? item.sender?.displayName || options.memberDisplayName || "CISME 会员"
+      : item.senderType === "admin" ? `${item.sender?.displayName || "CISME 客服"} · 人工客服`
       : item.senderType === "ai" ? "CISME AI 客服" : "";
     const localState = (item as TMessage & { localState?: string }).localState;
     const deliveryLabel = item.senderType !== options.ownSenderType ? ""
@@ -189,8 +194,10 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
     const replyReferenceLabel = question && question.sequence < item.sequence && question.id !== previousChat?.id
       ? `回复：${replyQuestionSummary(question)}` : "";
     if (isChatMessage(item)) previousChat = item;
+    const { avatarDataUrl: _rawAvatar, ...sender } = item.sender ?? {};
+    const avatarPath = typeof item.avatarPath === 'string' && /^(wxfile:\/\/|http:\/\/usr\/|\/assets\/)/.test(item.avatarPath) ? item.avatarPath : defaultMemberAvatar;
     return {
-      ...item,
+      ...item, ...(item.sender ? {sender: sender as SupportSender} : {}), avatarPath,
       ...(orderCard ? {orderCard:{...orderCard,productImage:nativeCatalogImage(orderCard.productImage)}} : {}),
       displayBody:displayBody(item),
       replyReferenceLabel,

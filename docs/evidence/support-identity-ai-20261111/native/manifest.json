@@ -1,0 +1,68 @@
+{
+  "packageSourceSha256": "c62ae3dbbeb557efedb7e8307b3662162b8ae5376f531d956c84c9a11cd01147",
+  "captureSource": "WeChat DevTools simulator_screenshot",
+  "scope": "Native support presentation and synthetic selected-question AI drafting; no physical devices or real message sends",
+  "allHttpIntercepted": true,
+  "virtualStorage": true,
+  "actualMemberWrites": 0,
+  "actualModelCallsInNativeFixture": 0,
+  "screenshots": [
+    {
+      "file": "native/member-ai-375.png",
+      "sha256": "bbd656a5c305b7bf2f062e9ab1301103ee1cde7816662e590f41cb17cafbad80",
+      "imageWidth": 376,
+      "imageHeight": 812,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/member-ai-390.png",
+      "sha256": "8041cf8c16348817cf2e36b0bb359fe2f4c8d492bcff7e0ccac31de1a08e7dd8",
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/member-human-375.png",
+      "sha256": "721b6082fca731ae9cc805f8937e1e0b2732f8e9ec921974e97ffd1aa3d5806d",
+      "imageWidth": 376,
+      "imageHeight": 812,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/member-human-390.png",
+      "sha256": "1892c77498badfa1e808b19f9393701e938465516dcda41457d45f95dcfbbfaf",
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/operator-375.png",
+      "sha256": "4e6531f729936de542a80b93e7dd163526aa7a3970982804ef596358456e5d55",
+      "imageWidth": 376,
+      "imageHeight": 812,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/operator-390.png",
+      "sha256": "cb23c7c2611ea5fcefbef3ebe0ff5d1b6a1afc4f1f6a7e6c0a242d111f4f0704",
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/operator-ai-draft-375.png",
+      "sha256": "bfd4e7aa7d463e170404525efdd4b10edb2cf359c28724761fa8baf64b9b045d",
+      "imageWidth": 376,
+      "imageHeight": 812,
+      "format": "JPEG"
+    },
+    {
+      "file": "native/operator-ai-draft-390.png",
+      "sha256": "40e3741dbb1dbeb8c0758ebdc0daac5830f3c5e5cd13bf107cbec5906b510fa7",
+      "imageWidth": 390,
+      "imageHeight": 844,
+      "format": "JPEG"
+    }
+  ],
+  "allRouteAndPhysicalDeviceQualification": "blocked"
+}
