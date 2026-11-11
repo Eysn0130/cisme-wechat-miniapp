@@ -11,9 +11,10 @@ const pool=testPool(),base=new Date(Date.now()+120000),day=(n:number)=>new Date(
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'member-points-test',UPLOAD_TOKEN_SECRET:'member-points-upload',
  OBJECT_STORAGE_DRIVER:'api_gateway',ALLOW_DEV_ADAPTERS:'true',CONTACT_ENCRYPTION_KEY:'19'.repeat(32),CONTACT_HASH_KEY:'29'.repeat(32),COMMERCE_ORDER_FLOW_ENABLED:'true'});
 let app:Awaited<ReturnType<typeof createApp>>,maker:any,checker:any,policy:any,sku:any;
+let actorAddress=0;
 const headers=(a:any,key=randomUUID(),now=base)=>({authorization:`Bearer ${a.sessionToken}`,'idempotency-key':key,'x-dev-clock':now.toISOString()});
 async function actor(label='合成积分会员'){
- const r=await app.inject({method:'POST',url:'/v1/identity/dev',headers:{'x-dev-clock':base.toISOString()},payload:{externalUserId:randomUUID(),displayName:label,
+ const r=await app.inject({method:'POST',url:'/v1/identity/dev',remoteAddress:`192.0.2.${++actorAddress}`,headers:{'x-dev-clock':base.toISOString()},payload:{externalUserId:randomUUID(),displayName:label,
   consents:[{documentType:'privacy',version:'fixture-v1'},{documentType:'terms',version:'fixture-v1'}]}});expect(r.statusCode,r.body).toBe(200);return r.json();
 }
 const get=(a:any,path='/v1/me/points',now=base)=>app.inject({url:path,headers:headers(a,randomUUID(),now)});
@@ -183,11 +184,69 @@ describe('member club points closed loop',()=>{
   expect((await app.inject({method:'PUT',url:'/v1/me/points/birthday',headers:headers(a),payload:{monthDay:'02-31'}})).statusCode).toBe(422);
   expect((await invariant(a)).available).toBe(0);
  });
- it('retains the existing emergency reward stop and never processes an unconfigured historical event as an award',async()=>{
+ it('retains private care through a reward stop and never awards an unconfigured historical event',async()=>{
   const a=await actor();await pool.query("UPDATE emergency_switch SET enabled=false WHERE key='rewards'");
-  expect((await checkin(a)).json().code).toBe('REWARDS_PAUSED');await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='rewards'");
+  const saved=await checkin(a);expect(saved.statusCode,saved.body).toBe(200);expect(saved.json().rewards).toMatchObject({pointsGranted:0,pending:true});
+  expect((await invariant(a)).available).toBe(0);await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='rewards'");
   await pool.query(`INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at) VALUES('questionnaire',$1::text,$1::uuid,$2)`,[a.memberId,new Date(base.getTime()-86400000)]);
-  await processMemberPointSources(pool,base);expect((await invariant(a)).available).toBe(0);
+  await processMemberPointSources(pool,base);expect((await invariant(a)).available).toBe(15);
+  expect((await pool.query("SELECT 1 FROM points_grant WHERE member_id=$1 AND source_type='questionnaire'",[a.memberId])).rowCount).toBe(0);
+ });
+ it('queues immutable daily and note entitlements while stopped, then pays each once with source-bound receipts',async()=>{
+  const a=await actor(),key=randomUUID();await pool.query("UPDATE emergency_switch SET enabled=false WHERE key='rewards'");
+  try{
+   const saved=await checkin(a,base,key,{note:''});expect(saved.statusCode,saved.body).toBe(200);
+   const changed=await checkin(a,base,randomUUID(),{expectedVersion:1});expect(changed.statusCode,changed.body).toBe(200);
+   expect((await checkin(a,base,key,{note:''})).json()).toMatchObject({replayed:true,rewards:{pending:true,pointsGranted:0}});
+   expect((await get(a,'/v1/me/points/club')).json()).toMatchObject({streak:1,today:{version:2},todayRewards:{pending:true}});
+   expect((await invariant(a)).available).toBe(0);
+  }finally{await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='rewards'");}
+  await processMemberPointSources(pool,new Date(base.getTime()+60000),100);
+  await processMemberPointSources(pool,new Date(base.getTime()+120000),100);
+  expect((await invariant(a)).available).toBe(15);
+  const history=(await get(a,'/v1/me/care-usage-records')).json();
+  expect(history.items[0].rewards).toMatchObject({pointsGranted:15,pending:false,debtOffset:0});
+  expect(history.items[0].rewards.components.map((x:any)=>x.code).sort()).toEqual(['daily','note']);
+  expect((await pool.query("SELECT payload::text FROM member_points_source_event WHERE member_id=$1 AND kind='care_usage'",[a.memberId])).rows.every(r=>!r.payload.includes('舒适'))).toBe(true);
+ });
+ it('repairs a late attendance gap without losing a seven-day reward or duplicating the daily grants',async()=>{
+  const a=await actor();for(let n=0;n<5;n++)expect((await checkin(a,day(n),randomUUID(),{note:''})).statusCode).toBe(200);
+  const queue=async(n:number)=>pool.query(`INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at,payload,next_attempt_at)
+    VALUES('care_usage',$1,$2,$3,$4,$3)`,[randomUUID()+':v1',a.memberId,day(n),{careDay:pointDay(day(n)),noteQualifies:false,policyVersion:policy.version}]);
+  await queue(6);await processMemberPointSources(pool,day(6),100);expect((await invariant(a)).available).toBe(60);
+  await queue(5);await processMemberPointSources(pool,day(7),100);await processMemberPointSources(pool,day(7),100);
+  expect((await invariant(a)).available).toBe(120);
+  expect((await get(a,'/v1/me/points/club',day(6))).json().streak).toBe(7);
+  expect((await pool.query("SELECT source_id,amount FROM points_grant WHERE member_id=$1 AND component='streak7'",[a.memberId])).rows).toEqual([{source_id:pointDay(day(6)),amount:50}]);
+ });
+ it('does not repeat an earned period when a late prefix shifts the run start',async()=>{
+  const a=await actor();for(let n=1;n<=7;n++)expect((await checkin(a,day(n),randomUUID(),{note:''})).statusCode).toBe(200);
+  await pool.query(`INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at,payload,next_attempt_at)
+    VALUES('care_usage',$1,$2,$3,$4,$3)`,[randomUUID()+':v1',a.memberId,base,{careDay:pointDay(base),noteQualifies:false,policyVersion:policy.version}]);
+  await processMemberPointSources(pool,day(8),100);expect((await invariant(a)).available).toBe(130);
+  expect((await pool.query("SELECT 1 FROM points_grant WHERE member_id=$1 AND component='streak7'",[a.memberId])).rowCount).toBe(1);
+ });
+ it('merges rewarded runs and fills an unoccupied milestone without replaying existing grants',async()=>{
+  const a=await actor();for(const n of [...Array.from({length:7},(_,i)=>i),...Array.from({length:7},(_,i)=>i+14)])
+   expect((await checkin(a,day(n),randomUUID(),{note:''})).statusCode).toBe(200);
+  for(let n=7;n<14;n++){
+   await pool.query(`INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at,payload,next_attempt_at)
+     VALUES('care_usage',$1,$2,$3,$4,$3)`,[randomUUID()+':v1',a.memberId,day(n),{careDay:pointDay(day(n)),noteQualifies:false,policyVersion:policy.version}]);
+   await processMemberPointSources(pool,day(21),100);
+  }
+  expect((await invariant(a)).available).toBe(360);
+  expect((await pool.query("SELECT 1 FROM points_grant WHERE member_id=$1 AND component='streak7'",[a.memberId])).rowCount).toBe(3);
+ });
+ it('provides owner-only product calendar coverage and exact-day history',async()=>{
+  const a=await actor(),other=await actor();await checkin(a);
+  const from=pointDay(new Date(base.getTime()-3*86400000)),through=pointDay(new Date(base.getTime()+3*86400000));
+  const url=`/v1/me/care-usage-calendar?from=${from}&through=${through}`;
+  expect((await app.inject({url})).statusCode).toBe(401);
+  expect((await get(a,url)).json()).toEqual({from,through,serverDay:pointDay(base),recordedDays:[pointDay(base)]});
+  expect((await get(other,url)).json().recordedDays).toEqual([]);
+  expect((await get(a,'/v1/me/care-usage-calendar?from=2026-02-31&through=2026-03-01')).statusCode).toBe(422);
+  const one=(await get(a,'/v1/me/care-usage-records?day='+pointDay(base))).json();expect(one.items).toHaveLength(1);expect(one.items[0].rewards.pointsGranted).toBe(15);
+  expect((await get(a,'/v1/me/care-usage-records?day='+from)).json().items).toEqual([]);
  });
  it('preserves an already announced future rule when another approval tries to insert an earlier version',async()=>{
   const propose=async(version:string,start:Date)=>app.inject({method:'POST',url:'/v1/management/points/policies',headers:headers(maker),payload:{version,rules:clubRulesV1,startsAt:start.toISOString(),endsAt:null}});

@@ -22,7 +22,7 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app?.close();});
 it("retains the explicit authentication denominator",()=>{
-  expect(routes).toHaveLength(276);
+  expect(routes).toHaveLength(277);
   // Editorial comments and blocks are member-private. Article text stays public.
   for(const operation of [
     {method:"POST",path:"/v1/management/shipments/import-xlsx/preview"},
@@ -45,6 +45,7 @@ it("retains the explicit authentication denominator",()=>{
     {method:"GET",path:"/v1/me/editorial/activity/{section}"},
     {method:"DELETE",path:"/v1/me/editorial/saves/{articleId}"},
     {method:"GET",path:"/v1/me/daily-care-records"},
+    {method:"GET",path:"/v1/me/care-usage-calendar"},
     {method:"POST",path:"/v1/me/daily-care-records"},
     {method:"PUT",path:"/v1/me/daily-care-records/{id}"},
     {method:"DELETE",path:"/v1/me/daily-care-records/{id}"},

@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "cd3594173f3e7a6f6d0d49f1f5fb7b6c7ce1ecfbf34f9dc0e2493c6f25c6f10c",
+  "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Care product-use entry and registration birthday source rebind. Scoped native evidence is pending in docs/evidence/care-registration-flow-20261110; historical card/records captures retain their original source and scope. All 41-route state and physical-device matrices remain blocked.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-before-care-flow-c7dcd9560ed3.json",
+  "note": "Centered product-use Care and date-based product records. Scoped native synthetic evidence is documented in docs/evidence/care-centered-release-20261111; it does not qualify all 41 routes or physical devices. Historical images retain original source and scope.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-cd3594173f3e.json",
   "pendingSourceRebind": false
 }

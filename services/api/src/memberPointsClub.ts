@@ -1,4 +1,5 @@
 import {saveMemberBirthday} from './memberBirthday.js';
+import {careDayRewards} from './careUsageRewards.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
@@ -12,6 +13,10 @@ const uuid=(v:unknown)=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9
 const operation=(v:string)=>typeof v==='string'&&/^[A-Za-z0-9._:-]{8,200}$/.test(v)?v:fail('IDEMPOTENCY_KEY_INVALID','操作编号无效');
 const object=(v:unknown,keys:string[])=>{if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).some(k=>!keys.includes(k)))fail('POINTS_INPUT_INVALID','请核对提交内容');return v as Record<string,unknown>;};
 const owner=(v:string|undefined)=>v||fail('MEMBER_REQUIRED','请先登录',401);
+function validUsageDay(value:unknown):value is string{
+  return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'))
+    &&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
+}
 function textKey(config:AppConfig){if(!/^[a-f0-9]{64}$/i.test(config.contacts.encryptionKey??''))fail('POINTS_PRIVATE_STORAGE_UNAVAILABLE','私人记录存储暂不可用',503);return Buffer.from(config.contacts.encryptionKey!,'hex');}
 function sealNote(config:AppConfig,memberId:string,id:string,note:string){if(!note)return '';const iv=randomBytes(12),c=createCipheriv('aes-256-gcm',textKey(config),iv);c.setAAD(Buffer.from(`points-checkin:${memberId}:${id}`));const b=Buffer.concat([c.update(note,'utf8'),c.final()]);return Buffer.concat([iv,c.getAuthTag(),b]).toString('base64');}
 export function openPointsNote(config:AppConfig,row:{id:string;member_id:string;note_encrypted:string;key_version:string|null}){
@@ -41,9 +46,29 @@ async function attendance(client:DbClient,memberId:string,day:string,sourceId:st
   await client.query(`INSERT INTO member_points_attendance(member_id,care_day,first_source,qualified_at) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[memberId,day,sourceId,now]);
   const count=await streakFor(client,memberId,day);
   await grantMemberPoints(client,{owner:memberId,sourceType:'care_day',sourceId:day,component:'daily',amount:policy.rules.daily,policy,now});
-  for(const [period,amount] of [[7,policy.rules.streak7],[30,policy.rules.streak30]] as const)if(count&&count%period===0){
-    await grantMemberPoints(client,{owner:memberId,sourceType:'care_streak',sourceId:day,component:`streak${period}`,amount,policy,now});
-    if(period===30)await client.query(`INSERT INTO member_points_badge(member_id,code,earned_at) VALUES($1,'scalp-care-explorer',$2) ON CONFLICT DO NOTHING`,[memberId,now]);
+  // A late fact can close a gap or merge two already rewarded runs. Reconcile
+  // the whole connected run under the wallet lock, preserving issued grants.
+  const run=(await client.query<{day:string;qualified_at:Date}>(`WITH days AS (
+      SELECT care_day,qualified_at,care_day-(row_number() OVER(ORDER BY care_day))::int AS run
+      FROM member_points_attendance WHERE member_id=$1)
+    SELECT care_day::text AS day,qualified_at FROM days
+    WHERE run=(SELECT run FROM days WHERE care_day=$2::date) ORDER BY care_day`,[memberId,day])).rows;
+  const awarded=(await client.query<{component:string;source_id:string}>(`SELECT component,source_id FROM points_grant
+    WHERE member_id=$1 AND source_type='care_streak' AND source_id=ANY($2::text[])`,[memberId,run.map(row=>row.day)])).rows;
+  for(const period of [7,30] as const){
+    const existing=new Set(awarded.filter(row=>row.component===`streak${period}`&&row.source_id>=day).map(row=>row.source_id));
+    const affected=run.filter((row,index)=>(index+1)%period===0&&row.day>=day).length;
+    let missing=Math.max(0,affected-existing.size);
+    for(let index=period-1;missing>0&&index<run.length;index+=period){
+      const milestone=run[index]!;if(milestone.day<day||existing.has(milestone.day))continue;
+      const earnedPolicy=await activePointPolicy(client,milestone.qualified_at);
+      if(!earnedPolicy)continue;
+      await grantMemberPoints(client,{owner:memberId,sourceType:'care_streak',sourceId:milestone.day,component:`streak${period}`,
+        amount:period===7?earnedPolicy.rules.streak7:earnedPolicy.rules.streak30,policy:earnedPolicy,now:milestone.qualified_at});
+      existing.add(milestone.day);missing--;
+    }
+    if(period===30&&affected>0)await client.query(`INSERT INTO member_points_badge(member_id,code,earned_at)
+      VALUES($1,'scalp-care-explorer',$2) ON CONFLICT DO NOTHING`,[memberId,run[29]!.qualified_at]);
   }
   return count;
 }
@@ -69,6 +94,7 @@ export class MemberPointsClub{
       const streakDay=attending?day:pointDay(new Date(now.getTime()-86400000));
       return {memberId:id,upcomingPolicies:upcoming,enabled:Boolean(p),policy:p?{version:p.version,rules:p.rules,startsAt:p.starts_at,endsAt:p.ends_at}:null,
         serverDay:day,today:today?{id:today.id,operationId:today.operation_id,products:today.products,note:openPointsNote(this.config,today),version:today.version}:null,
+        todayRewards:(await careDayRewards(c,id,[day])).get(day)!,
         checkedIn:attending,streak:await streakFor(c,id,streakDay),badges,pendingRewardSources:pending,questionnaireCompleted:Boolean(questionnaire?.completed_at),
         birthday:profile?.birthday_month_day??null,birthdayChangeAfter:profile?.birthday_change_after??null,...await memberPointsExtras(c,id,now)};
     });
@@ -80,18 +106,34 @@ export class MemberPointsClub{
     const id=owner(memberId),body=object(input,['monthDay']);
     return transaction(this.pool,c=>saveMemberBirthday(c,id,body.monthDay,now,this.config));
   }
-  async usageHistory(memberId:string|undefined,options:{before?:unknown;limit?:unknown}={}){
-    const id=owner(memberId),before=options.before??null,limit=options.limit===undefined?20:Number(options.limit);
-    if(before!==null&&(typeof before!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(before)||!Number.isFinite(+new Date(before+'T00:00:00Z'))||new Date(before+'T00:00:00Z').toISOString().slice(0,10)!==before)
+  async usageHistory(memberId:string|undefined,options:{before?:unknown;limit?:unknown;day?:unknown}={},now=new Date()){
+    const id=owner(memberId),before=options.before??null,day=options.day??null,limit=options.limit===undefined?20:Number(options.limit);
+    if(before!==null&&!validUsageDay(before)||day!==null&&!validUsageDay(day)||before!==null&&day!==null
       ||!Number.isInteger(limit)||limit<1||limit>50)fail('CARE_USAGE_PAGE_INVALID','请重新加载护理记录');
     return transaction(this.pool,async c=>{
       if(!(await c.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[id])).rowCount)fail('AUTH_REVOKED','账号状态已变化',401);
       const rows=(await c.query(`SELECT *,care_day::text AS day FROM member_points_checkin WHERE member_id=$1
-        AND ($2::date IS NULL OR care_day<$2::date) ORDER BY care_day DESC LIMIT $3`,[id,before,limit+1])).rows;
+        AND ($2::date IS NULL OR care_day<$2::date) AND ($4::date IS NULL OR care_day=$4::date)
+        ORDER BY care_day DESC LIMIT $3`,[id,before,limit+1,day])).rows;
       const total=(await c.query('SELECT count(*)::int AS n FROM member_points_checkin WHERE member_id=$1',[id])).rows[0].n;
+      const receipts=await careDayRewards(c,id,rows.slice(0,limit).map(r=>r.day));
       const items=rows.slice(0,limit).map(r=>({id:r.id,careDay:r.day,products:r.products,note:openPointsNote(this.config,r),version:r.version,
-        completedAt:r.created_at.toISOString(),updatedAt:r.updated_at.toISOString()}));
-      return {items,totalCount:total,nextBefore:rows.length>limit?items.at(-1)!.careDay:null};
+        completedAt:r.created_at.toISOString(),updatedAt:r.updated_at.toISOString(),rewards:receipts.get(r.day)!}));
+      const serverDay=pointDay(now),attending=(await c.query('SELECT 1 FROM member_points_attendance WHERE member_id=$1 AND care_day=$2',[id,serverDay])).rowCount;
+      return {items,totalCount:total,nextBefore:rows.length>limit?items.at(-1)!.careDay:null,serverDay,
+        streak:await streakFor(c,id,attending?serverDay:pointDay(new Date(now.getTime()-86400000)))};
+    });
+  }
+  async usageCalendar(memberId:string|undefined,input:{from?:unknown;through?:unknown},now=new Date()){
+    const id=owner(memberId),{from,through}=input;
+    if(!validUsageDay(from)||!validUsageDay(through)||from>through
+      ||Date.parse(through)-Date.parse(from)>92*86400000)fail('CARE_USAGE_PAGE_INVALID','请选择有效的记录日期范围');
+    return transaction(this.pool,async c=>{
+      if(!(await c.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[id])).rowCount)fail('AUTH_REVOKED','账号状态已变化',401);
+      const serverDay=pointDay(now);
+      const rows=(await c.query<{day:string}>(`SELECT care_day::text AS day FROM member_points_checkin
+        WHERE member_id=$1 AND care_day BETWEEN $2::date AND LEAST($3::date,$4::date) ORDER BY care_day`,[id,from,through,serverDay])).rows;
+      return {from,through,serverDay,recordedDays:rows.map(r=>r.day)};
     });
   }
   async policies(memberId:string|undefined){await this.authority.require(memberId,'commerce.money.reconcile');return (await this.pool.query(`SELECT p.*,COALESCE((SELECT jsonb_agg(jsonb_build_object('month',b.month_bucket,'issued',b.issued::text,'overReminder',p.monthly_budget IS NOT NULL AND b.issued>=p.monthly_budget) ORDER BY b.month_bucket DESC) FROM member_points_budget b WHERE b.policy_version=p.version),'[]'::jsonb) AS monthly_issuance FROM member_points_policy p ORDER BY p.created_at DESC LIMIT 50`)).rows;}
@@ -207,6 +249,14 @@ async function applySource(client:DbClient,event:any){
   }
   const member=(await client.query("SELECT status FROM member WHERE id=$1",[id])).rows[0];if(member?.status!=='active')return;
   if(kind==='receipt'){await orderRewards(client,source,now);return;}
+  if(kind==='care_usage'){
+    const b=event.payload;
+    if(!validUsageDay(b?.careDay)||b.careDay!==pointDay(now)||typeof b.noteQualifies!=='boolean'||typeof b.policyVersion!=='string')throw new Error('CARE_USAGE_SOURCE_INVALID');
+    const policy=await pointPolicyByVersion(client,b.policyVersion);if(!policy)throw new Error('CARE_USAGE_POLICY_UNAVAILABLE');
+    await attendance(client,id,b.careDay,source,policy,now);
+    if(b.noteQualifies)await grantMemberPoints(client,{owner:id,sourceType:'care_day',sourceId:b.careDay,component:'note',amount:policy.rules.note,policy,now});
+    return;
+  }
   const policy=await activePointPolicy(client,now);if(!policy)return;
   if(kind==='care_cycle'){
     const r=(await client.query(`SELECT r.self_assessment,array_agg(s.step_code ORDER BY s.sequence) AS steps
@@ -222,7 +272,7 @@ async function applySource(client:DbClient,event:any){
   }else if(['post','featured','comment'].includes(kind))await contentReward(client,event,policy);
 }
 export async function processMemberPointSources(pool:pg.Pool,now=new Date(),limit=30){
-  const ids=(await pool.query<{id:string}>(`SELECT id FROM member_points_source_event WHERE state='pending' AND next_attempt_at<=$1 ORDER BY id LIMIT $2`,[now,limit])).rows;
+  const ids=(await pool.query<{id:string}>(`SELECT id FROM member_points_source_event WHERE state='pending' AND next_attempt_at<=$1 ORDER BY occurred_at,id LIMIT $2`,[now,limit])).rows;
   let processed=0;
   for(const {id} of ids){
     try{await transaction(pool,async c=>{
@@ -247,7 +297,7 @@ export async function saveMemberUsage(c:DbClient,config:AppConfig,memberId:strin
       const priorCommand=(await c.query('SELECT action,request_sha256 FROM member_points_command WHERE member_id=$1 AND operation_id=$2',[id,key])).rows[0];
       if(priorCommand&&(priorCommand.action!=='checkin'||priorCommand.request_sha256!==requestHash))fail('IDEMPOTENCY_CONFLICT','本次操作编号已用于其他内容',409);
       const replay=(await c.query(`SELECT m.*,r.care_day::text FROM member_points_command m JOIN member_points_checkin r ON r.id=m.source_id WHERE m.member_id=$1 AND m.operation_id=$2`,[id,key])).rows[0];
-      if(replay){if(replay.request_sha256!==requestHash||replay.action!=='checkin')fail('IDEMPOTENCY_CONFLICT','本次操作编号已用于其他内容',409);return {recordId:replay.source_id,operationId:key,replayed:true,careDay:replay.care_day};}
+      if(replay){if(replay.request_sha256!==requestHash||replay.action!=='checkin')fail('IDEMPOTENCY_CONFLICT','本次操作编号已用于其他内容',409);return {recordId:replay.source_id,operationId:key,replayed:true,careDay:replay.care_day,rewards:(await careDayRewards(c,id,[replay.care_day])).get(replay.care_day)!};}
       const day=pointDay(now);if(b.serverDay!==day)fail('POINTS_DAY_CHANGED','日期已更新，请重新加载后打卡',409);
       const policy=await activePointPolicy(c,now);
       const old=(await c.query(`SELECT * FROM member_points_checkin WHERE member_id=$1 AND care_day=$2 FOR UPDATE`,[id,day])).rows[0];
@@ -258,10 +308,19 @@ export async function saveMemberUsage(c:DbClient,config:AppConfig,memberId:strin
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10) ON CONFLICT(member_id,care_day) DO UPDATE SET products=$4,note_encrypted=$5,key_version=$6,
           note_qualifies=$7,operation_id=$8,request_sha256=$9,version=member_points_checkin.version+1,updated_at=$10 RETURNING *`,
         [recordId,id,day,products,encrypted,encrypted?config.contacts.keyVersion:null,noteQualifies,key,requestHash,now])).rows[0];
-      const streak=policy?await attendance(c,id,day,recordId,policy,now):await streakFor(c,id,day);
-      if(noteQualifies&&policy)await grantMemberPoints(c,{owner:id,sourceType:'care_day',sourceId:day,component:'note',amount:policy.rules.note,policy,now});
+      if(policy){
+        // The private record and its minimal entitlement survive a reward stop.
+        // No plaintext note or product preference enters the financial queue.
+        await c.query(`INSERT INTO member_points_attendance(member_id,care_day,first_source,qualified_at)
+          VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[id,day,recordId,now]);
+        const event=(await c.query(`INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at,payload,next_attempt_at)
+          VALUES('care_usage',$1,$2,$3,$4,$3) RETURNING *`,[`${recordId}:v${row.version}`,id,now,{careDay:day,noteQualifies,policyVersion:policy.version}])).rows[0];
+        const enabled=(await c.query("SELECT enabled FROM emergency_switch WHERE key='rewards' FOR SHARE")).rows[0]?.enabled===true;
+        if(enabled){await applySource(c,event);await c.query("UPDATE member_points_source_event SET state='applied',processed_at=$2,attempts=1 WHERE id=$1",[event.id,now]);}
+      }
+      const streak=await streakFor(c,id,day);
       await c.query(`INSERT INTO member_points_command(member_id,operation_id,action,source_id,request_sha256,created_at) VALUES($1,$2,'checkin',$3,$4,$5)`,[id,key,recordId,requestHash,now]);
-      return {recordId:row.id,operationId:key,replayed:false,careDay:day,version:row.version,streak};
+      return {recordId:row.id,operationId:key,replayed:false,careDay:day,version:row.version,streak,rewards:(await careDayRewards(c,id,[day])).get(day)!};
 }
 
 export function privateUsageDigest(config:AppConfig,memberId:string,input:unknown){

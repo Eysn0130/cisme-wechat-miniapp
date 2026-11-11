@@ -98,7 +98,7 @@ describe("mini program submission flow safety", () => {
     expect(home).toContain("care: null, view: homeView(null, homeDisplayName(this)), authorityAvailable: false");
     expect(home).toContain("onUnload() { cancelPageReads(this); this.data.pageAlive = false");
     expect(home).toContain("const refreshed = await this.load(true)");
-    expect(homeView).toContain('disabled="{{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable}}"');
+    expect(homeView).toContain('disabled="{{loading || working || activationConfirming || sessionMounted || onboardingOpen || (!authorityAvailable && !needsAuthentication) || !view.actionable}}"');
     expect(records).toContain("care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary");
     expect(records).toContain("onUnload() { this.onHide(); this.data.pageAlive = false");
     expect(records).toContain("if (!current()) return");
@@ -351,7 +351,8 @@ describe("mini program submission flow safety", () => {
     const pointsStyle = await source("apps/miniprogram/pages/points/index.wxss");
 
     expect(home).toContain('displayName.length > 24 ? "care-greeting--very-long"');
-    expect(homeView).toContain("care-greeting {{view.greetingClass}}");
+    expect(homeView).toContain('class="centered-title"');
+    expect(homeView).not.toContain("{{view.greeting}}");
     expect(homeStyle).toContain(".care-greeting--very-long");
     expect(profile).toContain('String(points.projection.available).length >= 8 ? "pass-stat__value--compact"');
     expect(profileStyle).toContain(".member-card__balance.pass-stat__value--compact");
@@ -368,7 +369,7 @@ describe("mini program submission flow safety", () => {
     const communityView = await source("apps/miniprogram/pages/community/index.wxml");
 
     expect(homeView).toContain('disabled="{{accountOpening || sessionMounted || onboardingOpen}}" aria-hidden="{{sessionMounted || onboardingOpen}}"');
-    expect(homeView).toContain('class="care-console" aria-hidden="{{sessionMounted || onboardingOpen}}"');
+    expect(homeView).toContain('class="care-console care-console--centered" aria-hidden="{{sessionMounted || onboardingOpen}}"');
     expect(homeView).toContain('aria-role="dialog" aria-modal="true"');
     expect(communityView).toContain('aria-role="tablist" aria-label="社区内容分类"');
     expect(communityView.match(/aria-role="tab"/g)).toHaveLength(4);

@@ -8,7 +8,7 @@ import { registerIncomingShare } from "../../services/share";
 import { careDaypart, careGreeting, careProtocolSteps, careSelfAssessments, type CareProtocolStepView, type CareSelfAssessmentValue } from "../../services/care-protocol";
 import { careHomeSchedule } from "../../services/care-home-state";
 import { saveDailyCareRecord, dailyCarePath, readDailyCareRecords, dailyCareCommandConfirmed, isDailyCarePath, type DailyCareInput, type DailyCareRecord, type DailyCarePage } from "../../services/daily-care";
-import { careProducts, careUsagePath, readCareUsage, saveCareUsage, careUsageConfirmed, type CareProduct, type CareUsageInput, type CareUsageOverview, type TodayUsage } from "../../services/care-usage";
+import { careProducts, careUsagePath, readCareUsage, saveCareUsage, careUsageConfirmed, careRewardLabel, type CareDayRewards, type CareProduct, type CareUsageInput, type CareUsageOverview, type TodayUsage } from "../../services/care-usage";
 import { clientOperationKey } from "../../services/orders";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 
@@ -132,6 +132,9 @@ Page({
   data: {
     onboardingRequired:false,onboardingOpen:false,
     usageReady: false, usageLoading: false, usageToday: null as TodayUsage | null, usageAttempt: 0, usageDay: "",
+    usageStreak: 0, usageRewards: null as CareDayRewards | null,
+    centerDate: "护理状态同步中", centerTitle: "今日护理", centerAction: "记录今日护理",
+    centerCopy: ["选择今天实际用过的产品", "留下一点护理感受"], centerProducts: careProducts.map(p=>({...p})), rewardLabel: "",
     dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null as DailyCareRecord | null, dailyAttempt: 0,
     chromeStyle: currentChromeStyle(), accountOpening: false, supportUnread: null as number | null, supportState: "unknown" as "unknown" | "loading" | "ready" | "error", care: null as CareView | null, view: homeView(null), selectedProtocolIndex: 0,
     loading: true, working: false, activationConfirming: false, authorityAvailable: false, needsAuthentication: false,
@@ -141,10 +144,22 @@ Page({
   },
   onLoad(query: Record<string, string | undefined>) { this.data.pageAlive = true; void registerIncomingShare(query.share_id, "invite", "home"); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
+  syncCenteredHome() {
+    const {care,usageDay,usageToday,usageReady,needsAuthentication,view}=this.data;
+    let date="护理状态同步中";
+    if(needsAuthentication)date="欢迎来到 CISME";
+    else if(usageDay){const d=new Date(usageDay+'T00:00:00Z');date=`${Number(usageDay.slice(5,7))} 月 ${Number(usageDay.slice(8,10))} 日 · 星期${['日','一','二','三','四','五','六'][d.getUTCDay()]}`;}
+    const due=care?.phase==='active'&&care.due;
+    this.setData({centerDate:date,centerTitle:due?`${care!.due} 阶段护理`:'今日护理',
+      centerAction:needsAuthentication?'授权身份并开始':care?.phase==='planned'?view.action:due?'开始本期护理':!usageReady?view.action:usageToday?'调整今日记录':'记录今日护理',
+      centerCopy:needsAuthentication?['记录真实使用，回看护理感受']:care?.phase==='planned'?['开始日由你决定','确认后，今天将作为 D1']:due?['完成本期护理步骤','留下这一阶段的真实感受']:usageToday?['今天用过的产品与感受','已为你保存']:['选择今天实际用过的产品','留下一点护理感受'],
+      centerProducts:careProducts.filter(p=>!usageToday||usageToday.products.includes(p.id)).map(p=>({...p})),
+      rewardLabel:usageToday?careRewardLabel(this.data.usageRewards):''});
+  },
   syncDailyHomeView() {
-    if (this.data.needsAuthentication || !this.data.authorityAvailable) return;
+    if (this.data.needsAuthentication || !this.data.authorityAvailable) {this.syncCenteredHome();return;}
     const care = this.data.care;
-    if (care?.phase === "planned") return;
+    if (care?.phase === "planned") {this.syncCenteredHome();return;}
     const projection = dailyHomeProjection(this.data);
     const legacyToday = this.data.dailyToday?.careDay === this.data.usageDay || !!care && careHomeSchedule(care, new Date()).completedToday;
     if (!this.data.usageToday && this.data.usageReady && legacyToday) {
@@ -156,6 +171,7 @@ Page({
     this.setData({ view: { ...this.data.view, ...projection,
       ...(care?.phase === "active" && care.due ? { action: "开始今日护理", actionable: this.data.usageReady && !this.data.usageLoading,
         ...(!this.data.usageToday && !legacyToday ? { signalTitle: this.data.view.signalTitle, signalMeta: this.data.view.signalMeta } : {}) } : {}) } });
+    this.syncCenteredHome();
   },
   async loadUsage(loadAttempt?: number, token = getApp<IAppOption>().globalData.sessionToken): Promise<CareUsageOverview | null> {
     const attempt = loadAttempt ?? this.data.loadAttempt;
@@ -165,7 +181,7 @@ Page({
     try {
       const result = await readCareUsage(this);
       if (!current()) return null;
-      this.setData({ usageReady: true, usageLoading: false, usageDay: result.serverDay, usageToday: result.today }); this.syncDailyHomeView();
+      this.setData({ usageReady: true, usageLoading: false, usageDay: result.serverDay, usageToday: result.today, usageStreak: result.streak, usageRewards: result.todayRewards }); this.syncDailyHomeView();
       return result;
     } catch {
       if (current()) { this.setData({ usageReady: false, usageLoading: false }); this.syncDailyHomeView(); }
@@ -238,6 +254,7 @@ Page({
     if (!this.data.pageAlive || this.data.loadAttempt !== attempt || getApp<IAppOption>().globalData.sessionToken) return;
     homeMemberNames.delete(this);
     this.setData({ care: null, snapshotVersion: 0, supportUnread: null, supportState: "unknown", view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "",onboardingRequired:false,onboardingOpen:false });
+    this.syncCenteredHome();
     this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
   },
   async loadSupport(attempt: number, token: string) {
@@ -269,7 +286,7 @@ Page({
       wx.disableAlertBeforeUnload();
       this.getTabBar?.()?.setPresentation?.("care-sheet", false);
       this.finishCareSessionClose();
-      this.setData({ snapshotVersion: 0, usageReady: false, usageLoading: false, usageToday: null, usageDay: "", dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null,onboardingRequired:false,onboardingOpen:false });
+      this.setData({ snapshotVersion: 0, usageReady: false, usageLoading: false, usageToday: null, usageDay: "", usageStreak:0,usageRewards:null,rewardLabel:"", dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null,onboardingRequired:false,onboardingOpen:false });
       this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
     }
     if (!preserveSnapshot) this.setData({ usageReady: false, usageToday: null, usageDay: "", dailyReady: false, dailyToday: null, serverDay: "" });

@@ -2,30 +2,25 @@
 <view class="home-page {{reducedMotion ? 'home-page--reduced' : ''}}" style="{{chromeStyle}}">
   <button class="home-support {{accountOpening || sessionMounted || onboardingOpen ? 'control--disabled' : ''}}" bindtap="openSupport" disabled="{{accountOpening || sessionMounted || onboardingOpen}}" aria-hidden="{{sessionMounted || onboardingOpen}}" aria-label="打开 CISME 客服{{supportState === 'ready' ? (supportUnread ? '，有 ' + supportUnread + ' 条未读消息' : '，没有未读消息') : supportState === 'error' ? '，未读数量暂未确认' : '，未读数量同步中'}}"><image src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><text wx:if="{{supportUnread}}" class="home-support__badge">{{supportUnread > 99 ? '99+' : supportUnread}}</text></button>
   <image class="home-background" src="/assets/cisme/cisme-home-background-v1.jpg" mode="aspectFill" />
-  <view class="care-console" aria-hidden="{{sessionMounted || onboardingOpen}}">
+  <view class="care-console care-console--centered" aria-hidden="{{sessionMounted || onboardingOpen}}">
     <view class="brand-wordmark">CISME</view>
     <block wx:if="{{authorityAvailable || needsAuthentication}}">
-      <view class="care-greeting {{view.greetingClass}}" aria-label="{{view.greeting}}">{{view.greeting}}</view>
-      <view class="today-marker"><view class="today-marker__line"></view><text>{{view.schedule}}</text><view class="today-marker__line"></view></view>
-      <view class="protocol-title" aria-label="{{view.protocolAria}}">
-        <view class="protocol-icon"><image class="protocol-icon__asset" src="/assets/icons/spray-bottle-plum.svg" mode="aspectFit" /></view>
-        <view class="protocol-title__copy"><view><text class="protocol-number">{{view.protocolCode}}</text><text> {{view.protocolLabel}}</text></view><text class="protocol-title__hint">{{view.protocolHint}}</text></view>
+      <view class="centered-date">{{centerDate}}</view>
+      <view class="centered-title">{{centerTitle}}</view>
+      <view class="centered-copy"><text wx:for="{{centerCopy}}" wx:key="*this">{{item}}</text></view>
+      <view class="centered-products" aria-label="{{usageToday ? '今天实际用过的产品' : '可记录的护理产品'}}">
+        <view wx:for="{{centerProducts}}" wx:key="id" class="centered-product {{index > 0 ? 'centered-product--divided' : ''}}"><image src="/assets/icons/drop-active.svg" mode="aspectFit" aria-hidden="true"/><text>{{item.label}}</text></view>
       </view>
-      <button class="care-cta {{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{loading || working || activationConfirming || (!authorityAvailable && !needsAuthentication) || !view.actionable}}" bindtap="primaryAction"><view class="care-cta__highlight"></view><text class="care-cta__label">{{working ? '正在提交…' : mutationState === 'unknown' ? '重试操作' : view.action}}</text></button>
-      <view class="protocol-rail" aria-label="四段护理步骤">
-        <view class="protocol-line"><view class="protocol-line__fill" style="{{view.progressStyle}}"></view></view>
-        <button wx:for="{{view.steps}}" wx:key="code" class="protocol-step {{item.done ? 'is-done' : ''}} {{item.active ? 'is-active' : ''}} {{item.justDone ? 'is-just-done' : ''}}" data-index="{{index}}" bindtap="selectProtocolStep" aria-label="{{item.code}} {{item.label}}，{{item.done ? '已完成' : item.active ? '当前查看' : '点击查看'}}">
-          <text class="step-code">{{item.code}}</text><text class="step-label">{{item.label}}</text><view class="step-state"><image wx:if="{{item.done}}" class="step-state__icon" src="/assets/icons/check-white.svg" mode="aspectFit"/><image wx:elif="{{item.active}}" class="step-state__icon" src="/assets/icons/drop-active.svg" mode="aspectFit"/></view>
-        </button>
-      </view>
+      <button class="care-cta {{loading || working || activationConfirming || sessionMounted || onboardingOpen || (!authorityAvailable && !needsAuthentication) || !view.actionable ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{loading || working || activationConfirming || sessionMounted || onboardingOpen || (!authorityAvailable && !needsAuthentication) || !view.actionable}}" bindtap="primaryAction" hover-class="care-cta--pressed"><text class="care-cta__label">{{working ? '正在提交…' : mutationState === 'unknown' ? '重试操作' : centerAction}}</text></button>
+      <view wx:if="{{usageReady && !needsAuthentication}}" class="centered-continuity" aria-live="polite"><text wx:if="{{rewardLabel}}" class="centered-reward">{{rewardLabel}}</text><text>已连续记录 <text class="centered-continuity__number">{{usageStreak}}</text> 天</text></view>
     </block>
     <view wx:elif="{{loading}}" class="home-authority-state" aria-live="polite">正在加载护理安排…</view>
     <view wx:else class="home-authority-state" aria-live="assertive">护理状态暂不可用，请重试。</view>
-    <view class="care-signal" aria-live="polite">
-      <image class="care-signal__icon" src="{{view.signalIcon}}" mode="aspectFit" aria-hidden="true"/>
-      <view class="care-signal__copy"><strong class="care-signal__title">{{authorityAvailable || needsAuthentication ? view.signalTitle : loading ? '护理安排同步中' : '护理安排暂未更新'}}</strong><text class="care-signal__meta">{{authorityAvailable || needsAuthentication ? view.signalMeta : '可从详情回看已保存的护理记录'}}</text></view>
-      <button class="care-signal__details {{accountOpening || sessionMounted || onboardingOpen ? 'control--disabled' : ''}}" bindtap="openRecords" disabled="{{accountOpening || sessionMounted || onboardingOpen}}" hover-class="care-signal__details--pressed" aria-label="{{needsAuthentication ? '登录后查看护理记录' : '查看护理记录详情'}}"><text>详情</text><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit" aria-hidden="true"/></button>
-    </view>
+  </view>
+  <view class="care-signal care-signal--centered" aria-hidden="{{sessionMounted || onboardingOpen}}" aria-live="polite">
+    <image class="care-signal__icon" src="{{view.signalIcon}}" mode="aspectFit" aria-hidden="true"/>
+    <view class="care-signal__copy"><strong class="care-signal__title">{{needsAuthentication ? '你的护理记录' : usageReady ? (usageToday ? '今日的护理已记录' : '今天还没有护理记录') : loading ? '护理记录同步中' : '今日记录暂未确认'}}</strong><text class="care-signal__meta">{{needsAuthentication ? '登录后，为你保存' : usageReady ? (usageToday ? '用过的产品与感受，都已保存' : '往日的护理，都为你保存') : '可从详情回看已保存的记录'}}</text></view>
+    <button class="care-signal__details {{accountOpening || sessionMounted || onboardingOpen ? 'control--disabled' : ''}}" bindtap="openRecords" disabled="{{accountOpening || sessionMounted || onboardingOpen}}" hover-class="care-signal__details--pressed" aria-label="{{needsAuthentication ? '登录后查看护理记录' : '查看护理记录详情'}}"><text>详情</text><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit" aria-hidden="true"/></button>
   </view>
   <view wx:if="{{error && !sessionMounted}}" class="home-error" aria-live="assertive"><text class="home-error__copy">{{error}}</text><button class="text-button" bindtap="retryLoad">刷新状态</button><button wx:if="{{mutationState === 'unknown'}}" class="text-button {{working || loading ? 'control--disabled' : ''}}" bindtap="retryCareMutation" disabled="{{working || loading}}">重试操作</button></view>
 

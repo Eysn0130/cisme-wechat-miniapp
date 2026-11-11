@@ -192,14 +192,14 @@ describe("native tab return presentation while real read paths revalidate", () =
     page.onHide(); page.onShow(); await flush();
     expect(page.data).toMatchObject({ loading: true, usageLoading: true, supportUnread: 2 });
     expect(rendered.querySelector(".care-signal").dom).toBe(signal);
-    expect(signal.textContent).toContain("今天的护理已记录");
+    expect(signal.textContent).toContain("今日的护理已记录");
     expect(signal.textContent).not.toMatch(/加载|读取/);
     await page.primaryAction(); expect(page.data.sessionMounted).toBe(false);
     samples.length = 0;
     core.resolve(replies.get("/v1/bootstrap/home")); await flush();
     expect(samples.join("\n")).not.toMatch(/从四步护理开始|正在读取|正在加载/);
     daily.resolve({serverDay:"2026-11-03",today:null,enabled:true,streak:0}); await flush();
-    expect(signal.textContent).toContain("今天还未记录");
+    expect(signal.textContent).toContain("今天还没有护理记录");
     expect(m.request.mock.calls.filter(([options]) => options.method && options.method !== "GET")).toEqual([]);
   });
 
@@ -306,7 +306,7 @@ describe("native tab return presentation while real read paths revalidate", () =
   });
 
   it("retains the Records count and list during refresh and replaces them with new confirmed facts", async () => {
-    const { page, rendered } = await mount("records"); await page.load(); await flush();
+    const { page, rendered } = await mount("records"); await page.load(); await flush(); page.toggleLegacy(); await flush();
     const row = rendered.querySelector(".record-row").dom;
     const daily = later(); held.set("/v1/me/daily-care-records?limit=20", daily);
     page.onHide(); page.onShow(); await flush();
@@ -320,7 +320,7 @@ describe("native tab return presentation while real read paths revalidate", () =
 
   it("retains a confirmed empty Records card while rechecking instead of replacing it with a loading list", async () => {
     replies.set("/v1/me/daily-care-records?limit=20", dailyPage([]));
-    const { page, rendered } = await mount("records"); await page.load(); await flush();
+    const { page, rendered } = await mount("records"); await page.load(); await flush(); page.toggleLegacy(); await flush();
     const empty = rendered.querySelector(".records-empty").dom;
     const daily = later(); held.set("/v1/me/daily-care-records?limit=20", daily);
     page.onHide(); page.onShow(); await flush();
@@ -446,7 +446,7 @@ describe("native tab return presentation while real read paths revalidate", () =
   });
 
   it("keeps the selected empty care-day row in place while revalidating its coverage", async () => {
-    const { page, rendered } = await mount("records"); await page.load(); await flush();
+    const { page, rendered } = await mount("records"); await page.load(); await flush(); page.toggleLegacy(); await flush();
     page.selectCalendarDay({ currentTarget: { dataset: { day: "2026-11-02" } } });
     const empty = rendered.querySelector(".review-calendar-empty").dom;
     const pending = later(); held.set("/v1/me/daily-care-records?limit=20", pending);

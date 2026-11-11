@@ -1,0 +1,15 @@
+{
+  "auditKind": "read-only dependency check; no phone code exchange",
+  "environmentFiles": 6,
+  "phoneFlag": "false",
+  "appConfigured": true,
+  "encryptionConfigured": true,
+  "hashConfigured": true,
+  "providerTokenReady": true,
+  "providerTokenError": 0,
+  "providerPhoneQuota": {
+    "errcode": 0,
+    "dailyLimit": 5000000,
+    "remaining": 5000000
+  }
+}

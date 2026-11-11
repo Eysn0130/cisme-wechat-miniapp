@@ -13,7 +13,7 @@
     <button wx:if="{{!loading && !error && nextCursor}}" class="text-button {{loadingMore ? 'control--disabled' : ''}}" bindtap="loadMore" disabled="{{loadingMore}}" loading="{{loadingMore}}">加载更多成员</button>
     <view wx:if="{{moreError}}" class="state state--error" aria-live="assertive">{{moreError}}</view>
     <view wx:if="{{reviewError}}" class="state state--error" aria-live="assertive">{{reviewError}}</view>
-    <view class="members-note">订单与推荐金额用于核对当前记录。支付、佣金结算和提现暂未开放。</view>
+    <view class="members-note">订单、推荐与佣金以实际支付、收货及退款记录为准。</view>
   </view>
   <block wx:if="{{globalRateFormVisible && globalRate}}"><view class="global-rate-backdrop" bindtap="closeGlobalRateForm" aria-label="关闭全局费率表单"></view><view class="global-rate-sheet" aria-role="dialog" aria-label="全局费率提议">
     <view class="global-rate-heading"><text>全局费率提议</text><button bindtap="closeGlobalRateForm">关闭</button></view>

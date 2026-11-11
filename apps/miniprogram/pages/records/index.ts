@@ -1,4 +1,5 @@
-import { readCareUsageHistory, careProducts, type CareUsageRecord } from '../../services/care-usage';
+import { readCareUsageHistory, readCareUsageCalendar } from '../../services/care-usage';
+import {usageRecordView,usageDayLabel,usageWeekFrom,usageWeekDays,type CareUsageRow} from '../../services/care-usage-view';
 import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
@@ -38,6 +39,7 @@ const rowGestures = new WeakMap<object, RowGesture>();
 const pageScrollPositions = new WeakMap<object, number>();
 const calendarReads = new WeakMap<object, { token: string; revision: number; attempt: number; coverage: CalendarCoverage }>();
 const calendarTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
+const usageTimers = new WeakMap<object, ReturnType<typeof setTimeout>>();
 const calendarMidnightChecked = new WeakMap<object, string>();
 const dailyActionWidth = 72;
 const dailyGestureThreshold = 12;
@@ -243,7 +245,10 @@ Page({
   lastSessionToken: undefined as string | undefined,
   lastSessionRevision: 0,
   data: {
-    usageRecords: [] as Array<CareUsageRecord & { productLabel: string }>, usageTotal: 0, usageReady: false, usageLoading: false, usageError: "", usageBefore: null as string | null, usageAttempt: 0,
+    usageRecords: [] as CareUsageRow[], usageTotal: 0, usageReady: false, usageLoading: false, usageError: "", usageBefore: null as string | null, usageAttempt: 0,
+    usageServerDay:'',usageStreak:null as number|null,usageSelectedDay:'',usageSelectedLabel:'',usageVisibleRows:[] as CareUsageRow[],
+    usageDays:[] as ReturnType<typeof usageWeekDays>,usageCalendarLoading:false,usageCalendarError:'',usageDateLoading:false,usageDateError:'',usageDateAttempt:0,
+    usageDetail:null as CareUsageRow|null,legacyOpen:false,
     openDailyKey: "", draggingDailyKey: "", dailyMutationState: "idle" as "idle" | "sending" | "unknown", dailyMutationError: "", confirmingDailyDelete: false, undoAvailable: false,
     ...emptyDaily, dailyAttempt: 0, loadedRecordCount: 0, loadedRecordCountClass: "",
     care: null as any,
@@ -288,6 +293,7 @@ Page({
         working: false, workingAction: "", confirmingCycleAction: false, writeReady: false,
         authorityAvailable: false, accessRequired: !token, operationStatus: "", error: "", lastSyncedLabel: "",
         usageRecords: [], usageTotal: 0, usageReady: false, usageLoading: false, usageError: "", usageBefore: null,
+        usageServerDay:'',usageStreak:null,usageSelectedDay:'',usageSelectedLabel:'',usageVisibleRows:[],usageDays:[],usageCalendarLoading:false,usageCalendarError:'',usageDateLoading:false,usageDateError:'',usageDetail:null,legacyOpen:false,
         ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "", dailyMutationState: "idle", dailyMutationError: "", confirmingDailyDelete: false, undoAvailable: false, openDailyKey: "", draggingDailyKey: "" });
       this.getTabBar?.()?.setData({ externalBusy: false }); wx.disableAlertBeforeUnload();
     }
@@ -314,6 +320,9 @@ Page({
     void this.load(retainMemberSnapshot(this));
   },
   onHide() {
+    this.stopUsageRefresh();
+    this.data.usageAttempt++;this.data.usageDateAttempt++;
+    this.setData({usageLoading:false,usageDateLoading:false,usageCalendarLoading:false,usageDetail:null});
     this.stopCalendarRefresh();
     dailyDeleteConfirmations.delete(this);
     rowGestures.delete(this);
@@ -388,33 +397,93 @@ Page({
     if (!isAuthenticationFailure(error) || !this.data.pageAlive || !this.data.visible
       || (daily ? this.data.dailyAttempt : this.data.loadAttempt) !== attempt
       || (!this.sameSession(token, revision) && currentToken !== "")) return false;
-    this.syncSession(); this.stopCalendarRefresh(); calendarReads.delete(this);
+    this.syncSession(); this.stopCalendarRefresh(); this.stopUsageRefresh(); calendarReads.delete(this);
+    this.data.usageAttempt += 1; this.data.usageDateAttempt += 1;
     cancelPageReads(this); this.data.loadAttempt += 1; this.data.dailyAttempt += 1; this.dismissRecordDetailImmediately();
     this.setData({ care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], summary: emptySummary,
       selectedRecord: null, recordDetailOpen: false, authorityAvailable: false, writeReady: false, accessRequired: true,
-      loading: false, refreshing: false, error: "", ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "" });
+      loading: false, refreshing: false, error: "", ...emptyDaily, loadedRecordCount: 0, loadedRecordCountClass: "",
+      usageRecords:[],usageVisibleRows:[],usageDays:[],usageTotal:0,usageReady:false,usageLoading:false,usageError:'',usageBefore:null,
+      usageServerDay:'',usageStreak:null,usageSelectedDay:'',usageSelectedLabel:'',usageCalendarLoading:false,usageCalendarError:'',usageDateLoading:false,usageDateError:'',usageDetail:null,legacyOpen:false });
     return true;
   },
   async loadUsageRecords(more = false) {
-    if (!this.data.pageAlive || !this.data.visible || more && (this.data.usageLoading || !this.data.usageBefore)) return;
-    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = ++this.data.usageAttempt;
+    if (!this.data.pageAlive || !this.data.visible || more && (this.data.usageLoading || this.data.usageDateLoading || !this.data.usageBefore)) return;
+    const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision(), attempt = ++this.data.usageAttempt,loadAttempt=this.data.loadAttempt;
     if (!token) return;
     const current = () => this.sameSession(token, revision) && this.data.visible && this.data.usageAttempt === attempt;
     const before = more ? this.data.usageBefore : null;
+    if (!more) this.data.usageDateAttempt += 1;
     this.setData({ usageLoading: true, usageError: "" });
     try {
       const result = await readCareUsageHistory(this, before);
       if (!current()) return;
-      const rows = result.items.map(row => ({ ...row, productLabel: careProducts.filter(p => row.products.includes(p.id)).map(p => p.label).join('、') }));
+      const serverDay=result.serverDay??this.data.usageServerDay;
+      const rows = result.items.map(row => usageRecordView(row,serverDay));
       const ids = new Set(more ? this.data.usageRecords.map(row => row.id) : []);
       this.setData({ usageRecords: more ? this.data.usageRecords.concat(rows.filter(row => !ids.has(row.id))) : rows,
-        usageTotal: result.totalCount, usageReady: true, usageBefore: result.nextBefore });
-    } catch {
+        usageTotal: result.totalCount, usageReady: true, usageBefore: result.nextBefore,usageServerDay:serverDay,usageStreak:result.streak??null });
+      if(!more&&serverDay){
+        const selected=this.data.usageSelectedDay||serverDay;
+        this.setData({usageSelectedDay:selected,usageSelectedLabel:usageDayLabel(selected),usageVisibleRows:rows.filter(row=>row.careDay===selected),usageDateError:'',usageDateLoading:selected!==serverDay,
+          ...(this.data.usageDetail?{usageDetail:usageRecordView(this.data.usageDetail,serverDay)}:{})});
+        await this.refreshUsageCalendar(attempt,token,revision);
+        if(current()&&selected!==serverDay&&this.data.usageSelectedDay===selected)await this.chooseUsageDay(selected);
+        if(current())this.scheduleUsageRefresh(token,revision,serverDay);
+      }
+    } catch(error) {
+      if(this.recordReadAuthenticationFailed(error,token,revision,loadAttempt))return;
       if (current()) this.setData({ usageError: "每日产品记录暂未更新，请重试。" });
     } finally { if (current()) this.setData({ usageLoading: false }); }
   },
   retryUsageRecords() { void this.loadUsageRecords(); },
   moreUsageRecords() { void this.loadUsageRecords(true); },
+  stopUsageRefresh(){const timer=usageTimers.get(this);if(timer)clearTimeout(timer);usageTimers.delete(this);},
+  scheduleUsageRefresh(token:string,revision:number,day:string){
+    this.stopUsageRefresh();const delay=calendarMidnightDelay(day,Date.now());if(delay===null)return;
+    usageTimers.set(this,setTimeout(()=>{usageTimers.delete(this);if(this.data.visible&&this.sameSession(token,revision)&&this.data.usageServerDay===day)void this.loadUsageRecords();},delay));
+  },
+  async refreshUsageCalendar(attempt:number,token:string,revision:number) {
+    const day=this.data.usageServerDay,loadAttempt=this.data.loadAttempt;if(!day||!token)return;
+    const current=()=>this.sameSession(token,revision)&&this.data.visible&&this.data.usageAttempt===attempt;
+    this.setData({usageCalendarLoading:true,usageCalendarError:''});
+    try{
+      const calendar=await readCareUsageCalendar(this,usageWeekFrom(day),day);
+      if(!current())return;
+      if(calendar.serverDay!==day)throw new Error('DAY_CHANGED');
+      this.setData({usageDays:usageWeekDays(day,calendar.recordedDays,this.data.usageSelectedDay)});
+    }catch(error){
+      if(this.recordReadAuthenticationFailed(error,token,revision,loadAttempt))return;
+      if(current())this.setData({usageCalendarError:'日期记录暂未更新，请重新加载。'});
+    }
+    finally{if(current())this.setData({usageCalendarLoading:false});}
+  },
+  async chooseUsageDay(day:string) {
+    const token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
+    if(!token||!this.data.visible||!this.data.usageServerDay||!/^\d{4}-\d{2}-\d{2}$/.test(day)||day>this.data.usageServerDay)return;
+    const attempt=++this.data.usageDateAttempt,loadAttempt=this.data.loadAttempt,usageAttempt=this.data.usageAttempt;
+    const current=()=>this.sameSession(token,revision)&&this.data.visible&&this.data.usageDateAttempt===attempt&&this.data.usageAttempt===usageAttempt;
+    this.setData({usageSelectedDay:day,usageSelectedLabel:usageDayLabel(day),usageVisibleRows:[],usageDateLoading:true,usageDateError:'',usageDays:this.data.usageDays.map(d=>({...d,selected:d.day===day}))});
+    try{
+      const result=await readCareUsageHistory(this,null,day);if(!current())return;
+      if(result.serverDay&&result.serverDay!==this.data.usageServerDay){void this.loadUsageRecords();return;}
+      this.setData({usageVisibleRows:result.items.map(r=>usageRecordView(r,this.data.usageServerDay))});
+    }catch(error){if(this.recordReadAuthenticationFailed(error,token,revision,loadAttempt))return;if(current())this.setData({usageDateError:'这一天的记录暂未读取成功，请重试。'});}
+    finally{if(current())this.setData({usageDateLoading:false});}
+  },
+  selectUsageDay(event:WechatMiniprogram.TouchEvent){const day=this.data.usageDays.find(d=>d.day===event.currentTarget.dataset.day);if(day&&!this.data.usageCalendarLoading&&!this.data.usageCalendarError)void this.chooseUsageDay(day.day);},
+  pickUsageDate(event:WechatMiniprogram.PickerChange){void this.chooseUsageDay(String(event.detail.value));},
+  retryUsageDate(){void this.chooseUsageDay(this.data.usageSelectedDay);},
+  openUsageRecord(event:WechatMiniprogram.TouchEvent){
+    if(!this.data.visible||this.data.working||this.data.recordDetailMounted||this.data.usageDateLoading)return;
+    const row=this.data.usageVisibleRows.find(r=>r.id===event.currentTarget.dataset.id);
+    if(!row||this.lastSessionToken===undefined||!this.sameSession(this.lastSessionToken,this.lastSessionRevision))return;
+    this.setData({usageDetail:row});this.getTabBar?.()?.setPresentation?.('record-detail',true);
+  },
+  closeUsageDetail(){this.setData({usageDetail:null});this.getTabBar?.()?.setPresentation?.('record-detail',false);},
+  openUsagePoints(){this.closeUsageDetail();wx.navigateTo({url:'/pages/points/index'});},
+  adjustUsageToday(){if(!this.data.usageDetail?.canAdjust)return;this.closeUsageDetail();this.goHome();},
+  toggleLegacy(){if(!this.data.working&&!this.data.recordDetailMounted&&!this.data.usageDetail)this.setData({legacyOpen:!this.data.legacyOpen});},
   async loadDailyRecords(more = false) {
     if (!this.data.pageAlive || !this.data.visible || this.data.dailyLoading || (more && (!this.data.dailyHasMore || !this.data.dailyCursor))) return;
     const token = getApp<IAppOption>().globalData.sessionToken, revision = commerceContextRevision();
@@ -529,6 +598,7 @@ Page({
       this.data.dailyAttempt += 1;
       this.setDailyProjection({ calendarStale: true, dailyLoading: false, dailyCursor: null, dailyHasMore: false, dailyRetryAppend: false });
       void this.loadDailyRecords();
+      void this.loadUsageRecords();
     }, delay));
   },
   retryDailyRecords() { void this.loadDailyRecords(this.data.dailyRetryAppend); },
@@ -725,6 +795,7 @@ Page({
     if (this.data.pageAlive) this.setData({ selectedRecord: null, recordDetailMounted: false, recordDetailOpen: false, recordDetailVisible: false, recordDetailClosing: false });
   },
   dismissRecordDetailImmediately() {
+    if(this.data.usageDetail)this.setData({usageDetail:null});
     this.clearRecordDetailCloseTimer();
     this.getTabBar?.()?.setPresentation?.("record-detail", false);
     if (this.data.recordDetailMounted || this.data.recordDetailOpen || this.data.selectedRecord) this.setData({ selectedRecord: null, recordDetailMounted: false, recordDetailOpen: false, recordDetailVisible: false, recordDetailClosing: false });
