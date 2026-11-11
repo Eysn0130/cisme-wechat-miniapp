@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "53beb67e565add10790933a2d4d09ea56e7892436d2ec2d16500ac0f11eeadc6",
+  "packageSourceSha256": "0417ae2f3e0de03198c97277f8b313b5570b87aaba8cb346b4ed6cdbbf8a1dde",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Centered product-use Care and date-based product records. Scoped native synthetic evidence is documented in docs/evidence/care-centered-release-20261111; it does not qualify all 41 routes or physical devices. Historical images retain original source and scope.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-cd3594173f3e.json",
+  "note": "Owner retired the cycle/four-step history surface. Current Care records show product/date/note/source rewards only. Scoped evidence: docs/evidence/care-legacy-history-retired-20261111. All-route and physical-device matrices remain blocked; historical captures keep their original hashes.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-53beb67e565a.json",
   "pendingSourceRebind": false
 }

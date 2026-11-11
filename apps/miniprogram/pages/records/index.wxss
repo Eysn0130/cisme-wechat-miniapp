@@ -37,7 +37,6 @@
 .usage-history-link { display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; min-height:80px; padding:16px 0; border:0; border-bottom:1rpx solid rgba(78,47,91,.12); border-radius:0; background:transparent; text-align:left; }
 .usage-history-link strong,.usage-history-link text { display:block; }.usage-history-link strong { color:#352a3a; font-size:.875rem; font-weight:500; line-height:1.6; }
 .usage-history-link text { margin-top:5px; color:#75697a; font-size:.75rem; line-height:1.6; }.usage-history-link image { flex:none; width:17px; height:17px; }
-.usage-legacy-toggle { margin-top:8px; }.usage-legacy { margin-top:20px; }
 .usage-detail__date { margin-top:20px; color:#352a3a; font-size:1.5rem; line-height:1.5; }
 .usage-detail__meta { display:block; margin-top:10px; color:#75697a; font-size:.75rem; line-height:1.8; overflow-wrap:anywhere; }
 .usage-detail__section { margin-top:24px; padding-top:20px; border-top:1rpx solid rgba(78,47,91,.12); }

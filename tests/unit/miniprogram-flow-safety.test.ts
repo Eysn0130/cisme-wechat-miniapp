@@ -103,8 +103,8 @@ describe("mini program submission flow safety", () => {
     expect(records).toContain("onUnload() { this.onHide(); this.data.pageAlive = false");
     expect(records).toContain("if (!current()) return");
     expect(records).toContain("return this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken && revision === commerceContextRevision()");
-    expect(recordsView).toContain("authorityAvailable && care");
-    expect(recordsView).toContain("authorityAvailable && !care");
+    expect(recordsView).toContain("usageReady && !accessRequired");
+    expect(recordsView).not.toContain("周期与四步历史");
   });
 
   it("keeps the last authoritative care view mounted while a mutation is being reconciled", async () => {
@@ -256,7 +256,7 @@ describe("mini program submission flow safety", () => {
     const settingsView = await source("apps/miniprogram/pages/settings/index.wxml");
 
     expect(accountView).toContain('aria-live="assertive" aria-atomic="true"');
-    expect(recordsView).toContain('class="records-operation-status" aria-live="polite"');
+    expect(recordsView).toContain('class="usage-stats"');
     expect(recordsView).toContain('id="records-error-summary"');
     expect(settingsView).toContain('class="settings-operation-status" aria-live="polite"');
   });
@@ -317,12 +317,12 @@ describe("mini program submission flow safety", () => {
     expect(points).toContain('this.token===getApp<IAppOption>().globalData.sessionToken');
   });
 
-  it("keeps care controls and progress recovery visually aligned with their busy predicates", async () => {
+  it("keeps current product-date controls aligned with their busy predicates", async () => {
     const records = await source("apps/miniprogram/pages/records/index.wxml");
-
-    expect(records.match(/loading="\{\{workingAction === '(?:pause|resume)'\}\}" disabled="\{\{!writeReady \|\| working \|\| confirmingCycleAction\}\}"/g)).toHaveLength(2);
-    expect(records.match(/\{\{!writeReady \|\| working \|\| confirmingCycleAction \? 'control--disabled' : ''\}\}/g)).toHaveLength(3);
-    expect(records.match(/\{\{working \|\| confirmingCycleAction \? 'control--disabled' : ''\}\}/g)).toHaveLength(3);
+    expect(records).toContain('disabled="{{usageDateLoading || usageLoading}}"');
+    expect(records).toContain('disabled="{{usageDateLoading || usageLoading || working}}"');
+    expect(records).not.toContain('bindtap="changeCycle"');
+    expect(records).not.toContain('bindtap="openRecordDetail"');
   });
 
   it("labels unavailable content and destructive consent actions without ambiguity", async () => {
