@@ -240,6 +240,8 @@ describe('Care product-use entry and atomic cycle completion',()=>{
   expect((await pool.query('SELECT step_code FROM care_record_step s JOIN care_record r ON r.id=s.record_id WHERE r.cycle_id=$1 ORDER BY sequence',[c.id])).rows.map(r=>r.step_code)).toEqual(['00','01','02','03']);
   expect((await get(a,'/v1/me/points/club')).json().today).toMatchObject({products:['essence','net_run'],operationId:`cycle-usage:${c.id}:D1:1`,version:1});expect((await invariant(a)).available).toBe(15);
   await processMemberPointSources(pool,base,100);expect((await invariant(a)).available).toBe(15);
+  const repeatedStage=await complete(a,c,{...body,expectedVersion:2,dailyUsage:{...usage(1),note:'不能把已完成阶段冒作新的产品保存'}});expect(repeatedStage.json().code).toBe('CARE_MILESTONE_ALREADY_RECORDED');
+  expect((await get(a,'/v1/me/points/club')).json().today.version).toBe(1);
   const adjusted=await checkin(a,base,randomUUID(),{...usage(1),products:['essence']});expect(adjusted.statusCode,adjusted.body).toBe(200);expect((await invariant(a)).available).toBe(15);
  });
  it('does not partially complete a cycle or pay points when selected products are stale or invalid',async()=>{

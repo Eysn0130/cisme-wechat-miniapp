@@ -403,6 +403,7 @@ export class PlatformService {
       if (cycle.version !== expectedVersion) throw new DomainError("VERSION_CONFLICT", "Care-cycle version changed", 409);
       const existing = await client.query("SELECT * FROM care_record WHERE cycle_id=$1 AND milestone=$2", [cycleId, milestone]);
       if (existing.rows[0]) {
+        if (input?.dailyUsage !== undefined) throw new DomainError("CARE_MILESTONE_ALREADY_RECORDED", "该阶段护理已记录，请返回护理页调整今日产品记录", 409);
         const response = { cycle: await this.cycleView(client, cycle, now), record: existing.rows[0], task: null };
         await this.idempotencySave(client, { ...idem, response });
         return response;

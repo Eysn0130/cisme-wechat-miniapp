@@ -180,6 +180,7 @@ describe('birthday belongs to registration and the canonical private account pro
     const removed=await app.inject({method:'PUT',url:'/v1/me/profile',headers:headers(a),payload:{displayName:'合成建档会员',expectedVersion:0,birthdayMonthDay:null}});expect(removed.statusCode,removed.body).toBe(200);
     expect((await get(a)).json().profile.birthdayMonthDay).toBeNull();
     const reset=await app.inject({method:'PUT',url:'/v1/me/points/birthday',headers:headers(a),payload:{monthDay:'02-29'}});expect(reset.json().code).toBe('POINTS_BIRTHDAY_LOCKED');
+    const ignored=await save(a,{...payload(1),birthdayMonthDay:'03-01'});expect(ignored.json().code).toBe('CARE_PROFILE_BIRTHDAY_IN_SETTINGS');
     const other=await actor();expect((await app.inject({url:'/v1/me/profile',headers:headers(other)})).json().birthday_month_day).toBeNull();
   });
 });

@@ -157,6 +157,7 @@ export class CareOnboardingService{
         return {profile:profile(this.config,row,(await readMemberBirthday(client,owner)).monthDay),operationId,replayed:true,current:row?.version===replay.applied_version,appliedVersion:replay.applied_version};
       }
       if((row?.version??0)!==body.expectedVersion)throw new DomainError('CARE_PROFILE_CHANGED','档案已在其他页面更新，请重新加载后核对',409);
+      if(row?.completed_at&&body.birthdayMonthDay!==undefined)throw new DomainError('CARE_PROFILE_BIRTHDAY_IN_SETTINGS','已完成建档，请在设置的个人资料中管理生日',409);
       const health=(body.consentChoice??row?.health_choice??'unasked') as CareHealthChoice;
       const answers=normalizeCareAnswers(body.answers,health,complete);
       const previousDraft=row&&!row.completed_at?openCarePayload(this.config,row).birthdayMonthDay:undefined;
