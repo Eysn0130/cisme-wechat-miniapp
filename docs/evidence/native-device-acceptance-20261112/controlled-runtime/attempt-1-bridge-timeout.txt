@@ -1,0 +1,39 @@
+503 recovered with two GETs, no layout shift
+reset recovered with two GETs, no layout shift
+node:internal/errors:985
+  const err = new Error(message);
+              ^
+
+Error: Command failed: wechatide -c Codex automation_evaluate --project /Users/mini/CISME/apps/miniprogram --fn-source function(){var __name=function(v){return v;};return (async function(){const q=getApp().__cismeResilienceQA,p=getCurrentPages().slice(-1)[0];q.start=q.requests.length;q.hold=false;q.faults=["hang"];const start=Date.now();await p.load();p.openCheckout();return{elapsedMs:Date.now()-start,loading:p.data.loading,error:p.data.error,navigating:p.data.navigating,catalogBound:p.data.item?.catalogBound,purchaseEnabled:p.data.item?.purchaseEnabled,requests:q.requests.slice(q.start)}}).apply(null,arguments);} --args-file /private/tmp/cisme-resilience-eval.json
+[wechatide] skill-call: client=Codex tool=automation_evaluate
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at ChildProcess.exithandler (node:child_process:417:12)
+    at ChildProcess.emit (node:events:508:28)
+    at maybeClose (node:internal/child_process:1100:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:305:5) {
+  code: 1,
+  killed: false,
+  signal: null,
+  cmd: 'wechatide -c Codex automation_evaluate --project /Users/mini/CISME/apps/miniprogram --fn-source function(){var __name=function(v){return v;};return (async function(){const q=getApp().__cismeResilienceQA,p=getCurrentPages().slice(-1)[0];q.start=q.requests.length;q.hold=false;q.faults=["hang"];const start=Date.now();await p.load();p.openCheckout();return{elapsedMs:Date.now()-start,loading:p.data.loading,error:p.data.error,navigating:p.data.navigating,catalogBound:p.data.item?.catalogBound,purchaseEnabled:p.data.item?.purchaseEnabled,requests:q.requests.slice(q.start)}}).apply(null,arguments);} --args-file /private/tmp/cisme-resilience-eval.json',
+  stdout: '{\n' +
+    '  "ok": false,\n' +
+    '  "errorType": "MCP_TOOL_ERROR",\n' +
+    '  "message": "timeout waiting for automator response",\n' +
+    '  "source": "mcp_business",\n' +
+    '  "detail": {\n' +
+    '    "rawResult": {\n' +
+    '      "success": false,\n' +
+    '      "error": "timeout waiting for automator response"\n' +
+    '    }\n' +
+    '  },\n' +
+    '  "reason": "mcp_business_fail",\n' +
+    '  "tool": "automation_evaluate",\n' +
+    '  "clientName": "Codex",\n' +
+    '  "suggestions": "查看该工具完整参数, wechatide -c Codex automation_evaluate -h"\n' +
+    '}\n',
+  stderr: '[wechatide] skill-call: client=Codex tool=automation_evaluate\n'
+}
+
+Node.js v24.14.0

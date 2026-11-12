@@ -1,0 +1,345 @@
+{
+  "sourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+  "baselineMain": "420375f18697c11b2dbac6abf5b18f82ad854f1b",
+  "baselineTrial": "0.1.43",
+  "physicalDeviceConnected": false,
+  "physicalResult": "unavailable_user_confirmed",
+  "routes": [
+    {
+      "route": "pages/account/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/home/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/shop/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/records/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/community/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/profile/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/task/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/submit/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/progress/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/points/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/post/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/product/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/checkout/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/orders/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/order-detail/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/settings/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/invite/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/legal/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/support/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-product/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-orders/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-support/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-members/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-member/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/referral/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/community-compose/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/community-post/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/community-author/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/community-review/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/community-activity/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-finance/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/commission/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/aftersale/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    },
+    {
+      "route": "pages/management-points/index",
+      "normal": "not_run_on_physical_device",
+      "weakNetwork": "not_run_on_physical_device",
+      "offlineRecovery": "not_run_on_physical_device",
+      "switchWhileLoading": "not_run_on_physical_device",
+      "evidence": []
+    }
+  ],
+  "coldLaunch": {
+    "uncachedPackage": "not_run",
+    "cachedPackageNewProcess": "not_run",
+    "warmResume": "not_run",
+    "warning": "wx.reLaunch and DevTools simulator refresh do not establish a physical cold launch."
+  },
+  "baselineSourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+  "candidateUnreleased": true
+}

@@ -250,7 +250,9 @@ const approvedRetryReads = new Set([
   "/v1/me/support/summary", "/v1/me/authority"
 ]);
 function retryDelayMs(error: unknown, options: RequestOptions): number | null {
-  if ((options.method ?? "GET") !== "GET" || !approvedRetryReads.has(options.path.split("?")[0]!)) return null;
+  const path = options.path.split("?")[0] ?? "";
+  const approved = approvedRetryReads.has(path) || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path);
+  if ((options.method ?? "GET") !== "GET" || !approved) return null;
   const problem = error as { status?: number; code?: string; retryAfterSeconds?: number } | null;
   if (problem?.status === 429) {
     const seconds = problem.retryAfterSeconds;

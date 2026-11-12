@@ -1,0 +1,18 @@
+{
+  "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+  "physicalDeviceVerified": false,
+  "status": "physical_device_unavailable_confirmed_by_user",
+  "initialOfficialRuntime": {
+    "platform": "devtools",
+    "model": "iPhone 12/13 (Pro)",
+    "SDKVersion": "3.15.2"
+  },
+  "lastAutomationProbe": "timeout waiting for automator response",
+  "lastObservedUI": "Canonical project fullMode, iOS QR code ready, LAN mode off, phone connection not confirmed.",
+  "codeChanges": [],
+  "newTrialUploadCalls": 0,
+  "note": "Physical tests remain pending. Independent controlled-runtime resilience checks and a minimal read-only retry repair proceed separately.",
+  "userResponse": "目前没有可连接的手机；暂时无法连接手机",
+  "waitingQrClosed": true,
+  "candidateSourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9"
+}

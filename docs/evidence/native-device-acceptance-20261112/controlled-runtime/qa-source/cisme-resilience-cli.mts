@@ -1,0 +1,4 @@
+import{execFile}from'node:child_process';import{promisify}from'node:util';import{writeFile}from'node:fs/promises';
+const exec=promisify(execFile);export const root='/Users/mini/CISME',project=root+'/apps/miniprogram',dir=root+'/docs/evidence/native-device-acceptance-20261112/controlled-runtime';
+export async function cli(tool:string,args:string[]=[]){const{stdout}=await exec('wechatide',['-c','Codex',tool,'--project',project,...args],{maxBuffer:3e6,timeout:60000});const r=JSON.parse(stdout.slice(stdout.indexOf('{')));if(!r.ok)throw Error(JSON.stringify(r));return r.result;}
+export async function evaluate(fn:Function,...args:any[]){const file='/private/tmp/cisme-resilience-eval.json';await writeFile(file,JSON.stringify(args));const source='function(){var __name=function(v){return v;};return ('+fn.toString()+').apply(null,arguments);}';const r=await cli('automation_evaluate',['--fn-source',source,'--args-file',file]);return r.result?.result??r.result??r;}

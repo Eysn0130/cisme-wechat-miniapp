@@ -21,6 +21,59 @@ it("caps both attempts and retry delay at one interaction deadline", async () =>
   requests[1].success({ statusCode: 200, data: { stale: true } });
   expect(requests).toHaveLength(2);
 });
+it.each([502,503,"connection reset"] as const)("recovers a direct product read after one transient %s without a stale price",async(fault)=>{
+  const {catalogDetail}=await import("../../apps/miniprogram/services/commerce");
+  const result=catalogDetail("aigerong-moisture-shampoo-280",{}).catch(error=>error);
+  if(typeof fault==="number")requests[0].success({statusCode:fault,data:{code:"TEMPORARILY_UNAVAILABLE"}});
+  else requests[0].fail({errMsg:"request:fail connection reset"});
+  await vi.advanceTimersByTimeAsync(40);
+  expect(requests).toHaveLength(2);
+  requests[1].success({statusCode:200,data:{code:"aigerong-moisture-shampoo-280",price:19800,inStock:true}});
+  expect(await result).toMatchObject({price:19800,inStock:true});
+  expect(requests[1].method).toBe("GET");expect(requests[1].timeout).toBe(11960);
+});
+it("keeps a product read's retry inside the original deadline and stops after the second failure",async()=>{
+  const {request}=await import("../../apps/miniprogram/services/api");
+  const result=request({path:"/v1/catalog/care-shampoo",authMode:"public",budgetMs:500}).catch(error=>error);
+  await vi.advanceTimersByTimeAsync(400);requests[0].success({statusCode:503,data:{code:"TEMPORARILY_UNAVAILABLE"}});
+  await vi.advanceTimersByTimeAsync(40);expect(requests[1].timeout).toBe(60);
+  requests[1].success({statusCode:503,data:{code:"TEMPORARILY_UNAVAILABLE"}});
+  expect(await result).toMatchObject({status:503});await vi.advanceTimersByTimeAsync(1000);expect(requests).toHaveLength(2);
+});
+it("cancels a departing product reader during backoff before another transport starts",async()=>{
+  const {catalogDetail}=await import("../../apps/miniprogram/services/commerce");
+  const {cancelPageReads}=await import("../../apps/miniprogram/services/page-requests");
+  const owner={},result=catalogDetail("care-shampoo",owner).catch(error=>error);
+  requests[0].success({statusCode:503,data:{code:"TEMPORARILY_UNAVAILABLE"}});
+  await vi.advanceTimersByTimeAsync(20);cancelPageReads(owner);
+  expect(await result).toMatchObject({code:"REQUEST_ABORTED"});
+  await vi.advanceTimersByTimeAsync(1000);expect(requests).toHaveLength(1);
+});
+it.each([400,401,403,404,409])("does not retry a product read rejected with %s",async(statusCode)=>{
+  const {catalogDetail}=await import("../../apps/miniprogram/services/commerce");
+  const result=catalogDetail("care-shampoo",{}).catch(error=>error);
+  requests[0].success({statusCode,data:{code:"PRODUCT_REQUEST_REJECTED"}});
+  expect(await result).toMatchObject({status:statusCode});await vi.advanceTimersByTimeAsync(1000);expect(requests).toHaveLength(1);
+});
+it.each(["request:fail ssl certificate invalid","request:fail url not in domain list","request:fail dns name_not_resolved"])("keeps permanent product transport failures out of automatic retry: %s",async(errMsg)=>{
+  const {catalogDetail}=await import("../../apps/miniprogram/services/commerce");
+  const result=catalogDetail("care-shampoo",{}).catch(error=>error);requests[0].fail({errMsg});
+  expect((await result).code).toMatch(/^NETWORK_(TLS_ERROR|DOMAIN_NOT_ALLOWED|DNS_ERROR)$/);
+  await vi.advanceTimersByTimeAsync(1000);expect(requests).toHaveLength(1);
+});
+it.each([
+  {path:"/v1/catalog/care-shampoo",method:"POST" as const},
+  {path:"/v1/catalog/care-shampoo",method:"PUT" as const},
+  {path:"/v1/catalog/care-shampoo",method:"DELETE" as const},
+  {path:"/v1/catalog/care-shampoo/actions"},
+  {path:"/v1/catalog/../care-shampoo"},
+  {path:"/v1/catalog/%63are-shampoo"}
+])("does not widen the product retry rule to $method $path",async(options)=>{
+  const {request}=await import("../../apps/miniprogram/services/api");
+  const result=request({...options,authMode:"public"}).catch(error=>error);
+  requests[0].success({statusCode:503,data:{code:"TEMPORARILY_UNAVAILABLE"}});
+  expect(await result).toMatchObject({status:503});await vi.advanceTimersByTimeAsync(1000);expect(requests).toHaveLength(1);
+});
 it("canceling one consumer keeps a shared read alive; canceling all aborts exactly once", async () => {
   const { requestCancelable } = await import("../../apps/miniprogram/services/api");
   const a = requestCancelable({ path: "/v1/me" }), b = requestCancelable({ path: "/v1/me" });

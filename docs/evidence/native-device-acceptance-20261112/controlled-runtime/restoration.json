@@ -1,0 +1,12 @@
+{
+  "sourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+  "restorationLog": "{\n  restored: true,\n  requestRestored: true,\n  storageRestored: true,\n  sessionPresent: false,\n  unknownRoutes: [],\n  requestCount: 24,\n  realMemberWrites: 0\n}\n",
+  "moduleContextRefreshed": true,
+  "observed": {
+    "route": "pages/account/index",
+    "platform": "devtools",
+    "sessionPresent": false,
+    "qaKeys": [],
+    "apiBaseUrl": "https://staging-api.cisme.cn"
+  }
+}
