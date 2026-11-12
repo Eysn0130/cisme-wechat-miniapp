@@ -1,0 +1,53 @@
+{
+  "route": "pages/community/index",
+  "width": 375,
+  "loading": false,
+  "error": "",
+  "authenticated": false,
+  "guest": true,
+  "privateGuestReads": 0,
+  "requests": [
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    }
+  ]
+}

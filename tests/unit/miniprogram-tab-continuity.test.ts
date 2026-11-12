@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const m = vi.hoisted(() => ({ token: "member-a", revision: 0, origin: "https://synthetic.invalid", request: vi.fn(), authority: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/api", () => ({
+vi.mock("../../apps/miniprogram/services/api", async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,
   request: m.request, requireMemberAccess: () => Boolean(m.token), retainMemberSnapshot: () => true,
   requireHistoricalCommerceAccess: () => Boolean(m.token), historicalCommerceToken: () => m.token, historicalCommerceClosed: () => false,
   submissionReturnUrl: () => "", clearAuthenticationRedirectSuppression: vi.fn(), resumeAuthentication: vi.fn(), beginLegalRenewal: vi.fn()

@@ -164,7 +164,8 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   const commentReview=await openApp.inject({method:"POST",url:`/v1/management/ugc/comments/${comment.json().id}/review`,headers:auth(reviewer),payload:{decision:"approve",reason:"正常护理交流"}});
   expect(commentReview.statusCode).toBe(200);
   expect((await openApp.inject({method:"GET",url:`/v1/me/ugc/activity/comments?postId=${draft.id}`,headers:auth(other)})).json().items[0].state).toBe("published");
-  expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).json().comments).toHaveLength(1);
+  expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).json().comments).toHaveLength(0);
+  expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`,headers:auth(other)})).json().comments).toHaveLength(1);
   expect((await openApp.inject({method:"PUT",url:`/v1/ugc/posts/${draft.id}/reaction`,headers:auth(other),payload:{kind:"save",active:true}})).statusCode).toBe(200);
   expect((await openApp.inject({method:"GET",url:"/v1/me/ugc/activity/saves",headers:auth(other)})).json())
     .toMatchObject({matchingTotal:1,items:[{postId:draft.id,available:true}]});
@@ -328,12 +329,13 @@ it("pages 101 public comments without treating the first page as the whole threa
   await pool.query(`INSERT INTO ugc_comment(post_id,author_member_id,body,state,was_public,operation_id,created_at)
     SELECT $1,$2,'分页评论 '||n,'published',true,'paged-public-comment-'||lpad(n::text,3,'0'),
       now()+n*interval '1 microsecond' FROM generate_series(1,101) n`,[postId,reviewer.memberId]);
-  const initial=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}`});
+  // "other" intentionally still blocks this author from the earlier assertions.
+  const initial=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}`,headers:auth(reviewer)});
   expect(initial.statusCode).toBe(200);
   const body=initial.json();expect(body.commentsTotal).toBe(101);expect(body.comments).toHaveLength(30);
   let cursor=body.commentsNextCursor,all=[...body.comments];
   while(cursor){
-    const response=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}/comments?limit=30&cursor=${encodeURIComponent(cursor)}`});
+    const response=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}/comments?limit=30&cursor=${encodeURIComponent(cursor)}`,headers:auth(reviewer)});
     expect(response.statusCode).toBe(200);
     const page=response.json();all.push(...page.items);cursor=page.nextCursor;
     expect(page.matchingTotal).toBe(101);

@@ -1,3 +1,4 @@
+import { requireGuestCommunityAccess } from "../../services/api";
 import { careCommandConfirmed, type CareCommand } from "../../services/care-command-state";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
@@ -205,6 +206,7 @@ Page({
     }
   },
   onShow() {
+    if(!requireGuestCommunityAccess("/pages/home/index"))return;
     const pending = pendingCareCommands.get(this);
     this.setData({ pageVisible: true, accountOpening: false, working: false, activationConfirming: false,
       mutationState: pending?.token === getApp<IAppOption>().globalData.sessionToken ? "unknown" : "idle" });

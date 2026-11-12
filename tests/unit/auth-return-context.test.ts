@@ -5,7 +5,7 @@ vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'local-avatar',clearMemberAvatarCache:vi.fn(),localMemberAvatar:async()=> 'local-avatar',prepareAvatarUpload:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/share',()=>({attributePendingShare:vi.fn()}));
 vi.mock('../../apps/miniprogram/release-config',()=>({legalDocumentVersions:()=>({terms:'current-terms',privacy:'current-privacy',localFixture:false}),shouldUseDevelopmentIdentity:()=>false}));
-let storage:Map<string,unknown>,runtime:any,page:any,definition:any,pages:any[],wxMock:any,requests:any[],holdIdentity:boolean,heldIdentity:any,expireMe:boolean,meFailure:""|"network"|"unavailable",holdMe:boolean,heldMe:(()=>void)|null;
+let storage:Map<string,unknown>,runtime:any,page:any,definition:any,pages:any[],wxMock:any,requests:any[],holdIdentity:boolean,heldIdentity:any,newMember:boolean,expireMe:boolean,meFailure:""|"network"|"unavailable",holdMe:boolean,heldMe:(()=>void)|null;
 const home='/pages/home/index',old='/pages/management-fulfillment/index';
 const article='/pages/post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&source=editorial';
 function flowQuery(url:string){return Object.fromEntries(new URL('https://synthetic.invalid'+url).searchParams);}
@@ -14,19 +14,59 @@ function response(options:any){const path=new URL(options.url).pathname;
  if(path==='/v1/me'&&meFailure==='network'){options.fail({errMsg:'request:fail network unavailable'});return;}
  if(path==='/v1/me'&&meFailure==='unavailable'){options.success({statusCode:503,data:{code:'SERVICE_UNAVAILABLE'}});return;}
  if(path==='/v1/me'&&expireMe){options.success({statusCode:401,data:{code:'AUTH_EXPIRED'}});return;}
- const data=path==='/v1/me'?{id:'synthetic-member'}:path==='/v1/identity/wechat'?{sessionToken:'synthetic-new-session'}:path==='/v1/me/legal-acceptances'?{accepted:true,documents:options.data.consents}:path==='/v1/identity/capabilities'?{phoneBindingEnabled:false}:{};
+ const data=path==='/v1/me'?{id:'synthetic-member'}:path==='/v1/identity/wechat'?{sessionToken:'synthetic-new-session',onboardingRequired:newMember}:path==='/v1/me/legal-acceptances'?{accepted:true,documents:options.data.consents}:path==='/v1/identity/capabilities'?{phoneBindingEnabled:false}:{};
  if(path==='/v1/identity/wechat'&&holdIdentity){heldIdentity=()=>options.success({statusCode:200,data});return;}
  options.success({statusCode:200,data});
 }
 async function mount(query:Record<string,string>={intent:'login'}){await import('../../apps/miniprogram/pages/account/index');page={...definition,data:structuredClone(definition.data),setData(values:any,callback?:()=>void){Object.assign(this.data,values);callback?.();}};page.onLoad(query);Object.assign(page.data,{legalLoading:false,legalTextsReady:true,agreementAccepted:true});return page;}
 async function start(source:string,intent:'login'|'renew'='login') {const api=await import('../../apps/miniprogram/services/api');if(intent==='renew')api.beginLegalRenewal(source);else api.beginAuthentication(source);return {api,query:flowQuery(wxMock.navigateTo.mock.calls.at(-1)[0].url)};}
 function paths(){return requests.map(x=>new URL(x.url).pathname);}
-beforeEach(()=>{vi.resetModules();vi.clearAllMocks();storage=new Map();runtime={globalData:{sessionToken:'',privacyRightsToken:'',sessionStorageKey:'synthetic.session',apiBaseUrl:'https://synthetic.invalid'}};pages=[{route:'pages/account/index',options:{intent:'login'}}];requests=[];holdIdentity=false;heldIdentity=null;expireMe=false;meFailure="";holdMe=false;heldMe=null;
+beforeEach(()=>{vi.resetModules();vi.clearAllMocks();storage=new Map();runtime={globalData:{sessionToken:'',privacyRightsToken:'',sessionStorageKey:'synthetic.session',apiBaseUrl:'https://synthetic.invalid'}};pages=[{route:'pages/account/index',options:{intent:'login'}}];requests=[];holdIdentity=false;heldIdentity=null;newMember=false;expireMe=false;meFailure="";holdMe=false;heldMe=null;
  (globalThis as any).getApp=()=>runtime;(globalThis as any).getCurrentPages=()=>pages;
  (globalThis as any).Page=(value:any)=>{definition=value;};
  wxMock={getAccountInfoSync:()=>({miniProgram:{envVersion:'trial'}}),getDeviceInfo:()=>({platform:'ios'}),getStorageSync:(key:string)=>storage.get(key)||'',getStorageInfoSync:()=>({keys:[...storage.keys()]}),setStorageSync:vi.fn((key:string,value:unknown)=>storage.set(key,value)),removeStorageSync:vi.fn((key:string)=>storage.delete(key)),login:vi.fn(async()=>({code:'synthetic-login-code'})),navigateTo:vi.fn(),reLaunch:vi.fn(),switchTab:vi.fn((o:any)=>o.success?.()),navigateBack:vi.fn((o:any)=>o.success?.()),redirectTo:vi.fn((o:any)=>o.success?.()),showModal:vi.fn(async()=>({confirm:true})),showToast:vi.fn(),pageScrollTo:vi.fn(),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),request:vi.fn((o:any)=>{requests.push(o);queueMicrotask(()=>response(o));return {abort:vi.fn()};})};(globalThis as any).wx=wxMock;
 });
 describe('Account return destinations belong to one live authentication flow',()=>{
+ it('limits the explicit guest choice to community reading and keeps blocked targets for later login',async()=>{
+  await mount();await page.browseCommunity();expect(storage.get('cisme.guestBrowsing')).toBe(true);
+  const api=await import('../../apps/miniprogram/services/api');wxMock.navigateTo.mockClear();
+  for(const url of ['/pages/community/index',article,'/pages/post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&source=formal','/pages/community-post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','/pages/legal/index?type=privacy','/pages/privacy-rights/index'])expect(api.requireGuestCommunityAccess(url)).toBe(true);
+  expect(wxMock.navigateTo).not.toHaveBeenCalled();
+  for(const target of ['/pages/home/index','/pages/shop/index','/pages/product/index?id=serum','/pages/profile/index','/pages/community-author/index?id=someone']){
+   api.cancelAuthentication();wxMock.navigateTo.mockClear();expect(api.requireGuestCommunityAccess(target)).toBe(false);expect(wxMock.navigateTo).toHaveBeenCalledOnce();
+   const query=flowQuery(wxMock.navigateTo.mock.calls[0][0].url);await mount(query);expect(page.authenticationReturnUrl).toBe(target);
+  }
+  expect(wxMock.login).not.toHaveBeenCalled();expect(paths()).not.toContain('/v1/identity/wechat');
+ });
+ it('backs out of a blocked guest target to community without suppressing the next explicit login',async()=>{
+  storage.set('cisme.guestBrowsing',true);const {api,query}=await start('/pages/shop/index');await mount(query);await page.back();
+  expect(wxMock.switchTab).toHaveBeenLastCalledWith(expect.objectContaining({url:'/pages/community/index'}));expect(wxMock.navigateBack).not.toHaveBeenCalled();
+  wxMock.navigateTo.mockClear();expect(api.requireGuestCommunityAccess('/pages/shop/index')).toBe(false);expect(wxMock.navigateTo).toHaveBeenCalledOnce();
+ });
+ it('keeps the comment login return on its exact post and clears guest mode after a real login flow',async()=>{
+  storage.set('cisme.guestBrowsing',true);const {query}=await start(article);await mount(query);await page.login();
+  expect(storage.has('cisme.guestBrowsing')).toBe(false);expect(runtime.globalData.sessionToken).toBe('synthetic-new-session');
+  expect(wxMock.redirectTo).toHaveBeenCalledWith(expect.objectContaining({url:article}));expect(paths().filter(p=>p==='/v1/identity/wechat')).toHaveLength(1);
+ });
+ it('sends a first-time member to mandatory care registration and retains the original post for completion',async()=>{
+  newMember=true;storage.set('cisme.guestBrowsing',true);const {query}=await start(article);await mount(query);await page.login();
+  expect(wxMock.switchTab).toHaveBeenLastCalledWith(expect.objectContaining({url:home}));expect(runtime.globalData.onboardingReturnUrl).toBe(article);
+  expect(runtime.globalData.onboardingReturnToken).toBe('synthetic-new-session');expect(storage.has('cisme.guestBrowsing')).toBe(false);
+ });
+ it.each(['home','shop','product','community-author'])('guards direct/resumed %s before its read or retained presentation can run',async(route)=>{
+  storage.set('cisme.guestBrowsing',true);pages=[{route:'pages/'+route+'/index',options:{}}];
+  await import('../../apps/miniprogram/pages/'+route+'/index');
+  const target={...definition,data:structuredClone(definition.data),setData(v:any,done?:()=>void){Object.assign(this.data,v);done?.();}};
+  target.data.id='serum';target.data.authorId='public-author';target.onShow();
+  expect(wxMock.navigateTo).toHaveBeenCalledOnce();expect(wxMock.navigateTo.mock.calls[0][0].url).toMatch(/^\/pages\/account\/index\?/);
+  expect(requests).toEqual([]);expect(wxMock.login).not.toHaveBeenCalled();
+ });
+ it.each([0,1,3])('redirects guest tab %s to Account without switching the underlying community',async(index)=>{
+  storage.set('cisme.guestBrowsing',true);pages=[{route:'pages/community/index',data:{}}];let component:any;
+  vi.stubGlobal('Component',(value:any)=>{component=value;});await import('../../apps/miniprogram/custom-tab-bar/index');
+  const bar={...component.methods,data:{...structuredClone(component.data),active:2},setData(v:any){Object.assign(this.data,v);},leaveCommunityFab:vi.fn(),enterCommunityFab:vi.fn()};
+  bar.switchTab({currentTarget:{dataset:{index}}});expect(wxMock.navigateTo).toHaveBeenCalledOnce();expect(wxMock.switchTab).not.toHaveBeenCalled();expect(bar.data.active).toBe(2);
+ });
  it.each([{intent:'login'},{}])('ignores a persisted old management target at direct/cold entry %j',async(query)=>{storage.set('cisme.authReturnUrl',old);await mount(query);await page.login();expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));expect(wxMock.redirectTo).not.toHaveBeenCalled();expect(storage.has('cisme.authReturnUrl')).toBe(false);expect(paths().filter(x=>x==='/v1/identity/wechat')).toHaveLength(1);});
  it('discards a cold-restarted flow query without a matching in-memory flow',async()=>{storage.set('cisme.authReturnUrl',old);await mount({intent:'login',authFlow:'previous-process-flow'});await page.login();expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));expect(wxMock.redirectTo).not.toHaveBeenCalled();expect(storage.has('cisme.authReturnUrl')).toBe(false);});
  it('clears an abandoned native-back flow before a new direct login',async()=>{const {query}=await start(old);await mount(query);page.onUnload();await mount();await page.login();expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));expect(storage.has('cisme.authReturnUrl')).toBe(false);});
@@ -61,7 +101,7 @@ describe('cold business-session recovery and explicit logout',()=>{
   runtime.globalData.sessionToken='synthetic-expired-session';expireMe=true;await mount({});
   await vi.waitFor(()=>expect(page.data.loading).toBe(false));
   expect(runtime.globalData.sessionToken).toBe('');expect(page.data.pendingDestination).toBe('');
-  expect(page.data.notice).toContain('登录状态已失效');expect(wxMock.switchTab).not.toHaveBeenCalled();
+  expect(page.data.notice).toBe('');expect(wxMock.switchTab).not.toHaveBeenCalled();
   expect(wxMock.navigateTo).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();
  });
  it.each(['network','unavailable'] as const)('preserves the retained identity on%s and retries without an identity POST',async(failure)=>{

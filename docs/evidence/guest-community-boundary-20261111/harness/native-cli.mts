@@ -1,0 +1,4 @@
+import {execFile} from 'node:child_process';import {promisify} from 'node:util';import {writeFile} from 'node:fs/promises';
+const exec=promisify(execFile),project='/Users/mini/CISME/apps/miniprogram';
+export async function cli(tool:string,args:string[]=[]){const {stdout}=await exec('wechatide',['-c','Codex',tool,'--project',project,...args],{maxBuffer:6e6,timeout:60000});const j=JSON.parse(stdout.slice(stdout.indexOf('{')));if(!j.ok)throw Error(JSON.stringify(j));return j.result;}
+export async function evaluate(fn:Function,...args:any[]){const file='/private/tmp/cisme-care-flow-eval.json';await writeFile(file,JSON.stringify(args));const source='function(){var __name=function(v){return v;};return ('+fn.toString()+').apply(null,arguments);}';const r=await cli('automation_evaluate',['--fn-source',source,'--args-file',file]);return r.result?.result??r.result??r;}

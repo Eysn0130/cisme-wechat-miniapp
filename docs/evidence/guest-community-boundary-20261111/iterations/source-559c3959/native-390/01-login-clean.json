@@ -1,0 +1,25 @@
+{
+  "route": "pages/account/index",
+  "width": 390,
+  "loading": false,
+  "error": "",
+  "notice": "",
+  "authenticated": false,
+  "guest": false,
+  "returnUrl": "/pages/home/index",
+  "privateGuestReads": 0,
+  "requests": [
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    }
+  ]
+}

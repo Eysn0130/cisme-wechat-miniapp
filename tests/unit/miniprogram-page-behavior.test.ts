@@ -12,7 +12,7 @@ const setSessionTokenMock = vi.hoisted(() => vi.fn());
 const setPrivacyRightsTokenMock = vi.hoisted(() => vi.fn());
 const downloadPrivateMediaMock = vi.hoisted(() => vi.fn());
 
-vi.mock("../../apps/miniprogram/services/api", () => ({
+vi.mock("../../apps/miniprogram/services/api", async(importOriginal)=>({isGuestCommunityBrowsing:(await importOriginal<any>()).isGuestCommunityBrowsing,requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,
   historicalCommerceToken: () => (globalThis as any).getApp().globalData.sessionToken || (globalThis as any).getApp().globalData.privacyRightsToken || "",
   historicalCommerceClosed: () => Boolean(!(globalThis as any).getApp().globalData.sessionToken && (globalThis as any).getApp().globalData.privacyRightsToken),
   requireHistoricalCommerceAccess: () => requireMemberAccessMock(),

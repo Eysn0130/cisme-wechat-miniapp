@@ -1,6 +1,7 @@
 import { publishMemberIdentity } from "../../services/member-identity";
 import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../../services/member-avatar";
-import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce, acceptCurrentLegalDocuments } from "../../services/api";
+import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce, acceptCurrentLegalDocuments, isGuestCommunityBrowsing } from "../../services/api";
+import { guestCommunityRouteAllowed } from "../../services/route-access";
 import { legalDocumentVersions, shouldUseDevelopmentIdentity } from "../../release-config";
 import type { LegalDocumentVersions } from "../../release-config";
 import { currentChromeStyle, motionDuration, shouldReduceMotion } from "../../services/layout";
@@ -170,7 +171,7 @@ Page({
     if(!this.data.pageAlive||this.data.leaving||this.data.renewalMode||getApp<IAppOption>().globalData.sessionToken||(!this.data.pendingDestination&&this.data.loginStage!=="avatar"))return false;
     this.data.authAttempt+=1;this.data.avatarAttempt+=1;
     this.setData({pendingDestination:"",loginStage:"login",avatarBusy:false,loading:false,restoringSession:false,sessionRestoreFailed:false,identityCommitStarted:false,
-      agreementAccepted:false,crossBorderAccepted:false,avatarUrl:defaultMemberAvatar,error:"",notice:"登录状态已失效，请重新登录。"});
+      agreementAccepted:false,crossBorderAccepted:false,avatarUrl:defaultMemberAvatar,error:"",notice:""});
     return true;
   },
   onHide() { this.data.pageVisible = false; this.data.avatarAttempt += 1;if(this.data.restoringSession){this.data.authAttempt+=1;this.setData({loading:false,restoringSession:false,sessionRestoreFailed:true});} this.setData({heroMotionActive:false,...(this.data.avatarBusy?{avatarBusy:false}:{})}); },
@@ -468,7 +469,8 @@ Page({
   async back() {
     if (!await this.confirmIdentityLeave("source")) return;
     if (!this.data.pageAlive || this.data.leaving) return;
-    const returnUrl = this.stopAuthenticationWait(true);
+    const guest=isGuestCommunityBrowsing();
+    const returnUrl = this.stopAuthenticationWait(!guest);
     const fail = () => {
       if (this.data.pageAlive) this.setData({ leaving: false, error: "暂时无法返回，请重试或留在本页查看账号状态。" }, scrollToAccountError);
     };
@@ -480,6 +482,9 @@ Page({
         wx.redirectTo({ url: returnUrl, fail: () => wx.switchTab({ url: "/pages/home/index", fail }) });
       }
     };
+    if(guest&&!guestCommunityRouteAllowed(returnUrl)){
+      wx.switchTab({url:"/pages/community/index",fail});return;
+    }
     wx.navigateBack({ delta: 1, fail: openSource });
   },
   async browseCommunity() {

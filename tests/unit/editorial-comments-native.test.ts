@@ -98,6 +98,21 @@ describe("published editorial comment Page reads",()=>{
   expect(calls().filter(input=>input.path.startsWith(base))).toEqual([]);expect(mocks.resume).not.toHaveBeenCalled();
   page.loginToViewComments();expect(mocks.resume).toHaveBeenCalledExactlyOnceWith(returnUrl);
  });
+ it('uses the same guest wall for a published formal story without issuing a comment read',async()=>{
+  mocks.token='';mocks.request.mockImplementation(async(input:any)=>{
+   if(input.path===`/v1/ugc/posts/${articleId}`)return{...article(),author:'普通会员',avatar:'',commentsTotal:1,aiUsage:'none',media:[]};
+   throw Error('Guest attempted an unexpected private read: '+input.path);
+  });
+  await import('../../apps/miniprogram/pages/post/index');page.onLoad({id:articleId,source:'formal'});await page.load();
+  expect(page.data.item?.body).toBe('第一段原文\n第二段原文');expect(page.data.commentAuthenticated).toBe(false);expect(page.data.threads).toEqual([]);
+  expect(calls().some(o=>o.path.includes('/comments'))).toBe(false);page.loginToViewComments();
+  expect(mocks.resume).toHaveBeenCalledExactlyOnceWith(`/pages/post/index?id=${articleId}&source=formal`);
+ });
+ it('does not fetch legacy preview comments for a guest or change the legacy post return source',async()=>{
+  mocks.token='';await import('../../apps/miniprogram/pages/post/index');page.setData({id:articleId,item:{id:articleId,version:1},loading:false,editorialSource:false,formalSource:false,threads:[{body:'previous account'}]});
+  await page.loadSocial();expect(mocks.request).not.toHaveBeenCalled();expect(page.data).toMatchObject({threads:[],viewerHasSession:false,socialEnabled:false});
+  page.loginToViewComments();expect(mocks.resume).toHaveBeenCalledExactlyOnceWith(`/pages/post/index?id=${articleId}`);
+ });
  it("does not let an old account's delayed page erase a newer account's confirmed comments",async()=>{
   await mount();const pending=deferred();mocks.request.mockReturnValueOnce(pending.promise);const old=page.loadEditorialComments();
   mocks.token="actor-b";rows=[row(replyId,{body:"新账号可读评论"})];await page.loadEditorialComments();

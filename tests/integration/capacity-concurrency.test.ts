@@ -34,10 +34,25 @@ describe("campaign capacity", () => {
       const d1 = (await app.inject({ method: "POST", url: `/v1/care-cycles/${planned.id}/milestones/D1/complete`, headers: careHeaders(identity.sessionToken, `capacity-${index}-D1`, "2026-08-01T09:00:00+08:00"), payload: careCompletion(active.version) })).json();
       members.push({ token: identity.sessionToken, cycleId: planned.id, version: d1.cycle.version });
     }
-    const responses = await Promise.all(members.map(({ token, cycleId, version }, index) => app.inject({ method: "POST", url: `/v1/care-cycles/${cycleId}/milestones/D7/complete`, headers: careHeaders(token, `capacity-${index}-D7`, "2026-08-07T12:00:00+08:00"), payload: careCompletion(version) })));
-    expect(responses.map((response) => ({ status: response.statusCode, body: response.json() }))).toEqual(
-      responses.map((response) => ({ status: 200, body: response.json() }))
-    );
+    const completeD7 = ({ token, cycleId, version }: typeof members[number], index: number) => app.inject({ method: "POST", url: `/v1/care-cycles/${cycleId}/milestones/D7/complete`, headers: careHeaders(token, `capacity-${index}-D7`, "2026-08-07T12:00:00+08:00"), payload: careCompletion(version) });
+    const responses = await Promise.all(members.map(completeD7));
+    // Serializable work has bounded server retries. A confirmed conflict may
+    // outlive that budget; it is not a successful write. Once this concurrent
+    // wave has settled, retry only that explicit verdict with the original
+    // key/version/payload, once. Other failures must still fail this test.
+    for (let index = 0; index < responses.length; index += 1) {
+      if (responses[index]!.statusCode === 409) {
+        expect(responses[index]!.json()).toMatchObject({ code: "CONCURRENT_OPERATION_RETRY", status: 409 });
+        responses[index] = await completeD7(members[index]!, index);
+      }
+      expect(responses[index]!.statusCode, JSON.stringify(responses[index]!.json())).toBe(200);
+    }
+    // Replaying every key must return its saved result and create no more steps.
+    for (let index = 0; index < responses.length; index += 1) {
+      const replay = await completeD7(members[index]!, index);
+      expect(replay.statusCode).toBe(200);
+      expect(replay.json()).toEqual(responses[index]!.json());
+    }
     const counts = await pool.query("SELECT (SELECT count(*) FROM eligibility_decision)::int decisions, (SELECT count(*) FROM eligibility_task)::int tasks");
     expect(counts.rows[0]).toEqual({ decisions: 0, tasks: 0 });
     expect(responses.every(response=>response.json().task===null)).toBe(true);

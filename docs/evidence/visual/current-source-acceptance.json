@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c",
+  "packageSourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Native management center and 14 linked management pages refined; scoped synthetic 375/390 checks are in docs/evidence/management-center-polish-20261111. All 41 routes, physical devices and full state/font acceptance remain blocked; previous screenshots retain their original source scope.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-04b03e1a0c06.json",
+  "note": "Login copy and explicit guest-community route/comment wall fixes. Scoped native synthetic evidence is in docs/evidence/guest-community-boundary-20261111; all41-route physical-device/font/state release matrix remains blocked. Earlier captures retain their own hashes and scope.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-559c39594790.json",
   "pendingSourceRebind": false
 }

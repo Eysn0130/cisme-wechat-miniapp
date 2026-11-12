@@ -1,0 +1,23 @@
+{
+  "packageSourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914",
+  "typecheck": {
+    "command": "npm run typecheck",
+    "exitCode": 0
+  },
+  "unit": {
+    "command": "npm test",
+    "exitCode": 0,
+    "filesPassed": 204,
+    "testsPassed": 3271,
+    "testsSkipped": 1,
+    "skip": "Existing test; no new skip added.",
+    "durationSeconds": 10.85
+  },
+  "package": {
+    "command": "npm run miniprogram:package-gate",
+    "ok": true,
+    "routes": 41
+  },
+  "scope": "Native guest navigation/comments and Account return, plus formal UGC anonymous comment boundary. Local isolated integration unavailable due existing Docker image I/O error; final CI required.",
+  "authenticationRequiredOperations": 278
+}

@@ -1,0 +1,12 @@
+{
+  "runId": 43141846209,
+  "head": "092615eda00270c72afdf497b35848b36932d346",
+  "conclusion": "failure",
+  "test": "tests/unit/http-authentication-boundary.test.ts",
+  "cause": "Explicit authentication denominator still277 after comment GET became session protected; actual route enumeration278. All individual missing/invalid authentication cases passed.",
+  "unitPassed": 3270,
+  "unitFailed": 1,
+  "unitSkipped": 1,
+  "correction": "Update expected denominator278 and explicitly assert formal comment GET belongs to it. Full local run3271 passed/1 existing skip.",
+  "runtimeCodeChangedByCorrection": false
+}

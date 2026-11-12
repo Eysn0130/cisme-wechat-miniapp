@@ -27,7 +27,7 @@ describe('expired retained destination on the actual Account page',()=>{
  it('reveals ordinary login on show without replacing its owned return path or creating consent',()=>{
   page.setData({loginStage:'avatar',avatarBusy:true,avatarUrl:'previous-avatar'});page.onShow();
   expect(page.data).toMatchObject({pendingDestination:'',loginStage:'login',avatarBusy:false,agreementAccepted:false,crossBorderAccepted:false,avatarUrl:'neutral-avatar'});
-  expect(page.authenticationReturnUrl).toBe(destination);expect(page.data.notice).toContain('重新登录');
+  expect(page.authenticationReturnUrl).toBe(destination);expect(page.data.notice).toBe('');
   expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();expect(mocks.setSession).not.toHaveBeenCalled();
  });
  it('reveals the checkbox on a late expiry tap and waits for a fresh deliberate login',async()=>{

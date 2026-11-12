@@ -1,3 +1,4 @@
+import { requireGuestCommunityAccess } from "../../services/api";
 import {retainReadPresentation} from "../../services/read-presentation";
 import {nativeCatalogImage} from "../../services/catalog";
 import {catalogDetail,catalogList} from "../../services/commerce";
@@ -13,7 +14,7 @@ Page({
   data:{chromeStyle:currentChromeStyle(),id:"",item:null as any,catalog:null as any,gallery:[] as ProductMedia[],galleryIndex:0,details:[] as ProductMedia[],anchor:"goods",selectedSku:null as any,quantity:1,selected:false,sheetOpen:false,draftSku:null as any,draftQuantity:1,shareId:"",loading:true,navigating:false,loadAttempt: 0,pageAlive:true,leaving:false,errorKind:"none" as "none"|"selection"|"missing"|"load",errorTitle:"",error:""},
   scrollTop:0,anchorTimer:null as ReturnType<typeof setTimeout>|null,visible:false,
   onLoad(query:Record<string,string|undefined>){const id=query.id??"";this.setData({id,pageAlive:true});if(validProductCode(id))void registerIncomingShare(query.share_id,"product",id);wx.hideShareMenu();},
-  onShow(){this.visible=true;this.setData({pageAlive:true,leaving:false,navigating:false});void this.load();},
+  onShow(){if(!requireGuestCommunityAccess("/pages/product/index?id="+encodeURIComponent(this.data.id)))return;this.visible=true;this.setData({pageAlive:true,leaving:false,navigating:false});void this.load();},
   onHide(){this.visible=false;this.data.loadAttempt += 1;this.setData({sheetOpen:false});this.clearAnchorTimer();},
   onUnload(){this.visible=false;this.data.pageAlive = false;this.data.loadAttempt += 1;this.clearAnchorTimer();},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});this.syncAnchor();},

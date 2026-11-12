@@ -5,6 +5,7 @@ import { clearMemberAvatarCache } from "./member-avatar";
 import { clearAllUgcBackups } from "./ugc-local-backup";
 import { RequestCoordinator } from "./request-coordinator";
 import { sendJsonRequest, type TransportHandle } from "./http";
+import { guestCommunityRouteAllowed } from "./route-access";
 const app = { get globalData() { return getApp<IAppOption>().globalData; } };
 const authReturnKey = "cisme.authReturnUrl";
 const tabRoutes = new Set(["/pages/home/index", "/pages/shop/index", "/pages/community/index", "/pages/profile/index"]);
@@ -131,6 +132,18 @@ export function requireMemberAccess(returnUrl = currentRouteUrl()): boolean {
   // that opened it. Honour that one suppressed automatic redirect; an explicit
   // member action can call resumeAuthentication() to open Account again.
   beginAuthentication(returnUrl);
+  return false;
+}
+
+export function isGuestCommunityBrowsing():boolean {
+  return !app.globalData.sessionToken&&wx.getStorageSync("cisme.guestBrowsing")===true;
+}
+
+/** Gate navigation AND direct/resumed public pages after the explicit guest choice.
+ * The first cold care welcome remains public before that choice. */
+export function requireGuestCommunityAccess(returnUrl=currentRouteUrl()):boolean {
+  if(!isGuestCommunityBrowsing()||guestCommunityRouteAllowed(returnUrl))return true;
+  resumeAuthentication(returnUrl);
   return false;
 }
 

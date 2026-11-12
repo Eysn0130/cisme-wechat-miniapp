@@ -31,7 +31,7 @@ describe("mini program submission flow safety", () => {
     expect(api).toContain("wx.navigateBack({");
     expect(api).toMatch(/if \(previous\?\.route === path\.slice\(1\)\)[\s\S]*?wx\.navigateBack\([\s\S]*?fail: \(\) => wx\.reLaunch/);
     expect(account).toContain("this.data.authAttempt += 1");
-    expect(account).toContain("this.stopAuthenticationWait(true)");
+    expect(account).toContain("this.stopAuthenticationWait(!guest)");
     expect(account).toContain('return returnUrl.startsWith("/pages/") && !returnUrl.startsWith("/pages/account/") ? returnUrl : "/pages/home/index"');
     expect(account).toContain("wx.navigateBack({ delta: 1, fail: openSource })");
     expect(account).toContain("const legalDocuments = this.documents()");
