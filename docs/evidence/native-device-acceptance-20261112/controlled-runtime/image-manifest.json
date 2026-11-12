@@ -1,0 +1,49 @@
+{
+  "images": [
+    {
+      "path": "docs/evidence/native-device-acceptance-20261112/controlled-runtime/503-recovered.png",
+      "sha256": "3db5354895f36705496110641442b64b46f5d1c683a9656a1116f363684cd187",
+      "sourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+      "width": 390,
+      "height": 844,
+      "encoding": "JPEG",
+      "scope": "native simulator, synthetic HTTP; not physical-device weak network/cold start"
+    },
+    {
+      "path": "docs/evidence/native-device-acceptance-20261112/controlled-runtime/503-retry-loading.png",
+      "sha256": "0484e2c0416e661b7f049d08372f129d0bcddb710a2bbd5f6d66343b09f125a8",
+      "sourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+      "width": 390,
+      "height": 844,
+      "encoding": "JPEG",
+      "scope": "native simulator, synthetic HTTP; not physical-device weak network/cold start"
+    },
+    {
+      "path": "docs/evidence/native-device-acceptance-20261112/controlled-runtime/reset-recovered.png",
+      "sha256": "3db5354895f36705496110641442b64b46f5d1c683a9656a1116f363684cd187",
+      "sourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+      "width": 390,
+      "height": 844,
+      "encoding": "JPEG",
+      "scope": "native simulator, synthetic HTTP; not physical-device weak network/cold start"
+    },
+    {
+      "path": "docs/evidence/native-device-acceptance-20261112/controlled-runtime/reset-retry-loading.png",
+      "sha256": "1050dd624fb61ca01437275af6fcd79d045c18b3e4a1c73c5d8c9d003cb5d2d1",
+      "sourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+      "width": 390,
+      "height": 844,
+      "encoding": "JPEG",
+      "scope": "native simulator, synthetic HTTP; not physical-device weak network/cold start"
+    },
+    {
+      "path": "docs/evidence/native-device-acceptance-20261112/controlled-runtime/timeout-retry.png",
+      "sha256": "90b56dbaeb8c60a81a68e4492840b0867c1d6c2a1891f554204579647890a8fb",
+      "sourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+      "width": 390,
+      "height": 844,
+      "encoding": "JPEG",
+      "scope": "native simulator, synthetic HTTP; not physical-device weak network/cold start"
+    }
+  ]
+}

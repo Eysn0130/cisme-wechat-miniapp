@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+  "packageSourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Native loading continuity, lifecycle-owned catalog reads, direct product lookup, concurrent post media preparation and bounded next-page code preloads. Scoped evidence: docs/evidence/native-loading-stability-20261112. Full 41-route physical-device/font/state acceptance remains blocked; earlier captures retain their original hashes and scope.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-fd04590f6aad.json",
+  "note": "Direct product GETs join the existing single transient-failure retry inside the original request deadline. Controlled-runtime evidence: docs/evidence/native-device-acceptance-20261112/controlled-runtime. The user confirmed no physical phone is available; full 41-route physical-device/font/state, weak-network and cold-start acceptance remains blocked. Historical captures keep their original source hashes.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-30713a080bdb.json",
   "pendingSourceRebind": false
 }

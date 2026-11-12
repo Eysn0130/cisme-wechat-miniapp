@@ -1,0 +1,187 @@
+{
+  "sourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+  "platform": "devtools",
+  "allHttpIntercepted": true,
+  "virtualStorage": true,
+  "realMemberWrites": 0,
+  "realMoneyOperations": 0,
+  "notPhysicalWeakNetworkOrColdStart": true,
+  "rows": [
+    {
+      "fault": "503",
+      "started": {
+        "loading": true
+      },
+      "waiting": {
+        "loading": true,
+        "navigating": false,
+        "geometry": [
+          {
+            "top": 695.1875,
+            "height": 60,
+            "width": 390
+          },
+          {
+            "top": 154.9932098388672,
+            "height": 18.013565063476562,
+            "width": 18.013565063476562
+          }
+        ],
+        "reads": 2
+      },
+      "done": {
+        "loading": false,
+        "error": "",
+        "catalogBound": true,
+        "purchaseEnabled": true,
+        "selectorTop": 695.1875,
+        "selectorHeight": 60,
+        "requests": [
+          {
+            "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+            "method": "GET",
+            "fault": "503",
+            "startedAt": 1794470251543,
+            "handled": true,
+            "endedAt": 1794470251744
+          },
+          {
+            "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+            "method": "GET",
+            "fault": "ok",
+            "startedAt": 1794470251816,
+            "handled": true,
+            "endedAt": 1794470255237
+          },
+          {
+            "path": "/v1/shares",
+            "method": "POST",
+            "fault": "ok",
+            "startedAt": 1794470255247,
+            "handled": true,
+            "endedAt": 1794470255450
+          }
+        ]
+      }
+    },
+    {
+      "fault": "reset",
+      "started": {
+        "loading": true
+      },
+      "waiting": {
+        "loading": true,
+        "navigating": false,
+        "geometry": [
+          {
+            "top": 695.1875,
+            "height": 60,
+            "width": 390
+          },
+          {
+            "top": 154.88113403320312,
+            "height": 18.23773193359375,
+            "width": 18.237743377685547
+          }
+        ],
+        "reads": 2
+      },
+      "done": {
+        "loading": false,
+        "error": "",
+        "catalogBound": true,
+        "purchaseEnabled": true,
+        "selectorTop": 695.1875,
+        "selectorHeight": 60,
+        "requests": [
+          {
+            "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+            "method": "GET",
+            "fault": "reset",
+            "startedAt": 1794470258117,
+            "handled": true,
+            "endedAt": 1794470258320
+          },
+          {
+            "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+            "method": "GET",
+            "fault": "ok",
+            "startedAt": 1794470258428,
+            "handled": true,
+            "endedAt": 1794470261461
+          },
+          {
+            "path": "/v1/shares",
+            "method": "POST",
+            "fault": "ok",
+            "startedAt": 1794470261468,
+            "handled": true,
+            "endedAt": 1794470261671
+          }
+        ]
+      }
+    },
+    {
+      "fault": "no_callback_deadline",
+      "timeout": {
+        "elapsedMs": 12017,
+        "loading": false,
+        "error": "开售与库存信息暂未更新，请重试。",
+        "navigating": false,
+        "catalogBound": false,
+        "purchaseEnabled": false,
+        "requests": [
+          {
+            "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+            "method": "GET",
+            "fault": "hang",
+            "startedAt": 1794470264262,
+            "handled": true,
+            "aborted": true
+          }
+        ]
+      },
+      "explicitNativeRetry": {
+        "loading": false,
+        "error": "",
+        "purchaseEnabled": true
+      }
+    },
+    {
+      "fault": "leave_during_backoff",
+      "result": {
+        "route": "pages/shop/index",
+        "loading": false,
+        "error": "",
+        "detailReads": [
+          {
+            "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+            "method": "GET",
+            "fault": "503",
+            "startedAt": 1794470283278,
+            "handled": true,
+            "endedAt": 1794470283481
+          }
+        ],
+        "requests": [
+          {
+            "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+            "method": "GET",
+            "fault": "503",
+            "startedAt": 1794470283278,
+            "handled": true,
+            "endedAt": 1794470283481
+          },
+          {
+            "path": "/v1/catalog?limit=20",
+            "method": "GET",
+            "fault": "ok",
+            "startedAt": 1794470283512,
+            "handled": true,
+            "endedAt": 1794470283715
+          }
+        ]
+      }
+    }
+  ]
+}

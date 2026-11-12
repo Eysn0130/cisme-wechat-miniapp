@@ -1,0 +1,28 @@
+{
+  "project": "/Users/mini/CISME/apps/miniprogram",
+  "tool": "automation_viewport_action",
+  "attempts": [
+    {
+      "auto": true,
+      "terminalResult": "timeout waiting for automator response",
+      "physicalSuccess": false
+    },
+    {
+      "auto": false,
+      "terminalResult": "timeout waiting for automator response",
+      "observedUI": "Canonical fullMode project shows iOS QR code after successful packing; waiting for phone scan.",
+      "physicalSuccess": false
+    },
+    {
+      "tool": "automation_evaluate",
+      "mode": "read_only_device_and_performance_probe",
+      "terminalResult": "timeout waiting for automator response",
+      "physicalSuccess": false
+    }
+  ],
+  "windowRecovery": "Reopened only the canonical s0 project in fullMode after reuse of hidden/lite window; unrelated old worktree untouched.",
+  "noFurtherRemoteStartBeforeUserScan": true,
+  "qrPolicy": "Short-lived QR stays in local official UI; no QR ticket stored in repository.",
+  "observedQrPackagingSeconds": 19.64,
+  "packagingScope": "Host DevTools code packaging; not phone cold-start time."
+}

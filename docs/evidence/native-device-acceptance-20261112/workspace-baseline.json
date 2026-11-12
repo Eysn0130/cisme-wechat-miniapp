@@ -1,0 +1,10 @@
+{
+  "baselineMain": "420375f18697c11b2dbac6abf5b18f82ad854f1b",
+  "protectedPaths": 418,
+  "changed": [],
+  "nativeSourceDirty": "",
+  "existingTrial": "0.1.43",
+  "realMemberWrites": 0,
+  "physicalTestsExecuted": 0,
+  "releaseStatus": "No new release before physical verification."
+}

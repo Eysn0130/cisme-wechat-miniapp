@@ -1,0 +1,4 @@
+import{evaluate,dir}from'./cisme-resilience-cli.mts';import{writeFile,readFile}from'node:fs/promises';
+const state=await evaluate(function(){const a=getApp();return{route:getCurrentPages().slice(-1)[0]?.route,platform:wx.getDeviceInfo().platform,sessionPresent:!!a.globalData.sessionToken,qaKeys:Object.keys(a).filter(k=>/QA$/.test(k)),apiBaseUrl:a.globalData.apiBaseUrl};});
+if(state.route!=='pages/account/index'||state.sessionPresent||state.qaKeys.length||state.apiBaseUrl!=='https://staging-api.cisme.cn')throw Error('NOT_RESTORED');
+await writeFile(dir+'/restoration.json',JSON.stringify({sourceSha256:'21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9',restorationLog:await readFile('/private/tmp/cisme-resilience-restoration.json','utf8'),moduleContextRefreshed:true,observed:state},null,2)+'\n');console.log(JSON.stringify(state));
