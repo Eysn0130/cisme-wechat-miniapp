@@ -35,7 +35,6 @@ const publicOperations = new Set([
   "GET /v1/ugc/status",
   "GET /v1/ugc/posts",
   "GET /v1/ugc/posts/{postId}",
-  "GET /v1/ugc/posts/{postId}/comments",
   "GET /v1/ugc/authors/{authorId}",
   "GET /v1/ugc/media/{mediaId}",
   "GET /v1/ugc/review-preview/{mediaId}",

@@ -329,6 +329,7 @@ it("pages 101 public comments without treating the first page as the whole threa
   await pool.query(`INSERT INTO ugc_comment(post_id,author_member_id,body,state,was_public,operation_id,created_at)
     SELECT $1,$2,'分页评论 '||n,'published',true,'paged-public-comment-'||lpad(n::text,3,'0'),
       now()+n*interval '1 microsecond' FROM generate_series(1,101) n`,[postId,reviewer.memberId]);
+  // "other" intentionally still blocks this author from the earlier assertions.
   const initial=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}`,headers:auth(reviewer)});
   expect(initial.statusCode).toBe(200);
   const body=initial.json();expect(body.commentsTotal).toBe(101);expect(body.comments).toHaveLength(30);
