@@ -10,3 +10,5 @@
 .product-sync{display:flex;align-items:center;justify-content:space-between;gap:18rpx;padding:14rpx 38rpx;background:#eee4f2;color:#70597f;font-size:24rpx;line-height:1.6}.product-error{display:flex;flex-direction:column;gap:28rpx;margin:40rpx 28rpx;padding:38rpx;color:#6f5a7b;font-size:27rpx;line-height:1.8}.product-error__title{color:#352a3a;font:40rpx "Songti SC","STSong",serif}
 
 .product-tab__marker--active{background:#704b76}
+
+.product-read-loading{position:absolute;top:24rpx;left:24rpx;right:auto;z-index:2}

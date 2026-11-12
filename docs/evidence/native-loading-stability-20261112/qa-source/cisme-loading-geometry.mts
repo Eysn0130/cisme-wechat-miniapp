@@ -1,0 +1,15 @@
+import{cli,evaluate}from'./cisme-care-flow-cli.mts';import{mkdir,writeFile}from'node:fs/promises';
+const root='/Users/mini/CISME/docs/evidence/native-loading-stability-20261112',phase=process.argv[2]||'baseline-c3810512';await mkdir(root+'/'+phase,{recursive:true});
+async function wait(){return evaluate(async function(){let p=getCurrentPages().slice(-1)[0];for(let i=0;i<50&&p.data.loading;i++)await new Promise(r=>setTimeout(r,60));return{route:p.route,loading:p.data.loading,error:p.data.error};});}
+async function rects(selectors:string[],refresh=false){return evaluate(async function(selectors,refresh){const p=getCurrentPages().slice(-1)[0],q=getApp().__cismeLoadingQA;
+ if(refresh){q.holdCatalog=true;void p.load();}
+ const samples=[];for(let i=0;i<(refresh?6:1);i++){await new Promise(r=>setTimeout(r,80));const boxes=await new Promise(resolve=>{const s=wx.createSelectorQuery();selectors.forEach(k=>s.select(k).boundingClientRect());s.exec(rows=>resolve(rows.map((r,i)=>({selector:selectors[i],box:r?{left:r.left,top:r.top,width:r.width,height:r.height}:null}))));});samples.push({loading:p.data.loading,boxes});}
+ return{route:p.route,width:wx.getWindowInfo().windowWidth,samples};},selectors,refresh);}
+async function release(){await evaluate(function(){const q=getApp().__cismeLoadingQA;q.holdCatalog=false;q.pending.splice(0).forEach(f=>f());});return wait();}
+const findings=[];
+for(const [route,selectors]of[['shop',['.shop-hero','.shop-card']],['product',['.product-gallery','.product-selector']]]as const){
+ await cli('automation_navigate',['--action',route==='shop'?'switchTab':'navigateTo','--url','/pages/'+route+'/index'+(route==='product'?'?id=aigerong-moisture-shampoo-280':'')]);const ready=await wait();if(ready.loading||ready.error)throw Error('READY_FAILED:'+JSON.stringify(ready));
+ const before=await rects([...selectors]);await cli('simulator_screenshot',['--path',root+'/'+phase+'/'+route+'-ready.png']);const pending=await rects([...selectors],true);await cli('simulator_screenshot',['--path',root+'/'+phase+'/'+route+'-refresh.png']);await release();
+ const after=await rects([...selectors]);const delta=pending.samples.map(sample=>sample.boxes.map((b:any,i:number)=>b.box&&before.samples[0].boxes[i].box?{selector:b.selector,deltaTop:b.box.top-before.samples[0].boxes[i].box.top,deltaHeight:b.box.height-before.samples[0].boxes[i].box.height}:null));findings.push({route,before,pending,after,delta});console.log(route,JSON.stringify(delta[0]));
+}
+await writeFile(root+'/'+phase+'/geometry.json',JSON.stringify({phase,allHttpIntercepted:true,realMemberWrites:0,findings},null,2)+'\n');

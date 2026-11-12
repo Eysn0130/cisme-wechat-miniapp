@@ -223,7 +223,8 @@
     "navigationStyle": "custom",
     "backgroundColor": "#f7f1f8",
     "backgroundTextStyle": "dark",
-    "navigationBarTextStyle": "black"
+    "navigationBarTextStyle": "black",
+    "handleWebviewPreload": "auto"
   },
   "__usePrivacyCheck__": true,
   "requiredPrivateInfos": [
@@ -254,5 +255,95 @@
   },
   "plugins": { "logisticsPlugin": { "version": "2.1.5", "provider": "wx9ad912bf20548d92" } },
   "lazyCodeLoading": "requiredComponents",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "preloadRule": {
+    "pages/home/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/support"
+      ]
+    },
+    "pages/shop/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/product"
+      ]
+    },
+    "pages/community/index": {
+      "network": "all",
+      "packages": [
+        "pages/post"
+      ]
+    },
+    "pages/profile/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/points",
+        "pages/support"
+      ]
+    },
+    "pages/product/index": {
+      "network": "all",
+      "packages": [
+        "pages/checkout"
+      ]
+    },
+    "pages/checkout/index": {
+      "network": "all",
+      "packages": [
+        "pages/order-detail"
+      ]
+    },
+    "pages/orders/index": {
+      "network": "all",
+      "packages": [
+        "pages/order-detail"
+      ]
+    },
+    "pages/order-detail/index": {
+      "network": "all",
+      "packages": [
+        "pages/aftersale"
+      ]
+    },
+    "pages/management/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-orders",
+        "pages/management-catalog",
+        "pages/management-support",
+        "pages/management-members",
+        "pages/management-points",
+        "pages/management-finance",
+        "pages/management-privacy",
+        "pages/management-fulfillment",
+        "pages/aftersale",
+        "pages/community-review"
+      ]
+    },
+    "pages/management-catalog/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-product"
+      ]
+    },
+    "pages/management-orders/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-order-detail"
+      ]
+    },
+    "pages/management-support/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-support-chat"
+      ]
+    },
+    "pages/management-members/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-member"
+      ]
+    }
+  }
 }

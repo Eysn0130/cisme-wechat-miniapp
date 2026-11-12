@@ -1,4 +1,5 @@
 import { requireGuestCommunityAccess } from "../../services/api";
+import { cancelPageReads } from "../../services/page-requests";
 import {retainReadPresentation} from "../../services/read-presentation";
 import {catalogList} from "../../services/commerce";
 import {commerceShopItems} from "../../services/commerce-content";
@@ -10,17 +11,18 @@ Page({
   visible:false,
   onLoad(){this.data.pageAlive=true;},
   onShow(){if(!requireGuestCommunityAccess("/pages/shop/index"))return;this.visible=true;this.data.pageAlive=true;this.setData({navigating:false,autoplay:!shouldReduceMotion()});const tab=this.getTabBar?.();tab?.syncActive?.(1);tab?.setData({active:1,externalBusy:false});void this.load();},
-  onHide(){this.visible=false;this.data.loadAttempt += 1;this.setData({autoplay:false});},
-  onUnload(){this.visible=false;this.data.pageAlive = false;this.data.loadAttempt += 1;},
+  onHide(){this.visible=false;this.data.loadAttempt += 1;cancelPageReads(this);this.setData({autoplay:false});},
+  onUnload(){this.visible=false;this.data.pageAlive = false;this.data.loadAttempt += 1;cancelPageReads(this);},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   onPageScroll(event:WechatMiniprogram.Page.IPageScrollOption){const autoplay=this.visible&&event.scrollTop<360&&!shouldReduceMotion();if(autoplay!==this.data.autoplay)this.setData({autoplay});},
   async onPullDownRefresh(){await this.load();wx.stopPullDownRefresh();},
   async load(){
+    cancelPageReads(this);
     const attempt=this.data.loadAttempt+1;
     const preserve = retainReadPresentation(this);
     this.setData({loadAttempt:attempt,...(!preserve?{catalog:null,featured:null,purchaseAvailable:false}:{}),loading:true,error:""});
     try{
-      const catalog=await catalogList();
+      const catalog=await catalogList(undefined,this);
       if(!this.data.pageAlive || this.data.loadAttempt !== attempt)return;
       const items=commerceShopItems(catalog.items);
       this.setData({catalog,items,heroes:items.slice(0,2),featured:items[0]??null,purchaseAvailable:items.some(p=>p.purchaseEnabled),loading:false,error:""});

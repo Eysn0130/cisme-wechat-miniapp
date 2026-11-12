@@ -1,0 +1,88 @@
+{
+  "measuredAt": "2026-11-12T05:23:56.276114+00:00",
+  "method": "9 sequential anonymous HTTPS GETs from the development Mac, normal TLS verification, no token or write requests. Each sample uses a new curl process; not WeChat device latency, cold start, FPS or P95.",
+  "base": "https://staging-api.cisme.cn",
+  "samples": [
+    {
+      "path": "/v1/catalog?limit=20",
+      "attempt": 1,
+      "status": 200,
+      "bytes": 2449,
+      "ttfbMs": 130.69,
+      "totalMs": 130.8,
+      "exitCode": 0
+    },
+    {
+      "path": "/v1/catalog?limit=20",
+      "attempt": 2,
+      "status": 200,
+      "bytes": 2449,
+      "ttfbMs": 123.29,
+      "totalMs": 123.36,
+      "exitCode": 0
+    },
+    {
+      "path": "/v1/catalog?limit=20",
+      "attempt": 3,
+      "status": 200,
+      "bytes": 2449,
+      "ttfbMs": 126.41,
+      "totalMs": 126.59,
+      "exitCode": 0
+    },
+    {
+      "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+      "attempt": 1,
+      "status": 200,
+      "bytes": 1143,
+      "ttfbMs": 132.18,
+      "totalMs": 132.41,
+      "exitCode": 0
+    },
+    {
+      "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+      "attempt": 2,
+      "status": 200,
+      "bytes": 1143,
+      "ttfbMs": 126.82,
+      "totalMs": 126.99,
+      "exitCode": 0
+    },
+    {
+      "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+      "attempt": 3,
+      "status": 200,
+      "bytes": 1143,
+      "ttfbMs": 126.32,
+      "totalMs": 126.42,
+      "exitCode": 0
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "attempt": 1,
+      "status": 200,
+      "bytes": 11385,
+      "ttfbMs": 155.44,
+      "totalMs": 155.64,
+      "exitCode": 0
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "attempt": 2,
+      "status": 200,
+      "bytes": 11385,
+      "ttfbMs": 150.38,
+      "totalMs": 150.51,
+      "exitCode": 0
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "attempt": 3,
+      "status": 200,
+      "bytes": 11385,
+      "ttfbMs": 153.38,
+      "totalMs": 153.5,
+      "exitCode": 0
+    }
+  ]
+}

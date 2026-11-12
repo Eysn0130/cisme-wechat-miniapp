@@ -263,7 +263,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914",
+  "packageSourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
   "findings": [
     {
       "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -272,7 +272,7 @@
       "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
     }
   ],
-  "note": "Login copy and explicit guest-community route/comment wall fixes. Scoped native synthetic evidence is in docs/evidence/guest-community-boundary-20261111; all41-route physical-device/font/state release matrix remains blocked. Earlier captures retain their own hashes and scope.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-559c39594790.json",
+  "note": "Native loading continuity, lifecycle-owned catalog reads, direct product lookup, concurrent post media preparation and bounded next-page code preloads. Scoped evidence: docs/evidence/native-loading-stability-20261112. Full 41-route physical-device/font/state acceptance remains blocked; earlier captures retain their original hashes and scope.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-c3810512533b.json",
   "pendingSourceRebind": false
 }

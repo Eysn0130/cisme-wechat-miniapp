@@ -232,10 +232,12 @@ Page({
         try{const article=await (this.data.formalSource?publishedFormalStory:publishedEditorialArticle)(this.data.id,this);
           if(!this.currentArticleLoad(attempt,token)){this.dropChangedArticleOwner(attempt);return;}
           const display=this.data.formalSource?formalStoryMedia(article.media):editorialDisplayMedia(article.media);
-          const avatar=this.data.formalSource?await localMemberAvatar(article.avatar,(article as {avatarRevision?:string|null}).avatarRevision):editorialPublisherAvatar(article.author,defaultMemberAvatar,article.authorId);
           const videoMedia=article.media.find(media=>media.type==="video");
           const videoHeightRpx=videoMedia?.type==="video"?imageCanvasHeight(videoMedia.width,videoMedia.height,"up")??1000:1000;
-          const galleryHeight=display.images.length?await this.resolveGalleryHeight(article.id,article.version,display.images,token,attempt):1000;
+          const [avatar,galleryHeight]=await Promise.all([
+            this.data.formalSource?localMemberAvatar(article.avatar,(article as {avatarRevision?:string|null}).avatarRevision):editorialPublisherAvatar(article.author,defaultMemberAvatar,article.authorId),
+            display.images.length?this.resolveGalleryHeight(article.id,article.version,display.images,token,attempt):1000
+          ]);
           if(!this.currentArticleLoad(attempt,token)){
             this.dropChangedArticleOwner(attempt);
             this.recoverExpiredEditorialRead(attempt,token,{code:"REQUEST_SESSION_CHANGED"});

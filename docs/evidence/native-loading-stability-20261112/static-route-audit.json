@@ -1,0 +1,1306 @@
+{
+  "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+  "routeCount": 41,
+  "scope": "All 41 registered routes, shared request coordinator/read policy, navigation, image sizing, avatar, timers and native loading styles. Pattern flags are inventory signals, not security or runtime proof.",
+  "pages": [
+    {
+      "route": "pages/account/index",
+      "sourceBytes": 46458,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{(!pendingDestination || renewalMode) && !legalLoading && !legalTextsReady}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/home/index",
+      "sourceBytes": 81669,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{loading}}"
+      ],
+      "timers": {
+        "timeout": 1,
+        "interval": 1,
+        "clearTimeout": 1,
+        "clearInterval": 1
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/shop/index",
+      "sourceBytes": 10114,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/records/index",
+      "sourceBytes": 101430,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{usageLoading && !usageReady}}",
+        "{{usageCalendarLoading}}",
+        "{{usageDateLoading}}"
+      ],
+      "timers": {
+        "timeout": 3,
+        "interval": 0,
+        "clearTimeout": 3,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/community/index",
+      "sourceBytes": 67244,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{mode === 'recommend' && (!loading || feedReady) && !displayFeedCount && !error}}",
+        "{{mode === 'featured' && (!loading || feedReady) && !displayFeedCount && !error}}",
+        "{{mode === 'following' && (!loading || feedReady) && !displayFeedCount && !error}}",
+        "{{loading && !feedReady && !displayFeedCount}}",
+        "{{formalLoadingMore}}"
+      ],
+      "timers": {
+        "timeout": 1,
+        "interval": 0,
+        "clearTimeout": 2,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/profile/index",
+      "sourceBytes": 32885,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{loading && !member}}"
+      ],
+      "timers": {
+        "timeout": 1,
+        "interval": 0,
+        "clearTimeout": 1,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/task/index",
+      "sourceBytes": 396,
+      "lifecycle": [],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": false,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": true,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/submit/index",
+      "sourceBytes": 396,
+      "lifecycle": [],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": false,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": true,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/progress/index",
+      "sourceBytes": 396,
+      "lifecycle": [],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": false,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": true,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/points/index",
+      "sourceBytes": 39058,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading && !points}}",
+        "{{!gifts.length && !giftError && !loading}}",
+        "{{addressesState === 'loading'}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/post/index",
+      "sourceBytes": 113603,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{!loading || !viewerHasSession}}",
+        "{{loading && !item}}",
+        "{{commentsLoading && !threads.length}}",
+        "{{!commentsLoading && !commentsError && !threads.length}}",
+        "{{commentsLoading && threads.length}}",
+        "{{commentHasMore && !commentsLoading}}",
+        "{{socialLoading}}",
+        "{{!socialLoading && !socialError && !threads.length}}",
+        "{{blocksLoading && !blocks.length}}",
+        "{{!blocksLoading && !blocksError && !blocks.length}}"
+      ],
+      "timers": {
+        "timeout": 1,
+        "interval": 0,
+        "clearTimeout": 1,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/product/index",
+      "sourceBytes": 25436,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading && !item}}",
+        "{{loading}}"
+      ],
+      "timers": {
+        "timeout": 1,
+        "interval": 0,
+        "clearTimeout": 1,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/checkout/index",
+      "sourceBytes": 33105,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading && !product}}",
+        "{{!loading&&!syncError&&!runtimeEnabled}}",
+        "{{!loading&&!syncError&&runtimeEnabled&&!formalPayment}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 1,
+        "clearTimeout": 0,
+        "clearInterval": 1
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/orders/index",
+      "sourceBytes": 8972,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{!loading&&!error&&!items.length}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/order-detail/index",
+      "sourceBytes": 88813,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading && !order}}",
+        "{{!closedRights && (recoveryLoading||recoveryError||recoveryRows.length)}}",
+        "{{recoveryLoading}}",
+        "{{sheetLoading}}",
+        "{{!sheetCase && !sheetLoading}}",
+        "{{shipmentLoading}}",
+        "{{receiptQueryLoading}}",
+        "{{refunds.length||refundError||refundLoading||order.status==='paid'&&runtimeMode==='test'}}",
+        "{{refundLoading}}"
+      ],
+      "timers": {
+        "timeout": 2,
+        "interval": 0,
+        "clearTimeout": 1,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/settings/index",
+      "sourceBytes": 79131,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{addressesLoading && !addressesReady}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/invite/index",
+      "sourceBytes": 15764,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading && !invitationReady}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/legal/index",
+      "sourceBytes": 3747,
+      "lifecycle": [
+        "onLoad",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/privacy-rights/index",
+      "sourceBytes": 53247,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{!closedRights && labels[selected] === '撤回个人信息处理同意' && consentsLoading}}",
+        "{{labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))}}",
+        "{{labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))}}",
+        "{{labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/support/index",
+      "sourceBytes": 107495,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{!loading && olderCursor !== null}}",
+        "{{!loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}",
+        "{{newTopicAttempt || historyLoaded && !loading && newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}",
+        "{{orderPickerLoading}}"
+      ],
+      "timers": {
+        "timeout": 2,
+        "interval": 0,
+        "clearTimeout": 2,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management/index",
+      "sourceBytes": 21667,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-catalog/index",
+      "sourceBytes": 9079,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{!loading && !error && !items.length}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-product/index",
+      "sourceBytes": 21874,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": false,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{refreshing}}",
+        "{{!loading && (!error || product || dirty)}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-orders/index",
+      "sourceBytes": 8764,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{!loading&&!error&&!items.length}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-order-detail/index",
+      "sourceBytes": 17536,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{shipmentLoading}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-support/index",
+      "sourceBytes": 10789,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{refreshing}}",
+        "{{!loading && !items.length && !error}}",
+        "{{!loading}}",
+        "{{loadingMore}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 1,
+        "clearTimeout": 0,
+        "clearInterval": 1
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-support-chat/index",
+      "sourceBytes": 91773,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{!loading && olderCursor !== null}}",
+        "{{!loading}}",
+        "{{contextOpen && !loading}}",
+        "{{aftersaleOpen && !loading}}"
+      ],
+      "timers": {
+        "timeout": 2,
+        "interval": 0,
+        "clearTimeout": 2,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-members/index",
+      "sourceBytes": 33746,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{membersLoaded && !loading && !error}}",
+        "{{loading}}",
+        "{{!loading && !error && !items.length}}",
+        "{{!loading && !error}}",
+        "{{!loading && !error}}",
+        "{{!loading && !error && nextCursor}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-member/index",
+      "sourceBytes": 34470,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{detail && !loading}}",
+        "{{sectionLoading}}",
+        "{{!sectionLoading && !visibleRows.length && !sectionError}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/referral/index",
+      "sourceBytes": 6749,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/community-compose/index",
+      "sourceBytes": 143554,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{!postId && !loading && !listMode && (textCardHandoffPath || (busy && operation === 'creating'))}}",
+        "{{error && !loading && !postId && !writeRecovery}}",
+        "{{listMode && !loading}}",
+        "{{!listMode && !loading && postId}}",
+        "{{item.state === 'uploading' || item.state === 'failed' || item.error}}",
+        "{{!listMode && !loading && !publicationComplete && postId && (state === 'draft' || state === 'rejected' || state === 'published') && !keyboardVisible}}"
+      ],
+      "timers": {
+        "timeout": 4,
+        "interval": 1,
+        "clearTimeout": 8,
+        "clearInterval": 3
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/community-post/index",
+      "sourceBytes": 1640,
+      "lifecycle": [
+        "onLoad",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": false,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": true,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/community-author/index",
+      "sourceBytes": 20216,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading && !author}}",
+        "{{loadingMore}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/community-review/index",
+      "sourceBytes": 22690,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{!loading && !error && !queueItems.length}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/community-activity/index",
+      "sourceBytes": 24663,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading && !activityReady}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-finance/index",
+      "sourceBytes": 32557,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{section!=='cycles'&&!loading&&!error}}",
+        "{{section!=='cycles'&&!loading&&!error&&!items.length}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/commission/index",
+      "sourceBytes": 36366,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{recoveryLoading||recoveryError||recoveryRows.length}}",
+        "{{recoveryLoading}}",
+        "{{!creditLoading&&!creditError}}",
+        "{{creditLoading}}",
+        "{{!requestsLoading&&!listError}}",
+        "{{requestsLoading}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "sourceBytes": 17790,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 1,
+        "clearTimeout": 0,
+        "clearInterval": 1
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/aftersale/index",
+      "sourceBytes": 33392,
+      "lifecycle": [
+        "onLoad",
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 1,
+        "clearTimeout": 0,
+        "clearInterval": 1
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-fulfillment/index",
+      "sourceBytes": 19158,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": false,
+      "lifecycleReadCancellation": true,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": true,
+      "loadingConditions": [
+        "{{loading}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 1,
+        "clearTimeout": 0,
+        "clearInterval": 1
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    },
+    {
+      "route": "pages/management-points/index",
+      "sourceBytes": 23025,
+      "lifecycle": [
+        "onShow",
+        "onHide",
+        "onUnload"
+      ],
+      "readContinuity": true,
+      "lifecycleReadCancellation": false,
+      "attemptOrIdentityGuard": true,
+      "globalLoadingIndicator": false,
+      "loadingConditions": [
+        "{{loading}}",
+        "{{!loading && !items.length}}"
+      ],
+      "timers": {
+        "timeout": 0,
+        "interval": 0,
+        "clearTimeout": 0,
+        "clearInterval": 0
+      },
+      "retiredCompatibilityRoute": false,
+      "evidenceKind": "static_source_inventory",
+      "runtimeAcceptance": "not_implied_by_static_scan"
+    }
+  ],
+  "preloadRules": {
+    "pages/home/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/support"
+      ]
+    },
+    "pages/shop/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/product"
+      ]
+    },
+    "pages/community/index": {
+      "network": "all",
+      "packages": [
+        "pages/post"
+      ]
+    },
+    "pages/profile/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/points",
+        "pages/support"
+      ]
+    },
+    "pages/product/index": {
+      "network": "all",
+      "packages": [
+        "pages/checkout"
+      ]
+    },
+    "pages/checkout/index": {
+      "network": "all",
+      "packages": [
+        "pages/order-detail"
+      ]
+    },
+    "pages/orders/index": {
+      "network": "all",
+      "packages": [
+        "pages/order-detail"
+      ]
+    },
+    "pages/order-detail/index": {
+      "network": "all",
+      "packages": [
+        "pages/aftersale"
+      ]
+    },
+    "pages/management/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-orders",
+        "pages/management-catalog",
+        "pages/management-support",
+        "pages/management-members",
+        "pages/management-points",
+        "pages/management-finance",
+        "pages/management-privacy",
+        "pages/management-fulfillment",
+        "pages/aftersale",
+        "pages/community-review"
+      ]
+    },
+    "pages/management-catalog/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-product"
+      ]
+    },
+    "pages/management-orders/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-order-detail"
+      ]
+    },
+    "pages/management-support/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-support-chat"
+      ]
+    },
+    "pages/management-members/index": {
+      "network": "wifi",
+      "packages": [
+        "pages/management-member"
+      ]
+    }
+  },
+  "sourcePackagePreloadUnion": [
+    {
+      "source": "main",
+      "targets": [
+        "pages/support",
+        "pages/product",
+        "pages/post",
+        "pages/points"
+      ],
+      "bytes": 1991055,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/product",
+      "targets": [
+        "pages/checkout"
+      ],
+      "bytes": 33134,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/checkout",
+      "targets": [
+        "pages/order-detail"
+      ],
+      "bytes": 88842,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/orders",
+      "targets": [
+        "pages/order-detail"
+      ],
+      "bytes": 88842,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/order-detail",
+      "targets": [
+        "pages/aftersale"
+      ],
+      "bytes": 33421,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/management",
+      "targets": [
+        "pages/management-orders",
+        "pages/management-catalog",
+        "pages/management-support",
+        "pages/management-members",
+        "pages/management-points",
+        "pages/management-finance",
+        "pages/management-privacy",
+        "pages/management-fulfillment",
+        "pages/aftersale",
+        "pages/community-review"
+      ],
+      "bytes": 211333,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/management-catalog",
+      "targets": [
+        "pages/management-product"
+      ],
+      "bytes": 21903,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/management-orders",
+      "targets": [
+        "pages/management-order-detail"
+      ],
+      "bytes": 17565,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/management-support",
+      "targets": [
+        "pages/management-support-chat"
+      ],
+      "bytes": 91802,
+      "budget": 2097152
+    },
+    {
+      "source": "pages/management-members",
+      "targets": [
+        "pages/management-member"
+      ],
+      "bytes": 34499,
+      "budget": 2097152
+    }
+  ],
+  "existingDecisions": {
+    "ttlMs": 0,
+    "staleMs": 0,
+    "privatePermissionRevalidation": "Keep clearing privileged projections until fresh authority is confirmed.",
+    "postCanvas": "ED-MEDIA-01/02 unchanged; first image measured before paint, 2500 ms bounded fallback, late callbacks guarded.",
+    "writeLifecycle": "Only GET page subscriptions canceled; writes retain receipt/idempotency recovery.",
+    "tabSwitch": "Immediate native navigation; no animation delay; reduce-motion retained.",
+    "retiredRoutes": "Compatibility endpoints remain closed redirects; no preload or restored business UI."
+  },
+  "officialReferences": [
+    "https://developers.weixin.qq.com/miniprogram/dev/framework/subpackages/preload",
+    "https://developers.weixin.qq.com/miniprogram/dev/framework/performance/tips/runtime_nav"
+  ],
+  "limitations": [
+    "Source-package budget is raw local source bytes; official upload package receipt checked separately.",
+    "Code predownload and Android idle WebView cannot prove physical device FPS or cold-start P95 in the local simulator.",
+    "Full physical-device/font/state matrix remains blocked in current-source-acceptance.json."
+  ]
+}

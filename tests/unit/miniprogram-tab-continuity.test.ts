@@ -355,7 +355,10 @@ describe("native tab return presentation while real read paths revalidate", () =
     page.onHide(); page.onShow(); await flush();
     expect(rendered.querySelector(selector).dom).toBe(card);
     expect(card.textContent).toBe(text);
-    expect(rendered.querySelector(".page-read-loading")).toBeFalsy();
+    if (route === "shop" || route === "product") {
+      expect(card.contains(rendered.querySelector(".page-read-loading").dom)).toBe(true);
+      expect(rendered.querySelectorAll(route === "shop" ? ".shop-sync" : ".product-sync")).toHaveLength(0);
+    } else expect(rendered.querySelector(".page-read-loading")).toBeFalsy();
     expect(page.data.loading || page.data.refreshing).toBe(true);
     pending.resolve(replies.get(path as string)); await flush();
     expect(page.data.loading).toBe(false);
@@ -377,6 +380,16 @@ describe("native tab return presentation while real read paths revalidate", () =
     pending.resolve(replies.get(path)); await flush();
   });
 
+  it.each(["admin","legacy_preview"])("opens approved product materials by their direct detail, binding commerce only to the %s source", async (sourceKind) => {
+    const code="aigerong-moisture-shampoo-280";
+    replies.set(`/v1/catalog/${code}`,{...product,id:code,code,sourceKind,price:19800});
+    // The product is deliberately absent from the first catalog page.
+    const {page}=await mount("product");page.setData({id:code});await page.load();
+    expect(m.request.mock.calls.map(([input])=>input.path)).toEqual([`/v1/catalog/${code}`]);
+    expect(page.data.item.catalogBound).toBe(sourceKind==="admin");
+    expect(page.data.item.variants.length>0).toBe(sourceKind==="admin");
+  });
+
   it("preserves a valid product selection while refreshing and clamps quantity to freshly confirmed inventory", async () => {
     const { page, rendered } = await mount("product"); page.setData({ id: "synthetic-product" }); await page.load();
     page.openSku(); page.selectSku({ currentTarget: { dataset: { id: "sku-b" } } }); page.confirmSku(); page.setData({ quantity: 4 });
@@ -384,7 +397,8 @@ describe("native tab return presentation while real read paths revalidate", () =
     const reading = page.load(); await flush();
     expect(page.data).toMatchObject({ selectedSku: { id: "sku-b" }, quantity: 4, loading: true });
     page.openCheckout(); expect(wxMock.navigateTo).not.toHaveBeenCalled();
-    expect(rendered.querySelector(".page-read-loading")).toBeFalsy();
+    expect(rendered.querySelector(".product-gallery").dom.contains(rendered.querySelector(".product-read-loading").dom)).toBe(true);
+    expect(rendered.querySelectorAll(".product-sync")).toHaveLength(0);
     pending.resolve({ ...product, variants: product.variants.map(sku => ({ ...sku, availableQuantity: 2 })) });
     await reading;
     expect(page.data).toMatchObject({ selectedSku: { id: "sku-b" }, quantity: 2, loading: false });

@@ -1,0 +1,57 @@
+{
+  "sourceSha256": "ca007cd9d74dc93283f472a685cbe7b96fbfb2f60c45de7d103ced15ec245d8a",
+  "allHttpIntercepted": true,
+  "realMemberWrites": 0,
+  "method": "Official CLI navigation and actual Page load/buy handlers in the native simulator; no real checkout or payment.",
+  "start": {
+    "route": "pages/product/index",
+    "loading": true,
+    "request": {
+      "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+      "method": "GET",
+      "handled": true,
+      "startedAt": 1794460975836
+    }
+  },
+  "departed": {
+    "route": "pages/shop/index",
+    "patches": 1,
+    "requests": [
+      {
+        "path": "/v1/catalog/aigerong-moisture-shampoo-280",
+        "method": "GET",
+        "handled": true,
+        "startedAt": 1794460975836,
+        "aborted": true
+      },
+      {
+        "path": "/v1/catalog?limit=20",
+        "method": "GET",
+        "handled": true,
+        "startedAt": 1794460976817
+      }
+    ]
+  },
+  "released": {
+    "route": "pages/shop/index",
+    "loading": false,
+    "departedPatches": 1,
+    "undefinedRoutes": []
+  },
+  "error": {
+    "route": "pages/product/index",
+    "loading": false,
+    "error": "开售与库存信息暂未更新，请重试。",
+    "sheetOpen": true,
+    "bind": false,
+    "purchaseEnabled": false,
+    "requests": 11
+  },
+  "retry": {
+    "loading": false,
+    "error": "",
+    "bind": true,
+    "purchaseEnabled": true,
+    "undefinedRoutes": []
+  }
+}

@@ -1,0 +1,6 @@
+import{cli,evaluate}from'./cisme-care-flow-cli.mts';import{writeFile,readFile}from'node:fs/promises';
+const dir='/Users/mini/CISME/docs/evidence/native-loading-stability-20261112';
+const state=await evaluate(function(){const a=getApp(),w=wx.getWindowInfo(),b=wx.getAppBaseInfo();return{route:getCurrentPages().slice(-1)[0]?.route,qaKeys:Object.keys(a).filter(k=>/QA$/.test(k)),sessionPresent:!!a.globalData.sessionToken,apiBaseUrl:a.globalData.apiBaseUrl,windowWidth:w.windowWidth,windowHeight:w.windowHeight,SDKVersion:b.SDKVersion};});
+if(state.qaKeys.length||state.sessionPresent||state.route!=='pages/account/index'||state.windowWidth!==390||state.apiBaseUrl.includes('synthetic'))throw Error('NOT_RESTORED:'+JSON.stringify(state));
+await cli('simulator_screenshot',['--path',dir+'/restored-account.png']);
+await writeFile(dir+'/native-restoration.json',JSON.stringify({sourceSha256:'fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306',originalRoute:'pages/account/index',originalSessionPresent:false,originalWidth:390,restorationLog:await readFile('/private/tmp/cisme-loading-restoration.log','utf8'),refreshedModuleContext:true,observed:state},null,2)+'\n');console.log(JSON.stringify(state));
