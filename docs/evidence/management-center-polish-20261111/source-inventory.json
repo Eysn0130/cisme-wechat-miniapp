@@ -1,0 +1,370 @@
+[
+  {
+    "page": "aftersale",
+    "lines": {
+      "ts": 170,
+      "wxml": 46,
+      "wxss": 3
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "chooseOrderItems",
+      "clearAttention",
+      "list",
+      "next",
+      "open",
+      "openChat",
+      "reconcile",
+      "retry",
+      "submit"
+    ],
+    "paths": [
+      "${this.base()}/${this.selection}",
+      "${this.base()}?limit=20${this.data.orderId?",
+      "${this.base()}/${row.id}/actions"
+    ]
+  },
+  {
+    "page": "community-review",
+    "lines": {
+      "ts": 151,
+      "wxml": 22,
+      "wxss": 31
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "deleteEditorial",
+      "load",
+      "loadMoreEditorialQueue",
+      "openEditorialArticle",
+      "reviewEditorial",
+      "selectEditorialQueue"
+    ],
+    "paths": []
+  },
+  {
+    "page": "management",
+    "lines": {
+      "ts": 72,
+      "wxml": 17,
+      "wxss": 4
+    },
+    "plainButtons": 8,
+    "handlers": [
+      "back",
+      "openAftersale",
+      "openCatalog",
+      "openEditorialComments",
+      "openFinance",
+      "openFulfillment",
+      "openMembers",
+      "openOrders",
+      "openPoints",
+      "openPrivacy",
+      "openSupport",
+      "retry",
+      "retryRuntime"
+    ],
+    "paths": [
+      "/v1/management/attention"
+    ]
+  },
+  {
+    "page": "management-catalog",
+    "lines": {
+      "ts": 42,
+      "wxml": 9,
+      "wxss": 2
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "create",
+      "load",
+      "loadMore",
+      "open"
+    ],
+    "paths": []
+  },
+  {
+    "page": "management-finance",
+    "lines": {
+      "ts": 267,
+      "wxml": 54,
+      "wxss": 4
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "approveCycleMember",
+      "back",
+      "decide",
+      "importBill",
+      "loadMore",
+      "operateIssue",
+      "prepareCycle",
+      "retry",
+      "selectSection"
+    ],
+    "paths": [
+      "${paths[section]}?limit=20",
+      "${paths[section]}?limit=20&cursor=${encodeURIComponent(cursor)}",
+      "/v1/management/commission/settlement-cycles/prepare",
+      "/v1/management/commission/settlement-cycles/${cycle.id}/approve-member",
+      "/v1/management/money/trade-bills/import"
+    ]
+  },
+  {
+    "page": "management-fulfillment",
+    "lines": {
+      "ts": 82,
+      "wxml": 31,
+      "wxss": 4
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "chooseXlsx",
+      "exportExcel",
+      "newBatch",
+      "next",
+      "openImportOrder",
+      "reconcileBatch",
+      "retry",
+      "submit"
+    ],
+    "paths": [
+      "/v1/management/shipments?${filter}&limit=50${cursor?",
+      "/v1/management/shipments/import-xlsx/preview",
+      "/v1/management/shipments/import"
+    ]
+  },
+  {
+    "page": "management-member",
+    "lines": {
+      "ts": 194,
+      "wxml": 66,
+      "wxss": 9
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "changeMembership",
+      "closeRateForm",
+      "load",
+      "loadMoreSection",
+      "openRateForm",
+      "openRow",
+      "retrySection",
+      "selectOrderMode",
+      "selectRateMode",
+      "selectSection",
+      "submitRateForm"
+    ],
+    "paths": [
+      "/v1/management/members/${id}/sections/${section}?limit=30${cursor?",
+      "/v1/management/members/${this.data.id}",
+      "/v1/management/members/${id}/membership",
+      "/v1/management/commission-rates",
+      "/v1/management/commission-rates/by-request/${command.key}"
+    ]
+  },
+  {
+    "page": "management-members",
+    "lines": {
+      "ts": 196,
+      "wxml": 27,
+      "wxss": 6
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "closeGlobalRateForm",
+      "load",
+      "loadMore",
+      "loadMoreRates",
+      "openGlobalRateForm",
+      "openMember",
+      "reviewRate",
+      "search",
+      "selectFilter",
+      "submitGlobalRateForm",
+      "togglePending"
+    ],
+    "paths": [
+      "/v1/management/members${query}",
+      "/v1/management/commission-rates/pending?limit=30",
+      "/v1/management/commission-rates/current",
+      "/v1/management/commission-rates/pending?limit=30&cursor=${encodeURIComponent(cursor)}",
+      "/v1/management/commission-rates",
+      "/v1/management/commission-rates/by-request/${command.key}",
+      "/v1/management/commission-rates/${id}/decision"
+    ]
+  },
+  {
+    "page": "management-order-detail",
+    "lines": {
+      "ts": 91,
+      "wxml": 1,
+      "wxss": 4
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "load",
+      "reconcile",
+      "submitShipment"
+    ],
+    "paths": []
+  },
+  {
+    "page": "management-orders",
+    "lines": {
+      "ts": 52,
+      "wxml": 1,
+      "wxss": 2
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "load",
+      "loadMore",
+      "open"
+    ],
+    "paths": []
+  },
+  {
+    "page": "management-points",
+    "lines": {
+      "ts": 50,
+      "wxml": 9,
+      "wxss": 1
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "approve",
+      "back",
+      "choose",
+      "close",
+      "feature",
+      "fulfill",
+      "load",
+      "more",
+      "multiplier",
+      "openPolicy",
+      "propose",
+      "selectState"
+    ],
+    "paths": [
+      "/v1/management/points",
+      "/v1/management/points/redemptions?state=${this.data.state}${more?'&cursor='+encodeURIComponent(this.data.nextCursor!):''}"
+    ]
+  },
+  {
+    "page": "management-privacy",
+    "lines": {
+      "ts": 97,
+      "wxml": 9,
+      "wxss": 2
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "closeDetail",
+      "executeCorrection",
+      "loadMore",
+      "retry",
+      "select",
+      "submit"
+    ],
+    "paths": [
+      "/v1/management/privacy-requests?page=1",
+      "/v1/management/privacy-requests?page=1&cursor=${encodeURIComponent(cursor)}",
+      "/v1/management/privacy-requests/${encodeURIComponent(row.id)}/response",
+      "/v1/management/privacy-requests/${encodeURIComponent(row.id)}/profile-correction"
+    ]
+  },
+  {
+    "page": "management-product",
+    "lines": {
+      "ts": 225,
+      "wxml": 11,
+      "wxss": 5
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "inventory",
+      "keepLocalDraft",
+      "loadRemoteDraft",
+      "publication",
+      "qualify",
+      "save"
+    ],
+    "paths": []
+  },
+  {
+    "page": "management-support",
+    "lines": {
+      "ts": 85,
+      "wxml": 4,
+      "wxss": 2
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "back",
+      "open",
+      "retry"
+    ],
+    "paths": [
+      "/v1/management/support/conversations?limit=30",
+      "/v1/management/support/conversations?limit=30&cursor=${encodeURIComponent(cursor)}"
+    ]
+  },
+  {
+    "page": "management-support-chat",
+    "lines": {
+      "ts": 963,
+      "wxml": 137,
+      "wxss": 793
+    },
+    "plainButtons": 0,
+    "handlers": [
+      "approveReturn",
+      "back",
+      "claim",
+      "closeAftersales",
+      "closeContext",
+      "jumpToLatest",
+      "loadOlder",
+      "openAftersales",
+      "openContext",
+      "openManageAftersale",
+      "openOrder",
+      "previewImage",
+      "resolve",
+      "retry",
+      "retrySend",
+      "selectReplyTarget",
+      "selectReturnCase",
+      "send",
+      "sendReturnInstruction",
+      "suggest"
+    ],
+    "paths": [
+      "/v1/management/support/ai/status",
+      "/v1/management/support/conversations/${this.data.id}/messages",
+      "/v1/management/support/conversations/${this.data.id}/aftersales",
+      "/v1/management/support/conversations/${this.data.id}/aftersales/${row.id}/actions",
+      "/v1/management/support/conversations/${this.data.id}/messages?after=${after}&limit=50",
+      "/v1/management/support/conversations/${this.data.id}/messages?before=${this.data.olderCursor}&limit=50",
+      "/v1/management/support/conversations/${this.data.id}/read",
+      "/v1/management/support/conversations/${this.data.id}/presence",
+      "/v1/management/support/conversations/${this.data.id}/claim",
+      "/v1/management/support/conversations/${this.data.id}/suggested-reply",
+      "/v1/management/support/conversations/${conversationId}/resolve",
+      "/v1/management/support/conversations/${this.data.id}/member-context"
+    ]
+  }
+]

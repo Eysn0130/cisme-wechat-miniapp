@@ -29,3 +29,25 @@ it('recovers from a write interrupted by hide and prevents the old account respo
 it('clears retained operator data when the session is lost without issuing an authority read',async()=>{
  page.onShow();await flush();m.authority.mockClear();m.token='';m.retain=false;page.onShow();await flush();expect(page.data.authority).toBeNull();expect(page.data.offers).toEqual([]);expect(m.authority).not.toHaveBeenCalled();
 });
+it('retries an unknown fulfillment result with the original key and exact payload, blocking a different command',async()=>{
+ page.onShow();await flush();let writes=0;
+ m.request.mockImplementation(async(o:any)=>{if(o.method){writes++;if(writes===1)throw {status:504};return {version:3};}return result();});
+ const path='/v1/management/points/redemptions/gift/ship',input={expectedVersion:2,carrierName:'合成快递',trackingNumber:'QA12345678',reason:'合成真实交寄核对'};
+ await page.command(path,input);expect(page.data.commandPending).toBe(true);expect(page.data.busy).toBe(false);
+ await page.command(path,{...input,trackingNumber:'QA87654321'});expect(writes).toBe(1);
+ page.retryCommand();await flush();
+ const requests=m.request.mock.calls.map(([o])=>o).filter(o=>o.method);
+ expect(requests).toHaveLength(2);expect(requests[1]).toMatchObject({path,idempotencyKey:requests[0].idempotencyKey,data:input});
+ expect(page.pendingCommand).toBeNull();expect(page.data.commandPending).toBe(false);
+});
+it('keeps an unknown command on same-account hide, clears it on a different account and revokes private data on 403',async()=>{
+ page.onShow();await flush();m.request.mockRejectedValue({status:504});await page.command('/synthetic',{reason:'合成操作依据'});
+ const key=page.pendingCommand.key;page.onHide();m.request.mockResolvedValue(result());page.onShow();await flush();expect(page.pendingCommand.key).toBe(key);
+ page.onHide();m.token='member-b';page.onShow();await flush();expect(page.pendingCommand).toBeNull();expect(page.data.commandPending).toBe(false);
+ m.request.mockRejectedValue({status:403,title:'权限已撤销'});await page.command('/synthetic',{reason:'合成新操作依据'});
+ expect(page.pendingCommand).toBeNull();expect(page.data).toMatchObject({authority:null,items:[],offers:[],policies:[],canProduct:false});
+});
+it('does not hide an active write behind a concurrent refresh',async()=>{
+ page.onShow();await flush();let finish!:(v:any)=>void;m.request.mockImplementation((o:any)=>o.method?new Promise(r=>finish=r):Promise.resolve(result()));
+ const work=page.command('/synthetic',{reason:'合成刷新竞争'});const epoch=page.epoch;await page.load();expect(page.epoch).toBe(epoch);expect(page.data.busy).toBe(true);finish({});await work;expect(page.data.busy).toBe(false);
+});

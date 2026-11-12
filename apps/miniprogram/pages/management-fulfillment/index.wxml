@@ -1,7 +1,7 @@
-<view class="fulfillment-shell" style="{{chromeStyle}}">
+<view class="management-ui fulfillment-shell" style="{{chromeStyle}}">
  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">发货与履约</text></view>
  <view class="page page--stack">
-  <view class="page-title">先核对，再登记物流</view><text class="subtitle">用于整单一次发货。可导出 Excel 拣货，发货结果请以已保存的订单记录为准。</text>
+  <view class="page-title">待发货订单</view>
   <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在核验权限与订单…"><view class="page-read-loading__indicator"/></view>
   <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button bindtap="retry" disabled="{{busy}}" class="text-button {{busy ? 'control--disabled' : ''}}">重新核验</button></view>
   <view wx:if="{{coreReady}}" class="section-card">
@@ -11,18 +11,18 @@
    <view wx:if="{{!items.length}}" class="state">当前筛选没有订单。</view>
    <view wx:for="{{items}}" wx:key="id" class="order"><text class="order-number">{{item.orderNumber}}</text><text>{{item.items}}</text><text class="muted">{{item.stateLabel}} · {{item.carrierName || '尚未登记快递'}}{{item.receiptConfirmedAt?' · 用户已确认收货':''}}</text></view>
    <button wx:if="{{nextCursor}}" bindtap="next" disabled="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">下一页</button>
-   <button bindtap="exportExcel" disabled="{{busy}}" loading="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">导出当前筛选 Excel</button>
-   <text class="hint">含收件信息，仅限履约使用。最多 500 单，可按订单号缩小范围。</text>
+   <button bindtap="exportExcel" disabled="{{busy}}" loading="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">导出拣货表</button>
+   <text class="hint">含收件信息，仅供履约；每次最多500单。</text>
   </view>
   <view wx:if="{{coreReady}}" class="section-card">
-   <view class="section-title">上传单笔 / 批量发货表</view><text class="hint">在导出的表格中填写快递代码、快递名称、运单号和实际交寄时间（北京时间），保存为XLSX后上传。运单号保持文本格式。每份支持1–500单，未填写物流的行会跳过。</text>
-   <button class="secondary {{busy || batchLocked ? 'control--disabled' : ''}}" bindtap="chooseXlsx" disabled="{{busy || batchLocked}}">选择并上传 XLSX</button>
+   <view class="section-title">批量登记物流</view><text class="hint">填写快递代码、名称、运单号及交寄北京时间，保存为XLSX。运单号用文本格式；每批1–500单，空物流行跳过。</text>
+   <button class="secondary {{busy || batchLocked ? 'control--disabled' : ''}}" bindtap="chooseXlsx" disabled="{{busy || batchLocked}}">上传 XLSX</button>
    <view wx:if="{{fileName}}" class="import-file" aria-live="polite"><text>{{fileName}}</text><text>将登记 {{importCount}} 单{{skippedRows ? '，已跳过未填写物流的 ' + skippedRows + ' 行' : ''}}</text></view>
-   <text class="hint">核对下方物流内容后再确认。也可直接粘贴五列：订单号、快递代码、快递名称、运单号、实际交寄时间。</text>
+   <text class="hint">或粘贴五列：订单号、快递代码、名称、运单号、交寄时间。</text>
    <textarea aria-label="五列物流信息" placeholder="上传XLSX后在此核对，或粘贴物流信息" value="{{rows}}" maxlength="320000" bindinput="onRows" disabled="{{busy || batchLocked}}"/>
    <checkbox-group bindchange="onConfirm"><label class="confirmation"><checkbox value="confirmed" checked="{{confirmed}}" disabled="{{busy}}" color="#705278"/>已核对订单、运单与实际交寄时间</label></checkbox-group>
    <button class="primary {{busy || !confirmed ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || !confirmed}}" loading="{{busy}}">{{batchPending?'重试原批次':'确认登记物流'}}</button>
-   <button wx:if="{{batchPending}}" class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="reconcileBatch" disabled="{{busy}}">核对系统订单后结束上批</button>
+   <button wx:if="{{batchPending}}" class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="reconcileBatch" disabled="{{busy}}">核对后结束上批</button>
    <button class="secondary {{busy || batchPending ? 'control--disabled' : ''}}" bindtap="newBatch" disabled="{{busy || batchPending}}">开始另一批</button>
    <view wx:for="{{results}}" wx:key="orderId" class="order"><text>{{item.orderNumber || item.orderId}}</text><text>{{item.resultLabel || (item.status==='accepted'?'已登记，请另行核对微信同步':'请打开订单核对后重试')}}</text><button class="text-button {{busy ? 'control--disabled' : ''}}" bindtap="openImportOrder" data-id="{{item.orderId}}" disabled="{{busy}}">查看订单</button></view>
   </view>

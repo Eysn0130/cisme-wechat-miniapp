@@ -1,0 +1,8 @@
+{
+  "packageSourceSha256": "04b03e1a0c062455c775165f55429b3ff341133e3654bc16de2f23006cc17b8c",
+  "capture": "WeChat DevTools simulator_screenshot",
+  "scope": "15 routes plus 9 interactive states at 375/390, fully intercepted synthetic data",
+  "realRequests": 0,
+  "businessWrites": 0,
+  "subsequentChange": "order-detail primary shipping action and query-only text styling; latest route captures bound separately"
+}

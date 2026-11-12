@@ -1,0 +1,13 @@
+{
+  "packageSourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c",
+  "unit": {
+    "filesPassed": 204,
+    "testsPassed": 3257,
+    "testsSkipped": 1,
+    "result": "passed"
+  },
+  "packageGate": "passed",
+  "integration": "CI isolated PostgreSQL pending; local Docker image pull I/O issue unchanged; no production DB used",
+  "full41RoutesPhysicalDeviceMatrix": "blocked",
+  "readOnlyRuntime": "runtime-readonly.json"
+}

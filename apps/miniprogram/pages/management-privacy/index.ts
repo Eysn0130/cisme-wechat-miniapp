@@ -1,4 +1,5 @@
 import { authorityProjection, hasCapability } from "../../services/authority";
+import {beijingDateLabel} from "../../services/business-time";
 import { currentChromeStyle } from "../../services/layout";
 import { request } from "../../services/api";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
@@ -9,7 +10,7 @@ const kinds:Record<string,string>={access:"查询 / 导出",correct:"信息更�
 const states:Record<string,string>={received:"待受理",verifying:"待核验",reviewing:"处理中",approved:"已批准",executing:"执行中",completed:"已完成",partially_completed:"部分完成",failed:"执行失败",rejected:"已拒绝",canceled:"已取消",responded:"已回复"};
 const executionStates:Record<string,string>={planned:"待执行",approved:"待执行",running:"执行中",succeeded:"已完成",partially_succeeded:"部分完成",failed:"执行失败",canceled:"已取消",expired:"副本已过期"};
 const editable=new Set(["received","verifying","reviewing","responded"]);
-function displayRow(row:PrivacyRow):PrivacyRow{const target=/^(昵称|微信号)：([^\r\n]+)$/.exec((row.latestMemberReply?.body||row.message).trim());return {...row,kindLabel:kinds[row.kind]||"其他请求",statusLabel:row.status==="responded"?(row.waitingOn==="member"?"待用户补充":"已回复待处理"):states[row.status]||"待核验",dueLabel:new Date(row.due_at).toLocaleDateString("zh-CN"),executionLabel:row.execution?(executionStates[row.execution.status]||"待核对"):"",editable:editable.has(row.status),correctionLabel:target?`${target[1]}：${target[2]!.trim()}`:""};}
+function displayRow(row:PrivacyRow):PrivacyRow{const target=/^(昵称|微信号)：([^\r\n]+)$/.exec((row.latestMemberReply?.body||row.message).trim());return {...row,kindLabel:kinds[row.kind]||"其他请求",statusLabel:row.status==="responded"?(row.waitingOn==="member"?"待用户补充":"已回复待处理"):states[row.status]||"待核验",dueLabel:beijingDateLabel(row.due_at),executionLabel:row.execution?(executionStates[row.execution.status]||"待核对"):"",editable:editable.has(row.status),correctionLabel:target?`${target[1]}：${target[2]!.trim()}`:""};}
 Page({
  lastToken:"",lastRevision:-1,epoch:0,visible:false,readPending:false,timer:null as ReturnType<typeof setInterval>|null,
  data:{chromeStyle:currentChromeStyle(),items:[] as PrivacyRow[],nextCursor:null as string|null,moreBusy:false,moreError:"",selected:null as PrivacyRow|null,response:"",statusIndex:0,statusOptions:["处理中","回复进度","请用户补充"],loading:true,busy:false,coreReady:false,error:"",actionError:"",notice:""},

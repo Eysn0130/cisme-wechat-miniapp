@@ -1,3 +1,4 @@
+import {beijingDateParts as rateDateParts,beijingDateLabel as dateLabel,beijingCivilInstant} from "../../services/business-time";
 import { request } from "../../services/api";
 import { authorityProjection, hasCapability, requireCapability } from "../../services/authority";
 import { currentChromeStyle } from "../../services/layout";
@@ -8,11 +9,8 @@ type MemberDetail={member:{id:string;displayName:string;accountStatus:string;mem
 type SectionRow={id:string;displayName?:string;confirmedAt?:string;verifiedOrderCount?:number;orderNumber?:string;status?:string;statusLabel?:string;productName?:string;totalCents?:number;totalLabel?:string;transactionSourceKind?:string;basisPoints?:number|null;rateLabel?:string;commissionNetCents?:number|null;commissionLabel?:string;title?:string};
 type SectionPage={items:SectionRow[];matchingTotal:number;nextCursor:string|null};
 type RateForm={mode:"override"|"inherit";percent:string;date:string;time:string;reason:string};
-const dateLabel=(value:string|null)=>value?new Date(value).toLocaleDateString("zh-CN",{year:"numeric",month:"2-digit",day:"2-digit"}):"未设置";
 const money=(value:number)=>`¥${(value/100).toFixed(2)}`;
 const orderStatusLabel=(value:string|undefined)=>({paid:"已支付",pending_payment:"待支付",cancelled:"已取消",expired:"已超时"})[value??""]??"状态待核对";
-const rateDateParts=(value:string)=>{const date=new Date(value),pad=(n:number)=>String(n).padStart(2,"0");
-  return {date:`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`,time:`${pad(date.getHours())}:${pad(date.getMinutes())}`};};
 
 Page({
   sectionCache:{} as Record<string,SectionPage>,
@@ -162,16 +160,16 @@ Page({
       :!this.data.rateBasisPoints.includes(basisPoints))){
       this.setData({actionError:"请输入 0.00%–100.00% 的费率。"});return;}
     if(reason.length<4||reason.length>300){this.setData({actionError:"请填写 4–300 字的变更依据。"});return;}
-    const effective=new Date(`${form.date}T${form.time}:00`);
-    if(!Number.isFinite(effective.getTime())){this.setData({actionError:"请选择有效的生效日期和时间。"});return;}
+    const effective=beijingCivilInstant(form.date,form.time);
+    if(!effective){this.setData({actionError:"请选择有效的生效日期和时间。"});return;}
     const attempt=this.data.attempt,token=getApp<IAppOption>().globalData.sessionToken,id=detail.member.id,version=detail.member.version;
     const current=()=>this.data.alive&&attempt===this.data.attempt&&token===getApp<IAppOption>().globalData.sessionToken&&
       this.data.detail?.member.id===id&&this.data.detail.member.version===version&&this.data.canManageRate;
     const modeLabel=form.mode==="inherit"?"恢复继承全局费率":`单独设置 ${(basisPoints/100).toFixed(2)}%`;
-    const modal=await wx.showModal({title:"提交费率提议？",content:`${detail.member.displayName} · ${modeLabel}\n生效：${form.date} ${form.time}\n${reason}\n须由另一名授权管理者复核，仅影响生效后的新订单。`,confirmText:"提交复核"});
+    const modal=await wx.showModal({title:"提交费率提议？",content:`${detail.member.displayName} · ${modeLabel}\n生效（北京时间）：${form.date} ${form.time}\n${reason}\n须由另一名授权管理者复核，仅影响生效后的新订单。`,confirmText:"提交复核"});
     if(!modal.confirm||!current())return;
     this.rateCommand={key:`rate-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,12)}`,
-      memberId:id,action:form.mode,...(form.mode==="override"?{basisPoints}:{}),effectiveAt:effective.toISOString(),reason};
+      memberId:id,action:form.mode,...(form.mode==="override"?{basisPoints}:{}),effectiveAt:effective,reason};
     void this.sendRateCommand();
   },
   async sendRateCommand(){const command=this.rateCommand;if(!command||this.data.busy)return;
