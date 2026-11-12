@@ -329,12 +329,12 @@ it("pages 101 public comments without treating the first page as the whole threa
   await pool.query(`INSERT INTO ugc_comment(post_id,author_member_id,body,state,was_public,operation_id,created_at)
     SELECT $1,$2,'分页评论 '||n,'published',true,'paged-public-comment-'||lpad(n::text,3,'0'),
       now()+n*interval '1 microsecond' FROM generate_series(1,101) n`,[postId,reviewer.memberId]);
-  const initial=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}`,headers:auth(other)});
+  const initial=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}`,headers:auth(reviewer)});
   expect(initial.statusCode).toBe(200);
   const body=initial.json();expect(body.commentsTotal).toBe(101);expect(body.comments).toHaveLength(30);
   let cursor=body.commentsNextCursor,all=[...body.comments];
   while(cursor){
-    const response=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}/comments?limit=30&cursor=${encodeURIComponent(cursor)}`,headers:auth(other)});
+    const response=await openApp.inject({method:"GET",url:`/v1/ugc/posts/${postId}/comments?limit=30&cursor=${encodeURIComponent(cursor)}`,headers:auth(reviewer)});
     expect(response.statusCode).toBe(200);
     const page=response.json();all.push(...page.items);cursor=page.nextCursor;
     expect(page.matchingTotal).toBe(101);
