@@ -4,7 +4,7 @@
 
 {
   "schemaVersion": 1,
-  "packageSourceSha256": "ca007cd9d74dc93283f472a685cbe7b96fbfb2f60c45de7d103ced15ec245d8a",
+  "packageSourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
   "evidenceManifestMatchesSource": true,
   "scope": "Static source tokens and current design-QA gate only; API paths omit imported wrapper internals and do not prove executed requests, permissions, visual states, or device behavior.",
   "routes": [

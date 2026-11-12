@@ -1,11 +1,12 @@
 {
   "version": "0.1.43",
   "baseMain": "c5c1a142d8ac1e804119a50b0dcebe0535403f2f",
-  "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+  "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
   "backendChanged": false,
   "backendDeploymentRequired": false,
   "uploadCalls": 0,
   "status": "awaiting_ci_merge",
   "authorization": "Existing user instruction to implement, merge main and publish latest experience version.",
-  "formalReviewSubmitted": false
+  "formalReviewSubmitted": false,
+  "previousCandidateCommit": "8bf7738188c7c2413bde075e575a0a67d5eb6094"
 }

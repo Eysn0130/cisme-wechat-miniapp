@@ -1,7 +1,7 @@
 {
-  "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+  "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
   "officialTool": "simulator_screenshot",
-  "note": "Official tool path ends in .png but images may contain JPEG bytes; actual encoding is recorded without editing screenshots. No physical-device or global-state acceptance implied.",
+  "note": "Encoding recorded without editing; no physical-device/global acceptance implied. Historical images retain their own source hashes.",
   "images": [
     {
       "path": "docs/evidence/native-loading-stability-20261112/baseline-c3810512/product-ready.png",
@@ -10,7 +10,7 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "baseline old-source geometry"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/baseline-c3810512/product-refresh.png",
@@ -19,7 +19,7 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "baseline old-source geometry"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/baseline-c3810512/shop-ready.png",
@@ -28,7 +28,7 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "baseline old-source geometry"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/baseline-c3810512/shop-refresh.png",
@@ -37,232 +37,466 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "baseline old-source geometry"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-375/product-error.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-375/product-error.png",
       "sha256": "b089b9d9b065dc5cad26c6a45b36dd855acf6f67311f7ecda7c1b9a6dcd6386b",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 376,
       "height": 812,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-375/product-ready.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-375/product-ready.png",
       "sha256": "e917114306bf551ddf1f2974764146feacb0ecd3c5574898e25cb0599e536f0a",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 376,
       "height": 812,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-375/product-refresh.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-375/product-refresh.png",
       "sha256": "9c3781a47ff852a4e1bae2ac7d556da683962a132c20d30f5e2ba7fa9b5a0271",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 376,
       "height": 812,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-375/shop-ready.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-375/shop-ready.png",
       "sha256": "f11a66dab8d7fb516aaf88690acb0ce6375fb0ea6d0d003c3bb86e8c1295487d",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 376,
       "height": 812,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-375/shop-refresh.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-375/shop-refresh.png",
       "sha256": "e23f333d9c9e3e047bfa43de7cc5645b8c9db51cbf3a14a2adb673aad20d2359",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 376,
       "height": 812,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-390/product-error.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-390/product-error.png",
       "sha256": "d4cc3efebaaf721ef7cf448eb878b1127af5df1abb8ee8b0e6825f8dca52ce74",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-390/product-ready.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-390/product-ready.png",
       "sha256": "f6b41cbc8c4adcf6742b9503e4896c0d80a0c63dad5a5fe7a37f989023d4935a",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-390/product-refresh.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-390/product-refresh.png",
       "sha256": "40b02e26305f41fba2d54966fba5ac0bcb8583e2f2f1258efb03612e23376821",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-390/shop-ready.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-390/shop-ready.png",
       "sha256": "bf523a5f6fdfbbdaf2ea45b85adcb799c666a0cdafc58a56b3ec6441922db9a6",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-390/shop-refresh.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-390/shop-refresh.png",
       "sha256": "6070a235c8180adbd74ef5cb338f3aae0994be13a7909d1f1eebe70a273b2313",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/01-center.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/01-center.png",
       "sha256": "271e54a5a0ac0674355eb98d18f3bd0d24298b0e3f94ecb6192a2fad15419998",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/02-catalog.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/02-catalog.png",
       "sha256": "17cb2b1e298ac225ca0bdb1bcdf61381dee99b2c103a0a35951d06c63f529dc9",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/03-product.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/03-product.png",
       "sha256": "30a629333ae35c5fe4c46f104d67828832b670965124b2bbb791f8d7b974feb0",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/04-orders.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/04-orders.png",
       "sha256": "e7460cf526846cbe8d3c98c304282cfaff1238f74317032f6e057cf599beb756",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/05-order-detail.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/05-order-detail.png",
       "sha256": "0f4ca8225ec9fcff656e42259450476340d688994266a0c7b963cb9a5b965187",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/06-fulfillment.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/06-fulfillment.png",
       "sha256": "6e6bc2ca0d1f6ad7c2490032a50686bd1b0d2b269c2a4eb769c55711277f27e9",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/07-members.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/07-members.png",
       "sha256": "3b3b879d889ea8c657574541412f6647a6045662c11b6befb7e75285ecacdae7",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/08-member.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/08-member.png",
       "sha256": "ddd5fa7ccab0c55268578b084f372720d03d252d8710b473fe183b507d912fd1",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/09-points.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/09-points.png",
       "sha256": "f7bd4f52f9fe8cb5d02152f4d56c89d11c356a54ca8e0cb03f08d42837189bda",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/10-finance.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/10-finance.png",
       "sha256": "c895ca3878d262c98d6f808463417dc5b927b97a5a96ac8186d75332185681ef",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/11-privacy.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/11-privacy.png",
       "sha256": "af3abf7fdb26f16ba5801257ddf53c4801796830c28465835b69da689d091e0e",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/12-support.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/12-support.png",
       "sha256": "dbbce8b2151182aab214814d46ace8660cb651188e7a201fd2ad967204809d75",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/13-support-chat.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/13-support-chat.png",
       "sha256": "b44ec0653135df0f630a69b416a6d33a9bab36973d95dd174177810320134b95",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/14-aftersale.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/14-aftersale.png",
       "sha256": "137db16d8161d6bd9a944e573b3c39f8750cc355beced9de3de0cd3c637dcfdd",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
-      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/15-comments.png",
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/final-admin-390/15-comments.png",
       "sha256": "b8e917895564a9da68a2cf1146b817e73657b3d1b1346d629b25bd74fd4c8999",
       "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "historical candidate/baseline; not rebound to current source"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/restored-account.png",
+      "sha256": "209f58f4fd350df7c79a4a8284802cdcf01fd1aa4e159f8f6bbd20d0a6ec68e1",
+      "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "historical candidate/baseline; not rebound to current source"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-375/product-error.png",
+      "sha256": "26867fed31e55c30bf1bf2147f3a8b157860ac9fc972aeec425bdaa1c896a8e4",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 376,
+      "height": 812,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-375/product-ready.png",
+      "sha256": "bf3b0a6598e1f7954443a00253a08e600ae567835c1b6518e6381d0a98583d63",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 376,
+      "height": 812,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-375/product-refresh.png",
+      "sha256": "f5f85c152ced93afd6ccafa08b979c77ab897d67f4f297172ef866f28db5b884",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 376,
+      "height": 812,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-375/shop-ready.png",
+      "sha256": "54bb0d367bd22ae00987880b956cb67d8efb7f87827561100929f2c329460d37",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 376,
+      "height": 812,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-375/shop-refresh.png",
+      "sha256": "b26384d6538cb4900784661ce3f54cbab8f9161c779109aaadb2caf73779faf4",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 376,
+      "height": 812,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-390/product-error.png",
+      "sha256": "d05810abd537ae5659a40c580ec1213f390199c7a62770df98ee0a49b79a6c33",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-390/product-ready.png",
+      "sha256": "9e47fcda3ec6c62476dd953dc2e1bd01e40959f7f655a64c607f0c65015ac44b",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-390/product-refresh.png",
+      "sha256": "a5c13eacc9a449f6fb416b4e427bd5868716c8b11c23bee2602ebc0943230184",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-390/shop-ready.png",
+      "sha256": "67a03aa25ef2756fb4ba17143c74e19e156d4366668b2b6d04f31f0c474d7b7e",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-390/shop-refresh.png",
+      "sha256": "36ee04c0c8f911b38d9baae19172f445b0a444a1b59982763272c59b6626063d",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/01-center.png",
+      "sha256": "5172b4574ae7e934ed18baa242aeb7f83b3333906d919539021d4075414238ab",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/02-catalog.png",
+      "sha256": "2631fafbccde85868bb436251a02c309ebf780e556812a9b9191ca5f4d5faf7e",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/03-product.png",
+      "sha256": "cc10ab3e9e6e1b740035b220002574bc59b16906490ba13e9c52f9a063ba1d61",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/04-orders.png",
+      "sha256": "1d8f986b3cb4dba2b4227fc2945615cb821bc3e885c720287aa5e4d9e6e1ba09",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/05-order-detail.png",
+      "sha256": "fe286fac6728c04d5a49df2832d1295f3ca255bd46d6e79fe0803328861359d4",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/06-fulfillment.png",
+      "sha256": "7523171f2821d2dbd72c3ec568a2c7d88e47576278d688301410552ffd33803a",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/07-members.png",
+      "sha256": "839cf9a67e6c7dbb2d8b362b0395a38128343b230fcda55583798ce259187a95",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/08-member.png",
+      "sha256": "ea57c17047282ea2b560b7abb6e85e79ba1ec785694a7365da41eedbf7f07301",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/09-points.png",
+      "sha256": "3714e318d07dfb3a133490ed11b438182721dbbece714cb40362139796da2bf7",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/10-finance.png",
+      "sha256": "0a8c8a33c6d595bf87c7c9814854858a2affebc0eb724cab0c92d81ab9c36ac8",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/11-privacy.png",
+      "sha256": "315e878d26939b91b00605990206e2e48e57892282f0c4280000c43b90c459be",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/12-support.png",
+      "sha256": "4e31dbaf60a9e4ebef61a2db9486c575bfc217236948e0a9a4c33614851432c6",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/13-support-chat.png",
+      "sha256": "5c1d9852ebb874f98ce4b67a58acd46185f88a24d6ff807fa629e6f3c57ffc12",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/14-aftersale.png",
+      "sha256": "38437517fb179a058491546df5b826ed60287a48e3e06cb9d1c9240768641d9e",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
+    },
+    {
+      "path": "docs/evidence/native-loading-stability-20261112/final-admin-390/15-comments.png",
+      "sha256": "e79e10196369cf3c7b65fa35f9320cf5bd3fc171a1321641edcf240f9ea4600e",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+      "width": 390,
+      "height": 844,
+      "actualEncoding": "JPEG",
+      "scope": "scoped current native simulator"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/interim-ca007cd9-390/product-error.png",
@@ -271,7 +505,7 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "intermediate rejected visual position"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/interim-ca007cd9-390/product-ready.png",
@@ -280,7 +514,7 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "intermediate rejected visual position"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/interim-ca007cd9-390/product-refresh.png",
@@ -289,7 +523,7 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "intermediate rejected visual position"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/interim-ca007cd9-390/shop-ready.png",
@@ -298,7 +532,7 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "intermediate rejected visual position"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/interim-ca007cd9-390/shop-refresh.png",
@@ -307,16 +541,16 @@
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "intermediate rejected visual position"
+      "scope": "historical candidate/baseline; not rebound to current source"
     },
     {
       "path": "docs/evidence/native-loading-stability-20261112/restored-account.png",
-      "sha256": "209f58f4fd350df7c79a4a8284802cdcf01fd1aa4e159f8f6bbd20d0a6ec68e1",
-      "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+      "sha256": "d4f000e1308a6173510dcae4c005f1850bccc7dbcc1503b5e599de5bc6af1f87",
+      "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
       "width": 390,
       "height": 844,
       "actualEncoding": "JPEG",
-      "scope": "scoped native simulator evidence"
+      "scope": "scoped current native simulator"
     }
   ]
 }

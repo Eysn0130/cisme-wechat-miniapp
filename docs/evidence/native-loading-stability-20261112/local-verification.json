@@ -1,5 +1,5 @@
 {
-  "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+  "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
   "unit": {
     "filesPassed": 205,
     "testsPassed": 3278,
@@ -15,14 +15,14 @@
     "requiresDeployment": false
   },
   "notes": [
-    "Final source differs from the initial checked source only in the loading-indicator horizontal position; final full unit suite rerun, native geometry and screenshots bound to final source.",
+    "After adding the missing shared loading-style import, full unit, typecheck, package, route and contract checks rerun; native geometry, visible indicator dimensions and screenshots recaptured for this exact source.",
     "Global 41-route physical-device/font/state acceptance remains blocked.",
     "Local integration database has the previously recorded Docker blob I/O error; integration and restore checks run in isolated CI, not represented as locally passed."
   ],
   "logs": {
     "unit": {
       "path": "docs/evidence/native-loading-stability-20261112/local-unit.txt",
-      "sha256": "5314b75e5c9a1a9b9f6a3845ee466734b627eb6474294e60b812335fdd859322"
+      "sha256": "4ed421c85e8d3a235545e65846d538f954acd34a62513feff8a4ac6ae7ab0202"
     },
     "typecheck": {
       "path": "docs/evidence/native-loading-stability-20261112/local-typecheck.txt",
@@ -30,22 +30,16 @@
     },
     "package": {
       "path": "docs/evidence/native-loading-stability-20261112/local-package.txt",
-      "sha256": "3574340e5bd099bf027c5c1c7419b8e5806f5c636a8fa6ce176bcafb2b7b0197"
+      "sha256": "37e694edadd993f29c830ffbe86f7e73f5425121ce21a654814f4b28e68b83f1"
     },
     "routeAudit": {
       "path": "docs/evidence/native-loading-stability-20261112/local-routeAudit.txt",
-      "sha256": "82fec4c6fdba6cc6fa5a2e199aedf42067f55efe84b4773fef847f8418440b3a"
+      "sha256": "2ce58ec367f822fd067932e49533a838659a4ecc2fa2ed348aaa47a97a327611"
     },
     "contracts": {
       "path": "docs/evidence/native-loading-stability-20261112/local-contracts.txt",
       "sha256": "f7073f55943167f30f590b89659fe513d72ba7ecbf94a9ada01a8d65faccae36"
     }
-  },
-  "finalFixtureCheck": {
-    "passed": 35,
-    "change": "negative source kind uses the documented legacy_preview value",
-    "sha256": "ff2a52e3bc95774f72b1e0747e011b532541ac583265a78843d460667345b089",
-    "path": "docs/evidence/native-loading-stability-20261112/local-continuity-final.txt"
   },
   "logFormatting": "Captured command output with trailing blank lines normalized for diff hygiene."
 }

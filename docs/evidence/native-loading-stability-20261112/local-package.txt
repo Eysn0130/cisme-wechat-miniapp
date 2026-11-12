@@ -16,8 +16,8 @@
   "actual": {
     "files": 345,
     "routes": 41,
-    "totalBytes": 4335830,
-    "mainPackageBytes": 1427903,
+    "totalBytes": 4335872,
+    "mainPackageBytes": 1427945,
     "subpackageBytes": {
       "pages/task": 435,
       "pages/submit": 435,
@@ -56,7 +56,7 @@
       "pages/management-points": 23094
     },
     "globalStyleBytes": 8162,
-    "sourceSha256": "ca007cd9d74dc93283f472a685cbe7b96fbfb2f60c45de7d103ced15ec245d8a"
+    "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d"
   },
   "errors": []
 }

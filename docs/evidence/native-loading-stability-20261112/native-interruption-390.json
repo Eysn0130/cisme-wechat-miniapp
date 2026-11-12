@@ -1,5 +1,5 @@
 {
-  "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+  "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
   "allHttpIntercepted": true,
   "realMemberWrites": 0,
   "method": "Official CLI navigation and actual Page load/checkout handlers and native retry-button tap in the simulator; no real checkout or payment.",
@@ -10,7 +10,7 @@
       "path": "/v1/catalog/aigerong-moisture-shampoo-280",
       "method": "GET",
       "handled": true,
-      "startedAt": 1794461555762
+      "startedAt": 1794462225943
     }
   },
   "departed": {
@@ -21,14 +21,14 @@
         "path": "/v1/catalog/aigerong-moisture-shampoo-280",
         "method": "GET",
         "handled": true,
-        "startedAt": 1794461555762,
+        "startedAt": 1794462225943,
         "aborted": true
       },
       {
         "path": "/v1/catalog?limit=20",
         "method": "GET",
         "handled": true,
-        "startedAt": 1794461556686
+        "startedAt": 1794462226946
       }
     ]
   },
@@ -45,7 +45,7 @@
     "sheetOpen": false,
     "bind": false,
     "purchaseEnabled": false,
-    "requests": 8
+    "requests": 11
   },
   "retry": {
     "loading": false,

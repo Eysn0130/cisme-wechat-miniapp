@@ -1,3 +1,4 @@
+@import "../../styles/read-loading.wxss";
 .shop-page{min-height:100vh;padding:0 28rpx calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 166rpx);background:#f7f4f8;color:#352a3a}
 .shop-head{position:sticky;z-index:20;top:0;margin:0 -28rpx;padding:var(--cisme-status-bar,20px) 36rpx 0;background:rgba(247,244,248,.97);-webkit-backdrop-filter:blur(16px)}
 .shop-title-row{display:flex;align-items:baseline;gap:16rpx;min-height:var(--cisme-navbar-height,44px);padding-top:12rpx;padding-right:var(--cisme-nav-side,112rpx)}
