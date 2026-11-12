@@ -8,15 +8,16 @@
     "command": "npm test",
     "exitCode": 0,
     "filesPassed": 204,
-    "testsPassed": 3270,
+    "testsPassed": 3271,
     "testsSkipped": 1,
     "skip": "Existing test; no new skip added.",
-    "durationSeconds": 10.48
+    "durationSeconds": 10.85
   },
   "package": {
     "command": "npm run miniprogram:package-gate",
     "ok": true,
     "routes": 41
   },
-  "scope": "Native guest navigation/comments and Account return, plus formal UGC anonymous comment boundary. Local isolated integration unavailable due existing Docker image I/O error; final CI required."
+  "scope": "Native guest navigation/comments and Account return, plus formal UGC anonymous comment boundary. Local isolated integration unavailable due existing Docker image I/O error; final CI required.",
+  "authenticationRequiredOperations": 278
 }
