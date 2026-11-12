@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 const m=vi.hoisted(()=>({token:'owner-a',request:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,requireMemberAccess:()=>Boolean(m.token),retainMemberSnapshot:()=>true}));
+vi.mock('../../apps/miniprogram/services/api',async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,request:m.request,requireMemberAccess:()=>Boolean(m.token),retainMemberSnapshot:()=>true}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',shouldReduceMotion:()=>true}));
 vi.mock('../../apps/miniprogram/services/member-identity',()=>({memberIdentity:()=>null}));
 vi.mock('../../apps/miniprogram/services/share',()=>({registerIncomingShare:vi.fn()}));

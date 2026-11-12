@@ -1,6 +1,6 @@
 import {beforeEach,expect,it,vi} from 'vitest';
 const m=vi.hoisted(()=>({token:'synthetic-owner',revision:0,read:vi.fn(),write:vi.fn(),access:vi.fn(),resume:vi.fn(),renew:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/api',()=>({request:m.write,requireMemberAccess:m.access,resumeAuthentication:m.resume,beginLegalRenewal:m.renew}));
+vi.mock('../../apps/miniprogram/services/api',async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,request:m.write,requireMemberAccess:m.access,resumeAuthentication:m.resume,beginLegalRenewal:m.renew}));
 vi.mock('../../apps/miniprogram/services/page-requests',()=>({pageRead:(_p:any,options:any)=>m.read(options),cancelPageReads:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
@@ -13,7 +13,7 @@ let page:any,wx:any;
 beforeEach(async()=>{
  vi.resetModules();vi.clearAllMocks();m.token='synthetic-owner';m.revision=0;m.access.mockReturnValue(true);m.read.mockResolvedValue(response());
  Object.assign(globalThis,{getApp:()=>({globalData:{sessionToken:m.token,apiBaseUrl:'https://synthetic.invalid'}}),getCurrentPages:()=>[],Page:(def:any)=>{page={...def,data:structuredClone(def.data),setData(patch:any){for(const [path,value]of Object.entries(patch)){const keys=path.replace(/\[(\d+)\]/g,'.$1').split('.');let target=this.data;for(const key of keys.slice(0,-1))target=target[key];target[keys.at(-1)!]=structuredClone(value);}}};}});
- wx={navigateTo:vi.fn(),navigateBack:vi.fn(),switchTab:vi.fn(),showToast:vi.fn()};(globalThis as any).wx=wx;
+ wx={getStorageSync:()=>'',navigateTo:vi.fn(),navigateBack:vi.fn(),switchTab:vi.fn(),showToast:vi.fn()};(globalThis as any).wx=wx;
  await import('../../apps/miniprogram/pages/community-author/index');page.onLoad({mine:'1'});
 });
 it('uses the authenticated owner route and supports zero stories without creating any content',async()=>{

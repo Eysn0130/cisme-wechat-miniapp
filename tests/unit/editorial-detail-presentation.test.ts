@@ -130,16 +130,16 @@ describe("native detail presentation preserves the authorized comments and sourc
 
   it("keeps the guest comment wall decorative and gates real comments and errors behind authentication",()=>{
     const start=markup.indexOf('<view wx:if="{{editorialSource}}" id="post-comments"');
-    const end=markup.indexOf('<view wx:if="{{socialEnabled && !editorialSource}}" id="post-comments"',start);
+    const end=markup.indexOf('<view wx:if="{{!editorialSource && (socialEnabled || !viewerHasSession)}}" id="post-comments"',start);
     expect(start).toBeGreaterThanOrEqual(0);expect(end).toBeGreaterThan(start);
     const section=markup.slice(start,end);
-    const branches=section.match(/<view wx:if="\{\{!commentAuthenticated\}\}" class="comment-login-gate">([\s\S]*?)<\/view>\s*<block wx:else>([\s\S]*?)<\/block>/);
+    const branches=section.match(/<template wx:if="\{\{!commentAuthenticated\}\}" is="comment-login-gate"[^>]*\/>\s*<block wx:else>([\s\S]*?)<\/block>/);
     expect(branches).not.toBeNull();
-    const guest=branches![1]!,authenticated=branches![2]!;
+    const guest=markup.match(/<template name="comment-login-gate">([\s\S]*?)<\/template>/)![1]!,authenticated=branches![1]!;
     expect(guest).toContain('class="comment-login-preview" aria-hidden="true"');
     expect(guest).toContain('wx:if="{{!loading || !viewerHasSession}}"');
     expect(guest.replace('wx:if="{{!loading || !viewerHasSession}}"', "")).not.toMatch(/\{\{|wx:for|comment\.(?:body|authorName|avatar)|threads|commentsError/);
-    expect(guest).toMatch(/<button\b[^>]*bindtap="loginToViewComments"[^>]*>登录后查看<\/button>/);
+    expect(guest).toMatch(/<button\b[^>]*bindtap="loginToViewComments"[^>]*>点击登录<\/button>/);
     for(const privateFact of ['wx:for="{{threads}}"','{{commentsError}}','{{commentsNotice}}','commentsEnabled === false'])
       expect(authenticated).toContain(privateFact);
     const outside=section.replace(branches![0],"");

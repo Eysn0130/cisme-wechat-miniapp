@@ -1,0 +1,16 @@
+{
+  "backendCommit": "6cc4f5172e5ec8581e5dbd789ade1236a8267c21",
+  "checkedPaths": [
+    "services",
+    "packages",
+    "db",
+    "scripts",
+    "infra",
+    "apps/admin",
+    "package.json",
+    "package-lock.json"
+  ],
+  "trackedAndWorkingTreeUnchanged": true,
+  "serverRedeploymentRequired": false,
+  "scope": "Frontend guest navigation and comments presentation only; no DB or server configuration mutation."
+}

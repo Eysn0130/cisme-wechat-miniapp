@@ -1,3 +1,4 @@
+import { requireGuestCommunityAccess } from "../../services/api";
 import { retainReadPresentation } from "../../services/read-presentation";
 import { cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
@@ -22,6 +23,7 @@ Page({
   },
   onShow(){
     this.readVisible=true;
+    if(!requireGuestCommunityAccess(this.returnUrl())){this.clearProfile();this.setData({loading:false});return;}
     const token=getApp<IAppOption>().globalData.sessionToken;
     if(token!==this.lastSessionToken||this.readRevision!==commerceContextRevision())this.clearProfile();
     if(this.data.mine&&!requireMemberAccess("/pages/community-author/index?mine=1")){this.setData({loading:false});return;}

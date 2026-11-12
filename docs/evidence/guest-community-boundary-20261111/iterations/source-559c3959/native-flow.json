@@ -1,0 +1,434 @@
+{
+  "results": [
+    {
+      "tab": "home",
+      "route": "pages/account/index",
+      "returnUrl": "/pages/home/index",
+      "interaction": "native component handler; coordinate API unavailable"
+    },
+    {
+      "tab": "shop",
+      "route": "pages/account/index",
+      "returnUrl": "/pages/shop/index",
+      "interaction": "native component handler; coordinate API unavailable"
+    },
+    {
+      "tab": "profile",
+      "route": "pages/account/index",
+      "returnUrl": "/pages/profile/index",
+      "interaction": "native component handler; coordinate API unavailable"
+    },
+    {
+      "direct": "home",
+      "redirect": "pages/account/index",
+      "returnUrl": "/pages/home/index"
+    },
+    {
+      "direct": "shop",
+      "redirect": "pages/account/index",
+      "returnUrl": "/pages/shop/index"
+    },
+    {
+      "direct": "product",
+      "redirect": "pages/account/index",
+      "returnUrl": "/pages/product/index?id=serum"
+    },
+    {
+      "direct": "community-author",
+      "redirect": "pages/account/index",
+      "returnUrl": "/pages/community-author/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    }
+  ],
+  "commentLoginReturnedToPost": "pages/post/index",
+  "commentsAfterLogin": 1,
+  "privateGuestReads": 0,
+  "loginCalls": 1,
+  "undefinedRoutes": [],
+  "requests": [
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/wechat",
+      "method": "POST",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/me",
+      "method": "GET",
+      "signed": true,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "method": "GET",
+      "signed": true,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/comments?limit=30",
+      "method": "GET",
+      "signed": true,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/legal",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/identity/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/editorial/articles?limit=20",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/capabilities",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/status",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/feed/page?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    },
+    {
+      "path": "/v1/ugc/posts?limit=30",
+      "method": "GET",
+      "signed": false,
+      "handled": true
+    }
+  ],
+  "realMemberWrites": 0
+}

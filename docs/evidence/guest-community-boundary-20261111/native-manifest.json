@@ -1,0 +1,267 @@
+{
+  "packageSourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914",
+  "capture": "Official WeChat DevTools simulator_screenshot",
+  "scope": "Account clean/expired, community, three Tab guards, editorial/formal guest comments, comment-login return, four direct/resumed business guards at 375 and 390 logical width.",
+  "allHttpIntercepted": true,
+  "virtualStorage": true,
+  "actualMemberWrites": 0,
+  "actualMoneyOperations": 0,
+  "privateGuestCommentReads": 0,
+  "physicalDevices": "not tested",
+  "tabInteraction": "Actual native component switchTab handler; coordinate API App.CDPEnable unimplemented. Other specified buttons use automation_element_action tap.",
+  "firstMemberOnboarding": "Unit-tested mandatory registration before original post return; not represented by the native returning-member capture.",
+  "screenshots": [
+    {
+      "file": "native-375/01-login-clean.png",
+      "sha256": "22c92d2f9a62f68dfbf344fd2a12cb426029e5384d03b03ced60c08f2422325f",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/02-expired-clean.png",
+      "sha256": "9eee4467d73ccb0c9ef096fd337bc9bf8ac6a0ef2e5e11456fd933110f91737a",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/03-guest-community.png",
+      "sha256": "f2e97472c8b6f962642c8fea2fc82e4ada8897561f13647c1bc5373bae06f5ab",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/04-home-login.png",
+      "sha256": "df3c9090bd56082146e4bc062d2c67638571021f5d5b1e61b9ac9a9acd6707c0",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/04-profile-login.png",
+      "sha256": "46e1bd5aa43e649fec5fb88bf23437611d52ad1114050dfc26ab096674f44e00",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/04-shop-login.png",
+      "sha256": "12c23803998bf146c11f46a0efd174a69528b8fafedf59affd2c69f9552664f4",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/05-editorial-guest-wall.png",
+      "sha256": "3233422c6b04814b21863c20b0b6ae258203a4f25bb5c4caa1ccca37177c1114",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/06-comments-login.png",
+      "sha256": "2a7ab54c4d29b2c825e73008e928cce57bfd18737b638f51411c23a7c527ea7a",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/07-member-comments.png",
+      "sha256": "84e49bec9a4664547224dcc2acdeae3228b2437530c902fcba84fd13a7315a1b",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/08-formal-guest-wall.png",
+      "sha256": "bbdba778b71f121c6c02f6b6207c5c29616f997a467b4b5eb6b7a178a1f23215",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/09-direct-community-author.png",
+      "sha256": "77095e66df5ec8706e6e60d8590a5a59d9a179d1606e6b871b07242c79a21fa9",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/09-direct-home.png",
+      "sha256": "d9a6f090b4957f5bcde5fb7d8708cd20d7546ce3e266ff621c7be276df09611d",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/09-direct-product.png",
+      "sha256": "67757d8450d7ca59f71377db099e14e31be38711c97b1b73e213e3eaf6e26dfc",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-375/09-direct-shop.png",
+      "sha256": "91b15a8113224aeb4be2e054666ada5c692301d900e51b1fdde7e9a859c8d0e0",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/01-login-clean.png",
+      "sha256": "d7c78f30863985522b093f04f9408290c8ec8cf5e2abb2c36db45a1ae6531dc4",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/02-expired-clean.png",
+      "sha256": "a7342980bc143c97be11ece3ad73639565cc0f89d0fcd07944c0ba12f2317fd3",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/03-guest-community.png",
+      "sha256": "f68ff7c639b860f74a80ed8c0f528980eecfb85ee3a34416870814a26c5b61c5",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/04-home-login.png",
+      "sha256": "2f425fb2229bd0019e37ae5ae48f42b92eeec480bf9f473e5bf10945936b45c2",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/04-profile-login.png",
+      "sha256": "c268e9e7dd1212552bc1b5b7b2af13c5d266cc13db06332fd9037bd0ef1b8062",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/04-shop-login.png",
+      "sha256": "ff704bf0fa8e16cf7956490269053dc8ebee8dedf4508ddb7591ec1febe8abd5",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/05-editorial-guest-wall.png",
+      "sha256": "1e210b8e8fc466fca5946d15c5dad2a77d506f275922a2dfb8704dc1e180b3c0",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/06-comments-login.png",
+      "sha256": "3cb55aa6b772068898dcc7d54f40318e1d8fd2ac434acfe5458d1520e806bca5",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/07-member-comments.png",
+      "sha256": "1cc6e2c2a331da78b18606c550e989e2d7ca63600ba40cbc2ae0b88d7402f8e8",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/08-formal-guest-wall.png",
+      "sha256": "1caebf0a303aac5160f9dd7d89075c4cf62367579975c2cdde698a5fe96a68b6",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/09-direct-community-author.png",
+      "sha256": "6a54d48e4873ae8fe313390aab0caac30fce2bda0619d1ef6136175bc521d0d9",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/09-direct-home.png",
+      "sha256": "feaeefe3a11d25194809230175982dd0631708d10a0a93dc86111f048610dab6",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/09-direct-product.png",
+      "sha256": "988713211ce781a4caf67d2a5ecfd4796d8bdbdf5c3d3a0c065d3683a801f682",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    },
+    {
+      "file": "native-390/09-direct-shop.png",
+      "sha256": "ecd4359932227d887d3052ff14cb642ede7a47a25246e63ccc371155151f831d",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914"
+    }
+  ]
+}

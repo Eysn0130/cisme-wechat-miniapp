@@ -1,4 +1,4 @@
-import { requireMemberAccess } from "../services/api";
+import { requireMemberAccess, requireGuestCommunityAccess } from "../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../services/layout";
 import { nativeRouteRequiresMember } from "../services/route-access";
 
@@ -110,6 +110,7 @@ Component({
         if (liveExternalBusy && !this.data.externalBusy) this.setData({ externalBusy: true });
         return;
       }
+      if (!requireGuestCommunityAccess(item.path)) return;
       if (nativeRouteRequiresMember(item.path) && !requireMemberAccess(item.path)) return;
       if (index === this.data.active) {
         // Re-selecting a tab is a recovery action, so it stays instant on every

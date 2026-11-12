@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { careCommandConfirmed } from "../../apps/miniprogram/services/care-command-state";
 const mocks = vi.hoisted(() => ({ token: "session-a", request: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/api", () => ({ request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => true }));
+vi.mock("../../apps/miniprogram/services/api", async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess, request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => true }));
 vi.mock("../../apps/miniprogram/services/member-identity", () => ({ memberIdentity: () => null }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));

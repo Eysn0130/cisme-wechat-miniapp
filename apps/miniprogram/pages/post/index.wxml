@@ -17,6 +17,12 @@
     <button hover-class="post-control--pressed {{busy ? 'control--disabled' : ''}}" hover-start-time="0" hover-stay-time="80" wx:if="{{comment.status === 'published' && (!editorial || commentsEnabled)}}" class="comment-like {{comment.liked ? 'is-active' : ''}} {{busy ? 'control--disabled' : ''}}" data-id="{{comment.id}}" bindtap="likeComment" disabled="{{busy}}" aria-label="{{comment.liked ? '取消赞这条评论' : '赞这条评论'}}，{{comment.likeCount}} 赞"><image class="post-interaction-icon" src="{{comment.liked ? '/assets/icons/post-reference/liked.svg' : '/assets/icons/post-reference/like_b.svg'}}" mode="aspectFit" aria-hidden="true"/><text wx:if="{{comment.likeCount}}" class="comment-like-count" aria-hidden="true">{{comment.likeCount}}</text></button>
   </view>
 </template>
+<template name="comment-login-gate">
+  <view class="comment-login-gate">
+        <view class="comment-login-preview" aria-hidden="true"><view class="comment-login-preview__row"><view class="comment-login-preview__avatar"/><view class="comment-login-preview__copy"><view class="comment-login-preview__name"/><view class="comment-login-preview__line"/></view></view><view class="comment-login-preview__row"><view class="comment-login-preview__avatar"/><view class="comment-login-preview__copy"><view class="comment-login-preview__name"/><view class="comment-login-preview__line comment-login-preview__line--short"/></view></view><view class="comment-login-preview__row"><view class="comment-login-preview__avatar"/><view class="comment-login-preview__copy"><view class="comment-login-preview__name"/><view class="comment-login-preview__line"/></view></view></view>
+        <view wx:if="{{!loading || !viewerHasSession}}" class="comment-login-mask"><button class="comment-login-button" bindtap="loginToViewComments" hover-class="post-control--pressed" hover-start-time="0" hover-stay-time="80" aria-label="登录后查看这篇帖子的评论">点击登录</button></view>
+      </view>
+</template>
 <view class="chrome-root post-root" style="{{chromeStyle}}">
 <view class="topbar post-topbar">
   <button hover-class="post-control--pressed {{leaving ? 'control--disabled' : ''}}" hover-start-time="0" hover-stay-time="80" class="topbar__back post-back {{leaving ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leaving}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button>
@@ -40,10 +46,7 @@
     <view class="post-published"><text>{{editorialSource ? (formalSource ? '发布于 ' : 'CISME 发布于 ') : ''}}{{item.publishedLabel}}</text><text wx:if="{{editorialSource && aiLabel}}" class="post-ai-label">{{aiLabel}}</text><button wx:if="{{editorialSource && item.sourceUrl}}" class="post-source-link" bindtap="copySource" aria-label="复制原文链接" hover-class="post-control--pressed" hover-start-time="0" hover-stay-time="80">复制原文</button></view>
     <view wx:if="{{editorialSource}}" id="post-comments" class="post-comments">
       <view class="post-comments-header"><text class="post-comments-count">{{!commentAuthenticated || commentCount === null ? '评论' : '共 ' + commentCount + ' 条评论'}}</text></view>
-      <view wx:if="{{!commentAuthenticated}}" class="comment-login-gate">
-        <view class="comment-login-preview" aria-hidden="true"><view class="comment-login-preview__row"><view class="comment-login-preview__avatar"/><view class="comment-login-preview__copy"><view class="comment-login-preview__name"/><view class="comment-login-preview__line"/></view></view><view class="comment-login-preview__row"><view class="comment-login-preview__avatar"/><view class="comment-login-preview__copy"><view class="comment-login-preview__name"/><view class="comment-login-preview__line comment-login-preview__line--short"/></view></view><view class="comment-login-preview__row"><view class="comment-login-preview__avatar"/><view class="comment-login-preview__copy"><view class="comment-login-preview__name"/><view class="comment-login-preview__line"/></view></view></view>
-        <view wx:if="{{!loading || !viewerHasSession}}" class="comment-login-mask"><button class="comment-login-button" bindtap="loginToViewComments" hover-class="post-control--pressed" hover-start-time="0" hover-stay-time="80" aria-label="登录后查看这篇帖子的评论">登录后查看</button></view>
-      </view>
+      <template wx:if="{{!commentAuthenticated}}" is="comment-login-gate" data="{{loading:loading,viewerHasSession:viewerHasSession}}"/>
       <block wx:else>
       <text wx:if="{{commentsEnabled === false}}" class="comment-empty">这篇文章已关闭评论，已有评论仍可阅读。</text>
       <view wx:if="{{commentsNotice}}" class="comment-notice" aria-live="polite">{{commentsNotice}}</view>
@@ -57,7 +60,9 @@
 
 
     </view>
-    <view wx:if="{{socialEnabled && !editorialSource}}" id="post-comments" class="post-comments">
+    <view wx:if="{{!editorialSource && (socialEnabled || !viewerHasSession)}}" id="post-comments" class="post-comments">
+      <template wx:if="{{!viewerHasSession}}" is="comment-login-gate" data="{{loading:loading,viewerHasSession:viewerHasSession}}"/>
+      <block wx:else>
       <view class="post-comments-count">共 {{social.commentCount}} 条评论</view>
       <text wx:if="{{socialLoading}}" class="comment-empty">正在加载评论…</text>
       <view wx:for="{{threads}}" wx:key="id" class="comment-thread">
@@ -67,6 +72,7 @@
       <view wx:if="{{!socialLoading && !socialError && !threads.length}}" class="comment-empty">还没有评论，聊聊你的护理感受吧</view>
       <text wx:if="{{social.truncated}}" class="comment-empty">仅显示前 500 条评论</text>
       <text wx:if="{{previewRuntime}}" class="community-preview-note">互动测试预览 · 新评论审核后才会公开</text>
+      </block>
     </view>
   </view>
   <view wx:if="{{!item && error}}" class="glass error-scene post-unavailable" aria-live="assertive" aria-atomic="true"><view class="error-scene__icon"><image class="error-scene__icon-image" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/></view><text class="error-scene__title" aria-role="heading" aria-level="1">{{errorTitle}}</text><text class="error-scene__copy">{{error}}</text><view class="error-scene__actions"><button hover-class="post-control--pressed {{loading ? 'control--disabled' : ''}}" hover-start-time="0" hover-stay-time="80" wx:if="{{errorKind === 'load'}}" class="primary post-error-action {{loading ? 'primary--disabled' : ''}}" bindtap="load" disabled="{{loading}}"><text class="action-label">重新加载</text></button><button hover-class="post-control--pressed {{leaving ? 'control--disabled' : ''}}" hover-start-time="0" hover-stay-time="80" class="post-error-action {{leaving ? 'control--disabled' : ''}} {{errorKind === 'missing' ? 'primary' : 'secondary'}}" bindtap="backToCommunity" disabled="{{leaving}}"><text class="action-label">返回社区</text></button></view></view>

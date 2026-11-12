@@ -143,13 +143,13 @@ page,
 .comment-delete-action { color:#b03348; }
 
 /* The preview is decorative; guest responses never contain comment facts. */
-.comment-login-gate { position:relative; min-height:164px; overflow:hidden; }
-.comment-login-preview { padding:8px 0; }
+.comment-login-gate { position:relative; min-height:164px; overflow:hidden; border-radius:12px; background:#f8f5fa; }
+.comment-login-preview { padding:12px 16px; filter:blur(3px); opacity:.85; }
 .comment-login-preview__row { display:flex; align-items:center; gap:12px; min-height:44px; margin-bottom:8px; }
-.comment-login-preview__avatar { flex:none; width:32px; height:32px; border-radius:50%; background:#ececef; }
+.comment-login-preview__avatar { flex:none; width:32px; height:32px; border-radius:50%; background:#ddd2e5; }
 .comment-login-preview__copy { flex:1; }
-.comment-login-preview__name { width:72px; height:8px; margin-bottom:8px; border-radius:4px; background:#e7e7ea; }
-.comment-login-preview__line { width:78%; height:8px; border-radius:4px; background:#eeeeef; }
+.comment-login-preview__name { width:72px; height:8px; margin-bottom:8px; border-radius:4px; background:#d8cbdf; }
+.comment-login-preview__line { width:78%; height:8px; border-radius:4px; background:#e0d6e6; }
 .comment-login-preview__line--short { width:56%; }
-.comment-login-mask { position:absolute; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; padding:24px 16px; background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,.88) 62%,#fff); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
-.comment-login-button { display:flex; align-items:center; justify-content:center; min-width:148px; min-height:44px; height:auto; margin:0; padding:10px 24px; border:0; border-radius:100px; color:#fff; background:#df2040; font-size:1rem; line-height:1.375rem; font-weight:500; }
+.comment-login-mask { position:absolute; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; padding:24px 16px; background:linear-gradient(180deg,rgba(250,248,252,.24),rgba(250,248,252,.52)); -webkit-backdrop-filter:blur(12px) saturate(1.15); backdrop-filter:blur(12px) saturate(1.15); }
+.comment-login-button { display:flex; align-items:center; justify-content:center; min-width:148px; min-height:44px; height:auto; margin:0; padding:10px 24px; border:0; border-radius:100px; color:#fff; background:var(--cisme-plum); font-size:1rem; line-height:1.375rem; font-weight:500; }

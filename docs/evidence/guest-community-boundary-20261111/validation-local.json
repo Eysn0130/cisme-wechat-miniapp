@@ -1,0 +1,22 @@
+{
+  "packageSourceSha256": "c3810512533bb5c6507e795956e8de0f3680d527c07bc5e496265d97abec8914",
+  "typecheck": {
+    "command": "npm run typecheck",
+    "exitCode": 0
+  },
+  "unit": {
+    "command": "npm test",
+    "exitCode": 0,
+    "filesPassed": 204,
+    "testsPassed": 3270,
+    "testsSkipped": 1,
+    "skip": "Existing test; no new skip added.",
+    "durationSeconds": 12.42
+  },
+  "package": {
+    "command": "npm run miniprogram:package-gate",
+    "ok": true,
+    "routes": 41
+  },
+  "scope": "Native guest-only navigation, comment visibility and Account auth return integration; backend unchanged."
+}

@@ -148,7 +148,7 @@ Page({
       errorKind:"load",errorTitle:"登录状态已失效",error:"请重新加载内容。点赞、收藏和关注前，请重新登录。"});
     wx.hideShareMenu();return true;
   },
-  editorialReturnUrl(){return `/pages/post/index?id=${encodeURIComponent(this.data.id)}&source=${this.data.formalSource?"formal":"editorial"}`;},
+  editorialReturnUrl(){return `/pages/post/index?id=${encodeURIComponent(this.data.id)}${this.data.editorialSource?`&source=${this.data.formalSource?"formal":"editorial"}`:""}`;},
   resolveGalleryHeight(id:string,version:number,images:string[],token:string,attempt:number):Promise<number> {
     const layoutIdentity=readingBaseLayoutIdentity();
     const cache=this.gallerySizingCache;
@@ -336,9 +336,9 @@ Page({
     return true;
   },
   loginToViewComments() {
-    if(!this.data.editorialSource||!this.data.item||this.data.loading||this.data.leaving)return;
+    if(!this.data.item||this.data.loading||this.data.leaving)return;
     if(!getApp<IAppOption>().globalData.sessionToken){resumeAuthentication(this.editorialReturnUrl());return;}
-    void this.loadEditorialComments();
+    if(this.data.editorialSource)void this.loadEditorialComments();else void this.loadSocial();
   },
   commentIntent():CommentIntent|null {
     if(this.data.editorialSource&&this.commentReadToken&&this.commentReadToken!==getApp<IAppOption>().globalData.sessionToken)this.clearPrivateComments();
@@ -647,21 +647,24 @@ Page({
       if(this.editorialSocialRefusal!==null){beginLegalRenewal(this.editorialReturnUrl());return;}
       await this.load(true);return;
     }
+    if(!getApp<IAppOption>().globalData.sessionToken){this.setData({viewerHasSession:false,commentAuthenticated:false,threads:[],social:emptyCommunity,socialLoading:false,socialEnabled:false});return;}
     const attempt = this.data.loadAttempt;
     this.setData({ socialLoading: true, socialError: "" });
+    const token=getApp<IAppOption>().globalData.sessionToken;
+    const current=()=>this.data.pageAlive&&attempt===this.data.loadAttempt&&token===getApp<IAppOption>().globalData.sessionToken;
     try {
       const health = await request<{ communityPreviewEnabled: boolean }>({ path: "/v1/capabilities", authMode: "public" });
-      if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return;
+      if (!current()) return;
       this.setData({ socialEnabled: health.communityPreviewEnabled === true });
       if (!health.communityPreviewEnabled) return;
       void this.loadFollow();
       const social = await prepareCommentAuthors(await request<CommunityView>({ path: `/v1/community/${encodeURIComponent(this.data.id)}`, authMode: "optional" }));
-      if (!this.data.pageAlive || attempt !== this.data.loadAttempt) return;
+      if (!current()) return;
       this.setData({ social, threads: commentThreads(social.comments, this.data.expandedThreads) });
     } catch {
-      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialError: "暂时无法加载评论，点击重试" });
+      if (current()) this.setData({ socialError: "暂时无法加载评论，点击重试" });
     } finally {
-      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialLoading: false });
+      if (this.data.pageAlive && attempt === this.data.loadAttempt) this.setData({ socialLoading: false,...(!current()?{viewerHasSession:Boolean(getApp<IAppOption>().globalData.sessionToken),threads:[],social:emptyCommunity,socialEnabled:false}:{}) });
     }
   },
   async mutateSocial(path: string, method: "POST" | "PUT" | "DELETE", data: WechatMiniprogram.IAnyObject, operationId?: string) {

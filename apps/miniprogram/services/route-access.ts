@@ -55,6 +55,13 @@ export function nativeRoutePath(url: string): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
+/** The explicit "browse community" choice allows reading, not other workspaces.
+ * Account and legal/data-rights pages remain reachable for authentication and rights. */
+export function guestCommunityRouteAllowed(url:string):boolean {
+  return ["/pages/community/index","/pages/post/index","/pages/community-post/index",
+    "/pages/account/index","/pages/legal/index","/pages/privacy-rights/index"].includes(nativeRoutePath(url));
+}
+
 export function nativeRouteRequiresMember(url: string): boolean {
   // Unknown routes are not silently treated as public. app.json parity tests
   // require each new native page to receive an explicit access classification.

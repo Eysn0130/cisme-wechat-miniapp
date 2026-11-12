@@ -30,7 +30,7 @@ describe('cold retained-session verdict before public Account bootstrap',()=>{
  it('loads current legal documents automatically after the real expired-session401 without a context-aborted error',async()=>{
   await cold();await expire();
   const currentLegal=reads('/v1/legal').at(-1);expect(currentLegal).toBeDefined();respond(currentLegal,200,documents());await settle();
-  expect(runtime.globalData.sessionToken).toBe('');expect(page.data.notice).toContain('登录状态已失效');
+  expect(runtime.globalData.sessionToken).toBe('');expect(page.data.notice).toBe('');
   expect(page.data).toMatchObject({restoringSession:false,loading:false,legalLoading:false,legalTextsReady:true,legalLoadError:'',legalFailureCode:'',agreementAccepted:false});
   expect(page.data.serverLegalDocuments).toMatchObject({terms:'current-v1',privacy:'current-v1'});
   expect(requests.every(request=>(request.method??'GET')==='GET')).toBe(true);expect(wxMock.login).not.toHaveBeenCalled();expect(wxMock.navigateTo).not.toHaveBeenCalled();

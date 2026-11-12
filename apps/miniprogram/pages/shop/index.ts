@@ -1,3 +1,4 @@
+import { requireGuestCommunityAccess } from "../../services/api";
 import {retainReadPresentation} from "../../services/read-presentation";
 import {catalogList} from "../../services/commerce";
 import {commerceShopItems} from "../../services/commerce-content";
@@ -8,7 +9,7 @@ Page({
   data:{chromeStyle:currentChromeStyle(),catalog:null as any,featured:null as any,items:commerceShopItems([]),heroes:commerceShopItems([]).slice(0,2),heroIndex:0,autoplay:false,purchaseAvailable:false,loading:true,navigating:false,loadAttempt: 0,pageAlive:true,error:""},
   visible:false,
   onLoad(){this.data.pageAlive=true;},
-  onShow(){this.visible=true;this.data.pageAlive=true;this.setData({navigating:false,autoplay:!shouldReduceMotion()});const tab=this.getTabBar?.();tab?.syncActive?.(1);tab?.setData({active:1,externalBusy:false});void this.load();},
+  onShow(){if(!requireGuestCommunityAccess("/pages/shop/index"))return;this.visible=true;this.data.pageAlive=true;this.setData({navigating:false,autoplay:!shouldReduceMotion()});const tab=this.getTabBar?.();tab?.syncActive?.(1);tab?.setData({active:1,externalBusy:false});void this.load();},
   onHide(){this.visible=false;this.data.loadAttempt += 1;this.setData({autoplay:false});},
   onUnload(){this.visible=false;this.data.pageAlive = false;this.data.loadAttempt += 1;},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},

@@ -44,7 +44,6 @@
         </view>
       </view>
 
-      <text wx:if="{{!pendingDestination && !renewalMode && loginStage === 'login' && phoneCapabilityKnown && phoneBindingEnabled}}" class="account-phone-note">可在微信弹窗授权手机号，用于护理服务联系；也可暂不授权。</text>
       <button wx:if="{{(!pendingDestination || renewalMode) && !legalLoading && !legalTextsReady}}" class="text-button account-legal-retry {{loading || leaving ? 'text-button--disabled' : ''}}" disabled="{{loading || leaving}}" bindtap="syncLegalDocuments">重新加载协议</button>
       <view wx:if="{{notice}}" class="account-notice" aria-live="polite">{{notice}}</view>
       <canvas type="2d" id="member-avatar-canvas" class="account-avatar-canvas" aria-hidden="true"/>
