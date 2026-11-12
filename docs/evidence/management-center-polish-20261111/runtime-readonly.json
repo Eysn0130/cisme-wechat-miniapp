@@ -1,0 +1,119 @@
+{
+  "checkedAt": "2026-11-11T17:50:06.794080+00:00",
+  "mode": "unauthenticated read-only public probes; no member or financial writes",
+  "hosts": {
+    "staging-api.cisme.cn": [
+      {
+        "path": "/health/ready",
+        "httpStatus": 200,
+        "publicFacts": {
+          "status": "ready",
+          "ready": null
+        }
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "httpStatus": 200,
+        "publicFacts": {
+          "version": 2,
+          "orderFlowEnabled": true,
+          "paymentAvailable": true,
+          "paymentOnboarding": "READY",
+          "currency": "CNY",
+          "scope": "formal_commerce",
+          "formalMoneyOperationsAvailable": true,
+          "formalRecoveryAvailable": true,
+          "isolatedMoneyOperationsAvailable": false,
+          "isolatedTransferAvailable": false,
+          "isolatedCreditCheckoutAvailable": false
+        }
+      },
+      {
+        "path": "/v1/catalog?limit=20",
+        "httpStatus": 200,
+        "publicFacts": {
+          "publishedProducts": 2,
+          "products": [
+            {
+              "name": "头皮紧致修护精华液",
+              "price": 29800,
+              "stockOnHand": 100,
+              "multiplier": 3
+            },
+            {
+              "name": "净润小紫瓶 280mL",
+              "price": 19800,
+              "stockOnHand": 100,
+              "multiplier": 3
+            }
+          ]
+        }
+      },
+      {
+        "path": "/v1/management/attention",
+        "httpStatus": 401,
+        "publicFacts": {}
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "httpStatus": 401,
+        "publicFacts": {}
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "httpStatus": 401,
+        "publicFacts": {}
+      }
+    ],
+    "api.cisme.cn": [
+      {
+        "path": "/health/ready",
+        "httpStatus": 200,
+        "publicFacts": {
+          "status": "ready",
+          "ready": null
+        }
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "httpStatus": 200,
+        "publicFacts": {
+          "version": 2,
+          "orderFlowEnabled": false,
+          "paymentAvailable": false,
+          "paymentOnboarding": "IN_PROGRESS",
+          "currency": "CNY",
+          "scope": "formal_commerce",
+          "formalMoneyOperationsAvailable": false,
+          "formalRecoveryAvailable": true,
+          "isolatedMoneyOperationsAvailable": false,
+          "isolatedTransferAvailable": false,
+          "isolatedCreditCheckoutAvailable": false
+        }
+      },
+      {
+        "path": "/v1/catalog?limit=20",
+        "httpStatus": 200,
+        "publicFacts": {
+          "publishedProducts": 0,
+          "products": []
+        }
+      },
+      {
+        "path": "/v1/management/attention",
+        "httpStatus": 401,
+        "publicFacts": {}
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "httpStatus": 401,
+        "publicFacts": {}
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "httpStatus": 401,
+        "publicFacts": {}
+      }
+    ]
+  }
+}

@@ -82,7 +82,7 @@ it('keeps finance status out of the support-only management view',async()=>{
   expect(page.data.coreReady).toBe(true);
   expect(page.data.hasFinanceCapability).toBe(false);
   expect(page.data.canFinance).toBe(false);
-  expect(readFileSync('apps/miniprogram/pages/management/index.wxml','utf8')).toContain('wx:if="{{hasFinanceCapability}}" class="state"');
+  expect(readFileSync('apps/miniprogram/pages/management/index.wxml','utf8')).toContain('wx:if="{{hasFinanceCapability && !canFinance}}" class="management-inline-state"');
 });
 describe.each<Name>(["management", "commission", "order-detail"])("PERF-11/12: %s", name => {
   it("renders core facts and their actual display fields while runtime never settles", async () => {

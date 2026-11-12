@@ -1,0 +1,268 @@
+[
+  {
+    "file": "pages/management/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-catalog/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-catalog/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-product/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-product/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-orders/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-orders/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-order-detail/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-order-detail/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-fulfillment/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-fulfillment/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-members/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-members/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-member/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-member/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-points/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-points/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-finance/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-finance/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-privacy/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-privacy/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/management-support/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/management-support/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/aftersale/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/aftersale/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  },
+  {
+    "file": "pages/community-review/index.wxml",
+    "result": {
+      "success": true,
+      "codeLength": 44438
+    }
+  },
+  {
+    "file": "pages/community-review/index.wxss",
+    "result": {
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 20801
+    }
+  }
+]

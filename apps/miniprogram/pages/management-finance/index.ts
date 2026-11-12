@@ -3,6 +3,7 @@ import { request } from "../../services/api";
 import { authorityProjection,hasCapability,type AuthorityProjection } from "../../services/authority";
 import { currentChromeStyle } from "../../services/layout";
 import { clientOperationKey,orderRuntimeStatus } from "../../services/orders";
+import { commerceContextRevision } from "../../services/commerce-command-store";
 
 type Section="refund"|"fulfillment"|"settlement"|"cycles"|"issues"|"bills";
 type CycleMember={memberId:string;grossCents:number;orderCount:number;requestId:string|null;
@@ -37,13 +38,14 @@ const lastCycleMonth=()=>{const shanghai=new Date(Date.now()+8*60*60*1000).toISO
 const cyclePeriodEnd=(month:string)=>/^\d{4}-(0[1-9]|1[0-2])$/.test(month)
   ?new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).toISOString().slice(0,10):"";
 const timeLabel=(value?:string)=>value?new Date(value).toLocaleString("zh-CN",{
-  year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}):"";
+  year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Shanghai"})+"（北京时间）":"";
 const format=(row:Row):Row=>({...row,amountLabel:typeof row.amountCents==="number"
   ?(row.amountCents/100).toFixed(2):"",dateLabel:timeLabel(row.createdAt),
   kindLabel:kindNames[row.kind??""]??"待核对"});
 
 Page({
-  data:{formalMode:false,moneyEnabled:false,chromeStyle:currentChromeStyle(),authority:null as AuthorityProjection|null,
+  actorToken:"",actorContext:-1,
+  data:{formalMode:false,moneyEnabled:false,canReadOrders:false,chromeStyle:currentChromeStyle(),authority:null as AuthorityProjection|null,
     sections:[] as Array<{id:Section;label:string}>,section:"refund" as Section,
     items:[] as Row[],totalCount:0,nextCursor:null as string|null,loading:true,loadingMore:false,
     busy:false,error:"",errorRetryable:false,moreError:"",actionError:"",actionStatus:"",
@@ -53,30 +55,43 @@ Page({
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   onShow(){this.data.alive=true;this.setData({navigating:false,latestBillDate:yesterdayShanghai(),
     latestCycleMonth:lastCycleMonth()});void this.establish();},
-  onHide(){this.data.alive=false;this.data.epoch+=1;this.setData({authority:null,sections:[],items:[],cycle:null,moneyEnabled:false,busy:false});},
+  onHide(){this.data.alive=false;this.data.epoch+=1;this.actorToken="";this.setData({authority:null,sections:[],items:[],cycle:null,cycleDecisionKeys:{},moneyEnabled:false,canReadOrders:false,busy:false});},
   onUnload(){this.onHide();},
   async establish(){
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+    this.actorToken=token;this.actorContext=commerceContextRevision();
     this.setData({authority:null,sections:[],items:[],totalCount:0,nextCursor:null,
-      cycle:null,cycleDecisionKeys:{},busy:false,loadingMore:false,loading:true,error:"",
+      cycle:null,cycleDecisionKeys:{},canReadOrders:false,busy:false,loadingMore:false,loading:true,error:"",
       errorRetryable:false,actionError:"",actionStatus:""});
     const current=()=>this.data.alive&&this.data.epoch===epoch&&
-      token===getApp<IAppOption>().globalData.sessionToken;
+      token===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision();
     try{
       const [authority,runtime]=await Promise.all([authorityProjection(),orderRuntimeStatus()]);
       const status=validateRuntime(runtime),actions=runtimeActions(status),formalMode=status.scope==="formal_commerce";
       if(!current())return;
       this.setData({formalMode,moneyEnabled:actions.money});
       if(!actions.money&&!actions.recovery){this.setData({loading:false,error:"资金核对暂未开放。"});return;}
+      if(authority.version!==1||authority.managementAvailable!==true){this.setData({loading:false,error:"当前账号没有资金核对权限。"});return;}
       const available=sections.filter(([id,,capability])=>hasCapability(authority,capability)&&(!formalMode||id!=="fulfillment")&&
         (!["settlement","cycles"].includes(id)||status.isolatedTransferAvailable)).map(([id,label])=>({id,label}));
       if(!available.length){this.setData({loading:false,error:"当前账号没有资金核对权限。"});return;}
       const section=available.some(item=>item.id===this.data.section)?this.data.section:available[0]!.id;
-      this.setData({authority,sections:available,section});void this.load();
+      this.setData({authority,sections:available,section,canReadOrders:hasCapability(authority,"commerce.order.read")});void this.load();
     }catch(error){if(current())this.setData({loading:false,errorRetryable:true,
       error:(error as {title?:string}).title||"资金权限暂时无法核验。"});}
   },
+  ownsSnapshot(){
+    if(!this.data.alive)return false;
+    if(this.actorToken&&this.actorToken===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision())return true;
+    this.data.epoch++;this.actorToken="";this.setData({authority:null,sections:[],items:[],cycle:null,cycleDecisionKeys:{},canReadOrders:false,moneyEnabled:false,loading:false,busy:false,error:"身份已变化，请重新核验资金权限。",errorRetryable:true});return false;
+  },
+  openOrder(event:WechatMiniprogram.TouchEvent){
+    if(!this.ownsSnapshot()||this.data.busy||this.data.navigating||!this.data.canReadOrders)return;
+    const id=String(event.currentTarget.dataset.id??"");if(!this.data.items.some(item=>item.orderId===id)||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return;
+    const token=this.actorToken,epoch=this.data.epoch;this.setData({navigating:true});wx.navigateTo({url:`/pages/management-order-detail/index?id=${id}`,fail:()=>{if(this.data.alive&&this.data.epoch===epoch&&this.actorToken===token)this.setData({navigating:false});}});
+  },
   selectSection(event:WechatMiniprogram.TouchEvent){
+    if(!this.ownsSnapshot())return;
     const section=String(event.currentTarget.dataset.section) as Section;
     if(!this.data.sections.some(item=>item.id===section)||this.data.busy)return;
     // A cycle snapshot is immutable but its *approval* and source availability
@@ -84,12 +99,13 @@ Page({
     this.setData({section,cycle:null,actionError:"",actionStatus:""});void this.load();
   },
   async load(){
+    if(!this.ownsSnapshot())return;
     const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,section=this.data.section;
     this.setData({items:[],totalCount:0,nextCursor:null,loading:section!=="cycles",loadingMore:false,
       error:"",errorRetryable:false,moreError:""});
     if(section==="cycles")return;
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section===section&&
-      token===getApp<IAppOption>().globalData.sessionToken;
+      token===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision();
     try{const result=await request<PageResult>({path:`${paths[section]}?limit=20`});
       if(current())this.setData({items:result.items.map(format),totalCount:result.totalCount,
         nextCursor:result.nextCursor,loading:false});
@@ -97,6 +113,7 @@ Page({
       error:(error as {title?:string}).title||"待办暂时无法加载，请重试。"});}
   },
   async loadMore(){
+    if(!this.ownsSnapshot())return;
     if(this.data.section==="cycles")return;
     const cursor=this.data.nextCursor;if(!cursor||this.data.loading||this.data.loadingMore)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,section=this.data.section;
@@ -107,10 +124,11 @@ Page({
       const seen=new Set(this.data.items.map(row=>row.id));
       this.setData({items:[...this.data.items,...result.items.filter(row=>!seen.has(row.id)).map(format)],
         totalCount:result.totalCount,nextCursor:result.nextCursor,loadingMore:false});
-    }catch(error){if(this.data.alive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+    }catch(error){if(this.data.alive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision())
       this.setData({loadingMore:false,moreError:(error as {title?:string}).title||"更多待办暂未加载。"});}
   },
   async decide(event:WechatMiniprogram.TouchEvent){
+    if(!this.ownsSnapshot())return;
     if(this.data.formalMode&&!this.data.moneyEnabled)return;
     if(this.data.busy||this.data.section==="issues"||this.data.section==="cycles"||
       this.data.section==="settlement"&&event.currentTarget.dataset.decision==="approve")return;
@@ -119,7 +137,7 @@ Page({
     if(!row||!row.version||!this.data.sections.some(item=>item.id===section))return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,version=row.version;
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section===section&&
-      token===getApp<IAppOption>().globalData.sessionToken&&
+      token===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision()&&
       this.data.items.some(item=>item.id===id&&item.version===version);
     const confirm=await wx.showModal({title:decision==="reject"?"退回这项申请？":"确认核验结果？",
       content:section==="fulfillment"?`凭据 ${row.sourceReference??""} · 摘要 ${row.evidenceSha256?.slice(0,12)??""}。请先核对原件与签收时间。`:
@@ -140,11 +158,13 @@ Page({
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
   chooseCycleMonth(event:{detail:{value:string}}){
+    if(!this.ownsSnapshot())return;
     if(this.data.busy)return;
     this.setData({cycleMonth:event.detail.value,cycle:null,cycleDecisionKeys:{},
       actionError:"",actionStatus:""});
   },
   async loadCycle(){
+    if(!this.ownsSnapshot())return;
     const month=this.data.cycleMonth,periodEnd=cyclePeriodEnd(month),epoch=this.data.epoch,
       token=getApp<IAppOption>().globalData.sessionToken;
     if(this.data.section!=="cycles"||!this.data.sections.some(item=>item.id==="cycles"))return;
@@ -154,7 +174,7 @@ Page({
     try{const cycle=await request<Cycle>({path:"/v1/management/commission/settlement-cycles/prepare",
       method:"POST",data:{periodEnd}});
       if(this.data.alive&&this.data.epoch===epoch&&this.data.section==="cycles"&&
-        this.data.cycleMonth===month&&token===getApp<IAppOption>().globalData.sessionToken)
+        this.data.cycleMonth===month&&token===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision())
         this.setData({cycle:{...cycle,members:cycle.members.map(row=>({...row,
           grossLabel:(row.grossCents/100).toFixed(2)}))},busy:false});
     }catch(error){if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false,
@@ -162,6 +182,7 @@ Page({
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
   async prepareCycle(){
+    if(!this.ownsSnapshot())return;
     if(this.data.busy||this.data.section!=="cycles"||
       !this.data.sections.some(item=>item.id==="cycles"))return;
     const periodEnd=cyclePeriodEnd(this.data.cycleMonth);
@@ -172,6 +193,7 @@ Page({
     if(answer.confirm)void this.loadCycle();
   },
   async approveCycleMember(event:WechatMiniprogram.TouchEvent){
+    if(!this.ownsSnapshot())return;
     const cycle=this.data.cycle,memberId=String(event.currentTarget.dataset.member??""),
       row=cycle?.members.find(item=>item.memberId===memberId);
     if(this.data.busy||this.data.section!=="cycles"||
@@ -201,6 +223,7 @@ Page({
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
   async operateIssue(event:WechatMiniprogram.TouchEvent){
+    if(!this.ownsSnapshot())return;
     if(this.data.formalMode&&!this.data.moneyEnabled&&event.currentTarget.dataset.action==="redrive")return;
     if(this.data.busy||this.data.section!=="issues")return;
     const id=String(event.currentTarget.dataset.id),action=String(event.currentTarget.dataset.action),
@@ -209,7 +232,7 @@ Page({
       action==="redrive"&&!item.canRedrive)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section==="issues"&&
-      token===getApp<IAppOption>().globalData.sessionToken&&this.data.items.some(row=>row.id===id);
+      token===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision()&&this.data.items.some(row=>row.id===id);
     const answer=await wx.showModal({title:action==="redrive"?"重试原任务？":"按原单号查渠道？",
       content:`${item.kindLabel} · ${item.code}。状态必须由渠道核验，不能手工改为成功。`,
       editable:action==="redrive",placeholderText:"输入至少 8 字的重试依据",confirmText:action==="redrive"?"确认重试":"确认查单"});
@@ -236,8 +259,10 @@ Page({
       actionError:(error as {title?:string}).title||"操作未完成，请核对后重试。"});}
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
-  chooseBillDate(event:{detail:{value:string}}){this.setData({billDate:event.detail.value});},
+  chooseBillDate(event:{detail:{value:string}}){
+    if(!this.ownsSnapshot())return;this.setData({billDate:event.detail.value});},
   async importBill(event:WechatMiniprogram.TouchEvent){
+    if(!this.ownsSnapshot())return;
     if(this.data.busy||this.data.section!=="bills"||
       !this.data.sections.some(item=>item.id==="bills"))return;
     const type=String(event.currentTarget.dataset.type);
@@ -247,7 +272,7 @@ Page({
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>=new Date(Date.now()+8*60*60*1000).toISOString().slice(0,10)){
       this.setData({actionError:"请选择微信已生成的历史账单日期。"});return;}
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section==="bills"&&
-      token===getApp<IAppOption>().globalData.sessionToken&&this.data.billDate===date;
+      token===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision()&&this.data.billDate===date;
     const answer=await wx.showModal({title:this.data.formalMode?"核对微信交易账单？":"导入隔离交易账单？",
       content:`${date} ${type==="SUCCESS"?"支付":"退款受理"}账单。这一步只核对账单并记录差异，不会更改付款或退款状态。`,
       confirmText:"核对账单"});

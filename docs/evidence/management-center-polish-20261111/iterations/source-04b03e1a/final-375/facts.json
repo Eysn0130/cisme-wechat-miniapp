@@ -1,0 +1,152 @@
+[
+  {
+    "name": "01-center",
+    "route": "pages/management/index",
+    "loading": false,
+    "error": "",
+    "authority": true,
+    "coreReady": true,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "02-catalog",
+    "route": "pages/management-catalog/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "03-product",
+    "route": "pages/management-product/index",
+    "loading": false,
+    "error": "",
+    "authority": true,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "04-orders",
+    "route": "pages/management-orders/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "coreReady": true,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "05-order-detail",
+    "route": "pages/management-order-detail/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "06-fulfillment",
+    "route": "pages/management-fulfillment/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "coreReady": true,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "07-members",
+    "route": "pages/management-members/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "08-member",
+    "route": "pages/management-member/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "09-points",
+    "route": "pages/management-points/index",
+    "loading": false,
+    "error": "",
+    "authority": true,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "10-finance",
+    "route": "pages/management-finance/index",
+    "loading": false,
+    "error": "",
+    "authority": true,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "11-privacy",
+    "route": "pages/management-privacy/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "coreReady": true,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "12-support",
+    "route": "pages/management-support/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "coreReady": true,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "13-support-chat",
+    "route": "pages/management-support-chat/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "14-aftersale",
+    "route": "pages/aftersale/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "coreReady": true,
+    "items": 1,
+    "width": 375,
+    "undefinedRoutes": []
+  },
+  {
+    "name": "15-comments",
+    "route": "pages/community-review/index",
+    "loading": false,
+    "error": "",
+    "authority": false,
+    "width": 375,
+    "undefinedRoutes": []
+  }
+]

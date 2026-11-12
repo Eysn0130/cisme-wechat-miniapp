@@ -1,0 +1,2460 @@
+[
+  {
+    "name": "16-redemption-sheet",
+    "route": "pages/management-points/index",
+    "error": "",
+    "loading": false,
+    "selected": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "policyOpen": false,
+    "items": 1,
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  },
+  {
+    "invalidRedemption": {
+      "error": "请填写4–500字的处理依据。",
+      "writes": 0
+    }
+  },
+  {
+    "name": "17-policy-sheet",
+    "route": "pages/management-points/index",
+    "error": "",
+    "loading": false,
+    "policyOpen": true,
+    "items": 1,
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  },
+  {
+    "name": "18-rate-sheet",
+    "route": "pages/management-member/index",
+    "error": "",
+    "loading": false,
+    "rateFormVisible": true,
+    "rateForm": {
+      "mode": "override",
+      "percent": "25.00",
+      "date": "2026-11-12",
+      "time": "00:00",
+      "reason": ""
+    },
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  },
+  {
+    "name": "19-privacy-detail",
+    "route": "pages/management-privacy/index",
+    "error": "",
+    "loading": false,
+    "selected": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "coreReady": true,
+    "items": 1,
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  },
+  {
+    "name": "20-finance-order-link",
+    "route": "pages/management-order-detail/index",
+    "error": "",
+    "loading": false,
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  },
+  {
+    "name": "21-read-error",
+    "route": "pages/management-catalog/index",
+    "error": "商品列表暂未加载，请重试后查看最新资料。",
+    "loading": false,
+    "items": 0,
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  },
+  {
+    "name": "22-permission-revoked",
+    "route": "pages/management-catalog/index",
+    "error": "当前账号没有商品管理权限。",
+    "loading": false,
+    "items": 0,
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  },
+  {
+    "name": "23-points-only-entry",
+    "route": "pages/management/index",
+    "error": "",
+    "loading": false,
+    "canPoints": true,
+    "canFinance": false,
+    "coreReady": true,
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true,
+        "scenario": "points-only"
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true,
+        "scenario": "points-only"
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  },
+  {
+    "pointsOnlyEntry": "积分管理"
+  },
+  {
+    "name": "24-no-attention",
+    "route": "pages/management/index",
+    "error": "",
+    "loading": false,
+    "canPoints": true,
+    "canFinance": true,
+    "coreReady": true,
+    "requests": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/shipments?state=awaiting_dispatch&orderNumber=&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members?q=&filter=all&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/pending?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commission-rates/current",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations?limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/profile",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/ai/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/aftersales",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/support/conversations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/messages?after=0&limit=50",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/aftersales?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/editorial/comments?state=published&limit=30",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/points/redemptions?state=placed",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/members/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/privacy-requests?page=1",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/refund-requests/pending?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/commerce/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/shipment",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/catalog/products?limit=20",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true,
+        "scenario": "points-only"
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true,
+        "scenario": "points-only"
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/me/authority",
+        "method": "GET",
+        "handled": true
+      },
+      {
+        "path": "/v1/management/attention",
+        "method": "GET",
+        "handled": true
+      }
+    ],
+    "undefinedRoutes": []
+  }
+]

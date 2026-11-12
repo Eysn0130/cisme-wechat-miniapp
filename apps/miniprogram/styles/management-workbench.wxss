@@ -1,0 +1,87 @@
+/* Native management pages share the existing CISME tokens. Consumer screens are unaffected. */
+.management-ui{color:var(--cisme-ink);background:#f7f3f8}
+.management-ui .page{padding-left:28rpx;padding-right:28rpx;background:#f7f3f8}
+.management-ui .page-title{margin:8rpx 0 18rpx;font-family:inherit;font-size:22px;font-weight:600;line-height:1.4;letter-spacing:0}
+.management-ui .subtitle{display:block;font-size:12px;line-height:1.65}
+.management-ui .text-button,.management-ui .secondary,.management-ui .action-text{display:flex;align-items:center;justify-content:center;min-height:44px;margin:0;padding:10rpx 12rpx;border:0;border-radius:0;box-shadow:none;background:transparent;color:var(--cisme-plum);font-size:14px;line-height:1.5;white-space:normal}
+.management-ui .text-button::after,.management-ui .secondary::after{border:0}
+.management-ui .primary,.management-ui .primary-button{display:flex;align-items:center;justify-content:center;min-height:48px;line-height:1.5;white-space:normal}
+.management-ui .state{font-size:14px;line-height:1.65;overflow-wrap:anywhere}
+.management-ui .state--error .text-button{border:0;border-radius:0;box-shadow:none;background:transparent}
+.management-ui .control--disabled{opacity:.45}
+.management-ui button{transition:opacity var(--cisme-motion-press) ease-out}
+.management-ui input,.management-ui textarea{font-size:14px;line-height:1.6}
+.management-ui input{min-height:44px}
+.management-ui .catalog-row,.management-ui .management-order-row,.management-ui .privacy-row,.management-ui .finance-row,.management-ui .finance-bill-import,.management-ui .admin-detail-card,.management-ui .section-card,.management-ui .queue-card{border:0;border-radius:24rpx;box-shadow:none}
+.management-ui .section-card{margin-top:20rpx}
+.management-ui .catalog-row__body strong,.management-ui .management-order-row__head strong{white-space:normal;line-height:1.5;overflow-wrap:anywhere}
+.management-ui .catalog-row__states{gap:8rpx 18rpx}
+.management-ui .catalog-row__states text{padding:0;border:0;border-radius:0;background:transparent;font-size:12px}
+.management-ui .catalog-row__body small{font-size:12px;line-height:1.5;overflow-wrap:anywhere;white-space:normal}
+.management-ui .catalog-row__image{flex:none;width:112rpx;height:136rpx;border-radius:16rpx}
+.management-ui .catalog-head{align-items:center;gap:16rpx;margin-bottom:24rpx}
+.management-ui .catalog-head .page-title{margin:0;font-size:20px}
+.management-ui .catalog-add{display:flex;align-items:center;justify-content:center;width:auto;min-width:88px;min-height:44px;margin:0;padding:0 16rpx;border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--cisme-plum);font-size:14px}
+.management-ui .form-section{border-radius:24rpx;box-shadow:none}
+.management-ui .form-section label{font-size:12px}
+.management-ui .form-section__title,.management-ui .section-title{font-size:16px;font-weight:600;line-height:1.5}
+.management-ui .form-hint,.management-ui .form-section small{font-size:12px}
+.management-ui .image-preview{height:180rpx;border-radius:16rpx;background:#f7f3f8}
+.management-ui .button-row{gap:8rpx;align-items:center}
+.management-ui .button-row button,.management-ui .draft-conflict button{flex:1;min-width:88px;min-height:44px;padding:8rpx;border:0;border-radius:0;background:transparent;color:var(--cisme-plum);font-size:14px;line-height:1.5}
+.management-ui .status-strip text{padding:4rpx 0;border-radius:0;background:transparent;font-size:12px}
+.management-ui .status-strip{gap:8rpx 24rpx}
+.management-ui .members-summary .ux-strong{font-family:inherit;font-size:28px;font-weight:500;line-height:1.25;font-variant-numeric:tabular-nums}
+.management-ui .members-filters,.management-ui .member-tabs,.management-ui .member-order-modes,.management-ui .rate-form-modes{gap:8rpx}
+.management-ui .members-filters button,.management-ui .member-tabs button,.management-ui .member-order-modes button,.management-ui .rate-form-modes button,.management-ui .finance-tab{border:0;border-radius:0;background:transparent;color:var(--cisme-muted);font-size:14px}
+.management-ui .members-filters .is-active,.management-ui .member-tabs .is-active,.management-ui .finance-tab.is-active{color:var(--cisme-plum);background:transparent;box-shadow:inset 0 -2px var(--cisme-plum);font-weight:500}
+.management-ui .member-order-modes .is-active,.management-ui .rate-form-modes .is-active{border:0;border-radius:12rpx;background:var(--cisme-lilac);color:var(--cisme-plum);font-weight:500}
+.management-ui .members-search button,.management-ui .members-global-rate button,.management-ui .members-rate-row button,.management-ui .member-actions button{min-height:44px;padding:8rpx 12rpx;border:0;border-radius:0;background:transparent;color:var(--cisme-plum);font-size:14px}
+.management-ui .members-row__copy .ux-strong,.management-ui .members-row__copy .ux-small{white-space:normal;line-height:1.5}
+.management-ui .members-row__copy .ux-small{font-size:12px}
+.management-ui .rate-form-cancel,.management-ui .global-rate-cancel{border:0;border-radius:0;background:transparent;color:var(--cisme-plum)}
+.management-ui .finance-amount{font-family:inherit;font-size:26px;font-weight:500;line-height:1.3;font-variant-numeric:tabular-nums}
+.management-ui .finance-action{border:0;border-radius:0;background:transparent;color:var(--cisme-plum);font-size:14px}
+.management-ui .finance-action--primary{border:0;border-radius:16rpx;background:var(--cisme-plum);color:#fff}
+.management-ui .finance-id,.management-ui .finance-row__head text{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.management-ui .finance-row__head{align-items:baseline;flex-wrap:wrap;gap:8rpx 20rpx}
+.management-ui .privacy-row+.privacy-row{margin-top:16rpx}
+.management-ui .privacy-row__heading{align-items:flex-start;flex-wrap:wrap}
+.management-ui .privacy-meta,.management-ui .privacy-body{word-break:normal;overflow-wrap:anywhere}
+.management-ui .queue-head{padding:0 4rpx 24rpx}
+.management-ui .queue-head strong{font-size:20px;line-height:1.5}
+.management-ui .queue-head>text{font-size:12px}
+.management-ui .queue-status{padding:0;border-radius:0;background:transparent;font-size:12px}
+.management-ui .queue-row small{font-size:12px}
+.management-ui .queue-card{padding:24rpx 20rpx}
+.management-ui .review-comment-tab.is-current{color:var(--cisme-plum);box-shadow:inset 0 -2px var(--cisme-plum)}
+.management-ui .review-comment-article{color:var(--cisme-plum)}
+.management-ui .review-comment-actions button,.management-ui .review-comment-more{border:0;border-radius:0;background:transparent;color:var(--cisme-plum)}
+.management-ui .review-comment-actions .review-comment-delete{color:var(--cisme-danger)}
+.management-ui .case-card,.management-ui .case-row,.management-ui .member-panel{border:0;box-shadow:none}
+.management-ui .case-row{margin-bottom:16rpx}
+.management-ui .member-hero .ux-strong{font-family:inherit;font-size:22px;font-weight:600;line-height:1.4}
+.management-ui .points-intro{display:flex;flex-direction:column;gap:8rpx;margin:8rpx 4rpx 24rpx;color:var(--cisme-muted);font-size:12px;line-height:1.6}
+.management-ui .points-intro .title,.management-ui.manager-root .title{margin:0;font-family:inherit;font-size:16px;font-weight:600;line-height:1.5;letter-spacing:0}
+.management-ui.manager-root .card{gap:16rpx;margin-bottom:20rpx;padding:28rpx;border-radius:24rpx;word-break:normal;overflow-wrap:anywhere;font-size:14px;line-height:1.65}
+.management-ui.manager-root .points-intro .title{font-size:22px;color:var(--cisme-ink)}
+.management-ui.manager-root .filters{gap:8rpx;margin:12rpx 0 20rpx}
+.management-ui.manager-root .filters .text-button{flex:1;min-width:0;padding:10rpx 8rpx;font-size:14px}
+.management-ui.manager-root .filters .selected{background:transparent;box-shadow:inset 0 -2px var(--cisme-plum);font-weight:500}
+.management-ui.manager-root .policy .filters{margin:0;justify-content:flex-start}
+.management-ui.manager-root .policy .filters .text-button{flex:none;min-width:72px}
+.management-ui.manager-root .policy .filters .is-current{color:var(--cisme-plum);font-weight:600;box-shadow:inset 0 -2px var(--cisme-plum);opacity:1}
+.management-ui.manager-root .policy{padding:20rpx 0;gap:12rpx}
+.management-ui.manager-root .policy-disclosure{align-self:flex-start;justify-content:flex-start;padding-left:0}
+.management-ui.manager-root .rule-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12rpx 20rpx;padding-top:12rpx;font-size:12px}
+.management-ui.manager-root .rule-values text{overflow-wrap:anywhere}
+.management-ui.manager-root .sheet{top:var(--cisme-topbar-height);padding-top:0}
+.management-ui.manager-root .sheet-scroll{padding:24rpx 28rpx calc(env(safe-area-inset-bottom) + 32rpx)}
+.management-ui.manager-root .sheet .title{padding:20rpx 0}
+.management-ui.manager-root .rule-row{padding:20rpx 0}
+.management-ui.manager-root .sheet .primary{width:100%;margin:24rpx 0 16rpx}
+.management-ui.manager-root .command-recovery{display:flex;align-items:center;justify-content:space-between;gap:12rpx;background:#eee4f2;border-radius:16rpx;padding:16rpx 20rpx}
+@media(prefers-reduced-motion:reduce){.management-ui button{transition:none}}
+
+.management-ui .primary-button{border:0;border-radius:0;background:transparent;box-shadow:none;color:var(--cisme-plum);font-size:14px}
+.management-ui .shipment-submit{border-radius:16rpx;background:var(--cisme-plum);color:#fff;font-size:16px;font-weight:500}

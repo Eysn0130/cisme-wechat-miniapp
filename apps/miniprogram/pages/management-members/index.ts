@@ -1,3 +1,4 @@
+import {beijingDateParts as rateDateParts,beijingDateLabel as dateLabel,beijingCivilInstant} from "../../services/business-time";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request } from "../../services/api";
@@ -8,9 +9,6 @@ type MemberRow={id:string;displayName:string;accountStatus:string;membershipStat
 type RateProposal={id:string;memberId:string|null;displayName:string;action:"override"|"inherit";basisPoints:number|null;effectiveAt:string;version:number;createdBy:string;reason:string};
 type GlobalRate={basisPoints:number|null;effectiveAt:string|null;serverTime:string;suggestedEffectiveAt:string;policyKind:string;paymentAvailable:boolean;rateOptions:number[]};
 type RateForm={percent:string;date:string;time:string;reason:string};
-const rateDateParts=(value:string)=>{const date=new Date(value),pad=(n:number)=>String(n).padStart(2,"0");
-  return {date:`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`,time:`${pad(date.getHours())}:${pad(date.getMinutes())}`};};
-const dateLabel=(value:string|null)=>value?new Date(value).toLocaleDateString("zh-CN",{year:"numeric",month:"2-digit",day:"2-digit"}):"未设置";
 
 Page({
   lastToken:"",lastRevision:-1,
@@ -136,15 +134,15 @@ Page({
       :!Number.isSafeInteger(basisPoints)||basisPoints<0||basisPoints>10000){
       this.setData({globalRateError:"请输入 0.00%–100.00% 的费率。"});return;}
     if(reason.length<4||reason.length>300){this.setData({globalRateError:"请填写 4–300 字的变更依据。"});return;}
-    const effective=new Date(`${form.date}T${form.time}:00`);
-    if(!Number.isFinite(effective.getTime())){this.setData({globalRateError:"请选择有效的生效日期和时间。"});return;}
+    const effective=beijingCivilInstant(form.date,form.time);
+    if(!effective){this.setData({globalRateError:"请选择有效的生效日期和时间。"});return;}
     const attempt=this.data.attempt,token=getApp<IAppOption>().globalData.sessionToken;
     const current=()=>this.data.alive&&attempt===this.data.attempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision()&&this.data.canManageRate;
     const confirmation=await wx.showModal({title:"提交全局费率提议？",
-      content:`当前 ${this.data.globalRateLabel} → ${form.percent.trim()}%\n生效：${form.date} ${form.time}\n${reason}\n须由另一名授权管理者复核，仅影响生效后的新订单。`,confirmText:"提交复核"});
+      content:`当前 ${this.data.globalRateLabel} → ${form.percent.trim()}%\n生效（北京时间）：${form.date} ${form.time}\n${reason}\n须由另一名授权管理者复核，仅影响生效后的新订单。`,confirmText:"提交复核"});
     if(!confirmation.confirm||!current())return;
     this.globalRateCommand={key:`global-rate-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,12)}`,
-      basisPoints,effectiveAt:effective.toISOString(),reason};
+      basisPoints,effectiveAt:effective,reason};
     void this.sendGlobalRateCommand();
   },
   async sendGlobalRateCommand(){const command=this.globalRateCommand;if(!command||this.data.globalRateBusy)return;

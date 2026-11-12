@@ -1,0 +1,291 @@
+{
+  "packageSourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c",
+  "capture": "WeChat DevTools simulator_screenshot",
+  "scope": "15 management routes at each current 375/390 width plus a current finance-to-order tap",
+  "allHttpIntercepted": true,
+  "virtualStorage": true,
+  "realMemberWrites": 0,
+  "actualMoneyOperations": 0,
+  "physicalDevices": "not tested",
+  "screenshots": [
+    {
+      "file": "final-375/14-aftersale.png",
+      "sha256": "819dfc6eed1b20b8be9085da91ba280c93cdfd727922e69ceeeb1ed772ce260b",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/13-support-chat.png",
+      "sha256": "88ae87a9bf2d7e23fec933a9864db472f60d1488ffff905db97477a6e1a2c9ce",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/04-orders.png",
+      "sha256": "e2db8079bdb65aaf063f363e0e01896fa5cc827754f4209e0f1d3200339de6bf",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/11-privacy.png",
+      "sha256": "6520d291dd95041deb5037a72648d4d145cb56e0793725543e38f3cbdabf437a",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/08-member.png",
+      "sha256": "5bec7d9791992d6ca7435e3dcc50ac0ab7c664ce13701a90de6acef0c130eb53",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/05-order-detail.png",
+      "sha256": "8c20a258b7cdb67c69e6cf4ae62473d982596c100abcbcc80e5e8a085fdefb36",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/15-comments.png",
+      "sha256": "d05c90f94d5b47514cb43138a485cd52d73411bc453dcdf4570b0b8fbde9a66a",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/09-points.png",
+      "sha256": "ecc9ea2d1bb7a9fb5340a218632340dde9dc5abf86d6cd58d7688a776758c379",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/03-product.png",
+      "sha256": "7d248a7d1011ba62f93b633119937ee62fd36585829937f6e279b4952a63e565",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/01-center.png",
+      "sha256": "d35d6caf4547817229528c6e7f805bf976a95c6b081d49e1c82b759b64df9d69",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/07-members.png",
+      "sha256": "84387ad08fef110f11c658d9fec56d08b3a6dfbfb2d52ca9da402ba63aa5d455",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/12-support.png",
+      "sha256": "447925afe761eb149f85f50c3b51576060b2cb03cfd435d08ecdded8232be5bf",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/10-finance.png",
+      "sha256": "2f091a702be56d21cee2885791b053886e5acfbd40d8756d388a0cadc75318dc",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/02-catalog.png",
+      "sha256": "c5fa424055a3cef7277073effe0b46560837b0848e703c6037bec3b9f63ccf58",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-375/06-fulfillment.png",
+      "sha256": "4891fd6d2477d9653dfea1f2a8476257d25510bbec4f146b7ba959bb2fe06047",
+      "format": "JPEG",
+      "widthPx": 376,
+      "heightPx": 812,
+      "logicalWidth": 375,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/14-aftersale.png",
+      "sha256": "b14438977dd11460326884b6c0bce2f4d4f50cb5b8a3d7df2b1ad63f00733029",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/13-support-chat.png",
+      "sha256": "1de2471d59649661afb0294d171b7a101a05a0e759086ca8bac243f6087c6d10",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/04-orders.png",
+      "sha256": "5c820d2587b0fa4139a0304fa8a578b3a3d023628bd0813a61174c9dbc42e827",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/11-privacy.png",
+      "sha256": "2d092e38097c75f46283a63100039e42845e6aed3d34cf3b98a1b2fa9c2deefe",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/08-member.png",
+      "sha256": "bf869b7be0a0736c0adc24d046e88ca1887cc438c091c24e78bf158cae14957d",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/05-order-detail.png",
+      "sha256": "d15c302ce0e15a2cdfded6a9b44d8be97e13c07eb61df583fd35ef5543fc6a5e",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/15-comments.png",
+      "sha256": "66b208e0a70afef0ac9057e3c36db62f60479c1a4f3a58e1df80a9b0b6dd3d59",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/09-points.png",
+      "sha256": "950fbe3de4600c30ecef083412d44b727f58d1c426ff06b2caa4597864e02e93",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/16-order-link-current.png",
+      "sha256": "813909df98511412d97602264f47d79a9b18945138c65b492e5100ae3b9c4fe4",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/03-product.png",
+      "sha256": "2f97ff45824bce58bb4e25ee845b42289635984689082ba5abdaa8d3d764dfd5",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/01-center.png",
+      "sha256": "13e8257b11922bf71df95a840d38ca8bf80948d0a403f4bc92c46db0b451aa85",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/07-members.png",
+      "sha256": "84ed8efd48ba3e05195c64fab23af46f9cd6fc7f4b8c075c1883833ee484ecd3",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/12-support.png",
+      "sha256": "4c936bd4d3463f82591d55b514625d91c64fdca6563f9b87b1d846d3c575930b",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/10-finance.png",
+      "sha256": "cefba7226d725488ed2cafb79cba9ea6e12564362774a84e1b05faec4d2816f2",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/02-catalog.png",
+      "sha256": "7e422664dab35e553aaf329e59aee6a635352a65a14a29bc358c95cf5fe40a27",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    },
+    {
+      "file": "final-390/06-fulfillment.png",
+      "sha256": "40c673e81ab7619b0901a93d6916448ec090a2a495ea4e040a9dd94bbadd5106",
+      "format": "JPEG",
+      "widthPx": 390,
+      "heightPx": 844,
+      "logicalWidth": 390,
+      "sourceSha256": "d43ec194499ec802df59805351031bb9dd84357d3773a5d7d3a9b3c436c7ff3c"
+    }
+  ]
+}

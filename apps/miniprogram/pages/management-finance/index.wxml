@@ -1,8 +1,8 @@
-<view class="management-shell" style="{{chromeStyle}}">
+<view class="management-ui management-shell" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">{{formalMode?'资金核对':'隔离资金核对'}}</text></view>
   <view class="page page--stack finance-page">
-    <view class="page-title">待处理事项</view>
-    <text class="subtitle">{{formalMode?'微信支付、退款和账单分别核验；渠道受理不等于退款完成。':'仅供隔离测试。支付、退款和转账各自核验；渠道受理不等于资金完成。'}}</text>
+    <view class="page-title">资金工作台</view>
+    <text class="subtitle">{{formalMode?'退款、查单与账单核对':'隔离测试数据，非真实资金'}}</text>
     <scroll-view wx:if="{{sections.length}}" class="finance-tabs" scroll-x enhanced show-scrollbar="false">
       <button wx:for="{{sections}}" wx:key="id" class="finance-tab {{section===item.id?'is-active':''}} {{busy?'control--disabled':''}}" data-section="{{item.id}}" bindtap="selectSection" disabled="{{busy}}">{{item.label}}</button>
     </scroll-view>
@@ -10,7 +10,7 @@
       <text>账单日期（次日生成）</text>
       <picker mode="date" value="{{billDate}}" end="{{latestBillDate}}" bindchange="chooseBillDate"><view class="finance-bill-date">{{billDate}} · 选择日期</view></picker>
       <view class="finance-actions"><button class="finance-action {{busy?'control--disabled':''}}" bindtap="importBill" data-type="SUCCESS" disabled="{{busy}}">核对支付账单</button><button class="finance-action {{busy?'control--disabled':''}}" bindtap="importBill" data-type="REFUND" disabled="{{busy}}">核对退款账单</button></view>
-      <text class="subtitle">退款账单只证明渠道受理；退款成功仍以原单查询或可信回调为准。</text>
+      <text class="subtitle">退款受理与到账结果分别核对。</text>
     </view>
     <view wx:if="{{sections.length&&section==='cycles'}}" class="finance-bill-import">
       <text>上海自然月 · 结算候选（仅隔离测试）</text>
@@ -38,6 +38,7 @@
       <text wx:if="{{item.code}}" class="finance-copy">{{item.code}} · 已尝试 {{item.attempts}} 次</text>
       <text class="finance-id">{{item.orderId||item.memberId||item.relatedId||item.id}}</text>
       <view wx:if="{{section!=='issues'&&section!=='bills'&&(!formalMode||moneyEnabled)}}" class="finance-actions">
+        <button wx:if="{{canReadOrders && item.orderId}}" class="finance-action {{busy || navigating?'control--disabled':''}}" data-id="{{item.orderId}}" bindtap="openOrder" disabled="{{busy || navigating}}">订单详情</button>
         <button class="finance-action {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="reject" bindtap="decide" disabled="{{busy}}">退回</button>
         <button wx:if="{{section==='fulfillment'}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="verify" bindtap="decide" disabled="{{busy}}">核验通过</button>
         <button wx:elif="{{section==='refund'}}" class="finance-action finance-action--primary {{busy?'control--disabled':''}}" data-id="{{item.id}}" data-decision="approve" bindtap="decide" disabled="{{busy}}">核准</button>

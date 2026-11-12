@@ -20,7 +20,7 @@ beforeEach(() => {
   vi.resetModules(); vi.clearAllMocks(); state.token = "synthetic-session-a"; state.revision = 1;
   state.request.mockResolvedValue({ id: "synthetic-rate-proposal" }); state.read.mockResolvedValue({ id: "synthetic-rate-proposal" });
   (globalThis as any).getApp = () => ({ globalData: { sessionToken: state.token } });
-  (globalThis as any).wx = { showToast: vi.fn() };
+  (globalThis as any).wx = { showToast: vi.fn(), showModal:vi.fn().mockResolvedValue({confirm:true}) };
   (globalThis as any).Page = (definition: any) => {
     page = { ...definition, data: structuredClone(definition.data), patches: [] as any[], setData(patch: any) { this.patches.push(patch); Object.assign(this.data, patch); } };
   };
@@ -37,6 +37,19 @@ for (const variant of variants) describe(`${variant.name} rate command busy leas
     page[variant.command] = { key: "synthetic-original-key", memberId: "synthetic-member", action: "inherit", basisPoints: 100, effectiveAt: "2026-11-01T00:00:00Z", reason: "合成复核依据" };
     return page[variant.command];
   }
+  it('submits the operator-entered business time as Beijing time, including on a western device',async()=>{
+    await load();page[variant.command]=null;page[variant.send]=vi.fn();
+    const form={mode:'override',percent:'25.00',date:'2026-11-12',time:'00:30',reason:'合成另一人复核依据'};
+    const global=variant.name==='global';page.data[global?'globalRateForm':'rateForm']=form;
+    await page[global?'submitGlobalRateForm':'submitRateForm']();
+    expect(page[variant.command]).toMatchObject({effectiveAt:'2026-11-11T16:30:00.000Z',basisPoints:2500});
+    expect((wx.showModal as any).mock.calls[0][0].content).toContain('北京时间');
+  });
+  it('rejects a calendar-normalized invalid date before confirmation or transmission',async()=>{
+    await load();page[variant.command]=null;page[variant.send]=vi.fn();
+    const global=variant.name==='global';page.data[global?'globalRateForm':'rateForm']={mode:'override',percent:'25.00',date:'2026-02-29',time:'00:30',reason:'合成日期校验依据'};
+    await page[global?'submitGlobalRateForm':'submitRateForm']();expect(wx.showModal).not.toHaveBeenCalled();expect(page[variant.command]).toBeNull();
+  });
   it("releases busy in the acknowledged commit and permits another form", async () => {
     await load(); await page[variant.send]();
     expect(page[variant.command]).toBeNull(); expect(page.data[variant.busy]).toBe(false);

@@ -174,13 +174,13 @@ describe('catalog list permission and product creation remain separate',()=>{
   expect(wxMock.navigateTo).toHaveBeenCalledTimes(capability==='commerce.product.manage'?1:0);
  });
  it('rechecks authority on retry instead of fetching an unauthorized catalog',async()=>{
-  m.authority.mockResolvedValueOnce({capabilities:['support.read']}).mockResolvedValueOnce({capabilities:['commerce.inventory.manage']}).mockResolvedValueOnce({capabilities:['support.read']});
+  m.authority.mockResolvedValueOnce({version:1,managementAvailable:true,capabilities:['support.read']}).mockResolvedValueOnce({version:1,managementAvailable:true,capabilities:['commerce.inventory.manage']}).mockResolvedValueOnce({version:1,managementAvailable:true,capabilities:['support.read']});
   await import('../../apps/miniprogram/pages/management-catalog/index');const page=mount();await page.onShow();expect(m.management).not.toHaveBeenCalled();
   await page.load();expect(m.management).toHaveBeenCalledOnce();await page.load();expect(m.management).toHaveBeenCalledOnce();
   expect(m.authority).toHaveBeenCalledTimes(3);expect(page.data).toMatchObject({items:[],canCreate:false,loading:false});
  });
  it('drops a stale permission result and prevents creation after account replacement',async()=>{
-  const permission=deferred();m.authority.mockReturnValueOnce(permission.promise).mockResolvedValue({capabilities:['commerce.product.manage']});
+  const permission=deferred();m.authority.mockReturnValueOnce(permission.promise).mockResolvedValue({version:1,managementAvailable:true,capabilities:['commerce.product.manage']});
   await import('../../apps/miniprogram/pages/management-catalog/index');const page=mount();const old=page.onShow();app.globalData.sessionToken='member-b';
   permission.resolve({capabilities:['commerce.product.manage']});await old;expect(m.management).not.toHaveBeenCalled();expect(page.data.canCreate).toBe(false);
   await page.onShow();expect(page.data.canCreate).toBe(true);app.globalData.sessionToken='member-c';page.create();expect(wxMock.navigateTo).not.toHaveBeenCalled();expect(page.data.canCreate).toBe(false);
@@ -189,6 +189,22 @@ describe('catalog list permission and product creation remain separate',()=>{
   const permission=deferred();m.authority.mockReturnValue(permission.promise);
   await import('../../apps/miniprogram/pages/management-catalog/index');const page=mount();const pending=page.onShow();page.onHide();permission.resolve({capabilities:['commerce.product.manage']});await pending;
   expect(page.data.canCreate).toBe(false);expect(m.management).not.toHaveBeenCalled();page.create();expect(wxMock.navigateTo).not.toHaveBeenCalled();
+ });
+ it('blocks stale catalog pagination and navigation on an account change and clears its private rows',async()=>{
+  m.authority.mockResolvedValue({version:1,managementAvailable:true,capabilities:['commerce.product.manage']});
+  m.management.mockResolvedValue({items:[{productId:'qa-product',name:'合成商品',image:null,price:19800,qualificationStatus:'eligible',publicationStatus:'published'}],nextCursor:'next-page'});
+  await import('../../apps/miniprogram/pages/management-catalog/index');const page=mount();await page.onShow();expect(page.data.items).toHaveLength(1);
+  app.globalData.sessionToken='member-b';await page.loadMore();page.open({currentTarget:{dataset:{id:'qa-product'}}});
+  expect(m.management).toHaveBeenCalledOnce();expect(wxMock.navigateTo).not.toHaveBeenCalled();expect(page.data).toMatchObject({items:[],nextCursor:null,canCreate:false});
+ });
+ it('opens only a row from the current authorized catalog and deduplicates overlapping pages',async()=>{
+  const product={productId:'qa-product',name:'合成商品',image:null,price:19800,qualificationStatus:'eligible',publicationStatus:'published'};
+  m.authority.mockResolvedValue({version:1,managementAvailable:true,capabilities:['commerce.product.manage']});
+  m.management.mockResolvedValueOnce({items:[product],nextCursor:'next-page'}).mockResolvedValueOnce({items:[product,{...product,productId:'qa-two'}],nextCursor:null});
+  await import('../../apps/miniprogram/pages/management-catalog/index');const page=mount();await page.onShow();await page.loadMore();
+  expect(page.data.items.map((r:any)=>r.productId)).toEqual(['qa-product','qa-two']);
+  page.open({currentTarget:{dataset:{id:'forged-id'}}});expect(wxMock.navigateTo).not.toHaveBeenCalled();
+  page.open({currentTarget:{dataset:{id:'qa-two'}}});expect(wxMock.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/management-product/index?id=qa-two'}));
  });
  it('renders only the creation action for product managers and an honest empty list otherwise',()=>{
   const source=readFileSync('apps/miniprogram/pages/management-catalog/index.wxml','utf8');

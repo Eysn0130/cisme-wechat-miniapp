@@ -173,6 +173,7 @@ describe("U0 native page lifecycle regressions", () => {
       cycle:{id:"old-cycle",members:[{memberId:"payee",grossCents:10000}]},
       cycleMonth:"2026-08",cycleDecisionKeys:{"old-cycle:payee":"retry-key"}
     });
+    page.actorToken=session;page.actorContext=(await import("../../apps/miniprogram/services/commerce-command-store")).commerceContextRevision();
     page.selectSection({currentTarget:{dataset:{section:"cycles"}}});
     expect(page.data).toMatchObject({section:"cycles",cycle:null,
       cycleDecisionKeys:{"old-cycle:payee":"retry-key"}});
