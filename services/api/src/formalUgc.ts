@@ -411,7 +411,7 @@ export class FormalUgcService{
       this.pool.query(`SELECT b.media_asset_id AS id,b.position FROM ugc_post_media b JOIN ugc_media_asset a ON a.id=b.media_asset_id
         WHERE b.post_id=$1 AND b.revision=$2 AND a.state='approved' ORDER BY b.position`,[id,post.published_revision]),
       this.pool.query(`SELECT kind,count(*)::int AS count,bool_or(member_id=$2) AS mine FROM ugc_post_reaction WHERE post_id=$1 GROUP BY kind`,[id,memberId??null]),
-      this.publicComments(memberId,id,{limit:30}),
+      memberId?this.publicComments(memberId,id,{limit:30}):Promise.resolve({items:[],matchingTotal:0,nextCursor:null}),
       publishedPostAuthors(this.pool,[post.author_member_id]),
       memberId?this.pool.query(`SELECT (EXISTS(SELECT 1 FROM ugc_author_follow
         WHERE follower_member_id=$1 AND followed_member_id=$2)
@@ -427,9 +427,9 @@ export class FormalUgcService{
   }
 
   async publicComments(memberId:string|undefined,postId:string,input:{limit?:unknown;cursor?:unknown;reader?:unknown}={}){
+    if(!memberId)throw new DomainError("AUTH_REQUIRED","登录后查看评论",401);
     if(!await this.publicEnabled())throw new DomainError("UGC_POST_NOT_FOUND","护理故事暂不可见",404);
     const reader=input.reader==="1"||input.reader===true;
-    if(reader&&!memberId)throw new DomainError("AUTH_REQUIRED","登录后查看评论",401);
     const id=uuid(postId),limit=pageLimit(input.limit,30,50),scope=pageScope(reader?["ugc-comments",id,memberId??"guest","reader"]:["ugc-comments",id,memberId??"guest"]),
       cursor=readPageCursor(input.cursor,scope);
     const visible=(await this.pool.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id AND author.status='active'

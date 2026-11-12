@@ -315,7 +315,6 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const publicFeedRead = request.method === "GET" && (path === "/v1/feed" || path.startsWith("/v1/feed/"));
     const publicUgcRead = request.method === "GET" && !request.headers.authorization &&
       (path === "/v1/ugc/status" || path === "/v1/ugc/posts" || /^\/v1\/ugc\/posts\/[0-9a-f-]+$/i.test(path) ||
-        /^\/v1\/ugc\/posts\/[0-9a-f-]+\/comments$/i.test(path) ||
         /^\/v1\/ugc\/authors\/[0-9a-f-]+$/i.test(path) ||
         /^\/v1\/ugc\/media\/[0-9a-f-]+$/i.test(path) || /^\/v1\/ugc\/review-preview\/[0-9a-f-]+$/i.test(path) ||
         /^\/v1\/ugc\/scan-source\/[0-9a-f-]+$/i.test(path) ||

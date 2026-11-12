@@ -12,5 +12,12 @@
   ],
   "trackedAndWorkingTreeUnchanged": true,
   "serverRedeploymentRequired": false,
-  "scope": "Frontend guest navigation and comments presentation only; no DB or server configuration mutation."
+  "scope": "Frontend guest navigation and comments presentation only; no DB or server configuration mutation.",
+  "phase": "Frontend-only phase before real API comment exposure probe",
+  "superseded": true,
+  "currentServerRedeploymentRequired": true,
+  "currentChanges": [
+    "services/api/src/server.ts: require session for formal comment GET",
+    "services/api/src/formalUgc.ts: reject anonymous comments and suppress anonymous detail embedding"
+  ]
 }

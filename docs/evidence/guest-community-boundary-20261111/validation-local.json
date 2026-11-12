@@ -11,12 +11,12 @@
     "testsPassed": 3270,
     "testsSkipped": 1,
     "skip": "Existing test; no new skip added.",
-    "durationSeconds": 12.42
+    "durationSeconds": 10.48
   },
   "package": {
     "command": "npm run miniprogram:package-gate",
     "ok": true,
     "routes": 41
   },
-  "scope": "Native guest-only navigation, comment visibility and Account auth return integration; backend unchanged."
+  "scope": "Native guest navigation/comments and Account return, plus formal UGC anonymous comment boundary. Local isolated integration unavailable due existing Docker image I/O error; final CI required."
 }
