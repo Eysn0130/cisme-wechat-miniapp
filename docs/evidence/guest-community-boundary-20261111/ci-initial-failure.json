@@ -1,0 +1,17 @@
+{
+  "runId": 43137230266,
+  "jobId": 130915365263,
+  "head": "4f8172fab022422a2a93a172fd41992a0e76776b",
+  "conclusion": "failure",
+  "unitPassed": 3270,
+  "unitSkipped": 1,
+  "integrationPassed": 1292,
+  "integrationFailed": 1,
+  "failingTest": "tests/integration/capacity-concurrency.test.ts",
+  "failure": "One concurrent D7 request returned 409 CONCURRENT_OPERATION_RETRY; the prior test required status200 in the first wave.",
+  "evidenceExcerpt": "Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯\n2026-11-12T01:58:45.8285937Z \n2026-11-12T01:58:45.8287137Z  FAIL  tests/integration/capacity-concurrency.test.ts > campaign capacity > completes concurrent D7 care without allocating retired campaign capacity\n2026-11-12T01:58:45.8292167Z AssertionError: expected [ …(5) ] to deeply equal [ …(5) ]\n2026-11-12T01:58:45.8292602Z \n2026-11-12T01:58:45.8294915Z - Expected\n2026-11-12T01:58:45.8295453Z + Received\n2026-11-12T01:58:45.8295753Z \n2026-11-12T01:58:45.8296208Z @@ -209,11 +209,11 @@\n2026-11-12T01:58:45.8296651Z         \"status\": 409,\n2026-11-12T01:58:45.8297360Z         \"title\": \"Concurrent operation could not be completed; retry safely\",\n2026-11-12T01:58:45.8298315Z         \"trace_id\": \"158daa9f-e903-4ced-9fee-902d3c1f4f8b\",\n2026-11-12T01:58:45.8299114Z         \"type\": \"https://cisme.example/problems/CONCURRENT_OPERATION_RETRY\",\n2026-11-12T01:58:45.8299653Z       },\n2026-11-12T01:58:45.8300006Z -     \"status\": 200,\n2026-11-12T01:58:45.8300415Z +     \"status\": 409,\n2026-11-12T01:58:45.8300735Z     },\n2026-11-12T01:58:45.8301011Z     {\n2026-11-12T01:58:45.8301319Z       \"body\": {\n2026-11-12T01:58:45.8301606Z         \"cycle\": {\n2026-11-12T01:58:45.8301863Z           \"completed\": [\n2026-11-12T01:58:45.8302005Z \n2026-11-12T01:58:45.8302336Z  ❯ tests/integration/capacity-concurrency.test.ts:38:99\n2026-11-12T01:58:45.8329885Z \n2026-11-12T01:58:45.8334822Z \n2026-11-12T01:58:45.8353878Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯\n2026-11-12T01:58:45.8354179Z \n2026-11-12T01:58:45.8358373Z \n2026-11-12T01:58:45.8358810Z  Test Files  1 failed | 79 passed (80)\n2026-11-12T01:58:45.8359460Z       Tests  1 failed | 1292 passed (1293)\n2026-11-12T01:58:45.8359974Z    Start at  01:51:59\n2026-11-12T01:58:45.8360866Z    Duration  406.52s (transform 1.77s, setup 3.32s, import 22.75s, tests 372.62s, environment 6ms)\n2026-11-12T01:58:45.8361518Z \n2026-11-12T01:58:45.8375214Z \n2026-11-12T01:58:45.8401522Z ##[error]AssertionError: expected [ …(5) ] to deeply equal [ …(5) ]\n\n- Expected\n+ Received\n\n@@ -209,11 +209,11 @@\n        \"status\": 409,\n        \"title\": \"Concurrent operation could not be completed; retry safely\",\n        \"trace_id\": \"158daa9f-e903-4ced-9fee-902d3c1f4f8b\",\n        \"type\": \"https://cisme.example/problems/CONCURRENT_OPERATION_RETRY\",\n      },\n-     \"status\": 200,\n+     \"status\": 409,\n    },\n    {\n      \"bod",
+  "correction": "Retry only confirmed concurrent-operation conflict once using the original key/version/body after the concurrent wave; retain 200 requirement and assert replay equivalence and exactly40 persisted steps.",
+  "backendMutation": false,
+  "nativePackageChanged": false,
+  "localTarget": "Unavailable: reviewed PostgreSQL18.4 and16.15 image blobs report existing Docker input/output errors. No reset or cleanup of unrelated containers."
+}
