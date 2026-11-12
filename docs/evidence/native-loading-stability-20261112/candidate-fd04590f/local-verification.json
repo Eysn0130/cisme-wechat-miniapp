@@ -1,0 +1,51 @@
+{
+  "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+  "unit": {
+    "filesPassed": 205,
+    "testsPassed": 3278,
+    "existingSkipped": 1
+  },
+  "typecheck": "passed",
+  "packageGate": "passed",
+  "nativeRouteStaticAudit": "passed",
+  "openApiContracts": "passed",
+  "backendEquivalence": {
+    "deployedCommit": "b0fc6023b69f4851f28e242b0c5e3ac7805da662",
+    "changedFiles": [],
+    "requiresDeployment": false
+  },
+  "notes": [
+    "Final source differs from the initial checked source only in the loading-indicator horizontal position; final full unit suite rerun, native geometry and screenshots bound to final source.",
+    "Global 41-route physical-device/font/state acceptance remains blocked.",
+    "Local integration database has the previously recorded Docker blob I/O error; integration and restore checks run in isolated CI, not represented as locally passed."
+  ],
+  "logs": {
+    "unit": {
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/local-unit.txt",
+      "sha256": "5314b75e5c9a1a9b9f6a3845ee466734b627eb6474294e60b812335fdd859322"
+    },
+    "typecheck": {
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/local-typecheck.txt",
+      "sha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433"
+    },
+    "package": {
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/local-package.txt",
+      "sha256": "3574340e5bd099bf027c5c1c7419b8e5806f5c636a8fa6ce176bcafb2b7b0197"
+    },
+    "routeAudit": {
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/local-routeAudit.txt",
+      "sha256": "82fec4c6fdba6cc6fa5a2e199aedf42067f55efe84b4773fef847f8418440b3a"
+    },
+    "contracts": {
+      "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/local-contracts.txt",
+      "sha256": "f7073f55943167f30f590b89659fe513d72ba7ecbf94a9ada01a8d65faccae36"
+    }
+  },
+  "finalFixtureCheck": {
+    "passed": 35,
+    "change": "negative source kind uses the documented legacy_preview value",
+    "sha256": "ff2a52e3bc95774f72b1e0747e011b532541ac583265a78843d460667345b089",
+    "path": "docs/evidence/native-loading-stability-20261112/candidate-fd04590f/local-continuity-final.txt"
+  },
+  "logFormatting": "Captured command output with trailing blank lines normalized for diff hygiene."
+}

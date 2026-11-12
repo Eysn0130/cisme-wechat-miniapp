@@ -1,0 +1,45 @@
+{
+  "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+  "unit": {
+    "filesPassed": 205,
+    "testsPassed": 3278,
+    "existingSkipped": 1
+  },
+  "typecheck": "passed",
+  "packageGate": "passed",
+  "nativeRouteStaticAudit": "passed",
+  "openApiContracts": "passed",
+  "backendEquivalence": {
+    "deployedCommit": "b0fc6023b69f4851f28e242b0c5e3ac7805da662",
+    "changedFiles": [],
+    "requiresDeployment": false
+  },
+  "notes": [
+    "After adding the missing shared loading-style import, full unit, typecheck, package, route and contract checks rerun; native geometry, visible indicator dimensions and screenshots recaptured for this exact source.",
+    "Global 41-route physical-device/font/state acceptance remains blocked.",
+    "Local integration database has the previously recorded Docker blob I/O error; integration and restore checks run in isolated CI, not represented as locally passed."
+  ],
+  "logs": {
+    "unit": {
+      "path": "docs/evidence/native-loading-stability-20261112/local-unit.txt",
+      "sha256": "4ed421c85e8d3a235545e65846d538f954acd34a62513feff8a4ac6ae7ab0202"
+    },
+    "typecheck": {
+      "path": "docs/evidence/native-loading-stability-20261112/local-typecheck.txt",
+      "sha256": "c66e11fa1289018eb78a1672f4d0f56ea519dcdfdca8081e6457777fe437e433"
+    },
+    "package": {
+      "path": "docs/evidence/native-loading-stability-20261112/local-package.txt",
+      "sha256": "37e694edadd993f29c830ffbe86f7e73f5425121ce21a654814f4b28e68b83f1"
+    },
+    "routeAudit": {
+      "path": "docs/evidence/native-loading-stability-20261112/local-routeAudit.txt",
+      "sha256": "2ce58ec367f822fd067932e49533a838659a4ecc2fa2ed348aaa47a97a327611"
+    },
+    "contracts": {
+      "path": "docs/evidence/native-loading-stability-20261112/local-contracts.txt",
+      "sha256": "f7073f55943167f30f590b89659fe513d72ba7ecbf94a9ada01a8d65faccae36"
+    }
+  },
+  "logFormatting": "Captured command output with trailing blank lines normalized for diff hygiene."
+}

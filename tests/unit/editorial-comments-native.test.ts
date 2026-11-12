@@ -51,6 +51,22 @@ beforeEach(()=>{
 });
 
 describe("published editorial comment Page reads",()=>{
+ it("measures the first formal image while its avatar is pending and waits for both before presenting the gallery",async()=>{
+  mocks.token="";const avatar=deferred();mocks.avatar.mockReturnValueOnce(avatar.promise);
+  const image=vi.fn();(globalThis as any).wx.getImageInfo=image;
+  mocks.request.mockImplementation(async(input:any)=>{
+   if(input.path===`/v1/ugc/posts/${articleId}`)return{...article(),author:"普通会员",avatar:"data:image/png;base64,synthetic",commentsTotal:0,aiUsage:"none",media:[{id:rootId,position:0}]};
+   throw Error("Unexpected private read: "+input.path);
+  });
+  await import("../../apps/miniprogram/pages/post/index");page.onLoad({id:articleId,source:"formal"});const loading=page.load();
+  await vi.waitFor(()=>expect(image).toHaveBeenCalledTimes(1));
+  expect(mocks.avatar).toHaveBeenCalled();expect(page.data).toMatchObject({loading:true,item:null});
+  image.mock.calls[0]![0].success({width:300,height:400,orientation:"up"});
+  await Promise.resolve();expect(page.data.item).toBeNull();
+  avatar.resolve("local-confirmed-avatar");await loading;
+  expect(page.data).toMatchObject({loading:false,item:{id:articleId},galleryHeight:1000,commentAuthenticated:false});
+  expect(calls().some(input=>input.path.includes("/comments"))).toBe(false);
+ });
  it.each(["success","failure"] as const)("keeps the article/count bridge window loading until comments settle with %s",async(outcome)=>{
   vi.useFakeTimers();
   try{

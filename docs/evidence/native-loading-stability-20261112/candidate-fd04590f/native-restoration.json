@@ -1,0 +1,17 @@
+{
+  "sourceSha256": "fd04590f6aada97cae53e264849b16af50f31a474f1811564a8cf84222161306",
+  "originalRoute": "pages/account/index",
+  "originalSessionPresent": false,
+  "originalWidth": 390,
+  "restorationLog": "{\n  restored: true,\n  requestRestored: true,\n  storageRestored: true,\n  globalDataRestored: true,\n  qaAbsent: true,\n  realRequests: 0,\n  undefinedRoutes: [],\n  requestCount: 10\n}\n",
+  "refreshedModuleContext": true,
+  "observed": {
+    "route": "pages/account/index",
+    "qaKeys": [],
+    "sessionPresent": false,
+    "apiBaseUrl": "https://staging-api.cisme.cn",
+    "windowWidth": 390,
+    "windowHeight": 844,
+    "SDKVersion": "3.15.2"
+  }
+}

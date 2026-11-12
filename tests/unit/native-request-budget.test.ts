@@ -89,6 +89,42 @@ it("session changes advance the recovery context even for A to B to A",async()=>
   const initial=commerceContextRevision();setSessionToken("account-b");setSessionToken("account-a");
   expect(commerceContextRevision()).toBe(initial+2);expect(state.globalData.sessionToken).toBe("account-a");
 });
+it("catalog page owners share only the active read, retain another subscriber on leave, and recheck later prices",async()=>{
+  const {catalogList}=await import("../../apps/miniprogram/services/commerce");
+  const {cancelPageReads}=await import("../../apps/miniprogram/services/page-requests");
+  const first={},second={};
+  const a=catalogList(undefined,first).catch(error=>error), b=catalogList(undefined,second);
+  expect(requests).toHaveLength(1);cancelPageReads(first);
+  expect(await a).toMatchObject({code:"REQUEST_ABORTED"});expect(abort).not.toHaveBeenCalled();
+  requests[0].success({statusCode:200,data:{items:[{code:"care-shampoo",price:19800}],nextCursor:null}});
+  expect((await b).items[0]!.price).toBe(19800);
+  const fresh=catalogList(undefined,second);expect(requests).toHaveLength(2);
+  requests[1].success({statusCode:200,data:{items:[{code:"care-shampoo",price:19900}],nextCursor:null}});
+  expect((await fresh).items[0]!.price).toBe(19900);
+});
+it("leaving the last product reader aborts once; its late result cannot replace a new read",async()=>{
+  const {catalogDetail}=await import("../../apps/miniprogram/services/commerce");
+  const {cancelPageReads}=await import("../../apps/miniprogram/services/page-requests");
+  const owner={};const old=catalogDetail("care-shampoo",owner).catch(error=>error);
+  cancelPageReads(owner);cancelPageReads(owner);
+  expect(await old).toMatchObject({code:"REQUEST_ABORTED"});expect(abort).toHaveBeenCalledTimes(1);
+  const fresh=catalogDetail("care-shampoo",owner);expect(requests).toHaveLength(2);
+  requests[0].success({statusCode:200,data:{code:"care-shampoo",price:1}});
+  requests[1].success({statusCode:200,data:{code:"care-shampoo",price:19800}});
+  expect((await fresh).price).toBe(19800);expect(abort).toHaveBeenCalledTimes(1);
+});
+it("catalog lifecycle cancellation never aborts or replays an independent write",async()=>{
+  const {request}=await import("../../apps/miniprogram/services/api");
+  const {catalogDetail}=await import("../../apps/miniprogram/services/commerce");
+  const {cancelPageReads}=await import("../../apps/miniprogram/services/page-requests");
+  const owner={}, read=catalogDetail("care-shampoo",owner).catch(error=>error);
+  const write=request({path:"/v1/shares",method:"POST",data:{targetType:"product",targetId:"care-shampoo"}});
+  cancelPageReads(owner);expect(await read).toMatchObject({code:"REQUEST_ABORTED"});
+  expect(abort).toHaveBeenCalledTimes(1);expect(requests).toHaveLength(2);
+  requests[1].success({statusCode:200,data:{shareId:"synthetic-accepted"}});
+  expect(await write).toEqual({shareId:"synthetic-accepted"});
+  await vi.advanceTimersByTimeAsync(1000);expect(requests).toHaveLength(2);
+});
 it.each([undefined,"GET","POST","PUT","DELETE"] as const)("uses method-appropriate deadline wording for %s without changing its budget or replaying it",async(method)=>{
   const {requestCancelable}=await import("../../apps/miniprogram/services/api");
   const task=requestCancelable({path:"/v1/copy-budget",budgetMs:50,idempotencyKey:"same-intent",...(method?{method}:{})});

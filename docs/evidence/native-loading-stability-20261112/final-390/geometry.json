@@ -1,0 +1,643 @@
+{
+  "phase": "final-390",
+  "allHttpIntercepted": true,
+  "realMemberWrites": 0,
+  "findings": [
+    {
+      "route": "shop",
+      "before": {
+        "route": "pages/shop/index",
+        "width": 390,
+        "samples": [
+          {
+            "loading": false,
+            "boxes": [
+              {
+                "selector": ".shop-hero",
+                "box": {
+                  "left": 14,
+                  "top": 145,
+                  "width": 362,
+                  "height": 163
+                }
+              },
+              {
+                "selector": ".shop-card",
+                "box": {
+                  "left": 14,
+                  "top": 326,
+                  "width": 362,
+                  "height": 409.6953125
+                }
+              }
+            ],
+            "indicator": null
+          }
+        ]
+      },
+      "pending": {
+        "route": "pages/shop/index",
+        "width": 390,
+        "samples": [
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".shop-hero",
+                "box": {
+                  "left": 14,
+                  "top": 145,
+                  "width": 362,
+                  "height": 163
+                }
+              },
+              {
+                "selector": ".shop-card",
+                "box": {
+                  "left": 14,
+                  "top": 326,
+                  "width": 362,
+                  "height": 409.6953125
+                }
+              }
+            ],
+            "indicator": {
+              "left": 346.3805847167969,
+              "top": 149.38059997558594,
+              "width": 25.23883056640625,
+              "height": 25.238800048828125
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".shop-hero",
+                "box": {
+                  "left": 14,
+                  "top": 145,
+                  "width": 362,
+                  "height": 163
+                }
+              },
+              {
+                "selector": ".shop-card",
+                "box": {
+                  "left": 14,
+                  "top": 326,
+                  "width": 362,
+                  "height": 409.6953125
+                }
+              }
+            ],
+            "indicator": {
+              "left": 347.2793884277344,
+              "top": 150.27938842773438,
+              "width": 23.44122314453125,
+              "height": 23.44122314453125
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".shop-hero",
+                "box": {
+                  "left": 14,
+                  "top": 145,
+                  "width": 362,
+                  "height": 163
+                }
+              },
+              {
+                "selector": ".shop-card",
+                "box": {
+                  "left": 14,
+                  "top": 326,
+                  "width": 362,
+                  "height": 409.6953125
+                }
+              }
+            ],
+            "indicator": {
+              "left": 347.9775695800781,
+              "top": 150.97756958007812,
+              "width": 22.04486083984375,
+              "height": 22.04486083984375
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".shop-hero",
+                "box": {
+                  "left": 14,
+                  "top": 145,
+                  "width": 362,
+                  "height": 163
+                }
+              },
+              {
+                "selector": ".shop-card",
+                "box": {
+                  "left": 14,
+                  "top": 326,
+                  "width": 362,
+                  "height": 409.6953125
+                }
+              }
+            ],
+            "indicator": {
+              "left": 346.3804626464844,
+              "top": 149.38046264648438,
+              "width": 25.23907470703125,
+              "height": 25.23907470703125
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".shop-hero",
+                "box": {
+                  "left": 14,
+                  "top": 145,
+                  "width": 362,
+                  "height": 163
+                }
+              },
+              {
+                "selector": ".shop-card",
+                "box": {
+                  "left": 14,
+                  "top": 326,
+                  "width": 362,
+                  "height": 409.6953125
+                }
+              }
+            ],
+            "indicator": {
+              "left": 348.8979187011719,
+              "top": 151.89791870117188,
+              "width": 20.20416259765625,
+              "height": 20.20416259765625
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".shop-hero",
+                "box": {
+                  "left": 14,
+                  "top": 145,
+                  "width": 362,
+                  "height": 163
+                }
+              },
+              {
+                "selector": ".shop-card",
+                "box": {
+                  "left": 14,
+                  "top": 326,
+                  "width": 362,
+                  "height": 409.6953125
+                }
+              }
+            ],
+            "indicator": {
+              "left": 346.6778869628906,
+              "top": 149.67788696289062,
+              "width": 24.64422607421875,
+              "height": 24.64422607421875
+            }
+          }
+        ]
+      },
+      "after": {
+        "route": "pages/shop/index",
+        "width": 390,
+        "samples": [
+          {
+            "loading": false,
+            "boxes": [
+              {
+                "selector": ".shop-hero",
+                "box": {
+                  "left": 14,
+                  "top": 145,
+                  "width": 362,
+                  "height": 163
+                }
+              },
+              {
+                "selector": ".shop-card",
+                "box": {
+                  "left": 14,
+                  "top": 326,
+                  "width": 362,
+                  "height": 409.6953125
+                }
+              }
+            ],
+            "indicator": null
+          }
+        ]
+      },
+      "delta": [
+        [
+          {
+            "selector": ".shop-hero",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".shop-card",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".shop-hero",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".shop-card",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".shop-hero",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".shop-card",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".shop-hero",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".shop-card",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".shop-hero",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".shop-card",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".shop-hero",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".shop-card",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ]
+      ]
+    },
+    {
+      "route": "product",
+      "before": {
+        "route": "pages/product/index",
+        "width": 390,
+        "samples": [
+          {
+            "loading": false,
+            "boxes": [
+              {
+                "selector": ".product-gallery",
+                "box": {
+                  "left": 0,
+                  "top": 143,
+                  "width": 390,
+                  "height": 292
+                }
+              },
+              {
+                "selector": ".product-selector",
+                "box": {
+                  "left": 0,
+                  "top": 695.1875,
+                  "width": 390,
+                  "height": 60
+                }
+              }
+            ],
+            "indicator": null
+          }
+        ]
+      },
+      "pending": {
+        "route": "pages/product/index",
+        "width": 390,
+        "samples": [
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".product-gallery",
+                "box": {
+                  "left": 0,
+                  "top": 143,
+                  "width": 390,
+                  "height": 292
+                }
+              },
+              {
+                "selector": ".product-selector",
+                "box": {
+                  "left": 0,
+                  "top": 695.1875,
+                  "width": 390,
+                  "height": 60
+                }
+              }
+            ],
+            "indicator": {
+              "left": 8.27328872680664,
+              "top": 151.27328491210938,
+              "width": 25.45342254638672,
+              "height": 25.45343017578125
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".product-gallery",
+                "box": {
+                  "left": 0,
+                  "top": 143,
+                  "width": 390,
+                  "height": 292
+                }
+              },
+              {
+                "selector": ".product-selector",
+                "box": {
+                  "left": 0,
+                  "top": 695.1875,
+                  "width": 390,
+                  "height": 60
+                }
+              }
+            ],
+            "indicator": {
+              "left": 9.929889678955078,
+              "top": 152.9298858642578,
+              "width": 22.140220642089844,
+              "height": 22.140228271484375
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".product-gallery",
+                "box": {
+                  "left": 0,
+                  "top": 143,
+                  "width": 390,
+                  "height": 292
+                }
+              },
+              {
+                "selector": ".product-selector",
+                "box": {
+                  "left": 0,
+                  "top": 695.1875,
+                  "width": 390,
+                  "height": 60
+                }
+              }
+            ],
+            "indicator": {
+              "left": 9.311835289001465,
+              "top": 152.31182861328125,
+              "width": 23.376327514648438,
+              "height": 23.3763427734375
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".product-gallery",
+                "box": {
+                  "left": 0,
+                  "top": 143,
+                  "width": 390,
+                  "height": 292
+                }
+              },
+              {
+                "selector": ".product-selector",
+                "box": {
+                  "left": 0,
+                  "top": 695.1875,
+                  "width": 390,
+                  "height": 60
+                }
+              }
+            ],
+            "indicator": {
+              "left": 8.359271049499512,
+              "top": 151.35926818847656,
+              "width": 25.281455993652344,
+              "height": 25.281463623046875
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".product-gallery",
+                "box": {
+                  "left": 0,
+                  "top": 143,
+                  "width": 390,
+                  "height": 292
+                }
+              },
+              {
+                "selector": ".product-selector",
+                "box": {
+                  "left": 0,
+                  "top": 695.1875,
+                  "width": 390,
+                  "height": 60
+                }
+              }
+            ],
+            "indicator": {
+              "left": 10.846457481384277,
+              "top": 153.84645080566406,
+              "width": 20.307083129882812,
+              "height": 20.307083129882812
+            }
+          },
+          {
+            "loading": true,
+            "boxes": [
+              {
+                "selector": ".product-gallery",
+                "box": {
+                  "left": 0,
+                  "top": 143,
+                  "width": 390,
+                  "height": 292
+                }
+              },
+              {
+                "selector": ".product-selector",
+                "box": {
+                  "left": 0,
+                  "top": 695.1875,
+                  "width": 390,
+                  "height": 60
+                }
+              }
+            ],
+            "indicator": {
+              "left": 8.753260612487793,
+              "top": 151.75326538085938,
+              "width": 24.49347686767578,
+              "height": 24.49346923828125
+            }
+          }
+        ]
+      },
+      "after": {
+        "route": "pages/product/index",
+        "width": 390,
+        "samples": [
+          {
+            "loading": false,
+            "boxes": [
+              {
+                "selector": ".product-gallery",
+                "box": {
+                  "left": 0,
+                  "top": 143,
+                  "width": 390,
+                  "height": 292
+                }
+              },
+              {
+                "selector": ".product-selector",
+                "box": {
+                  "left": 0,
+                  "top": 695.1875,
+                  "width": 390,
+                  "height": 60
+                }
+              }
+            ],
+            "indicator": null
+          }
+        ]
+      },
+      "delta": [
+        [
+          {
+            "selector": ".product-gallery",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".product-selector",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".product-gallery",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".product-selector",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".product-gallery",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".product-selector",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".product-gallery",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".product-selector",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".product-gallery",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".product-selector",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ],
+        [
+          {
+            "selector": ".product-gallery",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          },
+          {
+            "selector": ".product-selector",
+            "deltaTop": 0,
+            "deltaHeight": 0
+          }
+        ]
+      ]
+    }
+  ],
+  "sourceSha256": "30713a080bdbab50030bd34161ea471d9d339074cf87dfb89a544dbfbc44ba3d",
+  "visibleIndicatorVerified": true
+}

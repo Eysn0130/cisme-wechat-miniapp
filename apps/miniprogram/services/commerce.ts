@@ -1,4 +1,5 @@
 import { request } from "./api";
+import { pageRead } from "./page-requests";
 
 export type QualificationStatus = "pending" | "eligible" | "blocked";
 export type PublicationStatus = "draft" | "published" | "unpublished";
@@ -35,11 +36,13 @@ export function centsToYuan(value: number): string {
   return `${Math.floor(value / 100)}.${String(value % 100).padStart(2, "0")}`;
 }
 
-export function catalogList(cursor?: string): Promise<CatalogPage> {
-  return request<CatalogPage>({ path: `/v1/catalog?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, authMode: "public", cacheTags: ["catalog"] });
+export function catalogList(cursor?: string, owner?: object): Promise<CatalogPage> {
+  const options = { path: `/v1/catalog?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, authMode: "public" as const, cacheTags: ["catalog"] };
+  return owner ? pageRead<CatalogPage>(owner, options) : request<CatalogPage>(options);
 }
-export function catalogDetail(code: string): Promise<CatalogProduct> {
-  return request<CatalogProduct>({ path: `/v1/catalog/${encodeURIComponent(code)}`, authMode: "public", cacheTags: ["catalog"] });
+export function catalogDetail(code: string, owner?: object): Promise<CatalogProduct> {
+  const options = { path: `/v1/catalog/${encodeURIComponent(code)}`, authMode: "public" as const, cacheTags: ["catalog"] };
+  return owner ? pageRead<CatalogProduct>(owner, options) : request<CatalogProduct>(options);
 }
 export function managementCatalog(cursor?: string): Promise<CatalogPage> {
   return request<CatalogPage>({ path: `/v1/management/catalog/products?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, cacheTags: ["catalog", "authority"] });

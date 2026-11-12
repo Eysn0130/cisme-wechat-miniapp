@@ -82,7 +82,7 @@ describe("native route access policy", () => {
     expect(shop).not.toMatch(/onShow\(\)[^{]*\{[^}]*requireMemberAccess/);
     expect(shop).toContain('requireMemberAccess("/pages/orders/index")');
     const product = await source("apps/miniprogram/pages/product/index.ts");
-    expect(product).toContain("catalogDetail(this.data.id)");
+    expect(product).toContain("catalogDetail(this.data.id,this)");
     expect(product).toContain("openCheckout()");
     expect(product).not.toMatch(/onShow\(\)[^{]*\{[^}]*requireMemberAccess/);
 

@@ -14,9 +14,9 @@
           </button>
         </swiper-item>
       </swiper>
+      <view wx:if="{{loading}}" class="page-read-loading shop-read-loading" aria-role="status" aria-label="正在更新商品信息"><view class="page-read-loading__indicator"/></view>
       <view class="shop-hero__progress" aria-hidden="true"><text>{{heroIndex+1}} / {{heroes.length}}</text><view wx:for="{{heroes}}" wx:key="id" class="hero-dot {{heroIndex===index?'hero-dot--active':''}}"/></view>
     </view>
-    <view wx:if="{{loading}}" class="shop-sync" aria-live="polite">正在更新商品信息…</view>
     <view wx:if="{{error}}" class="shop-sync shop-sync--error" aria-live="polite"><text>{{error}}</text><button bindtap="load">重试</button></view>
     <button wx:for="{{items}}" wx:key="id" class="shop-card {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="{{item.name}}，{{item.qualifier}} {{item.displayPrice}} 元，查看商品">
       <image class="shop-card__image" src="{{item.image}}" mode="aspectFit" aria-label="{{item.name}}与赠品，小程序3倍积分、运费险及7天无理由退货信息"/>
