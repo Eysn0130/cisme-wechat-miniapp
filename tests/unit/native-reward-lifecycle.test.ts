@@ -1,6 +1,6 @@
 import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
 const api=vi.hoisted(()=>({requireMemberAccess:vi.fn(()=>true),resumeAuthentication:vi.fn()}));
-const services=vi.hoisted(()=>({rewardWallet:vi.fn(),rewardSelection:vi.fn(),rewardClaim:vi.fn(),rewardReceipt:vi.fn(),abandonReward:vi.fn(),rewardQuote:vi.fn(),confirmReward:vi.fn(),operateReward:vi.fn(),rewardCopy:vi.fn(()=> '请重试'),rewardDate:vi.fn(()=> '2026.11.13'),rewardExpiry:vi.fn(()=> '2026.12.13 08:00'),rewardState:{placed:'待发货',unused:'待领取'},purchaseCouponState:{used:'已使用'}}));
+const services=vi.hoisted(()=>({rewardManagement:vi.fn(),rewardWallet:vi.fn(),rewardSelection:vi.fn(),rewardClaim:vi.fn(),rewardReceipt:vi.fn(),abandonReward:vi.fn(),rewardQuote:vi.fn(),confirmReward:vi.fn(),operateReward:vi.fn(),rewardCopy:vi.fn(()=> '请重试'),rewardDate:vi.fn(()=> '2026.11.13'),rewardExpiry:vi.fn(()=> '2026.12.13 08:00'),rewardState:{placed:'待发货',unused:'待领取'},purchaseCouponState:{used:'已使用'}}));
 const reads=vi.hoisted(()=>({cancelPageReads:vi.fn(),pageRead:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',()=>api);
 vi.mock('../../apps/miniprogram/services/rewards',()=>services);
@@ -48,4 +48,9 @@ describe('native reward interruption and result ownership',()=>{
   page.setData({mode:'wallet'});services.rewardReceipt.mockResolvedValueOnce({status:'found',action:'reward.claim',record:{id:claimId}});page.onShow();
   await vi.waitFor(()=>expect(wx.redirectTo).toHaveBeenCalledOnce());expect(JSON.stringify([...storage])).not.toContain(quoteId);
  });
+});
+
+
+it('removes private management facts immediately when a refreshed permission check is denied',async()=>{
+ await import('../../apps/miniprogram/pages/management-rewards/index');page.onLoad();page.visible=true;page.token='member-A';page.setData({manager:{vouchers:[{member_id:'private-member'}]},detail:{trackingNumber:'private-waybill'},products:[{id:'private-product'}],sheet:'detail',issueInput:'private-list'});services.rewardManagement.mockRejectedValueOnce({status:403,code:'CAPABILITY_REQUIRED'});await page.load();expect(page.data).toMatchObject({manager:null,detail:null,products:[],sheet:'',issueInput:'',loading:false});
 });

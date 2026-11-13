@@ -30,7 +30,7 @@ Page({
    const cursor=this.data.tab==='fulfill'?manager.claimNext:manager.voucherNext,pending=pendingReward(manager.memberId);
    this.setData({manager:mapped,memberId:manager.memberId,activityId:activity?.id??'',activityIndex:index,activity,nextCursor:cursor,hasMore:Boolean(cursor),pending});
    if(pending){const r=await rewardReceipt(this,pending.key);if(!this.current(epoch))return;if(r.status!=='not_found'){forgetReward(pending);this.setData({pending:null});}}
-  }catch(error){if(this.current(epoch))this.setData({error:rewardCopy(error)});}finally{if(this.current(epoch))this.setData({loading:false});}},
+  }catch(error){if(this.current(epoch)){const status=(error as {status?:number}).status;this.setData({...([401,403].includes(status??0)?{manager:null,detail:null,products:[],sheet:'',activity:null,issueInput:'',trackingInput:'',carrierInput:'',reasonInput:''}:{}),error:rewardCopy(error)});}}finally{if(this.current(epoch))this.setData({loading:false});}},
  back(){if(!this.data.busy)wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},stop(){},
  closeSheet(){if(!this.data.busy)this.setData({sheet:'',detail:null,issueInput:'',trackingInput:'',carrierInput:'',reasonInput:''});},
  activityChange(event:{detail:{value:string}}){if(this.data.busy)return;const activity=this.data.manager?.activities[Number(event.detail.value)];if(activity){this.setData({activityId:activity.id,activityIndex:Number(event.detail.value),activity,exportAfter:'',filter:'all',filterIndex:0,nextCursor:null});void this.load();}},
