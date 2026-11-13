@@ -1,5 +1,5 @@
 {
-  "packageSourceSha256": "e3d47d6e8da8b36822614cc4be0780c76098e002a291a0eabc3c1783e030de71",
+  "packageSourceSha256": "39adee891aa28846d012d2a0d1cd03c432b7f112d395f5a3b5849aa9d3b70df7",
   "unit": {
     "passed": 3363,
     "skipped": 1,
@@ -16,7 +16,7 @@
     "result": "passed scoped native material rendering, touch/scroll release, fresh navigation, unified tab geometry and custom event routing",
     "captures": 13,
     "tabGeometryStates": 6,
-    "currentEvidence": "native-refinement-e3d47d6e8da8/verification.json",
+    "currentEvidence": "native-refinement-39adee891aa2/verification.json",
     "reducedAndExpired": "passed native reduced flag and expired presentation",
     "nativeAnimationEndClearsIntro": true,
     "storageRestored": true,
@@ -36,7 +36,8 @@
       "captures": 15,
       "assertions": 6,
       "scope": "Before final foil contrast tuning; not relabeled as current source all-state acceptance"
-    }
+    },
+    "parentPressedOpacity": "1"
   },
   "ci": {
     "pullRequest": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/101",

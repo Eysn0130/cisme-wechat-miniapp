@@ -1,5 +1,5 @@
 {
-  "packageSourceSha256": "e3d47d6e8da8b36822614cc4be0780c76098e002a291a0eabc3c1783e030de71",
+  "packageSourceSha256": "39adee891aa28846d012d2a0d1cd03c432b7f112d395f5a3b5849aa9d3b70df7",
   "method": "Conservative sRGB composition assumes all brightest gradient stops intersect over the lightest base. Includes simultaneous material, reflection and sweep. Analytical budget, not a pixel/device accessibility certification. Footer lies outside foil.",
   "normalTextForeground": "#FFFFFF",
   "minimumRatio": 4.5,
@@ -22,5 +22,7 @@
       ],
       "whiteContrastRatio": 4.65790454979594
     }
-  ]
+  ],
+  "parentPressedOpacity": 1,
+  "pressedStateNote": "Whole-card opacity stays at 1 during press, preserving the analytical contrast budget; light is the only press material response."
 }

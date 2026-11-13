@@ -40,6 +40,6 @@
 .member-card__entry image { flex: none; width: 16px; height: 16px; }
 .member-card__footer { align-items: flex-start; flex-wrap: wrap; margin-top: 12px; padding-top: 9px; border-top: 1px solid rgba(237, 221, 250, .2); color: #dfd0e7; font-size: .6875rem; line-height: 1.5; }
 .member-card__number { max-width: 100%; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; letter-spacing: .08em; }
-.member-card--pressed { opacity: .94; }
+.member-card--pressed { opacity: 1; }
 @media (max-width: 340px) { .member-card { padding: 20px; } }
 @media (prefers-reduced-motion: reduce) { .member-card { transition: none; } }

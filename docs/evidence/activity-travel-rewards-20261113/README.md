@@ -15,7 +15,7 @@
 
 - `native/`：包哈希62e88f272363…，是此前已通过CI的领取→确认收货→券→适用商品→结算及后台原生隔离场景。该目录的截图不能作为后续UI源码的新状态证据。
 - `native-source-*`、`native-unified-tabs/`、早期`native-refinement-*`：保留初次尝试、发现的模板问题、自动化工具限制与修正后的来源。失败不计为通过。
-- 统一组件及交互验证在 `native-refinement-0604258bcd1e/`，其中还包含实际鼠标点击页签和完整领取到结算回归。最后增强材质后的源码测量与截图在 `native-refinement-e3d47d6e8da8/`；前一包的图片不作为这一包的新状态证据。其中所有HTTP均在开发者工具内拦截，使用虚拟存储和合成身份；实际事件分发方式在verification.json中注明。不能据此宣称真实手机或正式接口已验收。
+- 统一组件及交互验证在 `native-refinement-0604258bcd1e/`，其中还包含实际鼠标点击页签和完整领取到结算回归。最终去掉按压整卡透明度后的源码测量与截图在 `native-refinement-39adee891aa2/`，`native-refinement-e3d47d6e8da8/`保留此前材质版本；前一包的图片不作为这一包的新状态证据。其中所有HTTP均在开发者工具内拦截，使用虚拟存储和合成身份；实际事件分发方式在verification.json中注明。不能据此宣称真实手机或正式接口已验收。
 - `current-source-acceptance.json`仍将43路由全状态/字体/设备完整矩阵标记为blocked；没有以局部模拟器结果替代真机验收。用户此前说明暂无可连接手机。
 - 当前全量检查和CI链接见`validation-summary.json`。原始失败日志保留，不将历史结果改名为当前通过。
 
