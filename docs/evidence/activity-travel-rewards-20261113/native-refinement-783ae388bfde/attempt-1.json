@@ -1,0 +1,170 @@
+{
+  "packageSourceSha256": "783ae388bfde89e2fe007197d1ffc7c8f83a3a02f1a42729a493c53c9a94a998",
+  "captures": [
+    {
+      "name": "01-member-card",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-783ae388bfde/01-member-card.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "02-member-foil-touch",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-783ae388bfde/02-member-foil-touch.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    }
+  ],
+  "tabs": [],
+  "foil": [
+    {
+      "phase": "rest",
+      "route": "pages/profile/index",
+      "surface": "",
+      "x": 50,
+      "y": 50,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": true,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": true,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    },
+    {
+      "phase": "held",
+      "route": "pages/profile/index",
+      "surface": "member",
+      "x": 80,
+      "y": 40,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": true,
+          "lowMotion": false,
+          "shiftX": 21,
+          "shiftY": -2,
+          "angle": 2,
+          "tone": "member",
+          "active": true,
+          "x": 80,
+          "y": 40,
+          "intro": true,
+          "flash": true,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": true,
+          "lowMotion": false,
+          "shiftX": 21,
+          "shiftY": -2,
+          "angle": 2,
+          "tone": "member",
+          "active": true,
+          "x": 80,
+          "y": 40,
+          "intro": true,
+          "flash": true,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    },
+    {
+      "phase": "vertical release",
+      "route": "pages/profile/index",
+      "surface": "",
+      "x": 50,
+      "y": 50,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    }
+  ],
+  "scope": "Native simulator; virtual storage and all HTTP intercepted; injected touch events, not physical gestures",
+  "realMemberWrites": 0,
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "error": "Error: MEMBER_LINK_BROKEN",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 5,
+    "realMemberWrites": 0
+  }
+}

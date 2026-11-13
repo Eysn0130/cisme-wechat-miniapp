@@ -1,0 +1,36 @@
+{
+  "packageSourceSha256": "8109ba1fcf2a01202d6a6154684b04168e1a2da13642a38291872dc19d4f40c0",
+  "reference": "https://jdb156158.github.io/HoloCardPreview/mobile.html",
+  "observedReferenceMaterials": [
+    "grid foil",
+    "aurora brushed metal",
+    "nacre pearl",
+    "pointer-dependent light"
+  ],
+  "nativeImplementation": "Original SVG engraving and silk substrate; native WXSS light/refraction. No web component, external texture, sensor or JS frame loop.",
+  "assets": [
+    {
+      "path": "apps/miniprogram/assets/cisme/card-silk-v2.svg",
+      "bytes": 2026,
+      "sha256": "8b7f5c017ee1926dfa1998146a5843e58a64bd53babc3f789e90cce90bc4bdaa",
+      "origin": "Original deterministic geometry in scripts/generate-card-foil-assets.ts; no third-party art or shader code copied"
+    },
+    {
+      "path": "apps/miniprogram/assets/cisme/card-guilloche-v2.svg",
+      "bytes": 4816,
+      "sha256": "2f55403b852f251c5ccf0f999725362df7d31174d14b3d3e5262696ac984c6a8",
+      "origin": "Original deterministic geometry in scripts/generate-card-foil-assets.ts; no third-party art or shader code copied"
+    }
+  ],
+  "approvedFullSizeCouponReference": "native-cad48eeab34f/07-coupon-texture.png",
+  "fullSizeCouponLayoutPreserved": true,
+  "operationalInputsMissing": [
+    "actual moisture100 stock",
+    "actual dandruff50 stock",
+    "actual conditioner100 stock",
+    "awarded member IDs/source IDs/batch"
+  ],
+  "realMemberTestWrites": 0,
+  "realVouchersIssuedByAgent": 0,
+  "physicalDeviceAcceptance": "pending; user has no connectable phone"
+}

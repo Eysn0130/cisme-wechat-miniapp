@@ -47,6 +47,7 @@ import { AuthorityService } from "./authority.js";
 import { SupportService } from "./supportService.js";
 import { CommerceCatalogService } from "./commerceCatalog.js";
 import { CommerceOrderService } from "./commerceOrders.js";
+import { ActivityRewardService } from './activityRewards.js';
 import { PaymentAttemptService } from "./paymentAttempt.js";
 import { VerifiedPaymentInbox } from "./verifiedPaymentInbox.js";
 import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
@@ -191,6 +192,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     config.privacy.suppressionDirectory?accountClosure:undefined);
   const memberPointsClub=new MemberPointsClub(pool,config,authority);
   const pointsGifts=new PointsGiftService(pool,authority,deliveryAddresses,config.env);
+  const activityRewards=new ActivityRewardService(pool,config,authority,deliveryAddresses);
   // Formal commands require separate revocable per-capability approvals.
   const formalTestProfile=config.env==="test"&&dependencies.paymentProtocol?.isolatedSyntheticTransport===true
     ?config.commerce.formalProtocol:undefined;
@@ -760,6 +762,32 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/catalog", async request => catalog.publicList(request.query));
   app.get<{Params:{productCode:string}}>("/v1/catalog/:productCode", async request => catalog.publicDetail(request.params.productCode));
   app.get("/v1/commerce/orders/status", async () => orders.status());
+  app.get<{Querystring:{claimsCursor?:string}}>('/v1/me/rewards',async(request,reply)=>{reply.header('Cache-Control','private, no-store');return activityRewards.mine(request.memberId,undefined,request.query.claimsCursor);});
+  app.get<{Params:{voucherId:string}}>('/v1/me/rewards/vouchers/:voucherId',request=>activityRewards.selection(request.memberId,request.params.voucherId));
+  app.post('/v1/me/rewards/quotes',request=>activityRewards.quote(request.memberId,idempotencyKey(request),request.body));
+  app.post('/v1/me/rewards/claims',request=>activityRewards.claim(request.memberId,idempotencyKey(request),request.body));
+  app.get<{Params:{claimId:string}}>('/v1/me/rewards/claims/:claimId',request=>activityRewards.detail(request.memberId,request.params.claimId));
+  app.post<{Params:{claimId:string;action:string}}>('/v1/me/rewards/claims/:claimId/:action',request=>{
+    if(!['cancel','receive','request_return'].includes(request.params.action))throw new DomainError('REWARD_ACTION_INVALID','请选择有效操作',422);
+    return activityRewards.operate(request.memberId,request.params.claimId,idempotencyKey(request),request.params.action,request.body);
+  });
+  app.get<{Params:{operationId:string}}>('/v1/me/rewards/command-receipts/:operationId',request=>activityRewards.commandReceipt(request.memberId,request.params.operationId));
+  app.post<{Params:{operationId:string}}>('/v1/me/rewards/command-receipts/:operationId/abandon',request=>activityRewards.abandonCommand(request.memberId,request.params.operationId));
+  app.get<{Querystring:{skuId:string;quantity?:string}}>('/v1/me/coupons/eligible',request=>activityRewards.eligibleCoupons(request.memberId,request.query.skuId,request.query.quantity));
+  app.get<{Querystring:{activityId?:string;state?:string;after?:string}}>('/v1/management/rewards',request=>activityRewards.management(request.memberId,request.query));
+  app.post('/v1/management/rewards/activities',request=>activityRewards.configure(request.memberId,idempotencyKey(request),request.body));
+  app.post('/v1/management/rewards/inventory',request=>activityRewards.inventory(request.memberId,idempotencyKey(request),request.body));
+  app.post<{Params:{activityId:string}}>('/v1/management/rewards/activities/:activityId/issue',request=>activityRewards.issue(request.memberId,request.params.activityId,idempotencyKey(request),request.body));
+  app.post<{Params:{voucherId:string}}>('/v1/management/rewards/vouchers/:voucherId/revoke',request=>activityRewards.revoke(request.memberId,request.params.voucherId,idempotencyKey(request),request.body));
+  app.get<{Params:{claimId:string}}>('/v1/management/rewards/claims/:claimId',request=>activityRewards.detail(request.memberId,request.params.claimId,true));
+  app.post<{Params:{claimId:string;action:string}}>('/v1/management/rewards/claims/:claimId/:action',request=>{
+    if(!['ship','resolve_return','reject_return'].includes(request.params.action))throw new DomainError('REWARD_ACTION_INVALID','请选择有效管理操作',422);
+    return activityRewards.operate(request.memberId,request.params.claimId,idempotencyKey(request),request.params.action,request.body);
+  });
+  app.get<{Params:{activityId:string;kind:string};Querystring:{after?:string}}>('/v1/management/rewards/activities/:activityId/export/:kind',async(request,reply)=>{
+    reply.header('Cache-Control','private, no-store');const result=await activityRewards.export(request.memberId,request.params.activityId,request.params.kind,request.query.after);
+    return {fileBase64:result.workbook.toString('base64'),fileName:`CISME-rewards-${request.params.kind}.xlsx`,count:result.count,nextCursor:result.nextCursor};
+  });
   app.get<{Params:{kind:string};Querystring:Record<string,unknown>}>("/v1/me/commerce/command-receipts/:kind", async (request,reply) => {
     reply.header("Cache-Control", "no-store");
     return commerceCommandReceipt(pool,request.memberId,request.principalId,request.params.kind,idempotencyKey(request),request.query);

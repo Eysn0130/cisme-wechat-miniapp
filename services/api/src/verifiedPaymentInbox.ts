@@ -7,6 +7,7 @@ import { assertPaymentBinding, decodePaymentNotification, type PaymentTransactio
 import { claimDueMoneyInbox, recordMoneyInboxFailure } from "./moneyInboxRetry.js";
 import { consumeReservedCreditForCheckout } from "./shoppingCredit.js";
 import {settleOrderPoints} from './pointsLedger.js';
+import {settlePurchaseCoupon} from './rewardLedger.js';
 
 const orderPattern=/^CM[0-9]{8}[A-Z0-9]{12}$/;
 const safeMoney=(value:unknown)=>{
@@ -168,6 +169,7 @@ export class VerifiedPaymentInbox {
         return exception("COMMISSION_SNAPSHOT_MISMATCH");
       await consumeReservedCreditForCheckout(client,order.id,safeMoney(order.credit_tender_cents));
       await settleOrderPoints(client,order.id,'spend',paidAt);
+      await settlePurchaseCoupon(client,order.id,'consume',paidAt);
       for(const reservation of reservations.rows){
         const stock=await client.query(`UPDATE catalog_inventory_level SET
           stock_on_hand=stock_on_hand-$2,reserved_quantity=reserved_quantity-$2,version=version+1,

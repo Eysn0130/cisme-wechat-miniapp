@@ -1,0 +1,7 @@
+<scroll-view class="section-tabs" scroll-x enhanced show-scrollbar="{{false}}" scroll-into-view="{{scrollTarget}}" scroll-with-animation="{{!reducedMotion}}">
+ <view class="section-tabs__row" aria-role="tablist" aria-label="{{label}}">
+  <button wx:for="{{tabs}}" wx:key="id" id="{{item.domId}}" class="section-tabs__tab {{item.selected?'section-tabs__tab--active':''}} {{disabled||item.disabled?'section-tabs__tab--disabled':''}}" data-index="{{index}}" bindtap="select" disabled="{{disabled||item.disabled}}" aria-role="tab" aria-selected="{{item.selected}}" aria-label="{{item.label}}，{{item.selected?'当前分类':'未选中'}}" hover-class="section-tabs__tab--pressed" hover-start-time="0" hover-stay-time="80">
+   <text class="section-tabs__label">{{item.label}}</text><view class="section-tabs__marker {{item.selected?'section-tabs__marker--active':''}}" aria-hidden="true"/>
+  </button>
+ </view>
+</scroll-view>

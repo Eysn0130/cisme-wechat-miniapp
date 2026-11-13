@@ -1,0 +1,282 @@
+{
+  "packageSourceSha256": "ea99632a568850cdc18249484c99fc7eee05347ca2e02f8d51b9348f8689cf09",
+  "captures": [
+    {
+      "name": "01-member-card",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-ea99632a5688/01-member-card.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "02-member-foil-touch",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-ea99632a5688/02-member-foil-touch.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "03-rewards",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-ea99632a5688/03-rewards.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    }
+  ],
+  "tabs": [
+    {
+      "name": "reward tabs",
+      "route": "pages/rewards/index",
+      "value": "rewards",
+      "tabs": [
+        {
+          "id": "rewards",
+          "label": "活动奖励",
+          "disabled": false,
+          "selected": true,
+          "domId": "section-tab-0"
+        },
+        {
+          "id": "coupons",
+          "label": "正装优惠",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-1"
+        }
+      ],
+      "buttons": [
+        {
+          "left": 14,
+          "right": 90,
+          "top": 109,
+          "bottom": 153,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 96,
+          "right": 172,
+          "top": 109,
+          "bottom": 153,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        }
+      ],
+      "labels": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 82,
+          "top": 118.625,
+          "bottom": 137.375,
+          "width": 60,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 104,
+          "right": 164,
+          "top": 118.625,
+          "bottom": 137.375,
+          "width": 60,
+          "height": 18.75
+        }
+      ],
+      "markers": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 40,
+          "right": 64,
+          "top": 141.375,
+          "bottom": 143.375,
+          "width": 24,
+          "height": 2
+        }
+      ]
+    }
+  ],
+  "foil": [
+    {
+      "phase": "rest",
+      "route": "pages/profile/index",
+      "surface": "",
+      "x": 50,
+      "y": 50,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": true,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": true,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    },
+    {
+      "phase": "held",
+      "route": "pages/profile/index",
+      "surface": "member",
+      "x": 80,
+      "y": 40,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": true,
+          "lowMotion": false,
+          "shiftX": 21,
+          "shiftY": -2,
+          "angle": 2,
+          "tone": "member",
+          "active": true,
+          "x": 80,
+          "y": 40,
+          "intro": true,
+          "flash": true,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": true,
+          "lowMotion": false,
+          "shiftX": 21,
+          "shiftY": -2,
+          "angle": 2,
+          "tone": "member",
+          "active": true,
+          "x": 80,
+          "y": 40,
+          "intro": true,
+          "flash": true,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    },
+    {
+      "phase": "vertical release",
+      "route": "pages/profile/index",
+      "surface": "",
+      "x": 50,
+      "y": 50,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    },
+    {
+      "phase": "fresh complete tap",
+      "route": "pages/points/index"
+    }
+  ],
+  "scope": "Native simulator; virtual storage and all HTTP intercepted; injected touch events, not physical gestures",
+  "realMemberWrites": 0,
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "error": "Error: Command failed: wechatide -c Codex automation_element_action --project /Users/mini/CISME/apps/miniprogram --action tap --x 134 --y 131\n[wechatide] skill-call: client=Codex tool=automation_element_action\n",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [
+      {
+        "path": "/v1/me/points?limit=20&source=all",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/me/points/club",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/me/points/gifts",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/me/points/redemptions",
+        "method": "GET",
+        "handled": false
+      }
+    ],
+    "requestCount": 11,
+    "realMemberWrites": 0
+  }
+}

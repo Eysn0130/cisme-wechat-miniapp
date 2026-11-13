@@ -1,0 +1,75 @@
+{
+  "packageSourceSha256": "62e88f272363b23f6719cc6d42567a94fc71965d580b39d7d19832fcf9303fea",
+  "scope": "Native rendering and fault recovery under an intercepted fixture; not physical weak-network acceptance",
+  "captures": [
+    {
+      "name": "18-stockout",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/18-stockout.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "19-read-error",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/19-read-error.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "20-read-loading",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/20-read-loading.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "21-no-award",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/21-no-award.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "22-reduced-motion",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/22-reduced-motion.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    }
+  ],
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "stockout": {
+    "selected": "",
+    "available": [
+      0,
+      0
+    ],
+    "voucher": "unused"
+  },
+  "recovered": {
+    "loading": false,
+    "error": "",
+    "voucher": "unused"
+  },
+  "reducedMotion": {
+    "injection": "Page reducedMotion=true, not OS setting measurement",
+    "animation": "none"
+  },
+  "result": "passed scoped state rendering and 503 recovery",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 10,
+    "realMemberWrites": 0
+  }
+}

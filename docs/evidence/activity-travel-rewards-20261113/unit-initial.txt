@@ -1,0 +1,368 @@
+
+> cisme-wechat-miniapp@0.1.0 test
+> vitest run tests/unit --exclude 'dist/**'
+
+
+ RUN  v4.1.12 /Users/mini/CISME
+
+ ❯ tests/unit/http-authentication-boundary.test.ts (297 tests | 1 failed) 273ms
+   × retains the explicit authentication denominator 3ms
+ ❯ tests/unit/commercial-lifecycle-inventory.test.ts (4 tests | 4 skipped) 161ms
+ ❯ tests/unit/native-route-audit.test.ts (1 test | 1 failed) 132ms
+     × keeps all registered routes, access policies, source paths and evidence gates inspectable 130ms
+ ❯ tests/unit/native-boundaries.test.ts (11 tests | 4 failed) 483ms
+     × keeps page WXSS free of structural and pseudo-element selectors 135ms
+     × overrides native disabled opacity with an explicit visual state 31ms
+     × registers every native button action and keeps disabled visuals in lockstep 36ms
+     × locks the per-route button action inventory and verifies every handler exists 25ms
+ ❯ tests/unit/design-qa-gate.test.ts (10 tests | 1 failed) 4980ms
+     × binds the honest blocked manifest to the current mini-program hash 87ms
+ ❯ tests/unit/http-static-route-coverage.test.ts (1 test | 1 failed) 220ms
+   × pre-registers every OpenAPI method/template rather than only routes that happened to receive traffic 218ms
+ ❯ tests/unit/native-route-access.test.ts (5 tests | 1 failed) 16ms
+     × classifies every app.json page exactly once 9ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/commercial-lifecycle-inventory.test.ts [ tests/unit/commercial-lifecycle-inventory.test.ts ]
+Error: ROUTE_AUDIT_POLICY_OR_GATE_MISSING:pages/rewards/index
+ ❯ scripts/audit-native-routes.ts:40:38
+     38|     const access = nativeRouteAccess[`/${route}`];
+     39|     const stateGate = coverage.get(route);
+     40|     if (!access || !stateGate) throw new Error(`ROUTE_AUDIT_POLICY_OR_…
+       |                                      ^
+     41|     const [logic, markup] = await Promise.all([
+     42|       readFile(resolve(root, `${route}.ts`), "utf8"),
+ ❯ auditNativeRoutes scripts/audit-native-routes.ts:37:57
+ ❯ auditCommercialLifecycle scripts/audit-commercial-lifecycle.ts:14:56
+ ❯ tests/unit/commercial-lifecycle-inventory.test.ts:6:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/design-qa-gate.test.ts > design QA evidence gate > binds the honest blocked manifest to the current mini-program hash
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/design-qa-gate.test.ts:136:23
+    134|   it("binds the honest blocked manifest to the current mini-program ha…
+    135|     const status = await evaluateDesignQaEvidence();
+    136|     expect(status.ok).toBe(true);
+       |                       ^
+    137|     expect(status.releaseReady).toBe(false);
+    138|     expect(status.structuralErrors).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  tests/unit/http-authentication-boundary.test.ts > retains the explicit authentication denominator
+AssertionError: expected [ { method: 'GET', …(1) }, …(294) ] to have a length of 278 but got 295
+
+- Expected
++ Received
+
+- 278
++ 295
+
+ ❯ tests/unit/http-authentication-boundary.test.ts:25:18
+     23| afterAll(async()=>{await app?.close();});
+     24| it("retains the explicit authentication denominator",()=>{
+     25|   expect(routes).toHaveLength(278);
+       |                  ^
+     26|   // Editorial comments and blocks are member-private. Article text st…
+     27|   for(const operation of [
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  tests/unit/http-static-route-coverage.test.ts > pre-registers every OpenAPI method/template rather than only routes that happened to receive traffic
+AssertionError: expected 334 to be 317 // Object.is equality
+
+- Expected
++ Received
+
+- 317
++ 334
+
+ ❯ tests/unit/http-static-route-coverage.test.ts:21:19
+     19|       count++;expect(routes[`${method.toUpperCase()} ${path.replace(/\…
+     20|     }
+     21|     expect(count).toBe(317);expect(runtimeMetrics().http.registeredRou…
+       |                   ^
+     22|   } finally {await app.close();}
+     23| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  tests/unit/native-boundaries.test.ts > native mini program boundary > keeps page WXSS free of structural and pseudo-element selectors
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "/Users/mini/CISME/apps/miniprogram/pages/rewards/index.wxss:[disabled]",
++ ]
+
+ ❯ tests/unit/native-boundaries.test.ts:92:22
+     90|     const findings = styles.flatMap(({ path, source }) => [...source.m…
+     91|       .flatMap((selectorMatch) => [...selectorMatch[1]!.matchAll(unsup…
+     92|     expect(findings).toEqual([]);
+       |                      ^
+     93|   });
+     94|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  tests/unit/native-boundaries.test.ts > native mini program boundary > overrides native disabled opacity with an explicit visual state
+AssertionError: expected { 'account/index.wxml': 1, …(17) } to deeply equal { 'account/index.wxml': 1, …(15) }
+
+- Expected
++ Received
+
+@@ -7,12 +7,14 @@
+    "management-catalog/index.wxml": 1,
+    "management-fulfillment/index.wxml": 1,
+    "management-points/index.wxml": 2,
+    "management-privacy/index.wxml": 1,
+    "management-product/index.wxml": 1,
++   "management-rewards/index.wxml": 6,
+    "order-detail/index.wxml": 3,
+    "post/index.wxml": 1,
+    "privacy-rights/index.wxml": 1,
+    "product/index.wxml": 3,
+    "referral/index.wxml": 2,
++   "rewards/index.wxml": 4,
+    "settings/index.wxml": 1,
+  }
+
+ ❯ tests/unit/native-boundaries.test.ts:132:103
+    130|     }
+    131|
+    132|     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, t…
+       |                                                                                                       ^
+    133|       "account/index.wxml": 1,
+    134|       "aftersale/index.wxml": 1,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  tests/unit/native-boundaries.test.ts > native mini program boundary > registers every native button action and keeps disabled visuals in lockstep
+AssertionError: /Users/mini/CISME/apps/miniprogram/pages/checkout/index.wxml: <button class="checkout-coupon__row" bindtap="openCoupons" disabled="{{busy||loading||navigating}}" aria-label="选择优惠券">: expected [] to include 'busy||loading||navigating'
+ ❯ tests/unit/native-boundaries.test.ts:202:45
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  tests/unit/native-boundaries.test.ts > native mini program boundary > locks the per-route button action inventory and verifies every handler exists
+AssertionError: expected { account: [ 'back', …(9) ], …(42) } to deeply equal { account: [ 'back', …(9) ], …(40) }
+
+- Expected
++ Received
+
+@@ -32,13 +32,19 @@
+      "decrease",
+      "increase",
+      "editAddresses",
+      "selectAddress",
+      "retryLoad",
++     "openCoupons",
++     "loadCoupons",
+      "requestQuote",
+      "refreshQuote",
+      "confirmOrder",
++     "closeCoupons",
++     "chooseCoupon",
++     "chooseCoupon",
++     "loadCoupons",
+    ],
+    "commission": [
+      "back",
+      "load",
+      "retryRuntime",
+@@ -209,10 +215,11 @@
+      "openOrders",
+      "openFulfillment",
+      "openAftersale",
+      "openFinance",
+      "openMembers",
++     "openRewards",
+      "openPoints",
+      "openSupport",
+      "openEditorialComments",
+      "openPrivacy",
+      "retryRuntime",
+@@ -338,10 +345,41 @@
+      "qualify",
+      "qualify",
+      "publication",
+      "publication",
+      "inventory",
++   ],
++   "management-rewards": [
++     "back",
++     "retryLoad",
++     "reconcile",
++     "openConfig",
++     "changeTab",
++     "changeTab",
++     "changeTab",
++     "openConfig",
++     "openStock",
++     "openIssue",
++     "openRevoke",
++     "loadMore",
++     "export",
++     "openDetail",
++     "loadMore",
++     "closeSheet",
++     "reconcile",
++     "loadProducts",
++     "saveConfig",
++     "saveConfig",
++     "saveConfig",
++     "stockDirection",
++     "stockDirection",
++     "saveStock",
++     "issue",
++     "revoke",
++     "operate",
++     "operate",
++     "operate",
+    ],
+    "management-support": [
+      "back",
+      "open",
+      "retry",
+@@ -531,10 +569,11 @@
+      "openOrders",
+      "openInvite",
+      "openCommission",
+      "retryAuxiliary",
+      "openManagement",
++     "openRewards",
+      "openCommunityActivity",
+      "openMyPosts",
+      "openSettings",
+    ],
+    "progress": [
+@@ -556,10 +595,43 @@
+    ],
+    "referral": [
+      "back",
+      "preview",
+      "confirm",
++   ],
++   "rewards": [
++     "back",
++     "load",
++     "retryPending",
++     "cancelPending",
++     "changeTab",
++     "changeTab",
++     "openVoucher",
++     "openClaim",
++     "support",
++     "support",
++     "openClaim",
++     "useCoupon",
++     "chooseBundle",
++     "editSurvey",
++     "openRules",
++     "support",
++     "editAddress",
++     "editAddress",
++     "openSelectedClaim",
++     "support",
++     "copyTracking",
++     "openCoupons",
++     "cancelClaim",
++     "openReturn",
++     "support",
++     "confirm",
++     "receive",
++     "closeRules",
++     "support",
++     "closeReturn",
++     "submitReturn",
+    ],
+    "settings": [
+      "back",
+      "openAccount",
+      "openCareProfile",
+
+ ❯ tests/unit/native-boundaries.test.ts:266:20
+    264|       if (actions.length) actual[route] = actions;
+    265|     }
+    266|     expect(actual).toEqual(expected);
+       |                    ^
+    267|
+    268|     for (const [route, actions] of Object.entries(expected)) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  tests/unit/native-route-access.test.ts > native route access policy > classifies every app.json page exactly once
+AssertionError: expected [ '/pages/account/index', …(40) ] to deeply equal [ '/pages/account/index', …(42) ]
+
+- Expected
++ Received
+
+@@ -20,11 +20,10 @@
+    "/pages/management-order-detail/index",
+    "/pages/management-orders/index",
+    "/pages/management-points/index",
+    "/pages/management-privacy/index",
+    "/pages/management-product/index",
+-   "/pages/management-rewards/index",
+    "/pages/management-support-chat/index",
+    "/pages/management-support/index",
+    "/pages/management/index",
+    "/pages/order-detail/index",
+    "/pages/orders/index",
+@@ -34,11 +33,10 @@
+    "/pages/product/index",
+    "/pages/profile/index",
+    "/pages/progress/index",
+    "/pages/records/index",
+    "/pages/referral/index",
+-   "/pages/rewards/index",
+    "/pages/settings/index",
+    "/pages/shop/index",
+    "/pages/submit/index",
+    "/pages/support/index",
+    "/pages/task/index",
+
+ ❯ tests/unit/native-route-access.test.ts:64:24
+     62|     const classified = Object.keys(nativeRouteAccess).sort();
+     63|
+     64|     expect(classified).toEqual(declared);
+       |                        ^
+     65|     expect(Object.entries(nativeRouteAccess).filter(([, access]) => ac…
+     66|     expect(Object.entries(nativeRouteAccess).filter(([, access]) => ac…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  tests/unit/native-route-audit.test.ts > native route source audit > keeps all registered routes, access policies, source paths and evidence gates inspectable
+Error: ROUTE_AUDIT_POLICY_OR_GATE_MISSING:pages/rewards/index
+ ❯ scripts/audit-native-routes.ts:40:38
+     38|     const access = nativeRouteAccess[`/${route}`];
+     39|     const stateGate = coverage.get(route);
+     40|     if (!access || !stateGate) throw new Error(`ROUTE_AUDIT_POLICY_OR_…
+       |                                      ^
+     41|     const [logic, markup] = await Promise.all([
+     42|       readFile(resolve(root, `${route}.ts`), "utf8"),
+ ❯ auditNativeRoutes scripts/audit-native-routes.ts:37:57
+ ❯ tests/unit/native-route-audit.test.ts:6:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  7 failed | 199 passed (206)
+      Tests  9 failed | 3317 passed | 5 skipped (3331)
+   Start at  07:18:00
+   Duration  9.38s (transform 8.22s, setup 8.33s, import 14.68s, tests 38.12s, environment 1.93s)

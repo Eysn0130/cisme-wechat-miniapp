@@ -1,0 +1,38 @@
+{
+  "packageSourceSha256": "91da9847f5f5a0567e36549b9f894f14c65f3a9d592119c401da4a54c6ea0414",
+  "captures": [
+    {
+      "name": "00-member-card",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-91da9847f5f5/00-member-card.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "01-rewards",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-91da9847f5f5/01-rewards.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    }
+  ],
+  "tabs": [],
+  "scope": "Native simulator and intercepted synthetic HTTP; no production writes",
+  "realMemberWrites": 0,
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 6,
+    "realMemberWrites": 0
+  }
+}

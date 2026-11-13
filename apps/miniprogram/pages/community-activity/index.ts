@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import { retainReadPresentation } from "../../services/read-presentation";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
@@ -84,14 +85,14 @@ Page({
   },
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   selectSource(event:WechatMiniprogram.TouchEvent){
-    const source=String(event.currentTarget.dataset.source);
+    const source=sectionTabValue(event,'source');
     if(!this.alive||!this.visible||!sources.some(item=>item.key===source)||source===this.data.source)return;
     const tabs=tabsFor(source as Source),section=tabs.some(tab=>tab.key===this.data.section)?this.data.section:"comments";
     this.setData({source:source as Source,tabs,section,activeTabIndex:tabs.findIndex(tab=>tab.key===section),items:[],nextCursor:null,matchingTotal:0,notice:""});
     void this.load(true);
   },
   selectSection(event:WechatMiniprogram.TouchEvent){
-    const section=String(event.currentTarget.dataset.section);
+    const section=sectionTabValue(event,'section');
     if(!this.alive||!this.visible||!this.data.tabs.some(tab=>tab.key===section)||section===this.data.section)return;
     this.setData({section:section as Section,activeTabIndex:this.data.tabs.findIndex(tab=>tab.key===section),items:[],nextCursor:null,matchingTotal:0,notice:""});
     void this.load(true);

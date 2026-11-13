@@ -12,6 +12,8 @@ import {
 } from "../../services/checkout-state";
 import { clientOperationKey, createCheckoutQuote, createPendingOrder, isolatedCreditSummary, memberAddresses, orderRuntimeStatus, type CheckoutAddress, type CheckoutQuote } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
+import {eligibleCoupons,rewardExpiry,type EligibleCoupon} from '../../services/rewards';
+import {cancelPageReads} from '../../services/page-requests';
 
 function problemCopy(error: unknown): string {
   const problem = error as { code?: string; title?: string };
@@ -31,6 +33,7 @@ function problemCopy(error: unknown): string {
     POINTS_DISCOUNT_UNAVAILABLE:"可抵扣积分已变化，可选择不用积分继续。",
     POINTS_DISCOUNT_TOO_SMALL:"本单积分暂不能抵扣，可选择不用积分。",
     POINTS_CREDIT_COMBINATION_UNSUPPORTED:"积分和购物权益不能同时使用。"
+    ,COUPON_NOT_ELIGIBLE:'这张优惠券当前不可用，请重新选择。',COUPON_CHANGED:'优惠券已更新，请重新选择。'
   };
   return known[problem.code ?? ""] ?? "操作未完成，请重试或联系客服。";
 }
@@ -44,9 +47,12 @@ Page({
   countdownTimer: null as ReturnType<typeof setInterval> | null,
   requestEpoch: 0,
   loadAttempt: 0,
+  couponAttempt:0,
+  incomingCouponId:'',incomingCouponToken:'',
   mounted: false,
   visible: false,
   data: {
+    couponId:'',eligibleCoupons:[] as EligibleCoupon[],couponSheetOpen:false,couponState:'idle' as 'idle'|'loading'|'ready'|'error',couponError:'',couponLabel:'不使用优惠券',couponDiscountYuan:'',pointsDiscountYuan:'',
     pointsInput:0,
     pointsMaximum:null as number|null,
     fulfillmentOpen:false,
@@ -65,6 +71,7 @@ Page({
     this.mounted = true;
     const requestedQuantity = Number(query.quantity);
     const quantity = Number.isSafeInteger(requestedQuantity) ? Math.max(1, Math.min(99, requestedQuantity)) : 1;
+    this.incomingCouponId=/^[0-9a-f-]{36}$/i.test(query.coupon??'')?query.coupon!:'';this.incomingCouponToken=currentSessionToken();
     this.setData({ productCode: query.product ?? "", requestedSkuId: query.sku ?? "", quantity });
   },
   onShow() {
@@ -78,7 +85,8 @@ Page({
     const preserve = retainMemberSnapshot(this);
     if (!preserve) {
       this.stopCountdown();
-      this.setData({ ...clearCheckoutPrivateState(this.data), syncError: "", quoteExpired: false, sessionToken: token });
+      const incoming=this.incomingCouponToken===token?this.incomingCouponId:'';this.incomingCouponId='';this.incomingCouponToken='';
+      this.setData({ ...clearCheckoutPrivateState(this.data), syncError: "", quoteExpired: false, sessionToken: token,...(incoming?{couponId:incoming,couponLabel:'− ¥20.00',couponState:'loading' as const}:{}) });
     } else {
       this.setData({ sessionToken: token });
       if(!this.data.quote&&this.data.quoteView)this.invalidateQuote();
@@ -88,8 +96,8 @@ Page({
     if (!requireMemberAccess()) { this.showLoginRequired(); this.visible = false; return; }
     void this.load();
   },
-  onHide() { this.visible = false; this.requestEpoch += 1; this.stopCountdown(); },
-  onUnload() { this.mounted = false; this.visible = false; this.requestEpoch += 1; this.stopCountdown(); },
+  onHide() { this.visible = false; this.requestEpoch += 1; this.couponAttempt++;cancelPageReads(this);this.stopCountdown(); },
+  onUnload() { this.mounted = false; this.visible = false; this.requestEpoch += 1;this.couponAttempt++;cancelPageReads(this);this.stopCountdown(); },
   ownership() { return { mounted: this.mounted, visible: this.visible, epoch: this.requestEpoch, sessionToken: currentSessionToken() }; },
   showMissingProduct() {
     this.stopCountdown();
@@ -152,6 +160,7 @@ Page({
         selected.id === this.data.quote.item.skuId &&
         effectiveQuantity === this.data.quote.quantity &&
         (this.data.quote.pointsSpent??0)===this.data.pointsInput &&
+        (this.data.quote.couponId??'')===this.data.couponId &&
         (this.data.quote.creditTenderCents===0||credit!==null)&&
         this.data.quote.creditTenderCents===(this.data.creditInput?creditCents(this.data.creditInput):0) &&
         quoteAddress.version === this.data.quote.addressVersion &&
@@ -177,6 +186,7 @@ Page({
         this.setData(publicPatch);
         if (this.data.quote && this.data.quoteClock) this.startCountdown(this.data.quoteClock);
       }
+      void this.loadCoupons();
     } catch (error) {
       if (attempt === this.loadAttempt && this.authenticationFailure(error, epoch, ownerToken)) return;
       if (requestStillOwned(this.ownership(), epoch, ownerToken) && attempt === this.loadAttempt) this.setData({ loading: false, syncError: problemCopy(error) });
@@ -186,7 +196,7 @@ Page({
     this.stopCountdown();
     this.setData({ ...invalidateCheckoutQuote(this.data, {pointsInput:0,pointsMaximum:null,fulfillmentOpen:false,...patch}, preserveError), quoteExpired: false });
   },
-  checkoutBlocked() { return this.data.busy || this.data.loading || this.data.navigating || Boolean(this.data.syncError); },
+  checkoutBlocked() { return this.data.busy || this.data.loading || this.data.navigating || Boolean(this.data.syncError)||Boolean(this.data.couponId)&&this.data.couponState!=='ready'; },
   async retryLoad() {
     if (!this.mounted || this.data.busy || this.data.loading || this.data.navigating) return;
     if (this.data.missingProduct) {
@@ -209,11 +219,12 @@ Page({
     const sku = this.data.product?.variants.find((item) => item.id === String(event.currentTarget.dataset.id));
     if (!sku || !sku.active) return;
     this.invalidateQuote({ selectedSku: sku, requestedSkuId: sku.id, quantity: Math.min(this.data.quantity, Math.max(1, sku.availableQuantity)), unitPriceYuan: centsToYuan(sku.priceCents) });
+    void this.loadCoupons();
   },
-  decrease() { if (!this.checkoutBlocked() && this.data.quantity > 1) this.invalidateQuote({ quantity: this.data.quantity - 1 }); },
+  decrease() { if (!this.checkoutBlocked() && this.data.quantity > 1) {this.invalidateQuote({ quantity: this.data.quantity - 1 });void this.loadCoupons();} },
   increase() {
     const maximum = Math.min(99, this.data.selectedSku?.availableQuantity ?? 0);
-    if (!this.checkoutBlocked() && this.data.quantity < maximum) this.invalidateQuote({ quantity: this.data.quantity + 1 });
+    if (!this.checkoutBlocked() && this.data.quantity < maximum) {this.invalidateQuote({ quantity: this.data.quantity + 1 });void this.loadCoupons();}
   },
   selectAddress(event: WechatMiniprogram.TouchEvent) { if (!this.checkoutBlocked()) this.invalidateQuote({ selectedAddressId: String(event.currentTarget.dataset.id ?? "") }); },
   editCredit(event:WechatMiniprogram.Input){if(!this.checkoutBlocked()&&this.data.creditEnabled)
@@ -238,7 +249,7 @@ Page({
     this.setData({ busy: true, error: "", quoteKey });
     try {
       const quote = await createCheckoutQuote({ skuId: sku.id, quantity: this.data.quantity,
-        addressId: address.id, addressVersion: address.version,...(credit?{creditCents:credit}:{}),...(this.data.pointsInput?{points:this.data.pointsInput}:{}) }, quoteKey);
+        addressId: address.id, addressVersion: address.version,...(credit?{creditCents:credit}:{}),...(this.data.pointsInput?{points:this.data.pointsInput}:{}),...(this.data.couponId?{couponId:this.data.couponId}:{}) }, quoteKey);
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const quoteClock = createQuoteClock(quote.expiresAt, quote.serverTime);
       this.setData({
@@ -246,6 +257,7 @@ Page({
         pointsInput:quote.pointsSpent??0,
         pointsMaximum:Number.isSafeInteger(quote.pointsMaximum)&&(quote.pointsMaximum??-1)>=0?quote.pointsMaximum!:null,
         discountYuan: centsToYuan(quote.memberDiscountCents), shippingYuan: centsToYuan(quote.shippingCents),
+        couponDiscountYuan:centsToYuan(quote.couponDiscountCents??0),pointsDiscountYuan:centsToYuan(quote.memberDiscountCents-(quote.couponDiscountCents??0)),
         totalYuan: centsToYuan(quote.totalCents),creditYuan:centsToYuan(quote.creditTenderCents),
         cashYuan:centsToYuan(quote.cashPayableCents)
       });
@@ -275,6 +287,22 @@ Page({
     void this.requestQuote();
   },
   toggleFulfillment(){this.setData({fulfillmentOpen:!this.data.fulfillmentOpen});},
+  async loadCoupons(){const sku=this.data.selectedSku;if(!sku||!this.mounted||!this.visible)return;const attempt=++this.couponAttempt,epoch=this.requestEpoch,token=currentSessionToken(),quantity=this.data.quantity;
+    this.setData({couponState:'loading',couponError:''});
+    try{const result=await eligibleCoupons(this,sku.id,quantity);if(!requestStillOwned(this.ownership(),epoch,token)||attempt!==this.couponAttempt)return;
+      if(!result||!Array.isArray(result.items)||result.items.some(c=>typeof c.id!=='string'||c.thresholdCents!==19800||c.discountCents!==2000||!Number.isFinite(Date.parse(c.expiresAt))))throw Error('COUPON_RESPONSE_INVALID');
+      if(this.data.couponId&&!result.items.some(c=>c.id===this.data.couponId)){this.invalidateQuote({},true);this.setData({eligibleCoupons:result.items,couponState:'error',couponError:'已选优惠券不可用，请重新选择'});}
+      else this.setData({eligibleCoupons:result.items.map(c=>({...c,expiryLabel:rewardExpiry(c.expiresAt)})),couponState:'ready',couponError:''});
+    }catch{if(requestStillOwned(this.ownership(),epoch,token)&&attempt===this.couponAttempt)this.setData({couponState:'error',couponError:'优惠券暂时无法加载，可重试或选择不用'});}
+  },
+  openCoupons(){if(!this.data.busy&&!this.data.loading&&!this.data.navigating)this.setData({couponSheetOpen:true});},
+  closeCoupons(){if(!this.data.busy)this.setData({couponSheetOpen:false});},
+  stopCouponTap(){},
+  chooseCoupon(event:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.loading||this.data.navigating)return;
+    const id=String(event.currentTarget.dataset.id??'');if(id&&(this.data.couponState!=='ready'||!this.data.eligibleCoupons.some(c=>c.id===id)))return;
+    this.invalidateQuote({couponId:id,couponLabel:id?'− ¥20.00':'不使用优惠券',couponSheetOpen:false,couponState:id?this.data.couponState:'ready',couponError:'',...(id?{creditInput:''}:{})});
+    void this.requestQuote();
+  },
   async confirmOrder() {
     const quote = this.data.quote;
     if (this.checkoutBlocked() || !quote) return;
@@ -296,7 +324,7 @@ Page({
       const problem = error as { code?: string };
       const errorCopy = problemCopy(error);
       this.setData({ busy: false, error: errorCopy });
-      if (["QUOTE_EXPIRED", "QUOTE_STALE", "DELIVERY_ADDRESS_CHANGED", "CATALOG_PRODUCT_NOT_SELLABLE"].includes(problem.code ?? "")) {
+      if (["QUOTE_EXPIRED", "QUOTE_STALE", "DELIVERY_ADDRESS_CHANGED", "CATALOG_PRODUCT_NOT_SELLABLE","COUPON_CHANGED","COUPON_NOT_ELIGIBLE"].includes(problem.code ?? "")) {
         this.invalidateQuote({}, true);
         this.setData({ error: errorCopy });
         void this.load();
@@ -304,6 +332,7 @@ Page({
     }
   },
   back() {
+    if(this.data.couponSheetOpen){this.closeCoupons();return;}
     if (this.data.busy || this.data.navigating) return;
     this.setData({ navigating: true });
     wx.navigateBack({ fail: () => wx.redirectTo({ url: `/pages/product/index?id=${encodeURIComponent(this.data.productCode)}` }) });

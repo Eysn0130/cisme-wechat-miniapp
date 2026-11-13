@@ -2,12 +2,7 @@
 <view class="page community-page" style="{{chromeStyle}}">
   <view class="community-head">
     <view class="community-title-row"><view class="community-wordmark">CISME <text class="community-wordmark__section">社区</text></view><view class="community-curation">{{mode === 'following' ? '关注动态' : '品牌精选'}}</view></view>
-    <view class="community-mode" aria-role="tablist" aria-label="社区内容分类">
-      <button class="community-mode__tab {{mode === 'featured' ? 'community-mode__active' : ''}}" data-mode="featured" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'featured'}}" aria-label="精选，{{mode === 'featured' ? '当前分类' : '未选中'}}"><text class="community-mode__label">精选</text><view class="community-mode__marker {{mode === 'featured' ? 'is-active' : ''}}" aria-hidden="true"/></button>
-      <button class="community-mode__tab {{mode === 'following' ? 'community-mode__active' : ''}}" data-mode="following" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'following'}}" aria-label="关注，{{mode === 'following' ? '当前分类' : '未选中'}}"><text class="community-mode__label">关注</text><view class="community-mode__marker {{mode === 'following' ? 'is-active' : ''}}" aria-hidden="true"/></button>
-      <button wx:if="{{ugcFeedEnabled || socialPreviewEnabled}}" class="community-mode__tab {{mode === 'recommend' ? 'community-mode__active' : ''}}" data-mode="recommend" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'recommend'}}" aria-label="推荐，{{mode === 'recommend' ? '当前分类' : '未选中'}}"><text class="community-mode__label">推荐</text><view class="community-mode__marker {{mode === 'recommend' ? 'is-active' : ''}}" aria-hidden="true"/></button>
-      <button wx:if="{{canReview}}" class="community-mode__tab {{mode === 'review' ? 'community-mode__active' : ''}}" data-mode="review" bindtap="selectMode" aria-role="tab" aria-selected="{{mode === 'review'}}" aria-label="内容管理，{{mode === 'review' ? '当前分类' : '未选中'}}"><text class="community-mode__label">内容管理</text><view class="community-mode__marker {{mode === 'review' ? 'is-active' : ''}}" aria-hidden="true"/></button>
-    </view>
+    <view class="community-mode"><section-tabs id="page-tabs" items="{{[{id:'featured',label:'精选'},{id:'following',label:'关注'},{id:'recommend',label:'推荐',hidden:!ugcFeedEnabled&&!socialPreviewEnabled},{id:'review',label:'内容管理',hidden:!canReview}]}}" value="{{mode}}" label="社区内容分类" bindchange="selectMode" disabled="{{reviewBusy||publishEntryBusy||navigating}}"/></view>
   </view>
 
   <view wx:if="{{mode === 'review'}}" class="review-panel">

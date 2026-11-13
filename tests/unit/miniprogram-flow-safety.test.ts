@@ -371,9 +371,13 @@ describe("mini program submission flow safety", () => {
     expect(homeView).toContain('disabled="{{accountOpening || sessionMounted || onboardingOpen}}" aria-hidden="{{sessionMounted || onboardingOpen}}"');
     expect(homeView).toContain('class="care-console care-console--centered" aria-hidden="{{sessionMounted || onboardingOpen}}"');
     expect(homeView).toContain('aria-role="dialog" aria-modal="true"');
-    expect(communityView).toContain('aria-role="tablist" aria-label="社区内容分类"');
-    expect(communityView.match(/aria-role="tab"/g)).toHaveLength(4);
-    expect(communityView.match(/aria-selected=/g)).toHaveLength(4);
+    expect(communityView).toContain('<section-tabs');
+    expect(communityView).toContain('label="社区内容分类"');
+    expect(communityView).toContain('bindchange="selectMode"');
+    const componentView=await source('apps/miniprogram/components/section-tabs/index.wxml');
+    expect(componentView).toContain('aria-role="tablist"');
+    expect(componentView).toContain('aria-role="tab"');
+    expect(componentView).toContain('aria-selected="{{item.selected}}"');
   });
 
   it("scrolls long-page failures into view and names recovery accurately", async () => {

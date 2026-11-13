@@ -140,6 +140,7 @@ export interface FulfillmentPolicyView {
   returnFreight:{noReason:string;qualityWrongMissingTransport:string};
 }
 export interface CommerceQuoteView {
+  couponId?:string;couponDiscountCents?:number;
   fulfillmentPolicy?:FulfillmentPolicyView|null;
   id: string;
   status: "active" | "consumed" | "expired";
@@ -173,6 +174,7 @@ export interface CommerceOrderLineView {
   totalCents: number;
 }
 export interface CommerceOrderView {
+  couponId?:string;couponDiscountCents?:number;
   fulfillmentPolicy?:FulfillmentPolicyView|null;
   id: string;
   orderNumber: string;

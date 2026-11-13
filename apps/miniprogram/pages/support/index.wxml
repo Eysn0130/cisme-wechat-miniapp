@@ -17,7 +17,7 @@
       <view class="support-message__content"><text class="support-message__sender">{{supportAiAvailable ? 'CISME AI 客服' : 'CISME 客服'}}</text><view class="support-bubble">{{supportAiAvailable ? '你好呀，我是 CISME AI 客服 😊 护理或使用小程序有疑问，都可以问我～' : '你好呀 😊 有问题可以留言，也可以申请人工客服。'}}</view></view>
     </view>
 
-    <view wx:if="{{!closedRights && conversation && conversation.status === 'waiting_human'}}" class="support-queue-notice">人工接待 09:00–22:00（北京时间），其他时间可留言。</view>
+    <view wx:if="{{!closedRights && conversation && conversation.status === 'waiting_human'}}" class="support-queue-notice">人工客服 09:00–22:00（北京时间）</view>
 
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>

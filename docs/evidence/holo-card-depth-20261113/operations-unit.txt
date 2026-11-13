@@ -1,0 +1,8 @@
+
+ RUN  v4.1.12 /Users/mini/CISME
+
+
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+   Start at  11:23:48
+   Duration  164ms (transform 78ms, setup 95ms, import 31ms, tests 49ms, environment 0ms)

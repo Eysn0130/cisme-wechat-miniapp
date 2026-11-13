@@ -1,0 +1,145 @@
+{
+  "packageSourceSha256": "12c93a22a0061576e799bbaafb7267b5389518a2bb4a9e3e2cfddcd5ad287395",
+  "sourceHead": "772fa2787d62c5d9bd376c32fb7b429c4330a7c7",
+  "mode": "controlled native simulator; virtual storage; all HTTP intercepted",
+  "realMemberWrites": 0,
+  "captures": [
+    {
+      "name": "01-wallet",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/01-wallet.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "02-selection",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/02-selection.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "03-selected",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/03-selected.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "04-claimed",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/04-claimed.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "05-shipped",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/05-shipped.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "06-receipt-coupon",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/06-receipt-coupon.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "07-coupon-wallet",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/07-coupon-wallet.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "08-coupon-products",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/08-coupon-products.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "09-product",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/09-product.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "10-checkout",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/10-checkout.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "11-checkout-coupon",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/11-checkout-coupon.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "12-coupon-choice",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/12-coupon-choice.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "13-checkout-no-coupon",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/13-checkout-no-coupon.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    }
+  ],
+  "assertions": [
+    {
+      "test": "No automatic selection",
+      "result": {
+        "route": "pages/rewards/index",
+        "error": "",
+        "loading": false,
+        "mode": "select",
+        "selectedBundle": ""
+      }
+    },
+    {
+      "test": "Explicit choice creates a zero-cash claim",
+      "result": {
+        "route": "pages/rewards/index",
+        "error": "",
+        "loading": false,
+        "mode": "claim",
+        "selectedBundle": "",
+        "claimState": "placed"
+      }
+    },
+    {
+      "test": "Receive handler shows coupon only after response; confirmation modal response mocked",
+      "result": {
+        "route": "pages/rewards/index",
+        "error": "",
+        "loading": false,
+        "mode": "claim",
+        "selectedBundle": "",
+        "claimState": "received"
+      }
+    },
+    {
+      "test": "Wallet coupon survives navigation to checkout and quotes 198 - 20 = 178",
+      "result": {
+        "route": "pages/checkout/index",
+        "error": "",
+        "syncError": "",
+        "loading": false,
+        "couponId": "55555555-5555-4555-8555-555555555555",
+        "couponState": "ready",
+        "totalCents": 17800
+      }
+    }
+  ]
+}

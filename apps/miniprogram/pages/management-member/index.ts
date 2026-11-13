@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import {beijingDateParts as rateDateParts,beijingDateLabel as dateLabel,beijingCivilInstant} from "../../services/business-time";
 import { request } from "../../services/api";
 import { authorityProjection, hasCapability, requireCapability } from "../../services/authority";
@@ -28,7 +29,7 @@ Page({
   onShow(){this.data.alive=true;this.sectionCache={};this.rateCommand=null;this.setData({detail:null,visibleRows:[],visibleTotal:0,visibleCursor:null,sectionLoading:false,sectionError:"",
     canManageRate:false,canManageMembership:false,rateFormVisible:false,rateOptions:[],rateBasisPoints:[],loading:true,error:""});void this.load();},
   onUnload(){this.data.alive=false;this.rateCommand=null;this.data.attempt+=1;this.data.sectionAttempt+=1;},
-  selectSection(event:WechatMiniprogram.TouchEvent){const section=String(event.currentTarget.dataset.section);if(!this.data.sections.some(item=>item.id===section))return;
+  selectSection(event:WechatMiniprogram.TouchEvent){const section=sectionTabValue(event,'section');if(!this.data.sections.some(item=>item.id===section))return;
     this.setData({section});void this.showSection();},
   selectOrderMode(event:WechatMiniprogram.TouchEvent){const mode=String(event.currentTarget.dataset.mode);
     if(mode!=="own-orders"&&mode!=="attributed-orders")return;

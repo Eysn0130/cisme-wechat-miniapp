@@ -1,0 +1,26 @@
+{
+  "couponTab": {
+    "route": "pages/rewards/index",
+    "tab": "coupons",
+    "source": "actual native app accessibility click on 正装优惠"
+  },
+  "issueTab": {
+    "route": "pages/management-rewards/index",
+    "tab": "issue",
+    "source": "actual native app accessibility click on 发券"
+  },
+  "fulfillTab": {
+    "route": "pages/management-rewards/index",
+    "tab": "fulfill",
+    "source": "actual native app accessibility click on 领取订单"
+  },
+  "packageSourceSha256": "0604258bcd1ef821c1d90256b044ab7987e3e4053828936e751e8c7ff6174639",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 4,
+    "realMemberWrites": 0
+  }
+}

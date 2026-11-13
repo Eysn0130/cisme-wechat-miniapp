@@ -3,7 +3,7 @@
   <view class="records-surface {{usageDetail ? 'records-surface--inert' : ''}}" aria-hidden="{{!!usageDetail}}">
     <view class="records-hero">
       <view class="records-nav"><view class="records-nav__row"><button class="records-back {{working || confirmingCycleAction || confirmingDailyDelete ? 'control--disabled' : ''}}" bindtap="backRecords" disabled="{{working || confirmingCycleAction || confirmingDailyDelete}}" aria-label="返回"><image src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="records-nav__title">护理记录</text><text class="usage-private">仅自己可见</text></view></view>
-      <view wx:if="{{!accessRequired}}" class="usage-heading"><text class="usage-heading__line">护理有迹，</text><text class="usage-heading__line">感受有回应。</text><view class="usage-heading__copy">用过的产品，和当时的自己。</view></view>
+      <view wx:if="{{!accessRequired}}" class="usage-heading"><text class="usage-heading__line">护理有迹，</text><text class="usage-heading__line">感受有回应。</text></view>
       <view wx:if="{{usageReady && !accessRequired}}" class="usage-stats"><view class="usage-stat"><text class="usage-stat__number">{{usageTotal}}</text><text>天已记录</text></view><view wx:if="{{usageStreak !== null}}" class="usage-stat"><text class="usage-stat__number">{{usageStreak}}</text><text>天连续护理</text></view></view>
     </view>
     <view class="records-content">

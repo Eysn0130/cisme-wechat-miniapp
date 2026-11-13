@@ -1,3 +1,4 @@
+@import "../../styles/section-tabs-layout.wxss";
 @import "../../styles/read-loading.wxss";
 .points-page { padding-right:24rpx; padding-left:24rpx; background:linear-gradient(180deg,#f6f0f8,#fbf8fb); }.points-topbar__copy { display:flex; align-items:center; flex-direction:column; }.points-topbar__subtitle { margin-top:4rpx; color:#968b98; font-size:var(--cisme-text-small); line-height:1.5; }
 .points-hero { position:relative; padding:38rpx; overflow:hidden; border:1rpx solid rgba(255,255,255,.25); border-radius:58rpx; color:#fff; background:radial-gradient(circle at 84% 6%,rgba(255,255,255,.22),transparent 31%),linear-gradient(145deg,#76588b,#3e2850 78%); box-shadow:0 24rpx 50rpx rgba(53,31,68,.2); }.points-hero__eyebrow { color:rgba(255,255,255,.74); font:24rpx Georgia,serif; letter-spacing:4rpx; }.points-hero__balance { display:block; margin-top:36rpx; overflow-wrap:anywhere; font:400 3.25rem/1.1 -apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif; font-variant-numeric:lining-nums tabular-nums; letter-spacing:0; }.points-hero__balance--compact { font-size:1.75rem; }.points-hero__label { display:block; margin-top:14rpx; color:rgba(255,255,255,.82); font-size:24rpx; }.points-divider { height:1rpx; margin:30rpx 0 24rpx; background:rgba(255,255,255,.18); }
@@ -11,9 +12,6 @@
 .points-summary__value,.ledger-row__amount { font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif; font-variant-numeric:lining-nums tabular-nums; }
 .points-rules-link{min-height:44px;margin:0;padding:8px;color:#56306f;background:transparent;font-size:var(--cisme-text-small);}
 .points-expiry{display:block;margin-top:18px;color:#fff3d7;font-size:var(--cisme-text-small);line-height:1.7;}
-.points-tabs{display:flex;margin-top:22px;border-bottom:1px solid #decfe4;}
-.points-tab{flex:1;min-height:48px;margin:0;padding:10px 4px;border:0;border-radius:0;color:#807287;background:transparent;font-size:var(--cisme-text-body);}
-.points-tab.is-current{border-bottom:3px solid #56306f;color:#56306f;font-weight:600;}
 .club-tasks{margin-top:12px;padding:0 20px;}
 .club-task.club-task--last{border-bottom:0;}
 .club-card{margin-top:16px;padding:20px;border:1px solid #e6dcea;border-radius:22px;background:#fffcff;}

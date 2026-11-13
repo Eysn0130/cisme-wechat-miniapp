@@ -9,7 +9,7 @@
         <text class="ux-strong">{{detail.member.displayName}}</text>
         <text class="ux-small">{{detail.member.commercialEligible?'商业会员':detail.member.membershipState==='active'?'资格暂不可用':detail.member.membershipState==='suspended'?'资格暂停':detail.member.membershipState==='expired'?'资格到期':'普通用户'}} · {{detail.member.accountStatus==='active'?'账号正常':'账号受限'}}</text>
       </view>
-      <view class="member-tabs" aria-role="tablist" aria-label="成员详情分类"><button wx:for="{{sections}}" wx:key="id" data-section="{{item.id}}" bindtap="selectSection" class="{{section===item.id?'is-active':''}}" aria-role="tab" aria-selected="{{section===item.id}}">{{item.label}}</button></view>
+      <view class="page-section-tabs"><section-tabs id="page-tabs" items="{{sections}}" value="{{section}}" label="成员详情分类" bindchange="selectSection" /></view>
       <view wx:if="{{section==='overview'}}" class="member-panel">
         <view class="member-fact"><text>商业资格</text><text class="ux-strong">{{detail.member.commercialEligible?'有效':detail.member.membershipState==='none'?'未开通':detail.member.membershipState==='suspended'?'已暂停':'未生效或已到期'}}</text></view>
         <view class="member-fact"><text>资格生效</text><text class="ux-strong">{{effectiveLabel}}</text></view>

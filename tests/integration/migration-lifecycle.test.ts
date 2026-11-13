@@ -122,6 +122,18 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //115 is reversible only before a real activity or confirmed component stock exists.
+    expect(migrationTip).toBe('202611130001_activity_travel_rewards.sql');
+    await migrate('down');
+    expect((await pool.query("SELECT to_regclass('public.activity_reward_claim') name")).rows[0].name).toBeNull();
+    expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
+    await migrate('up');
+    expect((await pool.query("SELECT count(*)::int count FROM reward_component_inventory WHERE NOT confirmed AND stock_on_hand=0")).rows[0].count).toBe(3);
+    const travelDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
+    const travelGuard=await pool.connect();
+    try{await travelGuard.query('BEGIN');await travelGuard.query("UPDATE reward_component_inventory SET confirmed=true WHERE code='conditioner100'");await expect(travelGuard.query(travelDown)).rejects.toThrow('REWARD_ROLLBACK_REQUIRES_DATA_PRESERVATION');}
+    finally{await travelGuard.query('ROLLBACK');travelGuard.release();}
+    await migrate('down');migrationTip='202611100006_member_card_number.sql';migrationCount-=1;extensionCount-=1;
     //114 preserves issued display identifiers across runtime rollback.
     expect(migrationTip).toBe('202611100006_member_card_number.sql');
     await expect(migrate('down')).rejects.toThrow();

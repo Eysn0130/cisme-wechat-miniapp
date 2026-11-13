@@ -38,6 +38,7 @@ export function confirmMyReceipt(id:string,expectedVersion:number,idempotencyKey
   return request({path:`/v1/me/orders/${encodeURIComponent(id)}/confirm-receipt`,method:"POST",data:{expectedVersion},idempotencyKey,cacheTags:["orders"]});
 }
 export interface CheckoutQuote {
+  couponId?:string;couponDiscountCents?:number;
   shoppingPointsMultiplier?:number;pointsSpent?:number;pointsMaximum?:number;pointsPolicyVersion?:string|null;
   fulfillmentPolicy?:FulfillmentPolicy|null;
   id: string; status: "active" | "consumed" | "expired"; currency: "CNY"; quantity: number; unitPriceCents: number;
@@ -56,6 +57,7 @@ export interface MemberOrderAddress {
 }
 export interface ManagementOrderAddress { recipientNameMasked: string; phoneMasked: string; province: string; city: string; district: string }
 export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAddress> {
+  couponId?:string;couponDiscountCents?:number;
   shoppingPointsMultiplier?:number;pointsSpent?:number;
   fulfillmentPolicy?:FulfillmentPolicy|null;
   id: string; orderNumber: string; status: PendingOrderStatus; currency: "CNY"; subtotalCents: number; memberDiscountCents: number;
@@ -92,7 +94,7 @@ export function memberAddresses(): Promise<{ enabled: boolean; maxAddresses: num
   return request({ path: "/v1/me/addresses", cacheTags: ["member"] });
 }
 export function createCheckoutQuote(input: { skuId: string; quantity: number; addressId: string; addressVersion: number;
-  creditCents?:number;points?:number }, idempotencyKey: string): Promise<CheckoutQuote> {
+  creditCents?:number;points?:number;couponId?:string }, idempotencyKey: string): Promise<CheckoutQuote> {
   return request({ path: "/v1/me/commerce/quotes", method: "POST", data: input, idempotencyKey, cacheTags: ["catalog", "orders"] });
 }
 export function createPendingOrder(quoteId: string, idempotencyKey: string): Promise<CommerceOrder<MemberOrderAddress>> {

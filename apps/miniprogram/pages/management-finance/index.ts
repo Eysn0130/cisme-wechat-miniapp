@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import {validateRuntime,runtimeActions} from "../../services/commerce-runtime";
 import { request } from "../../services/api";
 import { authorityProjection,hasCapability,type AuthorityProjection } from "../../services/authority";
@@ -92,7 +93,7 @@ Page({
   },
   selectSection(event:WechatMiniprogram.TouchEvent){
     if(!this.ownsSnapshot())return;
-    const section=String(event.currentTarget.dataset.section) as Section;
+    const section=sectionTabValue(event,'section') as Section;
     if(!this.data.sections.some(item=>item.id===section)||this.data.busy)return;
     // A cycle snapshot is immutable but its *approval* and source availability
     // may have changed while the reviewer worked in another section.

@@ -1,0 +1,39 @@
+{
+  "packageSourceSha256": "39adee891aa28846d012d2a0d1cd03c432b7f112d395f5a3b5849aa9d3b70df7",
+  "scope": "Native injected presentation states only; not actual OS accessibility setting or coupon eligibility test",
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "reduced": {
+    "properties": {
+      "reduced": true,
+      "active": true
+    },
+    "sweep": {
+      "animation-name": "none",
+      "display": "none"
+    },
+    "reflection": {
+      "transform": "none",
+      "transition-duration": "0s"
+    }
+  },
+  "expired": {
+    "quiet": true,
+    "opacity": "0.18"
+  },
+  "result": "passed native reduced flag and expired presentation",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 2,
+    "realMemberWrites": 0
+  }
+}

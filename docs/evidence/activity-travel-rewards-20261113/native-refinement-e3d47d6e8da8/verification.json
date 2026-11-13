@@ -1,0 +1,861 @@
+{
+  "packageSourceSha256": "e3d47d6e8da8b36822614cc4be0780c76098e002a291a0eabc3c1783e030de71",
+  "captures": [
+    {
+      "name": "01-member-card",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/01-member-card.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "02-member-foil-touch",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/02-member-foil-touch.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "03-rewards",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/03-rewards.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "04-no-coupon",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/04-no-coupon.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "05-coupon",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/05-coupon.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "06-management",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/06-management.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "07-issuance",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/07-issuance.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "08-fulfillment",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/08-fulfillment.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "09-community",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native-refinement-e3d47d6e8da8/09-community.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    }
+  ],
+  "tabs": [
+    {
+      "name": "reward tabs",
+      "route": "pages/rewards/index",
+      "value": "rewards",
+      "tabs": [
+        {
+          "id": "rewards",
+          "label": "活动奖励",
+          "disabled": false,
+          "selected": true,
+          "domId": "section-tab-0"
+        },
+        {
+          "id": "coupons",
+          "label": "正装优惠",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-1"
+        }
+      ],
+      "buttons": [
+        {
+          "left": 14,
+          "right": 90,
+          "top": 109,
+          "bottom": 153,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 96,
+          "right": 172,
+          "top": 109,
+          "bottom": 153,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        }
+      ],
+      "labels": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 82,
+          "top": 118.625,
+          "bottom": 137.375,
+          "width": 60,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 104,
+          "right": 164,
+          "top": 118.625,
+          "bottom": 137.375,
+          "width": 60,
+          "height": 18.75
+        }
+      ],
+      "markers": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 40,
+          "right": 64,
+          "top": 141.375,
+          "bottom": 143.375,
+          "width": 24,
+          "height": 2
+        }
+      ]
+    },
+    {
+      "name": "coupon tab selection",
+      "route": "pages/rewards/index",
+      "value": "coupons",
+      "tabs": [
+        {
+          "id": "rewards",
+          "label": "活动奖励",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-0"
+        },
+        {
+          "id": "coupons",
+          "label": "正装优惠",
+          "disabled": false,
+          "selected": true,
+          "domId": "section-tab-1"
+        }
+      ],
+      "buttons": [
+        {
+          "left": 14,
+          "right": 90,
+          "top": 109,
+          "bottom": 153,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 96,
+          "right": 172,
+          "top": 109,
+          "bottom": 153,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        }
+      ],
+      "labels": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 82,
+          "top": 118.625,
+          "bottom": 137.375,
+          "width": 60,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 104,
+          "right": 164,
+          "top": 118.625,
+          "bottom": 137.375,
+          "width": 60,
+          "height": 18.75
+        }
+      ],
+      "markers": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 122,
+          "right": 146,
+          "top": 141.375,
+          "bottom": 143.375,
+          "width": 24,
+          "height": 2
+        }
+      ]
+    },
+    {
+      "name": "management tabs",
+      "route": "pages/management-rewards/index",
+      "value": "activity",
+      "tabs": [
+        {
+          "id": "activity",
+          "label": "配置",
+          "disabled": false,
+          "selected": true,
+          "domId": "section-tab-0"
+        },
+        {
+          "id": "issue",
+          "label": "发券",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-1"
+        },
+        {
+          "id": "fulfill",
+          "label": "领取订单",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-2"
+        }
+      ],
+      "buttons": [
+        {
+          "left": 14,
+          "right": 60,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 46,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 66,
+          "right": 112,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 46,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 118,
+          "right": 194,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        }
+      ],
+      "labels": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 52,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 30,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 74,
+          "right": 104,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 30,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 126,
+          "right": 186,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 60,
+          "height": 18.75
+        }
+      ],
+      "markers": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 25,
+          "right": 49,
+          "top": 208.5625,
+          "bottom": 210.5625,
+          "width": 24,
+          "height": 2
+        }
+      ]
+    },
+    {
+      "name": "issue tab selection",
+      "route": "pages/management-rewards/index",
+      "value": "issue",
+      "tabs": [
+        {
+          "id": "activity",
+          "label": "配置",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-0"
+        },
+        {
+          "id": "issue",
+          "label": "发券",
+          "disabled": false,
+          "selected": true,
+          "domId": "section-tab-1"
+        },
+        {
+          "id": "fulfill",
+          "label": "领取订单",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-2"
+        }
+      ],
+      "buttons": [
+        {
+          "left": 14,
+          "right": 60,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 46,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 66,
+          "right": 112,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 46,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 118,
+          "right": 194,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        }
+      ],
+      "labels": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 52,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 30,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 74,
+          "right": 104,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 30,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 126,
+          "right": 186,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 60,
+          "height": 18.75
+        }
+      ],
+      "markers": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 77,
+          "right": 101,
+          "top": 208.5625,
+          "bottom": 210.5625,
+          "width": 24,
+          "height": 2
+        }
+      ]
+    },
+    {
+      "name": "fulfillment tab",
+      "route": "pages/management-rewards/index",
+      "value": "fulfill",
+      "tabs": [
+        {
+          "id": "activity",
+          "label": "配置",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-0"
+        },
+        {
+          "id": "issue",
+          "label": "发券",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-1"
+        },
+        {
+          "id": "fulfill",
+          "label": "领取订单",
+          "disabled": false,
+          "selected": true,
+          "domId": "section-tab-2"
+        }
+      ],
+      "buttons": [
+        {
+          "left": 14,
+          "right": 60,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 46,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 66,
+          "right": 112,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 46,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 118,
+          "right": 194,
+          "top": 176.1875,
+          "bottom": 220.1875,
+          "width": 76,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        }
+      ],
+      "labels": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 22,
+          "right": 52,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 30,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 74,
+          "right": 104,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 30,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 126,
+          "right": 186,
+          "top": 185.8125,
+          "bottom": 204.5625,
+          "width": 60,
+          "height": 18.75
+        }
+      ],
+      "markers": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 144,
+          "right": 168,
+          "top": 208.5625,
+          "bottom": 210.5625,
+          "width": 24,
+          "height": 2
+        }
+      ]
+    },
+    {
+      "name": "community reference tabs",
+      "route": "pages/community/index",
+      "value": "featured",
+      "tabs": [
+        {
+          "id": "featured",
+          "label": "精选",
+          "disabled": false,
+          "selected": true,
+          "domId": "section-tab-0"
+        },
+        {
+          "id": "following",
+          "label": "关注",
+          "disabled": false,
+          "selected": false,
+          "domId": "section-tab-1"
+        }
+      ],
+      "buttons": [
+        {
+          "left": 19,
+          "right": 65,
+          "top": 93,
+          "bottom": 137,
+          "width": 46,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        },
+        {
+          "left": 71,
+          "right": 117,
+          "top": 93,
+          "bottom": 137,
+          "width": 46,
+          "height": 44,
+          "border-top-width": "0px",
+          "border-right-width": "0px",
+          "box-shadow": "none"
+        }
+      ],
+      "labels": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 57,
+          "top": 102.625,
+          "bottom": 121.375,
+          "width": 30,
+          "height": 18.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 79,
+          "right": 109,
+          "top": 102.625,
+          "bottom": 121.375,
+          "width": 30,
+          "height": 18.75
+        }
+      ],
+      "markers": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 30,
+          "right": 54,
+          "top": 125.375,
+          "bottom": 127.375,
+          "width": 24,
+          "height": 2
+        }
+      ]
+    }
+  ],
+  "foil": [
+    {
+      "phase": "rest",
+      "route": "pages/profile/index",
+      "surface": "",
+      "x": 50,
+      "y": 50,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    },
+    {
+      "phase": "held",
+      "route": "pages/profile/index",
+      "surface": "member",
+      "x": 80,
+      "y": 40,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": true,
+          "lowMotion": false,
+          "shiftX": 21,
+          "shiftY": -2,
+          "angle": 2,
+          "tone": "member",
+          "active": true,
+          "x": 80,
+          "y": 40,
+          "intro": true,
+          "flash": true,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": true,
+          "lowMotion": false,
+          "shiftX": 21,
+          "shiftY": -2,
+          "angle": 2,
+          "tone": "member",
+          "active": true,
+          "x": 80,
+          "y": 40,
+          "intro": true,
+          "flash": true,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    },
+    {
+      "phase": "vertical release",
+      "route": "pages/profile/index",
+      "surface": "",
+      "x": 50,
+      "y": 50,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "member",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": true,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    },
+    {
+      "phase": "fresh complete tap",
+      "route": "pages/points/index"
+    },
+    {
+      "phase": "coupon material",
+      "route": "pages/rewards/index",
+      "surface": "",
+      "x": 50,
+      "y": 50,
+      "component": {
+        "properties": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "coupon",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": false,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        },
+        "data": {
+          "visible": true,
+          "introActive": false,
+          "flashActive": false,
+          "lowMotion": false,
+          "shiftX": 0,
+          "shiftY": 0,
+          "angle": 0,
+          "tone": "coupon",
+          "active": false,
+          "x": 50,
+          "y": 50,
+          "intro": false,
+          "flash": false,
+          "reduced": false,
+          "quiet": false
+        }
+      }
+    }
+  ],
+  "scope": "Native simulator; virtual storage and all HTTP intercepted; injected touch events; tab changes dispatched through production Component.select and native custom events; not physical gestures",
+  "realMemberWrites": 0,
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "result": "passed scoped native material rendering, touch/scroll release, fresh navigation, unified tab geometry and custom event routing",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [
+      {
+        "path": "/v1/me/points?limit=20&source=all",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/me/points/club",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/me/points/gifts",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/me/points/redemptions",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/capabilities",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/feed/page?limit=30",
+        "method": "GET",
+        "handled": false
+      },
+      {
+        "path": "/v1/me/community-access",
+        "method": "GET",
+        "handled": false
+      }
+    ],
+    "requestCount": 21,
+    "realMemberWrites": 0
+  }
+}

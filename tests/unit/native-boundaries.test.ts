@@ -146,6 +146,8 @@ describe("native mini program boundary", () => {
       "management-fulfillment/index.wxml": 1,
       "product/index.wxml": 3,
       "referral/index.wxml": 2,
+      "rewards/index.wxml": 4,
+      "management-rewards/index.wxml": 6,
     });
 
     const normalize = (expression: string) => expression.replace(/\s+/g, "");
@@ -207,19 +209,19 @@ describe("native mini program boundary", () => {
     const root = resolve("apps/miniprogram/pages");
     const expected: Record<string, string[]> = {
       account: ["back", "openTerms", "openPrivacy", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "@contact", "restartLogin", "loginTap", "browseCommunity"],
-      "community-activity": ["back", "selectSource", "selectSection", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
+      "community-activity": ["back", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
       "community-author": ["back", "back", "load", "openSettings", "toggleFollow", "openBio", "openDrafts", "openActivity", "openPost", "openDrafts", "onReachBottom", "closeBio", "saveBio", "reloadBio"],
       "community-compose": ["back", "showMyPosts", "retryPendingImageEdit", "discardPendingImageEdit", "openComposerMediaSettings", "retryChoosingMedia", "retryLoad", "verifyWriteResult", "reloadRemoteDraft", "startNew", "selectDraftFilter", "openDraft", "deleteListDraft", "loadMoreList", "openPublicationResult", "returnToCommunity", "refreshPublication", "editPendingPublication", "showMyPosts", "returnToCommunity", "submitAppeal", "retryPreview", "retryImage", "retryPreview", "removeImage", "addContent", "showMyPosts", "returnToCommunity", "refreshPublicGate", "saveDraft", "submit"],
       "community-post": ["back", "open"],
-      "community-review": ["back", "back", "load", "back", "selectEditorialQueue", "openEditorialArticle", "reviewEditorial", "reviewEditorial", "reviewEditorial", "deleteEditorial", "loadMoreEditorialQueue"],
-      community: ["selectMode", "selectMode", "selectMode", "selectMode", "loadReview", "reviewMemberProfile", "reviewMemberProfile", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "selectMode", "load", "openPost", "onReachBottom", "openMyPosts", "choosePublisherSource", "choosePublisherSource", "choosePublisherSource", "openPublisherMediaSettings", "retryPublisherMedia", "closePublisherEntry"],
+      "community-review": ["back", "back", "load", "back", "openEditorialArticle", "reviewEditorial", "reviewEditorial", "reviewEditorial", "deleteEditorial", "loadMoreEditorialQueue"],
+      "community": ["loadReview", "reviewMemberProfile", "reviewMemberProfile", "decideFormalAppeal", "decideFormalAppeal", "loadMoreAppeals", "openReportTarget", "decideFormalReport", "decideFormalReport", "decideFormalReport", "loadMoreReports", "selectMode", "load", "openPost", "onReachBottom", "openMyPosts", "choosePublisherSource", "choosePublisherSource", "choosePublisherSource", "openPublisherMediaSettings", "retryPublisherMedia", "closePublisherEntry"],
       home: ["openSupport", "primaryAction", "openRecords", "retryLoad", "retryCareMutation", "closeCareSession", "retryLoad", "retryCareMutation", "toggleCareProduct", "continueCareUsage", "advanceCareStep", "selectAssessment", "submitCareSession"],
       invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
       legal: ["back", "load", "privacyRights"],
-      "management-member": ["back", "back", "load", "selectSection", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
-      "management-members": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "selectFilter", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
-      management: ["back", "retry", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "retry", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openFinance", "openMembers", "openPoints", "openSupport", "openEditorialComments", "openPrivacy", "retryRuntime"],
+      "management-member": ["back", "back", "load", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
+      "management-members": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
+      "management": ["back", "retry", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "retry", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openFinance", "openMembers", "openRewards", "openPoints", "openSupport", "openEditorialComments", "openPrivacy", "retryRuntime"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
@@ -227,18 +229,18 @@ describe("native mini program boundary", () => {
       aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit"],
       "management-fulfillment": ["back", "retry", "retry", "next", "exportExcel", "chooseXlsx", "submit", "reconcileBatch", "newBatch", "openImportOrder"],
       "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "executeCorrection", "submit", "closeDetail"],
-      "management-finance": ["back", "selectSection", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "openOrder", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
+      "management-finance": ["back", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "openOrder", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
       "management-support": ["back", "open", "retry"],
       "management-support-chat": ["back", "openContext", "loadOlder", "selectReplyTarget", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
       "management-points": ["back", "load", "retryCommand", "selectState", "choose", "more", "multiplier", "multiplier", "approve", "togglePolicy", "openPolicy", "feature", "close", "fulfill", "propose"],
-      points: ["back", "openRules", "selectSection", "load", "openCommunity", "openShop", "openInvite", "load", "selectSource", "loadMore", "recoverGift", "recoverGift", "recoverGift", "chooseGift", "load", "giftAction", "giftAction", "giftAction", "openSupport", "load", "closeRules", "closeGift", "changeGiftQuantity", "changeGiftQuantity", "chooseAddress", "load", "openAddresses", "redeemGift"],
+      "points": ["back", "openRules", "load", "openCommunity", "openShop", "openInvite", "load", "selectSource", "loadMore", "recoverGift", "recoverGift", "recoverGift", "chooseGift", "load", "giftAction", "giftAction", "giftAction", "openSupport", "load", "closeRules", "closeGift", "changeGiftQuantity", "changeGiftQuantity", "chooseAddress", "load", "openAddresses", "redeemGift"],
       post: ["replyComment", "deleteComment", "likeComment", "loginToViewComments", "back", "load", "openAuthor", "toggleFollow", "loadSocial", "copySource", "retryEditorialComments", "expandReplies", "loadMoreEditorialComments", "expandReplies", "load", "backToCommunity", "loadSocial", "cancelReply", "sendComment", "startComment", "toggleLike", "toggleSave", "@share", "sendComment", "toggleLike", "toggleSave", "showComments", "@share", "load", "editOwn", "deleteOwn", "closeEditorialBlocks", "loadEditorialBlocks", "unblockEditorialAuthor", "loadMoreEditorialBlocks"],
       "privacy-rights": ["back", "openSupport", "@contact", "openHistoricalOrders", "submit", "load", "startReply", "cancelReply", "sendReply", "viewSupplementary", "viewExport", "revokeExport", "retryExport", "changeManifestPage", "changeManifestPage", "sendManifestPage", "changePart", "changePart", "sendPart", "copyRequestId", "loadMore", "login"],
-      product: ["back", "jumpAnchor", "jumpAnchor", "jumpAnchor", "previewGallery", "selectGallery", "load", "openSku", "previewDetail", "load", "back", "openSupport", "buy", "closeSku", "selectSku", "decrease", "increase", "confirmSku"],
-      checkout: ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "requestQuote", "refreshQuote", "confirmOrder"],
+      "product": ["back", "previewGallery", "selectGallery", "load", "openSku", "previewDetail", "load", "back", "openSupport", "buy", "closeSku", "selectSku", "decrease", "increase", "confirmSku"],
+      "checkout": ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "openCoupons", "loadCoupons", "requestQuote", "refreshQuote", "confirmOrder", "closeCoupons", "chooseCoupon", "chooseCoupon", "loadCoupons"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadSupportSheet", "loadShipment", "copyWaybill", "openLogistics", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "recheckPayment", "preparePayment", "cancel", "toggleRecordedHistory"],
-      profile: ["openAccount", "openSettings", "openPoints", "load", "openSupport", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openCommunityActivity", "openMyPosts", "openSettings"],
+      "profile": ["openAccount", "openSettings", "openPoints", "load", "openSupport", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openRewards", "openCommunityActivity", "openMyPosts", "openSettings"],
       progress: ["returnToCommunity"],
       records: ["backRecords", "retryUsageRecords", "retryUsageRecords", "selectUsageDay", "retryUsageDate", "openUsageRecord", "goHome", "authenticate", "retryLoad", "closeUsageDetail", "adjustUsageToday", "openUsagePoints"],
       referral: ["back", "preview", "confirm"],
@@ -246,6 +248,8 @@ describe("native mini program boundary", () => {
       shop: ["openOrders", "openProduct", "load", "openProduct"],
       submit: ["returnToCommunity"],
       support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "requestHuman", "startNewTopic", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
+      "rewards": ["back", "load", "retryPending", "cancelPending", "openVoucher", "openClaim", "support", "support", "openClaim", "loadMoreClaims", "useCoupon", "chooseBundle", "editSurvey", "openRules", "support", "editAddress", "editAddress", "openSelectedClaim", "support", "copyTracking", "openCoupons", "cancelClaim", "openReturn", "support", "confirm", "receive", "closeRules", "support", "closeReturn", "submitReturn", "closeProducts", "openCouponProduct", "support"],
+      "management-rewards": ["back", "retryLoad", "reconcile", "openConfig", "openConfig", "openStock", "openIssue", "openRevoke", "loadMore", "export", "openDetail", "loadMore", "closeSheet", "reconcile", "loadProducts", "saveConfig", "saveConfig", "saveConfig", "stockDirection", "stockDirection", "saveStock", "issue", "revoke", "operate", "operate", "operate"],
       task: ["returnToCommunity"]
     };
 
@@ -369,4 +373,18 @@ describe("native mini program boundary", () => {
     expect(communityComposeMarkup).toMatch(/<scroll-view class="composer-media-scroll" scroll-x="\{\{true\}\}" scroll-left="\{\{mediaScrollLeft\}\}" bindscroll="onMediaScroll"/);
     expect(communityComposeMarkup).toContain('catchtouchmove="{{mediaDragging ? \'moveMediaDrag\' : \'\'}}"');
   });
+});
+
+
+it("keeps the edited reward and coupon templates balanced for the native WXML compiler", async () => {
+  for(const route of ["rewards", "management-rewards", "checkout"]){
+    const template=await readFile(`apps/miniprogram/pages/${route}/index.wxml`,"utf8"),stack:string[]=[];
+    const tags=template.matchAll(/<(\/?)([a-zA-Z][\w:-]*)(?:"[^"]*"|'[^']*'|[^'">])*>/g);
+    for(const tag of tags){const text=tag[0],closing=tag[1],name=tag[2]!;
+      if(closing)expect(stack.pop(),`${route}: ${text}`).toBe(name);
+      else if(!text.endsWith("/>"))stack.push(name);
+      expect((text.match(/\sclass=/g)??[]).length,`${route}: duplicate class attribute`).toBeLessThanOrEqual(1);
+    }
+    expect(stack,route).toEqual([]);
+  }
 });

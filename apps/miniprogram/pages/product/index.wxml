@@ -1,7 +1,7 @@
 <page-meta root-font-size="system"/>
 <view class="chrome-root" style="{{chromeStyle}}">
   <view class="product-nav"><view class="topbar product-topbar"><button class="topbar__back {{leaving ? 'control--disabled' : ''}}" bindtap="back" disabled="{{leaving}}" aria-label="返回商城"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">商品详情</text></view>
-    <view class="product-tabs" aria-role="tablist"><button data-anchor="goods" bindtap="jumpAnchor" class="product-tab {{anchor==='goods'?'is-active':''}}" aria-role="tab" aria-selected="{{anchor==='goods'}}"><text>商品</text><view class="product-tab__marker {{anchor==='goods'?'product-tab__marker--active':''}}"/></button><button data-anchor="details" bindtap="jumpAnchor" class="product-tab {{anchor==='details'?'is-active':''}}" aria-role="tab" aria-selected="{{anchor==='details'}}"><text>详情</text><view class="product-tab__marker {{anchor==='details'?'product-tab__marker--active':''}}"/></button><button data-anchor="reviews" bindtap="jumpAnchor" class="product-tab {{anchor==='reviews'?'is-active':''}}" aria-role="tab" aria-selected="{{anchor==='reviews'}}"><text>评价</text><view class="product-tab__marker {{anchor==='reviews'?'product-tab__marker--active':''}}"/></button></view>
+    <view class="product-tabs"><section-tabs id="page-tabs" items="{{[{id:'goods',label:'商品'},{id:'details',label:'详情'},{id:'reviews',label:'评价'}]}}" value="{{anchor}}" label="商品详情分类" bindchange="jumpAnchor" reselect="{{true}}"/></view>
   </view>
   <view class="product-page">
     <view wx:if="{{loading && !item}}" class="page-read-loading" aria-role="status" aria-label="正在加载商品资料…"><view class="page-read-loading__indicator"/></view>

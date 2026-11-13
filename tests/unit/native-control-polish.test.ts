@@ -9,18 +9,17 @@ const rule=(css:string,selector:string)=>{
 };
 
 describe("targeted native control polish contracts (not visual acceptance)",()=>{
-  it("uses one sliding rail sized to the selected source with full-size native tab buttons",()=>{
-    const template=read("community-activity","wxml"),css=read("community-activity","wxss");
-    assert.equal((template.match(/class="activity-tabs__indicator"/g)||[]).length,1);
-    assert.match(template,/<button wx:for="{{tabs}}"[\s\S]*?role="tab"/);
-    assert.match(template,/aria-selected="{{section===item.key}}"/);
-    assert.match(template,/translateX\({{activeTabIndex\*100}}%\)/);assert.match(template,/width:{{100\/tabs.length}}%/);
-    assert.match(template,/data-source="{{item.key}}" bindtap="selectSource"/);
-    const tab=rule(css,".activity-tab");for(const style of ["display:flex","align-items:center","justify-content:center","background:transparent","min-height:48px"])assert.ok(tab.includes(style));
-    assert.ok(rule(css,".activity-tabs__indicator").includes("width:20%"));
+  it("uses the community-standard tab component for both activity categories",()=>{
+    const template=read("community-activity","wxml"),css=readFileSync('apps/miniprogram/components/section-tabs/index.wxss','utf8');
+    assert.equal((template.match(/<section-tabs /g)||[]).length,2);
+    assert.match(template,/items="{{sources}}"[\s\S]*?bindchange="selectSource"/);
+    assert.match(template,/items="{{tabs}}"[\s\S]*?bindchange="selectSection"/);
+    const tab=rule(css,'.section-tabs__tab');for(const style of ['display:flex','align-items:center','justify-content:center','background:transparent','min-height:44px','border:0'])assert.ok(tab.includes(style));
+    const marker=rule(css,'.section-tabs__marker');for(const style of ['width:24px','height:2px','margin-top:4px'])assert.ok(marker.includes(style));
+    assert.doesNotMatch(template,/activity-tabs__indicator|translateX/);
   });
   it("provides reduced-motion fallback without a JS animation runtime",()=>{
-    const css=read("community-activity","wxss"),source=read("community-activity","ts");
+    const css=readFileSync('apps/miniprogram/components/section-tabs/index.wxss','utf8'),source=readFileSync('apps/miniprogram/components/section-tabs/index.ts','utf8');
     assert.match(css,/@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*transition:none/);
     assert.doesNotMatch(source,/gsap|requestAnimationFrame|setInterval/);
   });
@@ -43,7 +42,7 @@ describe("targeted native control polish contracts (not visual acceptance)",()=>
   });
   it("shortens commission explanations without hiding financial boundaries",()=>{
     const template=read("commission","wxml");
-    for(const copy of ["测试记录，不涉及真实结算或提现。","金额随订单、退款和结算结果更新，与积分分别记录。","退款争议可能减少下单可用额","购物权益与佣金、积分分别记录","使用时不重复计算佣金","不要重复申请"])assert.ok(template.includes(copy));
+    for(const copy of ["测试记录，不涉及真实结算或提现。","金额随订单、退款和结算更新","退款争议可能减少下单可用额","购物权益与佣金、积分分别记录","使用时不重复计算佣金","勿重复申请"])assert.ok(template.includes(copy));
     assert.doesNotMatch(template,/状态由已核验支付、退款、履约和结算事实重建/);
     for(const condition of ["isolatedCredit&&creditFormVisible","isolatedTransfer&&formVisible","busy||!coreReady"])assert.ok(template.includes(condition));
   });

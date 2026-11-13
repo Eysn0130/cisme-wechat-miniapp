@@ -1,0 +1,410 @@
+[
+  {
+    "route": "profile",
+    "before": "查看订单、物流与售后",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "profile",
+    "before": "分享给朋友，查看邀请记录",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "profile",
+    "before": "查看推荐记录与佣金",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "profile",
+    "before": "处理订单、客服与运营事项",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "profile",
+    "before": "查看已发布内容与草稿",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "profile",
+    "before": "昵称、收货地址、隐私、会员编号",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "profile",
+    "before": "会员积分 · 可用",
+    "after": "可用积分",
+    "reason": "Keep the balance category; remove the duplicate phrase."
+  },
+  {
+    "route": "settings",
+    "before": "资料、配送与账号管理",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "settings",
+    "before": "查看或修改护理需求与选品偏好",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "settings",
+    "before": "查看成员、推荐与费率",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "settings",
+    "before": "查看当前版本和联系渠道",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "settings",
+    "before": "申请查阅、更正、删除或注销",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "settings",
+    "before": "会员编号、版本和服务说明",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "settings",
+    "before": "可手动填写，或从微信收货地址中选择。",
+    "after": "",
+    "reason": "Buttons already offer the address-entry options."
+  },
+  {
+    "route": "records",
+    "before": "用过的产品，和当时的自己。",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "rewards",
+    "before": "你的活动奖励，可以领取了",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "rewards",
+    "before": "指定正装及套组适用",
+    "after": "",
+    "reason": "The use action opens the actual eligible product list; threshold and expiry remain on the coupon."
+  },
+  {
+    "route": "rewards",
+    "before": "收货后，再送一份心意",
+    "after": "还没有优惠券",
+    "reason": "Do not suggest that every purchase earns this award-only coupon."
+  },
+  {
+    "route": "rewards",
+    "before": "<text>旅行套装确认收货，即可获得体验正装券</text>",
+    "after": "<text wx:if=\"{{wallet.vouchers.length||wallet.claims.length}}\">旅行套装收货后发放</text>",
+    "reason": "Show the relevant condition only to an awarded member."
+  },
+  {
+    "route": "rewards",
+    "before": "选一款正装，带上心意。",
+    "after": "适用商品",
+    "reason": "Use a direct sheet title."
+  },
+  {
+    "route": "rewards",
+    "before": "两套暂时兑完，兑换券已保留",
+    "after": "暂时兑完，兑换券已保留",
+    "reason": "Retain stockout recovery without repetition."
+  },
+  {
+    "route": "rewards",
+    "before": "适用商品暂未上架，优惠券为你保留",
+    "after": "适用商品暂未上架",
+    "reason": "Retain the unavailable state; the visible coupon already shows ownership and expiry."
+  },
+  {
+    "route": "management-rewards",
+    "before": "组件库存",
+    "after": "旅行装库存",
+    "reason": "Use the operator-facing product name."
+  },
+  {
+    "route": "management-rewards",
+    "before": "真实数量待确认",
+    "after": "待确认",
+    "reason": "The stock state is necessary, the qualifier is redundant."
+  },
+  {
+    "route": "management-rewards",
+    "before": "收货后发满198减20正装券",
+    "after": "收货赠满198减20券",
+    "reason": "Retain the actual benefit condition."
+  },
+  {
+    "route": "management-rewards",
+    "before": "确认库存并发布活动后，即可发券",
+    "after": "先确认库存并发布活动",
+    "reason": "Keep the actionable prerequisite."
+  },
+  {
+    "route": "points",
+    "before": "以实际到账和使用情况为准。",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "points",
+    "before": "纯积分兑换，无需现金支付。数量、库存以确认时为准。",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "points",
+    "before": "原创笔记、有效互动，按规则计分",
+    "after": "发布笔记，参与互动",
+    "reason": "The rules entry holds detailed earning criteria."
+  },
+  {
+    "route": "points",
+    "before": "购物后，确认收货得积分",
+    "after": "确认收货后到账",
+    "reason": "Keep the timing condition."
+  },
+  {
+    "route": "points",
+    "before": "好友注册并完成首购收货，双方得积分",
+    "after": "好友首购收货，双方得积分",
+    "reason": "Retain first-purchase receipt condition; registration is required by checkout."
+  },
+  {
+    "route": "points",
+    "before": "上一笔礼品兑换结果尚待确认，请先核对。",
+    "after": "上次兑换待确认",
+    "reason": "Keep recovery state with adjacent actions."
+  },
+  {
+    "route": "invite",
+    "before": "朋友确认推荐码后，你可在“我的”查看推荐记录。",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "invite",
+    "before": "生成卡片后，由你选择是否发送。",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "invite",
+    "before": "还没有邀请卡，生成后即可分享给朋友。",
+    "after": "还没有邀请卡",
+    "reason": "Keep the empty state with the create action."
+  },
+  {
+    "route": "referral",
+    "before": "DIRECT REFERRAL",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "referral",
+    "before": "填写朋友的推荐码，确认后不能更换推荐人。",
+    "after": "确认后不能更换推荐人",
+    "reason": "Keep the irreversible consequence, the input explains what to enter."
+  },
+  {
+    "route": "referral",
+    "before": "推荐资格、费率与结算以生效规则为准，退款会调整对应佣金。",
+    "after": "",
+    "reason": "Qualified rates and refunds are shown in the actual commercial flow; this page only binds a sponsor."
+  },
+  {
+    "route": "privacy-rights",
+    "before": "还没有申请记录。选择上方事项并提交后，可在这里查看进度。",
+    "after": "还没有申请记录",
+    "reason": "The form already exposes the application actions."
+  },
+  {
+    "route": "privacy-rights",
+    "before": "登录后可提交申请并查看处理进度。",
+    "after": "登录后可提交申请",
+    "reason": "Keep the authentication requirement."
+  },
+  {
+    "route": "management",
+    "before": "待办暂未更新，可进入各工作台查看。",
+    "after": "待办暂未更新",
+    "reason": "Entry cards already expose each workbench."
+  },
+  {
+    "route": "management-product",
+    "before": "资质确认后可上架；库存决定可售数量。",
+    "after": "",
+    "reason": "Qualification, publication and stock controls already expose their current states."
+  },
+  {
+    "route": "management-product",
+    "before": "正在核对最新内容，当前草稿会保留…",
+    "after": "正在核对最新内容…",
+    "reason": "Keep loading state."
+  },
+  {
+    "route": "management-product",
+    "before": "当前草稿已保留。你可以继续编辑草稿，或加载最新保存的内容。",
+    "after": "草稿已保留",
+    "reason": "Keep recovery state; adjacent actions explain the options."
+  },
+  {
+    "route": "management-product",
+    "before": "当前库存 {{product.stockOnHand}}。输入正数入库、负数出库。",
+    "after": "库存 {{product.stockOnHand}} · 正数入库，负数出库",
+    "reason": "Signed adjustments require clear operator instructions."
+  },
+  {
+    "route": "management-support-chat",
+    "before": "仅用于当前客服处理，本次查看已审计。",
+    "after": "",
+    "reason": "Retain access controls and audit writes in code; do not present audit implementation as interface help."
+  },
+  {
+    "route": "management-support-chat",
+    "before": "请以案件中保存的申请时间、收件和退款记录为准，聊天说明不会直接更新这些记录。",
+    "after": "退货与退款请在售后单处理",
+    "reason": "Keep the boundary between chat and the actual case action."
+  },
+  {
+    "route": "management-fulfillment",
+    "before": "含收件信息，仅供履约；每次最多500单。",
+    "after": "每批最多500单",
+    "reason": "Keep the import bound."
+  },
+  {
+    "route": "management-fulfillment",
+    "before": "填写快递代码、名称、运单号及交寄北京时间，保存为XLSX。运单号用文本格式；每批1–500单，空物流行跳过。",
+    "after": "按模板填写物流，运单号用文本格式。",
+    "reason": "Template headers expose required columns; text formatting prevents lost waybill digits."
+  },
+  {
+    "route": "management-fulfillment",
+    "before": "或粘贴五列：订单号、快递代码、名称、运单号、交寄时间。",
+    "after": "订单号 · 快递代码 · 名称 · 运单号 · 交寄时间",
+    "reason": "Adjacent template supplies the required column order."
+  },
+  {
+    "route": "management-order-detail",
+    "before": "本店历史收货记录已登记；微信状态以平台查询为准",
+    "after": "本店已记录收货，微信状态待核对",
+    "reason": "Keep the distinction between local and platform facts."
+  },
+  {
+    "route": "management-order-detail",
+    "before": "支付、发货、签收与退款分别核对。",
+    "after": "",
+    "reason": "The destination label or current controls already explain this information."
+  },
+  {
+    "route": "management-members",
+    "before": "没有符合条件的成员，请调整搜索或筛选。",
+    "after": "没有符合条件的成员",
+    "reason": "Search and filters already expose the recovery actions."
+  },
+  {
+    "route": "commission",
+    "before": "金额随订单、退款和结算结果更新，与积分分别记录。",
+    "after": "金额随订单、退款和结算更新",
+    "reason": "Keep actual balance determinants."
+  },
+  {
+    "route": "commission",
+    "before": "显示上次读取的内容，正在等待最新核验；暂不可提交资金操作。",
+    "after": "正在核对，暂不能提交",
+    "reason": "Keep stale-data protection and the disabled-operation state."
+  },
+  {
+    "route": "commission",
+    "before": "原填写内容已清除，请联系客服核对，不要重复申请。",
+    "after": "请联系客服核对，勿重复申请",
+    "reason": "Keep the recovery action and duplicate-submission consequence."
+  },
+  {
+    "route": "order-detail",
+    "before": "原填写内容已清除，请联系客服核对，不要重复申请。",
+    "after": "请联系客服核对，勿重复申请",
+    "reason": "Keep safe recovery."
+  },
+  {
+    "route": "order-detail",
+    "before": "选择问题和商品后提交，我们会为你处理。",
+    "after": "",
+    "reason": "The form labels and submit action explain the sequence."
+  },
+  {
+    "route": "order-detail",
+    "before": "你此前在本店的确认已记录；微信记录以平台查询为准。",
+    "after": "本店已记录收货，微信状态待核对",
+    "reason": "Keep fact provenance."
+  },
+  {
+    "route": "order-detail",
+    "before": "你在本店的收货确认已记录。",
+    "after": "已记录收货",
+    "reason": "Keep the actual status."
+  },
+  {
+    "route": "aftersale",
+    "before": "当前没有售后记录。",
+    "after": "还没有售后记录",
+    "reason": "Use a direct empty state."
+  },
+  {
+    "route": "aftersale",
+    "before": "上次操作待核对，请沿用原申请重试。",
+    "after": "上次操作待确认，请重试原申请",
+    "reason": "Keep idempotent recovery."
+  },
+  {
+    "route": "aftersale",
+    "before": "客服正在核对退货地址。收到指引后再寄出，原申请时间会保留。",
+    "after": "退货地址待确认，请先不要寄出",
+    "reason": "Keep the critical shipping instruction."
+  },
+  {
+    "route": "support",
+    "before": "人工接待 09:00–22:00（北京时间），其他时间可留言。",
+    "after": "人工客服 09:00–22:00（北京时间）",
+    "reason": "Keep hours without a full explanatory sentence."
+  },
+  {
+    "route": "profile",
+    "before": "<small>{{supportState === 'loading' && supportUnread === null ? '正在查看未读消息' : supportUnread === null ? '进入客服查看回复' : supportUnread ? supportUnread + ' 条未读回复' : '咨询护理、账号与服务问题'}}</small>",
+    "after": "",
+    "reason": "The service entry and unread badge already show the destination and actual count; do not narrate an auxiliary read."
+  },
+  {
+    "route": "account",
+    "before": "        <view class=\"account-hero__description\" wx:if=\"{{renewalMode}}\"><text>确认新版条款后，继续点赞、收藏、关注和评论。</text><text>暂不确认，也可继续阅读。</text></view>\n        <view class=\"account-hero__description\" wx:elif=\"{{pendingDestination && loginStage === 'login'}}\"><text>已登录，继续查看护理记录与订单。</text></view>\n        <view class=\"account-hero__description\" wx:elif=\"{{loginStage === 'login'}}\">\n          <text>登录后查看护理记录与订单。</text>\n          <text>首次登录即创建账号。</text>\n        </view>\n        <view class=\"account-hero__description\" wx:else>\n          <text>登录成功。可选择微信头像，</text>\n          <text>也可稍后设置。</text>\n        </view>",
+    "after": "The primary heading names the current stage; the sign-in action now says 微信登录/注册.",
+    "reason": "Remove introductory narration while keeping account creation explicit in the action itself."
+  },
+  {
+    "route": "profile",
+    "before": "<text class=\"profile-identity__eyebrow\">CISME 会员</text>",
+    "after": "",
+    "reason": "The member name and actual card identity provide this context."
+  },
+  {
+    "route": "settings",
+    "before": "在这里管理你的常用收货地址。",
+    "after": "",
+    "reason": "The address book and add action explain the task; retain only the actual capacity limit when it is reached."
+  }
+]

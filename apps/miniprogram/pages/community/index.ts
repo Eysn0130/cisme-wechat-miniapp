@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import { projectFeedCards, feedColumnPatch } from "../../services/feed-projection";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
@@ -311,7 +312,7 @@ Page({
     finally{if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.data.mode==="featured")this.setData({formalLoadingMore:false});}
   },
   async selectMode(event: WechatMiniprogram.TouchEvent) {
-    const mode = String(event.currentTarget.dataset.mode);
+    const mode = sectionTabValue(event,'mode');
     if (!["featured", "recommend", "following", "review"].includes(mode) || (mode === "review" && !this.data.canReview)) return;
     if (mode === "recommend" && !this.data.ugcFeedEnabled && !this.data.socialPreviewEnabled) return;
     if (mode === this.data.mode || this.data.reviewBusy || this.data.publishEntryBusy || this.data.navigating) return;

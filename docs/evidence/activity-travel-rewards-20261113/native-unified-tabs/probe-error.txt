@@ -1,0 +1,2 @@
+Error: Command failed: wechatide -c Codex automation_navigate --project /Users/mini/CISME/apps/miniprogram --action navigateTo --url /pages/rewards/index
+[wechatide] skill-call: client=Codex tool=automation_navigate

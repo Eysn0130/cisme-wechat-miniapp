@@ -1,0 +1,410 @@
+{
+  "packageSourceSha256": "cad48eeab34f106dc3186da6226b3a75c3721b1bafdf41b4cd9d171343883e44",
+  "scope": "Native WeChat simulator; all HTTP and storage isolated; no actual member assets or money operations",
+  "captures": [
+    {
+      "name": "01-member-texture",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/holo-card-depth-20261113/native-cad48eeab34f/01-member-texture.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "02-member-flow",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/holo-card-depth-20261113/native-cad48eeab34f/02-member-flow.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "03-award-texture",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/holo-card-depth-20261113/native-cad48eeab34f/03-award-texture.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "04-visible-history",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/holo-card-depth-20261113/native-cad48eeab34f/04-visible-history.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "05-offscreen-material",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/holo-card-depth-20261113/native-cad48eeab34f/05-offscreen-material.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "06-return-to-card",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/holo-card-depth-20261113/native-cad48eeab34f/06-return-to-card.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "07-coupon-texture",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/holo-card-depth-20261113/native-cad48eeab34f/07-coupon-texture.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "08-reduced-material",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/holo-card-depth-20261113/native-cad48eeab34f/08-reduced-material.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    }
+  ],
+  "states": [
+    {
+      "phase": "visible member",
+      "route": "pages/profile/index",
+      "data": {
+        "visible": true,
+        "inViewport": true,
+        "ambientOn": true,
+        "lowMotion": false,
+        "silkReady": true,
+        "engravingReady": true,
+        "textureUnavailable": false,
+        "introActive": false,
+        "flashActive": false,
+        "shiftX": 0,
+        "shiftY": 0,
+        "angle": 0,
+        "engraveX": 0,
+        "engraveY": 0,
+        "spotX": 0,
+        "spotY": 0,
+        "tone": "member",
+        "active": false,
+        "x": 50,
+        "y": 50,
+        "intro": true,
+        "flash": false,
+        "reduced": false,
+        "quiet": false
+      },
+      "ambient": {
+        "left": -76.10133361816406,
+        "right": 427.32481384277344,
+        "top": 120.54852294921875,
+        "bottom": 397.7439880371094,
+        "width": 503.4261474609375,
+        "height": 277.1954650878906,
+        "animation-name": "foil-breathe",
+        "animation-play-state": "running",
+        "transform": "matrix(1.04429, -0.0618177, 0.0618177, 1.04429, -19.3883, -3.29905)"
+      },
+      "engraving": {
+        "left": 15,
+        "right": 375,
+        "top": 171,
+        "bottom": 353.890625,
+        "width": 360,
+        "height": 182.890625,
+        "opacity": "0.64",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      "reflection": {
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    },
+    {
+      "phase": "later material frame",
+      "route": "pages/profile/index",
+      "data": {
+        "visible": true,
+        "inViewport": true,
+        "ambientOn": true,
+        "lowMotion": false,
+        "silkReady": true,
+        "engravingReady": true,
+        "textureUnavailable": false,
+        "introActive": false,
+        "flashActive": false,
+        "shiftX": 0,
+        "shiftY": 0,
+        "angle": 0,
+        "engraveX": 0,
+        "engraveY": 0,
+        "spotX": 0,
+        "spotY": 0,
+        "tone": "member",
+        "active": false,
+        "x": 50,
+        "y": 50,
+        "intro": true,
+        "flash": false,
+        "reduced": false,
+        "quiet": false
+      },
+      "ambient": {
+        "left": -60.44697570800781,
+        "right": 444.7328338623047,
+        "top": 134.0271453857422,
+        "bottom": 396.26182556152344,
+        "width": 505.1798095703125,
+        "height": 262.23468017578125,
+        "animation-name": "foil-breathe",
+        "animation-play-state": "running",
+        "transform": "matrix(1.07123, -0.0161668, 0.0161668, 1.07123, -2.85706, 2.69916)"
+      },
+      "engraving": {
+        "left": 15,
+        "right": 375,
+        "top": 171,
+        "bottom": 353.890625,
+        "width": 360,
+        "height": 182.890625,
+        "opacity": "0.64",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      "reflection": {
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    },
+    {
+      "phase": "offscreen pause",
+      "route": "pages/rewards/index",
+      "data": {
+        "visible": true,
+        "inViewport": false,
+        "ambientOn": false,
+        "lowMotion": false,
+        "silkReady": true,
+        "engravingReady": true,
+        "textureUnavailable": false,
+        "introActive": false,
+        "flashActive": false,
+        "shiftX": 0,
+        "shiftY": 0,
+        "angle": 0,
+        "engraveX": 0,
+        "engraveY": 0,
+        "spotX": 0,
+        "spotY": 0,
+        "tone": "coupon",
+        "active": false,
+        "x": 50,
+        "y": 50,
+        "intro": false,
+        "flash": false,
+        "reduced": false,
+        "quiet": false
+      },
+      "ambient": {
+        "left": -54.587242126464844,
+        "right": 463.44205474853516,
+        "top": -933.8551635742188,
+        "bottom": -629.08056640625,
+        "width": 518.029296875,
+        "height": 304.77459716796875,
+        "animation-name": "foil-breathe",
+        "animation-play-state": "paused",
+        "transform": "matrix(1.08979, 0.0190851, -0.0190851, 1.08979, 9.4274, 8.1337)"
+      },
+      "engraving": {
+        "left": 14,
+        "right": 376,
+        "top": -894,
+        "bottom": -685.203125,
+        "width": 362,
+        "height": 208.796875,
+        "opacity": "0.42",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      "reflection": {
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    },
+    {
+      "phase": "viewport resume",
+      "route": "pages/rewards/index",
+      "data": {
+        "visible": true,
+        "inViewport": true,
+        "ambientOn": true,
+        "lowMotion": false,
+        "silkReady": true,
+        "engravingReady": true,
+        "textureUnavailable": false,
+        "introActive": false,
+        "flashActive": false,
+        "shiftX": 0,
+        "shiftY": 0,
+        "angle": 0,
+        "engraveX": 0,
+        "engraveY": 0,
+        "spotX": 0,
+        "spotY": 0,
+        "tone": "coupon",
+        "active": false,
+        "x": 50,
+        "y": 50,
+        "intro": false,
+        "flash": false,
+        "reduced": false,
+        "quiet": false
+      },
+      "ambient": {
+        "left": -49.1192626953125,
+        "right": 467.78759765625,
+        "top": 121.59809112548828,
+        "bottom": 431.8061294555664,
+        "width": 516.9068603515625,
+        "height": 310.2080383300781,
+        "animation-name": "foil-breathe",
+        "animation-play-state": "running",
+        "transform": "matrix(1.07624, 0.0384477, -0.0384477, 1.07624, 14.3342, 5.30366)"
+      },
+      "engraving": {
+        "left": 14,
+        "right": 376,
+        "top": 167,
+        "bottom": 375.796875,
+        "width": 362,
+        "height": 208.796875,
+        "opacity": "0.42",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      "reflection": {
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    },
+    {
+      "phase": "visible coupon",
+      "route": "pages/rewards/index",
+      "data": {
+        "visible": true,
+        "inViewport": true,
+        "ambientOn": true,
+        "lowMotion": false,
+        "silkReady": true,
+        "engravingReady": true,
+        "textureUnavailable": false,
+        "introActive": false,
+        "flashActive": false,
+        "shiftX": 0,
+        "shiftY": 0,
+        "angle": 0,
+        "engraveX": 0,
+        "engraveY": 0,
+        "spotX": 0,
+        "spotY": 0,
+        "tone": "coupon",
+        "active": false,
+        "x": 50,
+        "y": 50,
+        "intro": false,
+        "flash": false,
+        "reduced": false,
+        "quiet": false
+      },
+      "ambient": {
+        "left": -72.91519927978516,
+        "right": 427.01192474365234,
+        "top": 134.47262573242188,
+        "bottom": 293.6187744140625,
+        "width": 499.9271240234375,
+        "height": 159.14614868164062,
+        "animation-name": "foil-breathe",
+        "animation-play-state": "running",
+        "transform": "matrix(1.04688, -0.0576745, 0.0576745, 1.04688, -17.9516, -1.45429)"
+      },
+      "engraving": {
+        "left": 14,
+        "right": 376,
+        "top": 167,
+        "bottom": 264,
+        "width": 362,
+        "height": 97,
+        "opacity": "0.42",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      "reflection": {
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      }
+    },
+    {
+      "phase": "reduced flag; not OS preference measurement",
+      "route": "pages/rewards/index",
+      "data": {
+        "visible": true,
+        "inViewport": true,
+        "ambientOn": false,
+        "lowMotion": false,
+        "silkReady": true,
+        "engravingReady": true,
+        "textureUnavailable": false,
+        "introActive": false,
+        "flashActive": false,
+        "shiftX": 0,
+        "shiftY": 0,
+        "angle": 0,
+        "engraveX": 0,
+        "engraveY": 0,
+        "spotX": 0,
+        "spotY": 0,
+        "tone": "coupon",
+        "active": false,
+        "x": 50,
+        "y": 50,
+        "intro": false,
+        "flash": false,
+        "reduced": true,
+        "quiet": false
+      },
+      "ambient": {
+        "left": -40.296875,
+        "right": 430.296875,
+        "top": 152.453125,
+        "bottom": 278.546875,
+        "width": 470.59375,
+        "height": 126.09375,
+        "animation-name": "none",
+        "animation-play-state": "running",
+        "transform": "none"
+      },
+      "engraving": {
+        "left": 14,
+        "right": 376,
+        "top": 167,
+        "bottom": 264,
+        "width": 362,
+        "height": 97,
+        "opacity": "0.42",
+        "transform": "none"
+      },
+      "reflection": {
+        "transform": "none"
+      }
+    }
+  ],
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "hiddenMember": {
+    "visible": false,
+    "ambientOn": false
+  },
+  "result": "passed native SVG decode, actual CSS motion, hidden/offscreen pause and resume, and reduced presentation",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 8,
+    "realMemberWrites": 0
+  },
+  "sourceUnchanged": true
+}

@@ -1,0 +1,47 @@
+.foil{position:absolute;z-index:1;inset:0;overflow:hidden;border-radius:inherit;pointer-events:none;contain:paint}
+.foil__silk,.foil__engraving,.foil__ambient,.foil__spectrum,.foil__nacre,.foil__reflection,.foil__sweep,.foil__veil{position:absolute;pointer-events:none}
+.foil__silk{inset:0;width:100%;height:100%;opacity:.3}
+.foil__engraving{inset:0;width:100%;height:100%;opacity:.42;transition:transform 100ms linear,opacity 220ms ease-out}
+.foil__ambient{inset:-15%;animation:foil-breathe 16s ease-in-out infinite alternate;animation-play-state:paused}
+.foil--running .foil__ambient{animation-play-state:running}
+.foil__spectrum{inset:-15% -30%;opacity:.64;background:linear-gradient(116deg,transparent 12%,rgba(148,214,228,.4) 29%,rgba(209,169,226,.38) 38%,rgba(247,221,171,.32) 48%,rgba(168,218,202,.32) 59%,transparent 75%);transition:transform 100ms linear}
+.foil__nacre{inset:0;background:radial-gradient(ellipse at 78% 30%,rgba(215,206,242,.28),transparent 46%),radial-gradient(ellipse at 24% 84%,rgba(244,217,184,.24),transparent 44%);opacity:.6}
+.foil__reflection{inset:-50%;opacity:.1;background:radial-gradient(ellipse at center,rgba(249,242,222,.48),rgba(189,211,236,.22) 24%,transparent 49%);transition:transform 90ms linear,opacity 180ms ease-out}
+.foil--active .foil__reflection{opacity:.32}
+.foil--active .foil__engraving{opacity:.54}
+.foil__sweep{top:-45%;left:-65%;width:48%;height:200%;opacity:0;background:linear-gradient(100deg,transparent 16%,rgba(177,230,232,.22) 36%,rgba(255,242,210,.28) 48%,rgba(229,194,242,.24) 59%,transparent 80%);transform:translate3d(0,0,0) skewX(-16deg)}
+.foil__sweep--intro{animation:foil-arrive 760ms cubic-bezier(.16,1,.3,1) both}
+.foil__sweep--flash{animation:foil-touch 640ms cubic-bezier(.16,1,.3,1) both}
+.foil__veil{inset:0;background:linear-gradient(90deg,rgba(255,252,255,.16),transparent 45%)}
+.foil__edge{position:absolute;top:1px;left:9%;right:9%;height:1px;opacity:.7;background:linear-gradient(90deg,transparent,rgba(187,229,233,.8) 25%,rgba(249,224,184,.9) 52%,rgba(223,203,241,.8) 77%,transparent)}
+.foil--member .foil__silk{opacity:.4}
+.foil--member .foil__engraving{opacity:.64}
+.foil--member.foil--active .foil__engraving{opacity:.72}
+.foil--member .foil__spectrum{opacity:.72}
+.foil--member .foil__veil{background:linear-gradient(90deg,rgba(61,39,79,.76),rgba(61,39,79,.58) 35%,transparent 66%),linear-gradient(to bottom,rgba(61,39,79,.7),rgba(61,39,79,.62) calc(25px + 1.5rem),rgba(61,39,79,.1) calc(44px + 1.5rem),rgba(61,39,79,.1)),linear-gradient(to top,rgba(61,39,79,.78),rgba(61,39,79,.7) calc(48px + 2.2rem),rgba(61,39,79,.1) calc(72px + 2.2rem),rgba(61,39,79,.1)),rgba(61,39,79,.2)}
+.foil--member.foil--sweeping .foil__reflection{opacity:.06}
+.foil--quiet{opacity:.18}
+.foil--quiet .foil__ambient{animation:none;transform:none}
+.foil--quiet .foil__sweep{display:none}
+.foil--still .foil__ambient{animation:none;transform:none}
+.foil--still .foil__sweep{display:none;animation:none}
+.foil--still .foil__engraving,.foil--still .foil__spectrum,.foil--still .foil__reflection{transform:none!important;transition:none}
+.foil--still .foil__reflection{opacity:.06!important}
+@keyframes foil-breathe{0%{transform:translate3d(-5%,-2%,0) rotate(-4deg) scale(1.04)}50%{transform:translate3d(2%,3%,0) rotate(1deg) scale(1.09)}100%{transform:translate3d(6%,-1%,0) rotate(5deg) scale(1.04)}}
+@keyframes foil-arrive{0%{opacity:0;transform:translate3d(0,0,0) skewX(-16deg)}18%{opacity:.5}70%{opacity:.5}100%{opacity:0;transform:translate3d(360%,0,0) skewX(-16deg)}}
+@keyframes foil-touch{0%{opacity:0;transform:translate3d(0,0,0) skewX(-16deg)}16%{opacity:.5}68%{opacity:.5}100%{opacity:0;transform:translate3d(360%,0,0) skewX(-16deg)}}
+@media(prefers-reduced-motion:reduce){.foil__ambient{animation:none;transform:none}.foil__sweep{display:none;animation:none}.foil__engraving,.foil__spectrum,.foil__reflection{transform:none!important;transition:none}.foil__reflection{opacity:.06!important}}
+
+/* The approved full-size coupon keeps its material; gift vouchers use a richer foil print. */
+.foil--member .foil__ambient,.foil--award .foil__ambient{animation-name:foil-lustre;animation-duration:10s}
+.foil--member.foil--active .foil__spectrum{opacity:.9}
+.foil--award .foil__silk{opacity:.44}
+.foil--award .foil__engraving{opacity:.62}
+.foil--award.foil--active .foil__engraving{opacity:.72}
+.foil--award .foil__spectrum{opacity:.95}
+.foil--award .foil__nacre{opacity:.8}
+.foil--award .foil__veil{background:linear-gradient(90deg,rgba(240,225,247,.18),rgba(238,219,246,.08) 42%,transparent 70%),linear-gradient(180deg,rgba(255,247,255,.1),transparent 65%,rgba(231,211,241,.22))}
+@keyframes foil-lustre{0%{transform:translate3d(-12%,-3%,0) rotate(-6deg) scale(1.09)}50%{transform:translate3d(1%,4%,0) rotate(0deg) scale(1.12)}100%{transform:translate3d(12%,-2%,0) rotate(6deg) scale(1.06)}}
+@media(prefers-reduced-motion:reduce){.foil--member .foil__ambient,.foil--award .foil__ambient{animation:none;transform:none}}
+
+.foil--quiet .foil__ambient,.foil--still .foil__ambient{animation:none;transform:none}

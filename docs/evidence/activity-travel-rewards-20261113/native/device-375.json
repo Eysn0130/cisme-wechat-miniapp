@@ -1,0 +1,94 @@
+{
+  "packageSourceSha256": "62e88f272363b23f6719cc6d42567a94fc71965d580b39d7d19832fcf9303fea",
+  "expectedWidth": 375,
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "capture": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/selection-375.png",
+    "imageWidth": 319,
+    "imageHeight": 691
+  },
+  "system": {
+    "success": true,
+    "systemInfo": {
+      "result": {
+        "brand": "devtools",
+        "model": "iPhone 12/13 mini",
+        "system": "iOS 10.0.1",
+        "platform": "devtools",
+        "benchmarkLevel": -1,
+        "pixelRatio": 3,
+        "screenWidth": 375,
+        "screenHeight": 812,
+        "windowWidth": 375,
+        "windowHeight": 812,
+        "statusBarHeight": 47,
+        "safeArea": {
+          "top": 47,
+          "left": 0,
+          "right": 375,
+          "bottom": 778,
+          "width": 375,
+          "height": 731
+        },
+        "language": "en",
+        "version": "8.0.5",
+        "fontSizeSetting": 16,
+        "SDKVersion": "3.15.2",
+        "host": {
+          "env": "WeChat"
+        },
+        "enableDebug": false,
+        "mode": "default",
+        "deviceOrientation": "portrait",
+        "bluetoothEnabled": true,
+        "locationEnabled": true,
+        "wifiEnabled": true,
+        "albumAuthorized": true,
+        "cameraAuthorized": true,
+        "locationAuthorized": true,
+        "microphoneAuthorized": true,
+        "notificationAuthorized": true,
+        "notificationAlertAuthorized": true,
+        "notificationBadgeAuthorized": true,
+        "notificationSoundAuthorized": true,
+        "phoneCalendarAuthorized": true,
+        "bluetoothAuthorized": true,
+        "locationReducedAccuracy": true,
+        "devicePixelRatio": 3
+      }
+    }
+  },
+  "footer": {
+    "left": 17,
+    "top": 718
+  },
+  "size": {
+    "success": true,
+    "width": 341,
+    "height": 50
+  },
+  "state": {
+    "route": "pages/rewards/index",
+    "loading": false,
+    "error": "",
+    "selectionEmpty": true,
+    "hasFixture": true
+  },
+  "result": "passed scoped native rendering",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 2,
+    "realMemberWrites": 0
+  }
+}

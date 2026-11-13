@@ -1,0 +1,20 @@
+[
+  {
+    "code": "moisture",
+    "source": "/var/folders/cq/l2vmg6f12fv_8xc7zrcm270c0000gn/T/codex-clipboard-4ed17d1e-1c8e-48fc-9e94-99b7d23b13af.png",
+    "sourceSha256": "7931ed9ae8e5b9bef7cc22fe0745f062d18d0d564a47762ef025cc4dd4c78967",
+    "output": "apps/miniprogram/pages/rewards/assets/moisture-100-100-v1.jpg",
+    "sha256": "f716ebf90e783180a5098ed4d7ee6c9a288f261619943c351986fe7e37a8f479",
+    "bytes": 65770,
+    "operation": "Lossy size/compression optimization only; original composition and actual bottle capacities retained."
+  },
+  {
+    "code": "dandruff",
+    "source": "/var/folders/cq/l2vmg6f12fv_8xc7zrcm270c0000gn/T/codex-clipboard-288ef3df-6aea-467b-b8a9-bc37a16d3f8b.png",
+    "sourceSha256": "4df55e9574cc608fed8fcc16ebc277719f58e57551e3e02b8bbd07694d716218",
+    "output": "apps/miniprogram/pages/rewards/assets/dandruff-50-100-v1.jpg",
+    "sha256": "21995de30ff562a1a030842094da7ab4f8b5dfd18d9f348302e886c304a81dd0",
+    "bytes": 60016,
+    "operation": "Lossy size/compression optimization only; original composition and actual bottle capacities retained."
+  }
+]

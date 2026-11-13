@@ -1,4 +1,4 @@
-import {nativePageTemplate} from "../helpers/native-page-template";
+import {nativePageTemplate,nativePageComponents} from "../helpers/native-page-template";
 // @vitest-environment jsdom
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -28,7 +28,7 @@ beforeEach(async()=>{
   for(const [path,value]of Object.entries(patch)){const keys=path.replace(/\[(\d+)\]/g,'.$1').split('.');let target=this.data;for(const key of keys.slice(0,-1))target=target[key];target[keys.at(-1)!]=value;}
   rendered?.setData(structuredClone(this.data));cb?.();}};};
  await import('../../apps/miniprogram/pages/community/index');
- const id=simulate.load({template:nativePageTemplate('apps/miniprogram/pages/community/index.wxml'),data:structuredClone(page.data)});rendered=simulate.render(id);rendered.attach(document.body);
+ const id=simulate.load({usingComponents:nativePageComponents(simulate),template:nativePageTemplate('apps/miniprogram/pages/community/index.wxml'),data:structuredClone(page.data)});rendered=simulate.render(id);rendered.attach(document.body);
  await page.load();await flush();
 });
 afterEach(()=>{page.onUnload();rendered.detach();rendered=null;});
@@ -36,7 +36,7 @@ const select=(mode:string)=>page.selectMode({currentTarget:{dataset:{mode}}});
 const ids=()=>page.data.feedColumns.flat().map((x:any)=>x.id);
 
 it('always places Following next to Featured even while public UGC and development previews are closed',()=>{
- expect(rendered.querySelectorAll('.community-mode__tab').slice(0,2).map((x:any)=>x.dom.textContent)).toEqual(['精选','关注']);
+ expect(Array.from(rendered.dom.querySelectorAll('.section-tabs__tab')).slice(0,2).map((x:any)=>x.textContent.trim())).toEqual(['精选','关注']);
  expect(page.data.mode).toBe('featured');expect(requests.some(p=>p.startsWith('/v1/me/community/following'))).toBe(false);
 });
 it('keeps the requested channel across explicit login and never requests a guest following list',async()=>{

@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import { requireGuestCommunityAccess } from "../../services/api";
 import { cancelPageReads } from "../../services/page-requests";
 import {retainReadPresentation} from "../../services/read-presentation";
@@ -12,9 +13,9 @@ import {prepareShareLink,registerIncomingShare} from "../../services/share";
 function validProductCode(value:string){return /^[a-z0-9][a-z0-9-]{2,63}$/.test(value);}
 const anchors=["goods","details","reviews"];
 Page({
-  data:{chromeStyle:currentChromeStyle(),id:"",item:null as any,catalog:null as any,gallery:[] as ProductMedia[],galleryIndex:0,details:[] as ProductMedia[],anchor:"goods",selectedSku:null as any,quantity:1,selected:false,sheetOpen:false,draftSku:null as any,draftQuantity:1,shareId:"",loading:true,navigating:false,loadAttempt: 0,pageAlive:true,leaving:false,errorKind:"none" as "none"|"selection"|"missing"|"load",errorTitle:"",error:""},
+  data:{requestedCouponId:'',chromeStyle:currentChromeStyle(),id:"",item:null as any,catalog:null as any,gallery:[] as ProductMedia[],galleryIndex:0,details:[] as ProductMedia[],anchor:"goods",selectedSku:null as any,quantity:1,selected:false,sheetOpen:false,draftSku:null as any,draftQuantity:1,shareId:"",loading:true,navigating:false,loadAttempt: 0,pageAlive:true,leaving:false,errorKind:"none" as "none"|"selection"|"missing"|"load",errorTitle:"",error:""},
   scrollTop:0,anchorTimer:null as ReturnType<typeof setTimeout>|null,visible:false,
-  onLoad(query:Record<string,string|undefined>){const id=query.id??"";this.setData({id,pageAlive:true});if(validProductCode(id))void registerIncomingShare(query.share_id,"product",id);wx.hideShareMenu();},
+  onLoad(query:Record<string,string|undefined>){const id=query.id??"",requestedCouponId=/^[0-9a-f-]{36}$/i.test(query.coupon??'')?query.coupon!: '';this.setData({id,pageAlive:true,requestedCouponId});if(validProductCode(id))void registerIncomingShare(query.share_id,"product",id);wx.hideShareMenu();},
   onShow(){if(!requireGuestCommunityAccess("/pages/product/index?id="+encodeURIComponent(this.data.id)))return;this.visible=true;this.setData({pageAlive:true,leaving:false,navigating:false});void this.load();},
   onHide(){this.visible=false;this.data.loadAttempt += 1;cancelPageReads(this);this.setData({sheetOpen:false});this.clearAnchorTimer();},
   onUnload(){this.visible=false;this.data.pageAlive = false;this.data.loadAttempt += 1;cancelPageReads(this);this.clearAnchorTimer();},
@@ -22,7 +23,7 @@ Page({
   clearAnchorTimer(){if(this.anchorTimer)clearTimeout(this.anchorTimer);this.anchorTimer=null;},
   onPageScroll(event:WechatMiniprogram.Page.IPageScrollOption){this.scrollTop=event.scrollTop;if(this.anchorTimer)return;this.anchorTimer=setTimeout(()=>{this.anchorTimer=null;this.syncAnchor();},100);},
   syncAnchor(){if(!this.visible||!this.data.item)return;const q=wx.createSelectorQuery();q.select(".product-nav").boundingClientRect();for(const id of anchors)q.select(`#${id}`).boundingClientRect();q.exec(rects=>{if(!this.visible||!rects[0])return;let active="goods";for(let i=1;i<rects.length;i++)if(rects[i]&&rects[i].top<=rects[0].bottom+5)active=anchors[i-1]!;if(active!==this.data.anchor)this.setData({anchor:active});});},
-  jumpAnchor(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.anchor);if(!anchors.includes(id))return;const q=wx.createSelectorQuery();q.select(".product-nav").boundingClientRect();q.select(`#${id}`).boundingClientRect();q.exec(rects=>{if(!this.visible||!rects[0]||!rects[1])return;wx.pageScrollTo({scrollTop:Math.max(0,this.scrollTop+rects[1].top-rects[0].bottom),duration:0});this.setData({anchor:id});});},
+  jumpAnchor(event:WechatMiniprogram.TouchEvent){const id=sectionTabValue(event,'anchor');if(!anchors.includes(id))return;const q=wx.createSelectorQuery();q.select(".product-nav").boundingClientRect();q.select(`#${id}`).boundingClientRect();q.exec(rects=>{if(!this.visible||!rects[0]||!rects[1])return;wx.pageScrollTo({scrollTop:Math.max(0,this.scrollTop+rects[1].top-rects[0].bottom),duration:0});this.setData({anchor:id});});},
   async load(){
     cancelPageReads(this);
     const attempt=this.data.loadAttempt+1;wx.hideShareMenu();const preserve=retainReadPresentation(this,this.data.id);
@@ -70,7 +71,7 @@ Page({
   increase(){const maximum=Math.min(99,this.data.draftSku?.availableQuantity??0);if(this.data.draftQuantity<maximum)this.setData({draftQuantity:this.data.draftQuantity+1});},
   confirmSku(){if(!this.data.draftSku?.active||!this.data.draftSku.inStock)return;this.setData({selectedSku:this.data.draftSku,quantity:this.data.draftQuantity,selected:true,sheetOpen:false});},
   buy(){if(this.data.selected)this.openCheckout();else this.openSku();},
-  openCheckout(){const sku=this.data.selectedSku;if(this.data.loading||this.data.navigating||!this.data.item?.catalogBound||!this.data.item.purchaseEnabled||!sku?.purchaseEnabled)return;if(!requireMemberAccess(`/pages/product/index?id=${encodeURIComponent(this.data.id)}`))return;this.setData({navigating:true});wx.navigateTo({url:`/pages/checkout/index?product=${encodeURIComponent(this.data.id)}&sku=${encodeURIComponent(sku.id)}&quantity=${this.data.quantity}`,fail:()=>{this.setData({navigating:false});wx.showToast({title:"结算页暂时无法打开",icon:"none"});}});},
+  openCheckout(){const sku=this.data.selectedSku;if(this.data.loading||this.data.navigating||!this.data.item?.catalogBound||!this.data.item.purchaseEnabled||!sku?.purchaseEnabled)return;if(!requireMemberAccess(`/pages/product/index?id=${encodeURIComponent(this.data.id)}`))return;this.setData({navigating:true});wx.navigateTo({url:`/pages/checkout/index?product=${encodeURIComponent(this.data.id)}&sku=${encodeURIComponent(sku.id)}&quantity=${this.data.quantity}${this.data.requestedCouponId?`&coupon=${encodeURIComponent(this.data.requestedCouponId)}`:""}`,fail:()=>{this.setData({navigating:false});wx.showToast({title:"结算页暂时无法打开",icon:"none"});}});},
   openSupport(){if(this.data.navigating||!requireMemberAccess("/pages/support/index"))return;this.setData({navigating:true});wx.navigateTo({url:"/pages/support/index",fail:()=>{this.setData({navigating:false});wx.showToast({title:"客服暂时无法打开",icon:"none"});}});},
   back(){if(!this.data.pageAlive||this.data.leaving)return;if(this.data.sheetOpen){this.closeSku();return;}this.setData({leaving:true});const failed=()=>{if(this.data.pageAlive)this.setData({leaving:false});wx.showToast({title:"暂时无法返回，请重试",icon:"none"});};wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/shop/index",fail:failed})});},
   onShareAppMessage(){return {title:this.data.item?.name??"CISME 商城",path:`/pages/product/index?id=${encodeURIComponent(this.data.id)}${this.data.shareId?`&share_id=${this.data.shareId}`:""}`};}

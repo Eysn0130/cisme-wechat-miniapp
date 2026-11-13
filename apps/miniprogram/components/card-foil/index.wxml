@@ -1,0 +1,9 @@
+<view class="foil foil--{{tone}} {{active&&visible?'foil--active':''}} {{reduced||lowMotion?'foil--still':''}} {{quiet?'foil--quiet':''}} {{(introActive||flashActive)&&visible?'foil--sweeping':''}} {{ambientOn&&!active&&!introActive&&!flashActive?'foil--running':''}}" aria-hidden="true">
+ <image class="foil__silk" src="/assets/cisme/card-silk-v2.svg" mode="scaleToFill" data-texture="silk" bindload="textureLoaded" binderror="textureFailed" aria-hidden="true"/>
+ <image class="foil__engraving" src="/assets/cisme/card-guilloche-v2.svg" mode="aspectFill" style="transform:translate3d({{engraveX}}px,{{engraveY}}px,0)" data-texture="engraving" bindload="textureLoaded" binderror="textureFailed" aria-hidden="true"/>
+ <view class="foil__ambient"><view class="foil__spectrum" style="transform:translate3d({{shiftX}}px,{{shiftY}}px,0) rotate({{angle}}deg)"/><view class="foil__nacre"/></view>
+ <view class="foil__reflection" style="transform:translate3d({{spotX}}%,{{spotY}}%,0)"/>
+ <view bindanimationend="finishSweep" class="foil__sweep {{introActive&&visible?'foil__sweep--intro':''}} {{flashActive&&visible?'foil__sweep--flash':''}}"/>
+ <view class="foil__veil"/>
+ <view class="foil__edge"/>
+</view>

@@ -1,0 +1,16 @@
+{
+  "kind": "owner-authorized-trial-release",
+  "plannedVersion": "0.1.45",
+  "previousTrial": "0.1.44",
+  "userAuthorization": "完成后合并 main 发布最新体验版",
+  "targetHost": "124.223.74.198",
+  "targetEnvironment": "isolated-trial",
+  "database": "cisme_trial",
+  "api": "https://staging-api.cisme.cn",
+  "requiredBackendDelta": "114 -> 115 migrations, nine reward tables plus optional coupon columns; no real award or stock seeding",
+  "codeReady": true,
+  "merged": false,
+  "deployed": false,
+  "uploaded": false,
+  "physicalDeviceAvailable": false
+}

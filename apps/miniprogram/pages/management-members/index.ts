@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import {beijingDateParts as rateDateParts,beijingDateLabel as dateLabel,beijingCivilInstant} from "../../services/business-time";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
@@ -33,7 +34,7 @@ Page({
   onUnload(){this.onHide();this.globalRateCommand=null;this.rateDecisionCommand=null;},
   editSearch(event:WechatMiniprogram.Input){this.setData({q:event.detail.value});},
   search(){void this.load();},
-  selectFilter(event:WechatMiniprogram.TouchEvent){const filter=String(event.currentTarget.dataset.filter);if(!["all","members","ordinary"].includes(filter))return;this.setData({filter});void this.load();},
+  selectFilter(event:WechatMiniprogram.TouchEvent){const filter=sectionTabValue(event,'filter');if(!["all","members","ordinary"].includes(filter))return;this.setData({filter});void this.load();},
   onReachBottom(){void this.loadMore();},
   async load(){
     if(!this.data.alive)return;cancelPageReads(this);
