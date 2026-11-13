@@ -11,6 +11,7 @@ import {CareOnboardingService,careQuestions} from '../../services/api/src/careOn
 import {settlePurchaseCoupon} from '../../services/api/src/rewardLedger';
 import {transaction} from '../../services/api/src/db';
 import {VerifiedPaymentInbox} from '../../services/api/src/verifiedPaymentInbox';
+import {collectRewardPortableData} from '../../services/api/src/rewardPrivacy';
 import {VerifiedRefundInbox} from '../../services/api/src/verifiedRefundInbox';
 const pool=testPool(),config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'reward-integration-session',ADMIN_API_TOKEN:'legacy-test',UPLOAD_TOKEN_SECRET:'reward-test-upload',OBJECT_STORAGE_DRIVER:'api_gateway',CONTACT_ENCRYPTION_KEY:'11'.repeat(32),CONTACT_HASH_KEY:'22'.repeat(32),CONTACT_KEY_VERSION:'reward-test-v1',COMMERCE_ORDER_FLOW_ENABLED:'true'});
 let app:Awaited<ReturnType<typeof createApp>>,rewards:ActivityRewardService,operator:any,product:any,activity:any;
@@ -121,7 +122,7 @@ describe('TRV native service and HTTP business authority',()=>{
    await c.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,product_name,sku_code,sku_label,quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents) VALUES($1,1,$2,$3,'synthetic-reward-fullsize','隔离正装','SYNTH_REWARD_198','隔离规格',1,19800,19800,2000,17800)`,[id,product.productId,product.variants[0].id]);
    await c.query('INSERT INTO commerce_inventory_reservation(order_id,sku_id,quantity,expires_at) VALUES($1,$2,1,$3)',[id,product.variants[0].id,expires]);await c.query('UPDATE catalog_inventory_level SET reserved_quantity=reserved_quantity+1 WHERE sku_id=$1',[product.variants[0].id]);
   });
-  const platform=generateKeyPairSync('rsa',{modulusLength:2048}),apiV3Key='0123456789abcdef0123456789abcdef',publicPem=platform.publicKey.export({type:'spki',format:'pem'}).toString(),serial='PUB_KEY_ID_3000000001';
+  const platform=generateKeyPairSync('rsa',{modulusLength:2048}),apiV3Key=randomBytes(16).toString('hex'),publicPem=platform.publicKey.export({type:'spki',format:'pem'}).toString(),serial='PUB_KEY_ID_3000000001';
   function notice(type:string,payload:any){const nonce='0123456789ab',associated=type==='TRANSACTION.SUCCESS'?'transaction':'refund',cipher=createCipheriv('aes-256-gcm',Buffer.from(apiV3Key),Buffer.from(nonce));cipher.setAAD(Buffer.from(associated));const ciphertext=Buffer.concat([cipher.update(JSON.stringify(payload)),cipher.final(),cipher.getAuthTag()]).toString('base64');const rawBody=Buffer.from(JSON.stringify({id:key(),event_type:type,resource_type:'encrypt-resource',resource:{algorithm:'AEAD_AES_256_GCM',ciphertext,associated_data:associated,nonce,original_type:associated}}));const timestamp=Math.floor(Date.now()/1000).toString(),requestNonce=randomBytes(16).toString('hex'),signature=sign('RSA-SHA256',Buffer.concat([Buffer.from(`${timestamp}\n${requestNonce}\n`),rawBody,Buffer.from('\n')]),platform.privateKey).toString('base64');return{rawBody,headers:{'Wechatpay-Serial':serial,'Wechatpay-Timestamp':timestamp,'Wechatpay-Nonce':requestNonce,'Wechatpay-Signature':signature}};}
   const payments=new VerifiedPaymentInbox(pool,{appId,merchantId,apiV3Key,platformKeys:new Map([[serial,publicPem]])}),refunds=new VerifiedRefundInbox(pool,{merchantId,apiV3Key,platformKeys:new Map([[serial,publicPem]])}),transactionId='420000000000000000000777';
   const payment=notice('TRANSACTION.SUCCESS',{appid:appId,mchid:merchantId,out_trade_no:number,transaction_id:transactionId,trade_type:'JSAPI',trade_state:'SUCCESS',success_time:new Date().toISOString(),amount:{total:17800,payer_total:17800,currency:'CNY',payer_currency:'CNY'},payer:{openid:payer}}),receipt=await payments.receive(payment.rawBody,payment.headers);
@@ -132,6 +133,12 @@ describe('TRV native service and HTTP business authority',()=>{
    const event=notice('REFUND.SUCCESS',{mchid:merchantId,out_trade_no:number,transaction_id:transactionId,out_refund_no:outRefundNo,refund_id:'503'+randomUUID().replaceAll('-','').slice(0,20),refund_status:'SUCCESS',success_time:new Date().toISOString(),amount:{total:17800,refund:amount,payer_total:17800,payer_refund:amount}}),refund=await refunds.receive(event.rawBody,event.headers);expect(await refunds.processOne(refund.inboxId)).toBe('applied');expect((await rewards.mine(x.p.memberId)).coupons[0]?.state).toBe(index===0?'used':'available');expect((await refunds.receive(event.rawBody,event.headers)).inboxId).toBe(refund.inboxId);
   }
   expect((await rewards.mine(x.p.memberId)).coupons[0]?.expiresAt).toBe(coupon.expiresAt);
+ });
+
+ it('exports only the owner reward facts and decrypts recipient data without exporting ciphertext or command hashes',async()=>{
+  const x=await ready(),r=await claim(x),other=await ready(),foreign=await claim(other);
+  const data=await transaction(pool,c=>collectRewardPortableData(c,config,new DeliveryAddressService(pool,config),x.p.memberId),'REPEATABLE READ');
+  const text=JSON.stringify(data);expect(text).toContain(r.id);expect(text).not.toContain(foreign.id);expect(text).toContain('13800000001');for(const secret of ['encrypted_address','shipment_encrypted','address_hmac','request_sha256'])expect(text).not.toContain(secret);
  });
 
 });

@@ -99,3 +99,11 @@ condition = "AND"
 paths = ['''^tests/unit/wechat-logistics-query\.test\.ts$''']
 regexTarget = "match"
 regexes = ["staging-api\\.cisme\\.cn','aigerong-moisture-shampoo-280"]
+
+[[allowlists]]
+description = "Reviewed public dummy AES literal in the isolated activity-reward callback fixture (historical commit 772fa27); runtime fixture now generates a fresh key"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/integration/activity-travel-rewards\.test\.ts$''']
+regexTarget = "match"
+regexes = ["apiV3Key='0123456789abcdef0123456789abcdef'"]
