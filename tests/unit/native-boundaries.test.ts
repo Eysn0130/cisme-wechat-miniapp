@@ -374,3 +374,17 @@ describe("native mini program boundary", () => {
     expect(communityComposeMarkup).toContain('catchtouchmove="{{mediaDragging ? \'moveMediaDrag\' : \'\'}}"');
   });
 });
+
+
+it("keeps the edited reward and coupon templates balanced for the native WXML compiler", async () => {
+  for(const route of ["rewards", "management-rewards", "checkout"]){
+    const template=await readFile(`apps/miniprogram/pages/${route}/index.wxml`,"utf8"),stack:string[]=[];
+    const tags=template.matchAll(/<(\/?)([a-zA-Z][\w:-]*)(?:"[^"]*"|'[^']*'|[^'">])*>/g);
+    for(const tag of tags){const text=tag[0],closing=tag[1],name=tag[2]!;
+      if(closing)expect(stack.pop(),`${route}: ${text}`).toBe(name);
+      else if(!text.endsWith("/>"))stack.push(name);
+      expect((text.match(/\sclass=/g)??[]).length,`${route}: duplicate class attribute`).toBeLessThanOrEqual(1);
+    }
+    expect(stack,route).toEqual([]);
+  }
+});
