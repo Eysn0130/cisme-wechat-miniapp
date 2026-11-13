@@ -7,6 +7,7 @@ import {DeliveryAddressService} from './deliveryAddress.js';
 import {openContact} from './privacyPortableData.js';
 import {portableQuerySpecs} from './privacyPortableQueries.js';
 import {pointsPortableRow} from './pointsPrivacy.js';
+import {rewardPortableRow} from './rewardPrivacy.js';
 import {careProfilePortableRow} from './careOnboarding.js';
 import type {ObjectStorage} from './storage.js';
 import {assertOperationActive} from './operationBudget.js';
@@ -130,7 +131,7 @@ export async function buildPortableParts(client:DbClient,config:AppConfig,addres
   for(const [index,spec] of portableQuerySpecs.entries()){
     let count=0;
     await walkCursor<Record<string,unknown>>(client,`privacy_export_collection_${index}`,spec.sql,memberId,async row=>{
-      const value=spec.section==='pointsClub'?pointsPortableRow(config,addresses,spec.collection,row):spec.collection==='careProfile'?careProfilePortableRow(config,row as unknown as Parameters<typeof careProfilePortableRow>[1]):row;
+      const value=spec.section==='activityRewards'?rewardPortableRow(config,addresses,spec.collection,row):spec.section==='pointsClub'?pointsPortableRow(config,addresses,spec.collection,row):spec.collection==='careProfile'?careProfilePortableRow(config,row as unknown as Parameters<typeof careProfilePortableRow>[1]):row;
       await sink.write({type:'record',section:spec.section,collection:spec.collection,row:value});count++;
     });
     counts[`${spec.section}.${spec.collection}`]=count;

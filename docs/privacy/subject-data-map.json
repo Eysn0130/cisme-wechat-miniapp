@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "90e1ea413e32685e8e00092b59e3705a78de4186eb629545b3f1a43e129fc5ac",
+  "migrationSetSha256": "5fab105a16fca067771e7bbc76a3d4117782a32b3b6a4a7bfb5f16e98773edd4",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -14,6 +14,51 @@
     "erasure": "Verified members may erase optional profile data and delete individual address-book entries. Address payload clearing is immediate without a hold, delayed with a hold, and replayed from independent local/COS suppression markers after old backup restore. Separately sealed order snapshots remain under transaction retention. Other unscoped requests remain non-executable until assessed."
   },
   "tables": [
+    {
+      "table": "activity_reward_claim",
+      "subjectPaths": [
+        [
+          "activity_reward_claim.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [
+        "id",
+        "claim_number",
+        "voucher_id",
+        "quote_id",
+        "state",
+        "version",
+        "bundle_code",
+        "item_snapshot",
+        "terms_snapshot",
+        "survey_version",
+        "questionnaire_version",
+        "recommendation",
+        "shipping_cents",
+        "carrier_name",
+        "shipped_at",
+        "received_at",
+        "aftersale_reason",
+        "previous_state",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "encrypted_address",
+        "address_hmac",
+        "key_version",
+        "shipment_encrypted",
+        "operation_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "OWNER_SESSION_PROJECTOR_IMPLEMENTED"
+    },
     {
       "table": "appeal",
       "subjectPaths": [
@@ -794,7 +839,10 @@
         "points_spent",
         "points_policy_version",
         "points_offer_version",
-        "points_maximum"
+        "points_maximum",
+        "coupon_id",
+        "coupon_discount_cents",
+        "coupon_version"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -934,7 +982,9 @@
         "total_cents",
         "created_at",
         "updated_at",
-        "credit_tender_cents"
+        "credit_tender_cents",
+        "coupon_id",
+        "coupon_discount_cents"
       ],
       "excludedFields": [
         "member_id",
@@ -5460,6 +5510,37 @@
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
+      "table": "member_purchase_coupon",
+      "subjectPaths": [
+        [
+          "member_purchase_coupon.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [
+        "id",
+        "template_code",
+        "source_claim_id",
+        "state",
+        "threshold_cents",
+        "discount_cents",
+        "eligible_product_ids",
+        "issued_at",
+        "expires_at",
+        "order_id",
+        "version"
+      ],
+      "excludedFields": [
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "OWNER_SESSION_PROJECTOR_IMPLEMENTED"
+    },
+    {
       "table": "member_team_access",
       "subjectPaths": [
         [
@@ -6239,6 +6320,59 @@
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
+      "table": "reward_activity",
+      "subjectPaths": [],
+      "actorColumns": [
+        "created_by"
+      ],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "code",
+        "title",
+        "state",
+        "version",
+        "terms",
+        "created_by",
+        "updated_by",
+        "created_at",
+        "updated_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "reward_award",
+      "subjectPaths": [
+        [
+          "reward_award.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "created_by"
+      ],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [
+        "id",
+        "activity_id",
+        "source_record_id",
+        "batch_id",
+        "created_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "created_by"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "OWNER_SESSION_PROJECTOR_IMPLEMENTED"
+    },
+    {
       "table": "reward_claim",
       "subjectPaths": [
         [
@@ -6268,6 +6402,135 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "reward_component_inventory",
+      "subjectPaths": [],
+      "actorColumns": [],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [],
+      "excludedFields": [
+        "code",
+        "stock_on_hand",
+        "reserved_quantity",
+        "confirmed",
+        "version",
+        "updated_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "reward_event",
+      "subjectPaths": [],
+      "actorColumns": [
+        "actor_member_id"
+      ],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "actor_member_id",
+        "action",
+        "object_id",
+        "operation_id",
+        "details",
+        "created_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "reward_quote",
+      "subjectPaths": [
+        [
+          "reward_quote.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [
+        "id",
+        "voucher_id",
+        "bundle_code",
+        "item_snapshot",
+        "survey_version",
+        "questionnaire_version",
+        "recommendation",
+        "shipping_cents",
+        "expires_at",
+        "consumed_at",
+        "created_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "voucher_version",
+        "address_id",
+        "address_version",
+        "operation_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "OWNER_SESSION_PROJECTOR_IMPLEMENTED"
+    },
+    {
+      "table": "reward_stock_reservation",
+      "subjectPaths": [
+        [
+          "reward_stock_reservation.claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [],
+      "excludedFields": [
+        "claim_id",
+        "component_code",
+        "quantity",
+        "state"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "reward_voucher",
+      "subjectPaths": [
+        [
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Activity-award entitlement is distinct from legacy task reward_claim. Resolve canonical owner, issuer and fulfillment operator separately. One voucher per member ID; component inventory has no member subject. Only owner-scoped portable projections export awards, vouchers, quotes, claims and coupons. Claim recipient and tracking ciphertext are decrypted only after owner or fulfillment authority; never export ciphertext, keys, command hashes, raw admin events or other members. Survey answers are not copied into reward rows. Existing transaction retention and legal holds apply.",
+      "exportFields": [
+        "id",
+        "activity_id",
+        "state",
+        "terms_snapshot",
+        "activity_version",
+        "expires_at",
+        "issued_at",
+        "version",
+        "claim_id"
+      ],
+      "excludedFields": [
+        "award_id",
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "OWNER_SESSION_PROJECTOR_IMPLEMENTED"
     },
     {
       "table": "schema_migration",
@@ -8078,5 +8341,11 @@
     "publicProjection": false,
     "newThirdPartyRecipient": false,
     "genericProductionErasureExpanded": false
+  },
+  "activityTravelRewardReview20261113": {
+    "sourceFieldReview": true,
+    "migratedSchemaComparison": "pending isolated CI",
+    "ownerExport": "allowlisted v1 and bounded v2 projectors include activityRewards",
+    "operationalActivation": "requires real component counts and awarded member IDs; no entitlements seeded"
   }
 }

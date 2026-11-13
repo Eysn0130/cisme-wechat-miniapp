@@ -27,6 +27,10 @@ export async function auditCommercialLifecycle(root=resolve(".")) {
   const pointsContracts=JSON.parse(await readFile(resolve(root,pointsContractPath),'utf8')) as {routes:Requirement[]};
   const pointsRoutes=new Set(pointsContracts.routes.map(row=>row.route));
   for(const contract of pointsContracts.routes)byRoute.set(contract.route,contract);
+  const rewardContractPath='docs/evidence/activity-travel-rewards-20261113/native-interaction-contracts.json';
+  const rewardContracts=JSON.parse(await readFile(resolve(root,rewardContractPath),'utf8')) as {routes:Requirement[]};
+  const rewardRoutes=new Set(rewardContracts.routes.map(row=>row.route));
+  for(const contract of rewardContracts.routes)byRoute.set(contract.route,contract);
   const pack=await inspectMiniProgramPackage(native);
   const routes=await Promise.all(audit.routes.map(async route=>{
     const sourceFiles=await Promise.all(["ts","wxml","wxss"].map(async extension=>{
@@ -57,7 +61,7 @@ export async function auditCommercialLifecycle(root=resolve(".")) {
       rolesToVerify:route.access==="public"?["visitor","member","session_changed"]:
         ["member_self","other_object_denied","expired_session","blocked_member","session_changed",
           ...(route.route.includes("management")||route.route.includes("community-review")?["current_capability","revoked_capability"]:[])],
-      requirement:{source:pointsRoutes.has(route.route)?pointsContractPath:route.route===privacyContract.route?privacyContractPath:baseline,primaryContract:contract?.primaryContract??null,acceptanceReferences:contract?.acceptanceReferences??[],
+      requirement:{source:rewardRoutes.has(route.route)?rewardContractPath:pointsRoutes.has(route.route)?pointsContractPath:route.route===privacyContract.route?privacyContractPath:baseline,primaryContract:contract?.primaryContract??null,acceptanceReferences:contract?.acceptanceReferences??[],
         states:contract?.statesRequired??Object.keys(requirements.commonRequiredStates),needsRequirementReview:!contract},
       behaviorEvidenceScope:behaviorTests[route.route]?`${behaviorTests[route.route]}: synthetic Page logic; see exact-head test logs, not native rendering`:"existing tests require scenario-level mapping; not re-accepted by this inventory",
       lifecycleAssessment:directReadOwner?"Owner/cancel callsites observed; wrapper, transport and shared-consumer behavior still need trace evidence":"No direct page-read owner marker; inspect wrappers/polls before classifying as a defect",

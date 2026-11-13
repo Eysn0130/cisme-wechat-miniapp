@@ -41,6 +41,18 @@
       "evidenceFiles": []
     },
     {
+      "route": "pages/rewards/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-rewards/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
       "route": "pages/task/index",
       "matrixComplete": false,
       "result": "blocked",
@@ -263,16 +275,16 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "21523563b15884537cc0c60a75a726871ed1cb457b2f7f675a4f51ea476d20a9",
+  "packageSourceSha256": "2c34d043acbd396298f41c38ad9361494577284fb094cd9af704a61f54a9d94f",
   "findings": [
     {
-      "id": "CURRENT_SOURCE_41_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
+      "id": "CURRENT_SOURCE_43_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "Current package has 41 native routes. Scoped historical screenshots do not complete the full current state or physical-device matrices."
+      "reason": "The package has 43 native routes. Scoped native captures and database tests do not complete all route/font/state or physical-device matrices."
     }
   ],
-  "note": "Direct product GETs join the existing single transient-failure retry inside the original request deadline. Controlled-runtime evidence: docs/evidence/native-device-acceptance-20261112/controlled-runtime. The user confirmed no physical phone is available; full 41-route physical-device/font/state, weak-network and cold-start acceptance remains blocked. Historical captures keep their original source hashes.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-30713a080bdb.json",
+  "note": "Activity-award and receipt-coupon source candidate. Native visual and functional evidence, when captured, is separately bound to its actual source hash in docs/evidence/activity-travel-rewards-20261113. No historical screenshot is relabeled as current, and no full physical weak-network or true cold-start pass is claimed.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-21523563b158.json",
   "pendingSourceRebind": false
 }

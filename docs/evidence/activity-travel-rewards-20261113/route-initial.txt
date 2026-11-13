@@ -1,0 +1,16 @@
+
+> cisme-wechat-miniapp@0.1.0 miniprogram:route-audit
+> tsx scripts/audit-native-routes.ts
+
+/Users/mini/CISME/scripts/audit-native-routes.ts:40
+    if (!access || !stateGate) throw new Error(`ROUTE_AUDIT_POLICY_OR_GATE_MISSING:${route}`);
+                                     ^
+
+Error: ROUTE_AUDIT_POLICY_OR_GATE_MISSING:pages/rewards/index
+    at <anonymous> (/Users/mini/CISME/scripts/audit-native-routes.ts:40:38)
+    at Array.map (<anonymous>)
+    at auditNativeRoutes (/Users/mini/CISME/scripts/audit-native-routes.ts:37:57)
+    at async <anonymous> (/Users/mini/CISME/scripts/audit-native-routes.ts:59:18)
+
+Node.js v24.14.0
+

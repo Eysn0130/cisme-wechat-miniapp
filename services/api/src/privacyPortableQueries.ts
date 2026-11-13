@@ -2,6 +2,7 @@ import {memberCardPortableQuery} from './memberCard.js';
 /** Fixed owner projections shared with the bounded v2 portable export. Keep these
  * query fields aligned with privacyPortableData.ts until v1 is retired. */
 import {pointsPortableSpecs} from './pointsPrivacy.js';
+import {rewardPortableSpecs} from './rewardPrivacy.js';
 import {careProfilePortableQuery} from './careOnboarding.js';
 export const wechatReceiptPortableQuery=`SELECT w.order_id,w.shipment_id,w.platform_order_state,
         w.in_complaint,w.observed_at FROM commerce_wechat_receipt_observation w
@@ -9,6 +10,7 @@ export const wechatReceiptPortableQuery=`SELECT w.order_id,w.shipment_id,w.platf
         ORDER BY w.order_id`;
 
 export const portableQuerySpecs = [
+  ...rewardPortableSpecs,
   ...pointsPortableSpecs,
   {section:'account',collection:'membershipCard',single:true,sql:memberCardPortableQuery},
   {section:'account',collection:'careProfile',single:true,sql:careProfilePortableQuery},
@@ -70,7 +72,7 @@ export const portableQuerySpecs = [
         FROM revocation_request r JOIN consent_grant g ON g.id=r.consent_grant_id
         WHERE g.member_id=$1 ORDER BY r.requested_at,r.id`},
   {section:'commerce',collection:'orders',single:false,sql:`SELECT id,order_number,status,subtotal_cents,member_discount_cents,
-        shipping_cents,total_cents,credit_tender_cents,points_spent,points_policy_version,shopping_points_multiplier,created_at,updated_at
+        shipping_cents,total_cents,credit_tender_cents,points_spent,points_policy_version,shopping_points_multiplier,coupon_id,coupon_discount_cents,created_at,updated_at
         FROM commerce_order WHERE member_id=$1 ORDER BY created_at,id`},
   {section:'commerce',collection:'lines',single:false,sql:`SELECT l.order_id,l.line_number,l.product_name,l.sku_label,l.quantity,
         l.unit_price_cents,l.line_discount_cents,l.line_total_cents,l.credit_tender_cents

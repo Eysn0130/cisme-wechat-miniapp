@@ -188,6 +188,7 @@ Page({
   openPoints() { this.openRoute("/pages/points/index", "navigate", "积分账本暂时无法打开"); },
   openSettings() { this.openRoute("/pages/settings/index", "navigate", "设置与隐私暂时无法打开"); },
   openOrders() { this.openRoute("/pages/orders/index", "navigate", "订单暂时无法打开"); },
+  openRewards() { this.openRoute('/pages/rewards/index','navigate','奖励暂时无法打开'); },
   openSupport(){this.openRoute("/pages/support/index","navigate","客服暂时无法打开");},
   openManagement(){if(this.data.authorityState!=="ready"||!hasNativeManagementEntry(this.data.authority))return;this.openRoute("/pages/management/index","navigate","管理中心暂时无法打开");},
   openInvite() { this.openRoute("/pages/invite/index", "navigate", "邀请页面暂时无法打开"); },

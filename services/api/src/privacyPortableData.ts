@@ -1,5 +1,6 @@
 import {memberCardPortableQuery} from './memberCard.js';
 import {pointsPortableSpecs,pointsPortableRow} from './pointsPrivacy.js';
+import {collectRewardPortableData} from './rewardPrivacy.js';
 import { createDecipheriv } from 'node:crypto';
 import type { AppConfig } from '@cisme/config';
 import { DomainError } from '@cisme/domain';
@@ -42,6 +43,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
   const pointsClub:Record<string,unknown>={};
   for(const spec of pointsPortableSpecs){const rows=(await client.query(spec.sql,[memberId])).rows.map(r=>pointsPortableRow(config,addresses,spec.collection,r));pointsClub[spec.collection]=spec.single?rows[0]??null:rows;}
   const sections:Record<string,unknown>={
+    activityRewards:await collectRewardPortableData(client,config,addresses,memberId),
     pointsClub,
     account:{id:member.id,displayName:member.display_name,createdAt:member.created_at,
       membershipCard:(await client.query(memberCardPortableQuery,[memberId])).rows[0]??null,
@@ -105,7 +107,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
         FROM revocation_request r JOIN consent_grant g ON g.id=r.consent_grant_id
         WHERE g.member_id=$1 ORDER BY r.requested_at,r.id`,[memberId])).rows},
     commerce:{orders:(await client.query(`SELECT id,order_number,status,subtotal_cents,member_discount_cents,
-        shipping_cents,total_cents,credit_tender_cents,points_spent,points_policy_version,shopping_points_multiplier,created_at,updated_at
+        shipping_cents,total_cents,credit_tender_cents,points_spent,points_policy_version,shopping_points_multiplier,coupon_id,coupon_discount_cents,created_at,updated_at
         FROM commerce_order WHERE member_id=$1 ORDER BY created_at,id`,[memberId])).rows,
       lines:(await client.query(`SELECT l.order_id,l.line_number,l.product_name,l.sku_label,l.quantity,
         l.unit_price_cents,l.line_discount_cents,l.line_total_cents,l.credit_tender_cents

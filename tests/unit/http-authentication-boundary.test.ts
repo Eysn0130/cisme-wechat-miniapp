@@ -22,7 +22,7 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app?.close();});
 it("retains the explicit authentication denominator",()=>{
-  expect(routes).toHaveLength(278);
+  expect(routes).toHaveLength(295);
   // Editorial comments and blocks are member-private. Article text stays public.
   for(const operation of [
     {method:"POST",path:"/v1/management/shipments/import-xlsx/preview"},

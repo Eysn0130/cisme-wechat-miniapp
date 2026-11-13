@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-11-10",
+  "inventoryDate": "2026-11-13",
   "wechatApis": [
+    "wx.base64ToArrayBuffer",
     "wx.canIUse",
     "wx.canvasToTempFilePath",
     "wx.chooseAddress",
@@ -721,6 +722,24 @@
       "data": "一对一member_id关联、数据库唯一number和issued_at；已发行不可更新，至少5位显示，长号保留精度。",
       "authorization": "仅当前会员本人的账号、资料、bootstrap、设置和可携数据读取；不按编号公开查人，不传到社区作者或新第三方。",
       "retention": "Canonical账号身份映射，不循环复用；原账号ID及法律保全规则不变，114下行迁移禁止静默删除。"
+    },
+    {
+      "surface": "activity_reward_entitlements",
+      "purpose": "Canonical awarded-member qualification and per-UID one-voucher claim; no points debit and no payment fact for free goods.",
+      "authorization": "Canonical owner session, existing explicit management grants and immutable command receipts.",
+      "retention": "Existing transaction retention and legal holds; no automatic deletion or third-party disclosure introduced."
+    },
+    {
+      "surface": "activity_reward_fulfillment",
+      "purpose": "Owner or audited fulfillment access to encrypted recipient and tracking; no raw survey answers in operational exports.",
+      "authorization": "Canonical owner session, existing explicit management grants and immutable command receipts.",
+      "retention": "Existing transaction retention and legal holds; no automatic deletion or third-party disclosure introduced."
+    },
+    {
+      "surface": "receipt_purchase_coupon",
+      "purpose": "Owner-bound one-time full-size coupon; merchant price deduction and optional points remain separate from channel promotions.",
+      "authorization": "Canonical owner session, existing explicit management grants and immutable command receipts.",
+      "retention": "Existing transaction retention and legal holds; no automatic deletion or third-party disclosure introduced."
     }
   ],
   "runtimeDataEgress": [
@@ -799,7 +818,7 @@
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
     }
   ],
-  "migrationSetSha256": "6ec7d238cd8f0aa08c668047350cad0cd317b180108b38041660f3b60781c34e",
+  "migrationSetSha256": "6a13ffc0437e6fc7f83e56040156d1984e0b27c586e3146f0abdbe8dedbfbae4",
   "egressSignatureSha256": "e97c111fd430a9c6554f6aab9ca50f60eb184320a27aeca01534b8f24ab29195",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1395,5 +1414,11 @@
     "evidence": "docs/evidence/care-registration-flow-20261110/README.md",
     "physicalDeviceAccepted": false,
     "explicitChoices": "Owner removed the frontend skip action. Age/gender/dye and non-sensitive shopping questions allow explicit undisclosed answers; sensitive consent may still be declined. Existing skipped facts remain readable; no answer is inferred or backfilled."
+  },
+  "activityTravelRewardReview20261113": {
+    "purpose": "Awarded members select one of two travel bundles, receive goods and a 198-minus-20 full-size coupon. Existing address encryption, canonical member identity and private transport remain authoritative.",
+    "data": "Award/batch IDs, canonical owner ID, entitlement status, immutable bundle capacities, questionnaire record version only, encrypted address/tracking, explicit receipt and coupon/order links.",
+    "recipients": "Existing first-party API and local owner-requested XLSX viewer only; no new model, payment or tracking provider.",
+    "releaseScope": "Only awarded members, one voucher globally per member ID; 30 days, mainland free shipping, 72-hour dispatch. No actual award or stock configuration is seeded."
   }
 }

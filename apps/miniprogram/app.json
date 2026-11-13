@@ -8,6 +8,8 @@
     "pages/profile/index"
   ],
   "subPackages": [
+    {"root":"pages/rewards","pages":["index"]},
+    {"root":"pages/management-rewards","pages":["index"]},
     {
       "root": "pages/task",
       "pages": [

@@ -16,6 +16,739 @@ tags:
   - name: Authority
   - name: Support
 paths:
+  /v1/me/rewards:
+    get:
+      tags:
+        - Rewards
+      operationId: getOwnTravelRewards
+      summary: Owner-only award voucher, claim history and receipt coupon
+      parameters:
+        - in: query
+          name: claimsCursor
+          schema:
+            $ref: '#/components/schemas/Uuid'
+          description: Owner-bound descending claim cursor; take claimsNextCursor from the preceding page.
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelRewardWallet'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/me/rewards/vouchers/{voucherId}:
+    get:
+      tags:
+        - Rewards
+      operationId: selectOwnTravelReward
+      summary: Restore survey and show two correct travel bundles without preselecting
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: voucherId
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelRewardSelection'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/me/rewards/quotes:
+    post:
+      tags:
+        - Rewards
+      operationId: createOwnTravelRewardQuote
+      summary: Validate voucher, completed survey, address and component availability; no reservation yet
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardQuoteInput'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelRewardQuote'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/me/rewards/claims:
+    post:
+      tags:
+        - Rewards
+      operationId: confirmOwnTravelReward
+      summary: Atomically consume one voucher and both components for a zero-cash award
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardClaimInput'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/me/rewards/claims/{claimId}:
+    get:
+      tags:
+        - Rewards
+      operationId: getOwnTravelRewardClaim
+      summary: Owner-only immutable bundle and encrypted delivery projection
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: claimId
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelRewardClaim'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/me/rewards/claims/{claimId}/{action}:
+    post:
+      tags:
+        - Rewards
+      operationId: operateOwnTravelRewardClaim
+      summary: Cancel before dispatch, confirm actual receipt, or request aftersale
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: claimId
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - in: path
+          name: action
+          required: true
+          schema:
+            type: string
+            enum:
+              - cancel
+              - receive
+              - request_return
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardClaimOperationInput'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/me/rewards/command-receipts/{operationId}:
+    get:
+      tags:
+        - Rewards
+      operationId: getOwnRewardCommandReceipt
+      summary: Read only minimal receipt; not_found is not proof of failure
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: operationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandReceipt'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/me/rewards/command-receipts/{operationId}/abandon:
+    post:
+      tags:
+        - Rewards
+      operationId: abandonOwnRewardCommand
+      summary: Fence delayed execution under the original command lock or return the committed receipt
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: operationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandReceipt'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/me/coupons/eligible:
+    get:
+      tags:
+        - Rewards
+      operationId: listOwnEligiblePurchaseCoupons
+      summary: List available full-size coupons using server-side SKU and threshold checks
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: query
+          name: skuId
+          schema:
+            $ref: '#/components/schemas/Uuid'
+          required: true
+        - in: query
+          name: quantity
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 99
+          required: false
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EligiblePurchaseCoupons'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards:
+    get:
+      tags:
+        - Rewards
+      operationId: getRewardManagement
+      summary: Existing product, inventory or fulfillment capability required; award identities need member plus product management
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: query
+          name: activityId
+          schema:
+            $ref: '#/components/schemas/Uuid'
+          required: false
+        - in: query
+          name: state
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: after
+          schema:
+            $ref: '#/components/schemas/Uuid'
+          required: false
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardManagement'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/activities:
+    post:
+      tags:
+        - Rewards
+      operationId: configureRewardActivity
+      summary: Versioned brand rules; publication requires confirmed component stock and sellable coupon products
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardActivityInput'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/inventory:
+    post:
+      tags:
+        - Rewards
+      operationId: adjustRewardComponentStock
+      summary: Authorized and versioned adjustment of actual shared component inventory
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardInventoryInput'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/activities/{activityId}/issue:
+    post:
+      tags:
+        - Rewards
+      operationId: issueActivityRewardVouchers
+      summary: Bind verified awarded member IDs; repeat records or member IDs never issue a second voucher
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: activityId
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardIssueInput'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/vouchers/{voucherId}/revoke:
+    post:
+      tags:
+        - Rewards
+      operationId: revokeActivityRewardVoucher
+      summary: Revoke unused entitlement with explicit authority, expected version and reason
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: voucherId
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardRevokeInput'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/claims/{claimId}:
+    get:
+      tags:
+        - Rewards
+      operationId: getManagedTravelRewardClaim
+      summary: Fulfillment capability and audited access to decrypted recipient and tracking
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: claimId
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelRewardClaim'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/claims/{claimId}/{action}:
+    post:
+      tags:
+        - Rewards
+      operationId: operateManagedTravelRewardClaim
+      summary: Record actual dispatch or adjudicate aftersale; never restock shipped goods automatically
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: claimId
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - in: path
+          name: action
+          required: true
+          schema:
+            type: string
+            enum:
+              - ship
+              - resolve_return
+              - reject_return
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardClaimOperationInput'
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/activities/{activityId}/export/{kind}:
+    get:
+      tags:
+        - Rewards
+      operationId: exportActivityRewardLedger
+      summary: Audited bounded XLSX export; cursor supports subsequent batches; no raw survey answers or recipient contacts
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV
+      x-acceptance-ids:
+        - TRV-01
+        - TRV-02
+        - TRV-05
+        - TRV-08
+        - TRV-09
+      parameters:
+        - in: path
+          name: activityId
+          required: true
+          schema:
+            $ref: '#/components/schemas/Uuid'
+        - in: path
+          name: kind
+          required: true
+          schema:
+            type: string
+            enum:
+              - awarded
+              - issued
+              - claimed
+              - pending_dispatch
+              - unclaimed
+        - in: query
+          name: after
+          schema:
+            $ref: '#/components/schemas/Uuid'
+          required: false
+      responses:
+        '200':
+          description: Server-authoritative result or exact idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardExport'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
   /v1/me/commerce/command-receipts/{kind}:
     get:
       operationId: getOwnCommerceCommandReceipt
@@ -2658,6 +3391,742 @@ components:
     Care: {description: Authoritative care view, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}
     Problem: {description: Versioned problem details, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
   schemas:
+    RewardTerms:
+      type: object
+      properties:
+        maxAwardsPerMember:
+          const: 1
+        voucherValidityDays:
+          const: 30
+        shippingCents:
+          const: 0
+        dispatchHours:
+          const: 72
+        restoreGraceDays:
+          const: 0
+        stockoutPolicy:
+          const: retain_until_expiry
+        eligibleProductIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Uuid'
+          minItems: 1
+          maxItems: 100
+          uniqueItems: true
+      required:
+        - maxAwardsPerMember
+        - voucherValidityDays
+        - shippingCents
+        - dispatchHours
+        - restoreGraceDays
+        - stockoutPolicy
+        - eligibleProductIds
+      additionalProperties: false
+    RewardBundle:
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - moisture
+            - dandruff
+        name:
+          type: string
+        shampoo:
+          type: string
+        shampooMl:
+          type: integer
+          enum:
+            - 50
+            - 100
+        conditioner:
+          type: string
+        conditionerMl:
+          const: 100
+        totalMl:
+          type: integer
+          enum:
+            - 150
+            - 200
+        image:
+          type: string
+        availableQuantity:
+          type: integer
+          minimum: 0
+        stockConfirmed:
+          type: boolean
+      required:
+        - code
+        - name
+        - shampooMl
+        - conditionerMl
+        - totalMl
+        - image
+    TravelRewardVoucher:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        activityId:
+          $ref: '#/components/schemas/Uuid'
+        activityTitle:
+          type: string
+        name:
+          type: string
+        state:
+          type: string
+          enum:
+            - unused
+            - locked
+            - used
+            - expired
+            - revoked
+        version:
+          type: integer
+          minimum: 1
+        claimId:
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
+        issuedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        terms:
+          $ref: '#/components/schemas/RewardTerms'
+      required:
+        - id
+        - activityId
+        - name
+        - state
+        - version
+        - claimId
+        - issuedAt
+        - expiresAt
+        - terms
+    TravelRewardClaim:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        memberId:
+          $ref: '#/components/schemas/Uuid'
+        claimNumber:
+          type: string
+        voucherId:
+          $ref: '#/components/schemas/Uuid'
+        state:
+          type: string
+          enum:
+            - placed
+            - shipped
+            - received
+            - cancelled
+            - aftersale_requested
+            - closed
+        version:
+          type: integer
+          minimum: 1
+        item:
+          $ref: '#/components/schemas/RewardBundle'
+        terms:
+          $ref: '#/components/schemas/RewardTerms'
+        shippingCents:
+          const: 0
+        surveyVersion:
+          type: integer
+          minimum: 1
+        questionnaireVersion:
+          type: string
+        recommendation:
+          oneOf:
+            - type: string
+            - type: 'null'
+        carrierName:
+          oneOf:
+            - type: string
+            - type: 'null'
+        trackingNumber:
+          oneOf:
+            - type: string
+            - type: 'null'
+        shippedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        receivedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        aftersaleReason:
+          oneOf:
+            - type: string
+            - type: 'null'
+        couponId:
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
+        address:
+          type: object
+          properties:
+            recipientName:
+              type: string
+            phone:
+              type: string
+            province:
+              type: string
+            city:
+              type: string
+            district:
+              type: string
+            detail:
+              type: string
+      required:
+        - id
+        - memberId
+        - claimNumber
+        - voucherId
+        - state
+        - version
+        - item
+        - terms
+        - shippingCents
+        - createdAt
+        - updatedAt
+    ReceiptPurchaseCoupon:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        state:
+          type: string
+          enum:
+            - available
+            - locked
+            - used
+            - expired
+            - revoked
+        thresholdCents:
+          const: 19800
+        discountCents:
+          const: 2000
+        issuedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        orderId:
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
+        products:
+          type: array
+          description: Currently published and eligible products within the issued coupon scope.
+          items:
+            type: object
+            properties:
+              id: { $ref: '#/components/schemas/Uuid' }
+              code: { type: string }
+              name: { type: string }
+              image: { type: string, nullable: true }
+              priceCents: { type: integer, minimum: 1 }
+            required: [id, code, name, image, priceCents]
+      required:
+        - id
+        - state
+        - thresholdCents
+        - discountCents
+        - issuedAt
+        - expiresAt
+        - orderId
+    TravelRewardWallet:
+      type: object
+      properties:
+        memberId:
+          $ref: '#/components/schemas/Uuid'
+        vouchers:
+          type: array
+          items:
+            $ref: '#/components/schemas/TravelRewardVoucher'
+          maxItems: 1
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/TravelRewardClaim'
+        moreClaims:
+          type: boolean
+        claimsNextCursor:
+          type: string
+          format: uuid
+          nullable: true
+        coupons:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReceiptPurchaseCoupon'
+          maxItems: 1
+      required:
+        - memberId
+        - vouchers
+        - claims
+        - moreClaims
+        - coupons
+    TravelRewardSelection:
+      type: object
+      properties:
+        memberId:
+          $ref: '#/components/schemas/Uuid'
+        voucher:
+          $ref: '#/components/schemas/TravelRewardVoucher'
+        bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RewardBundle'
+          minItems: 2
+          maxItems: 2
+        survey:
+          type: object
+          properties:
+            completed:
+              type: boolean
+            version:
+              type: integer
+              minimum: 0
+            questionnaireVersion:
+              type: string
+            recommendation:
+              oneOf:
+                - type: string
+                - type: 'null'
+          required:
+            - completed
+            - version
+            - questionnaireVersion
+            - recommendation
+      required:
+        - memberId
+        - voucher
+        - bundles
+        - survey
+    TravelRewardQuote:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        voucherId:
+          $ref: '#/components/schemas/Uuid'
+        bundleCode:
+          type: string
+          enum:
+            - moisture
+            - dandruff
+        item:
+          $ref: '#/components/schemas/RewardBundle'
+        surveyVersion:
+          type: integer
+          minimum: 1
+        addressId:
+          $ref: '#/components/schemas/Uuid'
+        addressVersion:
+          type: integer
+          minimum: 1
+        shippingCents:
+          const: 0
+        totalCents:
+          const: 0
+        expiresAt:
+          type: string
+          format: date-time
+        serverTime:
+          type: string
+          format: date-time
+      required:
+        - id
+        - voucherId
+        - bundleCode
+        - item
+        - surveyVersion
+        - addressId
+        - addressVersion
+        - shippingCents
+        - totalCents
+        - expiresAt
+        - serverTime
+    RewardCommandReceipt:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - found
+            - not_found
+            - abandoned
+        action:
+          type: string
+        record:
+          type: object
+          properties:
+            id:
+              type: string
+            state:
+              type: string
+            version:
+              type: integer
+              minimum: 1
+      required:
+        - status
+    RewardCommandResult:
+      type: object
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        issued:
+          type: integer
+          minimum: 0
+        existing:
+          type: integer
+          minimum: 0
+      required:
+        - id
+    EligiblePurchaseCoupons:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                $ref: '#/components/schemas/Uuid'
+              name:
+                type: string
+              thresholdCents:
+                const: 19800
+              discountCents:
+                const: 2000
+              expiresAt:
+                type: string
+                format: date-time
+              version:
+                type: integer
+                minimum: 1
+            required:
+              - id
+              - name
+              - thresholdCents
+              - discountCents
+              - expiresAt
+              - version
+      required:
+        - items
+    RewardManagement:
+      type: object
+      properties:
+        memberId:
+          $ref: '#/components/schemas/Uuid'
+        activities:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                $ref: '#/components/schemas/Uuid'
+              code:
+                type: string
+              title:
+                type: string
+              state:
+                type: string
+                enum:
+                  - draft
+                  - published
+                  - paused
+              version:
+                type: integer
+                minimum: 1
+              terms:
+                oneOf:
+                  - $ref: '#/components/schemas/RewardTerms'
+                  - type: 'null'
+        inventory:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+                enum:
+                  - moisture100
+                  - dandruff50
+                  - conditioner100
+              stock_on_hand:
+                type: integer
+                minimum: 0
+              reserved_quantity:
+                type: integer
+                minimum: 0
+              version:
+                type: integer
+                minimum: 1
+              confirmed:
+                type: boolean
+        vouchers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                $ref: '#/components/schemas/Uuid'
+              member_id:
+                $ref: '#/components/schemas/Uuid'
+              display_name:
+                type: string
+              state:
+                type: string
+              version:
+                type: integer
+                minimum: 1
+              expires_at:
+                type: string
+                format: date-time
+              claim_id:
+                oneOf:
+                  - $ref: '#/components/schemas/Uuid'
+                  - type: 'null'
+              batch_id:
+                type: string
+              source_record_id:
+                type: string
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/TravelRewardClaim'
+        voucherNext:
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
+        claimNext:
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
+        permissions:
+          type: object
+          properties:
+            configure:
+              type: boolean
+            stock:
+              type: boolean
+            issue:
+              type: boolean
+            fulfill:
+              type: boolean
+          required:
+            - configure
+            - stock
+            - issue
+            - fulfill
+      required:
+        - memberId
+        - activities
+        - inventory
+        - vouchers
+        - claims
+        - voucherNext
+        - claimNext
+        - permissions
+    RewardExport:
+      type: object
+      properties:
+        fileBase64:
+          type: string
+          format: byte
+        fileName:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+        nextCursor:
+          oneOf:
+            - $ref: '#/components/schemas/Uuid'
+            - type: 'null'
+      required:
+        - fileBase64
+        - fileName
+        - count
+        - nextCursor
+    RewardQuoteInput:
+      type: object
+      properties:
+        voucherId:
+          $ref: '#/components/schemas/Uuid'
+        bundleCode:
+          type: string
+          enum:
+            - moisture
+            - dandruff
+        addressId:
+          $ref: '#/components/schemas/Uuid'
+        addressVersion:
+          type: integer
+          minimum: 1
+        surveyVersion:
+          type: integer
+          minimum: 1
+      required:
+        - voucherId
+        - bundleCode
+        - addressId
+        - addressVersion
+        - surveyVersion
+      additionalProperties: false
+    RewardClaimInput:
+      type: object
+      properties:
+        quoteId:
+          $ref: '#/components/schemas/Uuid'
+      required:
+        - quoteId
+      additionalProperties: false
+    RewardClaimOperationInput:
+      type: object
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        carrierName:
+          type: string
+          minLength: 1
+          maxLength: 50
+        trackingNumber:
+          type: string
+          pattern: ^[A-Za-z0-9-]{6,80}$
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 500
+      required:
+        - expectedVersion
+      additionalProperties: false
+    RewardActivityInput:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        code:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{2,63}$
+        title:
+          type: string
+          minLength: 1
+          maxLength: 80
+        expectedVersion:
+          type: integer
+          minimum: 0
+        terms:
+          oneOf:
+            - $ref: '#/components/schemas/RewardTerms'
+            - type: 'null'
+        action:
+          type: string
+          enum:
+            - save
+            - publish
+            - pause
+        reason:
+          type: string
+          minLength: 4
+          maxLength: 500
+      required:
+        - code
+        - title
+        - expectedVersion
+        - terms
+        - action
+        - reason
+      additionalProperties: false
+    RewardInventoryInput:
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - moisture100
+            - dandruff50
+            - conditioner100
+        expectedVersion:
+          type: integer
+          minimum: 1
+        delta:
+          type: integer
+          minimum: -2000000000
+          maximum: 2000000000
+        reason:
+          type: string
+          minLength: 4
+          maxLength: 500
+      required:
+        - code
+        - expectedVersion
+        - delta
+        - reason
+      additionalProperties: false
+    RewardIssueInput:
+      type: object
+      properties:
+        batchId:
+          type: string
+          minLength: 1
+          maxLength: 80
+        awards:
+          type: array
+          items:
+            type: object
+            properties:
+              sourceRecordId:
+                type: string
+                minLength: 1
+                maxLength: 120
+              memberId:
+                $ref: '#/components/schemas/Uuid'
+            required:
+              - sourceRecordId
+              - memberId
+            additionalProperties: false
+          minItems: 1
+          maxItems: 500
+      required:
+        - batchId
+        - awards
+      additionalProperties: false
+    RewardRevokeInput:
+      type: object
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+          minLength: 4
+          maxLength: 500
+      required:
+        - expectedVersion
+        - reason
+      additionalProperties: false
     CareProfileAnswer:
       type: object
       additionalProperties: false
@@ -2741,7 +4210,36 @@ components:
         evidenceReference: {type: string, minLength: 8, maxLength: 120}
         expectedOrderVersion: {type: integer, minimum: 1}
 
-    CommerceQuoteInput: {type: object, additionalProperties: false, required: [skuId, quantity, addressId, addressVersion], properties: {skuId: {$ref: '#/components/schemas/Uuid'}, quantity: {type: integer, minimum: 1, maximum: 99}, addressId: {$ref: '#/components/schemas/Uuid'}, addressVersion: {type: integer, minimum: 1}, creditCents: {type: integer, minimum: 0, description: Isolated test only; positive channel cash component required}}}
+    CommerceQuoteInput:
+      type: object
+      additionalProperties: false
+      required:
+        - skuId
+        - quantity
+        - addressId
+        - addressVersion
+      properties:
+        skuId:
+          $ref: '#/components/schemas/Uuid'
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+        addressId:
+          $ref: '#/components/schemas/Uuid'
+        addressVersion:
+          type: integer
+          minimum: 1
+        creditCents:
+          type: integer
+          minimum: 0
+          description: Isolated test only; positive channel cash component required
+        points:
+          type: integer
+          minimum: 0
+          description: Optional points; cap is computed on merchandise after the selected merchant coupon.
+        couponId:
+          $ref: '#/components/schemas/Uuid'
     CommerceOrderCreateInput: {type: object, additionalProperties: false, required: [quoteId], properties: {quoteId: {$ref: '#/components/schemas/Uuid'}}}
     CommerceOrderCancelInput: {type: object, additionalProperties: false, required: [expectedVersion, reason], properties: {expectedVersion: {type: integer, minimum: 1}, reason: {type: string, minLength: 3, maxLength: 500}}}
     CatalogSkuInput: {type: object, additionalProperties: false, required: [code, label, priceCents], properties: {code: {type: string, pattern: '^[A-Z0-9][A-Z0-9_-]{2,63}$'}, label: {type: string, minLength: 1, maxLength: 120}, priceCents: {type: integer, minimum: 1, maximum: 100000000}, active: {type: boolean}}}

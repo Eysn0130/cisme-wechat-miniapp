@@ -1,3 +1,4 @@
+import type {EligibleCoupon} from './rewards';
 export interface QuoteClock {
   expiresAtMs: number;
   serverOffsetMs: number;
@@ -31,6 +32,7 @@ const quoteDefaults = {
   countdown: "",
   subtotalYuan: "",
   discountYuan: "",
+  couponDiscountYuan:"",pointsDiscountYuan:"",
   shippingYuan: "",
   totalYuan: "",
   creditYuan:"",
@@ -39,6 +41,7 @@ const quoteDefaults = {
 };
 
 const privateDefaults = {
+  couponId:'',eligibleCoupons:[] as EligibleCoupon[],couponSheetOpen:false,couponState:'idle' as 'idle'|'loading'|'ready'|'error',couponError:'',couponLabel:'不使用优惠券',
   pointsInput:0,
   pointsMaximum:null as number|null,
   fulfillmentOpen:false,

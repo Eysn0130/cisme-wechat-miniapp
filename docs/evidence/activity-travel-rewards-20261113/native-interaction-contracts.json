@@ -1,0 +1,7 @@
+{
+  "kind": "Required interaction contracts; not executed native acceptance",
+  "routes": [
+    {"route":"pages/rewards/index","primaryContract":"docs/product/CISME-活动奖励与体验券-20261113.md: My Rewards -> restored care questionnaire -> explicit one-of-two bundle -> address -> atomic zero-cash claim -> receipt coupon; owner/environment-bound pending command survives interruption.","acceptanceReferences":["TRV-01","TRV-02","TRV-03","TRV-04","TRV-05","TRV-07","TRV-08","TRV-10"],"statesRequired":["loading","empty","ready","error","sold_out","stale_quote","unknown_command","session_changed","resume","reduced_motion"]},
+    {"route":"pages/management-rewards/index","primaryContract":"docs/product/CISME-活动奖励与体验券-20261113.md: Explicit current grants -> configured campaign -> actual component stock -> canonical awarded member IDs -> idempotent voucher issue -> physical dispatch -> aftersale and bounded XLSX reconciliation; no inferred real inventory or recipient.","acceptanceReferences":["TRV-01","TRV-02","TRV-05","TRV-07","TRV-09","TRV-10"],"statesRequired":["loading","empty","ready","error","capability_revoked","invalid_input","stale_version","unknown_command","session_changed","resume"]}
+  ]
+}

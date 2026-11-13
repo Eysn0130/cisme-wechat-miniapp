@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import {restoreRefundedCoupon} from './rewardLedger.js';
 import type pg from "pg";
 import { DomainError } from "@cisme/domain";
 import { transaction } from "./db.js";
@@ -247,6 +248,7 @@ export class VerifiedRefundInbox{
       await client.query(`UPDATE commission_refund_intent SET state='succeeded',finalized_at=$2,
         reconcile_lease_until=NULL WHERE id=$1`,
         [intent.id,fact.succeeded_at]);
+      await restoreRefundedCoupon(client,order.id,new Date(fact.succeeded_at));
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,
         after_state,trace_id) VALUES('worker:refund-inbox','commerce.refund_applied','commerce_order',
         $1,'WECHAT_REFUND_VERIFIED',$2,$3)`,[order.id,{outRefundNo:intent.out_refund_no,

@@ -1,0 +1,38 @@
+{
+  "sourceDocument": "/Users/mini/Downloads/爱格荣活动奖励旅行中样领取MVP.docx",
+  "sourceSha256": "f7e4fb2d85db6712b2d91ca923f25fae05861a013ba9c2ffe0ac607b45498ea8",
+  "root": "/Users/mini/CISME",
+  "branch": "codex/activity-travel-rewards-20261113",
+  "baseHead": "8b925b7744acc95ebfa474a12b75f97ad39f761d",
+  "previousTrial": "0.1.44",
+  "confirmedByUser": {
+    "audience": "awarded_members_only",
+    "maximumVouchersPerCanonicalMemberId": 1,
+    "bundleChoice": "exactly_one_of_moisture_or_dandruff",
+    "claimValidityDays": 30,
+    "shipping": "mainland_china_free",
+    "dispatchHours": 72,
+    "expiredCancellationRestores": "expired",
+    "soldOut": "retain_entitlement_until_expiry_and_offer_support"
+  },
+  "receiptCouponFromProvidedArtwork": {
+    "thresholdCents": 19800,
+    "discountCents": 2000,
+    "validityDaysFromReceipt": 30,
+    "perMember": 1,
+    "scope": "explicit full-size product IDs",
+    "stacking": "no other coupons; optional points on post-coupon merchandise"
+  },
+  "operationalInputsStillMissing": [
+    "actual moisture100 count",
+    "actual dandruff50 count",
+    "actual shared conditioner100 count",
+    "awarded member IDs with source record IDs and batch"
+  ],
+  "seededRealStock": false,
+  "issuedRealVouchers": 0,
+  "realMemberWrites": 0,
+  "realMoneyOperations": 0,
+  "physicalDeviceAvailability": "User previously confirmed no connectable phone",
+  "deployment": "not deployed or uploaded this task"
+}
