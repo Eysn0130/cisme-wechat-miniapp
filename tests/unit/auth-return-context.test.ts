@@ -14,7 +14,7 @@ function response(options:any){const path=new URL(options.url).pathname;
  if(path==='/v1/me'&&meFailure==='network'){options.fail({errMsg:'request:fail network unavailable'});return;}
  if(path==='/v1/me'&&meFailure==='unavailable'){options.success({statusCode:503,data:{code:'SERVICE_UNAVAILABLE'}});return;}
  if(path==='/v1/me'&&expireMe){options.success({statusCode:401,data:{code:'AUTH_EXPIRED'}});return;}
- const data=path==='/v1/me'?{id:'synthetic-member'}:path==='/v1/identity/wechat'?{sessionToken:'synthetic-new-session',onboardingRequired:newMember}:path==='/v1/me/legal-acceptances'?{accepted:true,documents:options.data.consents}:path==='/v1/identity/capabilities'?{phoneBindingEnabled:false}:{};
+ const data=path==='/v1/me/profile'?{id:'synthetic-member',display_name:'已确认昵称',profile_revision:1,avatar_data_url:'saved-avatar'}:path==='/v1/me/phone'?{bound:true,enabled:false,masked:'***0001'}:path==='/v1/me'?{id:'synthetic-member'}:path==='/v1/identity/wechat'?{sessionToken:'synthetic-new-session',onboardingRequired:newMember}:path==='/v1/me/legal-acceptances'?{accepted:true,documents:options.data.consents}:path==='/v1/identity/capabilities'?{phoneBindingEnabled:false}:{};
  if(path==='/v1/identity/wechat'&&holdIdentity){heldIdentity=()=>options.success({statusCode:200,data});return;}
  options.success({statusCode:200,data});
 }

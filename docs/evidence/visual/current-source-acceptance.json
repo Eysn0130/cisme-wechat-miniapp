@@ -275,7 +275,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "b4365847b908df31c57256cee4e5b6a2bc1018e7dac4d9967d872c63a7bd7bf9",
+  "packageSourceSha256": "ffebcf98cb229fee3f21a8dfcc1c76525f909da2e529da237c9a25287b01a696",
   "findings": [
     {
       "id": "CURRENT_SOURCE_43_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -284,7 +284,7 @@
       "reason": "The package has 43 native routes. Scoped native captures and database tests do not complete all route/font/state or physical-device matrices."
     }
   ],
-  "note": "Member No.00008 investigation and native onboarding identity/reward feedback refinement. Scoped native evidence is in docs/evidence/member08-onboarding-feedback-20261113. Full 43-route/font/state and physical-device acceptance remains pending; no historical screenshot is relabeled as current.",
+  "note": "Native Account flow confirms only missing phone/avatar/nickname on the same page, then posted-credit celebration for onboarding and care. Scoped current-source proof: docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22. Full 43-route/font/state and physical-device acceptance remains pending; historical screenshots retain original scope.",
   "previousSourceRecord": "docs/evidence/visual/source-acceptance-member-feedback-before-8109ba1fcf2a.json",
   "pendingSourceRebind": false
 }

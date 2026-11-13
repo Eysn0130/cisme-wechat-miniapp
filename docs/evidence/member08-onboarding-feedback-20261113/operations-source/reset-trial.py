@@ -39,12 +39,12 @@ def main():
  if action=='apply':need(binding.get('ciConclusion')=='success' and re.fullmatch('[a-f0-9]{40}',binding.get('mainHead','')),'MERGED_CI_REQUIRED')
  parent=ROOT/'member-reset-upgrades';parent.mkdir(mode=0o700,exist_ok=True);need(parent.stat().st_uid==0 and not parent.stat().st_mode&0o077,'STATE_PERMISSIONS')
  run=str(int(time.time()));state=parent/(action+'-20261113-'+run);state.mkdir(mode=0o700);(state/'runtime.before.env').write_bytes(runtime)
- dest='cisme_trial_reset_'+action+'_20261113_'+run;archive='cisme_trial_archive_20261113_b4365847b908'
+ dest='cisme_trial_reset_'+action+'_20261113_'+run;archive='cisme_trial_archive_20261113_ffebcf98cb22'
  need(not pg("SELECT datname FROM pg_database WHERE datname IN ('"+dest+"','"+archive+"')"),'DESTINATION_EXISTS')
  stopped=False;swapped=False;opened=False;drops=[];report={}
  try:
   if action=='apply':command(['systemctl','stop',*UNITS]);stopped=True
-  backup_ref='MEMBER-RESET-'+action.upper()+'-20261113-b4365847b908'
+  backup_ref='MEMBER-RESET-'+action.upper()+'-20261113-ffebcf98cb22'
   backup=json.loads(command(['/usr/bin/python3',str(OPS/'encrypted-snapshot.py'),str(state),backup_ref]).stdout);need(backup['authenticated'] and backup['pgRestoreListVerified'],'BACKUP_REQUIRED')
   meta=json.loads(private(state/(backup_ref+'-private.json')));crypto=Path('/tmp/cisme-points-snapshot.mjs').read_bytes();need(hashlib.sha256(crypto).hexdigest()=='8a7db1bbbcf054c5370d01fec575d99a36cc9838152805401e726defe6dd562f','CRYPTO_HELPER_DRIFT')
   dumped=command([NODE,'--input-type=module','-e',crypto.decode(),'decrypt',meta['encryptedFile'],meta['keyFile'],meta['aad']]).stdout;need(len(dumped)==meta['plainBytes'] and hashlib.sha256(dumped).hexdigest()==meta['plainSha256'],'DECRYPT_VERIFY_REQUIRED')

@@ -26,20 +26,23 @@ try{
  const rows=(await c.query('SELECT ctid::text AS tuple,row_to_json(t)::text AS raw,'+expr+' AS keys FROM '+q(name)+' t ORDER BY ctid')).rows;
  for(const r of rows){r.removed=false;bytes+=r.raw.length;count++;}tables[name]=rows;}
  if(bytes>64*1024*1024||count>100000)throw Error('PREVIEW_MEMORY_BOUND');
+ // Recheck the exact target list against current business facts; a new real order must not disappear during a member reset.
+ for(const name of ['commerce_order','points_redemption_order','reward_claim','transaction_order','payout_order','commission_payout'])for(const row of tables[name]??[]){const value=JSON.parse(row.raw);if(targets.includes(value.member_id)||targets.includes(value.owner_member_id))throw Error('TARGET_BUSINESS_ORDER_REQUIRES_REVIEW:'+name);}
+ for(const row of tables.authority_grant??[]){const value=JSON.parse(row.raw);if(targets.includes(value.member_id)&&!value.revoked_at)throw Error('TARGET_NEW_AUTHORITY_REQUIRES_REVIEW');}
  const tokens=new Set(targets);for(const w of tables.wechat_identity){const v=JSON.parse(w.raw);if(targets.includes(v.member_id)){tokens.add(v.id);if(typeof v.openid==='string'&&v.openid.length>=8)tokens.add(v.openid);}}
  const pk=Object.fromEntries(primary.map(x=>[x.name,x.cols]));let changed=true,iterations=0;
- while(changed){if(++iterations>300)throw Error('CLOSURE_DID_NOT_CONVERGE');changed=false;const escaped=[...tokens].map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));const re=new RegExp(escaped.join('|'));
+ while(changed){if(++iterations>300)throw Error('CLOSURE_DID_NOT_CONVERGE');changed=false;const identifiers=[...tokens];
   const mark=(name,r)=>{if(r.removed)return;r.removed=true;changed=true;for(const col of pk[name]??[]){const value=r.keys[col];if(typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9-]{27}$/i.test(value))tokens.add(value);}};
-  for(const[name,rows]of Object.entries(tables))for(const r of rows)if(!r.removed&&re.test(r.raw))mark(name,r);
+  for(const[name,rows]of Object.entries(tables))for(const r of rows)if(!r.removed&&identifiers.some(token=>r.raw.includes(token)))mark(name,r);
   for(const f of fks){const parents=new Set(tables[f.parent].filter(r=>r.removed).map(r=>JSON.stringify(f.parent_cols.map(x=>r.keys[x]))));
    for(const r of tables[f.child]){const values=f.child_cols.map(x=>r.keys[x]);if(values.every(x=>x!==null)&&parents.has(JSON.stringify(values)))mark(f.child,r);}}
  }
  const protectedTables=['member','wechat_identity','member_card_number','member_profile','member_contact','member_care_profile','member_points_profile','authority_grant','points_grant','points_lot','points_entry','points_projection','commerce_order'];
  const violations=[];
- for(const name of protectedTables)for(const r of tables[name]??[]){const v=JSON.parse(r.raw);if((name==='member'?v.id===keep:v.member_id===keep)&&r.removed)violations.push(name);}
+ for(const name of protectedTables)for(const r of tables[name]??[]){const v=JSON.parse(r.raw);const owner=name==='member'?v.id:v.member_id;if(owner&&!targets.includes(owner)&&r.removed)violations.push(name);}
  for(const[name,rows]of Object.entries(tables))if(name.startsWith('catalog_')||['legal_document','schema_migration','member_points_policy','reward_component_inventory','reward_activity','editorial_publisher'].includes(name))if(rows.some(r=>r.removed))violations.push(name);
- for(const r of tables.ugc_post??[])if(JSON.parse(r.raw).author_member_id===keep&&r.removed)violations.push('admin_own_post');
- for(const r of tables.ugc_media_asset??[])if(JSON.parse(r.raw).owner_member_id===keep&&r.removed)violations.push('admin_own_media');
+ for(const r of tables.ugc_post??[])if(!targets.includes(JSON.parse(r.raw).author_member_id)&&r.removed)violations.push('admin_own_post');
+ for(const r of tables.ugc_media_asset??[])if(!targets.includes(JSON.parse(r.raw).owner_member_id)&&r.removed)violations.push('admin_own_media');
  for(const r of tables.editorial_article??[]){const v=JSON.parse(r.raw);if(v.publisher_id==='fe841ebb-1db1-57de-988b-4ff1534f23e6'&&r.removed)violations.push('official_article');}
  if(violations.length)throw Error('PROTECTED_ROWS:'+violations.join(','));
  const sequences=(await c.query("SELECT sequencename FROM pg_sequences WHERE schemaname='public'")).rows;
@@ -56,7 +59,7 @@ try{
  report.derivedChanged.communityStats=(await target.query(`WITH counts AS (SELECT s.post_id,(SELECT count(*)::int FROM community_reaction r JOIN member m ON m.id=r.member_id AND m.status='active' WHERE r.post_id=s.post_id AND r.kind='like') likes,(SELECT count(*)::int FROM community_reaction r JOIN member m ON m.id=r.member_id AND m.status='active' WHERE r.post_id=s.post_id AND r.kind='save') saves,(SELECT count(*)::int FROM community_comment r JOIN member m ON m.id=r.member_id AND m.status='active' WHERE r.post_id=s.post_id AND r.status='published') comments FROM community_post_stats s) UPDATE community_post_stats s SET like_count=c.likes,save_count=c.saves,comment_count=c.comments,version=s.version+1,updated_at=clock_timestamp() FROM counts c WHERE s.post_id=c.post_id AND (s.like_count,s.save_count,s.comment_count) IS DISTINCT FROM (c.likes,c.saves,c.comments)`)).rowCount;
  for(const name of ['member','wechat_identity','member_card_number','authority_grant','points_projection','commerce_order']){const rows=(await target.query('SELECT row_to_json(t)::text AS raw FROM '+q(name)+' t')).rows;if(rows.some(r=>targets.some(id=>r.raw.includes(id))))throw Error('TARGET_REMAINS:'+name);}
  report.retainedAdmin={capabilities:(await target.query("SELECT count(*)::int n FROM authority_grant WHERE member_id=$1 AND revoked_at IS NULL",[keep])).rows[0].n,points:(await target.query('SELECT available FROM points_projection WHERE member_id=$1',[keep])).rows[0]?.available,orders:(await target.query('SELECT count(*)::int n FROM commerce_order WHERE member_id=$1',[keep])).rows[0].n};
- if(report.retainedAdmin.capabilities!==11||report.retainedAdmin.points!==30||report.retainedAdmin.orders!==2)throw Error('ADMIN_ASSET_DRIFT');
+ const expectedAdmin={capabilities:tables.authority_grant.map(r=>JSON.parse(r.raw)).filter(v=>v.member_id===keep&&!v.revoked_at).length,points:tables.points_projection.map(r=>JSON.parse(r.raw)).find(v=>v.member_id===keep)?.available,orders:tables.commerce_order.map(r=>JSON.parse(r.raw)).filter(v=>v.member_id===keep).length};if(JSON.stringify(report.retainedAdmin)!==JSON.stringify(expectedAdmin))throw Error('ADMIN_ASSET_DRIFT');
  await target.query('COMMIT');await c.query('COMMIT');
  console.log(JSON.stringify(report));
 }finally{c.release();target.release();await pool.end();await targetPool.end();}
