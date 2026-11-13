@@ -13,4 +13,3 @@ Error: ROUTE_AUDIT_POLICY_OR_GATE_MISSING:pages/rewards/index
     at async <anonymous> (/Users/mini/CISME/scripts/audit-native-routes.ts:59:18)
 
 Node.js v24.14.0
-
