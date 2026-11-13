@@ -16,3 +16,38 @@ describe('bounded native foil gestures',()=>{
 it('stops the authored sweep on hide and does not replay it on routine tab return',async()=>{
  let component:any;vi.stubGlobal('Component',(def:any)=>{component={...def,properties:{...Object.fromEntries(Object.entries(def.properties).map(([k,v]:[string,any])=>[k,v.value])),intro:true},data:structuredClone(def.data),setData(patch:any){Object.assign(this.data,patch);}};});await import('../../apps/miniprogram/components/card-foil/index');component.lifetimes.attached.call(component);expect(component.data.introActive).toBe(true);component.methods.finishSweep.call(component);expect(component.data.introActive).toBe(false);expect(component.data.flashActive).toBe(false);component.pageLifetimes.hide.call(component);component.pageLifetimes.show.call(component);expect(component.data.introActive).toBe(false);component.observers['x,y'].call(component,500,-200);expect(component.data.shiftX).toBe(35);expect(component.data.shiftY).toBe(-12);component.pageLifetimes.hide.call(component);component.observers.flash.call(component,true);expect(component.data.flashActive).toBe(false);
 });
+
+async function materialFixture() {
+ vi.resetModules();
+ let definition:any, intersection:any;
+ vi.stubGlobal('Component',(value:any)=>{definition=value;});
+ await import('../../apps/miniprogram/components/card-foil/index');
+ const observer:any={relativeToViewport:vi.fn(function(){return observer;}),observe:vi.fn((_selector:any,callback:any)=>{intersection=callback;}),disconnect:vi.fn()};
+ const component:any={properties:Object.fromEntries(Object.entries(definition.properties).map(([key,value]:[string,any])=>[key,value.value])),data:structuredClone(definition.data),setData:vi.fn(function(patch:any){Object.assign(component.data,patch);}),createIntersectionObserver:vi.fn(()=>observer)};
+ return{definition,component,observer,intersect:(ratio:number)=>intersection({intersectionRatio:ratio})};
+}
+
+it('runs the material only in the visible viewport and releases its observer without late writes',async()=>{
+ const{definition:d,component:c,observer,intersect}=await materialFixture();
+ d.lifetimes.attached.call(c);expect(c.data.ambientOn).toBe(false);
+ intersect(1);expect(c.data.ambientOn).toBe(false);
+ d.methods.textureLoaded.call(c,{currentTarget:{dataset:{texture:'silk'}}});expect(c.data.ambientOn).toBe(false);
+ d.methods.textureLoaded.call(c,{currentTarget:{dataset:{texture:'engraving'}}});expect(c.data.ambientOn).toBe(true);expect(vi.getTimerCount()).toBe(0);
+ intersect(0);expect(c.data.ambientOn).toBe(false);intersect(1);
+ d.pageLifetimes.hide.call(c);intersect(1);expect(c.data.ambientOn).toBe(false);
+ d.pageLifetimes.show.call(c);expect(c.data.ambientOn).toBe(true);
+ c.properties.reduced=true;d.observers['reduced,quiet'].call(c);expect(c.data.ambientOn).toBe(false);
+ c.properties.reduced=false;c.properties.quiet=true;d.observers['reduced,quiet'].call(c);expect(c.data.ambientOn).toBe(false);
+ c.properties.quiet=false;d.observers['reduced,quiet'].call(c);expect(c.data.ambientOn).toBe(true);
+ d.lifetimes.detached.call(c);expect(observer.disconnect).toHaveBeenCalledOnce();const writes=c.setData.mock.calls.length;intersect(0);expect(c.setData).toHaveBeenCalledTimes(writes);
+});
+
+it('does not attach a viewport observer on a reduced-performance device',async()=>{
+ m.reduce=true;const{definition:d,component:c}=await materialFixture();d.lifetimes.attached.call(c);
+ expect(c.createIntersectionObserver).not.toHaveBeenCalled();expect(c.data.lowMotion).toBe(true);expect(c.data.ambientOn).toBe(false);
+});
+
+it('falls back to static material when viewport observation cannot attach',async()=>{
+ const{definition:d,component:c,observer}=await materialFixture();let late:any;observer.observe.mockImplementation((_selector:any,callback:any)=>{late=callback;throw Error('OBSERVATION_UNAVAILABLE');});
+ expect(()=>d.lifetimes.attached.call(c)).not.toThrow();expect(observer.disconnect).toHaveBeenCalledOnce();expect(c.data.ambientOn).toBe(false);const writes=c.setData.mock.calls.length;late({intersectionRatio:1});expect(c.setData).toHaveBeenCalledTimes(writes);
+});

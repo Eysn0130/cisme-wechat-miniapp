@@ -1,0 +1,102 @@
+{
+  "packageSourceSha256": "8109ba1fcf2a01202d6a6154684b04168e1a2da13642a38291872dc19d4f40c0",
+  "method": "Native text/foil geometry and computed foreground colors. Analytical sRGB bound assumes fully white artwork beneath the protective layers at every sampled point. CJK label uses 5em width (4 ideographs plus 1em margin) rather than its empty block width. Not a physical-device accessibility certification.",
+  "rows": [
+    {
+      "case": "normalText",
+      "text": "member-card__brand",
+      "minimumShieldAlpha": 0.8908327288629737,
+      "conservativeContrast": 8.81003404245254,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "normalText",
+      "text": "member-card__identity",
+      "minimumShieldAlpha": 0.7328102040816327,
+      "conservativeContrast": 5.674687617786766,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "normalText",
+      "text": "member-card__label",
+      "minimumShieldAlpha": 0.7704228571428571,
+      "conservativeContrast": 6.38138813393102,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "normalText",
+      "text": "member-card__balance",
+      "minimumShieldAlpha": 0.5132749838709678,
+      "conservativeContrast": 3.0257845400218057,
+      "required": 3,
+      "passes": true
+    },
+    {
+      "case": "normalText",
+      "text": "member-card__entry",
+      "minimumShieldAlpha": 0.7858692307692308,
+      "conservativeContrast": 6.7005695269755865,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "normalText",
+      "text": "member-card__footer",
+      "minimumShieldAlpha": 0.8094076923076923,
+      "conservativeContrast": 4.922490738156376,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "largeText",
+      "text": "member-card__brand",
+      "minimumShieldAlpha": 0.8908327288629737,
+      "conservativeContrast": 8.81003404245254,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "largeText",
+      "text": "member-card__identity",
+      "minimumShieldAlpha": 0.7328102040816327,
+      "conservativeContrast": 5.674687617786766,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "largeText",
+      "text": "member-card__label",
+      "minimumShieldAlpha": 0.7915260707236842,
+      "conservativeContrast": 6.821927106176952,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "largeText",
+      "text": "member-card__balance",
+      "minimumShieldAlpha": 0.6972801451612903,
+      "conservativeContrast": 5.090655491302767,
+      "required": 3,
+      "passes": true
+    },
+    {
+      "case": "largeText",
+      "text": "member-card__entry",
+      "minimumShieldAlpha": 0.7858692307692308,
+      "conservativeContrast": 6.7005695269755865,
+      "required": 4.5,
+      "passes": true
+    },
+    {
+      "case": "largeText",
+      "text": "member-card__footer",
+      "minimumShieldAlpha": 0.8094076923076923,
+      "conservativeContrast": 4.922490738156376,
+      "required": 4.5,
+      "passes": true
+    }
+  ]
+}
