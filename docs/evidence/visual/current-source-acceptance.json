@@ -275,7 +275,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "8109ba1fcf2a01202d6a6154684b04168e1a2da13642a38291872dc19d4f40c0",
+  "packageSourceSha256": "b990812538abe14bcc4ebac4003db0f63230a7a6f01d8f33b718d4a75208333d",
   "findings": [
     {
       "id": "CURRENT_SOURCE_43_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -284,7 +284,7 @@
       "reason": "The package has 43 native routes. Scoped native captures and database tests do not complete all route/font/state or physical-device matrices."
     }
   ],
-  "note": "Activity-award and receipt-coupon source candidate. Native visual and functional evidence, when captured, is separately bound to its actual source hash in docs/evidence/activity-travel-rewards-20261113. No historical screenshot is relabeled as current, and no full physical weak-network or true cold-start pass is claimed.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-21523563b158.json",
+  "note": "Member No.00008 investigation and native onboarding identity/reward feedback refinement. Scoped native evidence is in docs/evidence/member08-onboarding-feedback-20261113. Full 43-route/font/state and physical-device acceptance remains pending; no historical screenshot is relabeled as current.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-member-feedback-before-8109ba1fcf2a.json",
   "pendingSourceRebind": false
 }

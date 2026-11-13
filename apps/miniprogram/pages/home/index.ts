@@ -3,6 +3,7 @@ import { careCommandConfirmed, type CareCommand } from "../../services/care-comm
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { memberIdentity } from "../../services/member-identity";
+import {queueCareFeedback,forgetOnboardingFeedback,confirmCreditOwner,isCreditOwner} from '../../services/points-feedback';
 import { requireMemberAccess, retainMemberSnapshot, request, navigateAfterAuthentication } from "../../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { registerIncomingShare } from "../../services/share";
@@ -15,7 +16,7 @@ import { commerceContextRevision } from "../../services/commerce-command-store";
 
 interface CareRecord { milestone: string; completedAt: string; stepCodes?: string[]; selfAssessment?: CareSelfAssessmentValue | null }
 interface CareView { id: string; version: number; phase: string; startedOn: string | null; timezone: string; due: string | null; next: string | null; completed: string[]; records: CareRecord[]; scheduleOffsetDays: number }
-interface MemberView { id?: string; profile_revision?: number; display_name: string }
+interface MemberView { id?: string; profile_revision?: number; display_name: string; completed_at?:string|null }
 
 let daypartTimer: ReturnType<typeof setInterval> | null = null;
 let careSessionCloseTimer: ReturnType<typeof setTimeout> | null = null;
@@ -131,7 +132,7 @@ function dailyHomeProjection(state: { usageReady: boolean; usageLoading: boolean
 
 Page({
   data: {
-    onboardingRequired:false,onboardingOpen:false,
+    onboardingRequired:false,onboardingOpen:false,memberId:'',
     usageReady: false, usageLoading: false, usageToday: null as TodayUsage | null, usageAttempt: 0, usageDay: "",
     usageStreak: 0, usageRewards: null as CareDayRewards | null,
     centerDate: "护理状态同步中", centerTitle: "今日护理", centerAction: "记录今日护理",
@@ -173,6 +174,11 @@ Page({
       ...(care?.phase === "active" && care.due ? { action: "开始今日护理", actionable: this.data.usageReady && !this.data.usageLoading,
         ...(!this.data.usageToday && !legacyToday ? { signalTitle: this.data.view.signalTitle, signalMeta: this.data.view.signalMeta } : {}) } : {}) } });
     this.syncCenteredHome();
+  },
+  careCreditConfirmed(event:WechatMiniprogram.CustomEvent<{owner:string;receipt:CareDayRewards}>){
+    const {owner,receipt}=event.detail;
+    if(!this.data.pageAlive||!this.data.pageVisible||owner!==this.data.memberId||!isCreditOwner(owner)||receipt.careDay!==this.data.usageDay||receipt.pending)return;
+    this.setData({usageRewards:receipt});this.syncCenteredHome();
   },
   async loadUsage(loadAttempt?: number, token = getApp<IAppOption>().globalData.sessionToken): Promise<CareUsageOverview | null> {
     const attempt = loadAttempt ?? this.data.loadAttempt;
@@ -308,11 +314,12 @@ Page({
       if (snapshot.care && snapshot.care.id === this.data.care?.id && snapshot.businessVersion < this.data.snapshotVersion) return this.data.authorityAvailable;
       const processingStarted = measurementClock();
       const { member, care } = snapshot;
+      confirmCreditOwner(member.id!);
       const displayName = homeDisplayName(this, member);
       const view = homeView(care, displayName || "CISME 会员", this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes);
       const onboardingRequired=snapshot.onboardingRequired===true;
       const core = { care, snapshotVersion: snapshot.businessVersion, view: care ? view : { ...view, ...dailyHomeProjection(this.data) }, authorityAvailable: true, needsAuthentication: false, loading: false,
-        onboardingRequired,onboardingOpen:onboardingRequired };
+        memberId:member.id!,onboardingRequired,onboardingOpen:onboardingRequired };
       this.getTabBar?.()?.setPresentation?.('care-onboarding',onboardingRequired);
       recordClientMetric({ action: "home", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
@@ -372,7 +379,9 @@ Page({
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;
     const confirmed=await this.load(true);
     if(!confirmed||!this.isCurrentUi(epoch,token)||this.data.onboardingRequired)return;
-    this.setData({onboardingOpen:false});this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
+    await new Promise<void>(resolve=>this.setData({onboardingOpen:false},resolve));this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
+    await this.selectComponent?.('#onboarding-credit')?.present?.();
+    if(!this.isCurrentUi(epoch,token))return;
     const app=getApp<IAppOption>(),destination=app.globalData.onboardingReturnToken===token?app.globalData.onboardingReturnUrl:undefined;
     delete app.globalData.onboardingReturnUrl;
     delete app.globalData.onboardingReturnToken;
@@ -490,7 +499,6 @@ Page({
     const result = await this.act(careUsagePath, target.usageKey!, target.usage);
     if (!result || !this.isCurrentUi(epoch, token)) return;
     this.resetCareSession(); lightHaptic(this.data.reducedMotion);
-    wx.showToast({ title: "今日护理已记录", icon: "success" });
   },
   advanceCareStep() {
     if (!this.data.sessionOpen || this.data.sessionStage !== "steps" || this.data.working) return;
@@ -546,6 +554,9 @@ Page({
     const epoch = this.data.lifecycleEpoch, token = getApp<IAppOption>().globalData.sessionToken, context = commerceContextRevision();
     if (!token || !this.isCurrentUi(epoch, token)) return null;
     const owner = {}, command: HomeCareCommand = { path, key: idempotencyKey, method, data: JSON.parse(JSON.stringify(data)), token };
+    const usage=path===careUsagePath?command.data as CareUsageInput:command.data.dailyUsage as CareUsageInput|undefined;
+    const feedbackOwner=this.data.memberId||memberIdentity()?.id||'';
+    if(usage)queueCareFeedback(feedbackOwner,usage.serverDay,this.data.usageRewards,idempotencyKey);
     writeOwners.set(this, owner); pendingCareCommands.set(this, command);
     const current = () => writeOwners.get(this) === owner && commerceContextRevision() === context && this.isCurrentUi(epoch, token);
     this.setData({ working: true, mutationState: "sending", error: "" });
@@ -563,7 +574,7 @@ Page({
       if (!current()) return null;
       const status = (error as { status?: number } | null)?.status;
       const rejected = typeof status === "number" && status >= 400 && status < 500 && ![408, 429].includes(status);
-      if (rejected) pendingCareCommands.delete(this);
+      if (rejected) {pendingCareCommands.delete(this);if(usage)forgetOnboardingFeedback(feedbackOwner,idempotencyKey);}
       this.setData({ mutationState: rejected ? "idle" : "unknown" });
       const refreshed = await this.load(true);
       if (!current()) return null;

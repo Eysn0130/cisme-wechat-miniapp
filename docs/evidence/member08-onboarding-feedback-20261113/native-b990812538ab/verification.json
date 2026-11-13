@@ -1,0 +1,312 @@
+{
+  "packageSourceSha256": "b990812538abe14bcc4ebac4003db0f63230a7a6f01d8f33b718d4a75208333d",
+  "scope": "Native WeChat simulator; all HTTP and storage isolated. Avatar selection callback injected with a packaged brand fixture, not a real WeChat picker or member image.",
+  "captures": [
+    {
+      "name": "01-missing-profile-entry",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-b990812538ab/01-missing-profile-entry.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "02-wechat-profile-setup",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-b990812538ab/02-wechat-profile-setup.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "03-questionnaire-start",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-b990812538ab/03-questionnaire-start.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "04-confirmed-points-controlled-visual",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-b990812538ab/04-confirmed-points-controlled-visual.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "05-saved-nickname-avatar",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-b990812538ab/05-saved-nickname-avatar.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "06-daily-credit-controlled-visual",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-b990812538ab/06-daily-credit-controlled-visual.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "06-no-unearned-voucher",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-b990812538ab/06-no-unearned-voucher.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    }
+  ],
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "setupState": {
+    "route": "pages/home/index",
+    "ready": true,
+    "setupOpen": true,
+    "error": ""
+  },
+  "setupGeometry": {
+    "setupOpen": true,
+    "rows": [
+      {
+        "id": "",
+        "dataset": {},
+        "left": 16,
+        "right": 374,
+        "top": 101,
+        "bottom": 796,
+        "width": 358,
+        "height": 695
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 39,
+        "right": 351,
+        "top": 348.390625,
+        "bottom": 478.390625,
+        "width": 312,
+        "height": 130
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 39,
+        "right": 351,
+        "top": 504.390625,
+        "bottom": 559.390625,
+        "width": 312,
+        "height": 55
+      },
+      {
+        "id": "",
+        "dataset": {},
+        "left": 39,
+        "right": 351,
+        "top": 589.390625,
+        "bottom": 639.390625,
+        "width": 312,
+        "height": 50
+      }
+    ]
+  },
+  "avatarPreparation": {
+    "setupOpen": false,
+    "avatarStored": true,
+    "profileRevision": 1,
+    "owner": "11111111-1111-4111-8111-01a1d62a96d2"
+  },
+  "completion": {
+    "completed": true,
+    "syntheticCareVersion": 8
+  },
+  "reward": {
+    "timeline": [
+      {
+        "amount": 100,
+        "digits": 3,
+        "displayAmount": 0,
+        "phase": "spinning",
+        "showing": true,
+        "reducedMotion": false,
+        "elapsed": 0
+      },
+      {
+        "phase": "checked",
+        "elapsed": 622
+      },
+      {
+        "displayAmount": 23,
+        "elapsed": 762
+      },
+      {
+        "displayAmount": 42,
+        "elapsed": 799
+      },
+      {
+        "displayAmount": 58,
+        "elapsed": 838
+      },
+      {
+        "displayAmount": 70,
+        "elapsed": 881
+      },
+      {
+        "displayAmount": 80,
+        "elapsed": 921
+      },
+      {
+        "displayAmount": 88,
+        "elapsed": 962
+      },
+      {
+        "displayAmount": 93,
+        "elapsed": 1000
+      },
+      {
+        "displayAmount": 96,
+        "elapsed": 1045
+      },
+      {
+        "displayAmount": 98,
+        "elapsed": 1084
+      },
+      {
+        "displayAmount": 100,
+        "elapsed": 1127
+      },
+      {
+        "phase": "settled",
+        "displayAmount": 100,
+        "elapsed": 1209
+      },
+      {
+        "phase": "leaving",
+        "elapsed": 1872
+      },
+      {
+        "showing": false,
+        "elapsed": 2074
+      }
+    ],
+    "amount": 100,
+    "showing": false,
+    "spinSamples": [
+      {
+        "at": 1794594489883,
+        "rows": [
+          {
+            "transform": "matrix3d(0.108891, -0.038848, -0.993294, 0, 0.0042334, 0.999245, -0.0386166, 0, 0.994045, 0, 0.108974, 0, 0, 0, 0, 1)",
+            "animation-name": "credit-spin"
+          }
+        ]
+      },
+      {
+        "at": 1794594490134,
+        "rows": [
+          {
+            "transform": "matrix3d(0.765275, 0.0333623, 0.642838, 0, -0.0255455, 0.999443, -0.0214585, 0, -0.643196, 0, 0.765701, 0, 0, 0, 0, 1)",
+            "animation-name": "credit-spin"
+          }
+        ]
+      }
+    ],
+    "grantReads": 2
+  },
+  "profile": {
+    "nickname": "隔离测试会员",
+    "available": 100,
+    "avatarIsLocal": true,
+    "owner": "11111111-1111-4111-8111-01a1d62a96d2",
+    "repeatedCelebration": false
+  },
+  "daily": {
+    "amount": 15,
+    "timeline": [
+      {
+        "amount": 15,
+        "digits": 2,
+        "displayAmount": 0,
+        "phase": "spinning",
+        "showing": true,
+        "reducedMotion": false,
+        "elapsed": 0
+      },
+      {
+        "phase": "checked",
+        "elapsed": 624
+      },
+      {
+        "displayAmount": 3,
+        "elapsed": 765
+      },
+      {
+        "displayAmount": 6,
+        "elapsed": 803
+      },
+      {
+        "displayAmount": 9,
+        "elapsed": 841
+      },
+      {
+        "displayAmount": 11,
+        "elapsed": 881
+      },
+      {
+        "displayAmount": 12,
+        "elapsed": 921
+      },
+      {
+        "displayAmount": 13,
+        "elapsed": 960
+      },
+      {
+        "displayAmount": 14,
+        "elapsed": 998
+      },
+      {
+        "displayAmount": 15,
+        "elapsed": 1075
+      },
+      {
+        "phase": "settled",
+        "displayAmount": 15,
+        "elapsed": 1188
+      },
+      {
+        "phase": "leaving",
+        "elapsed": 1852
+      },
+      {
+        "showing": false,
+        "elapsed": 2057
+      }
+    ],
+    "showing": false,
+    "saved": true,
+    "error": ""
+  },
+  "edit": {
+    "celebrations": 0,
+    "version": 2,
+    "error": ""
+  },
+  "vouchers": {
+    "vouchers": 0,
+    "coupons": 0
+  },
+  "result": "passed",
+  "localFixtureCleanup": {
+    "exactFixtureAvatarFilesRemoved": 0
+  },
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 48,
+    "realMemberWrites": 0
+  },
+  "sourceUnchanged": true
+}

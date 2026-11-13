@@ -79,4 +79,5 @@
     </view>
   </view>
   <care-onboarding id="care-onboarding" wx:if="{{onboardingOpen}}" required="{{true}}" bindcomplete="completeOnboarding"/>
+  <points-celebration id="onboarding-credit" bindcarecredit="careCreditConfirmed" owner="{{memberId}}" enabled="{{!onboardingOpen && !sessionMounted && !loading}}" receipt-version="{{usageRewards.pointsGranted || 0}}"/>
 </view>

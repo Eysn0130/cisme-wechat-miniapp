@@ -4,7 +4,7 @@
   <block wx:if="{{member && points}}">
     <view class="profile-identity">
       <view class="profile-avatar-wrap"><button class="profile-avatar-button {{navigating ? 'control--disabled' : ''}}" bindtap="openAccount" aria-label="前往设置修改头像与昵称{{commercialEligible ? '，CISME 商业会员' : ''}}" disabled="{{navigating}}"><image class="profile-avatar" src="{{memberAvatar}}" mode="aspectFill"/></button><image wx:if="{{commercialEligible}}" class="profile-member-seal" src="/assets/icons/member-seal-plum.svg" mode="aspectFit" aria-hidden="true"/></view>
-      <view class="profile-identity__copy"><strong class="profile-identity__title">{{member.display_name || 'CISME 会员'}}</strong></view>
+      <view class="profile-identity__copy"><button class="profile-identity__edit {{navigating ? 'control--disabled' : ''}}" bindtap="openAccount" disabled="{{navigating}}" aria-label="{{member.completed_at ? '修改微信头像与昵称' : '设置微信头像与昵称'}}"><text class="profile-identity__title">{{member.display_name && (member.completed_at || member.display_name !== 'CISME 会员') ? member.display_name : '设置头像与昵称'}}</text></button></view>
       <button class="profile-settings {{navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{navigating}}" aria-label="打开设置"><image src="/assets/icons/gear-plum.svg" mode="aspectFit"/></button>
     </view>
 
@@ -47,3 +47,4 @@
 
   </block>
 </view>
+<points-celebration id="onboarding-credit" owner="{{member.id || ''}}" enabled="{{!loading}}"/>

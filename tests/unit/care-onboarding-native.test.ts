@@ -5,12 +5,14 @@ import {createRequire} from 'node:module';
 import {careQuestions,careQuestionnaireVersion,careConsentVersion,careConsentText,emptyCareAnswers as serverEmpty,normalizeCareAnswers} from '../../services/api/src/careOnboarding';
 import {toggleCareOption,nextCareQuestion,parseCareSurvey,type CareAnswers} from '../../apps/miniprogram/services/care-onboarding';
 
-const m=vi.hoisted(()=>({token:'owner-a',context:0,read:vi.fn(),save:vi.fn(),counter:0}));
+const m=vi.hoisted(()=>({token:'owner-a',context:0,read:vi.fn(),save:vi.fn(),setupRead:vi.fn(),setupSave:vi.fn(),queue:vi.fn(),forget:vi.fn(),counter:0}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/page-requests',()=>({pageRead:vi.fn(),cancelPageReads:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',shouldReduceMotion:()=>false}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.context}));
 vi.mock('../../apps/miniprogram/services/orders',()=>({clientOperationKey:()=>`synthetic-care-${++m.counter}`}));
+vi.mock('../../apps/miniprogram/services/member-setup',()=>({readSetupProfile:m.setupRead,saveSetupProfile:m.setupSave}));
+vi.mock('../../apps/miniprogram/services/points-feedback',()=>({queueOnboardingFeedback:m.queue,forgetOnboardingFeedback:m.forget,confirmCreditOwner:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/care-onboarding',async original=>({...await original() as object,readCareSurvey:m.read,saveCareSurvey:m.save}));
 const simulate=createRequire(import.meta.url)('miniprogram-simulate');
 const template=readFileSync('apps/miniprogram/components/care-onboarding/index.wxml','utf8');
@@ -30,6 +32,7 @@ beforeEach(()=>{
   (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token}});
   (globalThis as any).wx={showToast:vi.fn()};
   m.read.mockImplementation(async()=>survey());
+  m.setupRead.mockImplementation(async()=>({id:m.token==='owner-a'?'11111111-1111-4111-8111-111111111111':'22222222-2222-4222-8222-222222222222',display_name:'测试会员',profile_revision:1,completed_at:'2026-11-13T00:00:00.000Z',avatar_data_url:null,avatar_revision:null}));
   m.save.mockImplementation(async(body:any,key:string,complete:boolean)=>{
     const health=body.consentChoice??profile?.healthChoice??'unasked';
     profile={birthdayMonthDay:Object.prototype.hasOwnProperty.call(body,'birthdayMonthDay')?body.birthdayMonthDay:profile?.birthdayMonthDay??null,version:(profile?.version??0)+1,questionnaireVersion:careQuestionnaireVersion,currentQuestion:body.currentQuestion,
@@ -118,4 +121,25 @@ it('has no skip action and never treats an old skipped age as a new explicit ans
  const calls=m.save.mock.calls.length;await c.next();expect(m.save).toHaveBeenCalledTimes(calls);expect(c.data.index).toBe(1);
  c.data.answers.age_group={status:'skipped',values:[]};c.project();expect(c.data.canAdvance).toBe(false);
  c.choose({currentTarget:{dataset:{value:'undisclosed'}}});await c.next();expect(c.data.index).toBe(2);expect(profile.answers.age_group.status).toBe('undisclosed');
+});
+
+it('uses native WeChat avatar and nickname controls before a new member answers, then saves the canonical profile',async()=>{
+ m.setupRead.mockResolvedValue({id:'11111111-1111-4111-8111-111111111111',display_name:'CISME 会员',profile_revision:0,completed_at:null,avatar_data_url:null,avatar_revision:null});
+ m.setupSave.mockImplementation(async(p:any,name:string)=>({...p,display_name:name,profile_revision:1,completed_at:'2026-11-13T00:00:00Z'}));
+ const c=await mount();expect(c.data.setupOpen).toBe(true);expect(rendered.dom.textContent).toContain('微信头像与昵称');
+ expect(template).toContain('open-type="chooseAvatar"');expect(template).toContain('type="nickname"');
+ c.choose({currentTarget:{dataset:{value:'doctor'}}});await c.next();expect(m.save).not.toHaveBeenCalled();
+ await c.saveSetup({detail:{value:{nickname:'  小雨  '}}});expect(m.setupSave.mock.calls[0]?.[1]).toBe('小雨');expect(c.data.setupOpen).toBe(false);
+ expect(c.data.index).toBe(0);expect(rendered.dom.textContent).toContain('1/10');expect(c.data.answers.source.values).toEqual([]);
+});
+it('keeps an unknown profile save for explicit reread and ignores late profile replies after a session switch',async()=>{
+ m.setupRead.mockResolvedValue({id:'11111111-1111-4111-8111-111111111111',display_name:'CISME 会员',profile_revision:0,completed_at:null,avatar_data_url:null,avatar_revision:null});
+ const c=await mount();m.setupSave.mockRejectedValueOnce({status:503});await c.saveSetup({detail:{value:{nickname:'小雨'}}});
+ expect(c.data.setupUncertain).toBe(true);expect(c.data.setupOpen).toBe(true);
+ await c.saveSetup();expect(m.setupSave).toHaveBeenCalledTimes(1);
+ let resolve!:(v:any)=>void;m.setupSave.mockImplementationOnce(()=>new Promise(r=>{resolve=r;}));
+ await c.load();void c.saveSetup({detail:{value:{nickname:'旧账号'}}});await flush();
+ definition.pageLifetimes.hide.call(c);m.token='owner-b';m.context++;definition.pageLifetimes.show.call(c);await flush();
+ resolve({id:'11111111-1111-4111-8111-111111111111',display_name:'旧账号',profile_revision:1,completed_at:'2026-11-13T00:00:00Z',avatar_data_url:null,avatar_revision:null});await flush();
+ expect(c.data.setupName).not.toBe('旧账号');expect(c.data.setupOpen).toBe(true);
 });

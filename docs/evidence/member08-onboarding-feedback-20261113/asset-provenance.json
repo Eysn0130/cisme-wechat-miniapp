@@ -1,0 +1,15 @@
+{
+  "type": "AI-generated production bitmap asset",
+  "selectedDesign": "displayed option 1 / docs/design/onboarding-points-reward-20261113/01-pearl-seal.png",
+  "asset": "apps/miniprogram/assets/cisme/onboarding-pearl-seal-v1.png",
+  "sha256": "ee9200701cd12597fe3a9213a546db92e8e7ae76e1ede4abce8a68f9340ca509",
+  "bytes": 33417,
+  "pixels": [
+    192,
+    192
+  ],
+  "alpha": "genuine transparent outside the circular disc; check is a separate native icon",
+  "originalWithCheck": "/Users/mini/.codex/generated_images/01a1d606-aba6-71f0-af3f-ca86d272dc61/exec-1a7b4ed2-ad23-44fe-8066-937acf1e62c8.png",
+  "editedBlank": "/Users/mini/.codex/generated_images/01a1d606-aba6-71f0-af3f-ca86d272dc61/exec-b649de0e-bcbe-4524-8828-bb7975fbba33.png",
+  "processing": "trim transparent alpha bounds, resize to 192px, quantize PNG; no text rasterized; existing check-plum.svg overlay after spin"
+}

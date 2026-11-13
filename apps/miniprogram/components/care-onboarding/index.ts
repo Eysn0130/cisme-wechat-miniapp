@@ -3,31 +3,38 @@ import {cancelPageReads} from '../../services/page-requests';
 import {currentChromeStyle,shouldReduceMotion} from '../../services/layout';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 import {clientOperationKey} from '../../services/orders';
+import {defaultMemberAvatar,localMemberAvatar,prepareAvatarUpload} from '../../services/member-avatar';
+import {publishMemberIdentity} from '../../services/member-identity';
+import {readSetupProfile,saveSetupProfile,type SetupProfile} from '../../services/member-setup';
+import {queueOnboardingFeedback,forgetOnboardingFeedback,confirmCreditOwner} from '../../services/points-feedback';
 import {readCareSurvey,saveCareSurvey,emptyCareAnswers,toggleCareOption,selectedCareOption,withoutSensitiveAnswers,nextCareQuestion,
   type CareQuestion,type CareAnswers,type CareHealthChoice,type CareSave,type CareProfile} from '../../services/care-onboarding';
 
 type Owner={token:string;context:number;alive:boolean;visible:boolean;attempt:number};
-type Pending={body:CareSave;key:string;complete:boolean;consent:boolean};
+type Pending={body:CareSave;key:string;complete:boolean;consent:boolean;firstCompletion:boolean};
 const owners=new WeakMap<object,Owner>(),pending=new WeakMap<object,Pending>();
+const identities=new WeakMap<object,SetupProfile>(),avatars=new WeakMap<object,string>();
 function current(component:object,attempt?:number){const o=owners.get(component);return Boolean(o?.alive&&o.visible&&o.token===getApp<IAppOption>().globalData.sessionToken
   &&o.context===commerceContextRevision()&&(attempt===undefined||o.attempt===attempt));}
 const initial={loading:true,ready:false,busy:false,unknown:false,reloadNeeded:false,error:'',questionnaireVersion:'',questions:[] as CareQuestion[],answers:{} as CareAnswers,
   ...birthdayPicker(),birthdayLocked:false,birthdaySupported:false,index:0,questionNumber:1,question:null as CareQuestion|null,questionFrames:[] as CareQuestion[],options:[] as Array<{value:string;label:string;selected:boolean}>,profileVersion:0,
-  completed:false,forced:false,healthChoice:'unasked' as CareHealthChoice,consentMode:false,consentVersion:'',consentText:'',canAdvance:false,selectionLabel:'',scrollTop:0};
+  completed:false,forced:false,setupOpen:false,setupName:'',setupAvatar:defaultMemberAvatar,setupBusy:false,setupAvatarBusy:false,setupInvalid:false,setupUncertain:false,
+  healthChoice:'unasked' as CareHealthChoice,consentMode:false,consentVersion:'',consentText:'',canAdvance:false,selectionLabel:'',scrollTop:0};
 Component({
   properties:{required:{type:Boolean,value:false}},
   data:{...initial,chromeStyle:currentChromeStyle(),reducedMotion:shouldReduceMotion()},
   lifetimes:{
     attached(){owners.set(this,{token:getApp<IAppOption>().globalData.sessionToken,context:commerceContextRevision(),alive:true,visible:true,attempt:0});void this.load();},
-    detached(){const o=owners.get(this);if(o){o.alive=false;o.attempt++;}cancelPageReads(this);pending.delete(this);owners.delete(this);}
+    detached(){const o=owners.get(this);if(o){o.alive=false;o.attempt++;}cancelPageReads(this);pending.delete(this);identities.delete(this);avatars.delete(this);owners.delete(this);}
   },
   pageLifetimes:{
-    hide(){const o=owners.get(this);if(o){o.visible=false;o.attempt++;}cancelPageReads(this);if(this.data.busy)this.setData({busy:false,unknown:true});},
+    hide(){const o=owners.get(this);if(o){o.visible=false;o.attempt++;}cancelPageReads(this);if(this.data.busy)this.setData({busy:false,unknown:true});
+      if(this.data.setupBusy)this.setData({setupBusy:false,setupUncertain:true});if(this.data.setupAvatarBusy)this.setData({setupAvatarBusy:false});},
     show(){const o=owners.get(this);if(!o)return;
       if(o.token!==getApp<IAppOption>().globalData.sessionToken||o.context!==commerceContextRevision()){
-        pending.delete(this);this.setData({...initial});o.token=getApp<IAppOption>().globalData.sessionToken;o.context=commerceContextRevision();o.attempt++;
+        pending.delete(this);identities.delete(this);avatars.delete(this);this.setData({...initial});o.token=getApp<IAppOption>().globalData.sessionToken;o.context=commerceContextRevision();o.attempt++;
       }
-      o.visible=true;if(!this.data.ready)void this.load();}
+      o.visible=true;if(!this.data.ready||this.data.setupUncertain)void this.load();}
   },
   methods:{
     stopPropagation(){},
@@ -36,20 +43,52 @@ Component({
       const o=owners.get(this);if(!o||!current(this))return;const attempt=++o.attempt;
       this.setData({loading:true,error:'',reloadNeeded:false});
       try{
-        const result=await readCareSurvey(this);if(!current(this,attempt))return;
+        const [result,identity]=await Promise.all([readCareSurvey(this),readSetupProfile(this)]);if(!current(this,attempt))return;
+        identities.set(this,identity);
+        confirmCreditOwner(identity.id);
+        const setupOpen=Boolean((this.properties.required||result.profile?.required)&&!identity.completed_at);
+        const setupAvatar=await localMemberAvatar(identity.avatar_data_url,identity.avatar_revision);if(!current(this,attempt))return;
+        publishMemberIdentity({id:identity.id,display_name:identity.display_name,avatarUrl:setupAvatar,profile_revision:identity.profile_revision,completed_at:identity.completed_at,...(identity.public_status?{public_status:identity.public_status}:{})});
         this.setData({ready:true,loading:false,questionnaireVersion:result.questionnaireVersion,questions:result.questions,
+          setupOpen,setupName:identity.display_name==='CISME 会员'?'':identity.display_name,setupAvatar,setupInvalid:false,setupUncertain:false,
           consentVersion:result.sensitiveConsent.version,consentText:result.sensitiveConsent.text,
           birthdaySupported:Object.prototype.hasOwnProperty.call(result,"birthdayMonthDay"),birthdayLocked:Boolean(result.birthdayMonthDay&&result.birthdayChangeAfter&&new Date(result.birthdayChangeAfter)>new Date()),...birthdayPicker(result.birthdayMonthDay)});
         const intent=pending.get(this);
         if(intent&&result.profile?.latestOperationId===intent.key){
           pending.delete(this);this.applyProfile(result.profile);this.setData({unknown:false});
-          if(intent.complete)this.triggerEvent('complete');return;
+          if(intent.complete){if(intent.firstCompletion)queueOnboardingFeedback(identity.id,intent.key);this.triggerEvent('complete');}return;
         }
         if(intent){
           this.setData({unknown:true,error:'原保存结果尚未确认，请使用原操作重试，或重新核对后再填写。'});return;
         }
         this.applyProfile(result.profile,true);
       }catch{if(current(this,attempt))this.setData({loading:false,error:'护理档案暂时无法加载，请检查网络后重试。'});}
+    },
+    editSetupName(event:WechatMiniprogram.Input){if(current(this)&&!this.data.setupBusy)this.setData({setupName:event.detail.value,setupInvalid:false});},
+    reviewSetupName(event:WechatMiniprogram.CustomEvent){if(current(this)&&event.detail.pass===false)this.setData({setupInvalid:true,error:'请换一个昵称'});},
+    async chooseSetupAvatar(event:WechatMiniprogram.CustomEvent){
+      const o=owners.get(this);if(!o||!current(this)||this.data.setupBusy||this.data.setupAvatarBusy||!event.detail.avatarUrl)return;
+      const attempt=++o.attempt;this.setData({setupAvatarBusy:true,error:''});
+      try{const payload=await prepareAvatarUpload(this as unknown as WechatMiniprogram.Page.TrivialInstance,event.detail.avatarUrl);
+        if(!current(this,attempt))return;avatars.set(this,payload);this.setData({setupAvatar:event.detail.avatarUrl});
+      }catch{if(current(this,attempt))this.setData({error:'头像未处理成功，请重新选择'});}
+      finally{if(current(this,attempt))this.setData({setupAvatarBusy:false});}
+    },
+    async saveSetup(event?:WechatMiniprogram.CustomEvent){
+      const o=owners.get(this),identity=identities.get(this);if(!o||!identity||!current(this)||this.data.setupBusy||this.data.setupAvatarBusy||this.data.setupInvalid||this.data.setupUncertain)return;
+      const name=String(event?.detail?.value?.nickname??this.data.setupName).trim();
+      if(!name||Array.from(name).length>40){this.setData({error:'请填写昵称'});return;}
+      const attempt=++o.attempt;this.setData({setupBusy:true,error:'',setupName:name});
+      try{const saved=await saveSetupProfile(identity,name,avatars.get(this));if(!current(this,attempt))return;
+        identities.set(this,saved);avatars.delete(this);
+        const avatarUrl=await localMemberAvatar(saved.avatar_data_url,saved.avatar_revision);if(!current(this,attempt))return;
+        publishMemberIdentity({id:saved.id,display_name:saved.display_name,avatarUrl,profile_revision:saved.profile_revision,completed_at:saved.completed_at,...(saved.public_status?{public_status:saved.public_status}:{})});
+        this.setData({setupOpen:false,setupBusy:false,setupAvatar:avatarUrl,setupUncertain:false});
+      }catch(error){if(!current(this,attempt))return;
+        const e=error as {status?:number;title?:string;code?:string};
+        const definitive=typeof e.status==='number'&&e.status>=400&&e.status<500&&![408,429].includes(e.status);
+        this.setData({setupUncertain:!definitive||e.code==='PROFILE_CHANGED',error:definitive?e.title||'资料未保存，请核对昵称':'保存结果待确认，请重新加载核对'});
+      }finally{if(current(this,attempt))this.setData({setupBusy:false});}
     },
     applyProfile(profile:CareProfile|null,initialLoad=false){
       this.setData({...birthdayPicker(profile?profile.birthdayMonthDay:this.data.birthday),profileVersion:profile?.version??0,answers:profile?.answers??emptyCareAnswers(this.data.questions),
@@ -67,7 +106,7 @@ Component({
         selectionLabel:q.multiple?`可多选，最多 ${q.max} 项${chosen?` · 已选 ${chosen} 项`:''}`:'单选',scrollTop:0});
     },
     choose(event:WechatMiniprogram.TouchEvent){
-      if(!current(this)||this.data.busy||this.data.unknown||this.data.consentMode)return;
+      if(!current(this)||this.data.setupOpen||this.data.busy||this.data.unknown||this.data.consentMode)return;
       const q=this.data.question;if(!q)return;const value=String(event.currentTarget.dataset.value??'');
       const next=toggleCareOption(q,this.data.answers[q.id],value);
       this.setData({answers:{...this.data.answers,[q.id]:next.answer},error:next.error});this.project();
@@ -96,7 +135,7 @@ Component({
     },
     openSensitiveChoice(){if(this.data.busy||this.data.unknown)return;this.setData({consentMode:true,error:''});},
     async next(){
-      if(!current(this)||this.data.busy)return;
+      if(!current(this)||this.data.setupOpen||this.data.busy)return;
       if(this.data.unknown){await this.retrySave();return;}
       if(!this.data.canAdvance){this.setData({error:'请选择本题答案；个人情况可选择不愿透露或不愿回答。'});return;}
       const complete=this.data.index===this.data.questions.length-1;
@@ -106,7 +145,9 @@ Component({
     async retrySave(){const intent=pending.get(this);if(intent&&!this.data.busy)await this.send(intent);},
     async submit(body:CareSave,complete:boolean,consent:boolean){
       const command={...body,...(!this.data.completed&&this.data.birthdaySupported?{birthdayMonthDay:this.data.birthday||null}:{})};
-      const intent={body:JSON.parse(JSON.stringify(command)) as CareSave,key:clientOperationKey('care-profile'),complete,consent};pending.set(this,intent);await this.send(intent);
+      const intent={body:JSON.parse(JSON.stringify(command)) as CareSave,key:clientOperationKey('care-profile'),complete,consent,firstCompletion:complete&&!this.data.completed};
+      if(intent.firstCompletion){const id=identities.get(this)?.id;if(id)queueOnboardingFeedback(id,intent.key);}
+      pending.set(this,intent);await this.send(intent);
     },
     async send(intent:Pending){
       const o=owners.get(this);if(!o||!current(this))return;const attempt=++o.attempt;
@@ -116,12 +157,13 @@ Component({
         if(!current(this,attempt))return;
         pending.delete(this);this.setData({unknown:false});this.applyProfile(result.profile);
         if(!result.current){this.setData({error:'档案已有更新，已显示最新记录，请核对后继续。'});return;}
-        if(intent.complete){wx.showToast({title:'护理档案已保存',icon:'success'});this.triggerEvent('complete');}
+        if(intent.complete){this.triggerEvent('complete');}
       }catch(error){
         if(!current(this,attempt))return;
         const e=error as {status?:number;title?:string;code?:string};
         const definitive=typeof e.status==='number'&&e.status>=400&&e.status<500&&![408,429].includes(e.status);
-        if(definitive){pending.delete(this);this.setData({unknown:false,reloadNeeded:e.code==='CARE_PROFILE_CHANGED',error:e.title||'答案未保存，请核对后重试。'});}
+        if(definitive){pending.delete(this);const id=identities.get(this)?.id;if(id&&intent.firstCompletion)forgetOnboardingFeedback(id,intent.key);
+          this.setData({unknown:false,reloadNeeded:e.code==='CARE_PROFILE_CHANGED',error:e.title||'答案未保存，请核对后重试。'});}
         else this.setData({unknown:true,error:'保存结果尚未确认，答案已保留。请重试原操作或核对最新档案。'});
       }finally{if(current(this,attempt))this.setData({busy:false});}
     }
