@@ -49,7 +49,8 @@ export async function settlePurchaseCoupon(c:DbClient,orderId:string,mode:'consu
  if(!coupon||coupon.member_id!==order.member_id)rewardFailure('COUPON_RESERVATION_DRIFT','优惠券状态需核对',409);
  if(mode==='consume'&&coupon.state==='used'&&coupon.order_id===orderId)return;
  if(coupon.state!=='locked'||coupon.order_id!==orderId){if(mode==='release'&&coupon.order_id!==orderId)return;rewardFailure('COUPON_RESERVATION_DRIFT','优惠券状态需核对',409);}
- const state=mode==='consume'?'used':coupon.expires_at<=now?'expired':'available';
+ const source=mode==='release'?(await c.query('SELECT state FROM activity_reward_claim WHERE id=$1',[coupon.source_claim_id])).rows[0]:null;
+ const state=mode==='consume'?'used':source?.state==='closed'?'revoked':coupon.expires_at<=now?'expired':'available';
  await c.query('UPDATE member_purchase_coupon SET state=$2,order_id=$3,version=version+1 WHERE id=$1',[coupon.id,state,mode==='consume'?orderId:null]);
 }
 export async function restoreRefundedCoupon(c:DbClient,orderId:string,now:Date){

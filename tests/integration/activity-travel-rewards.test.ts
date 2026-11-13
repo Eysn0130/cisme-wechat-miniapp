@@ -1,5 +1,5 @@
 import {beforeAll,afterAll,describe,it,expect} from 'vitest';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,generateKeyPairSync,createCipheriv,randomBytes,sign} from 'node:crypto';
 import {loadConfig} from '@cisme/config';
 import {testPool,resetDatabase,TEST_DATABASE_URL} from '@cisme/testkit';
 import {createApp} from '../../services/api/src/server';
@@ -10,6 +10,8 @@ import {DeliveryAddressService} from '../../services/api/src/deliveryAddress';
 import {CareOnboardingService,careQuestions} from '../../services/api/src/careOnboarding';
 import {settlePurchaseCoupon} from '../../services/api/src/rewardLedger';
 import {transaction} from '../../services/api/src/db';
+import {VerifiedPaymentInbox} from '../../services/api/src/verifiedPaymentInbox';
+import {VerifiedRefundInbox} from '../../services/api/src/verifiedRefundInbox';
 const pool=testPool(),config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'reward-integration-session',ADMIN_API_TOKEN:'legacy-test',UPLOAD_TOKEN_SECRET:'reward-test-upload',OBJECT_STORAGE_DRIVER:'api_gateway',CONTACT_ENCRYPTION_KEY:'11'.repeat(32),CONTACT_HASH_KEY:'22'.repeat(32),CONTACT_KEY_VERSION:'reward-test-v1',COMMERCE_ORDER_FLOW_ENABLED:'true'});
 let app:Awaited<ReturnType<typeof createApp>>,rewards:ActivityRewardService,operator:any,product:any,activity:any;
 const auth=(p:any)=>({authorization:`Bearer ${p.sessionToken}`}),key=()=>`reward-test-${randomUUID()}`;
@@ -103,4 +105,33 @@ describe('TRV native service and HTTP business authority',()=>{
   const result=await rewards.export(operator.memberId,activity.id,'issued');expect(result.count).toBeGreaterThan(0);expect(result.workbook.subarray(0,2).toString()).toBe('PK');
   const p=await person();await expect(rewards.export(p.memberId,activity.id,'issued')).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
  });
+ it('restores the same expired award on cancellation without extending eligibility',async()=>{
+  const x=await ready(),r=await claim(x);await pool.query("UPDATE reward_voucher SET expires_at=clock_timestamp()-interval '1 second' WHERE id=$1",[x.v]);await rewards.operate(x.p.memberId,r.id,key(),'cancel',{expectedVersion:1});expect((await rewards.mine(x.p.memberId)).vouchers[0]?.state).toBe('expired');
+ });
+ it('applies signed coupon payments once and restores only after cumulative verified full cash refunds',async()=>{
+  const x=await ready(),r=await claim(x);await rewards.operate(operator.memberId,r.id,key(),'ship',{expectedVersion:1,carrierName:'隔离承运商',trackingNumber:'SIGNED123456'});await rewards.operate(x.p.memberId,r.id,key(),'receive',{expectedVersion:2});
+  const coupon=(await rewards.mine(x.p.memberId)).coupons[0]!;
+  const qr=await app.inject({method:'POST',url:'/v1/me/commerce/quotes',headers:{...auth(x.p),'idempotency-key':key()},payload:{skuId:product.variants[0].id,quantity:1,addressId:x.a.id,addressVersion:x.a.version,couponId:coupon.id}});expect(qr.statusCode,qr.body).toBe(200);
+  // Isolated signed-channel fixture: a verified order/attempt bound to the actual coupon quote.
+  const id=randomUUID(),number='CM20261113'+id.replaceAll('-','').slice(0,12).toUpperCase(),created=new Date(),expires=new Date(created.getTime()+900000),appId='wx4eac2d4fb11d299b',merchantId='1234567890',payer='synthetic-award-buyer';
+  await transaction(pool,async c=>{
+   await c.query(`INSERT INTO commerce_order(id,order_number,member_id,source_quote_id,status,currency,subtotal_cents,member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at,created_at,updated_at,transaction_source_kind,coupon_id,coupon_discount_cents) VALUES($1,$2,$3,$4,'pending_payment','CNY',19800,2000,0,17800,'activity-coupon-v1',$5,$6,$6,'verified_commerce',$7,2000)`,[id,number,x.p.memberId,qr.json().id,expires,created,coupon.id]);
+   await c.query("UPDATE member_purchase_coupon SET state='locked',order_id=$2,version=version+1 WHERE id=$1",[coupon.id,id]);
+   await c.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at) SELECT $1,$2,$3,$4,$5,$6,17800,'CNY',id,pricing_rule_version,price_version,$7 FROM commerce_checkout_quote WHERE id=$8`,[id,number,x.p.memberId,payer,appId,merchantId,expires,qr.json().id]);
+   await c.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,product_name,sku_code,sku_label,quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents) VALUES($1,1,$2,$3,'synthetic-reward-fullsize','隔离正装','SYNTH_REWARD_198','隔离规格',1,19800,19800,2000,17800)`,[id,product.productId,product.variants[0].id]);
+   await c.query('INSERT INTO commerce_inventory_reservation(order_id,sku_id,quantity,expires_at) VALUES($1,$2,1,$3)',[id,product.variants[0].id,expires]);await c.query('UPDATE catalog_inventory_level SET reserved_quantity=reserved_quantity+1 WHERE sku_id=$1',[product.variants[0].id]);
+  });
+  const platform=generateKeyPairSync('rsa',{modulusLength:2048}),apiV3Key='0123456789abcdef0123456789abcdef',publicPem=platform.publicKey.export({type:'spki',format:'pem'}).toString(),serial='PUB_KEY_ID_3000000001';
+  function notice(type:string,payload:any){const nonce='0123456789ab',associated=type==='TRANSACTION.SUCCESS'?'transaction':'refund',cipher=createCipheriv('aes-256-gcm',Buffer.from(apiV3Key),Buffer.from(nonce));cipher.setAAD(Buffer.from(associated));const ciphertext=Buffer.concat([cipher.update(JSON.stringify(payload)),cipher.final(),cipher.getAuthTag()]).toString('base64');const rawBody=Buffer.from(JSON.stringify({id:key(),event_type:type,resource_type:'encrypt-resource',resource:{algorithm:'AEAD_AES_256_GCM',ciphertext,associated_data:associated,nonce,original_type:associated}}));const timestamp=Math.floor(Date.now()/1000).toString(),requestNonce=randomBytes(16).toString('hex'),signature=sign('RSA-SHA256',Buffer.concat([Buffer.from(`${timestamp}\n${requestNonce}\n`),rawBody,Buffer.from('\n')]),platform.privateKey).toString('base64');return{rawBody,headers:{'Wechatpay-Serial':serial,'Wechatpay-Timestamp':timestamp,'Wechatpay-Nonce':requestNonce,'Wechatpay-Signature':signature}};}
+  const payments=new VerifiedPaymentInbox(pool,{appId,merchantId,apiV3Key,platformKeys:new Map([[serial,publicPem]])}),refunds=new VerifiedRefundInbox(pool,{merchantId,apiV3Key,platformKeys:new Map([[serial,publicPem]])}),transactionId='420000000000000000000777';
+  const payment=notice('TRANSACTION.SUCCESS',{appid:appId,mchid:merchantId,out_trade_no:number,transaction_id:transactionId,trade_type:'JSAPI',trade_state:'SUCCESS',success_time:new Date().toISOString(),amount:{total:17800,payer_total:17800,currency:'CNY',payer_currency:'CNY'},payer:{openid:payer}}),receipt=await payments.receive(payment.rawBody,payment.headers);
+  expect(await payments.processOne(receipt.inboxId)).toBe('applied');expect((await payments.receive(payment.rawBody,payment.headers)).inboxId).toBe(receipt.inboxId);expect((await rewards.mine(x.p.memberId)).coupons[0]?.state).toBe('used');
+  const line=(await pool.query('SELECT id FROM commerce_order_line WHERE order_id=$1',[id])).rows[0];
+  for(const [index,amount] of [8000,9800].entries()){
+   const outRefundNo='RF'+randomUUID().replaceAll('-','').slice(0,24).toUpperCase();await pool.query(`INSERT INTO commission_refund_intent(order_id,payment_inbox_id,out_refund_no,refund_cents,payer_refund_cents,eligible_merchandise_refund_cents,other_merchandise_refund_cents,shipping_cash_refund_cents,line_allocation,allocation_policy_version,created_by) VALUES($1,$2,$3,$4,$4,0,$4,0,$5,'fixture-allocation-v1','isolated-reward-test')`,[id,receipt.inboxId,outRefundNo,amount,JSON.stringify([{lineId:line.id,eligibleCashRefundCents:0,otherCashRefundCents:amount}])]);
+   const event=notice('REFUND.SUCCESS',{mchid:merchantId,out_trade_no:number,transaction_id:transactionId,out_refund_no:outRefundNo,refund_id:'503'+randomUUID().replaceAll('-','').slice(0,20),refund_status:'SUCCESS',success_time:new Date().toISOString(),amount:{total:17800,refund:amount,payer_total:17800,payer_refund:amount}}),refund=await refunds.receive(event.rawBody,event.headers);expect(await refunds.processOne(refund.inboxId)).toBe('applied');expect((await rewards.mine(x.p.memberId)).coupons[0]?.state).toBe(index===0?'used':'available');expect((await refunds.receive(event.rawBody,event.headers)).inboxId).toBe(refund.inboxId);
+  }
+  expect((await rewards.mine(x.p.memberId)).coupons[0]?.expiresAt).toBe(coupon.expiresAt);
+ });
+
 });

@@ -52,7 +52,8 @@
         "address_hmac",
         "key_version",
         "shipment_encrypted",
-        "operation_id"
+        "operation_id",
+        "request_sha256"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -6437,7 +6438,8 @@
         "object_id",
         "operation_id",
         "details",
-        "created_at"
+        "created_at",
+        "request_sha256"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -6472,7 +6474,8 @@
         "voucher_version",
         "address_id",
         "address_version",
-        "operation_id"
+        "operation_id",
+        "request_sha256"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",

@@ -125,7 +125,7 @@ export class ActivityRewardService {
    await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`reward-command:${owner}:${operation}`]);
    const prior=(await c.query('SELECT action,details FROM reward_event WHERE actor_member_id=$1 AND operation_id=$2',[owner,operation])).rows[0];
    if(prior)return {status:prior.action==='reward.command.abandoned'?'abandoned':'found',action:prior.action,record:{id:prior.details.result?.id,state:prior.details.result?.state,version:prior.details.result?.version}};
-   await c.query("INSERT INTO reward_event(actor_member_id,action,object_id,operation_id,request_sha256,details) VALUES($1,'reward.command.abandoned',$1,$2,$3,'{}')",[owner,operation,this.fingerprint({abandoned:operation})]);
+   await c.query("INSERT INTO reward_event(actor_member_id,action,object_id,operation_id,request_sha256,details) VALUES($1::uuid,'reward.command.abandoned',$1::uuid::text,$2,$3,'{}')",[owner,operation,this.fingerprint({abandoned:operation})]);
    return {status:'abandoned'};
   });
  }
