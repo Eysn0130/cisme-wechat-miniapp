@@ -95,11 +95,11 @@ it('continues login after phone denial without inventing a phone binding',async(
  await page.loginWithPhone({detail:{errMsg:'getPhoneNumber:fail user deny'}});
  expect(mocks.token).toBe('member-session');expect(page.data.loginStage).toBe('login');expect(mocks.navigate).toHaveBeenCalledWith('/pages/home/index');
  expect(mocks.request.mock.calls.some(([options])=>options.path==='/v1/me/phone')).toBe(false);
- expect(page.data.notice).toContain('未提供手机号');
+ expect(page.data.notice).toBe('');
 });
 it('does not promise a future phone binding when the native phone service is unavailable',async()=>{
  await page.loginWithPhone({detail:{errMsg:'getPhoneNumber:fail privacy not configured'}});
- expect(mocks.token).toBe('member-session');expect(page.data.notice).toBe('微信手机号授权暂不可用，仍可使用微信账号登录。');
+ expect(mocks.token).toBe('member-session');expect(page.data.notice).toBe('');
  expect(mocks.request.mock.calls.some(([options])=>options.path==='/v1/me/phone')).toBe(false);
 });
 it('does not consume authorization when the agreement is unchecked',async()=>{

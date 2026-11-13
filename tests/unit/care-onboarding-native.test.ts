@@ -123,23 +123,8 @@ it('has no skip action and never treats an old skipped age as a new explicit ans
  c.choose({currentTarget:{dataset:{value:'undisclosed'}}});await c.next();expect(c.data.index).toBe(2);expect(profile.answers.age_group.status).toBe('undisclosed');
 });
 
-it('uses native WeChat avatar and nickname controls before a new member answers, then saves the canonical profile',async()=>{
+it('starts the questionnaire immediately even when a new member has not supplied an avatar or nickname',async()=>{
  m.setupRead.mockResolvedValue({id:'11111111-1111-4111-8111-111111111111',display_name:'CISME 会员',profile_revision:0,completed_at:null,avatar_data_url:null,avatar_revision:null});
- m.setupSave.mockImplementation(async(p:any,name:string)=>({...p,display_name:name,profile_revision:1,completed_at:'2026-11-13T00:00:00Z'}));
- const c=await mount();expect(c.data.setupOpen).toBe(true);expect(rendered.dom.textContent).toContain('微信头像与昵称');
- expect(template).toContain('open-type="chooseAvatar"');expect(template).toContain('type="nickname"');
- c.choose({currentTarget:{dataset:{value:'doctor'}}});await c.next();expect(m.save).not.toHaveBeenCalled();
- await c.saveSetup({detail:{value:{nickname:'  小雨  '}}});expect(m.setupSave.mock.calls[0]?.[1]).toBe('小雨');expect(c.data.setupOpen).toBe(false);
- expect(c.data.index).toBe(0);expect(rendered.dom.textContent).toContain('1/10');expect(c.data.answers.source.values).toEqual([]);
-});
-it('keeps an unknown profile save for explicit reread and ignores late profile replies after a session switch',async()=>{
- m.setupRead.mockResolvedValue({id:'11111111-1111-4111-8111-111111111111',display_name:'CISME 会员',profile_revision:0,completed_at:null,avatar_data_url:null,avatar_revision:null});
- const c=await mount();m.setupSave.mockRejectedValueOnce({status:503});await c.saveSetup({detail:{value:{nickname:'小雨'}}});
- expect(c.data.setupUncertain).toBe(true);expect(c.data.setupOpen).toBe(true);
- await c.saveSetup();expect(m.setupSave).toHaveBeenCalledTimes(1);
- let resolve!:(v:any)=>void;m.setupSave.mockImplementationOnce(()=>new Promise(r=>{resolve=r;}));
- await c.load();void c.saveSetup({detail:{value:{nickname:'旧账号'}}});await flush();
- definition.pageLifetimes.hide.call(c);m.token='owner-b';m.context++;definition.pageLifetimes.show.call(c);await flush();
- resolve({id:'11111111-1111-4111-8111-111111111111',display_name:'旧账号',profile_revision:1,completed_at:'2026-11-13T00:00:00Z',avatar_data_url:null,avatar_revision:null});await flush();
- expect(c.data.setupName).not.toBe('旧账号');expect(c.data.setupOpen).toBe(true);
+ const c=await mount();expect(c.data.index).toBe(0);expect(rendered.dom.textContent).toContain('1/10');expect(rendered.dom.textContent).not.toContain('微信头像与昵称');expect(template).not.toContain('member-setup-form');
+ c.choose({currentTarget:{dataset:{value:'doctor'}}});await c.next();expect(m.save).toHaveBeenCalledTimes(1);expect(c.data.index).toBe(1);expect(m.setupSave).not.toHaveBeenCalled();
 });

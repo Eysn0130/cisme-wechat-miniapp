@@ -261,7 +261,7 @@ Page({
     if(this.data.renewalMode)return;
     if(!this.data.pageAlive || this.data.loading || this.data.leaving || this.data.loginStage !== "login")return;
     const code=typeof event.detail.code === "string" ? event.detail.code : undefined;
-    this.setData({notice:code ? "" : /112|privacy|not configured/i.test(event.detail.errMsg || "") ? "微信手机号授权暂不可用，仍可使用微信账号登录。" : "本次未提供手机号，仍可登录使用。"});
+    this.setData({notice:""});
     await this.login(code);
   },
   async continueLogin() {
@@ -375,13 +375,13 @@ Page({
       wx.disableAlertBeforeUnload();
       if(phoneCode) {
         try { await request({path:"/v1/me/phone",method:"POST",data:{code:phoneCode}}); }
-        catch(error) { if(this.data.pageAlive)this.setData({notice:(error as {title?:string}).title || "账号已登录，手机号绑定结果尚未确认，可在设置中查看。"}); }
+        catch(error) { if(this.data.pageAlive&&this.data.authAttempt===attempt&&result.sessionToken===getApp<IAppOption>().globalData.sessionToken)this.setData({notice:(error as {title?:string}).title || "账号已登录，手机号绑定结果尚未确认，可在设置中查看。"}); }
       }
       if(!this.data.pageAlive || this.data.authAttempt !== attempt || result.sessionToken !== getApp<IAppOption>().globalData.sessionToken)return;
       // Identity and explicit consent are complete. Profile/avatar refresh is
       // optional and must not keep an authenticated member on the login page.
       void this.loadMemberIdentity();
-      if(this.data.notice)wx.showToast({title:"已登录，请在设置确认手机号状态",icon:"none"});
+      if(this.data.notice)wx.showToast({title:this.data.notice,icon:"none"});
       const landed = await navigateAfterAuthentication(pendingDestination);
       if (this.data.pageAlive && landed !== "target") this.setData({ error: "身份已经确认，但原目标页面暂时无法打开。请点击主按钮再次打开，不会重复创建会员身份。" }, scrollToAccountError);
     } catch (error) {

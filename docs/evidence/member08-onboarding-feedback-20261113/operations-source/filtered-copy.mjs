@@ -38,6 +38,8 @@ try{
  const violations=[];
  for(const name of protectedTables)for(const r of tables[name]??[]){const v=JSON.parse(r.raw);if((name==='member'?v.id===keep:v.member_id===keep)&&r.removed)violations.push(name);}
  for(const[name,rows]of Object.entries(tables))if(name.startsWith('catalog_')||['legal_document','schema_migration','member_points_policy','reward_component_inventory','reward_activity','editorial_publisher'].includes(name))if(rows.some(r=>r.removed))violations.push(name);
+ for(const r of tables.ugc_post??[])if(JSON.parse(r.raw).author_member_id===keep&&r.removed)violations.push('admin_own_post');
+ for(const r of tables.ugc_media_asset??[])if(JSON.parse(r.raw).owner_member_id===keep&&r.removed)violations.push('admin_own_media');
  for(const r of tables.editorial_article??[]){const v=JSON.parse(r.raw);if(v.publisher_id==='fe841ebb-1db1-57de-988b-4ff1534f23e6'&&r.removed)violations.push('official_article');}
  if(violations.length)throw Error('PROTECTED_ROWS:'+violations.join(','));
  const sequences=(await c.query("SELECT sequencename FROM pg_sequences WHERE schemaname='public'")).rows;

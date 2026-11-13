@@ -16,8 +16,8 @@
   "actual": {
     "files": 377,
     "routes": 43,
-    "totalBytes": 4628935,
-    "mainPackageBytes": 1520624,
+    "totalBytes": 4621763,
+    "mainPackageBytes": 1513452,
     "subpackageBytes": {
       "pages/rewards": 165343,
       "pages/management-rewards": 32771,
@@ -58,7 +58,7 @@
       "pages/management-points": 23094
     },
     "globalStyleBytes": 8162,
-    "sourceSha256": "b990812538abe14bcc4ebac4003db0f63230a7a6f01d8f33b718d4a75208333d"
+    "sourceSha256": "b4365847b908df31c57256cee4e5b6a2bc1018e7dac4d9967d872c63a7bd7bf9"
   },
   "errors": []
 }

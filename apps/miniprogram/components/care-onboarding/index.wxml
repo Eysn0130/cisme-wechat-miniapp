@@ -3,18 +3,12 @@
   <view class="care-onboarding-dialog">
     <view class="care-onboarding-photo"><image class="care-onboarding-photo-image" src="/assets/cisme/cisme-home-background-v1.jpg" mode="aspectFill" aria-hidden="true"/><text class="care-onboarding-brand">CISME</text></view>
     <button wx:if="{{!forced && !required}}" class="care-onboarding-close" bindtap="close" disabled="{{busy || unknown}}" aria-label="关闭护理档案"><image src="/assets/icons/close-plum.svg" mode="aspectFit"/></button>
-    <view class="care-onboarding-heading"><text class="care-onboarding-heading-title">{{setupOpen ? '会员资料' : completed && !forced ? '护理档案' : '创建护理档案'}}</text><text wx:if="{{!setupOpen}}" class="care-onboarding-heading-progress">{{questionNumber}}/10</text></view>
+    <view class="care-onboarding-heading"><text class="care-onboarding-heading-title">{{completed && !forced ? '护理档案' : '创建护理档案'}}</text><text class="care-onboarding-heading-progress">{{questionNumber}}/10</text></view>
     <scroll-view class="care-onboarding-scroll" scroll-y enhanced show-scrollbar="{{false}}" scroll-top="{{scrollTop}}" catchtouchmove="stopPropagation">
       <view class="care-onboarding-content">
         <view wx:if="{{loading}}" class="care-onboarding-state" aria-live="polite">正在读取你的护理档案…</view>
         <block wx:elif="{{ready}}">
-          <form wx:if="{{setupOpen}}" id="member-setup-form" class="member-setup" bindsubmit="saveSetup">
-            <text class="care-onboarding-question">微信头像与昵称</text>
-            <button class="member-setup__avatar" open-type="chooseAvatar" bindchooseavatar="chooseSetupAvatar" disabled="{{setupBusy || setupAvatarBusy || setupUncertain}}" aria-label="选择微信头像"><image src="{{setupAvatar}}" mode="aspectFill"/><text>{{setupAvatarBusy ? '处理中…' : '使用微信头像'}}</text></button>
-            <label class="member-setup__name"><text>昵称</text><input type="nickname" name="nickname" value="{{setupName}}" bindinput="editSetupName" bindblur="editSetupName" bindnicknamereview="reviewSetupName" maxlength="40" placeholder="使用微信昵称" disabled="{{setupBusy || setupUncertain}}"/></label>
-            <button class="care-onboarding-main member-setup__submit" form-type="submit" loading="{{setupBusy}}" disabled="{{setupBusy || setupAvatarBusy || setupInvalid || setupUncertain}}">确认并继续</button>
-          </form>
-          <block wx:elif="{{consentMode}}">
+          <block wx:if="{{consentMode}}">
             <view class="care-onboarding-question"><view>护理情况</view><view>由你决定</view></view>
             <text class="care-onboarding-consent">{{consentText}}</text>
             <view class="care-onboarding-choices"><button class="care-onboarding-main {{busy || unknown ? 'care-onboarding-main--disabled' : ''}}" bindtap="acceptSensitive" loading="{{busy}}" disabled="{{busy || unknown}}">同意并继续</button><button class="care-onboarding-decline" bindtap="declineSensitive" disabled="{{busy || unknown}}">不同意，继续建档</button></view>
@@ -37,13 +31,12 @@
             </view>
           </block>
         </block>
-        <view wx:if="{{error}}" class="care-onboarding-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{!ready || unknown || reloadNeeded || setupUncertain}}" class="care-onboarding-retry" bindtap="load" disabled="{{busy || setupBusy}}">{{unknown || reloadNeeded ? '核对最新档案' : '重新加载'}}</button></view>
+        <view wx:if="{{error}}" class="care-onboarding-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{!ready || unknown || reloadNeeded}}" class="care-onboarding-retry" bindtap="load" disabled="{{busy}}">{{unknown || reloadNeeded ? '核对最新档案' : '重新加载'}}</button></view>
       </view>
     </scroll-view>
-    <view wx:if="{{ready && !setupOpen && (!consentMode || unknown)}}" class="care-onboarding-footer">
+    <view wx:if="{{ready && (!consentMode || unknown)}}" class="care-onboarding-footer">
       <button wx:if="{{questionNumber > 1 && !unknown}}" class="care-onboarding-previous" bindtap="previous" disabled="{{busy}}">上一题</button>
       <button class="care-onboarding-main {{busy || (!canAdvance && !unknown) ? 'care-onboarding-main--disabled' : ''}}" hover-class="care-onboarding-pressed" bindtap="next" loading="{{busy}}" disabled="{{busy || (!canAdvance && !unknown)}}">{{busy ? '正在保存…' : unknown ? '重试保存' : questionNumber === 10 ? '完成建档' : '下一题'}}</button>
     </view>
   </view>
-  <canvas type="2d" id="member-avatar-canvas" class="member-setup__canvas" aria-hidden="true"/>
 </view>
