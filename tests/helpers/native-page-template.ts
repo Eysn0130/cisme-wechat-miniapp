@@ -24,5 +24,8 @@ export function nativePageComponents(simulate:{load:(definition:any)=>string}):R
  const section=simulate.load({...definition,template:readFileSync('apps/miniprogram/components/section-tabs/index.wxml','utf8')});
  const foil=readFileSync('apps/miniprogram/components/card-foil/index.ts','utf8').replace(/^import[^\n]*\n/gm,'');
  runInNewContext(stripTypeScriptTypes(foil),{Component:(value:any)=>{definition=value;},shouldReduceMotion:()=>true});
- return {'section-tabs':section,'card-foil':simulate.load({...definition,template:readFileSync('apps/miniprogram/components/card-foil/index.wxml','utf8')})};
+ // The independent reward lifecycle is exercised by onboarding-feedback.test.ts;
+ // tab snapshot fixtures have no first-completion intent or points receipt.
+ return {'section-tabs':section,'card-foil':simulate.load({...definition,template:readFileSync('apps/miniprogram/components/card-foil/index.wxml','utf8')}),
+  'points-celebration':simulate.load({properties:{owner:String,enabled:Boolean},template:'<view></view>'})};
 }

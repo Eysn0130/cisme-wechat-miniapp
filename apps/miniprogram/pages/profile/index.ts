@@ -1,4 +1,5 @@
 import{foilData,foilEvents,clearFoil,consumeFoilDrag}from'../../services/card-foil';
+import{confirmCreditOwner}from'../../services/points-feedback';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { defaultMemberAvatar, localMemberAvatar } from "../../services/member-avatar";
@@ -153,6 +154,7 @@ Page({
       if (snapshot.businessVersion < this.data.snapshotVersion) return;
       const processingStarted = measurementClock();
       const { member, care } = snapshot;
+      confirmCreditOwner(member.id);
       const points={...snapshot.points,projection:parsePointBalances(snapshot.points.projection)};
       const known = memberIdentity();
       const normalizedMember = known && known.id === member.id && known.profile_revision > member.profile_revision ? { ...member, ...known } : member;
@@ -186,7 +188,7 @@ Page({
     if (mode === "tab") wx.switchTab({ url, fail });
     else wx.navigateTo({ url, fail });
   },
-  openAccount() { this.openRoute("/pages/settings/index", "navigate", "设置暂时无法打开"); },
+  openAccount() { this.openRoute("/pages/settings/index?section=profile", "navigate", "设置暂时无法打开"); },
   openPoints() { if(consumeFoilDrag(this))return;this.openRoute("/pages/points/index", "navigate", "积分账本暂时无法打开"); },
   openSettings() { this.openRoute("/pages/settings/index", "navigate", "设置与隐私暂时无法打开"); },
   openOrders() { this.openRoute("/pages/orders/index", "navigate", "订单暂时无法打开"); },

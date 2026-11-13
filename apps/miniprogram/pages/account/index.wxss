@@ -57,3 +57,7 @@
 @media (prefers-reduced-motion:reduce){
   .account-hero--animated .account-hero__copy,.account-hero--animated .account-hero__halo{animation:none}
 }
+
+.account-avatar{width:64px;height:64px;margin:12px auto;border:0;overflow:hidden}.account-avatar__image{width:100%;height:100%;border-radius:50%}.account-nickname{margin:12px 12px 4px;border-bottom:1px solid #cbb9d6}.account-nickname input{width:100%;min-height:48px;color:#432751;font-size:17px;line-height:1.5;text-align:center}
+
+.account-root--profile .account-hero{height:62vw;min-height:184px;max-height:248px;transition:height 240ms cubic-bezier(.22,.8,.22,1)}.account-root--profile .account-hero__title{margin-top:12px;font-size:60rpx}.account-root--profile .account-content{min-height:0;padding-top:18px}.account-root--profile .account-hero--reduced{transition:none}@media(prefers-reduced-motion:reduce){.account-root--profile .account-hero{transition:none}}

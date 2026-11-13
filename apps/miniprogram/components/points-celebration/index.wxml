@@ -1,0 +1,12 @@
+<view wx:if="{{showing}}" class="credit-moment credit-moment--{{phase}} {{reducedMotion ? 'credit-moment--reduced' : ''}}" aria-live="polite" aria-atomic="true" aria-label="恭喜，获得{{amount}}积分，已到账">
+  <view class="credit-moment__shade" aria-hidden="true"/>
+  <view class="credit-moment__card">
+    <image class="credit-moment__silk" src="/assets/cisme/card-silk-v2.svg" mode="aspectFill" aria-hidden="true"/>
+    <view class="credit-moment__light" aria-hidden="true"/>
+    <view class="credit-moment__seal" aria-hidden="true"><image class="credit-moment__opal" src="/assets/cisme/onboarding-pearl-seal-v1.png" mode="aspectFit"/><image wx:if="{{phase !== 'spinning'}}" class="credit-moment__check" src="/assets/icons/check-plum.svg" mode="aspectFit"/></view>
+    <view class="credit-moment__glints" aria-hidden="true"><view wx:for="{{glints}}" wx:key="*this" class="credit-moment__glint credit-moment__glint--{{item}}"/></view>
+    <text class="credit-moment__title">恭喜获得积分</text>
+    <view class="credit-moment__credit {{amount >= 10000 ? 'credit-moment__credit--compact' : ''}}" aria-hidden="true"><text class="credit-moment__plus">+</text><text class="credit-moment__number credit-moment__number--counted" style="min-width:{{digits}}ch">{{displayAmount}}</text><text class="credit-moment__number credit-moment__number--final">{{amount}}</text></view>
+    <text class="credit-moment__status">已到账</text>
+  </view>
+</view>

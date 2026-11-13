@@ -43,3 +43,4 @@
 .member-card--pressed { opacity: 1; }
 @media (max-width: 340px) { .member-card { padding: 20px; } }
 @media (prefers-reduced-motion: reduce) { .member-card { transition: none; } }
+.profile-identity__edit{display:flex;align-items:center;min-height:44px;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:inherit;text-align:left;line-height:1.4;}

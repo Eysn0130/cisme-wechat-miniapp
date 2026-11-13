@@ -1,0 +1,31 @@
+{
+  "generator": "built-in image_gen",
+  "generatedAtDate": "2026-11-13",
+  "scope": "AI-generated native mini-program visual concepts only; not current-source native acceptance",
+  "reference": "/Users/mini/.codex/generated_images/01a1c605-3d9b-73b2-88a5-38036e637359/exec-7c201aab-beb4-4357-b0fb-24baffc501d4.png",
+  "selectionPending": false,
+  "actualRewardRule": "first completed care questionnaire, ledger-confirmed 100 points; registration alone does not grant points",
+  "assets": [
+    {
+      "displayedOption": 1,
+      "path": "/Users/mini/CISME/docs/design/onboarding-points-reward-20261113/01-pearl-seal.png",
+      "original": "/Users/mini/.codex/generated_images/01a1c605-3d9b-73b2-88a5-38036e637359/exec-505daac6-e5b1-49b1-81d3-f3bd5c794e96.png",
+      "sha256": "8991fb6b4888b1217a08bc9de95de372e8fd0ddc92aa7a64a808b6e78edc69af"
+    },
+    {
+      "displayedOption": 2,
+      "path": "/Users/mini/CISME/docs/design/onboarding-points-reward-20261113/02-amethyst-light.png",
+      "original": "/Users/mini/.codex/generated_images/01a1c605-3d9b-73b2-88a5-38036e637359/exec-81f27db8-5e4a-4522-9a8f-9fa30d92a164.png",
+      "sha256": "77635a03a156257fddab20407877de9dedf70063a3c75fa083eed8fe1064f7cf"
+    },
+    {
+      "displayedOption": 3,
+      "path": "/Users/mini/CISME/docs/design/onboarding-points-reward-20261113/03-light-floating.png",
+      "original": "/Users/mini/.codex/generated_images/01a1c605-3d9b-73b2-88a5-38036e637359/exec-a3d57ff3-be17-4e6c-a54d-bb2715c3d405.png",
+      "sha256": "7cac3b46dd5d94db898c203c1a65fec20e2a0d93699a6b31b9d3cd73b774ed7a"
+    }
+  ],
+  "selectedDisplayedOption": 1,
+  "selectionSource": "Owner explicit reply: 第 1 张",
+  "motionExtension": "Owner confirmed same design for daily care; spin, settle, check, count actual credit, auto-dismiss around two seconds"
+}

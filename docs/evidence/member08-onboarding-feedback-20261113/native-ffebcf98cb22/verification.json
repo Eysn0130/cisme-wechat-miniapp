@@ -1,0 +1,313 @@
+{
+  "packageSourceSha256": "ffebcf98cb229fee3f21a8dfcc1c76525f909da2e529da237c9a25287b01a696",
+  "scope": "Native WeChat simulator; all HTTP and storage isolated. WeChat login and phone authorization callbacks injected with synthetic codes, not a real WeChat popup, real profile or actual phone binding. Missing phone, avatar and nickname are explicitly confirmed within Account; avatar callback uses a packaged fixture. No real WeChat popup or member write.",
+  "captures": [
+    {
+      "name": "01-official-login",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/01-official-login.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "02-login-phone",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/02-login-phone.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "03-login-avatar",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/03-login-avatar.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "04-login-nickname",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/04-login-nickname.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "02-direct-questionnaire",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/02-direct-questionnaire.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "04-confirmed-points-controlled-visual",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/04-confirmed-points-controlled-visual.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "05-saved-profile-with-edit-entry",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/05-saved-profile-with-edit-entry.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "06-daily-credit-controlled-visual",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/06-daily-credit-controlled-visual.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "06-no-unearned-voucher",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/member08-onboarding-feedback-20261113/native-ffebcf98cb22/06-no-unearned-voucher.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    }
+  ],
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "identity": {
+    "stage": "phone",
+    "route": "pages/account/index"
+  },
+  "phone": {
+    "stage": "avatar",
+    "route": "pages/account/index"
+  },
+  "resume": {
+    "stage": "avatar",
+    "owner": "11111111-1111-4111-8111-01a1d653ad77",
+    "identityPosts": 1,
+    "phonePosts": 1
+  },
+  "avatar": {
+    "stage": "nickname",
+    "error": ""
+  },
+  "login": {
+    "phoneBound": true,
+    "identityRequests": 1,
+    "phoneRequests": 1,
+    "profileWrites": 1,
+    "profileOwner": "11111111-1111-4111-8111-01a1d653ad77",
+    "sequence": [
+      "/v1/identity/wechat",
+      "/v1/me/phone",
+      "/v1/me/profile"
+    ]
+  },
+  "setupState": {
+    "route": "pages/home/index",
+    "ready": true,
+    "index": 0,
+    "error": "",
+    "extraProfileStep": false
+  },
+  "completion": {
+    "completed": true,
+    "syntheticCareVersion": 8
+  },
+  "reward": {
+    "timeline": [
+      {
+        "amount": 100,
+        "digits": 3,
+        "displayAmount": 0,
+        "phase": "spinning",
+        "showing": true,
+        "reducedMotion": false,
+        "elapsed": 0
+      },
+      {
+        "phase": "checked",
+        "elapsed": 624
+      },
+      {
+        "displayAmount": 23,
+        "elapsed": 765
+      },
+      {
+        "displayAmount": 42,
+        "elapsed": 805
+      },
+      {
+        "displayAmount": 58,
+        "elapsed": 847
+      },
+      {
+        "displayAmount": 70,
+        "elapsed": 888
+      },
+      {
+        "displayAmount": 80,
+        "elapsed": 929
+      },
+      {
+        "displayAmount": 88,
+        "elapsed": 966
+      },
+      {
+        "displayAmount": 93,
+        "elapsed": 1009
+      },
+      {
+        "displayAmount": 96,
+        "elapsed": 1047
+      },
+      {
+        "displayAmount": 98,
+        "elapsed": 1090
+      },
+      {
+        "displayAmount": 100,
+        "elapsed": 1130
+      },
+      {
+        "phase": "settled",
+        "displayAmount": 100,
+        "elapsed": 1210
+      },
+      {
+        "phase": "leaving",
+        "elapsed": 1872
+      },
+      {
+        "showing": false,
+        "elapsed": 2076
+      }
+    ],
+    "amount": 100,
+    "showing": false,
+    "spinSamples": [
+      {
+        "at": 1794597189820,
+        "rows": [
+          {
+            "transform": "matrix3d(0.798375, -0.05315, -0.59981, 0, 0.0424937, 0.998587, -0.0319251, 0, 0.600659, 0, 0.799505, 0, 0, 0, 0, 1)",
+            "animation-name": "credit-spin"
+          }
+        ]
+      },
+      {
+        "at": 1794597190068,
+        "rows": [
+          {
+            "transform": "matrix3d(0.73028, 0.0324372, 0.682378, 0, -0.0237007, 0.999474, -0.0221461, 0, -0.682737, 0, 0.730664, 0, 0, 0, 0, 1)",
+            "animation-name": "credit-spin"
+          }
+        ]
+      }
+    ],
+    "grantReads": 2
+  },
+  "profile": {
+    "nickname": "隔离测试会员",
+    "available": 100,
+    "avatarIsLocal": true,
+    "owner": "11111111-1111-4111-8111-01a1d653ad77",
+    "repeatedCelebration": false
+  },
+  "daily": {
+    "amount": 15,
+    "timeline": [
+      {
+        "amount": 15,
+        "digits": 2,
+        "displayAmount": 0,
+        "phase": "spinning",
+        "showing": true,
+        "reducedMotion": false,
+        "elapsed": 0
+      },
+      {
+        "phase": "checked",
+        "elapsed": 623
+      },
+      {
+        "displayAmount": 3,
+        "elapsed": 763
+      },
+      {
+        "displayAmount": 6,
+        "elapsed": 801
+      },
+      {
+        "displayAmount": 9,
+        "elapsed": 839
+      },
+      {
+        "displayAmount": 11,
+        "elapsed": 877
+      },
+      {
+        "displayAmount": 12,
+        "elapsed": 916
+      },
+      {
+        "displayAmount": 13,
+        "elapsed": 956
+      },
+      {
+        "displayAmount": 14,
+        "elapsed": 997
+      },
+      {
+        "displayAmount": 15,
+        "elapsed": 1072
+      },
+      {
+        "phase": "settled",
+        "displayAmount": 15,
+        "elapsed": 1185
+      },
+      {
+        "phase": "leaving",
+        "elapsed": 1848
+      },
+      {
+        "showing": false,
+        "elapsed": 2053
+      }
+    ],
+    "showing": false,
+    "saved": true,
+    "error": ""
+  },
+  "edit": {
+    "celebrations": 0,
+    "version": 2,
+    "error": ""
+  },
+  "vouchers": {
+    "vouchers": 0,
+    "coupons": 0
+  },
+  "returningLogin": {
+    "route": "pages/home/index",
+    "phonePosts": 0,
+    "profilePuts": 0,
+    "profileOwner": "11111111-1111-4111-8111-01a1d653ad77",
+    "nickname": "隔离测试会员"
+  },
+  "result": "passed",
+  "localFixtureCleanup": {
+    "exactFixtureAvatarFilesRemoved": 1
+  },
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 71,
+    "realMemberWrites": 0
+  },
+  "sourceUnchanged": true
+}

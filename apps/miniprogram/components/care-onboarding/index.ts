@@ -3,12 +3,14 @@ import {cancelPageReads} from '../../services/page-requests';
 import {currentChromeStyle,shouldReduceMotion} from '../../services/layout';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 import {clientOperationKey} from '../../services/orders';
+import {readSetupProfile} from '../../services/member-setup';
+import {queueOnboardingFeedback,forgetOnboardingFeedback,confirmCreditOwner} from '../../services/points-feedback';
 import {readCareSurvey,saveCareSurvey,emptyCareAnswers,toggleCareOption,selectedCareOption,withoutSensitiveAnswers,nextCareQuestion,
   type CareQuestion,type CareAnswers,type CareHealthChoice,type CareSave,type CareProfile} from '../../services/care-onboarding';
 
 type Owner={token:string;context:number;alive:boolean;visible:boolean;attempt:number};
-type Pending={body:CareSave;key:string;complete:boolean;consent:boolean};
-const owners=new WeakMap<object,Owner>(),pending=new WeakMap<object,Pending>();
+type Pending={body:CareSave;key:string;complete:boolean;consent:boolean;firstCompletion:boolean};
+const owners=new WeakMap<object,Owner>(),pending=new WeakMap<object,Pending>(),identities=new WeakMap<object,string>();
 function current(component:object,attempt?:number){const o=owners.get(component);return Boolean(o?.alive&&o.visible&&o.token===getApp<IAppOption>().globalData.sessionToken
   &&o.context===commerceContextRevision()&&(attempt===undefined||o.attempt===attempt));}
 const initial={loading:true,ready:false,busy:false,unknown:false,reloadNeeded:false,error:'',questionnaireVersion:'',questions:[] as CareQuestion[],answers:{} as CareAnswers,
@@ -19,13 +21,13 @@ Component({
   data:{...initial,chromeStyle:currentChromeStyle(),reducedMotion:shouldReduceMotion()},
   lifetimes:{
     attached(){owners.set(this,{token:getApp<IAppOption>().globalData.sessionToken,context:commerceContextRevision(),alive:true,visible:true,attempt:0});void this.load();},
-    detached(){const o=owners.get(this);if(o){o.alive=false;o.attempt++;}cancelPageReads(this);pending.delete(this);owners.delete(this);}
+    detached(){const o=owners.get(this);if(o){o.alive=false;o.attempt++;}cancelPageReads(this);pending.delete(this);identities.delete(this);owners.delete(this);}
   },
   pageLifetimes:{
     hide(){const o=owners.get(this);if(o){o.visible=false;o.attempt++;}cancelPageReads(this);if(this.data.busy)this.setData({busy:false,unknown:true});},
     show(){const o=owners.get(this);if(!o)return;
       if(o.token!==getApp<IAppOption>().globalData.sessionToken||o.context!==commerceContextRevision()){
-        pending.delete(this);this.setData({...initial});o.token=getApp<IAppOption>().globalData.sessionToken;o.context=commerceContextRevision();o.attempt++;
+        pending.delete(this);identities.delete(this);this.setData({...initial});o.token=getApp<IAppOption>().globalData.sessionToken;o.context=commerceContextRevision();o.attempt++;
       }
       o.visible=true;if(!this.data.ready)void this.load();}
   },
@@ -36,14 +38,14 @@ Component({
       const o=owners.get(this);if(!o||!current(this))return;const attempt=++o.attempt;
       this.setData({loading:true,error:'',reloadNeeded:false});
       try{
-        const result=await readCareSurvey(this);if(!current(this,attempt))return;
+        const [result,identity]=await Promise.all([readCareSurvey(this),readSetupProfile(this)]);if(!current(this,attempt))return;identities.set(this,identity.id);confirmCreditOwner(identity.id);
         this.setData({ready:true,loading:false,questionnaireVersion:result.questionnaireVersion,questions:result.questions,
           consentVersion:result.sensitiveConsent.version,consentText:result.sensitiveConsent.text,
           birthdaySupported:Object.prototype.hasOwnProperty.call(result,"birthdayMonthDay"),birthdayLocked:Boolean(result.birthdayMonthDay&&result.birthdayChangeAfter&&new Date(result.birthdayChangeAfter)>new Date()),...birthdayPicker(result.birthdayMonthDay)});
         const intent=pending.get(this);
         if(intent&&result.profile?.latestOperationId===intent.key){
           pending.delete(this);this.applyProfile(result.profile);this.setData({unknown:false});
-          if(intent.complete)this.triggerEvent('complete');return;
+          if(intent.complete){if(intent.firstCompletion)queueOnboardingFeedback(identity.id,intent.key);this.triggerEvent('complete');}return;
         }
         if(intent){
           this.setData({unknown:true,error:'原保存结果尚未确认，请使用原操作重试，或重新核对后再填写。'});return;
@@ -106,7 +108,8 @@ Component({
     async retrySave(){const intent=pending.get(this);if(intent&&!this.data.busy)await this.send(intent);},
     async submit(body:CareSave,complete:boolean,consent:boolean){
       const command={...body,...(!this.data.completed&&this.data.birthdaySupported?{birthdayMonthDay:this.data.birthday||null}:{})};
-      const intent={body:JSON.parse(JSON.stringify(command)) as CareSave,key:clientOperationKey('care-profile'),complete,consent};pending.set(this,intent);await this.send(intent);
+      const intent={body:JSON.parse(JSON.stringify(command)) as CareSave,key:clientOperationKey('care-profile'),complete,consent,firstCompletion:complete&&!this.data.completed};
+      const owner=identities.get(this);if(owner&&intent.firstCompletion)queueOnboardingFeedback(owner,intent.key);pending.set(this,intent);await this.send(intent);
     },
     async send(intent:Pending){
       const o=owners.get(this);if(!o||!current(this))return;const attempt=++o.attempt;
@@ -116,12 +119,12 @@ Component({
         if(!current(this,attempt))return;
         pending.delete(this);this.setData({unknown:false});this.applyProfile(result.profile);
         if(!result.current){this.setData({error:'档案已有更新，已显示最新记录，请核对后继续。'});return;}
-        if(intent.complete){wx.showToast({title:'护理档案已保存',icon:'success'});this.triggerEvent('complete');}
+        if(intent.complete)this.triggerEvent('complete');
       }catch(error){
         if(!current(this,attempt))return;
         const e=error as {status?:number;title?:string;code?:string};
         const definitive=typeof e.status==='number'&&e.status>=400&&e.status<500&&![408,429].includes(e.status);
-        if(definitive){pending.delete(this);this.setData({unknown:false,reloadNeeded:e.code==='CARE_PROFILE_CHANGED',error:e.title||'答案未保存，请核对后重试。'});}
+        if(definitive){pending.delete(this);const owner=identities.get(this);if(owner&&intent.firstCompletion)forgetOnboardingFeedback(owner,intent.key);this.setData({unknown:false,reloadNeeded:e.code==='CARE_PROFILE_CHANGED',error:e.title||'答案未保存，请核对后重试。'});}
         else this.setData({unknown:true,error:'保存结果尚未确认，答案已保留。请重试原操作或核对最新档案。'});
       }finally{if(current(this,attempt))this.setData({busy:false});}
     }

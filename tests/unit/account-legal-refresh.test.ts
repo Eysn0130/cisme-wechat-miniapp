@@ -171,3 +171,29 @@ describe("account consent freshness during legal refresh", () => {
     await page.syncLegalDocuments(); expect(page.data.error).toBe("");
   });
 });
+
+
+it('uses one WeChat login and stores an authorized phone only after the canonical session exists',async()=>{
+ const page=await mount({phoneBindingEnabled:true});
+ mocks.request.mockImplementation(async({path})=>{
+  if(path==='/v1/identity/wechat')return{sessionToken:'isolated-phone-session',onboardingRequired:true};
+  if(path==='/v1/me/phone'){expect(mocks.runtime.globalData.sessionToken).toBe('isolated-phone-session');return{bound:true,enabled:true,masked:'***0001'};}
+  return{id:'member-1',display_name:'已保存昵称',avatar_data_url:'saved',profile_revision:1};
+ });
+ await page.loginWithPhone({detail:{code:'isolated-phone-code'}});
+ expect(mocks.login).toHaveBeenCalledTimes(1);expect(identityRequests()).toHaveLength(1);
+ expect(mocks.request.mock.calls.filter(([v])=>v.path==='/v1/me/phone'&&v.method==='POST')).toHaveLength(1);
+ expect(mocks.request.mock.calls.find(([v])=>v.path==='/v1/me/phone')?.[0]).toMatchObject({method:'POST',data:{code:'isolated-phone-code'}});
+ expect(mocks.request.mock.calls.some(([v])=>v.path==='/v1/me/profile'&&v.method==='PUT')).toBe(false);expect(mocks.navigate).toHaveBeenCalledWith('/pages/home/index');expect(page.data.loginStage).toBe('login');
+});
+it('continues identity login when phone authorization is declined without adding a profile step',async()=>{
+ const page=await mount({phoneBindingEnabled:true});mocks.request.mockImplementation(async({path})=>path==='/v1/identity/wechat'?{sessionToken:'isolated-no-phone',onboardingRequired:true}:path==='/v1/me/phone'?{bound:false,enabled:true}:{id:'member-1',display_name:'CISME 会员',avatar_data_url:null,profile_revision:0});
+ await page.loginWithPhone({detail:{errMsg:'getPhoneNumber:fail user deny'}});
+ expect(identityRequests()).toHaveLength(1);expect(mocks.request.mock.calls.some(([v])=>v.path==='/v1/me/phone'&&v.method==='POST')).toBe(false);expect(page.data.notice).toBe('');expect(page.data.loginStage).toBe('avatar');expect(mocks.navigate).not.toHaveBeenCalled();
+});
+it('does not apply a late phone failure to a newer session',async()=>{
+ const page=await mount({phoneBindingEnabled:true}),phone=deferred<unknown>();
+ mocks.request.mockImplementation(async({path})=>path==='/v1/identity/wechat'?{sessionToken:'isolated-old'}:path==='/v1/me/phone'?phone.promise:{id:'member-1'});
+ const signing=page.loginWithPhone({detail:{code:'isolated-phone-code'}});for(let i=0;i<15;i++)await Promise.resolve();mocks.runtime.globalData.sessionToken='isolated-new';phone.reject(Error('old binding failure'));await signing;
+ expect(page.data.notice).toBe('');expect(mocks.navigate).not.toHaveBeenCalled();
+});

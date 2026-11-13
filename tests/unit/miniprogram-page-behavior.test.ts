@@ -743,7 +743,7 @@ describe("mini-program page behavior", () => {
 
     expect(resetCareSession).toHaveBeenCalledTimes(1);
     expect(act).toHaveBeenCalledTimes(1);
-    expect(wxMock.showToast).toHaveBeenCalledWith({ title: "今日护理已记录", icon: "success" });
+    expect(wxMock.showToast).not.toHaveBeenCalled();
   });
 
   it("requires explicit confirmation before activating a planned Home care cycle", async () => {

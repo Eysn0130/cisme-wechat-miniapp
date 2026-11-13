@@ -67,9 +67,9 @@ export function careUsageConfirmed(key: string, input: CareUsageInput, value: Ca
   return !!row && row.operationId === key && value?.serverDay === input.serverDay
     && row.note === input.note.trim() && [...row.products].sort().join(',') === [...input.products].sort().join(',');
 }
-export async function readCareUsageHistory(page: object, before: string | null = null, day: string | null = null): Promise<CareUsageHistory> {
+export async function readCareUsageHistory(page: object, before: string | null = null, day: string | null = null, budgetMs?:number): Promise<CareUsageHistory> {
   if (before !== null && !validCareDay(before)||day!==null&&(!validCareDay(day)||before!==null)) invalid();
-  const value = await pageRead<CareUsageHistory>(page, { path: '/v1/me/care-usage-records?limit=20' + (before ? '&before=' + before : '')+(day?'&day='+day:''), cacheTags: ['care','points'] });
+  const value = await pageRead<CareUsageHistory>(page, { path: '/v1/me/care-usage-records?limit=20' + (before ? '&before=' + before : '')+(day?'&day='+day:''), cacheTags: ['care','points'],...(budgetMs?{budgetMs}:{}) });
   if (!value || !Array.isArray(value.items) || value.items.length > 20 || !Number.isSafeInteger(value.totalCount) || value.totalCount < value.items.length
     || !(value.nextBefore === null || validCareDay(value.nextBefore)) || value.nextBefore !== null && (!value.items.length || value.nextBefore !== value.items[value.items.length - 1]?.careDay)) invalid();
   if (value.items.some((row, index) => !validRecord(row) || !validCareDay(row.careDay) || before && row.careDay >= before

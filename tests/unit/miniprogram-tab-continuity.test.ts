@@ -12,7 +12,7 @@ vi.mock("../../apps/miniprogram/services/api", async(importOriginal)=>({requireG
 }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true, motionDuration: () => 0 }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn(), prepareShareLink: async () => "" }));
-vi.mock("../../apps/miniprogram/services/commerce-command-store", () => ({ commerceContextRevision: () => m.revision }));
+vi.mock("../../apps/miniprogram/services/commerce-command-store", async(importOriginal) => ({ ...(await importOriginal<any>()), commerceContextRevision: () => m.revision }));
 vi.mock("../../apps/miniprogram/services/member-avatar", () => ({
   defaultMemberAvatar: "/neutral-avatar", localMemberAvatar: async () => "/confirmed-avatar",
   prepareFeedPage: async (page: any) => page.items, prepareFeedAuthors: async (items: any) => items
