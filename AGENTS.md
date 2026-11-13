@@ -23,3 +23,10 @@
 - `mobile-ui-ux-designer` 是移动端 UX / Interaction Design 的主 Skill，负责信息架构、页面状态、操作路径、Bottom Sheet、Tab Bar、FAB、滚动与手势、动画时序、中断恢复、可访问性及完整 interaction contract；其通用 iOS、Android 或 Web 建议必须翻译为微信小程序原生组件和行为。
 - `design-taste-frontend` 仅作辅助视觉审阅，负责版式、字体、间距、层级、动效质感、反模板化与避免 AI 味；其 Web 规则与微信原生规范冲突时，以微信原生规范为准。
 - 不为了套用 Skill 增加依赖、复制组件体系或重构已有正确架构。`mobile-app-ux-auditor` 不作为常驻 Skill；仅在一个完整页面或流程完成后阶段性检查 loading、empty、error、interruption、resume、navigation 与 accessibility。
+
+## 界面文案与组件一致性
+
+- Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining. 避免不必要的辅助标签与说明。让布局本身发挥解释作用。
+- 界面不使用机械、冗长的解释性用语；按钮、排版、分组和选中态已表达的信息，不再重复补充说明。必要信息保留并精简，不必要的辅助标签直接删除。
+- 费用、资格、有效期、关键操作后果和异常恢复信息必须真实清晰；详细规则置于可访问的详情入口，不以精简文案掩盖业务限制或未完成状态。
+- 同类顶部 Tab 统一复用原生组件，以社区页的文字页签和底部短指示线为视觉基准；不各页复制不同的边框、胶囊和伪元素选中态。

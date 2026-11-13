@@ -1,0 +1,6 @@
+<view class="foil foil--{{tone}} {{active&&visible?'foil--active':''}} {{reduced||lowMotion?'foil--still':''}} {{quiet?'foil--quiet':''}} {{(introActive||flashActive)&&visible?'foil--sweeping':''}}" aria-hidden="true">
+ <view class="foil__material"/>
+ <view class="foil__reflection" style="transform:translate3d({{shiftX}}px,{{shiftY}}px,0) rotate({{angle}}deg)"/>
+ <view bindanimationend="finishSweep" class="foil__sweep {{introActive&&visible?'foil__sweep--intro':''}} {{flashActive&&visible?'foil__sweep--flash':''}}"/>
+ <view class="foil__edge"/>
+</view>

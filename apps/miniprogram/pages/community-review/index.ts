@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import { request, requireMemberAccess } from "../../services/api";
 import { cancelPageReads } from "../../services/page-requests";
 import { editorialIdentifier } from "../../services/editorial";
@@ -84,7 +85,7 @@ Page({
   },
   loadMoreEditorialQueue(){return this.loadEditorialQueue(true);},
   selectEditorialQueue(event:WechatMiniprogram.TouchEvent) {
-    const state=String(event.currentTarget.dataset.state||"");
+    const state=sectionTabValue(event,'state');
     if(!["pending","published","rejected","hidden","reported"].includes(state)||state===this.data.queueState)return;
     this.setData({queueState:state as EditorialCommentReviewState,notice:""});void this.loadEditorialQueue();
   },

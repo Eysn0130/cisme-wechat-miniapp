@@ -1,0 +1,18 @@
+import{afterEach,beforeEach,describe,it,expect,vi}from'vitest';
+const m=vi.hoisted(()=>({reduce:false,revision:1}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>m.reduce}));
+vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
+import{foilData,foilEvents,clearFoil,consumeFoilDrag}from'../../apps/miniprogram/services/card-foil';
+let app:any,host:any,box:any,queries:any[];
+const event=(x:number,y:number)=>({currentTarget:{dataset:{foilSurface:'member'}},touches:[{clientX:x,clientY:y}]}) as any;
+beforeEach(()=>{vi.useFakeTimers();vi.setSystemTime(10000);m.reduce=false;m.revision=1;queries=[];app={globalData:{sessionToken:'A'}};host={...foilEvents,data:{...foilData},setData:vi.fn(function(this:any,patch:any){Object.assign(this.data,patch);})};vi.stubGlobal('getApp',()=>app);vi.stubGlobal('wx',{createSelectorQuery:()=>{const q={select:()=>q,boundingClientRect:(callback:any)=>{box=callback;queries.push(q);return q;},exec:()=>{}};return q;}});});
+afterEach(()=>{clearFoil(host);vi.useRealTimers();vi.unstubAllGlobals();});
+describe('bounded native foil gestures',()=>{
+ it('updates a bounded local light position at most once per 40ms without timers',()=>{host.beginFoil(event(100,50));box({left:0,top:0,width:200,height:100});expect(host.data).toMatchObject({foilSurface:'member',foilX:50,foilY:50});vi.advanceTimersByTime(45);host.moveFoil(event(150,52));expect(host.data.foilX).toBe(75);const count=host.setData.mock.calls.length;host.moveFoil(event(170,52));expect(host.setData).toHaveBeenCalledTimes(count);expect(vi.getTimerCount()).toBe(0);});
+ it('releases vertical scrolling and suppresses its stale tap while allowing a new intentional touch',()=>{host.beginFoil(event(20,20));box({left:0,top:0,width:200,height:100});host.moveFoil(event(21,70));expect(host.data.foilSurface).toBe('');expect(consumeFoilDrag(host)).toBe(true);host.beginFoil(event(30,30));host.endFoil();expect(consumeFoilDrag(host)).toBe(false);});
+ it('does not apply a rectangle after hiding, changing member or changing environment',()=>{for(const change of ['hide','member','environment']){host.beginFoil(event(10,10));const callback=box;if(change==='hide')clearFoil(host);if(change==='member')app.globalData.sessionToken='B';if(change==='environment')m.revision++;const count=host.setData.mock.calls.length;callback({left:0,top:0,width:100,height:100});expect(host.setData).toHaveBeenCalledTimes(count);}});
+ it('retains a static material path on reduced-performance devices',()=>{m.reduce=true;host.beginFoil(event(10,10));expect(queries).toHaveLength(0);expect(host.data).toEqual(foilData);});
+});
+it('stops the authored sweep on hide and does not replay it on routine tab return',async()=>{
+ let component:any;vi.stubGlobal('Component',(def:any)=>{component={...def,properties:{...Object.fromEntries(Object.entries(def.properties).map(([k,v]:[string,any])=>[k,v.value])),intro:true},data:structuredClone(def.data),setData(patch:any){Object.assign(this.data,patch);}};});await import('../../apps/miniprogram/components/card-foil/index');component.lifetimes.attached.call(component);expect(component.data.introActive).toBe(true);component.methods.finishSweep.call(component);expect(component.data.introActive).toBe(false);expect(component.data.flashActive).toBe(false);component.pageLifetimes.hide.call(component);component.pageLifetimes.show.call(component);expect(component.data.introActive).toBe(false);component.observers['x,y'].call(component,500,-200);expect(component.data.shiftX).toBe(35);expect(component.data.shiftY).toBe(-12);component.pageLifetimes.hide.call(component);component.observers.flash.call(component,true);expect(component.data.flashActive).toBe(false);
+});

@@ -1,0 +1,18 @@
+{
+  "packageSourceSha256": "2c34d043acbd396298f41c38ad9361494577284fb094cd9af704a61f54a9d94f",
+  "scope": "Native simulator controlled synthetic fixture, all HTTP intercepted; initial flow including owner receipt confirmation with mocked confirm modal. Product screenshot selector typo was corrected. Not database, device or full-route acceptance.",
+  "restoration": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [
+      {
+        "path": "/v1/shares",
+        "method": "POST",
+        "handled": false
+      }
+    ],
+    "requestCount": 12,
+    "realMemberWrites": 0
+  }
+}

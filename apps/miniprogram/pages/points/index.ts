@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess,retainMemberSnapshot,request} from '../../services/api';
 import {currentChromeStyle} from '../../services/layout';
 import {commerceContextRevision} from '../../services/commerce-command-store';
@@ -50,7 +51,7 @@ Page({
   ]);
   if(this.current(attempt))this.setData({loading:false});
  },
- selectSection(e:WechatMiniprogram.TouchEvent){const section=String(e.currentTarget.dataset.id);if(this.data.busy||!this.data.sections.some(s=>s.id===section))return;this.setData({section,actionError:'',actionStatus:''});},
+ selectSection(e:WechatMiniprogram.TouchEvent){const section=sectionTabValue(e,'id');if(this.data.busy||!this.data.sections.some(s=>s.id===section))return;this.setData({section,actionError:'',actionStatus:''});},
  selectSource(e:WechatMiniprogram.TouchEvent){const source=String(e.currentTarget.dataset.id);if(this.data.loading||this.data.loadingMore||!this.data.sources.some(s=>s.id===source))return;this.setData({source});void this.load();},
  async loadMore(){const p=this.data.points;if(!p?.nextCursor||this.data.loadingMore||this.data.loading)return;const attempt=this.data.loadAttempt,source=this.data.source;this.setData({loadingMore:true,moreError:''});
   try{const next=await readMyPoints(source,p.nextCursor);if(!this.current(attempt)||source!==this.data.source)return;const ids=new Set(p.entries.map(e=>e.id));this.setData({points:{...next,entries:p.entries.concat(next.entries.filter(e=>!ids.has(e.id)))}});

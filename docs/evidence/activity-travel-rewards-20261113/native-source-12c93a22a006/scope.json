@@ -1,0 +1,19 @@
+{
+  "packageSourceSha256": "12c93a22a0061576e799bbaafb7267b5389518a2bb4a9e3e2cfddcd5ad287395",
+  "result": "partial, superseded by corrected management template",
+  "restoration": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [
+      {
+        "path": "/v1/commerce/orders/status",
+        "method": "GET",
+        "handled": false
+      }
+    ],
+    "requestCount": 21,
+    "realMemberWrites": 0
+  },
+  "note": "Native consumer flow and explicit coupon checkout ran. Manager navigation exposed a real mismatched template tag, corrected in subsequent source. All HTTP used a synthetic intercepted fixture; no real member writes."
+}

@@ -37,7 +37,7 @@ describe("role-aware native support UX",()=>{
   expect(view).toContain('你好呀 😊 有问题可以留言，也可以申请人工客服。');expect(view).toContain('正在思考…');
   expect(view).toContain("handoffFailed ? '重试申请' : '申请人工'");expect(view).not.toContain('重新提交');
   expect(view).toContain("!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'");
-  expect(view.match(/人工接待 09:00–22:00/g)).toHaveLength(1);expect(view).toContain("conversation.status === 'waiting_human'");
+  expect(view.match(/人工客服 09:00–22:00/g)).toHaveLength(1);expect(view).toContain("conversation.status === 'waiting_human'");
   expect(style).toContain('min-height: 44px');expect(style).toContain('@media (prefers-reduced-motion: reduce)');
   const chatFonts={'.support-bubble':'.875rem','.support-message__sender':'.75rem','.support-message__meta':'.6875rem','.support-input':'.875rem','.support-human':'.75rem','.support-system text':'.8125rem','.support-presence':'.75rem'};
   for(const [selector,size] of Object.entries(chatFonts)){

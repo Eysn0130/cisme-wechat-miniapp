@@ -3,9 +3,7 @@
   <view class="page page--stack finance-page">
     <view class="page-title">资金工作台</view>
     <text class="subtitle">{{formalMode?'退款、查单与账单核对':'隔离测试数据，非真实资金'}}</text>
-    <scroll-view wx:if="{{sections.length}}" class="finance-tabs" scroll-x enhanced show-scrollbar="false">
-      <button wx:for="{{sections}}" wx:key="id" class="finance-tab {{section===item.id?'is-active':''}} {{busy?'control--disabled':''}}" data-section="{{item.id}}" bindtap="selectSection" disabled="{{busy}}">{{item.label}}</button>
-    </scroll-view>
+    <view wx:if="{{sections.length}}" class="page-section-tabs"><section-tabs id="page-tabs" items="{{sections}}" value="{{section}}" label="资金分类" bindchange="selectSection" disabled="{{busy}}"/></view>
     <view wx:if="{{sections.length&&section==='bills'}}" class="finance-bill-import">
       <text>账单日期（次日生成）</text>
       <picker mode="date" value="{{billDate}}" end="{{latestBillDate}}" bindchange="chooseBillDate"><view class="finance-bill-date">{{billDate}} · 选择日期</view></picker>

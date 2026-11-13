@@ -1,0 +1,184 @@
+{
+  "packageSourceSha256": "62e88f272363b23f6719cc6d42567a94fc71965d580b39d7d19832fcf9303fea",
+  "sourceHead": "8918882",
+  "mode": "controlled native simulator; virtual storage; all HTTP intercepted",
+  "realMemberWrites": 0,
+  "captures": [
+    {
+      "name": "01-wallet",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/01-wallet.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "02-selection",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/02-selection.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "03-selected",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/03-selected.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "04-claimed",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/04-claimed.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "05-shipped",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/05-shipped.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "06-receipt-coupon",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/06-receipt-coupon.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "07-coupon-wallet",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/07-coupon-wallet.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "08-coupon-products",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/08-coupon-products.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "09-product",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/09-product.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "10-checkout",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/10-checkout.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "11-checkout-coupon",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/11-checkout-coupon.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "12-coupon-choice",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/12-coupon-choice.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "13-checkout-no-coupon",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/13-checkout-no-coupon.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "14-management",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/14-management.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "15-activity-config",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/15-activity-config.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "16-selection-375",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/16-selection-375.png",
+      "imageWidth": 319,
+      "imageHeight": 691
+    }
+  ],
+  "assertions": [
+    {
+      "test": "No automatic selection",
+      "result": {
+        "route": "pages/rewards/index",
+        "error": "",
+        "loading": false,
+        "mode": "select",
+        "selectedBundle": ""
+      }
+    },
+    {
+      "test": "Explicit choice creates a zero-cash claim",
+      "result": {
+        "route": "pages/rewards/index",
+        "error": "",
+        "loading": false,
+        "mode": "claim",
+        "selectedBundle": "",
+        "claimState": "placed"
+      }
+    },
+    {
+      "test": "Receive handler shows coupon only after response; confirmation modal response mocked",
+      "result": {
+        "route": "pages/rewards/index",
+        "error": "",
+        "loading": false,
+        "mode": "claim",
+        "selectedBundle": "",
+        "claimState": "received"
+      }
+    },
+    {
+      "test": "Coupon scope links to a real catalog route with private coupon ID",
+      "result": {
+        "itemCode": "aigerong-moisture-shampoo-280",
+        "couponId": "55555555-5555-4555-8555-555555555555"
+      }
+    },
+    {
+      "test": "Selected coupon quotes 198 - 20 = 178",
+      "result": {
+        "route": "pages/checkout/index",
+        "error": "",
+        "loading": false,
+        "couponId": "55555555-5555-4555-8555-555555555555",
+        "couponState": "ready",
+        "quoteTotal": 17800
+      }
+    },
+    {
+      "test": "Explicitly opting out requotes 198",
+      "result": {
+        "route": "pages/checkout/index",
+        "error": "",
+        "loading": false,
+        "couponId": "",
+        "couponState": "ready",
+        "quoteTotal": 19800
+      }
+    }
+  ],
+  "stateChecks": []
+}

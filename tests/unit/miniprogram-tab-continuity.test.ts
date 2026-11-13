@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import {nativePageTemplate} from "../helpers/native-page-template";
+import {nativePageTemplate,nativePageComponents} from "../helpers/native-page-template";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -75,7 +75,7 @@ async function mount(route: string, template?: string) {
   // This suite exercises tab snapshots with onboarding closed. The full native
   // onboarding component is exercised by care-onboarding-native.test.ts.
   const id = simulate.load({ template: template ?? nativePageTemplate(`apps/miniprogram/pages/${route}/index.wxml`), data: structuredClone(page.data),
-    usingComponents:{'care-onboarding':simulate.load({template:'<view></view>'})} });
+    usingComponents:{...nativePageComponents(simulate),'care-onboarding':simulate.load({template:'<view></view>'})} });
   rendered = simulate.render(id);
   rendered.attach(document.body);
   components.push(rendered);
@@ -130,7 +130,7 @@ describe("native tab return presentation while real read paths revalidate", () =
   it("renders both columns through real incremental bridge patches without aliasing cards or remounting columns", () => {
     const wxml = nativePageTemplate("apps/miniprogram/pages/community/index.wxml");
     const template = wxml.slice(wxml.indexOf('<view class="feed-grid">'), wxml.indexOf('<view wx:if="{{moreError}}"'));
-    const id = simulate.load({ template, data: { feedColumns: [[], []], navigating: false } });
+    const id = simulate.load({ usingComponents:nativePageComponents(simulate),template, data: { feedColumns: [[], []], navigating: false } });
     const rendered = simulate.render(id); rendered.attach(document.body); components.push(rendered);
     const columns = rendered.querySelectorAll(".feed-column").map((column: any) => column.dom);
     const card = (id: string, title: string) => ({ id, title, author: "合成作者", image: "", avatar: "", engagementLabel: "" });
@@ -232,7 +232,8 @@ describe("native tab return presentation while real read paths revalidate", () =
     expect(rendered.querySelector(".member-card").dom).toBe(card);
     expect(card.textContent).toBe(original);
     expect(rendered.querySelector(".profile-sync-status")).toBeFalsy();
-    expect(rendered.dom.textContent).toContain("2 条未读回复");
+    expect(page.data.supportUnread).toBe(2);
+    expect(rendered.dom.textContent).toContain("客服2");
     expect(rendered.dom.textContent).not.toContain("正在查看活动");
     page.openManagement(); expect(wxMock.navigateTo).not.toHaveBeenCalled();
     samples.length = 0;

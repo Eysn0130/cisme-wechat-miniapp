@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "success": true
+  },
+  "wallet": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/01-wallet.png",
+    "imageWidth": 195,
+    "imageHeight": 422
+  },
+  "state": {
+    "route": "pages/rewards/index",
+    "loading": false,
+    "error": "",
+    "walletMemberMatches": true,
+    "voucherCount": 1,
+    "selection": ""
+  },
+  "selection": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/02-selection.png",
+    "imageWidth": 195,
+    "imageHeight": 422
+  }
+}

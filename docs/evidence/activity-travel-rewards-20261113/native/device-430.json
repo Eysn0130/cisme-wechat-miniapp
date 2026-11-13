@@ -1,0 +1,94 @@
+{
+  "packageSourceSha256": "62e88f272363b23f6719cc6d42567a94fc71965d580b39d7d19832fcf9303fea",
+  "expectedWidth": 430,
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "capture": {
+    "success": true,
+    "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/selection-430.png",
+    "imageWidth": 332,
+    "imageHeight": 719
+  },
+  "system": {
+    "success": true,
+    "systemInfo": {
+      "result": {
+        "brand": "devtools",
+        "model": "iPhone 14/15 Pro Max",
+        "system": "iOS 10.0.1",
+        "platform": "devtools",
+        "benchmarkLevel": -1,
+        "pixelRatio": 3,
+        "screenWidth": 430,
+        "screenHeight": 932,
+        "windowWidth": 430,
+        "windowHeight": 932,
+        "statusBarHeight": 54,
+        "safeArea": {
+          "top": 54,
+          "left": 0,
+          "right": 430,
+          "bottom": 898,
+          "width": 430,
+          "height": 844
+        },
+        "language": "en",
+        "version": "8.0.5",
+        "fontSizeSetting": 16,
+        "SDKVersion": "3.15.2",
+        "host": {
+          "env": "WeChat"
+        },
+        "enableDebug": false,
+        "mode": "default",
+        "deviceOrientation": "portrait",
+        "bluetoothEnabled": true,
+        "locationEnabled": true,
+        "wifiEnabled": true,
+        "albumAuthorized": true,
+        "cameraAuthorized": true,
+        "locationAuthorized": true,
+        "microphoneAuthorized": true,
+        "notificationAuthorized": true,
+        "notificationAlertAuthorized": true,
+        "notificationBadgeAuthorized": true,
+        "notificationSoundAuthorized": true,
+        "phoneCalendarAuthorized": true,
+        "bluetoothAuthorized": true,
+        "locationReducedAccuracy": true,
+        "devicePixelRatio": 3
+      }
+    }
+  },
+  "footer": {
+    "left": 19,
+    "top": 837
+  },
+  "size": {
+    "success": true,
+    "width": 392,
+    "height": 50
+  },
+  "state": {
+    "route": "pages/rewards/index",
+    "loading": false,
+    "error": "",
+    "selectionEmpty": true,
+    "hasFixture": true
+  },
+  "result": "passed scoped native rendering",
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 2,
+    "realMemberWrites": 0
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "packageSourceSha256": "fd871ae75d13d3c358031bcd0e5ab146aea75afcf063e7e14603f6b60183c782",
+  "captures": [],
+  "tabs": [],
+  "scope": "Native simulator and intercepted synthetic HTTP; no production writes",
+  "realMemberWrites": 0,
+  "setup": {
+    "installed": true,
+    "originalRoute": "pages/account/index",
+    "originalSessionPresent": false,
+    "storageKeyCount": 5,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "restore": {
+    "restored": true,
+    "storageUnchanged": true,
+    "sessionPresent": false,
+    "unknownRoutes": [],
+    "requestCount": 0,
+    "realMemberWrites": 0
+  }
+}

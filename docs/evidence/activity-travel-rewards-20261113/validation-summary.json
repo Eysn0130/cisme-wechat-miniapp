@@ -1,0 +1,53 @@
+{
+  "packageSourceSha256": "e3d47d6e8da8b36822614cc4be0780c76098e002a291a0eabc3c1783e030de71",
+  "unit": {
+    "passed": 3363,
+    "skipped": 1,
+    "files": 212,
+    "evidence": "unit-refinement-final.txt"
+  },
+  "typecheck": "passed",
+  "packageGate": "passed",
+  "routes": 43,
+  "copyDecisions": 68,
+  "sharedTabPages": 10,
+  "sharedTabGroups": 11,
+  "native": {
+    "result": "passed scoped native material rendering, touch/scroll release, fresh navigation, unified tab geometry and custom event routing",
+    "captures": 13,
+    "tabGeometryStates": 6,
+    "currentEvidence": "native-refinement-e3d47d6e8da8/verification.json",
+    "reducedAndExpired": "passed native reduced flag and expired presentation",
+    "nativeAnimationEndClearsIntro": true,
+    "storageRestored": true,
+    "realWrites": 0,
+    "earlierActualMouseClicks": {
+      "sourcePackageSha256": "0604258bcd1ef821c1d90256b044ab7987e3e4053828936e751e8c7ff6174639",
+      "evidence": "native-refinement-0604258bcd1e/actual-click.json",
+      "controls": [
+        "正装优惠",
+        "发券",
+        "领取订单"
+      ]
+    },
+    "earlierFullTravelFlow": {
+      "sourcePackageSha256": "0604258bcd1ef821c1d90256b044ab7987e3e4053828936e751e8c7ff6174639",
+      "evidence": "native-refinement-0604258bcd1e/travel-flow/verification.json",
+      "captures": 15,
+      "assertions": 6,
+      "scope": "Before final foil contrast tuning; not relabeled as current source all-state acceptance"
+    }
+  },
+  "ci": {
+    "pullRequest": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/101",
+    "checks": "Authoritative live checks are attached to the PR head. Prior backend commit 891888217956be8f5cbc23eeaf9045d39ab8fbf1 passed 1342 integration tests; do not treat that as a new-head result."
+  },
+  "fullNativeMatrix": "blocked; physical phone unavailable and full 43-route/font/state matrix not completed",
+  "protectedOriginalWorkspacePaths": 431,
+  "changedProtectedOriginalPaths": 0,
+  "deployed": false,
+  "trialUploaded": false,
+  "realVouchersIssued": 0,
+  "realMoneyOperations": 0,
+  "analyticalContrastBudget": "foil-contrast-budget.json"
+}

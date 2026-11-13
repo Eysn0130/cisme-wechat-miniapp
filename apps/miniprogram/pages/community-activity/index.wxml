@@ -1,14 +1,8 @@
 <view class="chrome-root" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回我的"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button><text class="topbar__title">互动记录</text></view>
   <view class="page page--stack activity-page">
-    <view class="activity-sources" role="tablist" aria-label="社区内容来源">
-      <button wx:for="{{sources}}" wx:key="key" data-source="{{item.key}}" bindtap="selectSource" class="activity-source {{source===item.key?'activity-source--active':''}}" hover-class="activity-tab--pressed" role="tab" aria-selected="{{source===item.key}}">{{item.label}}</button>
-    </view>
-    <view class="activity-tabs {{reduceMotion?'activity-tabs--reduce-motion':''}}" role="tablist" aria-label="我的社区记录">
-      <button wx:for="{{tabs}}" wx:key="key" data-section="{{item.key}}" bindtap="selectSection"
-        class="activity-tab {{section===item.key?'activity-tab--active':''}}" role="tab" hover-class="activity-tab--pressed" aria-label="查看我的{{item.label}}" aria-selected="{{section===item.key}}">{{item.label}}</button>
-      <view class="activity-tabs__indicator" aria-hidden="true" style="width:{{100/tabs.length}}%;transform:translateX({{activeTabIndex*100}}%);"><view class="activity-tabs__line"/></view>
-    </view>
+    <view class="page-section-tabs page-section-tabs--compact"><section-tabs id="page-tabs" items="{{sources}}" value="{{source}}" label="社区内容来源" bindchange="selectSource" item-key="key"/></view>
+    <view class="page-section-tabs"><section-tabs id="page-tabs2" items="{{tabs}}" value="{{section}}" label="互动记录分类" bindchange="selectSection" item-key="key"/></view>
     <view wx:if="{{notice}}" class="activity-notice" aria-live="polite">{{notice}}</view>
     <view wx:if="{{loading && !activityReady}}" class="page-read-loading" aria-role="status" aria-label="正在加载…"><view class="page-read-loading__indicator"/></view>
     <view wx:if="{{error}}" class="activity-state activity-state--error" aria-live="assertive"><text>{{error}}</text><button bindtap="retry">重试</button></view>

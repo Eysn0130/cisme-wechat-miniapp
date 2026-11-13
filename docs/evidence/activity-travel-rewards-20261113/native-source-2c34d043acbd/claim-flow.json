@@ -1,0 +1,46 @@
+{
+  "chosen": {
+    "selectedBundle": "moisture",
+    "explicitSelection": true,
+    "noError": true
+  },
+  "confirmed": {
+    "route": "pages/rewards/index",
+    "mode": "claim",
+    "state": "placed",
+    "itemCode": "moisture",
+    "postCount": 1,
+    "allHttpIntercepted": true,
+    "realMemberWrites": 0
+  },
+  "captures": [
+    {
+      "name": "02-selection",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/02-selection.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "03-selected",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/03-selected.png",
+      "imageWidth": 332,
+      "imageHeight": 718
+    },
+    {
+      "name": "04-claimed",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/04-claimed.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    },
+    {
+      "name": "05-shipped",
+      "success": true,
+      "path": "/Users/mini/CISME/docs/evidence/activity-travel-rewards-20261113/native/05-shipped.png",
+      "imageWidth": 195,
+      "imageHeight": 422
+    }
+  ]
+}

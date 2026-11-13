@@ -1,3 +1,5 @@
+import{foilData,foilEvents,clearFoil,consumeFoilDrag}from'../../services/card-foil';
+import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess,resumeAuthentication} from '../../services/api';
 import {cancelPageReads,pageRead} from '../../services/page-requests';
 import {currentChromeStyle,shouldReduceMotion} from '../../services/layout';
@@ -11,14 +13,15 @@ const empty={wallet:null as RewardWallet|null,selection:null as RewardSelection|
  addresses:[] as CheckoutAddress[],selectedAddressId:'',selectedAddress:null as CheckoutAddress|null,surveyOpen:false,rulesOpen:false,returnOpen:false,returnReason:'',
  pending:null as RewardPending|null,unknown:false,newCoupon:false,error:'',productsOpen:false,couponProducts:[] as CouponProduct[],usingCouponId:''};
 Page({
+ ...foilEvents,
  alive:false,visible:false,epoch:0,token:'',context:0,surveyStarted:false,
- data:{...empty,chromeStyle:currentChromeStyle(),reducedMotion:shouldReduceMotion(),mode:'wallet' as 'wallet'|'select'|'claim',tab:'rewards',voucherId:'',claimId:'',loading:true,busy:false,navigating:false,stateLabel:'',expiryLabel:'',claimDate:''},
+ data:{...empty,...foilData,chromeStyle:currentChromeStyle(),reducedMotion:shouldReduceMotion(),mode:'wallet' as 'wallet'|'select'|'claim',tab:'rewards',voucherId:'',claimId:'',loading:true,busy:false,navigating:false,stateLabel:'',expiryLabel:'',claimDate:''},
  onLoad(query:Record<string,string|undefined>){this.alive=true;this.setData({mode:query.voucher?'select':query.claim?'claim':'wallet',voucherId:query.voucher??'',claimId:query.claim??'',tab:query.tab==='coupons'?'coupons':'rewards'});},
  onShow(){this.visible=true;this.epoch++;const d=getApp<IAppOption>().globalData,next=d.sessionToken,revision=commerceContextRevision();
   if(this.token!==next||this.context!==revision){this.surveyStarted=false;this.setData({...empty});}this.token=next;this.context=revision;
   this.setData({chromeStyle:currentChromeStyle(),reducedMotion:shouldReduceMotion(),busy:false,navigating:false});if(!requireMemberAccess())return;void this.load();},
- onHide(){this.visible=false;this.epoch++;cancelPageReads(this);},
- onUnload(){this.alive=false;this.visible=false;this.epoch++;cancelPageReads(this);this.setData({...empty});},
+ onHide(){clearFoil(this);this.visible=false;this.epoch++;cancelPageReads(this);},
+ onUnload(){clearFoil(this);this.alive=false;this.visible=false;this.epoch++;cancelPageReads(this);this.setData({...empty});},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onPullDownRefresh(){void this.load().finally(()=>wx.stopPullDownRefresh());},
  current(epoch?:number){return this.alive&&this.visible&&(epoch===undefined||epoch===this.epoch)&&this.token===getApp<IAppOption>().globalData.sessionToken&&this.context===commerceContextRevision();},
@@ -49,8 +52,8 @@ Page({
  back(){if(this.data.busy)return;if(this.data.productsOpen){this.closeProducts();return;}if(this.data.rulesOpen){this.closeRules();return;}if(this.data.returnOpen){this.closeReturn();return;}wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},
  login(){resumeAuthentication(`/pages/rewards/index${this.data.voucherId?`?voucher=${this.data.voucherId}`:''}`);},
  navigate(url:string,replace=false){if(this.data.navigating||!this.current())return;this.setData({navigating:true});const options={url,fail:()=>{if(this.alive)this.setData({navigating:false,error:'暂时无法打开，请重试'});}};if(replace)wx.redirectTo(options);else wx.navigateTo(options);},
- changeTab(event:WechatMiniprogram.TouchEvent){if(!this.data.busy)this.setData({tab:String(event.currentTarget.dataset.tab),error:''});},
- openVoucher(event:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.unknown)return;this.navigate(`/pages/rewards/index?voucher=${event.currentTarget.dataset.id}`);},
+ changeTab(event:WechatMiniprogram.TouchEvent){if(!this.data.busy)this.setData({tab:sectionTabValue(event,'tab'),error:''});},
+ openVoucher(event:WechatMiniprogram.TouchEvent){if(consumeFoilDrag(this))return;if(this.data.busy||this.data.unknown)return;this.navigate(`/pages/rewards/index?voucher=${event.currentTarget.dataset.id}`);},
  openClaim(event:WechatMiniprogram.TouchEvent){if(!this.data.busy)this.navigate(`/pages/rewards/index?claim=${event.currentTarget.dataset.id}`);},
  openSelectedClaim(){const id=this.data.selection?.voucher.claimId;if(id)this.navigate(`/pages/rewards/index?claim=${id}`,true);},
  chooseBundle(event:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.unknown)return;const code=String(event.currentTarget.dataset.code) as RewardBundleCode;
@@ -93,7 +96,7 @@ Page({
  submitReturn(){if(this.data.returnReason.trim().length<3){this.setData({error:'请简单说明遇到的问题'});return;}void this.claimAction('request_return');},
  copyTracking(){if(this.data.claim?.trackingNumber)wx.setClipboardData({data:this.data.claim.trackingNumber});},
  openCoupons(){this.navigate('/pages/rewards/index?tab=coupons',true);},
- useCoupon(event:WechatMiniprogram.TouchEvent){if(this.data.busy)return;const coupon=this.data.wallet?.coupons.find(c=>c.id===String(event.currentTarget.dataset.id));if(coupon?.state==='available')this.setData({productsOpen:true,couponProducts:coupon.products??[],usingCouponId:coupon.id});},
+ useCoupon(event:WechatMiniprogram.TouchEvent){if(consumeFoilDrag(this))return;if(this.data.busy)return;const coupon=this.data.wallet?.coupons.find(c=>c.id===String(event.currentTarget.dataset.id));if(coupon?.state==='available')this.setData({productsOpen:true,couponProducts:coupon.products??[],usingCouponId:coupon.id});},
  closeProducts(){this.setData({productsOpen:false,couponProducts:[],usingCouponId:''});},
  openCouponProduct(event:WechatMiniprogram.TouchEvent){const code=String(event.currentTarget.dataset.code),coupon=this.data.usingCouponId;if(!this.data.couponProducts.some(p=>p.code===code)||!coupon)return;this.setData({productsOpen:false});this.navigate(`/pages/product/index?id=${encodeURIComponent(code)}&coupon=${encodeURIComponent(coupon)}`);},
  support(){if(!this.data.busy)this.navigate('/pages/support/index');}

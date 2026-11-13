@@ -101,7 +101,7 @@
     <view class="context-sheet" catchtap="stopPropagation">
       <view class="context-handle"></view>
       <strong class="context-title">必要用户信息</strong>
-      <text class="context-note">仅用于当前客服处理，本次查看已审计。</text>
+
       <view class="context-row"><small>昵称</small><text>{{memberContext.displayName}}</text></view>
       <view class="context-row"><small>会员状态</small><text>{{memberContext.memberStatus === 'active' ? '正常' : memberContext.memberStatus}}</text></view>
       <view class="context-row"><small>手机号</small><text>{{memberContext.maskedPhone || '未绑定'}}</text></view>
@@ -112,7 +112,7 @@
   <view wx:if="{{aftersaleOpen && !loading}}" class="context-mask" catchtap="closeAftersales" catchtouchmove="stopPropagation">
     <scroll-view class="context-sheet aftersale-sheet" scroll-y catchtap="stopPropagation">
       <view class="context-handle"></view><strong class="context-title">本会话售后</strong>
-      <text class="context-note">请以案件中保存的申请时间、收件和退款记录为准，聊天说明不会直接更新这些记录。</text>
+      <text class="context-note">退货与退款请在售后单处理</text>
       <text wx:if="{{aftersaleError}}" class="aftersale-sheet__error" aria-live="polite">{{aftersaleError}}</text>
       <text wx:if="{{!aftersaleCases.length}}" class="context-note">暂无关联售后申请。</text>
       <view wx:for="{{aftersaleCases}}" wx:key="id" class="aftersale-sheet__case">

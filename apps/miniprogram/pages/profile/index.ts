@@ -1,3 +1,4 @@
+import{foilData,foilEvents,clearFoil,consumeFoilDrag}from'../../services/card-foil';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { defaultMemberAvatar, localMemberAvatar } from "../../services/member-avatar";
@@ -40,6 +41,7 @@ function dailyCareView(daily: DailyCarePage | null, error: string) {
 }
 
 Page({
+ ...foilEvents,
   cardSparkTimer: null as ReturnType<typeof setTimeout> | null,
   clearCardSpark() {
     if (this.cardSparkTimer !== null) clearTimeout(this.cardSparkTimer);
@@ -75,12 +77,12 @@ Page({
     }
   },
   retryDailyStatus() { const token = getApp<IAppOption>().globalData.sessionToken; if (token && this.data.member) void this.loadDailyStatus(this.data.loadAttempt, token); },
-  data: { cardSparkActive:false, retainingSnapshot: false, dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
+  data: { ...foilData,cardSparkActive:false, retainingSnapshot: false, dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() { this.clearCardSpark(); if (!requireMemberAccess()) { this.dailySnapshot=null; this.dailyStatusAttempt++; this.setData({retainingSnapshot:false,dailyStatusError:"",dailyStatusLoading:false,hasCareCycle:false,careUnavailable:false,member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
-  onHide() { this.clearCardSpark(); cancelPageReads(this); this.data.loadAttempt += 1;  },
-  onUnload() { this.clearCardSpark(); cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1;  },
+  onHide() { clearFoil(this);this.clearCardSpark(); cancelPageReads(this); this.data.loadAttempt += 1;  },
+  onUnload() { clearFoil(this);this.clearCardSpark(); cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1;  },
   isCurrentLoad(attempt: number, token: string): boolean {
     return this.data.pageAlive && this.data.loadAttempt === attempt && getApp<IAppOption>().globalData.sessionToken === token;
   },
@@ -185,7 +187,7 @@ Page({
     else wx.navigateTo({ url, fail });
   },
   openAccount() { this.openRoute("/pages/settings/index", "navigate", "设置暂时无法打开"); },
-  openPoints() { this.openRoute("/pages/points/index", "navigate", "积分账本暂时无法打开"); },
+  openPoints() { if(consumeFoilDrag(this))return;this.openRoute("/pages/points/index", "navigate", "积分账本暂时无法打开"); },
   openSettings() { this.openRoute("/pages/settings/index", "navigate", "设置与隐私暂时无法打开"); },
   openOrders() { this.openRoute("/pages/orders/index", "navigate", "订单暂时无法打开"); },
   openRewards() { this.openRoute('/pages/rewards/index','navigate','奖励暂时无法打开'); },

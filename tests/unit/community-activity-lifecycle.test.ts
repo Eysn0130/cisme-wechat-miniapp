@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../apps/miniprogram/services/section-tabs';
 import { readFileSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
 import { runInNewContext } from "node:vm";
@@ -25,7 +26,7 @@ function fixture(sourceName:"editorial"|"ugc"="ugc"){
   const editorial=runInNewContext(source("apps/miniprogram/services/editorial.ts")+"\n;({editorialIdentifier});",{...helpers,request});
   const editorialCommands=runInNewContext(source("apps/miniprogram/services/editorial-comments.ts")+"\n;({deleteEditorialComment,setEditorialBlock});",{...helpers,...editorial,request});
   runInNewContext(source("apps/miniprogram/pages/community-activity/index.ts"),{
-    ...helpers,...presentation,...editorialCommands,request,requireMemberAccess:(url:string)=>{accessUrls.push(url);return state.access;},currentChromeStyle:()=>"",shouldReduceMotion:()=>false,
+    ...helpers,...presentation,...editorialCommands,sectionTabValue,request,requireMemberAccess:(url:string)=>{accessUrls.push(url);return state.access;},currentChromeStyle:()=>"",shouldReduceMotion:()=>false,
     commerceContextRevision:()=>state.revision,getApp:()=>({globalData:{sessionToken:state.token}}),
     wx,Page:(value:any)=>{definition=value;}
   });

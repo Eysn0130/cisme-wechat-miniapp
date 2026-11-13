@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import { requireGuestCommunityAccess } from "../../services/api";
 import { cancelPageReads } from "../../services/page-requests";
 import {retainReadPresentation} from "../../services/read-presentation";
@@ -22,7 +23,7 @@ Page({
   clearAnchorTimer(){if(this.anchorTimer)clearTimeout(this.anchorTimer);this.anchorTimer=null;},
   onPageScroll(event:WechatMiniprogram.Page.IPageScrollOption){this.scrollTop=event.scrollTop;if(this.anchorTimer)return;this.anchorTimer=setTimeout(()=>{this.anchorTimer=null;this.syncAnchor();},100);},
   syncAnchor(){if(!this.visible||!this.data.item)return;const q=wx.createSelectorQuery();q.select(".product-nav").boundingClientRect();for(const id of anchors)q.select(`#${id}`).boundingClientRect();q.exec(rects=>{if(!this.visible||!rects[0])return;let active="goods";for(let i=1;i<rects.length;i++)if(rects[i]&&rects[i].top<=rects[0].bottom+5)active=anchors[i-1]!;if(active!==this.data.anchor)this.setData({anchor:active});});},
-  jumpAnchor(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.anchor);if(!anchors.includes(id))return;const q=wx.createSelectorQuery();q.select(".product-nav").boundingClientRect();q.select(`#${id}`).boundingClientRect();q.exec(rects=>{if(!this.visible||!rects[0]||!rects[1])return;wx.pageScrollTo({scrollTop:Math.max(0,this.scrollTop+rects[1].top-rects[0].bottom),duration:0});this.setData({anchor:id});});},
+  jumpAnchor(event:WechatMiniprogram.TouchEvent){const id=sectionTabValue(event,'anchor');if(!anchors.includes(id))return;const q=wx.createSelectorQuery();q.select(".product-nav").boundingClientRect();q.select(`#${id}`).boundingClientRect();q.exec(rects=>{if(!this.visible||!rects[0]||!rects[1])return;wx.pageScrollTo({scrollTop:Math.max(0,this.scrollTop+rects[1].top-rects[0].bottom),duration:0});this.setData({anchor:id});});},
   async load(){
     cancelPageReads(this);
     const attempt=this.data.loadAttempt+1;wx.hideShareMenu();const preserve=retainReadPresentation(this,this.data.id);

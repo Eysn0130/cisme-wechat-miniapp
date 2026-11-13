@@ -1,3 +1,4 @@
+import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess} from '../../services/api';
 import {currentChromeStyle} from '../../services/layout';
 import {cancelPageReads} from '../../services/page-requests';
@@ -34,7 +35,7 @@ Page({
  back(){if(!this.data.busy)wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},stop(){},
  closeSheet(){if(!this.data.busy)this.setData({sheet:'',detail:null,issueInput:'',trackingInput:'',carrierInput:'',reasonInput:''});},
  activityChange(event:{detail:{value:string}}){if(this.data.busy)return;const activity=this.data.manager?.activities[Number(event.detail.value)];if(activity){this.setData({activityId:activity.id,activityIndex:Number(event.detail.value),activity,exportAfter:'',filter:'all',filterIndex:0,nextCursor:null});void this.load();}},
- changeTab(event:WechatMiniprogram.TouchEvent){if(this.data.busy)return;const tab=String(event.currentTarget.dataset.tab),filters=tab==='fulfill'?[{code:'all',name:'全部'},{code:'placed',name:'待发货'},{code:'shipped',name:'待收货'},{code:'received',name:'已收货'},{code:'aftersale_requested',name:'售后中'},{code:'cancelled',name:'已取消'},{code:'closed',name:'已完成'}]:[{code:'all',name:'全部'},{code:'unused',name:'待领取'},{code:'used',name:'已领取'},{code:'expired',name:'已过期'},{code:'revoked',name:'已撤销'}];this.setData({tab,filters,filter:'all',filterIndex:0,nextCursor:null});void this.load();},
+ changeTab(event:WechatMiniprogram.TouchEvent){if(this.data.busy)return;const tab=sectionTabValue(event,'tab'),filters=tab==='fulfill'?[{code:'all',name:'全部'},{code:'placed',name:'待发货'},{code:'shipped',name:'待收货'},{code:'received',name:'已收货'},{code:'aftersale_requested',name:'售后中'},{code:'cancelled',name:'已取消'},{code:'closed',name:'已完成'}]:[{code:'all',name:'全部'},{code:'unused',name:'待领取'},{code:'used',name:'已领取'},{code:'expired',name:'已过期'},{code:'revoked',name:'已撤销'}];this.setData({tab,filters,filter:'all',filterIndex:0,nextCursor:null});void this.load();},
  filterChange(event:{detail:{value:string}}){const index=Number(event.detail.value);this.setData({filterIndex:index,filter:this.data.filters[index]?.code??'all',nextCursor:null});void this.load();},
  loadMore(){if(!this.data.loading&&!this.data.busy&&this.data.hasMore)void this.load(true);},
  retryLoad(){void this.load(false);},
