@@ -141,7 +141,7 @@ describe("account consent freshness during legal refresh", () => {
     const page = await mount({ pendingDestination: "/pages/profile/index" });
     mocks.runtime.globalData.sessionToken = "isolated-existing-session";
     const pending = deferred<ReturnType<typeof legalResponse>>();
-    mocks.request.mockImplementation(async ({ path }) => path === "/v1/legal" ? pending.promise : { id: "member-1", avatar_data_url: "avatar" });
+    mocks.request.mockImplementation(async ({ path }) => path === "/v1/legal" ? pending.promise : path === "/v1/me/phone" ? {bound:true,enabled:true} : { id: "member-1", display_name:"已保存昵称", profile_revision:1, completed_at:"2026-11-13T00:00:00Z", avatar_data_url: "avatar" });
     const reading = page.syncLegalDocuments(); await page.login();
     expect(mocks.login).not.toHaveBeenCalled();
     expect(mocks.navigate).toHaveBeenCalledWith("/pages/profile/index");

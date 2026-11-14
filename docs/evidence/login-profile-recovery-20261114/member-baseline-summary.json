@@ -1,0 +1,102 @@
+{
+  "environment": "isolated-trial",
+  "readOnly": true,
+  "at": "2026-11-14T08:56:27.233Z",
+  "memberCount": 2,
+  "rowsModified": 0,
+  "contactPlaintextRead": false,
+  "results": [
+    {
+      "number": 10,
+      "created_at": "2026-11-14T04:11:59.275Z",
+      "profile_exists": false,
+      "completed_at": null,
+      "profile_revision": null,
+      "avatar_saved": false,
+      "avatar_revision_saved": false,
+      "profile_updated_at": null,
+      "adapter": "wechat",
+      "provider": "wechat_miniprogram",
+      "app_id": "wx4eac2d4fb11d299b",
+      "identity_created_at": "2026-11-14T04:11:59.277Z",
+      "required": true,
+      "questionnaire_completed_at": "2026-11-14T04:13:50.876Z",
+      "current_question": 10,
+      "phone_bound": true,
+      "bound_at": "2026-11-14T04:12:03.043Z",
+      "defaultName": true,
+      "audits": [
+        {
+          "action": "member.phone_bound",
+          "count": 1,
+          "first_at": "2026-11-14T04:12:03.043Z",
+          "last_at": "2026-11-14T04:12:03.043Z"
+        },
+        {
+          "action": "care_profile.save",
+          "count": 10,
+          "first_at": "2026-11-14T04:12:45.348Z",
+          "last_at": "2026-11-14T04:13:45.537Z"
+        },
+        {
+          "action": "care_profile.complete",
+          "count": 1,
+          "first_at": "2026-11-14T04:13:50.875Z",
+          "last_at": "2026-11-14T04:13:50.875Z"
+        }
+      ],
+      "wallet": {
+        "available": 100,
+        "frozen": 0,
+        "reserved": 0,
+        "debt": 0
+      }
+    },
+    {
+      "number": 11,
+      "created_at": "2026-11-14T05:59:51.442Z",
+      "profile_exists": false,
+      "completed_at": null,
+      "profile_revision": null,
+      "avatar_saved": false,
+      "avatar_revision_saved": false,
+      "profile_updated_at": null,
+      "adapter": "wechat",
+      "provider": "wechat_miniprogram",
+      "app_id": "wx4eac2d4fb11d299b",
+      "identity_created_at": "2026-11-14T05:59:51.443Z",
+      "required": true,
+      "questionnaire_completed_at": "2026-11-14T06:02:20.340Z",
+      "current_question": 10,
+      "phone_bound": true,
+      "bound_at": "2026-11-14T05:59:58.084Z",
+      "defaultName": true,
+      "audits": [
+        {
+          "action": "member.phone_bound",
+          "count": 1,
+          "first_at": "2026-11-14T05:59:58.084Z",
+          "last_at": "2026-11-14T05:59:58.084Z"
+        },
+        {
+          "action": "care_profile.save",
+          "count": 10,
+          "first_at": "2026-11-14T06:00:32.011Z",
+          "last_at": "2026-11-14T06:02:13.199Z"
+        },
+        {
+          "action": "care_profile.complete",
+          "count": 1,
+          "first_at": "2026-11-14T06:02:20.339Z",
+          "last_at": "2026-11-14T06:02:20.339Z"
+        }
+      ],
+      "wallet": {
+        "available": 100,
+        "frozen": 0,
+        "reserved": 0,
+        "debt": 0
+      }
+    }
+  ]
+}

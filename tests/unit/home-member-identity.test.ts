@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), bootstrap: vi.fn() }));
+const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), bootstrap: vi.fn(), resume:vi.fn() }));
 vi.mock("../../apps/miniprogram/services/api", () => ({
-  request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => false
+  resumeAuthentication:mocks.resume, request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => false
 }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));
@@ -123,4 +123,9 @@ describe("Home canonical nickname continuity", () => {
     invalidateCommerceRecoveryContext(); page.refreshDaypart();
     expect(page.data.view.greeting).toBe("晚上好，CISME");
   });
+});
+
+it('returns an authenticated but unfinished identity to Account before opening the questionnaire',async()=>{
+ mocks.bootstrap.mockResolvedValue({member:{id:'a',display_name:'CISME 会员',profile_revision:0,completed_at:null,avatar_data_url:null},care:null,businessVersion:1,onboardingRequired:true});
+ await page.load();expect(mocks.resume).toHaveBeenCalledWith('/pages/home/index');expect(page.data.onboardingOpen).toBe(false);expect(page.data.authorityAvailable).toBe(false);
 });

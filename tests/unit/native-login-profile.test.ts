@@ -36,7 +36,7 @@ it('checks existing facts before asking, and only the missing phone first',async
 it('holds an explicitly chosen avatar privately then saves it with the confirmed native nickname to the same owner',async()=>{
  phone.bound=true;await page.loginTap();await page.chooseLoginAvatar({detail:{avatarUrl:'wxfile://selected.jpg'}});
  expect(page.data).toMatchObject({loginStage:'nickname',avatarUrl:'wxfile://selected.jpg'});expect(writes()).toEqual([]);expect(JSON.stringify(page.data)).not.toContain('base64');
- page.editLoginName({detail:{value:'小雨'}});await page.loginTap();expect(writes()).toEqual([{path:'/v1/me/profile',method:'PUT',data:{displayName:'小雨',expectedVersion:0,avatarDataUrl:'data:image/jpeg;base64,fixture'}}]);
+ page.editLoginName({detail:{value:'旧的输入事件值'}});await page.saveLoginNickname({detail:{value:{nickname:'小雨'}}});expect(writes()).toEqual([{path:'/v1/me/profile',method:'PUT',data:{displayName:'小雨',expectedVersion:0,avatarDataUrl:'data:image/jpeg;base64,fixture'}}]);
  expect(profile.id).toBe(owner);expect(m.publish).toHaveBeenCalledWith(expect.objectContaining({id:owner,display_name:'小雨',phone_masked:null}));expect(m.navigate).toHaveBeenCalledWith('/pages/home/index');
 });
 it('loads a complete returning member without repeating any phone, avatar or nickname question',async()=>{
@@ -81,4 +81,27 @@ it('resumes missing profile confirmation after Account is reconstructed with a v
 
 it('accepts a user-confirmed nickname matching a generic label without asking again after it was saved',async()=>{
  phone.bound=true;profile.avatar_data_url='saved';await page.loginTap();page.editLoginName({detail:{value:'微信用户'}});await page.saveLoginNickname();expect(profile.completed_at).toBeTruthy();expect(profile.display_name).toBe('微信用户');expect(m.navigate).toHaveBeenCalledTimes(1);m.navigate.mockClear();page.loginFlowToken=m.token;await page.advanceLogin();expect(m.navigate).toHaveBeenCalledTimes(1);expect(page.data.loginStage).toBe('login');
+});
+
+it('recovers a questionnaire-complete member with a bound phone and no saved profile on a nested Account entry',async()=>{
+ m.token='current-session';phone.bound=true;Object.assign(profile,{care_onboarding_required:false,card_number:'No. 00010'});
+ (globalThis as any).getCurrentPages=()=>[{route:'pages/profile/index'},{route:'pages/account/index'}];page.onLoad({intent:'login'});page.onShow();for(let i=0;i<20;i++)await Promise.resolve();
+ expect(page.data.loginStage).toBe('avatar');expect(page.loginOwnerId).toBe(owner);expect(m.navigate).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();
+ await page.chooseLoginAvatar({detail:{avatarUrl:'wxfile://selected.jpg'}});expect(page.data.loginStage).toBe('nickname');
+ await page.saveLoginNickname({detail:{value:{nickname:'微信快捷昵称'}}});
+ expect(writes()).toHaveLength(1);expect(profile.id).toBe(owner);expect(profile.card_number).toBe('No. 00010');expect(profile.care_onboarding_required).toBe(false);expect(m.navigate).toHaveBeenCalledTimes(1);
+ expect(m.request.mock.calls.some(([v])=>v.path==='/v1/identity/wechat'||v.path==='/v1/me/phone'&&v.method==='POST'||v.path.includes('care-profile'))).toBe(false);
+});
+it.each(['continueLogin','login'])('does not let the retained-session %s shortcut skip missing identity fields',async method=>{
+ m.token='current-session';phone.bound=true;page.data.pendingDestination='/pages/home/index';await page[method]();
+ expect(page.data.loginStage).toBe('avatar');expect(m.navigate).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();
+});
+it('leaves an unfinished login as public browsing while retaining the canonical server member',async()=>{
+ phone.bound=true;await page.loginTap();expect(page.data.loginStage).toBe('avatar');await page.browseCommunity();
+ expect(m.token).toBe('');expect(page.loginFlowToken).toBe('');expect(writes()).toEqual([]);expect(wxMock.setStorageSync).toHaveBeenCalledWith('cisme.guestBrowsing',true);expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/community/index'}));
+});
+it('takes the final native form value even if quick-fill has not emitted an input event',async()=>{
+ phone.bound=true;profile.avatar_data_url='saved';await page.loginTap();expect(page.data.loginName).toBe('');
+ await page.saveLoginNickname({detail:{value:{nickname:'键盘快捷微信昵称'}}});expect(writes()[0].data.displayName).toBe('键盘快捷微信昵称');expect(m.navigate).toHaveBeenCalledTimes(1);
+ const wxml=await readFile('apps/miniprogram/pages/account/index.wxml','utf8');expect(wxml).toContain('bindsubmit="saveLoginNickname"');expect(wxml).toContain('name="nickname"');expect(wxml).toContain("loginStage === 'nickname' ? 'submit'");
 });
