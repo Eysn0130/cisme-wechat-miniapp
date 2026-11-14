@@ -222,6 +222,14 @@ export class DeliveryAddressService {
     return this.decrypt(row);
   }
 
+  /** Dedicated contact authority is checked by the caller; one owner-bound query,
+   * not one database round trip per visible address. */
+  async administrationAddresses(client:DbClient,memberId:string){
+    this.requireEnabled();
+    const rows=(await client.query<AddressRow>('SELECT * FROM member_delivery_address WHERE member_id=$1 AND deleted_at IS NULL ORDER BY is_default DESC,updated_at DESC,id',[memberId])).rows;
+    return rows.map(row=>({id:row.id,label:row.label,isDefault:row.is_default,updatedAt:row.updated_at,address:this.decrypt(row)}));
+  }
+
   /** Used only while an authenticated member's private data copy is built.
    * Erased rows expose no former address content. */
   async exportOwned(client: DbClient, memberId: string) {

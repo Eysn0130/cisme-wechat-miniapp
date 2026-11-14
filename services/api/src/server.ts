@@ -1,3 +1,4 @@
+import {MemberAdministrators} from './memberAdministrators.js';
 import {userPhoneQuery,userFail} from './memberAdministrationPolicy.js';
 import {MemberAdministration} from './memberAdministration.js';
 import {SharingOfficerService} from "./sharingOfficer.js";
@@ -694,12 +695,15 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return commercial.confirmReferral(request.memberId,request.principalId,input.code,input.confirmationKey);
   });
   const memberAdministration=new MemberAdministration(pool,config);
+  const memberAdministrators=new MemberAdministrators(memberAdministration);
   app.get<{Querystring:Record<string,unknown>}>('/v1/management/users',(r,reply)=>{reply.header('Cache-Control','private, no-store');if(userPhoneQuery(r.query.q))userFail('PRIVATE_SEARCH_REQUIRED','请使用私密查询入口',422);return memberAdministration.list(r.memberId,r.query);});
   app.post<{Body:Record<string,unknown>}>('/v1/management/users/search',{bodyLimit:4000},(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.list(r.memberId,r.body);});
   app.get<{Params:{memberId:string}}>('/v1/management/users/:memberId',(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.overview(r.memberId,r.params.memberId);});
   app.get<{Params:{memberId:string;section:string};Querystring:Record<string,unknown>}>('/v1/management/users/:memberId/sections/:section',(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.section(r.memberId,r.params.memberId,r.params.section,r.query);});
   app.post<{Params:{memberId:string};Body:Record<string,unknown>}>('/v1/management/users/:memberId/contact',{bodyLimit:2000},async(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.contact(r.memberId,r.params.memberId,r.body);});
   app.post<{Body:Record<string,unknown>}>('/v1/management/users/export',{bodyLimit:40000},async(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.export(r.memberId,r.body);});
+  app.get<{Params:{memberId:string}}>('/v1/management/users/:memberId/administrator',(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministrators.read(r.memberId,r.params.memberId);});
+  app.post<{Params:{memberId:string};Body:Record<string,unknown>}>('/v1/management/users/:memberId/administrator',{bodyLimit:4000},(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministrators.save(r.memberId,r.params.memberId,idempotencyKey(r),r.body);});
   app.get<{Querystring:{q?:string;filter?:string;limit?:string;cursor?:string}}>("/v1/management/members", async request => commercial.listMembers(request.memberId,request.query));
   app.get<{Params:{memberId:string}}>("/v1/management/members/:memberId", async request => commercial.memberDetail(request.memberId,request.params.memberId));
   app.get<{Params:{memberId:string;section:string};Querystring:{limit?:string;cursor?:string}}>("/v1/management/members/:memberId/sections/:section",

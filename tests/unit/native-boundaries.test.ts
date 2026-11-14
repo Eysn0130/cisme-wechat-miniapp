@@ -222,7 +222,7 @@ describe("native mini program boundary", () => {
       invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
       legal: ["back", "load", "privacyRights"],
       "management-member": ["back", "back", "load", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
-      "management-members": ["back", "commercial", "openFilter", "toggleSelect", "openFields", "exportUsers", "retry", "tapPerson", "inspect", "exportUsers", "more", "more", "close", "resetFilter", "applyFilter", "toggleField", "applyFields"],
+      "management-members": ["back", "administratorSelect", "commercial", "openFilter", "toggleSelect", "openFields", "exportUsers", "retry", "tapPerson", "inspect", "exportUsers", "more", "more", "close", "resetFilter", "applyFilter", "toggleField", "applyFields"],
       "management": ["back", "retry", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "retry", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openFinance", "openMembers", "openSharing", "openRewards", "openPoints", "openSupport", "openEditorialComments", "openPrivacy", "retryRuntime"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
@@ -256,7 +256,7 @@ describe("native mini program boundary", () => {
       "management-sharing": ["back", "retry", "recover", "recover", "selectOfficer", "openPolicy", "order", "operate", "selectBatch", "closeBatch", "exportBatch", "operate", "selectLine", "more", "close", "operate", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "operate", "readPayee", "loadLineOrders", "order", "moreLineOrders", "operate", "operate", "operate", "moreHistory", "operate", "recover", "recover"],
       "management-members/commercial": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
       "management-members/detail": ["back"],
-      "management-members/components/member-inspector": ["expand", "close", "retry", "selectSection", "phone", "selectSection", "management", "selectSection", "selectSection", "selectSection", "management", "openRecord", "more", "closeContact", "revealContact"],
+      "management-members/components/member-inspector": ["expand", "close", "retry", "selectSection", "phone", "selectSection", "openAdministrator", "management", "copyProfile", "selectSection", "selectSection", "selectSection", "management", "openRecord", "more", "closeAdministrator", "openAdministrator", "toggleAdministratorCapability", "clearAdministratorCapabilities", "saveAdministrator"],
       task: ["returnToCommunity"]
     };
 

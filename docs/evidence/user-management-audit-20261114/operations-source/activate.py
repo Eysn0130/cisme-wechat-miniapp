@@ -34,6 +34,7 @@ def main():
  action=sys.argv[1];plan=json.loads(protected(OPS/'binding.json'));head=plan['sourceHead'];tree=plan['sourceTree']
  need(re.fullmatch('[a-f0-9]{40}',head) and re.fullmatch('[a-f0-9]{40}',tree),'SOURCE_BINDING_INVALID')
  need(plan['baselineHead']==BASE and re.fullmatch('[a-f0-9]{64}',plan['archiveSha256']),'BASELINE_BINDING_INVALID')
+ need(plan['rootMemberId']=='8d2b65b6-c165-4186-b4d0-5fdda9c67456','CANONICAL_ROOT_BINDING_REQUIRED')
  for name in ['activate.py','db-facts.mjs','encrypted-snapshot.py']:need(sha(protected(OPS/name))==plan['helpers'][name],'HELPER_HASH_MISMATCH')
  archive=OPS/('tencent-release-'+head[:12]+'.tar.gz');need(sha(protected(archive))==plan['archiveSha256'],'ARCHIVE_HASH_MISMATCH')
  old=ROOT/'releases'/('tencent-release-'+BASE[:12]);candidate=ROOT/'releases'/('tencent-release-'+head[:12]);prior=json.loads((old/'release-manifest.json').read_text())
@@ -84,7 +85,7 @@ def main():
   backup=json.loads(command(['/usr/bin/python3',str(OPS/'encrypted-snapshot.py'),str(state),backup_ref]).stdout);need(backup['authenticated'] and backup['pgRestoreListVerified'],'ENCRYPTED_BACKUP_REQUIRED');(state/'snapshot-public.json').write_text(json.dumps(backup)+'\n')
   # Application-only release: verify every historical migration; run no DDL or data migration.
   preserved=facts('after');need(preserved['allOriginalColumnsAndRowsPreserved'],'OLD_FACTS_CHANGED')
-  fence.write_text('CISME_MIGRATION_READ_ONLY=true\nPGOPTIONS=-c default_transaction_read_only=on\n')
+  fence.write_text('CISME_MIGRATION_READ_ONLY=true\nPGOPTIONS=-c default_transaction_read_only=on\nMEMBER_ADMINISTRATION_ROOT_MEMBER_ID='+plan['rootMemberId']+'\n')
   for unit,entry in zip(UNITS,['index.js','worker.js']):
    drop=Path('/etc/systemd/system')/(unit+'.d/zzzzzzzz-user-management-audit-release.conf');need(not drop.exists(),'DROPIN_ALREADY_EXISTS');drops.append(drop);drop.write_text('[Service]\nEnvironmentFile='+str(fence)+'\nEnvironment=WECHAT_SHARE_ENV_VERSION=trial\nExecStart=\nExecStart='+NODE+' '+str(candidate/entry)+'\n');drop.chmod(0o644)
   command(['systemctl','daemon-reload']);command(['systemctl','start',UNITS[0]]);healthy(port)
@@ -94,7 +95,7 @@ def main():
   caps=fetch(port,'/v1/capabilities');commerce=fetch(port,'/v1/commerce/orders/status');need(caps['pointsRulesEnabled'] and caps['pointsRedemptionEnabled'] and commerce['orderFlowEnabled'] and commerce['paymentAvailable'],'EXISTING_CAPABILITIES_CHANGED')
   preserved=facts('after');need(protected(grant,(0,pwd.getpwnam('cisme-trial').pw_uid))==grant_bytes and runtime_input(ROOT/'runtime.env','cisme-trial')==runtime,'PRIVATE_CONFIG_CHANGED')
   need({x:settings(x) for x in PRODUCTION}==production and runtime_input(Path('/opt/cisme/runtime.env'),'cisme')==production_env,'PRODUCTION_CHANGED')
-  fence.write_text('CISME_MIGRATION_READ_ONLY=false\n');opened=True;command(['systemctl','restart',UNITS[0]]);command(['systemctl','start',UNITS[1]]);healthy(port)
+  fence.write_text('CISME_MIGRATION_READ_ONLY=false\nMEMBER_ADMINISTRATION_ROOT_MEMBER_ID='+plan['rootMemberId']+'\n');opened=True;command(['systemctl','restart',UNITS[0]]);command(['systemctl','start',UNITS[1]]);healthy(port)
   need(all(settings(x)['ActiveState']==['active'] and str(candidate) in settings(x)['ExecStart'][0] for x in UNITS),'CANDIDATE_PROCESS_NOT_ACTIVE')
   need({x:settings(x) for x in PRODUCTION}==production and runtime_input(Path('/opt/cisme/runtime.env'),'cisme')==production_env,'PRODUCTION_CHANGED')
   result={'schemaVersion':1,'deployed':True,'host':'124.223.74.198','environment':'isolated-trial','sourceHead':head,'sourceTree':tree,'mainHead':plan['mainHead'],'mainTree':plan['mainTree'],'ciRunId':plan['ciRunId'],'archiveSha256':plan['archiveSha256'],'migrationsBefore':117,'migrationsAfter':117,'oldFactsPreservedBeforeOpeningWrites':True,'preservation':preserved,'backup':backup,'realQualificationsApprovedByAgent':0,'realMemberTestWrites':0,'realMoneyOperationsByAgent':0,'productionPreserved':True,'shippingGrantPreserved':True,'stateDirectory':str(state),'fullRecoveryQualified':False}
@@ -105,7 +106,7 @@ def main():
    try:current_history=facts('history')['migrations']
    except Exception:current_history=None
    if opened or current_history!=117:
-    fence.write_text('CISME_MIGRATION_READ_ONLY=true\nPGOPTIONS=-c default_transaction_read_only=on\n')
+    fence.write_text('CISME_MIGRATION_READ_ONLY=true\nPGOPTIONS=-c default_transaction_read_only=on\nMEMBER_ADMINISTRATION_ROOT_MEMBER_ID='+plan['rootMemberId']+'\n')
     if len(drops)==2:subprocess.run(['systemctl','start',UNITS[0]],capture_output=True)
     (state/'forward-fix-required').write_text('Writes reopened or state uncertain; candidate fenced if installed. Worker stopped. No database rollback or data deletion.\n')
    else:

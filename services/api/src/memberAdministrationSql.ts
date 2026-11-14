@@ -1,9 +1,15 @@
+import type {AppEnvironment} from '@cisme/config';
 import type {UserScope} from './memberAdministrationPolicy.js';
+/** Counting does not read avatars, wallets or per-member financial aggregates. */
+export function userCountSql(s:UserScope,canonicalOnly:boolean){return `SELECT m.id,m.display_name,m.status AS account_status,mc.number::text AS card_number,cp.completed_at AS onboarding_completed_at,cp.erased_at AS care_erased_at,so.state AS officer_state
+ FROM member m LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_care_profile cp ON cp.member_id=m.id
+ LEFT JOIN sharing_officer so ON so.member_id=m.id AND ${s.sharing?'true':'false'}
+ WHERE $1::timestamptz IS NOT NULL AND m.status<>'deleted' ${canonicalOnly?"AND EXISTS(SELECT 1 FROM wechat_identity wi WHERE wi.member_id=m.id AND wi.provider='wechat_miniprogram' AND wi.app_id='wx4eac2d4fb11d299b')":''}`;}
 /** Every lateral source is preaggregated before joining: no order×post×grant fanout. $1 is the snapshot clock. */
-export function userProjectionSql(s:UserScope,canonicalOnly:boolean){
+export function userProjectionSql(s:UserScope,canonicalOnly:boolean,environment:AppEnvironment='test'){
  const yes=(v:boolean)=>v?'true':'false';
  return `SELECT m.id,m.display_name,m.status AS account_status,m.created_at,m.created_at::text AS registered_sort,
- mc.number::text AS card_number,p.avatar_data_url,p.avatar_revision,p.profile_revision,c.phone_masked,
+ mc.number::text AS card_number,EXISTS(SELECT 1 FROM authority_grant ag WHERE ag.member_id=m.id AND ag.environment='${environment}' AND ag.revoked_at IS NULL AND (ag.expires_at IS NULL OR ag.expires_at>$1)) AS is_administrator,p.avatar_data_url,p.avatar_revision,p.profile_revision,c.phone_masked,
  cp.completed_at AS onboarding_completed_at,cp.erased_at AS care_erased_at,
  COALESCE(w.available,0)::bigint AS points_available,COALESCE(w.frozen,0)::bigint AS points_frozen,COALESCE(w.reserved,0)::bigint AS points_reserved,COALESCE(w.debt,0)::bigint AS points_debt,w.updated_at AS wallet_updated_at,
  COALESCE(due.expired_available,0)::bigint AS expired_available,COALESCE(due.expired_frozen,0)::bigint AS expired_frozen,COALESCE(due.unlock_frozen,0)::bigint AS unlock_frozen,

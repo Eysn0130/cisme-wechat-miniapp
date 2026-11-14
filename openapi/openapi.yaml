@@ -182,7 +182,7 @@ paths:
     post:
       tags: [Authority]
       operationId: revealManagedUserContact
-      summary: Purpose audited temporary contact reveal without storing plaintext in receipts or logs
+      summary: Authorized contact copy with automatic purpose audit; no extra confirmation or plaintext receipts
       security: [{session: []}]
       x-release-stage: V2.1-R4-UM
       x-acceptance-ids: [UM-05]
@@ -197,7 +197,6 @@ paths:
           application/json:
             schema:
               type: object
-              required: [reason]
               properties:
                 reason: {type: string, minLength: 2, maxLength: 200}
                 kind: {type: string, enum: [phone, address], default: phone}
@@ -221,6 +220,49 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
+  /v1/management/users/{memberId}/administrator:
+    get:
+      tags: [Authority]
+      operationId: readManagedMemberAdministrator
+      summary: Read administrator duties; only the server-bound highest administrator may enter
+      security: [{session: []}]
+      x-release-stage: V2.1-R4-UM
+      x-acceptance-ids: [UM-09]
+      parameters:
+        - {in: path, name: memberId, required: true, schema: {type: string, format: uuid}}
+      responses:
+        '200': {description: Current capabilities, fixed-root ownership and required-duty metadata, opaque version and human duty labels, content: {application/json: {schema: {type: object}}}}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+    post:
+      tags: [Authority]
+      operationId: replaceManagedMemberAdministrator
+      summary: Versioned idempotent duty assignment by the canonical root; cannot delegate or remove root ownership
+      security: [{session: []}]
+      x-release-stage: V2.1-R4-UM
+      x-acceptance-ids: [UM-09]
+      parameters:
+        - {in: path, name: memberId, required: true, schema: {type: string, format: uuid}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 8, maxLength: 200}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [capabilities, expectedVersion]
+              properties:
+                capabilities: {type: array, maxItems: 26, uniqueItems: true, items: {type: string}, description: Closed server CAPABILITIES allowlist; empty revokes delegated duties only.}
+                expectedVersion: {type: string, pattern: '^[a-f0-9]{64}$'}
+      responses:
+        '200': {description: Applied capability set and version; grants, revocations and audit history preserved, content: {application/json: {schema: {type: object}}}}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '404': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
   /v1/management/users/export:
     post:
       tags: [Authority]
@@ -3695,6 +3737,7 @@ components:
       properties:
         scope: {type: object, additionalProperties: {type: boolean}}
         member: {$ref: '#/components/schemas/UserAdministrationRow'}
+        contact: {type: object, description: Phone visible only to the contact-authorized administrator in the current detail; clear on hide or identity change., properties: {phone: {type: [string, 'null']}}}
         items: {type: array, items: {type: object}}
         total: {type: integer, minimum: 0}
         nextCursor: {type: [string, 'null']}
@@ -3709,6 +3752,8 @@ components:
         displayName: {type: string}
         cardNumber: {type: [string, 'null']}
         avatar: {type: [string, 'null']}
+        administrator: {type: boolean}
+        highestAdministrator: {type: boolean}
         accountStatus: {type: string, enum: [active, blocked]}
         onboarding: {type: string, enum: [complete, incomplete, erased]}
         phoneMasked: {type: [string, 'null']}
