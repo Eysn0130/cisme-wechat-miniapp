@@ -47,7 +47,7 @@ it("exports only migrated schema metadata as a complete policy-review denominato
   expect(subjectMap.migrationSetSha256).toBe(result.migrationSetSha256);
   expect(subjectMap.tables.map(t=>t.table).sort()).toEqual(tables.map(t=>t.table).sort());
   const optionalProfileErasure=new Set(['member','wechat_identity','member_contact','phone_authorization',
-    'member_profile','member_delivery_address','member_points_profile']);
+    'member_profile','member_delivery_address','member_points_profile','sharing_payee']);
   const onboardingErasure:Record<string,string>={member_care_profile:'SELF_OPTIONAL_PROFILE_V1_AND_ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION',
     member_care_consent_event:'SELF_OPTIONAL_PROFILE_V1_AND_ACCOUNT_CLOSURE_WITH_HOLD_SUPPRESSION',
     member_care_profile_operation:'ACCOUNT_CLOSURE_CASCADE_WITH_PROFILE; SCOPED_ERASURE_PRESERVES_VERSION_FENCE'};

@@ -213,4 +213,43 @@ INSERT INTO sharing_policy(enabled,attribution_days,priority,self_purchase,basis
  VALUES(true,NULL,'first',false,1000,7,'用户确认永久首次归属、自购不计佣；委托采用首期10%、收货满7天且无进行中售后；可由后台修改','owner-authorized:20261113:sharing-officer');
 
 -- migrate:down
-DO $$ BEGIN RAISE EXCEPTION 'SHARING_OFFICER_FORWARD_ONLY_PRESERVE_FINANCIAL_FACTS'; END $$;
+-- Only the unused bootstrap can be removed. Any application, attribution,
+-- command, batch, or financial source makes this forward-only in practice.
+DO $$ BEGIN
+ IF EXISTS(SELECT 1 FROM sharing_officer) OR EXISTS(SELECT 1 FROM sharing_settlement_batch)
+  OR EXISTS(SELECT 1 FROM sharing_command) OR EXISTS(SELECT 1 FROM commission_order_snapshot WHERE program='sharing_officer')
+  OR EXISTS(SELECT 1 FROM sharing_policy WHERE created_principal<>'owner-authorized:20261113:sharing-officer')
+ THEN RAISE EXCEPTION 'SHARING_ROLLBACK_REQUIRES_DATA_PRESERVATION'; END IF;
+END $$;
+CREATE OR REPLACE FUNCTION guard_commission_release_source() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.kind='release' AND NOT EXISTS (
+    SELECT 1 FROM commerce_fulfillment_attestation f
+    JOIN commerce_order o ON o.id=f.order_id
+    JOIN commission_order_snapshot s ON s.order_id=o.id
+    WHERE f.id=NEW.source_fact_id AND f.state='verified' AND f.order_id=NEW.order_id
+      AND o.status='paid' AND o.transaction_source_kind='verified_commerce'
+      AND s.referrer_member_id=NEW.referrer_member_id
+  ) THEN RAISE EXCEPTION 'COMMISSION_VERIFIED_FULFILLMENT_REQUIRED' USING ERRCODE='23514'; END IF;
+  RETURN NEW;
+END $$;
+CREATE OR REPLACE FUNCTION guard_commission_settlement_source() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.kind='settlement' AND NOT EXISTS(
+    SELECT 1 FROM commission_transfer_fact f
+    JOIN commission_settlement_request r ON r.id=f.request_id
+    JOIN commission_settlement_allocation a ON a.request_id=r.id AND a.order_id=NEW.order_id
+    WHERE f.id=NEW.source_fact_id AND f.state='SUCCESS' AND r.member_id=NEW.referrer_member_id
+      AND a.amount_cents=NEW.amount_cents
+  ) THEN RAISE EXCEPTION 'SETTLEMENT_VERIFIED_TRANSFER_REQUIRED' USING ERRCODE='23514'; END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER sharing_snapshot_guard ON commission_order_snapshot;
+DROP TRIGGER sharing_no_legacy_payout ON commission_settlement_allocation;
+DROP TRIGGER sharing_no_credit_conversion ON commission_credit_source;
+ALTER TABLE commission_order_snapshot DROP CONSTRAINT commission_program_shape;
+ALTER TABLE commission_order_snapshot DROP COLUMN sharing_relation_event_id,DROP COLUMN sharing_visit_id,DROP COLUMN sharing_policy_id,DROP COLUMN program;
+ALTER TABLE commission_order_snapshot ALTER COLUMN referral_code_id SET NOT NULL,ALTER COLUMN rate_rule_id SET NOT NULL;
+ALTER TABLE commission_order_snapshot ADD CONSTRAINT commission_order_snapshot_check CHECK(buyer_member_id<>referrer_member_id);
+DROP TABLE sharing_recovery,sharing_settlement_allocation,sharing_settlement_line,sharing_settlement_batch,sharing_payee,sharing_asset,sharing_customer_relation,sharing_relation_event,sharing_visit,sharing_link,sharing_officer_event,sharing_officer,sharing_policy,sharing_command;
+DROP FUNCTION guard_sharing_snapshot(),guard_sharing_manual_sources(),guard_sharing_settlement_line(),guard_sharing_allocation();

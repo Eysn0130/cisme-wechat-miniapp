@@ -1,4 +1,4 @@
-import {sealSharingPayload,openSharingPayload} from './sharingOfficerCrypto.js';
+import {sealSharingPayload,openSharingPayload,sharingCommandDigest} from './sharingOfficerCrypto.js';
 import {createHash,randomBytes,randomUUID} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
@@ -56,10 +56,11 @@ export class SharingOfficerService {
  seal(value:unknown,scope:string){return sealSharingPayload(this.config,value,scope);}
  unseal(value:string,scope:string):Row{return openSharingPayload(this.config,value,scope);}
  async command(actorId:string|undefined,keyInput:string,action:string,input:Row,operation:(client:DbClient,actor:string)=>Promise<unknown>){
-  const key=text(keyInput,'请求编号',8,160),fingerprint=sharingHash({action,input});
+  const key=text(keyInput,'请求编号',8,160);
   return transaction(this.pool,async client=>{
    const actor=await requireActiveMemberWithClient(client,actorId);
    const required=commandCapability(action);if(required)await this.require(client,actor,required);
+   const fingerprint=sharingCommandDigest(this.config,{action,input});
    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`sharing-command:${actor}:${key}`]);
    const prior=(await client.query('SELECT request_hash,response FROM sharing_command WHERE actor_id=$1 AND request_key=$2',[actor,key])).rows[0];
    if(prior){if(prior.request_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT','同一请求编号对应了不同内容');return prior.response;}
@@ -113,7 +114,7 @@ export class SharingOfficerService {
     const note=input.note===undefined?'':text(input.note,'申请说明',0,500);
     const row=(await client.query(`INSERT INTO sharing_officer(member_id,state,application_note,referral_code) VALUES($1,'pending',$2,$3)
      ON CONFLICT(member_id) DO UPDATE SET state='pending',application_note=$2,review_reason='',version=sharing_officer.version+1,updated_at=clock_timestamp() RETURNING *`,[actor,note,'SO'+randomBytes(5).toString('hex').toUpperCase()])).rows[0];
-    await this.event(client,actor,row,officer?.state??null,'免费申请');return officerView(row);
+    await this.event(client,actor,row,officer?.state??null,'免费申请');return {state:row.state,version:row.version,referralCode:row.referral_code};
    }
    if(!officer)fail('SHARING_OFFICER_REQUIRED','请先申请分享官资格',403);
    if(action==='payee'){
@@ -250,7 +251,7 @@ export class SharingOfficerService {
     const allowed:Record<string,string[]>={pending:['active','rejected'],active:['suspended','terminated'],suspended:['active','terminated'],rejected:[],terminated:[]};
     if(!allowed[row.state]?.includes(desired))fail('SHARING_STATE_INVALID','当前不能切换到此资格状态');
     const updated=(await client.query('UPDATE sharing_officer SET state=$2,review_reason=$3,version=version+1,updated_at=clock_timestamp() WHERE member_id=$1 RETURNING *',[target,desired,reason])).rows[0];
-    await this.event(client,actor,updated,row.state,reason);return officerView(updated);
+    await this.event(client,actor,updated,row.state,reason);return {state:updated.state,version:updated.version,referralCode:updated.referral_code};
    }
    fail('SHARING_ACTION_INVALID','操作无效',422);
   });

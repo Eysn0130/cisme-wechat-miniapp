@@ -1,6 +1,12 @@
-import {createCipheriv,createDecipheriv,randomBytes} from 'node:crypto';
+import {createCipheriv,createDecipheriv,createHmac,randomBytes} from 'node:crypto';
 import type {AppConfig} from '@cisme/config';
 import {sharingFail as fail} from './sharingOfficerPolicy.js';
+export function sharingCommandDigest(config:AppConfig,value:unknown){
+ const secret=config.contacts.hashKey??config.contacts.encryptionKey;
+ if(!secret||!/^[0-9a-f]{64}$/i.test(secret))fail('SHARING_ENCRYPTION_UNAVAILABLE','资料服务暂不可用',503);
+ const key=createHmac('sha256',Buffer.from(secret,'hex')).update('sharing-command-digest:v1').digest();
+ return createHmac('sha256',key).update(JSON.stringify(value)).digest('hex');
+}
 export function sealSharingPayload(config:AppConfig,value:unknown,scope:string){
  const key=config.contacts.encryptionKey;if(!key||!/^[0-9a-f]{64}$/i.test(key))fail('SHARING_ENCRYPTION_UNAVAILABLE','资料服务暂不可用',503);
  const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',Buffer.from(key,'hex'),iv);cipher.setAAD(Buffer.from(scope));
