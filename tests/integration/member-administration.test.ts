@@ -45,3 +45,23 @@ it('escapes spreadsheet formula names and keeps contact and health data out of e
 it('stops new reads immediately after the member service grant is revoked',async()=>{await pool.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='合成撤权' WHERE member_id=$1 AND capability='member.profile.read'",[manager.memberId]);await expect(service.overview(manager.memberId,member.memberId)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});expect((await app.inject({method:'POST',url:'/v1/management/users/export',headers:auth(manager),payload:{}})).statusCode).toBe(403);});
 
 it('does not turn qualification management into commission, settlement or contact permission',async()=>{await grant(reader,['member.manage']);const qualification:any=await service.section(reader.memberId,member.memberId,'sharing');expect(qualification.data.commission).toBeNull();expect(qualification.data.orderCount).toBeNull();for(const section of ['sharing-orders','settlements'])await expect(service.section(reader.memberId,member.memberId,section)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});});
+
+it('does not present an expired referrer as the current member relation',async()=>{
+ await pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) VALUES($1,'SO1234567890','active')",[reader.memberId]);
+ const policy=(await pool.query("INSERT INTO sharing_policy(enabled,priority,self_purchase,basis_points,release_days,reason,created_principal) VALUES(true,'first',false,1000,7,'isolated expired relation','fixture') RETURNING id")).rows[0].id;
+ try{
+  await pool.query("INSERT INTO sharing_customer_relation(buyer_id,officer_id,source,effective_at,expires_at,policy_id) VALUES($1,$2,'first_touch',now()-interval '2 day',now()-interval '1 day',$3)",[member.memberId,reader.memberId,policy]);
+  expect((await service.overview(reader.memberId,member.memberId)).member.sharing?.referrerCode).toBeNull();
+  const detail:any=await service.section(reader.memberId,member.memberId,'sharing');expect(detail.data.relation).toBeNull();
+  await pool.query('UPDATE sharing_customer_relation SET expires_at=NULL WHERE buyer_id=$1',[member.memberId]);
+  expect((await service.overview(reader.memberId,member.memberId)).member.sharing?.referrerCode).toBe('SO1234567890');
+  expect((await service.section(reader.memberId,member.memberId,'sharing') as any).data.relation.referral_code).toBe('SO1234567890');
+ }finally{await pool.query('DELETE FROM sharing_customer_relation WHERE buyer_id=$1',[member.memberId]);await pool.query('DELETE FROM sharing_officer WHERE member_id=$1',[reader.memberId]);await pool.query('DELETE FROM sharing_policy WHERE id=$1',[policy]);}
+});
+
+it('distinguishes reward fulfillment from the exact product-and-member issuance duty',async()=>{
+ await grant(reader,['commerce.fulfillment.manage']);
+ expect((await service.overview(reader.memberId,member.memberId)).scope).toMatchObject({manage:true,rewards:true,issueRewards:false});
+ await grant(reader,['commerce.product.manage']);
+ expect((await service.overview(reader.memberId,member.memberId)).scope).toMatchObject({manage:true,rewards:true,issueRewards:true});
+});

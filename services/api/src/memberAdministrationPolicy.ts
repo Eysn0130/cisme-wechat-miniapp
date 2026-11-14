@@ -6,7 +6,7 @@ export const userViews=['profile','commerce','activity','assets','sharing'] as c
 export const userSections=['profile','addresses','care','points','vouchers','orders','aftersales','sharing','sharing-orders','settlements','posts','comments','support','privacy','logs'] as const;
 export type UserView=typeof userViews[number];
 export type UserSection=typeof userSections[number];
-export type UserScope={profile:true;contact:boolean;care:boolean;orders:boolean;points:boolean;rewards:boolean;sharing:boolean;commission:boolean;finance:boolean;support:boolean;privacy:boolean;moderate:boolean;manage:boolean;export:boolean};
+export type UserScope={profile:true;contact:boolean;care:boolean;orders:boolean;points:boolean;rewards:boolean;issueRewards:boolean;sharing:boolean;commission:boolean;finance:boolean;support:boolean;privacy:boolean;moderate:boolean;manage:boolean;export:boolean};
 export type UserQuery={q:string;view:UserView;account:string;onboarding:string;officer:string;sort:string;direction:'asc'|'desc';limit:number;cursor?:string};
 export function userFail(code:string,title:string,status=422):never{throw new DomainError(code,title,status);}
 export function userId(value:unknown){if(typeof value!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))userFail('MEMBER_ID_INVALID','会员编号无效');return value.toLowerCase();}

@@ -1,7 +1,7 @@
 import {it,expect} from 'vitest';
 import {userQuery,userQueryAccess,userPhoneHash,userCursorScope,userCursor,userNext,userId,type UserScope} from '../../services/api/src/memberAdministrationPolicy';
 import {loadConfig} from '@cisme/config';
-const scope:UserScope={profile:true,contact:false,care:false,orders:false,points:false,rewards:false,sharing:false,commission:false,finance:false,support:false,privacy:false,moderate:false,manage:false,export:false};
+const scope:UserScope={profile:true,contact:false,care:false,orders:false,points:false,rewards:false,issueRewards:false,sharing:false,commission:false,finance:false,support:false,privacy:false,moderate:false,manage:false,export:false};
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:'postgresql://unused',APP_SESSION_SECRET:'test',ADMIN_API_TOKEN:'test',UPLOAD_TOKEN_SECRET:'test',CONTACT_ENCRYPTION_KEY:'a'.repeat(64),CONTACT_HASH_KEY:'b'.repeat(64)});
 it('validates closed filters and bounded paging without SQL interpolation',()=>{expect(userQuery({q:' %_ quote\' ',limit:'25'})).toMatchObject({q:"%_ quote'",limit:25});for(const q of [{account:'deleted'},{view:'__proto__'},{sort:'id DESC'},{limit:'0'},{q:123},{unexpected:'ignored-would-export-everyone'},{q:'a\nb'}])expect(()=>userQuery(q)).toThrow();});
 it('separates private business scopes from the profile entry capability',()=>{for(const q of [{view:'commerce'},{view:'assets'},{sort:'recent'},{view:'sharing'},{officer:'active'}])expect(()=>userQueryAccess(userQuery(q),scope)).toThrow();expect(()=>userQueryAccess(userQuery(),scope)).not.toThrow();});

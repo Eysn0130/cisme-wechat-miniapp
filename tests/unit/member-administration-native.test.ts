@@ -6,7 +6,7 @@ vi.mock('../../apps/miniprogram/services/member-avatar',()=>({localMemberAvatar:
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
 const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',other='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-const scope={profile:true,contact:true,care:true,orders:true,points:true,rewards:true,sharing:true,commission:true,finance:true,support:true,privacy:true,manage:true,export:true};
+const scope={profile:true,contact:true,care:true,orders:true,points:true,rewards:true,issueRewards:true,sharing:true,commission:true,finance:true,support:true,privacy:true,manage:true,export:true};
 const row={id,displayName:'会员甲',cardNumber:'No. 00028',avatar:null,accountStatus:'active',onboarding:'complete',createdAt:'2026-11-14T00:00:00Z',phoneMasked:'138****0000',points:{available:850,frozen:20,reserved:10,debt:0},commerce:{paidOrderCount:2,netCents:39600},activity:{careDays:7,publicPosts:1,streak:7},rewards:{availableCoupons:1,unclaimedRewards:1},sharing:{state:'active'}};
 const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
 let page:any,component:any;
@@ -32,3 +32,36 @@ it('recovers an invalidated page cursor by reloading the same filter without rep
 it('renders a failed overview as a retryable error and clears sensitive fields on revoked authority',async()=>{await inspector();m.read.mockRejectedValueOnce({title:'合成服务暂不可用'});await component.load();expect(component.data.error).toBe('合成服务暂不可用');m.read.mockRejectedValueOnce({status:403,title:'权限已撤销'});await component.load();expect(component.data.member).toBeNull();expect(component.data.contactText).toBe('');expect(component.data.error).toBe('权限已撤销');});
 
 it('prepares the actual saved avatar through the native cache without Base64 in visible page data',async()=>{m.read.mockResolvedValue({scope,items:[{...row,avatar:'data:image/jpeg;base64,synthetic',avatarRevision:'a'.repeat(64)}],total:1,nextCursor:null});await import('../../apps/miniprogram/pages/management-members/index');page.onShow();await flush();expect(m.avatar).toHaveBeenCalledWith('data:image/jpeg;base64,synthetic','a'.repeat(64));expect(page.data.items[0].avatar).toBe('/synthetic/local-avatar.jpg');expect(JSON.stringify(page.data)).not.toContain('data:image/');});
+
+it('does not show an old address response in a newly opened contact dialog',async()=>{
+ await inspector();component.askContact('address','address-a');component.setData({reason:'核对第一处地址'});
+ const pending=deferred();m.request.mockReturnValueOnce(pending.promise);const read=component.revealContact();
+ component.closeContact();component.askContact('address','address-b');
+ pending.resolve({address:{recipientName:'旧收件人',phone:'old-phone',detail:'旧地址'},expiresInSeconds:60});await read;
+ expect(component.data.contactText).toBe('');expect(component.data.addressId).toBe('address-b');expect(component.data.reveal).toBe(true);
+});
+
+it('keeps the new contact request busy when a cancelled request finishes',async()=>{
+ await inspector();component.phone();component.setData({reason:'核对旧手机号'});const first=deferred();m.request.mockReturnValueOnce(first.promise);const oldRead=component.revealContact();
+ component.closeContact();component.phone();component.setData({reason:'重新核对手机号'});const second=deferred();m.request.mockReturnValueOnce(second.promise);const newRead=component.revealContact();
+ first.resolve({phone:'old-phone'});await oldRead;expect(component.data.contactText).toBe('');expect(component.data.contactBusy).toBe(true);
+ component.closeContact();second.resolve({phone:'new-phone'});await newRead;expect(component.data.contactText).toBe('');
+});
+
+it('clears all derived private fields when the service permission is revoked',async()=>{
+ await inspector();component.setData({sharingRows:[{label:'实付净额',value:'synthetic-private-value'}],profileRows:[{label:'档案',value:'synthetic-private-value'}],sectionData:{private:true}});
+ m.read.mockRejectedValueOnce({status:403,title:'权限已撤销'});await component.load();
+ expect(component.data.sharingRows).toEqual([]);expect(component.data.profileRows).toEqual([]);expect(component.data.sectionData).toBeNull();expect(component.data.metrics).toEqual([]);
+});
+
+it('offers activity issuance only when the server explicitly grants that operation',async()=>{
+ await inspector();component.setData({scope:{...scope,issueRewards:false}});await component.management();
+ expect(wx.showActionSheet).toHaveBeenLastCalledWith({itemList:['商业会员资格','分享官资格']});
+ component.setData({scope:{...scope,issueRewards:true}});await component.management();
+ expect(wx.showActionSheet).toHaveBeenLastCalledWith({itemList:['商业会员资格','分享官资格','活动发券']});
+});
+
+it('names a coupon occupied by an unpaid order without exposing a raw state code',async()=>{
+ const {recordView}=await import('../../apps/miniprogram/pages/management-members/service');
+ expect(recordView({kind:'purchase_coupon',title:'体验专属正装券',state:'locked',amount:2000,threshold:19800}).stateLabel).toBe('订单占用');
+});

@@ -21,7 +21,7 @@ export async function memberAdministrationSection(service:MemberAdministration,c
  if(section==='sharing'){
   const officer=(await c.query('SELECT * FROM sharing_officer WHERE member_id=$1',[target])).rows[0],policy=(await c.query(currentSharingPolicySql)).rows[0];
   const relation=(await c.query(`SELECT r.source,r.version,r.effective_at,r.expires_at,o.referral_code,o.state FROM sharing_customer_relation r
-   JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1`,[target])).rows[0];
+   JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1 AND (r.expires_at IS NULL OR r.expires_at>now())`,[target])).rows[0];
   const orders=scope.commission?(await c.query(`${sharingOrderProjection} WHERE s.program='sharing_officer' AND s.referrer_member_id=$1`,[target])).rows:[];
   const buckets=commissionOrderBuckets(orders.map(r=>({accruedCents:userNumber(r.accrued),reversedCents:userNumber(r.reversed),releasedCents:userNumber(r.released),paidCents:userNumber(r.paid),heldCents:userNumber(r.held)})));
   const paid=scope.commission?(await c.query("SELECT COALESCE(sum(tax_cents),0)::text AS tax,COALESCE(sum(net_cents),0)::text AS net FROM sharing_settlement_line WHERE member_id=$1 AND state='paid'",[target])).rows[0]:{tax:0,net:0};
