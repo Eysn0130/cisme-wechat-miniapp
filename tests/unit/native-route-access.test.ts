@@ -27,6 +27,8 @@ const memberRoutes = [
   "/pages/commission/index",
   "/pages/settings/index",
   "/pages/invite/index",
+  "/pages/sharing-officer/index",
+  "/pages/management-sharing/index",
   "/pages/referral/index",
   "/pages/community-compose/index",
   "/pages/community-activity/index",

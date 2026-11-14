@@ -1,3 +1,7 @@
+import {SharingOfficerService} from "./sharingOfficer.js";
+import {SharingOfficerFinance} from "./sharingOfficerFinance.js";
+import {SharingOfficerAssets} from "./sharingOfficerAssets.js";
+import {sharingFail} from "./sharingOfficerPolicy.js";
 import type { CommerceCapability } from "./formalCommerceAuthorization.js";
 import {CareOnboardingService} from './careOnboarding.js';
 import {MemberPointsClub} from './memberPointsClub.js';
@@ -99,6 +103,7 @@ interface AppDependencies {
   legacyDirectSettlementFixture?: boolean;
   loggerInstance?: FastifyBaseLogger;
   phoneFetcher?: typeof fetch;
+  sharingFetcher?: typeof fetch;
   shippingTestChannel?: Pick<WechatOrderShippingClient,'query'|'uploadOnce'> & Partial<Pick<WechatOrderShippingClient,'queryOrder'>>;
   logisticsQueryTestChannel?:LogisticsQueryChannel;
   wechatIdentityFetcher?: typeof fetch;
@@ -193,6 +198,34 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const memberPointsClub=new MemberPointsClub(pool,config,authority);
   const pointsGifts=new PointsGiftService(pool,authority,deliveryAddresses,config.env);
   const activityRewards=new ActivityRewardService(pool,config,authority,deliveryAddresses);
+ const officers=new SharingOfficerService(pool,authority,config),officerFinance=new SharingOfficerFinance(officers),officerAssets=new SharingOfficerAssets(officers,
+  {appId:config.wechat.appId,appSecret:config.wechat.appSecret,environment:config.wechat.sharingEnvironment},config.env==="test"?dependencies.sharingFetcher:undefined);
+ app.get('/v1/me/sharing-officer',r=>officers.mine(r.memberId));
+ app.get<{Params:{key:string}}>('/v1/me/sharing-officer/commands/:key',r=>officers.commandStatus(r.memberId,r.params.key));
+ app.post<{Params:{key:string}}>('/v1/me/sharing-officer/commands/:key/abandon',{bodyLimit:1000},r=>officers.commandStatus(r.memberId,r.params.key,true));
+ app.get<{Querystring:{limit?:string;cursor?:string;id?:string;lineId?:string}}>('/v1/me/sharing-officer/orders',r=>officers.orders(r.memberId,r.query));
+ app.get<{Params:{id:string};Querystring:{cursor?:string;limit?:string}}>('/v1/me/sharing-officer/orders/:id',r=>officerFinance.orderDetail(r.memberId,r.params.id,false,r.query));
+ app.get<{Querystring:{limit?:string;cursor?:string;id?:string}}>('/v1/me/sharing-officer/settlements',r=>officerFinance.settlements(r.memberId,r.query));
+ app.get<{Querystring:{code?:string}}>('/v1/me/sharing-officer/referrer-preview',r=>officers.previewReferrer(r.memberId,r.query.code));
+ app.post<{Body:{action:string;input:Record<string,unknown>}}>('/v1/me/sharing-officer/commands',{bodyLimit:12_000},r=>{
+  if(!r.body||typeof r.body.action!=='string'||!r.body.input||Array.isArray(r.body.input)||typeof r.body.input!=='object')sharingFail('SHARING_INPUT_INVALID','请求内容无效',422);
+  return officers.memberCommand(r.memberId,String(r.headers['idempotency-key']??''),r.body.action,r.body.input);
+ });
+ app.post<{Params:{shareId:string};Body:{visitKey:unknown}}>('/v1/officer-shares/:shareId/visits',{bodyLimit:2000,config:{rateLimit:{max:60,timeWindow:'1 minute'}}},r=>officers.visit(r.params.shareId,r.body?.visitKey));
+ app.post<{Body:{shareId:unknown}}>('/v1/me/sharing-officer/share-assets',{bodyLimit:2000},r=>officerAssets.assets(r.memberId,r.body?.shareId));
+ app.get<{Querystring:{section?:string;cursor?:string;limit?:string;filter?:string;batchId?:string;lineId?:string}}>('/v1/management/sharing-officer',r=>officerFinance.management(r.memberId,r.query));
+ app.get<{Params:{id:string};Querystring:{cursor?:string;limit?:string}}>('/v1/management/sharing-officer/orders/:id',r=>officerFinance.orderDetail(r.memberId,r.params.id,true,r.query));
+ app.post<{Body:{action:string;input:Record<string,unknown>}}>('/v1/management/sharing-officer/commands',{bodyLimit:12_000},r=>{
+  if(!r.body||typeof r.body.action!=='string'||!r.body.input||Array.isArray(r.body.input)||typeof r.body.input!=='object')sharingFail('SHARING_INPUT_INVALID','请求内容无效',422);
+  return officerFinance.command(r.memberId,String(r.headers['idempotency-key']??''),r.body.action,r.body.input);
+ });
+ app.post<{Params:{memberId:string}}>('/v1/management/sharing-officer/payee/:memberId',{bodyLimit:1000},async(r,reply)=>{
+  reply.header('Cache-Control','no-store');return officers.readPayee(r.memberId,r.params.memberId);
+ });
+ app.get<{Params:{batchId:string};Querystring:{limit?:string;cursor?:string}}>('/v1/management/sharing-officer/batches/:batchId/export',async(r,reply)=>{
+  reply.header('Cache-Control','no-store');return officerFinance.exportBatch(r.memberId,r.params.batchId,r.query);
+ });
+
   // Formal commands require separate revocable per-capability approvals.
   const formalTestProfile=config.env==="test"&&dependencies.paymentProtocol?.isolatedSyntheticTransport===true
     ?config.commerce.formalProtocol:undefined;
@@ -325,7 +358,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (path === "/v1/editorial/articles" || /^\/v1\/editorial\/(articles|authors)\/[^/]+$/.test(path) ||
         /^\/v1\/editorial\/media\/[0-9a-f-]{36}\/[0-9a-f]{64}$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || /^\/v1\/catalog\/public-images\/[a-z0-9-]+\.jpg$/.test(path) || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
-    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || publicCommunityRead) return;
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || (request.method==="POST"&&/^\/v1\/officer-shares\/[0-9a-f]{32}\/visits$/.test(path)) || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if(principal.scope==="privacy_rights"){

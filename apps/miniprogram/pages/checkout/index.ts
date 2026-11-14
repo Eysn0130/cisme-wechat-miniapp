@@ -1,3 +1,4 @@
+import {flushOfficerVisits} from '../../services/officer-attribution';
 import {validateRuntime} from "../../services/commerce-runtime";
 import {nativeCatalogImage} from "../../services/catalog";
 import { requireMemberAccess, resumeAuthentication, retainMemberSnapshot } from "../../services/api";
@@ -313,6 +314,8 @@ Page({
     const createKey = this.data.createKey || clientOperationKey("pending-order");
     this.setData({ busy: true, error: "", createKey });
     try {
+      await flushOfficerVisits();
+      if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       const order = await createPendingOrder(quote.id, createKey);
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       this.stopCountdown();

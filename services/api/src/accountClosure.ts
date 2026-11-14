@@ -1,3 +1,4 @@
+import {eraseOptionalSharingPayee} from './sharingOfficerPrivacy.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { link, lstat, open, readFile, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -524,6 +525,10 @@ export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) 
   changed+=(await client.query('DELETE FROM editorial_comment_like WHERE member_id=$1 OR comment_id IN (SELECT id FROM editorial_comment WHERE author_member_id=$1)',[marker.memberId])).rowCount??0;
   if(!held)changed+=(await client.query('UPDATE editorial_comment_report SET description=NULL WHERE reporter_member_id=$1 AND description IS NOT NULL',[marker.memberId])).rowCount??0;
 
+  const priorOfficer=(await client.query('SELECT state FROM sharing_officer WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];
+  const endedOfficer=(await client.query("UPDATE sharing_officer SET state='terminated',version=version+1,review_reason='本人注销账号',updated_at=clock_timestamp() WHERE member_id=$1 AND state<>'terminated' RETURNING version",[marker.memberId])).rows[0];
+  if(endedOfficer){changed++;await client.query(`INSERT INTO sharing_officer_event(member_id,version,from_state,to_state,actor_id,reason) VALUES($1,$2,$3,'terminated',$1,'本人注销账号')`,[marker.memberId,endedOfficer.version,priorOfficer.state]);}
+  if(!held)changed+=(await eraseOptionalSharingPayee(client,marker.memberId,marker.createdAt)).rowCount??0;
   const previousMembership=(await client.query<{state:string}>(
     'SELECT state FROM commercial_membership WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];
   const membership=(await client.query<{version:number;effective_at:Date;expires_at:Date|null}>(
@@ -627,9 +632,10 @@ export async function applyProfileErasure(client:DbClient,marker:ProfileErasureM
     deleted_at=COALESCE(deleted_at,now()),updated_at=now()
     WHERE member_id=$1 AND key_version<>'erased' AND updated_at<=$2::timestamptz`,
     [marker.memberId,marker.createdAt]);
+  const sharingPayee=await eraseOptionalSharingPayee(client,marker.memberId,marker.createdAt);
   const pointsProfile=await client.query(`UPDATE member_points_profile SET birthday_month_day=NULL,birthday_set_at=NULL,updated_at=clock_timestamp() WHERE member_id=$1 AND birthday_month_day IS NOT NULL AND updated_at<=$2::timestamptz`,[marker.memberId,marker.createdAt]);
   const pointsNotes=await client.query(`UPDATE member_points_checkin SET note_encrypted='',key_version=NULL,version=version+1,updated_at=clock_timestamp() WHERE member_id=$1 AND note_encrypted<>'' AND updated_at<=$2::timestamptz`,[marker.memberId,marker.createdAt]);
-  const changed=[name,unionid,contact,authorization,profile,careProfile,careChoices,addresses,pointsProfile,pointsNotes].reduce((sum,result)=>sum+(result.rowCount??0),0);
+  const changed=[name,unionid,contact,authorization,profile,careProfile,careChoices,addresses,pointsProfile,pointsNotes,sharingPayee].reduce((sum,result)=>sum+(result.rowCount??0),0);
   if(changed||request.status==='executing'){
     await client.query('UPDATE privacy_export_artifact SET revoked_at=now() WHERE member_id=$1 AND revoked_at IS NULL',
       [marker.memberId]);

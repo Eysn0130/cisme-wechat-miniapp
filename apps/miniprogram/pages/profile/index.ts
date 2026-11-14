@@ -195,6 +195,8 @@ Page({
   openRewards() { this.openRoute('/pages/rewards/index','navigate','奖励暂时无法打开'); },
   openSupport(){this.openRoute("/pages/support/index","navigate","客服暂时无法打开");},
   openManagement(){if(this.data.authorityState!=="ready"||!hasNativeManagementEntry(this.data.authority))return;this.openRoute("/pages/management/index","navigate","管理中心暂时无法打开");},
+  openSharingOfficer(){this.openRoute("/pages/sharing-officer/index","navigate","分享官暂时无法打开");},
+  openMyReferrer(){this.openRoute("/pages/sharing-officer/index?mode=referrer","navigate","推荐人暂时无法打开");},
   openInvite() { this.openRoute("/pages/invite/index", "navigate", "邀请页面暂时无法打开"); },
   openCommission(){this.openRoute("/pages/commission/index","navigate","商业资格与佣金暂时无法打开");},
   openCommunityActivity(){this.openRoute("/pages/community-author/index?mine=1","navigate","我的社区暂时无法打开");},

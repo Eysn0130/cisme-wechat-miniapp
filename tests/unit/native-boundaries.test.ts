@@ -148,6 +148,8 @@ describe("native mini program boundary", () => {
       "referral/index.wxml": 2,
       "rewards/index.wxml": 4,
       "management-rewards/index.wxml": 6,
+      "sharing-officer/index.wxml": 7,
+      "management-sharing/index.wxml": 5,
     });
 
     const normalize = (expression: string) => expression.replace(/\s+/g, "");
@@ -221,7 +223,7 @@ describe("native mini program boundary", () => {
       legal: ["back", "load", "privacyRights"],
       "management-member": ["back", "back", "load", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
       "management-members": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
-      "management": ["back", "retry", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "retry", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openFinance", "openMembers", "openRewards", "openPoints", "openSupport", "openEditorialComments", "openPrivacy", "retryRuntime"],
+      "management": ["back", "retry", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "retry", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openFinance", "openMembers", "openSharing", "openRewards", "openPoints", "openSupport", "openEditorialComments", "openPrivacy", "retryRuntime"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
@@ -240,7 +242,7 @@ describe("native mini program boundary", () => {
       "checkout": ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "openCoupons", "loadCoupons", "requestQuote", "refreshQuote", "confirmOrder", "closeCoupons", "chooseCoupon", "chooseCoupon", "loadCoupons"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
       "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadSupportSheet", "loadShipment", "copyWaybill", "openLogistics", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "recheckPayment", "preparePayment", "cancel", "toggleRecordedHistory"],
-      "profile": ["openAccount", "openAccount", "openSettings", "openPoints", "load", "openSupport", "openOrders", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openRewards", "openCommunityActivity", "openMyPosts", "openSettings"],
+      "profile": ["openAccount", "openAccount", "openSettings", "openPoints", "load", "openSupport", "openOrders", "openSharingOfficer", "openMyReferrer", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openRewards", "openCommunityActivity", "openMyPosts", "openSettings"],
       progress: ["returnToCommunity"],
       records: ["backRecords", "retryUsageRecords", "retryUsageRecords", "selectUsageDay", "retryUsageDate", "openUsageRecord", "goHome", "authenticate", "retryLoad", "closeUsageDetail", "adjustUsageToday", "openUsagePoints"],
       referral: ["back", "preview", "confirm"],
@@ -250,6 +252,8 @@ describe("native mini program boundary", () => {
       support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "requestHuman", "startNewTopic", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
       "rewards": ["back", "load", "retryPending", "cancelPending", "openVoucher", "openClaim", "support", "support", "openClaim", "loadMoreClaims", "useCoupon", "chooseBundle", "editSurvey", "openRules", "support", "editAddress", "editAddress", "openSelectedClaim", "support", "copyTracking", "openCoupons", "cancelClaim", "openReturn", "support", "confirm", "receive", "closeRules", "support", "closeReturn", "submitReturn", "closeProducts", "openCouponProduct", "support"],
       "management-rewards": ["back", "retryLoad", "reconcile", "openConfig", "openConfig", "openStock", "openIssue", "openRevoke", "loadMore", "export", "openDetail", "loadMore", "closeSheet", "reconcile", "loadProducts", "saveConfig", "saveConfig", "saveConfig", "stockDirection", "stockDirection", "saveStock", "issue", "revoke", "operate", "operate", "operate"],
+      "sharing-officer": ["back", "retry", "recover", "recover", "open", "open", "open", "open", "promote", "moreProducts", "clearSource", "detail", "more", "close", "operate", "operate", "previewReferrer", "operate", "@share", "copyLink", "moreHistory", "settlementOrders", "recover", "recover"],
+      "management-sharing": ["back", "retry", "recover", "recover", "selectOfficer", "openPolicy", "order", "operate", "selectBatch", "closeBatch", "exportBatch", "operate", "selectLine", "more", "close", "operate", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "operate", "readPayee", "loadLineOrders", "order", "moreLineOrders", "operate", "operate", "operate", "moreHistory", "operate", "recover", "recover"],
       task: ["returnToCommunity"]
     };
 

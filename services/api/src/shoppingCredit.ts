@@ -277,10 +277,10 @@ export class ShoppingCreditService{
       if(existing){if(existing.request_hash!==fingerprint)throw new DomainError("IDEMPOTENCY_CONFLICT",
         "同一请求键不能转换不同金额",409);return this.view(existing);}
       const orders=(await client.query<{order_id:string}>(`SELECT order_id FROM commission_order_snapshot
-        WHERE referrer_member_id=$1 AND source_kind='verified_commerce' ORDER BY created_at,order_id`,[memberId])).rows;
+        WHERE referrer_member_id=$1 AND source_kind='verified_commerce' AND program='legacy' ORDER BY created_at,order_id`,[memberId])).rows;
       for(const {order_id} of orders)await client.query(`SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE`,[order_id]);
       const ledger=(await client.query<{order_id:string;kind:string;amount_cents:string}>(`SELECT order_id,kind,amount_cents
-        FROM commission_ledger_entry WHERE referrer_member_id=$1`,[memberId])).rows;
+        FROM commission_ledger_entry WHERE referrer_member_id=$1 AND order_id IN(SELECT order_id FROM commission_order_snapshot WHERE program='legacy')`,[memberId])).rows;
       const held=(await client.query<{order_id:string;amount_cents:string}>(`SELECT a.order_id,
         sum(a.amount_cents)::text AS amount_cents FROM commission_settlement_allocation a
         JOIN commission_settlement_request r ON r.id=a.request_id

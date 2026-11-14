@@ -510,7 +510,16 @@ export class PlatformService {
         DO UPDATE SET member_id=EXCLUDED.member_id
         RETURNING share_id, target_type, target_ref, expires_at`, [shareId, owner, input.targetType, targetRef, expiresAt]);
       const row = link.rows[0]!;
-      const response = { shareId: row.share_id, targetType: row.target_type, targetRef: row.target_ref, expiresAt: row.expires_at.toISOString() };
+      let officerShareId:string|null=null;
+      if(input.targetType==='product'){
+        const officer=(await client.query(`SELECT o.member_id FROM sharing_officer o JOIN member m ON m.id=o.member_id
+          JOIN catalog_product p ON p.code=$2 WHERE o.member_id=$1 AND o.state='active' AND m.status='active'
+          AND p.publication_status='published' AND p.qualification_status='eligible'
+          AND COALESCE((SELECT enabled FROM sharing_policy ORDER BY version DESC LIMIT 1),false)`,[owner,targetRef])).rows[0];
+        if(officer)officerShareId=(await client.query(`INSERT INTO sharing_link(share_id,officer_id,product_code) VALUES($1,$2,$3)
+          ON CONFLICT(officer_id,product_code) DO UPDATE SET officer_id=EXCLUDED.officer_id RETURNING share_id`,[randomUUID().replaceAll('-',''),owner,targetRef])).rows[0].share_id;
+      }
+      const response = { shareId: row.share_id, officerShareId, targetType: row.target_type, targetRef: row.target_ref, expiresAt: row.expires_at.toISOString() };
       await this.idempotencySave(client, { ...idem, response });
       return response;
     }, "SERIALIZABLE");

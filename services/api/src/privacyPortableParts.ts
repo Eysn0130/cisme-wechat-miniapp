@@ -1,3 +1,4 @@
+import {sharingPortableRow} from './sharingOfficerPrivacy.js';
 import {createCipheriv,createHash,randomBytes,randomUUID} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
@@ -131,7 +132,7 @@ export async function buildPortableParts(client:DbClient,config:AppConfig,addres
   for(const [index,spec] of portableQuerySpecs.entries()){
     let count=0;
     await walkCursor<Record<string,unknown>>(client,`privacy_export_collection_${index}`,spec.sql,memberId,async row=>{
-      const value=spec.section==='activityRewards'?rewardPortableRow(config,addresses,spec.collection,row):spec.section==='pointsClub'?pointsPortableRow(config,addresses,spec.collection,row):spec.collection==='careProfile'?careProfilePortableRow(config,row as unknown as Parameters<typeof careProfilePortableRow>[1]):row;
+      const value=spec.section==='sharingOfficer'?sharingPortableRow(config,spec.collection,row):spec.section==='activityRewards'?rewardPortableRow(config,addresses,spec.collection,row):spec.section==='pointsClub'?pointsPortableRow(config,addresses,spec.collection,row):spec.collection==='careProfile'?careProfilePortableRow(config,row as unknown as Parameters<typeof careProfilePortableRow>[1]):row;
       await sink.write({type:'record',section:spec.section,collection:spec.collection,row:value});count++;
     });
     counts[`${spec.section}.${spec.collection}`]=count;

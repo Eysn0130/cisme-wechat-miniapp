@@ -1,3 +1,4 @@
+import {collectSharingPortableData} from './sharingOfficerPrivacy.js';
 import {memberCardPortableQuery} from './memberCard.js';
 import {pointsPortableSpecs,pointsPortableRow} from './pointsPrivacy.js';
 import {collectRewardPortableData} from './rewardPrivacy.js';
@@ -43,6 +44,7 @@ export async function collectMemberPortableData(client:DbClient,config:AppConfig
   const pointsClub:Record<string,unknown>={};
   for(const spec of pointsPortableSpecs){const rows=(await client.query(spec.sql,[memberId])).rows.map(r=>pointsPortableRow(config,addresses,spec.collection,r));pointsClub[spec.collection]=spec.single?rows[0]??null:rows;}
   const sections:Record<string,unknown>={
+    sharingOfficer:await collectSharingPortableData(client,config,memberId),
     activityRewards:await collectRewardPortableData(client,config,addresses,memberId),
     pointsClub,
     account:{id:member.id,displayName:member.display_name,createdAt:member.created_at,

@@ -1,3 +1,4 @@
+import {sharingPortableSpecs} from './sharingOfficerPrivacy.js';
 import {memberCardPortableQuery} from './memberCard.js';
 /** Fixed owner projections shared with the bounded v2 portable export. Keep these
  * query fields aligned with privacyPortableData.ts until v1 is retired. */
@@ -10,6 +11,7 @@ export const wechatReceiptPortableQuery=`SELECT w.order_id,w.shipment_id,w.platf
         ORDER BY w.order_id`;
 
 export const portableQuerySpecs = [
+  ...sharingPortableSpecs,
   ...rewardPortableSpecs,
   ...pointsPortableSpecs,
   {section:'account',collection:'membershipCard',single:true,sql:memberCardPortableQuery},

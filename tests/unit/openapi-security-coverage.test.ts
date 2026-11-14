@@ -32,6 +32,7 @@ const publicOperations = new Set([
   "POST /v1/payments/wechat/transfer-callback",
   "GET /v1/shares/{shareId}",
   "POST /v1/shares/{shareId}/visits",
+  "POST /v1/officer-shares/{shareId}/visits",
   "GET /v1/ugc/status",
   "GET /v1/ugc/posts",
   "GET /v1/ugc/posts/{postId}",

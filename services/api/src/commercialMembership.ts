@@ -5,6 +5,7 @@ import { transaction, type DbClient } from "./db.js";
 import { AuthorityService } from "./authority.js";
 import { commissionOrderBuckets } from "./commissionPolicy.js";
 import type { AppConfig } from "@cisme/config";
+import {snapshotSharingOfficer} from "./sharingOfficer.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -84,7 +85,7 @@ export class CommercialMembershipService {
           COALESCE(sum(amount_cents) FILTER(WHERE kind='settlement'),0)::text AS paid,
           COALESCE(sum(amount_cents) FILTER(WHERE kind IN
             ('credit_conversion','credit_conversion_reversal')),0)::text AS converted
-        FROM commission_ledger_entry WHERE referrer_member_id=$1 GROUP BY order_id
+        FROM commission_ledger_entry WHERE referrer_member_id=$1 AND order_id IN(SELECT order_id FROM commission_order_snapshot WHERE program='legacy') GROUP BY order_id
       ) l LEFT JOIN (
         SELECT a.order_id,sum(a.amount_cents) AS held FROM commission_settlement_allocation a
         JOIN commission_settlement_request r ON r.id=a.request_id WHERE r.member_id=$1
@@ -198,6 +199,10 @@ export class CommercialMembershipService {
   }
 
   async snapshotOrder(client: DbClient, orderId: string, buyerId: string, sourceKind: "synthetic_nonproduction" | "verified_commerce", cashMerchandiseCents: number, _requestedAt: Date) {
+    const officerSnapshot=await snapshotSharingOfficer(client,orderId,buyerId,sourceKind,cashMerchandiseCents);
+    if(officerSnapshot)return officerSnapshot;
+    // A customer with officer ownership never silently falls back to legacy cash referral.
+    if((await client.query('SELECT 1 FROM sharing_customer_relation WHERE buyer_id=$1',[buyerId])).rowCount)return null;
     // Relation/qualification timestamps are written by PostgreSQL. Compare
     // them with the same clock so a small API/DB clock skew cannot drop a
     // confirmed referral from the next order's immutable snapshot.

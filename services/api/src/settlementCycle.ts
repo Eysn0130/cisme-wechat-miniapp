@@ -61,7 +61,7 @@ export class SettlementCycleService {
             ('credit_conversion','credit_conversion_reversal')),0) AS converted
         FROM commission_order_snapshot s JOIN commission_ledger_entry e ON e.order_id=s.order_id
           AND e.referrer_member_id=s.referrer_member_id
-        WHERE s.source_kind='verified_commerce' AND s.created_at<$1
+        WHERE s.source_kind='verified_commerce' AND s.program='legacy' AND s.created_at<$1
         GROUP BY s.order_id,s.referrer_member_id
       ), holds AS (
         SELECT a.order_id,COALESCE(sum(a.amount_cents),0) AS held

@@ -8,8 +8,18 @@
     "pages/profile/index"
   ],
   "subPackages": [
-    {"root":"pages/rewards","pages":["index"]},
-    {"root":"pages/management-rewards","pages":["index"]},
+    {
+      "root": "pages/rewards",
+      "pages": [
+        "index"
+      ]
+    },
+    {
+      "root": "pages/management-rewards",
+      "pages": [
+        "index"
+      ]
+    },
     {
       "root": "pages/task",
       "pages": [
@@ -219,6 +229,18 @@
       "pages": [
         "index"
       ]
+    },
+    {
+      "root": "pages/sharing-officer",
+      "pages": [
+        "index"
+      ]
+    },
+    {
+      "root": "pages/management-sharing",
+      "pages": [
+        "index"
+      ]
     }
   ],
   "window": {
@@ -255,7 +277,12 @@
       }
     ]
   },
-  "plugins": { "logisticsPlugin": { "version": "2.1.5", "provider": "wx9ad912bf20548d92" } },
+  "plugins": {
+    "logisticsPlugin": {
+      "version": "2.1.5",
+      "provider": "wx9ad912bf20548d92"
+    }
+  },
   "lazyCodeLoading": "requiredComponents",
   "sitemapLocation": "sitemap.json",
   "preloadRule": {
