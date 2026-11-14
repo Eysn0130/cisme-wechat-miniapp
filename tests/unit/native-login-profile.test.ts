@@ -105,3 +105,9 @@ it('takes the final native form value even if quick-fill has not emitted an inpu
  await page.saveLoginNickname({detail:{value:{nickname:'键盘快捷微信昵称'}}});expect(writes()[0].data.displayName).toBe('键盘快捷微信昵称');expect(m.navigate).toHaveBeenCalledTimes(1);
  const wxml=await readFile('apps/miniprogram/pages/account/index.wxml','utf8');expect(wxml).toContain('bindsubmit="saveLoginNickname"');expect(wxml).toContain('name="nickname"');expect(wxml).toContain("loginStage === 'nickname' ? 'submit'");
 });
+it('leaves as a guest when the retained profile read is still pending and ignores its late response',async()=>{
+ m.token='current-session';const original=m.request.getMockImplementation()!;let finish!:(v:any)=>void;
+ m.request.mockImplementation((o:any)=>o.path==='/v1/me'?new Promise(r=>{finish=r;}):original(o));
+ const restoring=page.restoreRetainedSession();await Promise.resolve();await page.browseCommunity();expect(m.token).toBe('');
+ finish({...profile});await restoring;expect(m.navigate).not.toHaveBeenCalled();expect(writes()).toEqual([]);
+});

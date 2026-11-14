@@ -498,7 +498,8 @@ Page({
   stopAuthenticationWait(suppressSourceRedirect = false): string {
     this.data.authAttempt += 1;
     cancelAuthentication(this.authenticationFlowId);
-    if(!this.data.renewalMode&&this.loginFlowToken&&this.loginFlowToken===getApp<IAppOption>().globalData.sessionToken){
+    if(!this.data.renewalMode&&getApp<IAppOption>().globalData.sessionToken&&
+      (this.loginFlowToken===getApp<IAppOption>().globalData.sessionToken||this.data.restoringSession||this.data.sessionRestoreFailed)){
       // Leaving an unfinished login permits public browsing, not an authenticated
       // shortcut into the questionnaire. The canonical member remains on server.
       setSessionToken("");loginAvatarDrafts.delete(this);this.loginFlowToken="";this.loginOwnerId="";
