@@ -102,17 +102,18 @@ export class PointsGiftService{
    return {status:'abandoned'};
   });
  }
- async list(memberId:string|undefined,management=false,query:{cursor?:string;state?:string}={}){
+ async list(memberId:string|undefined,management=false,query:{cursor?:string;state?:string;memberId?:string;redemptionId?:string}={}){
   const member=owner(memberId);if(management)await this.authority.require(member,'commerce.fulfillment.manage');
+  const target=management&&query.memberId?id(query.memberId):null,redemption=management&&query.redemptionId?id(query.redemptionId):null;
   const state=query.state??'all';if(!['all','placed','shipped','received','cancelled','return_requested','returned'].includes(state))fail('POINTS_GIFT_FILTER_INVALID','兑换状态筛选无效');
   let cursor:{at:string;id:string}|null=null;
-  if(query.cursor){try{const v=JSON.parse(Buffer.from(query.cursor,'base64url').toString('utf8'));if(query.cursor.length>600||typeof v.at!=='string'||!Number.isFinite(Date.parse(v.at)))throw Error();cursor={at:v.at,id:id(v.id)};}catch{fail('POINTS_GIFT_CURSOR_INVALID','兑换分页无效');}}
+  if(query.cursor){try{const v=JSON.parse(Buffer.from(query.cursor,'base64url').toString('utf8'));if((v.target??null)!==target||(v.redemption??null)!==redemption)throw Error();if(query.cursor.length>600||typeof v.at!=='string'||!Number.isFinite(Date.parse(v.at)))throw Error();cursor={at:v.at,id:id(v.id)};}catch{fail('POINTS_GIFT_CURSOR_INVALID','兑换分页无效');}}
   const rows=(await this.pool.query(`SELECT *,created_at::text AS cursor_at FROM member_points_redemption
     WHERE ($1::uuid IS NULL OR member_id=$1) AND ($2='all' OR state=$2) AND ($3::timestamptz IS NULL OR (created_at,id)<($3,$4::uuid))
-    ORDER BY created_at DESC,id DESC LIMIT 26`,[management?null:member,state,cursor?.at??null,cursor?.id??null])).rows;
+    AND ($5::uuid IS NULL OR id=$5) ORDER BY created_at DESC,id DESC LIMIT 26`,[management?target:member,state,cursor?.at??null,cursor?.id??null,redemption])).rows;
   const page=rows.slice(0,25),last=rows.length>25?page[page.length-1]:null;
   return {items:page.map(r=>({...this.view(r),...(management?{address:this.addresses.openOrderSnapshot(r.member_id,r.id,r.encrypted_address,r.address_hmac,r.key_version)}:{})})),
-    nextCursor:last?Buffer.from(JSON.stringify({at:last.cursor_at,id:last.id})).toString('base64url'):null};
+    nextCursor:last?Buffer.from(JSON.stringify({at:last.cursor_at,id:last.id,...(target?{target}:{}),...(redemption?{redemption}:{})})).toString('base64url'):null};
  }
  async operate(memberId:string|undefined,redemptionId:string,keyInput:string,action:string,input:unknown,now=new Date()){
   const actor=owner(memberId),operation=key(keyInput),b=body(input,['expectedVersion','carrierName','trackingNumber','reason']),version=int(b.expectedVersion);

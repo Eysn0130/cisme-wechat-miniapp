@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "prd": "UM-01–08",
+  "packageSourceSha256": "7c9f84a39e418e8af23b8b84d76c074b7eb768d3ae6be2b38c970260647cae36",
+  "registeredRoutes": 47,
+  "newRoutes": [
+    "pages/management-members/detail/index",
+    "pages/management-members/commercial/index"
+  ],
+  "mainSourceBytes": 1536941,
+  "subpackageSourceBytes": 91153,
+  "evidenceStatus": "native module observed; global state matrix blocked; physical device unavailable",
+  "privacy": {
+    "newTables": 0,
+    "newProcessor": false,
+    "newIndependentGrants": [
+      "member.care.read",
+      "member.contact.read",
+      "member.export"
+    ],
+    "rawContactsInCsv": false,
+    "healthAnswersInCsv": false,
+    "phoneInAccessUrl": false,
+    "qualificationGrantsCommissionRead": false
+  },
+  "migration": {
+    "before": 116,
+    "after": 117,
+    "tables": 194,
+    "file": "202611140002_member_administration.sql",
+    "sha256": "6508c146dc26970854e6fec9a371737d7be910b2109a5f092be47cdfd4c42f18"
+  }
+}

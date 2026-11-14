@@ -37,6 +37,8 @@ const memberRoutes = [
   "/pages/management/index",
   "/pages/management-points/index",
   "/pages/management-members/index",
+  "/pages/management-members/detail/index",
+  "/pages/management-members/commercial/index",
   "/pages/management-member/index",
   "/pages/management-catalog/index",
   "/pages/management-product/index",

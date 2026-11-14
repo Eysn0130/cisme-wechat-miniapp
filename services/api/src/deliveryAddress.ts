@@ -214,6 +214,14 @@ export class DeliveryAddressService {
     return { enabled: true, maxAddresses: 10, addresses: result.rows.map((row) => this.view(row)) };
   }
 
+  /** Caller must hold the dedicated admin contact capability and audit the purpose.
+   * Owner+object binding is rechecked here; no deleted address is recoverable. */
+  async administrationAddress(client:DbClient,memberId:string,addressId:string){
+    this.requireEnabled();const row=(await client.query<AddressRow>('SELECT * FROM member_delivery_address WHERE id=$1 AND member_id=$2 AND deleted_at IS NULL',[addressId,memberId])).rows[0];
+    if(!row)throw new DomainError('DELIVERY_ADDRESS_NOT_FOUND','地址不存在或已删除',404);
+    return this.decrypt(row);
+  }
+
   /** Used only while an authenticated member's private data copy is built.
    * Erased rows expose no former address content. */
   async exportOwned(client: DbClient, memberId: string) {

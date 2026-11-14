@@ -27,14 +27,14 @@ describe("targeted native control polish contracts (not visual acceptance)",()=>
     assert.match(read("community-activity","wxml"),/wx:if="{{activityReady && !error && items.length}}" class="activity-count"/);
   });
   it("centers member-rate actions including the bottom-sheet footer",()=>{
-    const css=read("management-members","wxss");
+    const css=read("management-members/commercial","wxss");
     for(const selector of [".members-global-rate button",".global-rate-footer button"]){
       const body=rule(css,selector);for(const style of ["display:flex","align-items:center","justify-content:center","min-height:44px","line-height:1.3","text-align:center"])assert.ok(body.includes(style),`${selector}: ${style}`);
       assert.ok(!body.includes("translateY"));
     }
   });
   it("keeps the search input and button the same height on narrow screens",()=>{
-    const css=read("management-members","wxss");for(const selector of [".members-search input",".members-search button"])assert.ok(rule(css,selector).includes("height:44px"));
+    const css=read("management-members/commercial","wxss");for(const selector of [".members-search input",".members-search button"])assert.ok(rule(css,selector).includes("height:44px"));
   });
   it("gives the finance retry a full-width rounded-rectangle target",()=>{
     const body=rule(read("management-finance","wxss"),".finance-error .text-button");

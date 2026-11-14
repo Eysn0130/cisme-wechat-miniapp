@@ -1,0 +1,3 @@
+import {requireMemberAccess} from '../../../services/api';
+import {currentChromeStyle} from '../../../services/layout';
+Page({data:{chromeStyle:currentChromeStyle(),id:'',active:false,tab:'overview',section:'orders',day:''},onLoad(q:Record<string,string|undefined>){this.setData({id:q.id||'',tab:['overview','profile','business','logs'].includes(q.tab||'')?q.tab!:'overview',section:q.section||'orders',day:q.day||''});},onShow(){this.setData({active:requireMemberAccess()});},onHide(){this.setData({active:false});},onUnload(){this.setData({id:'',active:false,tab:'overview',section:'orders',day:''});},onResize(){this.setData({chromeStyle:currentChromeStyle()});},back(){wx.navigateBack({fail:()=>wx.redirectTo({url:'/pages/management-members/index'})});}});

@@ -222,7 +222,7 @@ describe("native mini program boundary", () => {
       invite: ["back", "prepare", "@share", "copyReferralCode", "@share", "openReferralConfirm", "load"],
       legal: ["back", "load", "privacyRights"],
       "management-member": ["back", "back", "load", "changeMembership", "changeMembership", "openRateForm", "selectOrderMode", "selectOrderMode", "openRow", "loadMoreSection", "retrySection", "closeRateForm", "selectRateMode", "selectRateMode", "closeRateForm", "submitRateForm"],
-      "management-members": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
+      "management-members": ["back", "commercial", "openFilter", "toggleSelect", "openFields", "exportUsers", "retry", "tapPerson", "inspect", "exportUsers", "more", "more", "close", "resetFilter", "applyFilter", "toggleField", "applyFields"],
       "management": ["back", "retry", "openSupport", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openAftersale", "openFinance", "openPrivacy", "retry", "openCatalog", "openOrders", "openFulfillment", "openAftersale", "openFinance", "openMembers", "openSharing", "openRewards", "openPoints", "openSupport", "openEditorialComments", "openPrivacy", "retryRuntime"],
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
@@ -254,12 +254,16 @@ describe("native mini program boundary", () => {
       "management-rewards": ["back", "retryLoad", "reconcile", "openConfig", "openConfig", "openStock", "openIssue", "openRevoke", "loadMore", "export", "openDetail", "loadMore", "closeSheet", "reconcile", "loadProducts", "saveConfig", "saveConfig", "saveConfig", "stockDirection", "stockDirection", "saveStock", "issue", "revoke", "operate", "operate", "operate"],
       "sharing-officer": ["back", "retry", "recover", "recover", "open", "open", "open", "open", "promote", "moreProducts", "clearSource", "detail", "more", "close", "operate", "operate", "previewReferrer", "operate", "@share", "copyLink", "moreHistory", "settlementOrders", "recover", "recover"],
       "management-sharing": ["back", "retry", "recover", "recover", "selectOfficer", "openPolicy", "order", "operate", "selectBatch", "closeBatch", "exportBatch", "operate", "selectLine", "more", "close", "operate", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "operate", "readPayee", "loadLineOrders", "order", "moreLineOrders", "operate", "operate", "operate", "moreHistory", "operate", "recover", "recover"],
+      "management-members/commercial": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
+      "management-members/detail": ["back"],
+      "management-members/components/member-inspector": ["expand", "close", "retry", "selectSection", "phone", "selectSection", "management", "selectSection", "selectSection", "selectSection", "management", "openRecord", "more", "closeContact", "revealContact"],
       task: ["returnToCommunity"]
     };
 
     const actual: Record<string, string[]> = {};
     for (const { path, source } of await pageMarkup(root)) {
-      const route = path.slice(root.length + 1).split("/")[0]!;
+      const relative=path.slice(root.length+1);
+      const route = relative.endsWith("/index.wxml")?relative.slice(0,-11):relative.split("/")[0]!;
       const actions = buttonStartTags(nativePageTemplate(path)).map((tag) => {
         const handler = attributeValue(tag, "bindtap") ?? attributeValue(tag, "catchtap") ?? attributeValue(tag, "bindgetphonenumber") ?? attributeValue(tag,"bindchooseavatar") ?? (attributeValue(tag,"form-type") === "submit" ? source.match(/<form[^>]*bindsubmit="([^"]+)"/)?.[1] : undefined);
         if (handler) return handler;

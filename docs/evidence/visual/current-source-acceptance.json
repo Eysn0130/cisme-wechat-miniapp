@@ -185,6 +185,18 @@
       "evidenceFiles": []
     },
     {
+      "route": "pages/management-members/detail/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
+      "route": "pages/management-members/commercial/index",
+      "matrixComplete": false,
+      "result": "blocked",
+      "evidenceFiles": []
+    },
+    {
       "route": "pages/management-member/index",
       "matrixComplete": false,
       "result": "blocked",
@@ -287,7 +299,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "78ffa9ab0d0d19d29d6d39f409aeef2752f078dae5339a6877bbe34736641f61",
+  "packageSourceSha256": "7c9f84a39e418e8af23b8b84d76c074b7eb768d3ae6be2b38c970260647cae36",
   "findings": [
     {
       "id": "CURRENT_SOURCE_45_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",

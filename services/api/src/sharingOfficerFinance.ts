@@ -23,22 +23,23 @@ export class SharingOfficerFinance {
    return {...page,items:page.items.map(({cursorAt:_,...r})=>r)};
   },'REPEATABLE READ');
  }
- async management(actorId:string|undefined,query:{section?:string;cursor?:unknown;limit?:unknown;filter?:string;batchId?:string;lineId?:string}={}){
+ async management(actorId:string|undefined,query:{section?:string;cursor?:unknown;limit?:unknown;filter?:string;batchId?:string;lineId?:string;memberId?:string}={}){
   return transaction(this.service.pool,async client=>{
    const actor=await requireActiveMemberWithClient(client,actorId),capabilities=await this.service.authority.projection(actor);
    const canManage=capabilities.capabilities.includes('member.manage'),canConfigure=capabilities.capabilities.includes('commission.rate.manage'),
     canRead=capabilities.capabilities.includes('commission.read'),canFinance=capabilities.capabilities.includes('commission.settlement.approve');
    if(!canManage&&!canConfigure&&!canRead&&!canFinance)fail('CAPABILITY_REQUIRED','没有分享官管理权限',403);
-   const section=query.section??'officers',limit=pageLimit(query.limit),scope=pageScope(['sharing-admin',actor,section,query.filter??'',query.batchId??'',query.lineId??'']),cursor=readPageCursor(query.cursor,scope);
+   const section=query.section??'officers',limit=pageLimit(query.limit),scope=pageScope(['sharing-admin',actor,section,query.filter??'',query.batchId??'',query.lineId??'',query.memberId??'']),cursor=readPageCursor(query.cursor,scope);
+   const target=query.memberId?id(query.memberId):null;
    const p=(await client.query(currentSharingPolicySql)).rows[0],result={memberId:actor,scope:{manage:canManage,configure:canConfigure,read:canRead,finance:canFinance},policy:officerPolicyView(p)};
    if(section==='officers'){
     if(!canManage&&!canRead)fail('CAPABILITY_REQUIRED','没有分享官资料查看权限',403);
     const filter=query.filter??'all';if(!['all','pending','active','rejected','suspended','terminated'].includes(filter))fail('SHARING_FILTER_INVALID','分类无效',422);
     const rows=(await client.query(`SELECT o.*,o.member_id AS id,o.created_at::text AS cursor_at,m.display_name,
      EXISTS(SELECT 1 FROM sharing_payee p WHERE p.member_id=o.member_id) AS payee_ready
-     FROM sharing_officer o JOIN member m ON m.id=o.member_id WHERE ($1='all' OR o.state=$1)
+     FROM sharing_officer o JOIN member m ON m.id=o.member_id WHERE ($1='all' OR o.state=$1) AND ($5::uuid IS NULL OR o.member_id=$5)
      AND ($2::timestamptz IS NULL OR (o.created_at,o.member_id)<($2,$3::uuid)) ORDER BY o.created_at DESC,o.member_id DESC LIMIT $4`,
-     [filter,cursor?.at??null,cursor?.id??null,limit+1])).rows;
+     [filter,cursor?.at??null,cursor?.id??null,limit+1,target])).rows;
     const page=finishPage(rows.map(r=>({id:r.id,cursorAt:r.cursor_at,memberId:r.member_id,displayName:r.display_name,payeeReady:r.payee_ready,...officerView(r)})),limit,scope);
     return {...result,...page,items:page.items.map(({cursorAt:_,...r})=>r)};
    }
@@ -49,9 +50,9 @@ export class SharingOfficerFinance {
     if(!canRead&&!canFinance)fail('CAPABILITY_REQUIRED','没有佣金订单查看权限',403);
     const rows=(await client.query(`${sharingOrderProjection} WHERE s.program='sharing_officer'
      AND ($1::timestamptz IS NULL OR (s.created_at,s.order_id)<($1,$2::uuid))
-     AND ($4::uuid IS NULL OR EXISTS(SELECT 1 FROM sharing_settlement_allocation a WHERE a.line_id=$4 AND a.order_id=s.order_id))
+     AND ($4::uuid IS NULL OR EXISTS(SELECT 1 FROM sharing_settlement_allocation a WHERE a.line_id=$4 AND a.order_id=s.order_id)) AND ($5::uuid IS NULL OR s.referrer_member_id=$5)
      ORDER BY s.created_at DESC,s.order_id DESC LIMIT $3`,
-     [cursor?.at??null,cursor?.id??null,limit+1,query.lineId?id(query.lineId):null])).rows;
+     [cursor?.at??null,cursor?.id??null,limit+1,query.lineId?id(query.lineId):null,target])).rows;
     const page=finishPage(rows.map(r=>({...sharingOrderView(r),cursorAt:r.created_at.toISOString()})),limit,scope);
     return {...result,...page,items:page.items.map(({cursorAt:_,...r})=>r)};
    }
@@ -59,8 +60,8 @@ export class SharingOfficerFinance {
     if(!canFinance)fail('CAPABILITY_REQUIRED','没有财务管理权限',403);
     const rows=(await client.query(`SELECT b.*,b.created_at::text AS cursor_at,
      (SELECT count(*)::int FROM sharing_settlement_line l WHERE l.batch_id=b.id AND l.state<>'voided') AS line_count
-     FROM sharing_settlement_batch b WHERE ($1::timestamptz IS NULL OR (b.created_at,b.id)<($1,$2::uuid))
-     ORDER BY b.created_at DESC,b.id DESC LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1])).rows;
+     FROM sharing_settlement_batch b WHERE ($4::uuid IS NULL OR EXISTS(SELECT 1 FROM sharing_settlement_line l WHERE l.batch_id=b.id AND l.member_id=$4)) AND ($1::timestamptz IS NULL OR (b.created_at,b.id)<($1,$2::uuid))
+     ORDER BY b.created_at DESC,b.id DESC LIMIT $3`,[cursor?.at??null,cursor?.id??null,limit+1,target])).rows;
     const page=finishPage(rows.map(r=>({id:r.id,cursorAt:r.cursor_at,period:r.period,lineCount:r.line_count,cutoffAt:r.cutoff_at})),limit,scope);
     return {...result,...page,items:page.items.map(({cursorAt:_,...r})=>r)};
    }
@@ -68,8 +69,8 @@ export class SharingOfficerFinance {
     if(!canFinance)fail('CAPABILITY_REQUIRED','没有财务管理权限',403);
     const batchId=id(query.batchId),rows=(await client.query(`SELECT l.*,l.created_at::text AS cursor_at,b.period,o.referral_code,m.display_name
      FROM sharing_settlement_line l JOIN sharing_settlement_batch b ON b.id=l.batch_id JOIN sharing_officer o ON o.member_id=l.member_id
-     JOIN member m ON m.id=l.member_id WHERE l.batch_id=$1 AND ($2::timestamptz IS NULL OR (l.created_at,l.id)<($2,$3::uuid))
-     ORDER BY l.created_at DESC,l.id DESC LIMIT $4`,[batchId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
+     JOIN member m ON m.id=l.member_id WHERE l.batch_id=$1 AND ($5::uuid IS NULL OR l.member_id=$5) AND ($6::uuid IS NULL OR l.id=$6) AND ($2::timestamptz IS NULL OR (l.created_at,l.id)<($2,$3::uuid))
+     ORDER BY l.created_at DESC,l.id DESC LIMIT $4`,[batchId,cursor?.at??null,cursor?.id??null,limit+1,target,query.lineId?id(query.lineId):null])).rows;
     const page=finishPage(rows.map(r=>({...lineView(r),memberId:r.member_id,displayName:r.display_name,referralCode:r.referral_code,cursorAt:r.cursor_at})),limit,scope);
     return {...result,...page,items:page.items.map(({cursorAt:_,...r})=>r)};
    }

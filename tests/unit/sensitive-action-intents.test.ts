@@ -58,7 +58,7 @@ it("does not turn an unconfigured formal commercial policy into a client-side fe
   expect(page.data.actionError).toContain("资格规则暂不可用");
   expect(modal).not.toHaveBeenCalled();
   expect(requestMock).not.toHaveBeenCalled();
-  await load("../../apps/miniprogram/pages/management-members/index");
+  await load("../../apps/miniprogram/pages/management-members/commercial/index");
   const list=mounted({canManageRate:true,globalRate:{basisPoints:null,rateOptions:[],suggestedEffectiveAt:"2027-09-13T01:00:00Z"},
     rateBasisPoints:[]});
   list.openGlobalRateForm();
@@ -68,7 +68,7 @@ it("does not turn an unconfigured formal commercial policy into a client-side fe
 });
 
 it("lets an authorized operator propose a formal rate outside engineering fixtures",async()=>{
-  await load("../../apps/miniprogram/pages/management-members/index");
+  await load("../../apps/miniprogram/pages/management-members/commercial/index");
   const page=mounted({canManageRate:true,alive:true,attempt:1,globalRate:{basisPoints:null,policyKind:"unconfigured",
     suggestedEffectiveAt:"2027-09-13T01:00:00Z",rateOptions:[]},rateBasisPoints:[]});
   page.lastRevision=(await import("../../apps/miniprogram/services/commerce-command-store")).commerceContextRevision();
@@ -101,7 +101,7 @@ it("requires an explicit end date for a new formal membership and sends that dat
 });
 
 it("does not approve a rate when the member list reloads before confirmation",async()=>{
-  await load("../../apps/miniprogram/pages/management-members/index");
+  await load("../../apps/miniprogram/pages/management-members/commercial/index");
   const page=mounted({canApprove:true,pending:[{id:"rate-1",memberId:"member-1",displayName:"合成成员",basisPoints:2500,reason:"合成依据"}],attempt:3,alive:true});
   const answer=deferred<{confirm:boolean}>();modal.mockReturnValueOnce(answer.promise);
   const pending=page.reviewRate({currentTarget:{dataset:{id:"rate-1",decision:"active"}}});

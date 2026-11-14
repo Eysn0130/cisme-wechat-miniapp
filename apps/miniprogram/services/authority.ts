@@ -1,7 +1,7 @@
 import { pageRead } from "./page-requests";
 import { request } from "./api";
 
-export type Capability = "support.read" | "support.reply" | "support.assign" | "commerce.product.manage" | "commerce.qualification.manage" | "commerce.inventory.manage" | "commerce.order.read" | "commerce.aftersale.review" | "commerce.return.receive" | "commerce.return.inspect" | "commerce.fulfillment.manage" | "commerce.refund.approve" | "commerce.money.reconcile" | "community.moderate" | "member.support_view" | "member.profile.read" | "member.manage" | "commission.read" | "commission.rate.manage" | "commission.rate.approve" | "commission.settlement.approve" | "privacy.request.manage" | "editorial.manage";
+export type Capability = "support.read" | "support.reply" | "support.assign" | "commerce.product.manage" | "commerce.qualification.manage" | "commerce.inventory.manage" | "commerce.order.read" | "commerce.aftersale.review" | "commerce.return.receive" | "commerce.return.inspect" | "commerce.fulfillment.manage" | "commerce.refund.approve" | "commerce.money.reconcile" | "community.moderate" | "member.support_view" | "member.profile.read" | "member.manage" | "member.care.read" | "member.contact.read" | "member.export" | "commission.read" | "commission.rate.manage" | "commission.rate.approve" | "commission.settlement.approve" | "privacy.request.manage" | "editorial.manage";
 export interface AuthorityProjection { version: 1; capabilities: Capability[]; managementAvailable: boolean }
 
 const nativeManagementEntries: readonly Capability[] = [

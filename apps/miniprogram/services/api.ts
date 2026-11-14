@@ -452,7 +452,7 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
 /** Temporary private files live only until their caller releases them or identity changes. */
 /** Register an app-owned financial export with the existing session cleanup. */
 export function registerPrivateExport(path:string):()=>void{
- if(!path.startsWith(`${wx.env.USER_DATA_PATH}/sharing-settlement-`)||!/^sharing-settlement-\d+\.csv$/.test(path.slice(path.lastIndexOf('/')+1)))throw {title:'导出文件路径无效'};
+ if(!path.startsWith(`${wx.env.USER_DATA_PATH}/`)||!/^(?:sharing-settlement|user-management)-\d+\.csv$/.test(path.slice(path.lastIndexOf('/')+1)))throw {title:'导出文件路径无效'};
  const cleanup=()=>{try{wx.getFileSystemManager().unlinkSync(path);}catch{}privateDownloads.delete(cleanup);};
  privateDownloads.add(cleanup);return cleanup;
 }

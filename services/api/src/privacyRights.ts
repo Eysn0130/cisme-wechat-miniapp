@@ -277,8 +277,11 @@ export class PrivacyRights {
     if(!result.rowCount)throw new DomainError('PRIVACY_EXECUTOR_REQUIRED','仅复核负责人可建立数据权利执行计划',403);
   }
 
-  async queue(principalId:string,actorMemberId?:string,mode:'role'|'capability'='role',page?:{cursor?:string}) {
+  async queue(principalId:string,actorMemberId?:string,mode:'role'|'capability'='role',page?:{cursor?:string},selection?:{memberId?:string;requestId?:string}) {
+    if(selection?.requestId&&!uuidPattern.test(selection.requestId)||selection?.memberId&&!uuidPattern.test(selection.memberId))throw new DomainError('PRIVACY_REQUEST_NOT_FOUND','受理记录不存在',404);
+    if(selection?.memberId&&!selection.requestId)throw new DomainError('PRIVACY_PAGE_INVALID','请指定受理记录',422);
     const cursor=page?parsePageCursor(page.cursor,'queue'):null;
+    if(cursor&&selection?.requestId)throw new DomainError('PRIVACY_PAGE_INVALID','指定记录不需要分页',422);
     return transaction(this.pool,async client=>{
       await requirePrivacyActor(client,actorMemberId);
       await this.requireQueueOperator(principalId,actorMemberId,mode,client);
@@ -290,9 +293,9 @@ export class PrivacyRights {
         to_char(pr.due_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_due_at,`:''}
       ${replyHistoryProjection},${executionProjection}
       FROM privacy_request pr
-      ${cursor?`WHERE ((${terminalPrivacySql}),pr.due_at,pr.created_at,pr.id)>($1::boolean,$2::timestamptz,$3::timestamptz,$4::uuid)`:''}
+      ${selection?.requestId?'WHERE pr.id=$1::uuid AND ($2::uuid IS NULL OR pr.member_id=$2)':cursor?`WHERE ((${terminalPrivacySql}),pr.due_at,pr.created_at,pr.id)>($1::boolean,$2::timestamptz,$3::timestamptz,$4::uuid)`:''}
       ORDER BY (${terminalPrivacySql}),pr.due_at,pr.created_at,pr.id LIMIT ${page?pageSize+1:100}`,
-      cursor?[cursor.terminal,cursor.dueAt,cursor.createdAt,cursor.id]:[])).rows;
+      selection?.requestId?[selection.requestId,selection.memberId??null]:cursor?[cursor.terminal,cursor.dueAt,cursor.createdAt,cursor.id]:[])).rows;
       return page?pageResult(rows,'queue'):rows;
     });
   }

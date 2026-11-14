@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-11-13",
+  "inventoryDate": "2026-11-14",
   "wechatApis": [
     "wx.base64ToArrayBuffer",
     "wx.canIUse",
@@ -749,6 +749,11 @@
       "serverStorage": "Independent experience/formal PostgreSQL; existing versioned AES-GCM contact key with canonical-owner AAD; minimum necessary immutable transaction/payee snapshot evidence retained.",
       "authorization": "Member owns application/performance; member.manage reviews; commission.rate.manage configures; commission.read reads company performance; commission.settlement.approve alone reads payee, reviews tax, exports or records manual payments. No automatic money transfer.",
       "retention": "Owner export supports current bank data and reviewed snapshots, without referred buyer PII. Live optional payee is erasable unless unsettled/recoverable commission or legal holds require it. Close account terminates qualification."
+    },
+    {
+      "surface": "member_administration",
+      "purpose": "Current authorized administrator member service, owned business lookup and atomic role-scoped summary export. New care/contact/export grants are independent. Contact reveal reason audited without plaintext, at most60s and cleared on hide; no contact/health/payee data in CSV or search query values in logs. No new processor, consent, bulk asset mutation or automatic role grant.",
+      "source": "services/api/src/memberAdministration.ts; apps/miniprogram/pages/management-members; PRD UM-01–08"
     }
   ],
   "runtimeDataEgress": [
@@ -833,7 +838,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "b8966c27a41bc096ece761878d7925335ed891f1f023d1255fefc25ac1fce643",
+  "migrationSetSha256": "551268c028309c9efee2a027636a0cfbfd2af9977ac44852b79ba19e2af3a154",
   "egressSignatureSha256": "33ae2eff1e443c0d7056b43be6497d2ec5e206f85fb712125173e3e2571d0e9c",
   "performanceRepairReview": {
     "date": "2026-09-20",

@@ -1,3 +1,5 @@
+import {userPhoneQuery,userFail} from './memberAdministrationPolicy.js';
+import {MemberAdministration} from './memberAdministration.js';
 import {SharingOfficerService} from "./sharingOfficer.js";
 import {SharingOfficerFinance} from "./sharingOfficerFinance.js";
 import {SharingOfficerAssets} from "./sharingOfficerAssets.js";
@@ -616,8 +618,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (request.body??{}) as {message?:unknown;expectedVersion?:unknown},request.authScope==='privacy_rights'));
   // Native management uses the verified member's current capability. Legacy
   // operator roles cannot substitute for a revoked native capability here.
-  app.get<{Querystring:{page?:string;cursor?:string}}>("/v1/management/privacy-requests", async request =>
-    privacyRights.queue(adminPrincipal(request,config),privacyActor(request),'capability',privacyPageQuery(request.query)));
+  app.get<{Querystring:{page?:string;cursor?:string;memberId?:string;requestId?:string}}>("/v1/management/privacy-requests", async request =>
+    privacyRights.queue(adminPrincipal(request,config),privacyActor(request),'capability',privacyPageQuery(request.query),{...(request.query.memberId?{memberId:request.query.memberId}:{}),...(request.query.requestId?{requestId:request.query.requestId}:{})}));
   app.post<{Params:{requestId:string}}>("/v1/management/privacy-requests/:requestId/response", async request =>
     privacyRights.respond(adminPrincipal(request,config),request.params.requestId,
       request.body as {status?:unknown;response?:unknown;expectedVersion?:unknown;waitingOn?:unknown},privacyActor(request),'capability'));
@@ -691,6 +693,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const input=(request.body ?? {}) as {code?:unknown;confirmationKey?:unknown};
     return commercial.confirmReferral(request.memberId,request.principalId,input.code,input.confirmationKey);
   });
+  const memberAdministration=new MemberAdministration(pool,config);
+  app.get<{Querystring:Record<string,unknown>}>('/v1/management/users',(r,reply)=>{reply.header('Cache-Control','private, no-store');if(userPhoneQuery(r.query.q))userFail('PRIVATE_SEARCH_REQUIRED','请使用私密查询入口',422);return memberAdministration.list(r.memberId,r.query);});
+  app.post<{Body:Record<string,unknown>}>('/v1/management/users/search',{bodyLimit:4000},(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.list(r.memberId,r.body);});
+  app.get<{Params:{memberId:string}}>('/v1/management/users/:memberId',(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.overview(r.memberId,r.params.memberId);});
+  app.get<{Params:{memberId:string;section:string};Querystring:Record<string,unknown>}>('/v1/management/users/:memberId/sections/:section',(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.section(r.memberId,r.params.memberId,r.params.section,r.query);});
+  app.post<{Params:{memberId:string};Body:Record<string,unknown>}>('/v1/management/users/:memberId/contact',{bodyLimit:2000},async(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.contact(r.memberId,r.params.memberId,r.body);});
+  app.post<{Body:Record<string,unknown>}>('/v1/management/users/export',{bodyLimit:40000},async(r,reply)=>{reply.header('Cache-Control','private, no-store');return memberAdministration.export(r.memberId,r.body);});
   app.get<{Querystring:{q?:string;filter?:string;limit?:string;cursor?:string}}>("/v1/management/members", async request => commercial.listMembers(request.memberId,request.query));
   app.get<{Params:{memberId:string}}>("/v1/management/members/:memberId", async request => commercial.memberDetail(request.memberId,request.params.memberId));
   app.get<{Params:{memberId:string;section:string};Querystring:{limit?:string;cursor?:string}}>("/v1/management/members/:memberId/sections/:section",
@@ -807,7 +816,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Params:{operationId:string}}>('/v1/me/rewards/command-receipts/:operationId',request=>activityRewards.commandReceipt(request.memberId,request.params.operationId));
   app.post<{Params:{operationId:string}}>('/v1/me/rewards/command-receipts/:operationId/abandon',request=>activityRewards.abandonCommand(request.memberId,request.params.operationId));
   app.get<{Querystring:{skuId:string;quantity?:string}}>('/v1/me/coupons/eligible',request=>activityRewards.eligibleCoupons(request.memberId,request.query.skuId,request.query.quantity));
-  app.get<{Querystring:{activityId?:string;state?:string;after?:string}}>('/v1/management/rewards',request=>activityRewards.management(request.memberId,request.query));
+  app.get<{Querystring:{activityId?:string;state?:string;after?:string;memberId?:string;voucherId?:string;claimId?:string}}>('/v1/management/rewards',request=>activityRewards.management(request.memberId,request.query));
   app.post('/v1/management/rewards/activities',request=>activityRewards.configure(request.memberId,idempotencyKey(request),request.body));
   app.post('/v1/management/rewards/inventory',request=>activityRewards.inventory(request.memberId,idempotencyKey(request),request.body));
   app.post<{Params:{activityId:string}}>('/v1/management/rewards/activities/:activityId/issue',request=>activityRewards.issue(request.memberId,request.params.activityId,idempotencyKey(request),request.body));
@@ -1139,7 +1148,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.put('/v1/me/points/birthday',request=>memberPointsClub.birthday(request.memberId,request.body,service.now(devClock(request))));
   app.get('/v1/me/points/gifts',request=>pointsGifts.offers(request.memberId,service.now(devClock(request))));
   app.get<{Querystring:{cursor?:string}}>('/v1/me/points/redemptions',request=>pointsGifts.list(request.memberId,false,request.query));
-  app.get<{Querystring:{cursor?:string;state?:string}}>('/v1/management/points/redemptions',request=>pointsGifts.list(request.memberId,true,request.query));
+  app.get<{Querystring:{cursor?:string;state?:string;memberId?:string;redemptionId?:string}}>('/v1/management/points/redemptions',request=>pointsGifts.list(request.memberId,true,request.query));
   app.post('/v1/me/points/redemptions',request=>pointsGifts.redeem(request.memberId,idempotencyKey(request),request.body,service.now(devClock(request))));
   app.get<{Params:{operationId:string}}>('/v1/me/points/commands/:operationId',request=>pointsGifts.commandReceipt(request.memberId,request.params.operationId));
   app.post<{Params:{operationId:string}}>('/v1/me/points/commands/:operationId/abandon',request=>pointsGifts.commandReceipt(request.memberId,request.params.operationId,true,service.now(devClock(request))));

@@ -1,0 +1,81 @@
+{
+  "scope": "UM-01–08 source interaction contract; acceptance separately evidenced, no inherited device PASS",
+  "routes": [
+    {
+      "route": "pages/management-members/index",
+      "primaryContract": "PRD UM-01/02/03/07/08; compact role scoped native table",
+      "acceptanceReferences": [
+        "UM-01",
+        "UM-02",
+        "UM-03",
+        "UM-07",
+        "UM-08"
+      ],
+      "statesRequired": [
+        "normal",
+        "loading",
+        "empty",
+        "error",
+        "retry",
+        "expired-revoked",
+        "pagination",
+        "background-return",
+        "back-reenter",
+        "keyboard",
+        "large-text",
+        "accessibility",
+        "resume"
+      ]
+    },
+    {
+      "route": "pages/management-members/detail/index",
+      "primaryContract": "PRD UM-04/05/06/08; shared native inspector with owned source links",
+      "acceptanceReferences": [
+        "UM-04",
+        "UM-05",
+        "UM-06",
+        "UM-08"
+      ],
+      "statesRequired": [
+        "normal",
+        "loading",
+        "empty",
+        "error",
+        "retry",
+        "expired-revoked",
+        "pagination",
+        "background-return",
+        "back-reenter",
+        "keyboard",
+        "large-text",
+        "accessibility",
+        "resume"
+      ]
+    },
+    {
+      "route": "pages/management-members/commercial/index",
+      "primaryContract": "Existing COM-M commercial member and independent global rate proposals, preserved unchanged except route location",
+      "acceptanceReferences": [
+        "COM-M-01",
+        "COM-M-06",
+        "UM-06",
+        "UM-08"
+      ],
+      "statesRequired": [
+        "normal",
+        "loading",
+        "empty",
+        "error",
+        "retry",
+        "expired-revoked",
+        "pagination",
+        "background-return",
+        "back-reenter",
+        "keyboard",
+        "large-text",
+        "accessibility",
+        "resume"
+      ]
+    }
+  ]
+}
