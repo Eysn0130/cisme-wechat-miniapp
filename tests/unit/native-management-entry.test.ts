@@ -19,3 +19,9 @@ describe('Native management entry reflects implemented workspaces, not arbitrary
  it('releases a failed queue navigation for retry without changing capabilities',async()=>{capabilities=['editorial.manage'];await import('../../apps/miniprogram/pages/management/index');await page.load();page.openEditorialComments();const first=wxMock.navigateTo.mock.calls[0][0];first.fail();expect(page.data.navigating).toBe(false);page.openEditorialComments();expect(wxMock.navigateTo).toHaveBeenCalledTimes(2);expect(page.data.authority.capabilities).toEqual(['editorial.manage']);});
  it('does not let a late navigation failure release another account or page owner',async()=>{capabilities=['editorial.manage'];await import('../../apps/miniprogram/pages/management/index');await page.load();page.openEditorialComments();const first=wxMock.navigateTo.mock.calls[0][0];page.onHide();runtime.globalData.sessionToken='synthetic-other-member';first.fail();expect(page.data.navigating).toBe(true);expect(page.data.canEditorialComments).toBe(false);});
 });
+
+it.each(['member.manage','commission.read','commission.rate.manage'])('opens the sharing workspace for the explicit %s grant alone',async(capability)=>{
+ const {hasNativeManagementEntry}=await import('../../apps/miniprogram/services/authority');
+ expect(hasNativeManagementEntry({version:1,managementAvailable:true,capabilities:[capability] as any})).toBe(true);
+ expect(hasNativeManagementEntry({version:1,managementAvailable:false,capabilities:[capability] as any})).toBe(false);
+});
