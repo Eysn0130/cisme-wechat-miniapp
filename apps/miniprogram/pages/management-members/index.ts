@@ -1,7 +1,7 @@
 import {requireMemberAccess,request,registerPrivateExport} from '../../services/api';
 import {currentChromeStyle} from '../../services/layout';
 import {sectionTabValue} from '../../services/section-tabs';
-import {initialQuery,allowedViews,columns,rowView,queryString,userContext,userRead,userSearch,cancelUserReads,userError,type UserQuery,type UserRow,type UserScope,type Column} from './service';
+import {prepareUserRows,initialQuery,allowedViews,columns,rowView,queryString,userContext,userRead,userSearch,cancelUserReads,userError,type UserQuery,type UserRow,type UserScope,type Column} from './service';
 const accounts=['全部','正常','已停用'],accountValues=['all','active','blocked'],onboardings=['全部','已建档','待建档'],onboardingValues=['all','complete','incomplete'],officers=['全部','未申请','待审核','已开通','已暂停','已终止','未通过'],officerValues=['all','none','pending','active','suspended','terminated','rejected'];
 Page({
  visible:false,epoch:0,context:'',raw:[] as UserRow[],files:[] as Array<()=>void>,fieldChoice:{} as Record<string,string[]>,
@@ -13,7 +13,7 @@ Page({
  current(epoch?:number){if(this.context!==userContext()){this.raw=[];this.setData({items:[],scope:null,selected:[],selectedMember:'',inspectorVisible:false,loading:false,loadingMore:false});return false;}return this.visible&&(epoch==null||epoch===this.epoch);},
  async load(more=false,retain=false):Promise<void>{if(!this.current()||more&&(this.data.loading||this.data.loadingMore||!this.data.nextCursor))return;cancelUserReads(this);const epoch=++this.epoch,q={...this.data.query};this.setData({...(more?{loadingMore:true,moreError:''}:{loading:true,error:'',...(!retain?{items:[],resultReady:false}: {})})});
   try{const result=await userSearch<{scope:UserScope;items:UserRow[];total:number;nextCursor:string|null}>(this,q,more?this.data.nextCursor:null);if(!this.current(epoch))return;
-   this.raw=more?[...this.raw,...result.items.filter(v=>!this.raw.some(r=>r.id===v.id))]:result.items;const available=columns(q.view,result.scope),choice=this.fieldChoice[q.view],fields=choice?available.filter(f=>choice.includes(f.id)):available.slice(0,3),selected=more?this.data.selected:this.data.selected.filter(id=>this.raw.some(r=>r.id===id));
+   const prepared=await prepareUserRows(result.items);if(!this.current(epoch))return;this.raw=more?[...this.raw,...prepared.filter(v=>!this.raw.some(r=>r.id===v.id))]:prepared;const available=columns(q.view,result.scope),choice=this.fieldChoice[q.view],fields=choice?available.filter(f=>choice.includes(f.id)):available.slice(0,3),selected=more?this.data.selected:this.data.selected.filter(id=>this.raw.some(r=>r.id===id));
    this.setData({scope:result.scope,tabs:allowedViews(result.scope),fields,items:this.raw.map(r=>rowView(r,fields,selected)),total:result.total,nextCursor:result.nextCursor,selected,loading:false,resultReady:true,loadingMore:false,error:'',moreError:'',sortLabel:this.sortName(q.sort),filtered:q.account!=='all'||q.onboarding!=='all'||q.officer!=='all'});
   }catch(e){if(this.current(epoch)){if(more&&(e as {code?:string}).code==='PAGE_CURSOR_INVALID'){this.setData({nextCursor:null,loadingMore:false});await this.load();return;}const status=(e as {status?:number})?.status;if(status===401||status===403){this.raw=[];this.setData({items:[],scope:null,selected:[],inspectorVisible:false,selectedMember:''});}this.setData(more?{moreError:userError(e)}:{error:userError(e)});}}
   finally{if(this.current(epoch))this.setData({loading:false,loadingMore:false});wx.stopPullDownRefresh();}

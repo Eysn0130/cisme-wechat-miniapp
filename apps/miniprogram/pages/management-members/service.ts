@@ -1,8 +1,9 @@
+import {localMemberAvatar} from '../../services/member-avatar';
 import {request} from '../../services/api';
 import {cancelPageReads,pageRead} from '../../services/page-requests';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 export type UserScope={profile:boolean;contact:boolean;care:boolean;orders:boolean;points:boolean;rewards:boolean;sharing:boolean;commission:boolean;finance:boolean;support:boolean;privacy:boolean;moderate:boolean;manage:boolean;export:boolean};
-export type UserRow={id:string;displayName:string;cardNumber:string|null;avatar:string|null;accountStatus:string;onboarding:string;createdAt:string;phoneMasked:string|null;points:any;commerce:any;activity:any;rewards:any;sharing:any};
+export type UserRow={id:string;displayName:string;cardNumber:string|null;avatar:string|null;avatarRevision?:string|null;accountStatus:string;onboarding:string;createdAt:string;phoneMasked:string|null;points:any;commerce:any;activity:any;rewards:any;sharing:any};
 export type UserQuery={q:string;view:string;account:string;onboarding:string;officer:string;sort:string;direction:string};
 export const initialQuery:UserQuery={q:'',view:'profile',account:'all',onboarding:'all',officer:'all',sort:'registered',direction:'desc'};
 export const views=[{id:'profile',label:'资料'},{id:'commerce',label:'消费'},{id:'activity',label:'活跃'},{id:'assets',label:'权益'},{id:'sharing',label:'分享官'}];
@@ -50,3 +51,6 @@ export async function userSearch<T=any>(owner:object,q:UserQuery,cursor?:string|
  let handles=searches.get(owner);if(!handles){handles=new Set();searches.set(owner,handles);}let cancel:(()=>void)|undefined;
  try{return await request<T>({path:'/v1/management/users/search',method:'POST',data:{...q,...(cursor?{cursor}:{})},registerAbort:fn=>{cancel=fn;handles!.add(fn);}});}catch(e){if((e as {code?:string}).code==='NETWORK_TIMEOUT')throw {code:'NETWORK_TIMEOUT',title:'加载超时，请重试'};throw e;}finally{if(cancel)handles.delete(cancel);}
 }
+
+/** Use the existing native JPEG cache; never put authenticated Base64 images in setData. */
+export function prepareUserRows(rows:UserRow[]):Promise<UserRow[]>{return Promise.all(rows.map(async r=>({...r,avatar:await localMemberAvatar(r.avatar,r.avatarRevision)})));}
