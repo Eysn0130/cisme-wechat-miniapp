@@ -4,7 +4,8 @@ import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { defaultMemberAvatar, localMemberAvatar } from "../../services/member-avatar";
 import { memberIdentity, publishMemberIdentity } from "../../services/member-identity";
-import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
+import { requireMemberAccess, retainMemberSnapshot, resumeAuthentication } from "../../services/api";
+import { needsLoginProfile } from "../../services/member-setup";
 import { clearAuthenticationRedirectSuppression } from "../../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { authorityProjection, hasNativeManagementEntry, type AuthorityProjection } from "../../services/authority";
@@ -151,6 +152,10 @@ Page({
       const snapshot = await pageRead<any>(this, { path: "/v1/bootstrap/profile", cacheTags: ["member", "care", "points"] });
       if (!this.isCurrentLoad(attempt, token)) return;
       if (!Number.isSafeInteger(snapshot.businessVersion) || snapshot.businessVersion < 0 || !snapshot.member?.id || !snapshot.points?.projection) throw new Error("INVALID_PROFILE_SNAPSHOT");
+      if(needsLoginProfile(snapshot.member)){
+        cancelPageReads(this);this.setData({loading:false,member:null,points:null,memberAvatar:defaultMemberAvatar,retainingSnapshot:false});
+        resumeAuthentication('/pages/profile/index');return;
+      }
       if (snapshot.businessVersion < this.data.snapshotVersion) return;
       const processingStarted = measurementClock();
       const { member, care } = snapshot;

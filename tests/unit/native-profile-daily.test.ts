@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const m = vi.hoisted(() => ({ token: "actor-a", request: vi.fn(), avatar: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/api", () => ({ request: m.request, requireMemberAccess: () => Boolean(m.token), retainMemberSnapshot: () => true, clearAuthenticationRedirectSuppression: vi.fn() }));
+const m = vi.hoisted(() => ({ token: "actor-a", request: vi.fn(), avatar: vi.fn(), resume:vi.fn() }));
+vi.mock("../../apps/miniprogram/services/api", () => ({ resumeAuthentication:m.resume, request: m.request, requireMemberAccess: () => Boolean(m.token), retainMemberSnapshot: () => true, clearAuthenticationRedirectSuppression: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/member-avatar", () => ({ defaultMemberAvatar: "neutral-avatar", localMemberAvatar: m.avatar }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "" }));
 vi.mock("../../apps/miniprogram/services/authority", () => ({ authorityProjection: async () => ({ managementAvailable: false, capabilities: [] }), hasNativeManagementEntry: () => false }));
@@ -58,4 +58,10 @@ describe("Profile canonical name independent of avatar and real daily status",()
  it("does not let an older retry replace a newer result",async()=>{
   await page.load();const old=later();readDaily=()=>old.promise;const reading=page.loadDailyStatus(page.data.loadAttempt,m.token);readDaily=()=>dailyPage([]);await page.loadDailyStatus(page.data.loadAttempt,m.token);old.resolve(dailyPage());await reading;expect(page.data.careTitle).toBe("今天还未记录");
  });
+});
+
+it('redirects a questionnaire-complete member with no saved identity without replacing their points',async()=>{
+ member={id:'actor-a',display_name:'CISME 会员',profile_revision:0,completed_at:null,avatar_data_url:null,care_onboarding_required:false};
+ await page.load();expect(m.resume).toHaveBeenCalledWith('/pages/profile/index');expect(page.data.member).toBeNull();expect(m.avatar).not.toHaveBeenCalled();
+ expect(m.request.mock.calls.some(([o])=>o.method&&o.method!=='GET')).toBe(false);
 });

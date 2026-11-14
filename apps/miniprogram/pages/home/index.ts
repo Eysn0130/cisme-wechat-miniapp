@@ -1,4 +1,5 @@
-import { requireGuestCommunityAccess } from "../../services/api";
+import { requireGuestCommunityAccess, resumeAuthentication } from "../../services/api";
+import { needsLoginProfile } from "../../services/member-setup";
 import { careCommandConfirmed, type CareCommand } from "../../services/care-command-state";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
@@ -311,6 +312,11 @@ Page({
       if (!this.isCurrentLoad(attempt, token)) { this.restoreGuestIfExpired(attempt); return false; }
       if (!Number.isSafeInteger(snapshot.businessVersion) || snapshot.businessVersion < 0 || !snapshot.member?.id
         || (snapshot.care && (!snapshot.care.id || !Number.isSafeInteger(snapshot.care.version)))) throw new Error("INVALID_CARE_SNAPSHOT");
+      if(needsLoginProfile(snapshot.member)){
+        cancelPageReads(this);this.setData({loading:false,authorityAvailable:false,onboardingRequired:false,onboardingOpen:false});
+        this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
+        resumeAuthentication('/pages/home/index');return false;
+      }
       if (snapshot.care && snapshot.care.id === this.data.care?.id && snapshot.businessVersion < this.data.snapshotVersion) return this.data.authorityAvailable;
       const processingStarted = measurementClock();
       const { member, care } = snapshot;

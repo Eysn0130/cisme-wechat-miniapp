@@ -1,4 +1,5 @@
 import { publishMemberIdentity } from "../../services/member-identity";
+import { needsLoginName, needsLoginProfile } from "../../services/member-setup";
 import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../../services/member-avatar";
 import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce, acceptCurrentLegalDocuments, isGuestCommunityBrowsing } from "../../services/api";
 import { guestCommunityRouteAllowed } from "../../services/route-access";
@@ -9,7 +10,6 @@ import { attributePendingShare } from "../../services/share";
 import { legalRequestFailure, parseLegalBootstrap, type LegalLoadError } from "../../services/legal-bootstrap";
 
 const loginAvatarDrafts=new WeakMap<object,{token:string;owner:string;dataUrl:string;local:string}>();
-function needsLoginName(profile:{display_name?:string;completed_at?:string|null}){const name=profile.display_name?.trim();return !name||!profile.completed_at&&['CISME 会员','微信用户'].includes(name);}
 function scrollToAccountError() {
   wx.pageScrollTo({ selector: "#account-error-summary", duration: motionDuration(200) });
 }
@@ -128,13 +128,12 @@ Page({
         return;
       }
       if(!me||typeof me.id!=="string"||!me.id)throw new Error("MEMBER_RESTORE_RESPONSE_INVALID");
-      if(Number.isSafeInteger(me.profile_revision)&&(needsLoginName(me)||!me.avatar_data_url)){
+      if(needsLoginProfile(me)){
         this.loginFlowToken=token;this.loginOwnerId=me.id;await this.advanceLogin();return;
       }
       this.setData({leaving:true});
-      wx.switchTab({url:"/pages/home/index",fail:()=>{
-        if(current())this.setData({leaving:false,sessionRestoreFailed:true,error:"登录仍保留，首页暂时无法打开，请重试。"});
-      }});
+      const landed=await navigateAfterAuthentication(this.authenticationReturnUrl);
+      if(landed!=='target'&&current())this.setData({leaving:false,sessionRestoreFailed:true,error:"原页面暂时无法打开，请重试。"});
     } catch {
       if(!this.data.pageAlive||!this.data.pageVisible||attempt!==this.data.authAttempt)return;
       if(!getApp<IAppOption>().globalData.sessionToken){
@@ -169,6 +168,9 @@ Page({
     }
     if(!token&&!this.data.renewalMode)this.revealExpiredLogin();
     if(token&&!this.data.renewalMode)this.setData({pendingDestination:this.data.pendingDestination || this.authenticationReturnUrl});
+    if(token&&!this.data.renewalMode&&!this.loginFlowToken&&!this.data.restoringSession&&!this.data.sessionRestoreFailed){
+      void this.restoreRetainedSession();
+    }
     // The retained-session verdict may change the request context. Start the
     // public login bootstrap after that verdict, rather than aborting it on401.
     if(!this.data.restoringSession){
@@ -264,7 +266,7 @@ Page({
     if(this.revealExpiredLogin())return;
     if(this.data.loginProfileUncertain&&this.loginFlowToken)return this.advanceLogin();
     if(this.data.loginStage==='phone'||this.data.loginStage==='avatar')return;
-    if(this.data.loginStage==='nickname')return this.saveLoginNickname();
+    if(this.data.loginStage==='nickname')return; // Native form submission carries the final quick-filled nickname.
     if(this.loginFlowToken)return this.advanceLogin();
     return this.login();
   },
@@ -285,9 +287,8 @@ Page({
     if(!this.data.pageAlive || this.data.leaving || this.data.avatarBusy)return;
     const token=getApp<IAppOption>().globalData.sessionToken;
     if(!token){this.revealExpiredLogin();return;}
-    this.setData({loading:true,error:""});
-    const landed=await navigateAfterAuthentication(this.data.pendingDestination || "/pages/home/index");
-    if(this.data.pageAlive && token===getApp<IAppOption>().globalData.sessionToken)this.setData({loading:false,error:landed === "target" ? "" : "已登录，请再次点击继续。"});
+    this.loginFlowToken=token;
+    await this.advanceLogin();
   },
   editLoginName(event:WechatMiniprogram.Input){if(!this.data.loading)this.setData({loginName:event.detail.value,loginNameInvalid:false,error:''});},
   reviewLoginName(event:WechatMiniprogram.CustomEvent){if(event.detail.pass===false)this.setData({loginNameInvalid:true,error:'请换一个昵称'});},
@@ -332,10 +333,12 @@ Page({
     }catch(error){if(current())this.setData({loginProfileUncertain:true,error:(error as {title?:string}).title||'头像未处理成功，请重试'});}
     finally{if(current())this.setData({avatarBusy:false});}
   },
-  async saveLoginNickname(event?:WechatMiniprogram.Input){
-    if(typeof event?.detail?.value==='string')this.setData({loginName:event.detail.value});
-    const token=this.loginFlowToken,name=this.data.loginName.trim();
+  async saveLoginNickname(event?:WechatMiniprogram.Input|WechatMiniprogram.CustomEvent){
+    const token=this.loginFlowToken;
     if(!token||token!==getApp<IAppOption>().globalData.sessionToken||!this.data.pageAlive||!this.data.pageVisible||this.data.loading||this.data.leaving||this.data.loginStage!=='nickname')return;
+    const value=event?.detail?.value,submitted=typeof value==='string'?value:value?.nickname;
+    if(typeof submitted==='string')this.setData({loginName:submitted});
+    const name=this.data.loginName.trim();
     if(this.data.loginNameInvalid||!name||Array.from(name).length>40){this.setData({error:'请确认你的微信昵称'});return;}
     const attempt=++this.data.profileAttempt,current=()=>this.data.pageAlive&&this.data.pageVisible&&attempt===this.data.profileAttempt&&token===getApp<IAppOption>().globalData.sessionToken;
     this.setData({loading:true,error:''});
@@ -357,22 +360,7 @@ Page({
     if(this.data.sessionRestoreFailed&&getApp<IAppOption>().globalData.sessionToken){await this.restoreRetainedSession();return;}
     if(this.revealExpiredLogin())return;
     if (this.data.pendingDestination && getApp<IAppOption>().globalData.sessionToken) {
-      const attempt=++this.data.authAttempt;
-      this.setData({ loading: true, error: "" });
-      const token=getApp<IAppOption>().globalData.sessionToken;
-      try {
-        // The destination owns profile refresh. An existing session does not
-        // require an avatar or a second identity/profile round trip to continue.
-        if(!this.data.pageAlive || this.data.leaving || this.data.authAttempt!==attempt)return;
-        if(token!==getApp<IAppOption>().globalData.sessionToken){
-          this.setData({loginStage:"login",error:"登录状态已变化，请重新确认身份。"});return;
-        }
-        const landed = await navigateAfterAuthentication(this.data.pendingDestination);
-        if(this.data.pageAlive && this.data.authAttempt===attempt && token===getApp<IAppOption>().globalData.sessionToken)
-          this.setData({error:landed === "target" ? "" : "身份已经确认，但原目标页面仍未打开。请稍后再次尝试。"});
-      } finally {
-        if(this.data.pageAlive && this.data.authAttempt===attempt)this.setData({loading:false});
-      }
+      await this.continueLogin();
       return;
     }
     if (this.data.legalLoading && !this.data.legalTextsReady) return;
@@ -510,6 +498,12 @@ Page({
   stopAuthenticationWait(suppressSourceRedirect = false): string {
     this.data.authAttempt += 1;
     cancelAuthentication(this.authenticationFlowId);
+    if(!this.data.renewalMode&&getApp<IAppOption>().globalData.sessionToken&&
+      (this.loginFlowToken===getApp<IAppOption>().globalData.sessionToken||this.data.restoringSession||this.data.sessionRestoreFailed)){
+      // Leaving an unfinished login permits public browsing, not an authenticated
+      // shortcut into the questionnaire. The canonical member remains on server.
+      setSessionToken("");loginAvatarDrafts.delete(this);this.loginFlowToken="";this.loginOwnerId="";
+    }
     const returnUrl = this.data.renewalMode && this.renewalDestination ? this.renewalDestination : this.authenticationReturnUrl;
     if (suppressSourceRedirect) suppressAuthenticationRedirectOnce(returnUrl);
     wx.disableAlertBeforeUnload();

@@ -12,7 +12,7 @@ const destination='/pages/post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&sou
 let page:any,wxMock:any;
 beforeEach(async()=>{
  vi.resetModules();vi.clearAllMocks();mocks.token='';mocks.navigate.mockResolvedValue('target');
- mocks.request.mockImplementation(async({path}:any)=>{if(path==='/v1/identity/wechat')return {sessionToken:'new-synthetic-session'};if(path==='/v1/me/profile')return{id:'synthetic-member',display_name:'已确认昵称',profile_revision:1,avatar_data_url:'saved'};if(path==='/v1/me/phone')return{bound:true,enabled:true};throw new Error('unexpected request');});
+ mocks.request.mockImplementation(async({path}:any)=>{if(path==='/v1/identity/wechat')return {sessionToken:'new-synthetic-session'};if(path==='/v1/me'||path==='/v1/me/profile')return{id:'synthetic-member',display_name:'已确认昵称',profile_revision:1,avatar_data_url:'saved'};if(path==='/v1/me/phone')return{bound:true,enabled:true};throw new Error('unexpected request');});
  (globalThis as any).getApp=()=>({globalData:{get sessionToken(){return mocks.token;},cloudFunction:{name:'synthetic-api'}}});
  (globalThis as any).getCurrentPages=()=>[{route:'pages/account/index'}];
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(values:any,callback?:()=>void){Object.assign(this.data,values);callback?.();}};};
@@ -51,8 +51,8 @@ describe('expired retained destination on the actual Account page',()=>{
   expect(mocks.prepare).not.toHaveBeenCalled();expect(mocks.navigate).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
  });
  it('preserves an existing valid-session continuation without requesting another identity',async()=>{
-  mocks.token='existing-synthetic-session';page.onShow();await page.login();
+  mocks.token='existing-synthetic-session';page.onShow();for(let i=0;i<12;i++)await Promise.resolve();
   expect(page.data.pendingDestination).toBe(destination);expect(mocks.navigate).toHaveBeenCalledWith(destination);
-  expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.setSession).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
+  expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.setSession).not.toHaveBeenCalled();expect(mocks.request.mock.calls.map(([v])=>v)).toEqual([{path:'/v1/me',authMode:'optional'}]);
  });
 });
