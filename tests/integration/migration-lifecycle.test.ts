@@ -1,3 +1,4 @@
+import {CAPABILITIES} from '@cisme/contracts';
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFile, readdir, mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
@@ -542,7 +543,7 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.length);
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
-    expect(await capabilityNames()).toEqual(extendedCapabilities);
+    expect(await capabilityNames()).toEqual([...CAPABILITIES].sort());
     expect((await pool.query("SELECT to_regclass('public.community_comment') name")).rows[0].name).toBe("community_comment");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_target_type_check'")).rows[0].definition).toContain("invite");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_invite_target_check'")).rows[0].definition).toContain("home");
