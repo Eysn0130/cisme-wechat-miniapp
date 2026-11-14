@@ -1,0 +1,29 @@
+{
+  "scope": "isolated-trial",
+  "readOnly": true,
+  "at": "2026-11-14T06:50:17.924Z",
+  "source": "2346157ff23d93b7a2733a2d971f8b2c0a08a0b3",
+  "realWechatMembers": 4,
+  "projectedMembers": 4,
+  "nonWechatProjected": 0,
+  "savedAvatars": 2,
+  "privateSavedAvatars": 2,
+  "checks": {
+    "identity": 4,
+    "points": 4,
+    "rewards": 4,
+    "orders": 4,
+    "sharing": 4
+  },
+  "rowsModified": 0,
+  "contactPlaintextRead": false,
+  "missingSavedAvatarCount": 2,
+  "avatarIssueCount": 0,
+  "mismatchCount": 0,
+  "realRewardVouchers": 0,
+  "realPurchaseCoupons": 0,
+  "realOrders": 2,
+  "realSharingOfficers": 0,
+  "realCustomerRelations": 0,
+  "nativeTransportIsNotARealAuthenticatedSession": true
+}

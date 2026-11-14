@@ -13,6 +13,7 @@ import {transaction} from '../../services/api/src/db';
 import {VerifiedPaymentInbox} from '../../services/api/src/verifiedPaymentInbox';
 import {collectRewardPortableData} from '../../services/api/src/rewardPrivacy';
 import {VerifiedRefundInbox} from '../../services/api/src/verifiedRefundInbox';
+import {MemberAdministration} from '../../services/api/src/memberAdministration';
 const pool=testPool(),config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'reward-integration-session',ADMIN_API_TOKEN:'legacy-test',UPLOAD_TOKEN_SECRET:'reward-test-upload',OBJECT_STORAGE_DRIVER:'api_gateway',CONTACT_ENCRYPTION_KEY:'11'.repeat(32),CONTACT_HASH_KEY:'22'.repeat(32),CONTACT_KEY_VERSION:'reward-test-v1',COMMERCE_ORDER_FLOW_ENABLED:'true'});
 let app:Awaited<ReturnType<typeof createApp>>,rewards:ActivityRewardService,operator:any,product:any,activity:any;
 const auth=(p:any)=>({authorization:`Bearer ${p.sessionToken}`}),key=()=>`reward-test-${randomUUID()}`;
@@ -144,3 +145,18 @@ describe('TRV native service and HTTP business authority',()=>{
 });
 
 it('filters member reward sources and still resolves a cancelled historical claim after its voucher pointer is released',async()=>{const a=await ready(),b=await ready();const found=await rewards.management(operator.memberId,{memberId:a.p.memberId,voucherId:a.v});expect(found.vouchers.map(v=>v.member_id)).toEqual([a.p.memberId]);await expect(rewards.management(operator.memberId,{memberId:b.p.memberId,voucherId:a.v})).rejects.toMatchObject({code:'REWARD_NOT_FOUND'});const old=(await pool.query("SELECT id,member_id FROM activity_reward_claim WHERE state='cancelled' ORDER BY created_at LIMIT 1")).rows[0];expect(old).toBeTruthy();const historical=await rewards.management(operator.memberId,{memberId:old.member_id,claimId:old.id});expect(historical.claims.map(c=>c.id)).toEqual([old.id]);});
+
+it('reconciles available coupons, consumed travel awards and owned source links in member administration',async()=>{
+ await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'member.profile.read','fixture','member reward reconciliation','test','integration_fixture')",[operator.memberId]);
+ const x=await ready(),claimed=await claim(x);await rewards.operate(operator.memberId,claimed.id,key(),'ship',{expectedVersion:1,carrierName:'隔离承运商',trackingNumber:'MEMBERTEST1234'});await rewards.operate(x.p.memberId,claimed.id,key(),'receive',{expectedVersion:2});
+ const admin=new MemberAdministration(pool,config),own=await rewards.mine(x.p.memberId),member=await admin.overview(operator.memberId,x.p.memberId);
+ expect(member.member.rewards).toEqual({availableCoupons:1,unclaimedRewards:0});
+ const records:any=await admin.section(operator.memberId,x.p.memberId,'vouchers');
+ expect(records.items.find((r:any)=>r.kind==='purchase_coupon')).toMatchObject({id:own.coupons[0]!.id,state:'available',amount:2000,threshold:19800});
+ expect(records.items.find((r:any)=>r.kind==='travel_claim')).toMatchObject({id:claimed.id,state:'received',source:{kind:'reward_claim',id:claimed.id}});
+ expect(records.items.find((r:any)=>r.kind==='travel_voucher')).toMatchObject({id:x.v,state:'used',source:{kind:'reward_voucher',id:x.v}});
+ const foreign=await person();expect((await admin.section(operator.memberId,foreign.memberId,'vouchers') as any).items).toHaveLength(0);
+ const expired=await person();await issue(expired,new Date(Date.now()-31*86400000));
+ expect((await admin.overview(operator.memberId,expired.memberId)).member.rewards).toEqual({availableCoupons:0,unclaimedRewards:0});
+ expect((await admin.section(operator.memberId,expired.memberId,'vouchers') as any).items[0].state).toBe('expired');
+});

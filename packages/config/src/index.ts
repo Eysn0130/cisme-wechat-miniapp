@@ -13,6 +13,7 @@ export function migrationReadOnly(env: NodeJS.ProcessEnv = process.env): boolean
 
 export interface AppConfig {
   env: AppEnvironment;
+  memberAdministrationRootId?: string | null;
   port: number;
   databaseUrl: string;
   allowDevAdapters: boolean;
@@ -331,8 +332,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     || (fulfillment.authorizationFile&&(!fulfillment.authorizationFile.startsWith('/')||fulfillment.authorizationFile.includes('\0')))))
     throw new Error('FAIL_CLOSED:FULFILLMENT_BINDING_OR_VAULT_INVALID');
 
+  const memberAdministrationRootId=env.MEMBER_ADMINISTRATION_ROOT_MEMBER_ID?.trim()||null;
+  if(memberAdministrationRootId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(memberAdministrationRootId))throw new Error('CONFIG_INVALID:MEMBER_ADMINISTRATION_ROOT_MEMBER_ID');
   return {
     env: appEnv,
+    memberAdministrationRootId:memberAdministrationRootId?.toLowerCase()??null,
     port: Number(env.PORT ?? 3100),
     databaseUrl: required("DATABASE_URL", env.DATABASE_URL),
     allowDevAdapters,

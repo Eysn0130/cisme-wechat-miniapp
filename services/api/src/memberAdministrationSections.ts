@@ -7,6 +7,7 @@ import {openPointsNote} from './memberPointsClub.js';
 import {careDayRewards} from './careUsageRewards.js';
 import {sharingOrderProjection,sharingOrderView,officerView,officerPolicyView,currentSharingPolicySql} from './sharingOfficer.js';
 import {commissionOrderBuckets} from './commissionPolicy.js';
+import {DeliveryAddressService} from './deliveryAddress.js';
 type Row=Record<string,any>;
 const names:Record<string,string>={net_run:'净润洗发水',net_xie:'净屑洗发水',essence:'护理精华'};
 function required(value:boolean){if(!value)userFail('CAPABILITY_REQUIRED','当前账号没有此分类的查看权限',403);}
@@ -15,13 +16,14 @@ export async function memberAdministrationSection(service:MemberAdministration,c
  if(section==='profile')return {section,data:await service.profile(c,target,scope)};
  const permission:Record<string,boolean>={addresses:scope.contact,care:scope.care,points:scope.points,vouchers:scope.rewards||scope.points,orders:scope.orders,aftersales:scope.orders,sharing:scope.sharing,'sharing-orders':scope.commission,settlements:scope.commission,posts:true,comments:true,support:scope.support,privacy:scope.privacy,logs:true};required(permission[section]===true);
  if(section==='addresses'){
-  const rows=(await c.query('SELECT id,label,is_default,created_at,updated_at FROM member_delivery_address WHERE member_id=$1 AND deleted_at IS NULL ORDER BY is_default DESC,updated_at DESC,id',[target])).rows;
-  return {section,items:rows.map(r=>({id:r.id,kind:'address',title:({home:'家庭地址',company:'公司地址',other:'其他地址'} as Row)[r.label],isDefault:r.is_default,occurredAt:r.updated_at,source:{kind:'address',id:r.id}})),nextCursor:null};
+  const rows=await new DeliveryAddressService(service.pool,service.config).administrationAddresses(c,target);
+  await service.audit(c,actor,target,'member.admin.contact.view',{reason:'用户管理查看地址',fields:rows.length?['address']:[],addressIds:rows.map(r=>r.id)});
+  return {section,items:rows.map(r=>({id:r.id,kind:'address',title:({home:'家庭地址',company:'公司地址',other:'其他地址'} as Row)[r.label],isDefault:r.isDefault,occurredAt:r.updatedAt,body:[r.address.recipientName+' · '+r.address.phone,[r.address.province,r.address.city,r.address.district,r.address.detail].filter(Boolean).join(' ')].join('\n'),source:{kind:'address',id:r.id}})),nextCursor:null};
  }
  if(section==='sharing'){
   const officer=(await c.query('SELECT * FROM sharing_officer WHERE member_id=$1',[target])).rows[0],policy=(await c.query(currentSharingPolicySql)).rows[0];
   const relation=(await c.query(`SELECT r.source,r.version,r.effective_at,r.expires_at,o.referral_code,o.state FROM sharing_customer_relation r
-   JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1`,[target])).rows[0];
+   JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1 AND (r.expires_at IS NULL OR r.expires_at>now())`,[target])).rows[0];
   const orders=scope.commission?(await c.query(`${sharingOrderProjection} WHERE s.program='sharing_officer' AND s.referrer_member_id=$1`,[target])).rows:[];
   const buckets=commissionOrderBuckets(orders.map(r=>({accruedCents:userNumber(r.accrued),reversedCents:userNumber(r.reversed),releasedCents:userNumber(r.released),paidCents:userNumber(r.paid),heldCents:userNumber(r.held)})));
   const paid=scope.commission?(await c.query("SELECT COALESCE(sum(tax_cents),0)::text AS tax,COALESCE(sum(net_cents),0)::text AS net FROM sharing_settlement_line WHERE member_id=$1 AND state='paid'",[target])).rows[0]:{tax:0,net:0};
@@ -91,16 +93,22 @@ export async function memberAdministrationSection(service:MemberAdministration,c
   sql=`SELECT x.* FROM(SELECT p.id,p.created_at AS at,p.created_at::text AS cursor_at,p.kind,p.scope_code,p.status,p.message,p.response,p.version FROM privacy_request p WHERE p.member_id=$1)x WHERE ${bound} ORDER BY x.at DESC,x.id DESC LIMIT $4`;
   map=r=>({id:r.id,kind:'privacy',title:({access:'查阅资料',export:'资料副本',correct:'更正资料',delete:'删除或注销',withdraw:'撤回授权'} as Row)[r.kind]||r.kind,state:r.status,body:r.message,reply:r.response,scopeCode:r.scope_code,occurredAt:r.at,source:{kind:'privacy',id:r.id}});
  }else if(section==='logs'){
-  // Object ownership, never the subject acting as an administrator on somebody else.
-  sql=`SELECT x.* FROM(SELECT a.id,a.created_at AS at,a.created_at::text AS cursor_at,a.action,a.reason_code,
-   COALESCE((SELECT m.display_name FROM member m WHERE 'member:'||m.id::text=a.principal_id),'系统或运营人员') AS actor
-   FROM audit_log a WHERE (a.object_type='member' AND a.object_id=$1
-    OR ${scope.orders?'true':'false'} AND a.object_type IN ('commerce_order','order') AND EXISTS(SELECT 1 FROM commerce_order o WHERE o.id=a.object_id AND o.member_id=$1)
-    OR ${scope.support?'true':'false'} AND a.object_type='support_conversation' AND EXISTS(SELECT 1 FROM support_conversation sc WHERE sc.id=a.object_id AND sc.member_id=$1))
-   AND (${scope.contact?'true':'false'} OR a.action<>'member.admin.contact.view')
-   AND (${scope.care?'true':'false'} OR a.after_state->>'section' IS DISTINCT FROM 'care'))x WHERE ${bound} ORDER BY x.at DESC,x.id DESC LIMIT $4`;
-  map=r=>({id:r.id,kind:'audit',title:r.action,actor:r.actor,occurredAt:r.at,reasonCode:/^[A-Z_]+$/.test(r.reason_code??'')?r.reason_code:null});
+  sql=`SELECT x.* FROM(SELECT a.id,a.created_at AS at,a.created_at::text AS cursor_at,a.action,a.reason_code,NULL::text AS care_day
+   FROM audit_log a WHERE a.principal_id='member:'||$1::uuid::text
+   AND a.action NOT LIKE 'member.admin.%' AND a.object_type<>'care_cycle'
+   AND a.action !~ '^(catalog[.]|commission[.]|points_action[.]|tester_enrollment[.]|emergency_switch[.]|worker_failure[.]|support[.](assign|reply|purge)|sharing[.](policy|officer_state|review_line|record_payment|record_recovery|prepare_month|void_line))'
+   AND (${scope.care?'true':'false'} OR (a.object_type NOT IN ('care_cycle','member_care_profile','member_points_checkin') AND a.action !~ '^(care_|care[.]|member[.]care)'))
+   AND (${scope.orders?'true':'false'} OR a.action !~ '^(commerce[.]|order[.])')
+   AND (${scope.support?'true':'false'} OR a.action NOT LIKE 'support.%')
+   AND (a.object_type NOT IN ('commerce_order','order') OR EXISTS(SELECT 1 FROM commerce_order o WHERE o.id=a.object_id AND o.member_id=$1))
+   AND (a.object_type<>'support_conversation' OR EXISTS(SELECT 1 FROM support_conversation sc WHERE sc.id=a.object_id AND sc.member_id=$1))
+   UNION ALL SELECT overlay(overlay(md5('care-command:'||cmd.member_id::text||':'||cmd.operation_id) placing '3' from 13 for 1) placing '8' from 17 for 1)::uuid,cmd.created_at,cmd.created_at::text,'care.usage.save',NULL::text,k.care_day::text
+   FROM member_points_command cmd JOIN member_points_checkin k ON k.id=cmd.source_id AND k.member_id=cmd.member_id
+   WHERE ${scope.care?'true':'false'} AND cmd.member_id=$1 AND cmd.action='checkin')x
+   WHERE ${bound} ORDER BY x.at DESC,x.id DESC LIMIT $4`;
+  map=r=>({id:r.id,kind:'audit',title:r.action,occurredAt:r.at,reasonCode:/^[A-Z_]+$/.test(r.reason_code??'')?r.reason_code:null,...(r.care_day?{source:{kind:'care',day:r.care_day}}:{})});
  }
+
  const rows=(await c.query(sql,args)).rows,items=rows.slice(0,limit).map(map);
  if(section==='care'&&scope.points){const rewards=await careDayRewards(c,target,items.map(r=>r.day));for(const item of items)item.rewards=rewards.get(item.day);}
  const page=finishPage(rows.map(r=>({id:r.id,cursorAt:r.cursor_at})),limit,key);

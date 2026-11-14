@@ -4,7 +4,7 @@ import type {Capability} from '@cisme/contracts';
 import {createHash,randomUUID} from 'node:crypto';
 import {AuthorityService,requireActiveMemberWithClient} from './authority.js';
 import {transaction,type DbClient} from './db.js';
-import {userProjectionSql} from './memberAdministrationSql.js';
+import {userProjectionSql,userCountSql} from './memberAdministrationSql.js';
 import {userInput,userQuery,userQueryAccess,userId,userPhoneHash,userCursorScope,userCursor,userNext,userNumber,userReason,userFail,type UserScope,type UserQuery} from './memberAdministrationPolicy.js';
 import {DeliveryAddressService} from './deliveryAddress.js';
 import {openContact} from './privacyPortableData.js';
@@ -21,7 +21,8 @@ export class MemberAdministration{
   const clock=(await c.query<{at:Date}>('SELECT clock_timestamp() AS at')).rows[0]!.at;
   const caps=grants.filter(g=>g.expires_at===null||g.expires_at>clock).map(r=>r.capability);
   if(!caps.includes('member.profile.read'))userFail('CAPABILITY_REQUIRED','当前账号没有用户管理权限',403);
-  const has=(cap:Capability)=>caps.includes(cap),scope:UserScope={profile:true,contact:has('member.contact.read'),care:has('member.care.read'),orders:has('commerce.order.read'),points:has('commerce.money.reconcile'),rewards:has('commerce.fulfillment.manage')||has('commerce.product.manage')&&has('member.manage'),sharing:has('commission.read')||has('member.manage')||has('commission.settlement.approve'),commission:has('commission.read')||has('commission.settlement.approve'),finance:has('commission.settlement.approve'),support:has('support.read'),privacy:has('privacy.request.manage'),moderate:has('community.moderate')||has('editorial.manage'),manage:has('member.manage'),export:has('member.export')};
+  const isRoot=this.config.memberAdministrationRootId===actor&&caps.includes('member.manage')&&(!this.canonicalOnly()||Boolean((await c.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='wechat_miniprogram' AND adapter='wechat' AND app_id='wx4eac2d4fb11d299b'",[actor])).rowCount));
+  const has=(cap:Capability)=>caps.includes(cap),scope:UserScope={profile:true,contact:has('member.contact.read'),care:has('member.care.read'),orders:has('commerce.order.read'),points:has('commerce.money.reconcile'),rewards:has('commerce.fulfillment.manage')||has('commerce.product.manage')&&has('member.manage'),issueRewards:has('commerce.product.manage')&&has('member.manage'),administrators:isRoot,sharing:has('commission.read')||has('member.manage')||has('commission.settlement.approve'),commission:has('commission.read')||has('commission.settlement.approve'),finance:has('commission.settlement.approve'),support:has('support.read'),privacy:has('privacy.request.manage'),moderate:has('community.moderate')||has('editorial.manage'),manage:has('member.manage'),export:has('member.export')};
   // All currently granted scopes remain locked until projection and audit commit.
   return {actor,scope,caps};
  }
@@ -30,7 +31,7 @@ export class MemberAdministration{
  row(r:Row,s:UserScope){
   const unlock=userNumber(r.unlock_frozen),expired=userNumber(r.expired_available),expiredFrozen=userNumber(r.expired_frozen),base=userNumber(r.points_available)-expired+unlock,
    offset=unlock>0?Math.min(userNumber(r.points_debt),Math.max(0,base)):0;
-  return {id:r.id,displayName:r.display_name,cardNumber:r.card_number?`No. ${r.card_number.padStart(5,'0')}`:null,avatar:r.avatar_data_url??null,avatarRevision:r.avatar_revision??null,profileVersion:r.profile_revision??0,accountStatus:r.account_status,createdAt:r.created_at,
+  return {id:r.id,displayName:r.display_name,cardNumber:r.card_number?`No. ${r.card_number.padStart(5,'0')}`:null,avatar:r.avatar_data_url??null,avatarRevision:r.avatar_revision??null,profileVersion:r.profile_revision??0,accountStatus:r.account_status,createdAt:r.created_at,administrator:Boolean(r.is_administrator),highestAdministrator:r.id===this.config.memberAdministrationRootId,
    phoneMasked:r.phone_masked??null,onboarding:r.care_erased_at?'erased':r.onboarding_completed_at?'complete':'incomplete',
    points:s.points?{available:Math.max(0,base-offset),frozen:Math.max(0,userNumber(r.points_frozen)-expiredFrozen-unlock),reserved:userNumber(r.points_reserved),debt:Math.max(0,userNumber(r.points_debt)-offset),updatedAt:r.wallet_updated_at??null,projected:unlock+expired+expiredFrozen>0}:null,
    commerce:s.orders?{orderCount:userNumber(r.order_count),paidOrderCount:userNumber(r.paid_count),paidCents:userNumber(r.paid_cents),refundedCents:userNumber(r.refunded_cents),netCents:userNumber(r.paid_cents)-userNumber(r.refunded_cents),openAftersales:userNumber(r.aftersale_count)}:null,
@@ -55,19 +56,24 @@ export class MemberAdministration{
  async list(actorId:string|undefined,input:Record<string,unknown>={}){
   const query=userQuery(input);return transaction(this.pool,async c=>{
    const {actor,scope}=await this.context(c,actorId);userQueryAccess(query,scope);
-   const now=new Date(),args:unknown[]=[now],where=this.search(query,scope,args),base=userProjectionSql(scope,this.canonicalOnly()),key=userCursorScope(actor,query,scope),cursor=userCursor(query.cursor,key,query.sort),sort=this.sort(query),order=query.direction==='asc'?'ASC':'DESC';
+   const now=new Date(),args:unknown[]=[now],where=this.search(query,scope,args),base=userProjectionSql(scope,this.canonicalOnly(),this.config.env),key=userCursorScope(actor,query,scope),cursor=userCursor(query.cursor,key,query.sort),sort=this.sort(query),order=query.direction==='asc'?'ASC':'DESC';
    const totalArgs=[...args],boundary=cursor?`AND (${sort},u.id)${order==='ASC'?'>':'<'}($${args.push(cursor.value)}::${['registered','recent'].includes(query.sort)?'timestamptz':'bigint'},$${args.push(cursor.id)}::uuid)`:'';
    args.push(query.limit+1);
    const rows=(await c.query(`WITH u AS(${base}) SELECT u.*,(${sort})::text AS sort_value FROM u WHERE ${where} ${boundary} ORDER BY ${sort} ${order},u.id ${order} LIMIT $${args.length}`,args)).rows;
-   const count=(await c.query(`WITH u AS(${base}) SELECT count(*)::int AS count FROM u WHERE ${where}`,totalArgs)).rows[0].count;
+   const count=(await c.query(`WITH u AS(${userCountSql(scope,this.canonicalOnly())}) SELECT count(*)::int AS count FROM u WHERE ${where}`,totalArgs)).rows[0].count;
    const page=rows.slice(0,query.limit),last=page.at(-1);await this.audit(c,actor,null,'member.admin.list',{view:query.view,resultCount:page.length,searchUsed:Boolean(query.q),phoneSearch:Boolean(userPhoneHash(query.q,this.config,scope))});
    return {scope,query:{...query,cursor:undefined,q:query.q},items:page.map(r=>this.row(r,scope)),total:count,nextCursor:rows.length>query.limit&&last?userNext(key,last.sort_value,last.id):null,asOf:now};
   },'REPEATABLE READ');
  }
- async target(c:DbClient,target:string,scope:UserScope){const r=(await c.query(`WITH u AS(${userProjectionSql(scope,this.canonicalOnly())})SELECT * FROM u WHERE id=$2`,[new Date(),userId(target)])).rows[0];if(!r)userFail('MEMBER_NOT_FOUND','会员不存在或已注销',404);return this.row(r,scope);}
+ async target(c:DbClient,target:string,scope:UserScope){const r=(await c.query(`WITH u AS(${userProjectionSql(scope,this.canonicalOnly(),this.config.env)})SELECT * FROM u WHERE id=$2`,[new Date(),userId(target)])).rows[0];if(!r)userFail('MEMBER_NOT_FOUND','会员不存在或已注销',404);return this.row(r,scope);}
  async overview(actorId:string|undefined,target:string){return transaction(this.pool,async c=>{const{actor,scope}=await this.context(c,actorId),member=await this.target(c,target,scope);
-  await this.audit(c,actor,member.id,'member.admin.view');return {member,scope};
+  const contact=scope.contact?{phone:await this.readPhone(c,actor,member.id,'用户管理查看手机号')}:undefined;
+  await this.audit(c,actor,member.id,'member.admin.view');return {member,scope,...(contact?{contact}:{})};
  },'REPEATABLE READ');}
+ private async readPhone(c:DbClient,actor:string,target:string,reason:string){
+  const row=(await c.query('SELECT phone_encrypted,key_version FROM member_contact WHERE member_id=$1',[target])).rows[0],phone=openContact(this.config,target,row);
+  await this.audit(c,actor,target,'member.admin.contact.view',{reason,fields:phone?['phone']:[]});return phone;
+ }
  async profile(c:DbClient,target:string,scope:UserScope){
   const base=(await c.query(`SELECT mp.wechat_handle,mp.completed_at,mp.updated_at,mp.profile_revision,b.birthday_month_day,c.bound_at,
    cp.erased_at,cp.version AS care_version FROM member m LEFT JOIN member_profile mp ON mp.member_id=m.id LEFT JOIN member_points_profile b ON b.member_id=m.id
@@ -84,22 +90,21 @@ export class MemberAdministration{
   const{actor,scope,caps}=await this.context(c,actorId);await this.target(c,target,scope);
   const result=await memberAdministrationSection(this,c,actor,target,section,input,scope,caps);await this.audit(c,actor,target,'member.admin.section',{section,purpose:section==='care'||section==='profile'&&scope.care?'care_profile_and_sample_selection':undefined});return result;
  },'REPEATABLE READ');}
- async contact(actorId:string|undefined,targetInput:string,input:Record<string,unknown>={}){input=userInput(input,['kind','addressId','reason']);const target=userId(targetInput),reason=userReason(input.reason);return transaction(this.pool,async c=>{
+ async contact(actorId:string|undefined,targetInput:string,input:Record<string,unknown>={}){input=userInput(input,['kind','addressId','reason']);const target=userId(targetInput),reason=userReason(input.reason??'用户管理查看联系资料');return transaction(this.pool,async c=>{
   const{actor,scope}=await this.context(c,actorId);if(!scope.contact)userFail('CAPABILITY_REQUIRED','当前账号没有联系资料查看权限',403);await this.target(c,target,scope);
   if(input.kind==='address'){
    const address=await new DeliveryAddressService(this.pool,this.config).administrationAddress(c,target,userId(input.addressId));
    await this.audit(c,actor,target,'member.admin.contact.view',{reason,fields:['address'],addressId:input.addressId});return {address,expiresInSeconds:60};
   }
   if(input.kind!==undefined&&input.kind!=='phone')userFail('USER_CONTACT_KIND_INVALID','联系资料分类无效');
-  const row=(await c.query('SELECT phone_encrypted,key_version FROM member_contact WHERE member_id=$1',[target])).rows[0];const phone=openContact(this.config,target,row);
-  await this.audit(c,actor,target,'member.admin.contact.view',{reason,fields:phone?['phone']:[]});return {phone,expiresInSeconds:60};
+  const phone=await this.readPhone(c,actor,target,reason);return {phone,expiresInSeconds:60};
  });}
  async export(actorId:string|undefined,input:Record<string,unknown>={}){
   input=userInput(input,['query','ids']);const query=userQuery((input.query===undefined?{}:input.query) as Record<string,unknown>);let ids:string[]|null=null;
   if(input.ids!==undefined){if(!Array.isArray(input.ids)||!input.ids.length||input.ids.length>500)userFail('USER_EXPORT_SELECTION_INVALID','请核对所选用户');ids=[...new Set(input.ids.map(userId))];}
   return transaction(this.pool,async c=>{const{actor,scope}=await this.context(c,actorId);if(!scope.export)userFail('CAPABILITY_REQUIRED','当前账号没有用户导出权限',403);userQueryAccess(query,scope);
    const args:unknown[]=[new Date()],where=this.search(query,scope,args),selection=ids?`AND u.id=ANY($${args.push(ids)}::uuid[])`:'';
-   const rows=(await c.query(`WITH u AS(${userProjectionSql(scope,this.canonicalOnly())})SELECT * FROM u WHERE ${where} ${selection} ORDER BY ${this.sort(query)} ${query.direction==='asc'?'ASC':'DESC'},u.id LIMIT 10001`,args)).rows;
+   const rows=(await c.query(`WITH u AS(${userProjectionSql(scope,this.canonicalOnly(),this.config.env)})SELECT * FROM u WHERE ${where} ${selection} ORDER BY ${this.sort(query)} ${query.direction==='asc'?'ASC':'DESC'},u.id LIMIT 10001`,args)).rows;
    if(rows.length>10000)userFail('USER_EXPORT_TOO_LARGE','结果较多，请缩小筛选后导出；没有导出部分结果');if(ids&&rows.length!==ids.length)userFail('USER_EXPORT_SELECTION_CHANGED','所选用户已变化，请刷新后重新选择',409);
    const heads=['会员编号','昵称','账号状态','建档状态','注册时间',...(scope.orders?['已付订单','实付金额','退款金额']:[]),...(scope.points?['可用积分','冻结积分','订单预占']:[]),...(scope.care?['护理天数','当前连续天数']:[]),...(scope.rewards?['可用正装券','待领取活动奖励']:[]),...(scope.sharing?['分享官状态','分享官编号']:[])];
    const data=rows.map(r=>{const m=this.row(r,scope);return [m.cardNumber??'',m.displayName,m.accountStatus,m.onboarding,new Date(m.createdAt).toISOString(),...(m.commerce?[m.commerce.paidOrderCount,(m.commerce.paidCents/100).toFixed(2),(m.commerce.refundedCents/100).toFixed(2)]:[]),...(m.points?[m.points.available,m.points.frozen,m.points.reserved]:[]),...(scope.care?[m.activity.careDays,m.activity.streak]:[]),...(m.rewards?[m.rewards.availableCoupons,m.rewards.unclaimedRewards]:[]),...(m.sharing?[m.sharing.state,m.sharing.code??'']:[])];});

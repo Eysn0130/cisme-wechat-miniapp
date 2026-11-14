@@ -2,12 +2,12 @@ import {localMemberAvatar} from '../../services/member-avatar';
 import {request} from '../../services/api';
 import {cancelPageReads,pageRead} from '../../services/page-requests';
 import {commerceContextRevision} from '../../services/commerce-command-store';
-export type UserScope={profile:boolean;contact:boolean;care:boolean;orders:boolean;points:boolean;rewards:boolean;sharing:boolean;commission:boolean;finance:boolean;support:boolean;privacy:boolean;moderate:boolean;manage:boolean;export:boolean};
-export type UserRow={id:string;displayName:string;cardNumber:string|null;avatar:string|null;avatarRevision?:string|null;accountStatus:string;onboarding:string;createdAt:string;phoneMasked:string|null;points:any;commerce:any;activity:any;rewards:any;sharing:any};
+export type UserScope={profile:boolean;contact:boolean;care:boolean;orders:boolean;points:boolean;rewards:boolean;issueRewards:boolean;administrators:boolean;sharing:boolean;commission:boolean;finance:boolean;support:boolean;privacy:boolean;moderate:boolean;manage:boolean;export:boolean};
+export type UserRow={id:string;displayName:string;cardNumber:string|null;avatar:string|null;avatarRevision?:string|null;administrator?:boolean;highestAdministrator?:boolean;accountStatus:string;onboarding:string;createdAt:string;phoneMasked:string|null;points:any;commerce:any;activity:any;rewards:any;sharing:any};
 export type UserQuery={q:string;view:string;account:string;onboarding:string;officer:string;sort:string;direction:string};
 export const initialQuery:UserQuery={q:'',view:'profile',account:'all',onboarding:'all',officer:'all',sort:'registered',direction:'desc'};
 export const views=[{id:'profile',label:'资料'},{id:'commerce',label:'消费'},{id:'activity',label:'活跃'},{id:'assets',label:'权益'},{id:'sharing',label:'分享官'}];
-export const labels:Record<string,string>={active:'正常',blocked:'已停用',complete:'已建档',incomplete:'待建档',erased:'已撤回',none:'未申请',pending:'待审核',rejected:'未通过',suspended:'已暂停',terminated:'已终止',unused:'待领取',available:'可用',reserved:'已预占',used:'已使用',claimed:'已领取',expired:'已过期',revoked:'已撤销',pending_payment:'待付款',paid:'已付款',cancelled:'已取消',refunded:'已退款',shipped:'已发货',received:'已收货',awaiting_dispatch:'待发货',requested:'已申请',need_info:'待补充',awaiting_return:'待退货',return_in_transit:'退货中',return_received:'退货已收',quality_checked:'已检验',refund_pending:'退款中',prepared:'待审核',reviewed:'待付款',void:'已作废',voided:'已作废',placed:'待发货',return_requested:'退货处理中',returned:'已退回',aftersale_requested:'售后中',waiting_human:'待人工接入',human_waiting:'待接入',human_assigned:'人工接待',published:'已发布',open:'处理中',waiting:'待接入',human_active:'人工接待',resolved:'已解决',closed:'已结束',submitted:'已提交',processing:'处理中',completed:'已完成',withdrawn:'已撤回'};
+export const labels:Record<string,string>={active:'正常',blocked:'已停用',complete:'已建档',incomplete:'待建档',erased:'已撤回',none:'未申请',pending:'待审核',rejected:'未通过',suspended:'已暂停',terminated:'已终止',unused:'待领取',available:'可用',reserved:'已预占',locked:'订单占用',used:'已使用',claimed:'已领取',expired:'已过期',revoked:'已撤销',pending_payment:'待付款',paid:'已付款',cancelled:'已取消',refunded:'已退款',shipped:'已发货',received:'已收货',awaiting_dispatch:'待发货',requested:'已申请',need_info:'待补充',awaiting_return:'待退货',return_in_transit:'退货中',return_received:'退货已收',quality_checked:'已检验',refund_pending:'退款中',prepared:'待审核',reviewed:'待付款',void:'已作废',voided:'已作废',placed:'待发货',return_requested:'退货处理中',returned:'已退回',aftersale_requested:'售后中',waiting_human:'待人工接入',human_waiting:'待接入',human_assigned:'人工接待',published:'已发布',open:'处理中',waiting:'待接入',human_active:'人工接待',resolved:'已解决',closed:'已结束',submitted:'已提交',processing:'处理中',completed:'已完成',withdrawn:'已撤回'};
 export const number=(v:unknown)=>Number(v??0).toLocaleString('en-US');
 export const money=(v:unknown)=>v==null?'—':'¥'+(Number(v)/100).toFixed(2);
 export function date(value:unknown,short=false){if(!value)return '—';const d=new Date(String(value));if(!Number.isFinite(d.getTime()))return '—';return new Date(d.getTime()+8*3600_000).toISOString().replace('T',' ').slice(short?5:0,short?16:16);}
@@ -31,7 +31,7 @@ export const sections=[{id:'orders',label:'订单',scope:'orders'},{id:'aftersal
 export function allowedSections(s:UserScope){return sections.filter(v=>v.scope==='rewardsOrPoints'?s.rewards||s.points:v.scope==='sharingOrFinance'?s.sharing||s.finance:s[v.scope as keyof UserScope]);}
 const pointTitles:Record<string,string>={daily:'今日护理',note:'护理感受',streak7:'连续7天',streak30:'连续30天',grant_available:'获得积分',grant_frozen:'积分冻结',unfreeze:'积分解冻',debt_created:'待抵扣积分',questionnaire:'首次建档',care_day:'今日护理',care_note:'护理感受',care_streak:'连续护理',shopping:'购物奖励',first_order:'首单奖励',signup:'注册奖励',spend:'积分使用',reserve:'订单预占',release:'预占释放',expire:'积分到期',reversal:'积分退回',issue:'获得积分',grant:'获得积分',debt_offset:'抵扣待冲积分'};
 export function recordView(r:any){let title=r.title,amount='',meta=[r.number,date(r.occurredAt)].filter(Boolean).join(' · '),details=[] as string[];
- if(r.kind==='audit'){const names:Record<string,string>={'member.admin.view':'查看用户','member.admin.list':'检索用户','member.admin.section':'查看业务记录','member.admin.contact.view':'查看联系资料','member.admin.export':'导出用户表格'};title=names[r.title]||(/^sharing/.test(r.title)?'分享官业务操作':/^commerce|^order/.test(r.title)?'订单操作':/^support/.test(r.title)?'客服操作':/^privacy/.test(r.title)?'资料权利处理':'操作记录');}
+ if(r.kind==='audit'){const names:Record<string,string>={'member.profile_updated':'更新个人资料','care.usage.save':'保存护理记录','consent.accept':'同意服务条款','consent.revoke':'撤回授权','care.profile.save':'更新护理档案','care.profile.complete':'完成首次建档','care_profile.save':'更新护理档案','care_profile.complete':'完成首次建档','commerce.quote.create':'确认商品与数量','commerce.order.create':'提交订单','commerce.order.cancel':'取消订单','reward.quote':'选择洗护套','reward.claim':'领取活动奖励','reward.receive':'确认奖励收货','reward.cancel':'取消奖励领取','sharing.apply':'申请分享官','sharing.bind_visit':'确认推荐关系','sharing.change_referrer':'更换推荐人'};title=names[r.title]||(/^care/.test(r.title)?'更新护理记录':/^sharing/.test(r.title)?'更新分享官资料':/^commerce|^order/.test(r.title)?'订单操作':/^support/.test(r.title)?'联系客服':/^ugc|^editorial|^community/.test(r.title)?'社区互动':/^privacy/.test(r.title)?'资料权利申请':'账号操作');}
  else if(r.kind==='points'){title=pointTitles[r.title]||pointTitles[r.component]||pointTitles[r.state]||'积分变动';const sum=(r.changes.available||0)+(r.changes.frozen||0)+(r.changes.reserved||0);amount=sum?(sum>0?'+':'')+number(sum):'';details=Object.entries(r.changes).filter(([,v])=>Number(v)!==0).map(([k,v])=>({available:'可用',frozen:'冻结',reserved:'预占',debt:'待抵扣',used:'已用',expired:'到期'} as Record<string,string>)[k]+' '+(Number(v)>0?'+':'')+number(v));}
  else if(r.kind==='care'){meta=r.day+' · '+date(r.updatedAt,true);amount=r.rewards?`${Math.max(0,r.rewards.pointsGranted-r.rewards.pointsReversed-r.rewards.debtOffset)} 分`:'';}
  else if(r.kind==='settlement'){amount=money(r.netCents);details=['税前 '+money(r.grossCents),'扣税 '+money(r.taxCents)];}
@@ -54,3 +54,15 @@ export async function userSearch<T=any>(owner:object,q:UserQuery,cursor?:string|
 
 /** Use the existing native JPEG cache; never put authenticated Base64 images in setData. */
 export function prepareUserRows(rows:UserRow[]):Promise<UserRow[]>{return Promise.all(rows.map(async r=>({...r,avatar:await localMemberAvatar(r.avatar,r.avatarRevision)})));}
+
+/** Permission dependencies are supplied by the authorized server editor. */
+export function administratorSelection(groups:any[],values:string[],removed?:string){
+ const permissions=groups.flatMap(g=>g.items),selected=new Set(values);
+ for(let n=0;n<permissions.length;n++){
+  let changed=false;
+  if(removed){for(const p of permissions)if(selected.has(p.capability)&&(p.requires??[]).some((cap:string)=>cap===removed||!selected.has(cap))){selected.delete(p.capability);changed=true;}}
+  else for(const p of permissions)if(selected.has(p.capability))for(const cap of p.requires??[])if(!selected.has(cap)){selected.add(cap);changed=true;}
+  if(!changed)break;
+ }
+ return [...selected].sort();
+}

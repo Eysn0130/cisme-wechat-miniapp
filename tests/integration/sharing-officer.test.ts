@@ -11,6 +11,7 @@ import {VerifiedPaymentInbox} from '../../services/api/src/verifiedPaymentInbox'
 import {VerifiedRefundInbox} from '../../services/api/src/verifiedRefundInbox';
 import {SharingOfficerAssets} from '../../services/api/src/sharingOfficerAssets';
 import {collectSharingPortableData} from '../../services/api/src/sharingOfficerPrivacy';
+import {MemberAdministration} from '../../services/api/src/memberAdministration';
 import type {FastifyInstance} from 'fastify';
 const pool=testPool(),appId='wx-sharing-synthetic',merchantId='sharing-synthetic-merchant',apiV3Key=randomBytes(16).toString('hex');
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'sharing-test-session',ADMIN_API_TOKEN:'sharing-test-admin',UPLOAD_TOKEN_SECRET:'sharing-test-upload',OBJECT_STORAGE_DRIVER:'api_gateway',CONTACT_ENCRYPTION_KEY:randomBytes(32).toString('hex')});
@@ -213,4 +214,19 @@ it('redacts a former finance operator’s command receipt and refuses replay aft
  await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture',revoke_reason='合成撤权测试' WHERE member_id=$1 AND capability='commission.settlement.approve'",[manager.memberId]);
  expect(await service.commandStatus(manager.memberId,'sharing-payment-exact-replay')).toEqual({state:'completed',redacted:true});
  const denied=await command(manager,'record_payment',{},true,'sharing-payment-exact-replay');expect(denied.statusCode).toBe(403);
+});
+
+it('shows the same verified payment, refund, coupon-free order and paid sharing history in member administration',async()=>{
+ for(const cap of ['member.profile.read','commerce.order.read','commerce.money.reconcile'])await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,$2,'fixture','member source reconciliation','test','integration_fixture')",[manager.memberId,cap]);
+ const admin=new MemberAdministration(pool,config),member=await admin.overview(manager.memberId,other.memberId);
+ expect(member.member.commerce).toMatchObject({orderCount:1,paidOrderCount:1,paidCents:9300,refundedCents:8800,netCents:500});
+ const orders:any=await admin.section(manager.memberId,other.memberId,'orders');
+ expect(orders.items).toHaveLength(1);expect(orders.items[0]).toMatchObject({id:historical.id,paidCents:9300,refundedCents:8800,source:{kind:'order',id:historical.id}});
+ const sharing:any=await admin.section(manager.memberId,b.memberId,'sharing');
+ expect(sharing.data.commission).toMatchObject({settledCents:1584,taxCents:84,netCents:1500,outstandingRecoveryCents:0});
+ const promoted:any=await admin.section(manager.memberId,b.memberId,'sharing-orders');
+ expect(promoted.items.find((r:any)=>r.id===historical.id)).toMatchObject({settledCents:1584,outstandingRecoveryCents:0,source:{kind:'order',id:historical.id}});
+ const settlements:any=await admin.section(manager.memberId,b.memberId,'settlements');
+ expect(settlements.items.find((r:any)=>r.id===line.id)).toMatchObject({grossCents:1584,taxCents:84,netCents:1500,state:'paid',source:null});
+ expect(JSON.stringify(settlements)).not.toContain('SYNTHETIC-PAID-');
 });

@@ -6,7 +6,7 @@ export const userViews=['profile','commerce','activity','assets','sharing'] as c
 export const userSections=['profile','addresses','care','points','vouchers','orders','aftersales','sharing','sharing-orders','settlements','posts','comments','support','privacy','logs'] as const;
 export type UserView=typeof userViews[number];
 export type UserSection=typeof userSections[number];
-export type UserScope={profile:true;contact:boolean;care:boolean;orders:boolean;points:boolean;rewards:boolean;sharing:boolean;commission:boolean;finance:boolean;support:boolean;privacy:boolean;moderate:boolean;manage:boolean;export:boolean};
+export type UserScope={profile:true;contact:boolean;care:boolean;orders:boolean;points:boolean;rewards:boolean;issueRewards:boolean;administrators:boolean;sharing:boolean;commission:boolean;finance:boolean;support:boolean;privacy:boolean;moderate:boolean;manage:boolean;export:boolean};
 export type UserQuery={q:string;view:UserView;account:string;onboarding:string;officer:string;sort:string;direction:'asc'|'desc';limit:number;cursor?:string};
 export function userFail(code:string,title:string,status=422):never{throw new DomainError(code,title,status);}
 export function userId(value:unknown){if(typeof value!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))userFail('MEMBER_ID_INVALID','会员编号无效');return value.toLowerCase();}
@@ -32,7 +32,7 @@ export function userPhoneHash(q:string,config:AppConfig,scope:UserScope){
  const key=config.contacts.hashKey;if(!key||!/^[0-9a-f]{64}$/i.test(key))userFail('CONTACT_SEARCH_UNAVAILABLE','手机号查找暂不可用',503);
  return createHmac('sha256',Buffer.from(key,'hex')).update('phone:'+phone).digest('hex');
 }
-export function userCursorScope(actor:string,query:UserQuery,scope:UserScope){const{cursor:_,limit:__,...q}=query;return createHash('sha256').update(JSON.stringify([actor,q,scope])).digest('hex').slice(0,32);}
+export function userCursorScope(actor:string,query:UserQuery,scope:UserScope){const{cursor:_,limit:__,view:___,...q}=query;return createHash('sha256').update(JSON.stringify([actor,q,scope])).digest('hex').slice(0,32);}
 export function userCursor(input:string|undefined,scope:string,sort:string):{value:string;id:string}|null{
  if(!input)return null;try{if(input.length>800||!/^[\w-]+$/.test(input))throw Error();const r=JSON.parse(Buffer.from(input,'base64url').toString('utf8'));if(r.v!==1||r.scope!==scope||typeof r.value!=='string')throw Error();userId(r.id);
  if(['registered','recent'].includes(sort)?!cursorTimestamp(r.value):!/^\d{1,20}$/.test(r.value))throw Error();return {value:r.value,id:r.id};
