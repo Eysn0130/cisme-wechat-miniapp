@@ -1,3 +1,4 @@
+vi.mock('../../apps/miniprogram/services/officer-attribution',()=>({flushOfficerVisits:async()=>{}}));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createQuoteClock } from "../../apps/miniprogram/services/checkout-state";
 import { productEditableRevision } from "../../apps/miniprogram/services/product-draft-state";

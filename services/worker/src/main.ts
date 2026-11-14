@@ -1,3 +1,4 @@
+import {releaseSharingCommissions} from "../../api/src/sharingOfficer.js";
 import { loadConfig } from "@cisme/config";
 import { createPool } from "../../api/src/db.js";
 import { createObjectStorage } from "../../api/src/storage.js";
@@ -37,6 +38,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     error=>console.error('CISME_SHIPPING_WORKER_FAILED',safeFailureFields(error)),5000):null;
   const receiptWorker=shipping?startWorkerLoop(async()=>{await shipping.runReceiptCycle();return false;},
     error=>console.error('CISME_RECEIPT_WATCH_FAILED',safeFailureFields(error)),60_000):null;
+  const sharingWorker=startWorkerLoop(async()=>{await releaseSharingCommissions(pool);return false;},
+    error=>console.error('CISME_SHARING_RELEASE_FAILED',safeFailureFields(error)),60_000);
   let lastHeartbeat=0;
   const heartbeatPath=join(tmpdir(),'cisme-worker-heartbeat.json');
   const recordWorkerCycle=async()=>{
@@ -69,7 +72,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const recoveryWorker=formalProtocol
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>console.error("CISME_FORMAL_RECOVERY_FAILED",safeFailureFields(error))):null;
   const stop = async () => {
-    await Promise.all([shippingWorker?.stop(),receiptWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker.stop()]);
+    await Promise.all([shippingWorker?.stop(),receiptWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),sharingWorker.stop(),worker.stop()]);
     await pool.end();
   };
   process.once("SIGTERM", () => void stop());

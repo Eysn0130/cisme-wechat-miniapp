@@ -22,7 +22,7 @@ export interface AppConfig {
     suppressionBucket: string | null };
   contacts: { encryptionKey: string | null; hashKey: string | null; keyVersion: string };
   supportAi: { enabled: boolean; apiKey: string | null; model: "deepseek-flash"; timeoutMs: number };
-  wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean;
+  wechat: { appId: string | null; appSecret: string | null; phoneBindingEnabled: boolean; sharingEnvironment: "trial" | "release";
     messageToken: string | null; messageAesKey: string | null; plaintextCallbackTestOnly: boolean };
   objectStorage: {
     profile: string | null;
@@ -122,6 +122,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (deepseekApiKey && /[\r\n\0]/.test(deepseekApiKey)) throw new Error("CONFIG_INVALID:DEEPSEEK_API_KEY");
   const supportAiTimeoutMs = integer("SUPPORT_AI_TIMEOUT_MS", env.SUPPORT_AI_TIMEOUT_MS, 4_000, 250, 5_000);
   const appEnv = (env.APP_ENV ?? "development") as AppEnvironment;
+  if(env.WECHAT_SHARE_ENV_VERSION!==undefined&&!['trial','release'].includes(env.WECHAT_SHARE_ENV_VERSION))throw new Error('CONFIG_INVALID:WECHAT_SHARE_ENV_VERSION');
   if (!["development", "test", "staging", "production"].includes(appEnv)) throw new Error("CONFIG_INVALID:APP_ENV");
   const allowDevAdapters = bool(env.ALLOW_DEV_ADAPTERS, appEnv !== "production" && appEnv !== "staging");
   if ((appEnv === "production" || appEnv === "staging") && allowDevAdapters) throw new Error("FAIL_CLOSED:DEV_ADAPTERS_FORBIDDEN");
@@ -341,6 +342,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     contacts: { encryptionKey: env.CONTACT_ENCRYPTION_KEY ?? null, hashKey: env.CONTACT_HASH_KEY ?? null, keyVersion: env.CONTACT_KEY_VERSION || "v1" },
     supportAi: { enabled: supportAiEnabled, apiKey: deepseekApiKey, model: deepseekModel, timeoutMs: supportAiTimeoutMs },
     wechat: { appId: env.WECHAT_APP_ID ?? null, appSecret: env.WECHAT_APP_SECRET ?? null,
+      sharingEnvironment: env.WECHAT_SHARE_ENV_VERSION === "trial" ? "trial" : "release",
       phoneBindingEnabled: bool(env.WECHAT_PHONE_BINDING_ENABLED), messageToken: env.WECHAT_MESSAGE_TOKEN ?? null,
       messageAesKey:env.WECHAT_MESSAGE_AES_KEY??null,plaintextCallbackTestOnly },
     objectStorage: {

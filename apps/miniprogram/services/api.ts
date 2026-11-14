@@ -37,6 +37,7 @@ function normalizedAuthPath(url: string): string {
 }
 
 export function setSessionToken(token: string): void {
+  if(app.globalData.sessionToken&&app.globalData.sessionToken!==token)wx.removeStorageSync("cisme.officer-visits.v1");
   rejectedSession = null;
   for (const release of privateDownloads) release();
   invalidateCommerceRecoveryContext();
@@ -449,6 +450,12 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
 }
 
 /** Temporary private files live only until their caller releases them or identity changes. */
+/** Register an app-owned financial export with the existing session cleanup. */
+export function registerPrivateExport(path:string):()=>void{
+ if(!path.startsWith(`${wx.env.USER_DATA_PATH}/sharing-settlement-`)||!/^sharing-settlement-\d+\.csv$/.test(path.slice(path.lastIndexOf('/')+1)))throw {title:'导出文件路径无效'};
+ const cleanup=()=>{try{wx.getFileSystemManager().unlinkSync(path);}catch{}privateDownloads.delete(cleanup);};
+ privateDownloads.add(cleanup);return cleanup;
+}
 export function downloadPrivateMedia(path: string,allowClosedRights=false): { promise: Promise<string>; abort(): void } {
   const currentToken=()=>app.globalData.sessionToken||(allowClosedRights?app.globalData.privacyRightsToken:'');
   const token = currentToken(), revision = commerceContextRevision();

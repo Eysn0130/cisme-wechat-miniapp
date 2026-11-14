@@ -740,6 +740,15 @@
       "purpose": "Owner-bound one-time full-size coupon; merchant price deduction and optional points remain separate from channel promotions.",
       "authorization": "Canonical owner session, existing explicit management grants and immutable command receipts.",
       "retention": "Existing transaction retention and legal holds; no automatic deletion or third-party disclosure introduced."
+    },
+    {
+      "surface": "sharing_officer_application_and_finance",
+      "informationType": "Canonical applicant identity, reviewed qualification, direct relation events and immutable commission sources; optional encrypted legal name/payment method/account supplied by the member.",
+      "purpose": "Free promotion applications, explicit referrer replacement, direct-order commission and finance-reviewed monthly manual settlement.",
+      "activation": "Applicant submits voluntarily; company grants are checked server-side; bank data is collected only on explicit Save, not during login.",
+      "serverStorage": "Independent experience/formal PostgreSQL; existing versioned AES-GCM contact key with canonical-owner AAD; minimum necessary immutable transaction/payee snapshot evidence retained.",
+      "authorization": "Member owns application/performance; member.manage reviews; commission.rate.manage configures; commission.read reads company performance; commission.settlement.approve alone reads payee, reviews tax, exports or records manual payments. No automatic money transfer.",
+      "retention": "Owner export supports current bank data and reviewed snapshots, without referred buyer PII. Live optional payee is erasable unless unsettled/recoverable commission or legal holds require it. Close account terminates qualification."
     }
   ],
   "runtimeDataEgress": [
@@ -816,10 +825,16 @@
         "dig 仅向 wood.dnspod.net 和 bee.dnspod.net 查询固定 challenge TXT 的传播"
       ],
       "evidence": "docs/evidence/production-runtime-20261013/runtime-readback.json"
+    },
+    {
+      "recipient": "微信接口 api.weixin.qq.com",
+      "data": "Server access-token credentials; published product path, opaque 32-character sharing-link scene and configured trial/release environment only. No bank account, legal name, referred buyer identity or commission amount.",
+      "purpose": "Official getwxacodeunlimit and generate_urllink; same multi-user URL expires after 28 days, separate from permanent customer ownership.",
+      "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "6a13ffc0437e6fc7f83e56040156d1984e0b27c586e3146f0abdbe8dedbfbae4",
-  "egressSignatureSha256": "e97c111fd430a9c6554f6aab9ca50f60eb184320a27aeca01534b8f24ab29195",
+  "migrationSetSha256": "b8966c27a41bc096ece761878d7925335ed891f1f023d1255fefc25ac1fce643",
+  "egressSignatureSha256": "33ae2eff1e443c0d7056b43be6497d2ec5e206f85fb712125173e3e2571d0e9c",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -1420,5 +1435,28 @@
     "data": "Award/batch IDs, canonical owner ID, entitlement status, immutable bundle capacities, questionnaire record version only, encrypted address/tracking, explicit receipt and coupon/order links.",
     "recipients": "Existing first-party API and local owner-requested XLSX viewer only; no new model, payment or tracking provider.",
     "releaseScope": "Only awarded members, one voucher globally per member ID; 30 days, mainland free shipping, 72-hour dispatch. No actual award or stock configuration is seeded."
+  },
+  "sharingOfficerReview20261113": {
+    "source": "分享官功能需求_MVP_2026.11.14.docx; Owner cancelled agreement and selected permanent/first ownership, member-selected change, no self commission; delegated initial10%/receipt7days.",
+    "tables": [
+      "sharing_policy",
+      "sharing_officer",
+      "sharing_officer_event",
+      "sharing_link",
+      "sharing_visit",
+      "sharing_customer_relation",
+      "sharing_relation_event",
+      "sharing_asset",
+      "sharing_payee",
+      "sharing_settlement_batch",
+      "sharing_settlement_line",
+      "sharing_settlement_allocation",
+      "sharing_recovery",
+      "sharing_command"
+    ],
+    "financialBoundary": "Reuse verified order/payment/refund ledger; program partition excludes officer money from legacy transfer/credit conversion. Prepared/reviewed allocations hold funds; reviewed tax/payee versions and actual manual-payment attestation are mandatory; post-payment refund preserves paid history and records recovery separately.",
+    "privacy": "No referred buyer identity, phone, address or openid in officer DTO/CSV/export. No raw bank data in command receipts, logs, frontend storage or default company CSV. Authorized payee reads audited; revoked finance receipts redacted; admin hide clears sensitive memory; temporary exports registered with session cleanup.",
+    "testBoundary": "One newly initialized isolated PostgreSQL16 cluster and disposable local object directory only. No real member/payment/finance records are created during acceptance. Remote-tunnel latency is not evidence of deployed co-located API/database speed; original portable-export deadline remains unchanged.",
+    "physicalDeviceAccepted": false
   }
 }

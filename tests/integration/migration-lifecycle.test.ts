@@ -122,6 +122,18 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //116 can roll back only its unused bootstrap; even a pending applicant is protected.
+    expect(migrationTip).toBe('202611140001_sharing_officer.sql');
+    const sharingDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
+    const sharingGuard=await pool.connect();
+    try{await sharingGuard.query('BEGIN');const applicant=(await sharingGuard.query("INSERT INTO member(display_name) VALUES('sharing rollback guard') RETURNING id")).rows[0].id;
+      await sharingGuard.query("INSERT INTO sharing_officer(member_id,referral_code,state) VALUES($1,'SO1234567890','pending')",[applicant]);
+      await expect(sharingGuard.query(sharingDown)).rejects.toThrow('SHARING_ROLLBACK_REQUIRES_DATA_PRESERVATION');
+    }finally{await sharingGuard.query('ROLLBACK');sharingGuard.release();}
+    await migrate('down');expect((await pool.query("SELECT to_regclass('public.sharing_officer') name")).rows[0].name).toBeNull();
+    expect((await pool.query("SELECT to_regclass('public.activity_reward_claim') name")).rows[0].name).toBe('activity_reward_claim');
+    await migrate('up');expect((await pool.query("SELECT count(*)::int n FROM sharing_policy WHERE enabled AND attribution_days IS NULL AND priority='first' AND NOT self_purchase AND basis_points=1000 AND release_days=7")).rows[0].n).toBe(1);
+    await migrate('down');migrationTip='202611130001_activity_travel_rewards.sql';migrationCount-=1;extensionCount-=1;
     //115 is reversible only before a real activity or confirmed component stock exists.
     expect(migrationTip).toBe('202611130001_activity_travel_rewards.sql');
     await migrate('down');

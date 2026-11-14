@@ -7,7 +7,8 @@ export interface AuthorityProjection { version: 1; capabilities: Capability[]; m
 const nativeManagementEntries: readonly Capability[] = [
   "support.read", "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage",
   "commerce.order.read", "commerce.aftersale.review", "commerce.return.receive", "commerce.return.inspect",
-  "commerce.fulfillment.manage", "member.profile.read", "privacy.request.manage",
+  "commerce.fulfillment.manage", "member.profile.read", "member.manage", "privacy.request.manage",
+  "commission.read", "commission.rate.manage",
   "commerce.refund.approve", "commission.settlement.approve", "commerce.money.reconcile",
   "editorial.manage", "community.moderate"
 ];

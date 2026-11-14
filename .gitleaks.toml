@@ -2,6 +2,14 @@
 useDefault = true
 
 [[allowlists]]
+description = "Exact public storage namespace in synthetic sharing-attribution tests; not a credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/unit/sharing-officer-attribution\.test\.ts$''']
+regexTarget = "match"
+regexes = ["key='cisme\\.officer-visits\\.v1'"]
+
+[[allowlists]]
 description = "Public SHA-256 artifact digests are identifiers, not credentials"
 regexTarget = "match"
 regexes = [

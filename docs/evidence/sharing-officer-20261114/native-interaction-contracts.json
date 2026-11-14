@@ -1,0 +1,12 @@
+{
+ "schemaVersion":1,
+ "source":"docs/product/CISME-产品需求文档-PRD-V2.1-R4.md#so分享官2026-11-13-owner-确认增量",
+ "routes":[
+  {"route":"pages/sharing-officer/index","primaryContract":"SO-APPLY-01 / SO-ATTR-01–03 / SO-PRIVACY-01","acceptanceReferences":["SO-APPLY-01","SO-ATTR-01","SO-ATTR-02","SO-ATTR-03","SO-MONEY-01","SO-SETTLE-01","SO-PRIVACY-01"],"statesRequired":["loading","empty","error","interruption","resume","pending_application","rejected_application","active","suspended","terminated","referrer_preview","explicit_referrer_change","share_preparing","provider_error","write_unknown","order_history","monthly_tax_and_payment"]},
+  {"route":"pages/management-sharing/index","primaryContract":"SO-APPLY-01 / SO-MONEY-01–02 / SO-SETTLE-01–03 / SO-OPS-01","acceptanceReferences":["SO-APPLY-01","SO-MONEY-01","SO-MONEY-02","SO-SETTLE-01","SO-SETTLE-02","SO-SETTLE-03","SO-PRIVACY-01","SO-PRIVACY-02","SO-OPS-01"],"statesRequired":["loading","empty","error","interruption","resume","unauthorized","revoked_capability","pending_application","qualification_change","policy_version_conflict","month_generation","tax_review","payee_changed","refund_after_reservation","manual_payment_record","paid_refund_recovery","export","write_unknown"]}
+ ],
+ "motion":{"sheet":"220ms opacity and translation; reduced-motion fallback; no money or completion state is inferred from animation"},
+ "navigation":{"entry":"My: 分享官 and 我的推荐人; Management: 分享官管理","tabs":"Existing section-tabs component","close":"Reads may be dismissed; an unconfirmed write retains its owner/environment command receipt and can be queried or server-fenced before re-entry"},
+ "physicalDeviceAcceptance":"not_available",
+ "visualAcceptance":"pending_current_source_native_capture"
+}

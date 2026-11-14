@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "5fab105a16fca067771e7bbc76a3d4117782a32b3b6a4a7bfb5f16e98773edd4",
+  "migrationSetSha256": "183b11c05a3485c20691915c6620487d0991b46a6faf6fdbc36a7c0ef913579b",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -2766,7 +2766,7 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "buyer and referrer are distinct; financial retention and each subject projection are independent.",
+      "specialHandling": "buyer and referrer are distinct; financial retention and each subject projection are independent. Sharing-officer program has independent reviewed qualification/relationship/rate snapshots; paid customer identity must never appear in promoter DTO/CSV. Legacy automatic payout/credit allocation cannot consume sharing-officer sources.",
       "exportFields": [],
       "excludedFields": [
         "order_id",
@@ -2777,7 +2777,11 @@
         "basis_points",
         "cash_merchandise_cents",
         "source_kind",
-        "created_at"
+        "created_at",
+        "program",
+        "sharing_policy_id",
+        "sharing_visit_id",
+        "sharing_relation_event_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -6437,9 +6441,9 @@
         "action",
         "object_id",
         "operation_id",
+        "request_sha256",
         "details",
-        "created_at",
-        "request_sha256"
+        "created_at"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -6643,6 +6647,1277 @@
       "productionErasure": "DISABLED",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "sharing_asset",
+      "subjectPaths": [
+        [
+          "sharing_asset.share_id -> sharing_link.share_id",
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Wechat-generated public product QR/temporary URL cache, linked to promoter. API credentials stay server-side, not in this table. No buyer identity/bank/commission sent to WeChat; owner can regenerate assets, so raw binary/temporary URLs are not in personal archive.",
+      "exportFields": [],
+      "excludedFields": [
+        "qr_png",
+        "share_id",
+        "updated_at",
+        "url_expires_at",
+        "url_link"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "COMPANY_CONFIG_OR_CREDENTIAL_CACHE_EXCLUDED_FROM_OWNER_EXPORT"
+    },
+    {
+      "table": "sharing_command",
+      "subjectPaths": [
+        [
+          "sharing_command.actor_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Actor/environment business command receipt. Body is not stored; payee command returns only saved/version, no bank/name/account. Admin receipt requires current action capability or returns redacted completion metadata after revocation. No raw response/request digest is part of a personal archive.",
+      "exportFields": [],
+      "excludedFields": [
+        "actor_id",
+        "created_at",
+        "request_hash",
+        "request_key",
+        "required_capability",
+        "response"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "COMPANY_CONFIG_OR_CREDENTIAL_CACHE_EXCLUDED_FROM_OWNER_EXPORT"
+    },
+    {
+      "table": "sharing_customer_relation",
+      "subjectPaths": [
+        [
+          "sharing_customer_relation.buyer_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_customer_relation.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_customer_relation.policy_id -> sharing_policy.id",
+          "sharing_policy.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_customer_relation.visit_id -> sharing_visit.id",
+          "sharing_visit.share_id -> sharing_link.share_id",
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_customer_relation.visit_id -> sharing_visit.id",
+          "sharing_visit.visitor_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "buyer_id is the data subject; officer_id is a distinct recommender, not an owned customer identity. Owner projections include derived public referral_code only. Existing permanent first ownership changes solely on buyer confirmation; no sharing-officer export of customer UUID/profile.",
+      "exportFields": [
+        "source",
+        "effective_at",
+        "expires_at",
+        "version"
+      ],
+      "excludedFields": [
+        "buyer_id",
+        "officer_id",
+        "policy_id",
+        "visit_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED",
+      "derivedOwnerExportFields": [
+        "referral_code"
+      ]
+    },
+    {
+      "table": "sharing_link",
+      "subjectPaths": [
+        [
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "officer_id is the promoter; share_id is an opaque public native product link, not an authentication credential or a customer identifier.",
+      "exportFields": [
+        "share_id",
+        "product_code",
+        "created_at"
+      ],
+      "excludedFields": [
+        "officer_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED"
+    },
+    {
+      "table": "sharing_officer",
+      "subjectPaths": [
+        [
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Applicant owns canonical membership qualification and current application/review fields. Reviewer is a separate actor. No purchase, commercial tier, agreement or subordinate commission is implied. Closure terminates qualification, preserving necessary direct trade/qualification evidence.",
+      "exportFields": [
+        "referral_code",
+        "state",
+        "application_note",
+        "review_reason",
+        "created_at",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "version"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED"
+    },
+    {
+      "table": "sharing_officer_event",
+      "subjectPaths": [
+        [
+          "sharing_officer_event.actor_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_officer_event.member_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Append-only qualification history belongs to the applicant; actor_id is an independently authorized company operator and is not exported as another member profile.",
+      "exportFields": [
+        "version",
+        "from_state",
+        "to_state",
+        "reason",
+        "occurred_at"
+      ],
+      "excludedFields": [
+        "actor_id",
+        "id",
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED"
+    },
+    {
+      "table": "sharing_payee",
+      "subjectPaths": [
+        [
+          "sharing_payee.member_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Canonical promoter’s legal name, payment channel and account are AES-GCM encrypted under current contact key version and member-bound AAD. Only explicit finance capability may read; accesses audited. Owner archive decrypts only own payload. Live optional data can be erased unless pending/recoverable commission or legal hold requires minimum data.",
+      "exportFields": [
+        "version",
+        "updated_at"
+      ],
+      "excludedFields": [
+        "encrypted_payload",
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED",
+      "decryptedOwnerExportFields": [
+        "legalName",
+        "channel",
+        "account"
+      ],
+      "accountClosure": "Same minimum-data financial/legal-hold guard; reviewed encrypted payment evidence is retained independently."
+    },
+    {
+      "table": "sharing_policy",
+      "subjectPaths": [
+        [
+          "sharing_policy.created_by -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "created_by",
+        "created_principal"
+      ],
+      "specialHandling": "Company-wide immutable commission and customer-ownership configuration; created_by is an operator, not a beneficiary. Snapshot policy/rate applies only to subsequently created orders. No general member export of company configuration or unrelated operator identity.",
+      "exportFields": [],
+      "excludedFields": [
+        "attribution_days",
+        "basis_points",
+        "created_at",
+        "created_by",
+        "created_principal",
+        "enabled",
+        "id",
+        "priority",
+        "reason",
+        "release_days",
+        "self_purchase",
+        "version"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "COMPANY_CONFIG_OR_CREDENTIAL_CACHE_EXCLUDED_FROM_OWNER_EXPORT"
+    },
+    {
+      "table": "sharing_recovery",
+      "subjectPaths": [
+        [
+          "sharing_recovery.actor_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.buyer_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.updated_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.updated_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.activity_id -> reward_activity.id",
+          "reward_activity.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.activity_id -> reward_activity.id",
+          "reward_activity.updated_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.points_policy_version -> member_points_policy.version",
+          "member_points_policy.approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.points_policy_version -> member_points_policy.version",
+          "member_points_policy.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.updated_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.points_policy_version -> member_points_policy.version",
+          "member_points_policy.approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.points_policy_version -> member_points_policy.version",
+          "member_points_policy.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.rate_rule_id -> commission_rate_rule.id",
+          "commission_rate_rule.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.referral_code_id -> commercial_referral_code.id",
+          "commercial_referral_code.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.referrer_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_policy_id -> sharing_policy.id",
+          "sharing_policy.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.buyer_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.from_officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.to_officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.visit_id -> sharing_visit.id",
+          "sharing_visit.share_id -> sharing_link.share_id",
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.visit_id -> sharing_visit.id",
+          "sharing_visit.visitor_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_visit_id -> sharing_visit.id",
+          "sharing_visit.share_id -> sharing_link.share_id",
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_recovery.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_visit_id -> sharing_visit.id",
+          "sharing_visit.visitor_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Original order referrer is beneficiary/data subject; actor_id is finance operator. Immutable post-payment refund reconciliation records reviewed gross reversal, actual cash returned and tax adjustment separately; no implicit cross-order offset or payout-history overwrite.",
+      "exportFields": [
+        "id",
+        "order_id",
+        "amount_cents",
+        "received_cents",
+        "tax_adjustment_cents",
+        "note",
+        "reference",
+        "recorded_at"
+      ],
+      "excludedFields": [
+        "actor_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED"
+    },
+    {
+      "table": "sharing_relation_event",
+      "subjectPaths": [
+        [
+          "sharing_relation_event.buyer_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_relation_event.from_officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_relation_event.to_officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_relation_event.visit_id -> sharing_visit.id",
+          "sharing_visit.share_id -> sharing_link.share_id",
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_relation_event.visit_id -> sharing_visit.id",
+          "sharing_visit.visitor_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Append-only customer ownership choice history is buyer-scoped. from/to_officer_id are different subjects; export derived public codes rather than their canonical IDs. Historical order ownership never follows a later relationship edit.",
+      "exportFields": [
+        "version",
+        "source",
+        "occurred_at"
+      ],
+      "excludedFields": [
+        "buyer_id",
+        "from_officer_id",
+        "id",
+        "to_officer_id",
+        "visit_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED",
+      "derivedOwnerExportFields": [
+        "from_code",
+        "to_code"
+      ]
+    },
+    {
+      "table": "sharing_settlement_allocation",
+      "subjectPaths": [
+        [
+          "sharing_settlement_allocation.line_id -> sharing_settlement_line.id",
+          "sharing_settlement_line.batch_id -> sharing_settlement_batch.id",
+          "sharing_settlement_batch.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.line_id -> sharing_settlement_line.id",
+          "sharing_settlement_line.member_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.line_id -> sharing_settlement_line.id",
+          "sharing_settlement_line.paid_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.line_id -> sharing_settlement_line.id",
+          "sharing_settlement_line.reviewed_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.buyer_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.updated_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.updated_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.activity_id -> reward_activity.id",
+          "reward_activity.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.activity_id -> reward_activity.id",
+          "reward_activity.updated_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.points_policy_version -> member_points_policy.version",
+          "member_points_policy.approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.points_policy_version -> member_points_policy.version",
+          "member_points_policy.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.address_id -> member_delivery_address.id",
+          "member_delivery_address.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.quote_id -> reward_quote.id",
+          "reward_quote.voucher_id -> reward_voucher.id",
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.activity_id -> reward_activity.id",
+          "reward_activity.updated_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.award_id -> reward_award.id",
+          "reward_award.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.coupon_id -> member_purchase_coupon.id",
+          "member_purchase_coupon.source_claim_id -> activity_reward_claim.id",
+          "activity_reward_claim.voucher_id -> reward_voucher.id",
+          "reward_voucher.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.points_policy_version -> member_points_policy.version",
+          "member_points_policy.approved_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.order_id -> commerce_order.id",
+          "commerce_order.source_quote_id -> commerce_checkout_quote.id",
+          "commerce_checkout_quote.points_policy_version -> member_points_policy.version",
+          "member_points_policy.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.rate_rule_id -> commission_rate_rule.id",
+          "commission_rate_rule.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.referral_code_id -> commercial_referral_code.id",
+          "commercial_referral_code.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.referrer_member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_policy_id -> sharing_policy.id",
+          "sharing_policy.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.buyer_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.from_officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.to_officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.visit_id -> sharing_visit.id",
+          "sharing_visit.share_id -> sharing_link.share_id",
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_relation_event_id -> sharing_relation_event.id",
+          "sharing_relation_event.visit_id -> sharing_visit.id",
+          "sharing_visit.visitor_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_visit_id -> sharing_visit.id",
+          "sharing_visit.share_id -> sharing_link.share_id",
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_allocation.order_id -> commission_order_snapshot.order_id",
+          "commission_order_snapshot.sharing_visit_id -> sharing_visit.id",
+          "sharing_visit.visitor_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "line_id identifies beneficiary and order_id ties its locked direct commission to the original customer order. Owner-safe projection reveals only own allocated order ID/amount, not the buyer profile. Active holds prevent double settlement across batches.",
+      "exportFields": [
+        "line_id",
+        "order_id",
+        "amount_cents"
+      ],
+      "excludedFields": [],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED"
+    },
+    {
+      "table": "sharing_settlement_batch",
+      "subjectPaths": [
+        [
+          "sharing_settlement_batch.created_by -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "created_by"
+      ],
+      "specialHandling": "Company monthly cutoff generated by a finance operator. Member ownership comes from scoped lines/allocations, not created_by. Batch export requires finance capability and contains no referred customer identity or bank account.",
+      "exportFields": [],
+      "excludedFields": [
+        "created_at",
+        "created_by",
+        "cutoff_at",
+        "id",
+        "period"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "COMPANY_CONFIG_OR_CREDENTIAL_CACHE_EXCLUDED_FROM_OWNER_EXPORT"
+    },
+    {
+      "table": "sharing_settlement_line",
+      "subjectPaths": [
+        [
+          "sharing_settlement_line.batch_id -> sharing_settlement_batch.id",
+          "sharing_settlement_batch.created_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_line.member_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_line.paid_by -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_settlement_line.reviewed_by -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "reviewed_by"
+      ],
+      "specialHandling": "member_id identifies payee; reviewed_by/paid_by are separate operators. Tax is reviewed explicit integer amounts, not inferred exemption/rate. Payee snapshot is encrypted and frozen at review; raw cipher is excluded; own archive separately decrypts own reviewed snapshot. Paid/voided rows are immutable. This is manual finance attestation, not a WeChat transfer fact.",
+      "exportFields": [
+        "id",
+        "state",
+        "gross_cents",
+        "tax_cents",
+        "net_cents",
+        "tax_note",
+        "reviewed_at",
+        "paid_at",
+        "payment_reference",
+        "created_at"
+      ],
+      "excludedFields": [
+        "batch_id",
+        "member_id",
+        "paid_by",
+        "payee_snapshot",
+        "payee_version",
+        "payment_note",
+        "reviewed_by",
+        "version"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED",
+      "decryptedOwnerSnapshotFields": [
+        "legalName",
+        "channel",
+        "account",
+        "version",
+        "reviewed_at",
+        "settlement_id"
+      ],
+      "derivedOwnerExportFields": [
+        "period"
+      ]
+    },
+    {
+      "table": "sharing_visit",
+      "subjectPaths": [
+        [
+          "sharing_visit.share_id -> sharing_link.share_id",
+          "sharing_link.officer_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ],
+        [
+          "sharing_visit.visitor_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "visitor_id is the visitor; link.officer_id is a different subject. Export only the requesting visitor’s fact; never export customer visits to a promoter. visit_key/token_hash/token_ciphertext are anti-replay opaque binding credentials and excluded. Anonymous facts contain no member identity until authenticated binding.",
+      "exportFields": [
+        "id",
+        "share_id",
+        "visited_at",
+        "bound_at"
+      ],
+      "excludedFields": [
+        "token_ciphertext",
+        "token_hash",
+        "visit_key",
+        "visitor_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "submission",

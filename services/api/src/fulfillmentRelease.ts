@@ -106,7 +106,7 @@ export class FulfillmentReleaseService{
           "仍有待决或在途退款，不能释放佣金",409);
         const snapshot=(await client.query(`SELECT * FROM commission_order_snapshot WHERE order_id=$1`,
           [order.id])).rows[0];
-        if(snapshot){
+        if(snapshot?.program==="legacy"){
           const ledger=(await client.query(`SELECT kind,amount_cents FROM commission_ledger_entry
             WHERE order_id=$1 FOR UPDATE`,[order.id])).rows;
           if(ledger.some(entry=>entry.kind==="release"))throw new DomainError("COMMISSION_ALREADY_RELEASED",

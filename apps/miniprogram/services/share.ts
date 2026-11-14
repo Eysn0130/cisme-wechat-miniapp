@@ -1,3 +1,4 @@
+import {flushOfficerVisits} from './officer-attribution';
 import { request } from "./api";
 
 type ShareTargetType = "post" | "product" | "invite";
@@ -30,6 +31,7 @@ export async function registerIncomingShare(shareId: string | undefined, targetT
 }
 
 export async function attributePendingShare(): Promise<void> {
+  try{await flushOfficerVisits();}catch{/* Checkout retries before placing an order. */}
   const pending = wx.getStorageSync<PendingAttribution>(pendingKey);
   if (!pending || !validShareId(pending.shareId) || !pending.visitKey || !getApp<IAppOption>().globalData.sessionToken) return;
   try {
@@ -40,18 +42,20 @@ export async function attributePendingShare(): Promise<void> {
   }
 }
 
-export async function prepareShareLink(targetType: ShareTargetType, targetRef: string): Promise<string> {
-  if (!getApp<IAppOption>().globalData.sessionToken || !targetRef) return "";
+export async function prepareShareDetails(targetType: ShareTargetType, targetRef: string): Promise<{shareId:string;officerShareId?:string|null}|null> {
+  if (!getApp<IAppOption>().globalData.sessionToken || !targetRef) return null;
   try {
-    const link = await request<{ shareId: string }>({
+    const link = await request<{ shareId: string; officerShareId?:string|null }>({
       path: "/v1/shares",
       method: "POST",
       authMode: "optional",
       idempotencyKey: `share-${targetType}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
       data: { targetType, targetRef }
     });
-    return link.shareId;
+    return link;
   } catch {
-    return "";
+    return null;
   }
 }
+
+export async function prepareShareLink(targetType:ShareTargetType,targetRef:string):Promise<string>{return (await prepareShareDetails(targetType,targetRef))?.shareId??"";}

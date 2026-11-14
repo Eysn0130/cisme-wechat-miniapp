@@ -90,10 +90,10 @@ export class SettlementCommandService{
       let allocations:{orderId:string;amountCents:number}[]=[];
       if(decision==="approve"){
         const orders=(await client.query<{order_id:string}>(`SELECT order_id FROM commission_order_snapshot
-          WHERE referrer_member_id=$1 ORDER BY created_at,order_id`,[row.member_id])).rows;
+          WHERE referrer_member_id=$1 AND program='legacy' ORDER BY created_at,order_id`,[row.member_id])).rows;
         for(const {order_id} of orders)await client.query(`SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE`,[order_id]);
         const ledger=(await client.query<{order_id:string;kind:string;amount_cents:string}>(`SELECT order_id,
-          kind,amount_cents FROM commission_ledger_entry WHERE referrer_member_id=$1`,[row.member_id])).rows;
+          kind,amount_cents FROM commission_ledger_entry WHERE referrer_member_id=$1 AND order_id IN(SELECT order_id FROM commission_order_snapshot WHERE program='legacy')`,[row.member_id])).rows;
         const held=(await client.query<{order_id:string;held:string}>(`SELECT a.order_id,
           COALESCE(sum(a.amount_cents),0)::text AS held FROM commission_settlement_allocation a
           JOIN commission_settlement_request r ON r.id=a.request_id WHERE r.member_id=$1
