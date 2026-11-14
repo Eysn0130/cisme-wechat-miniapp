@@ -95,7 +95,7 @@ it('opens free applications, isolates review authority and preserves idempotent 
  expect((await command(a,'officer_state',{memberId:a.memberId,state:'active',expectedVersion:1,reason:'无权自审'},true)).statusCode).toBe(403);
  for(const target of [a,b]){const application=target===a?applied:await expectOk(command(target,'apply',{}));if(target===b)codeB=application.referralCode;
   await expectOk(command(manager,'officer_state',{memberId:target.memberId,state:'active',expectedVersion:1,reason:'合成审核通过'},true));}
- expect((await service.mine(a.memberId)).canShare).toBe(true);expect((await pool.query('SELECT count(*)::int AS n FROM commercial_membership')).rows[0].n).toBe(0);
+ expect((await service.mine(a.memberId)).canShare).toBe(true);const owned=await finance.management(manager.memberId,{memberId:a.memberId});expect('items'in owned&&owned.items.map((r:any)=>r.memberId)).toEqual([a.memberId]);expect((await pool.query('SELECT count(*)::int AS n FROM commercial_membership')).rows[0].n).toBe(0);
 });
 it('creates native product attribution and keeps first permanent ownership until the buyer changes it',async()=>{
  shareA=(await expectOk(command(a,'share',{productCode:'sharing-test-product'}))).shareId;shareB=(await expectOk(command(b,'share',{productCode:'sharing-test-product'}))).shareId;
@@ -153,11 +153,12 @@ it('generates monthly held sources, rechecks changed payee/refunds and records r
   SELECT order_id,referrer_member_id,$2,'release',1760,sharing_policy_id,'synthetic-history-fixture',$3 FROM commission_order_snapshot WHERE order_id=$1`,
   [historical.id,'sharing-history-release-'+historical.id,new Date(historical.at.getTime()+15*86400_000)]);
  period=historical.at.toISOString().slice(0,7);const prepared=await expectOk(command(manager,'prepare_month',{period},true));monthBatch=prepared.batchId;expect(prepared.created).toBe(1);
- let lines=await finance.management(manager.memberId,{section:'lines',batchId:monthBatch});expect('items'in lines&&lines.items).toHaveLength(1);line=('items'in lines?lines.items:[])[0];expect(line.grossCents).toBe(1760);
+ let lines=await finance.management(manager.memberId,{section:'lines',batchId:monthBatch});expect('items'in lines&&lines.items).toHaveLength(1);line=('items'in lines?lines.items:[])[0];expect(line.grossCents).toBe(1760);const wrong=await finance.management(manager.memberId,{section:'lines',batchId:monthBatch,memberId:a.memberId,lineId:line.id});expect('items'in wrong&&wrong.items).toHaveLength(0);const exact=await finance.management(manager.memberId,{section:'lines',batchId:monthBatch,memberId:b.memberId,lineId:line.id});expect('items'in exact&&exact.items).toHaveLength(1);
  expect((await command(manager,'review_line',{lineId:line.id,expectedVersion:line.version,taxCents:1761,taxNote:'合成超额扣税'},true)).statusCode).toBe(422);
  const reviewed=await expectOk(command(manager,'review_line',{lineId:line.id,expectedVersion:line.version,taxCents:176,taxNote:'合成财务审核；不代表真实税率'},true));
  await expectOk(command(b,'payee',{legalName:'合成收款人更新',channel:'合成银行',account:'SYNTHETIC-ACCOUNT-UPDATED',expectedVersion:1}));
- const payInput={lineId:line.id,expectedVersion:reviewed.version,paidConfirmed:true,paymentReference:'SYNTHETIC-PAYEE-CHANGED',paymentNote:'合成记录',paidAt:new Date().toISOString()};
+ const sourceClock=async()=>(await pool.query('SELECT clock_timestamp() AS at')).rows[0].at.toISOString();
+ const payInput={lineId:line.id,expectedVersion:reviewed.version,paidConfirmed:true,paymentReference:'SYNTHETIC-PAYEE-CHANGED',paymentNote:'合成记录',paidAt:await sourceClock()};
  const changed=await command(manager,'record_payment',payInput,true);expect(changed.statusCode).toBe(409);expect(changed.json().code).toBe('SHARING_PAYEE_CHANGED');
  await refund(historical,880,historical.paymentId);
  const disputed=await command(manager,'review_line',{lineId:line.id,expectedVersion:reviewed.version,taxCents:176,taxNote:'合成退款重审'},true);expect(disputed.statusCode).toBe(409);expect(disputed.json().code).toBe('SHARING_SETTLEMENT_SOURCE_CHANGED');
@@ -165,7 +166,7 @@ it('generates monthly held sources, rechecks changed payee/refunds and records r
  const again=await expectOk(command(manager,'prepare_month',{period},true));expect(again.created).toBe(1);
  lines=await finance.management(manager.memberId,{section:'lines',batchId:monthBatch});line=('items'in lines?lines.items:[]).find((r:any)=>r.state==='prepared');expect(line.grossCents).toBe(1584);
  const checked=await expectOk(command(manager,'review_line',{lineId:line.id,expectedVersion:line.version,taxCents:84,taxNote:'合成财务核定金额；不代表真实税率'},true));
- await new Promise(resolve=>setTimeout(resolve,5));const input={lineId:line.id,expectedVersion:checked.version,paidConfirmed:true,paymentReference:'SYNTHETIC-PAID-'+line.id,paymentNote:'隔离测试人工付款结果，不发生任何真实转账',paidAt:new Date().toISOString()},key='sharing-payment-exact-replay';
+ await new Promise(resolve=>setTimeout(resolve,5));const input={lineId:line.id,expectedVersion:checked.version,paidConfirmed:true,paymentReference:'SYNTHETIC-PAID-'+line.id,paymentNote:'隔离测试人工付款结果，不发生任何真实转账',paidAt:await sourceClock()},key='sharing-payment-exact-replay';
  const paid=await expectOk(command(manager,'record_payment',input,true,key));expect(paid).toMatchObject({state:'paid',grossCents:1584,taxCents:84,netCents:1500});
  expect(await expectOk(command(manager,'record_payment',input,true,key))).toEqual(paid);
  expect((await command(manager,'record_payment',input,true)).statusCode).toBe(409);

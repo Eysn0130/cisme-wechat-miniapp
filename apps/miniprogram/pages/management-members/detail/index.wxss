@@ -1,0 +1,2 @@
+@import "../shared.wxss";
+.users-detail{height:100vh;box-sizing:border-box;padding-top:var(--cisme-stack-top,calc(env(safe-area-inset-top) + 56px))}

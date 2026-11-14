@@ -15,9 +15,9 @@ beforeEach(()=>{
   (globalThis as any).getApp=()=>({globalData:{sessionToken:mocks.token,apiBaseUrl:'https://synthetic.invalid'}});
   (globalThis as any).wx={nextTick:vi.fn(),getStorageSync:vi.fn(),setStorageSync:vi.fn(),showToast:vi.fn()};
 });
-const pages=['community-author','community-compose','management-members','support','management-support-chat'] as const;
+const pages=['community-author','community-compose','management-members/commercial','support','management-support-chat'] as const;
 it.each(pages)('%s owns and cancels its GETs and discards late payloads after hide',async name=>{
-  await import(`../../apps/miniprogram/pages/${name}/index.ts`);
+  if(name==='management-members/commercial')await import('../../apps/miniprogram/pages/management-members/commercial/index');else await import(`../../apps/miniprogram/pages/${name}/index.ts`);
   const pending:Array<{resolve:(value:any)=>void;path:string}>=[],abort=vi.fn();
   mocks.request.mockImplementation(options=>{
     if(options.method)return Promise.resolve({});
@@ -38,7 +38,7 @@ it.each(pages)('%s owns and cancels its GETs and discards late payloads after hi
 });
 
 it.each(['community-compose'])('%s resumes an interrupted initial read without inventing a write',async name=>{
-  vi.resetModules();await import(`../../apps/miniprogram/pages/${name}/index.ts`);
+  vi.resetModules();if(name==='management-members/commercial')await import('../../apps/miniprogram/pages/management-members/commercial/index');else await import(`../../apps/miniprogram/pages/${name}/index.ts`);
   const page={...definition,data:{...structuredClone(definition.data),loading:true,requestedDraftId:'fixture-id'},
     lastSessionToken:mocks.token,setData(patch:any){Object.assign(this.data,patch);},
     flushLocalBackup:vi.fn(),refreshPublicGate:vi.fn(),load:vi.fn(),loadDraft:vi.fn()};

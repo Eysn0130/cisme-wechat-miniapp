@@ -1,1 +1,1 @@
-{"navigationStyle":"custom","usingComponents":{"section-tabs":"/components/section-tabs/index"}}
+{"navigationStyle":"custom","enablePullDownRefresh":true,"usingComponents":{"section-tabs":"/components/section-tabs/index","member-inspector":"/pages/management-members/components/member-inspector/index"}}

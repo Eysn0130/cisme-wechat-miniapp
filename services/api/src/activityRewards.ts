@@ -243,9 +243,9 @@ export class ActivityRewardService {
    return (await c.query("UPDATE reward_voucher SET state='revoked',version=version+1 WHERE id=$1 RETURNING id,state,version",[id])).rows[0];
   },'commerce.product.manage');
  }
- async management(actor:string|undefined,query:{activityId?:unknown;state?:unknown;after?:unknown}={}){
+ async management(actor:string|undefined,query:{activityId?:unknown;state?:unknown;after?:unknown;memberId?:unknown;voucherId?:unknown;claimId?:unknown}={}){
   await this.authority.requireAny(actor,['commerce.product.manage','commerce.inventory.manage','commerce.fulfillment.manage']);
-  const activity=query.activityId?rewardId(query.activityId):null,after=query.after?rewardId(query.after):null,state=query.state??'all';
+  let activity=query.activityId?rewardId(query.activityId):null;const target=query.memberId?rewardId(query.memberId):null,voucher=query.voucherId?rewardId(query.voucherId):null,claim=query.claimId?rewardId(query.claimId):null;const after=query.after?rewardId(query.after):null,state=query.state??'all';
   if(!['all','unused','used','expired','revoked','placed','shipped','received','cancelled','aftersale_requested','closed'].includes(String(state)))fail('REWARD_FILTER_INVALID','状态筛选无效');
   return transaction(this.pool,async c=>{
    const grants=await this.authority.projection(actor),canIssue=grants.capabilities.includes('commerce.product.manage')&&grants.capabilities.includes('member.manage'),canFulfill=grants.capabilities.includes('commerce.fulfillment.manage');
@@ -253,14 +253,15 @@ export class ActivityRewardService {
    if(!allowed.length)fail('CAPABILITY_REQUIRED','当前账号无活动管理权限',403);
    for(const cap of allowed)await this.authority.requireWithClient(c,actor,cap);
    if(canIssue)await this.authority.requireWithClient(c,actor,'member.manage');
+   if(voucher||claim){const ref=(await c.query(`SELECT v.activity_id FROM reward_voucher v WHERE ($1::uuid IS NULL OR v.id=$1) AND ($2::uuid IS NULL OR EXISTS(SELECT 1 FROM activity_reward_claim claim WHERE claim.id=$2 AND claim.voucher_id=v.id)) AND ($3::uuid IS NULL OR v.member_id=$3)`,[voucher,claim,target])).rows[0];if(!ref)fail('REWARD_NOT_FOUND','奖励记录不存在',404);activity=ref.activity_id;}
    const activities=(await c.query('SELECT id,code,title,state,version,terms,created_at FROM reward_activity ORDER BY created_at DESC,id DESC LIMIT 100')).rows;
    const vouchers=canIssue?(await c.query(`SELECT v.id,v.member_id,v.state,v.version,v.expires_at,v.claim_id,a.batch_id,a.source_record_id,m.display_name
     FROM reward_voucher v JOIN reward_award a ON a.id=v.award_id JOIN member m ON m.id=v.member_id
     WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR CASE WHEN v.state='unused' AND v.expires_at<=now() THEN 'expired' ELSE v.state END=$2)
-    AND ($3::uuid IS NULL OR v.id>$3) ORDER BY v.id LIMIT 51`,[activity,state,after])).rows:[];
+    AND ($3::uuid IS NULL OR v.id>$3) AND ($4::uuid IS NULL OR v.member_id=$4) AND ($5::uuid IS NULL OR v.id=$5) ORDER BY v.id LIMIT 51`,[activity,state,after,target,voucher])).rows:[];
    const claims=canFulfill?(await c.query(`SELECT c.* FROM activity_reward_claim c JOIN reward_voucher v ON v.id=c.voucher_id
-    WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR c.state=$2) AND ($3::uuid IS NULL OR c.id>$3) ORDER BY c.id LIMIT 51`,[activity,state,after])).rows:[];
-   return {memberId:actor!,activities,inventory:(await c.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows,vouchers:vouchers.slice(0,50).map(r=>({...r,state:visibleVoucherState(r,new Date())})),claims:claims.slice(0,50).map(r=>this.claimView(r)),voucherNext:vouchers.length>50?vouchers[49].id:null,claimNext:claims.length>50?claims[49].id:null,
+    WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR c.state=$2) AND ($3::uuid IS NULL OR c.id>$3) AND ($4::uuid IS NULL OR c.member_id=$4) AND ($5::uuid IS NULL OR c.id=$5) ORDER BY c.id LIMIT 51`,[activity,state,after,target,claim])).rows:[];
+   return {memberId:actor!,selectedActivityId:activity,activities,inventory:(await c.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows,vouchers:vouchers.slice(0,50).map(r=>({...r,state:visibleVoucherState(r,new Date())})),claims:claims.slice(0,50).map(r=>this.claimView(r)),voucherNext:vouchers.length>50?vouchers[49].id:null,claimNext:claims.length>50?claims[49].id:null,
     permissions:{configure:grants.capabilities.includes('commerce.product.manage'),stock:grants.capabilities.includes('commerce.inventory.manage'),issue:canIssue,fulfill:canFulfill}};
   },'REPEATABLE READ');
  }

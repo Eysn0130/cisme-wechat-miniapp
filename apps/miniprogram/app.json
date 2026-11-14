@@ -149,7 +149,9 @@
     {
       "root": "pages/management-members",
       "pages": [
-        "index"
+        "index",
+        "detail/index",
+        "commercial/index"
       ]
     },
     {

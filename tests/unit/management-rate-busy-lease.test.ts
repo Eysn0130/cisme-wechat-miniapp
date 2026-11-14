@@ -29,7 +29,7 @@ beforeEach(() => {
 for (const variant of variants) describe(`${variant.name} rate command busy lease`, () => {
   async function load() {
     if (variant.name === "member") await import("../../apps/miniprogram/pages/management-member/index");
-    else await import("../../apps/miniprogram/pages/management-members/index");
+    else await import("../../apps/miniprogram/pages/management-members/commercial/index");
     Object.assign(page.data, { alive: true, attempt: 1, canManageRate: true, [variant.visible]: true,
       detail: { member: { id: "synthetic-member", version: 1 }, membershipPolicy: { kind: "operator_explicit", rateProposalSuggestedAt: "2026-11-01T00:00:00Z" }, rate: { basisPoints: 100 } },
       globalRate: { policyKind: "approved_rule", suggestedEffectiveAt: "2026-11-01T00:00:00Z", basisPoints: 100 } });

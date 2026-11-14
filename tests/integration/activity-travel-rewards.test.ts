@@ -142,3 +142,5 @@ describe('TRV native service and HTTP business authority',()=>{
  });
 
 });
+
+it('filters member reward sources and still resolves a cancelled historical claim after its voucher pointer is released',async()=>{const a=await ready(),b=await ready();const found=await rewards.management(operator.memberId,{memberId:a.p.memberId,voucherId:a.v});expect(found.vouchers.map(v=>v.member_id)).toEqual([a.p.memberId]);await expect(rewards.management(operator.memberId,{memberId:b.p.memberId,voucherId:a.v})).rejects.toMatchObject({code:'REWARD_NOT_FOUND'});const old=(await pool.query("SELECT id,member_id FROM activity_reward_claim WHERE state='cancelled' ORDER BY created_at LIMIT 1")).rows[0];expect(old).toBeTruthy();const historical=await rewards.management(operator.memberId,{memberId:old.member_id,claimId:old.id});expect(historical.claims.map(c=>c.id)).toEqual([old.id]);});

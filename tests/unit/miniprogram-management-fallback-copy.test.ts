@@ -26,7 +26,7 @@ async function chat(overrides:Record<string,any>={}){
  page.startPolling=vi.fn();page.measureActions=vi.fn();return page;
 }
 async function members(overrides:Record<string,any>={}){
- await import('../../apps/miniprogram/pages/management-members/index');
+ await import('../../apps/miniprogram/pages/management-members/commercial/index');
  return mount(overrides,{lastToken:session,lastRevision:0});
 }
 function supportRead(path:string){
@@ -153,7 +153,7 @@ describe('management fallback states describe verified facts',()=>{
   expect(page.data).toMatchObject({membersLoaded:true,appliedQuery:'new',summary:{all:3,members:1,ordinary:2}});
  });
  it('wires summary visibility to a completed successful read',()=>{
-  const template=readFileSync(new URL('../../apps/miniprogram/pages/management-members/index.wxml',import.meta.url),'utf8');
+  const template=readFileSync(new URL('../../apps/miniprogram/pages/management-members/commercial/index.wxml',import.meta.url),'utf8');
   expect(template).toMatch(/<view\s+wx:if="\{\{membersLoaded && !loading && !error\}\}"\s+class="members-summary"/);
  });
 });

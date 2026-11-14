@@ -19,7 +19,7 @@ export const currentSharingPolicySql=`SELECT p.* FROM sharing_policy p ORDER BY 
 export const sharingDisputeSql=(alias:string)=>`(EXISTS(SELECT 1 FROM commission_payment_composition_observation x WHERE x.order_id=${alias}.order_id)
  OR EXISTS(SELECT 1 FROM commerce_wechat_receipt_observation w WHERE w.order_id=${alias}.order_id AND w.in_complaint=true)
  OR EXISTS(SELECT 1 FROM commerce_aftersale_case c LEFT JOIN commission_refund_intent ci ON ci.request_id=c.refund_request_id
- WHERE c.order_id=${alias}.order_id AND c.state NOT IN ('cancelled','rejected') AND NOT(c.state='refund_pending' AND ci.state='succeeded'))
+ WHERE c.order_id=${alias}.order_id AND c.state NOT IN ('cancelled','rejected') AND NOT(c.state='refund_pending' AND COALESCE(ci.state='succeeded',false)))
  OR EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
  WHERE r.order_id=${alias}.order_id AND (r.state='requested' OR r.state='approved' AND (i.id IS NULL OR i.state IN ('prepared','abnormal')))))`;
 

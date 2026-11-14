@@ -15,7 +15,7 @@ export interface RewardQuote{id:string;voucherId:string;bundleCode:RewardBundleC
 export interface RewardReceipt{status:'found'|'not_found'|'abandoned';action?:string;record?:{id:string;state?:string;version?:number}}
 export interface RewardInventory{code:string;stock_on_hand:number;reserved_quantity:number;confirmed:boolean;version:number}
 export interface RewardActivity{id:string;code:string;title:string;state:'draft'|'published'|'paused';version:number;terms:RewardTerms|null}
-export interface RewardManagement{memberId:string;activities:RewardActivity[];inventory:RewardInventory[];vouchers:Array<{id:string;member_id:string;display_name:string;state:string;version:number;expires_at:string;claim_id:string|null;batch_id:string;source_record_id:string}>;claims:RewardClaim[];voucherNext:string|null;claimNext:string|null;permissions:{configure:boolean;stock:boolean;issue:boolean;fulfill:boolean}}
+export interface RewardManagement{memberId:string;selectedActivityId?:string|null;activities:RewardActivity[];inventory:RewardInventory[];vouchers:Array<{id:string;member_id:string;display_name:string;state:string;version:number;expires_at:string;claim_id:string|null;batch_id:string;source_record_id:string}>;claims:RewardClaim[];voucherNext:string|null;claimNext:string|null;permissions:{configure:boolean;stock:boolean;issue:boolean;fulfill:boolean}}
 function read<T>(page:object,path:string){return pageRead<T>(page,{path,cacheTags:['rewards']});}
 export const rewardWallet=(page:object,cursor?:string)=>read<RewardWallet>(page,`/v1/me/rewards${cursor?`?claimsCursor=${encodeURIComponent(cursor)}`:''}`);
 export const rewardSelection=(page:object,id:string)=>read<RewardSelection>(page,`/v1/me/rewards/vouchers/${encodeURIComponent(id)}`);

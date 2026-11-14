@@ -42,6 +42,8 @@ export const nativeRouteAccess: Readonly<Record<string, NativeRouteAccess>> = {
   "/pages/management-points/index": "member",
   "/pages/management/index": "member",
   "/pages/management-members/index": "member",
+  "/pages/management-members/detail/index": "member",
+  "/pages/management-members/commercial/index": "member",
   "/pages/management-member/index": "member",
   "/pages/management-catalog/index": "member",
   "/pages/management-product/index": "member",

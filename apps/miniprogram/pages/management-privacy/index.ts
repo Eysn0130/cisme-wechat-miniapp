@@ -12,9 +12,10 @@ const executionStates:Record<string,string>={planned:"待执行",approved:"待�
 const editable=new Set(["received","verifying","reviewing","responded"]);
 function displayRow(row:PrivacyRow):PrivacyRow{const target=/^(昵称|微信号)：([^\r\n]+)$/.exec((row.latestMemberReply?.body||row.message).trim());return {...row,kindLabel:kinds[row.kind]||"其他请求",statusLabel:row.status==="responded"?(row.waitingOn==="member"?"待用户补充":"已回复待处理"):states[row.status]||"待核验",dueLabel:beijingDateLabel(row.due_at),executionLabel:row.execution?(executionStates[row.execution.status]||"待核对"):"",editable:editable.has(row.status),correctionLabel:target?`${target[1]}：${target[2]!.trim()}`:""};}
 Page({
- lastToken:"",lastRevision:-1,epoch:0,visible:false,readPending:false,timer:null as ReturnType<typeof setInterval>|null,
+ target:{memberId:'',requestId:''},lastToken:"",lastRevision:-1,epoch:0,visible:false,readPending:false,timer:null as ReturnType<typeof setInterval>|null,
  data:{chromeStyle:currentChromeStyle(),items:[] as PrivacyRow[],nextCursor:null as string|null,moreBusy:false,moreError:"",selected:null as PrivacyRow|null,response:"",statusIndex:0,statusOptions:["处理中","回复进度","请用户补充"],loading:true,busy:false,coreReady:false,error:"",actionError:"",notice:""},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
+ onLoad(q:Record<string,string|undefined>={}){this.target={memberId:q.memberId||'',requestId:q.requestId||''};},
  onShow(){this.visible=true;return this.load();},
  onHide(){this.visible=false;this.epoch++;cancelPageReads(this);this.stopPolling();this.readPending=false;this.setData({items:[],nextCursor:null,moreBusy:false,moreError:"",selected:null,response:"",coreReady:false,busy:false,actionError:"",notice:""});},
  onUnload(){this.onHide();},
@@ -35,12 +36,12 @@ Page({
    // Expanded pages retain their rows and draft, but never stop checking
    // revocable authority. Explicit refresh still reloads the queue from page 1.
    if(silent&&this.data.items.length>30)return;
-   const page=await pageRead<PrivacyPage>(this,{path:"/v1/management/privacy-requests?page=1"});
+   const page=await pageRead<PrivacyPage>(this,{path:'/v1/management/privacy-requests?page=1'+(this.target.requestId?'&requestId='+encodeURIComponent(this.target.requestId)+'&memberId='+encodeURIComponent(this.target.memberId):'')});
    if(!this.current(epoch,token))return;
    const items=page.items.map(displayRow);
    const chosen=this.data.selected,latest=chosen?items.find(row=>row.id===chosen.id):null;
    const changed=chosen&&(!latest||latest.version!==chosen.version);
-   this.setData({items,nextCursor:page.nextCursor,coreReady:true,error:"",...(changed?{selected:null,response:"",actionError:"受理记录已变化，请重新选择后查看最新结果。"}:{})});
+   this.setData({items,nextCursor:page.nextCursor,coreReady:true,error:"",...(this.target.requestId?{selected:items.find(r=>r.id===this.target.requestId)??null,actionError:items.length?'':'受理记录不存在或不属于该用户'}:{}),...(changed?{selected:null,response:"",actionError:"受理记录已变化，请重新选择后查看最新结果。"}:{})});
   }catch(error){if(this.current(epoch,token))this.invalidate([401,403].includes((error as {status?:number})?.status??0)?"当前身份没有隐私受理权限，请返回管理中心或重试。":"受理记录暂时无法同步，请重试。");}
   finally{if(this.visible&&epoch===this.epoch){this.readPending=false;this.setData({loading:false});if(!this.current(epoch,token))this.invalidate("身份已变化，请重新核验权限。");else if(this.data.coreReady)this.startPolling();}}
  },
@@ -94,5 +95,5 @@ Page({
     }finally{if(this.visible&&epoch===this.epoch)this.setData({busy:false});}
   },
  retry(){if(!this.data.busy)void this.load();},
- back(){if(this.data.selected&&!this.data.busy){this.setData({selected:null,response:"",actionError:""});return;}wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/management/index"})});}
+ back(){if(!this.target.requestId&&this.data.selected&&!this.data.busy){this.setData({selected:null,response:"",actionError:""});return;}wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/management/index"})});}
 });

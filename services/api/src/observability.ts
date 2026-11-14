@@ -175,6 +175,8 @@ export function runtimeMetrics(pool?: pg.Pool) {
 export function safeLoggerOptions(level: string) {
   return {
     level,
+    serializers:{req:(req:{method?:string;url?:string})=>({method:req.method??'',url:(req.url??'').split('?')[0]??''})},
+    // Query values can contain an exact member phone search. Keep them out of logs.
     // Fastify's standard request serializer omits headers. Redaction remains a
     // second line of defence for any future structured log fields.
     redact: { paths: ["req.headers", "request.headers", "req.body", "request.body", "body", "headers", "env", "*.token", "*.secret", "*.password"], censor: "[REDACTED]" }

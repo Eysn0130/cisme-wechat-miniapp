@@ -1,3 +1,4 @@
+import {CAPABILITIES} from '@cisme/contracts';
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFile, readdir, mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
@@ -122,6 +123,15 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
+    //117 changes only scoped authority constraints and refuses to discard grant facts.
+    expect(migrationTip).toBe('202611140002_member_administration.sql');
+    const userDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
+    const userGuard=await pool.connect();
+    try{await userGuard.query('BEGIN');const actor=(await userGuard.query("INSERT INTO member(display_name) VALUES('user administration rollback guard') RETURNING id")).rows[0].id;
+      await userGuard.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'member.care.read','fixture','isolated migration guard','test','integration_fixture')",[actor]);
+      await expect(userGuard.query(userDown)).rejects.toThrow('USER_ADMIN_GRANTS_REQUIRE_DATA_PRESERVATION');
+    }finally{await userGuard.query('ROLLBACK');userGuard.release();}
+    await migrate('down');await migrate('up');await migrate('down');migrationTip='202611140001_sharing_officer.sql';migrationCount-=1;extensionCount-=1;
     //116 can roll back only its unused bootstrap; even a pending applicant is protected.
     expect(migrationTip).toBe('202611140001_sharing_officer.sql');
     const sharingDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
@@ -533,7 +543,7 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.length);
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
-    expect(await capabilityNames()).toEqual(extendedCapabilities);
+    expect(await capabilityNames()).toEqual([...CAPABILITIES].sort());
     expect((await pool.query("SELECT to_regclass('public.community_comment') name")).rows[0].name).toBe("community_comment");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_target_type_check'")).rows[0].definition).toContain("invite");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_invite_target_check'")).rows[0].definition).toContain("home");

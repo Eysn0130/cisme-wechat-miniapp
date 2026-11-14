@@ -16,6 +16,254 @@ tags:
   - name: Authority
   - name: Support
 paths:
+  /v1/management/users:
+    get:
+      tags: [Authority]
+      operationId: listManagedUsers
+      summary: Compact canonical member table with role scoped aggregates
+      security: [{session: []}]
+      x-release-stage: V2.1-R4-UM
+      x-acceptance-ids: [UM-01, UM-02, UM-03]
+      parameters:
+        - in: query
+          name: q
+          schema: {type: string, maxLength: 80}
+          description: Exact member card number or authorized exact phone HMAC; otherwise literal nickname substring. Exact phone uses POST /v1/management/users/search; GET rejects it before projection. Never logged.
+        - in: query
+          name: view
+          schema: {type: string, enum: [profile, commerce, activity, assets, sharing], default: profile}
+        - in: query
+          name: account
+          schema: {type: string, enum: [all, active, blocked], default: all}
+        - in: query
+          name: onboarding
+          schema: {type: string, enum: [all, complete, incomplete], default: all}
+        - in: query
+          name: officer
+          schema: {type: string, enum: [all, none, pending, active, rejected, suspended, terminated], default: all}
+        - in: query
+          name: sort
+          schema: {type: string, enum: [registered, number, paid, points, care, recent], default: registered}
+        - in: query
+          name: direction
+          schema: {type: string, enum: [asc, desc], default: desc}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 50, default: 30}
+        - in: query
+          name: cursor
+          schema: {type: string, maxLength: 800}
+          description: Actor, query and role bound lossless keyset cursor.
+      responses:
+        '200':
+          description: Authorized current projection; private and no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdministrationResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /v1/management/users/search:
+    post:
+      tags: [Authority]
+      operationId: searchManagedUsersPrivately
+      summary: Read only phone and member search without personal values in access URLs
+      security: [{session: []}]
+      x-release-stage: V2.1-R4-UM
+      x-acceptance-ids: [UM-01, UM-02, UM-03]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Same closed query fields as GET users, including role-bound cursor. Does not create or mutate member assets.
+      responses:
+        '200':
+          description: Current role-scoped query result; private and no-store
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UserAdministrationResult'}
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+  /v1/management/users/{memberId}:
+    get:
+      tags: [Authority]
+      operationId: getManagedUser
+      summary: Canonical private nickname avatar card identity and authorized totals
+      security: [{session: []}]
+      x-release-stage: V2.1-R4-UM
+      x-acceptance-ids: [UM-01, UM-04]
+      parameters:
+        - in: path
+          name: memberId
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Authorized current projection; private and no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdministrationResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /v1/management/users/{memberId}/sections/{section}:
+    get:
+      tags: [Authority]
+      operationId: getManagedUserSection
+      summary: Paged source owned details with separate contact care finance and service scopes
+      security: [{session: []}]
+      x-release-stage: V2.1-R4-UM
+      x-acceptance-ids: [UM-04, UM-05, UM-06]
+      parameters:
+        - in: path
+          name: memberId
+          required: true
+          schema: {type: string, format: uuid}
+        - in: path
+          name: section
+          required: true
+          schema: {type: string, enum: [profile, addresses, care, points, vouchers, orders, aftersales, sharing, sharing-orders, settlements, posts, comments, support, privacy, logs]}
+        - in: query
+          name: cursor
+          schema: {type: string}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 50}
+        - in: query
+          name: day
+          schema: {type: string, format: date}
+          description: Care records only, exact Asia/Shanghai civil day.
+      responses:
+        '200':
+          description: Authorized current projection; private and no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdministrationResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /v1/management/users/{memberId}/contact:
+    post:
+      tags: [Authority]
+      operationId: revealManagedUserContact
+      summary: Purpose audited temporary contact reveal without storing plaintext in receipts or logs
+      security: [{session: []}]
+      x-release-stage: V2.1-R4-UM
+      x-acceptance-ids: [UM-05]
+      parameters:
+        - in: path
+          name: memberId
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 2, maxLength: 200}
+                kind: {type: string, enum: [phone, address], default: phone}
+                addressId: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Authorized current projection; private and no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdministrationContact'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /v1/management/users/export:
+    post:
+      tags: [Authority]
+      operationId: exportManagedUsers
+      summary: Atomic filtered CSV with formula escaping and role allowed columns excluding contact and health
+      security: [{session: []}]
+      x-release-stage: V2.1-R4-UM
+      x-acceptance-ids: [UM-07]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: object
+                  description: Same validated filters and sort as the user table; export ignores page cursor and limit.
+                ids:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  uniqueItems: true
+                  items: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Authorized current projection; private and no-store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdministrationExport'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
   /v1/me/rewards:
     get:
       tags:
@@ -401,6 +649,18 @@ paths:
         - TRV-08
         - TRV-09
       parameters:
+        - in: query
+          name: memberId
+          schema: {type: string, format: uuid}
+          description: Optional exact member or owned source filter; does not grant authority.
+        - in: query
+          name: voucherId
+          schema: {type: string, format: uuid}
+          description: Optional exact member or owned source filter; does not grant authority.
+        - in: query
+          name: claimId
+          schema: {type: string, format: uuid}
+          description: Optional exact member or owned source filter; does not grant authority.
         - in: query
           name: activityId
           schema:
@@ -948,7 +1208,7 @@ paths:
       operationId: nativePrivacyRequestQueue
       description: Native management queue. Requires an active signed member session and current environment-bound privacy.request.manage capability; legacy operator roles cannot replace this capability. Locks authority for each page read. Without page, preserves the legacy array of up to 100 records; page=1 returns items (up to 30) and nextCursor. No export payload is returned.
       security: [{session: []}]
-      parameters: [{name: page, in: query, schema: {type: string, enum: ['1']}}, {name: cursor, in: query, schema: {type: string, maxLength: 512}}]
+      parameters: [{name: page, in: query, schema: {type: string, enum: ['1']}}, {name: cursor, in: query, schema: {type: string, maxLength: 512}}, {name: memberId, in: query, schema: {type: string, format: uuid}}, {name: requestId, in: query, schema: {type: string, format: uuid}, description: Exact owned request; memberId alone is not accepted and no pagination is needed.}]
       responses: {'200': {description: Requests ordered by open status and due date}, '401': {description: Member session required}, '403': {description: Capability unavailable or revoked}, '422': {description: Invalid page or cursor}}
   /v1/management/privacy-requests/{requestId}/response:
     post:
@@ -3115,6 +3375,14 @@ paths:
       security:
         - session: []
       parameters:
+        - in: query
+          name: memberId
+          schema: {type: string, format: uuid}
+          description: Optional exact member or owned source filter; does not grant authority.
+        - in: query
+          name: redemptionId
+          schema: {type: string, format: uuid}
+          description: Optional exact member or owned source filter; does not grant authority.
         - name: cursor
           in: query
           schema:
@@ -3366,7 +3634,7 @@ paths:
   /v1/me/sharing-officer/share-assets:
     post: {"tags":["Attribution"],"operationId":"sharingOfficer10","summary":"share-assets","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["shareId"],"properties":{"shareId":{"type":"string","pattern":"^[a-f0-9]{32}$"}}}}}}}
   /v1/management/sharing-officer:
-    get: {"tags":["Attribution"],"operationId":"sharingOfficer11","summary":"按权限分页管理申请、规则、订单及月结","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"parameters":[{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":50}},{"name":"cursor","in":"query","schema":{"type":"string","maxLength":600}},{"name":"section","in":"query","schema":{"type":"string"}},{"name":"filter","in":"query","schema":{"type":"string"}},{"name":"batchId","in":"query","schema":{"type":"string"}}]}
+    get: {"tags":["Attribution"],"operationId":"sharingOfficer11","summary":"按权限分页管理申请、规则、订单及月结","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"parameters":[{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":50}},{"name":"cursor","in":"query","schema":{"type":"string","maxLength":600}},{"name":"section","in":"query","schema":{"type":"string"}},{"name":"filter","in":"query","schema":{"type":"string"}},{"name":"batchId","in":"query","schema":{"type":"string"}},{"name":"memberId","in":"query","schema":{"type":"string","format":"uuid"},"description":"Optional exact officer filter for qualifications, orders, batch membership and lines. lineId further selects the exact owned settlement."}]}
   /v1/management/sharing-officer/orders/{id}:
     get: {"tags":["Attribution"],"operationId":"sharingOfficer12","summary":"{id}","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"string","format":"uuid"}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":50}},{"name":"cursor","in":"query","schema":{"type":"string","maxLength":600}}]}
   /v1/management/sharing-officer/commands:
@@ -3421,6 +3689,48 @@ components:
     Care: {description: Authoritative care view, content: {application/json: {schema: {$ref: '#/components/schemas/CareView'}}}}
     Problem: {description: Versioned problem details, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
   schemas:
+    UserAdministrationResult:
+      type: object
+      description: Scope is checked from current grants within the same transaction as projection and audit. Unauthorized fields are null or absent. Native UI never grants roles.
+      properties:
+        scope: {type: object, additionalProperties: {type: boolean}}
+        member: {$ref: '#/components/schemas/UserAdministrationRow'}
+        items: {type: array, items: {type: object}}
+        total: {type: integer, minimum: 0}
+        nextCursor: {type: [string, 'null']}
+        section: {type: string}
+        data: {type: object}
+        asOf: {type: string, format: date-time}
+    UserAdministrationRow:
+      type: object
+      required: [id, displayName, accountStatus, onboarding, activity]
+      properties:
+        id: {type: string, format: uuid}
+        displayName: {type: string}
+        cardNumber: {type: [string, 'null']}
+        avatar: {type: [string, 'null']}
+        accountStatus: {type: string, enum: [active, blocked]}
+        onboarding: {type: string, enum: [complete, incomplete, erased]}
+        phoneMasked: {type: [string, 'null']}
+        points: {type: [object, 'null']}
+        commerce: {type: [object, 'null']}
+        activity: {type: object}
+        rewards: {type: [object, 'null']}
+        sharing: {type: [object, 'null']}
+    UserAdministrationContact:
+      type: object
+      required: [expiresInSeconds]
+      properties:
+        phone: {type: [string, 'null']}
+        address: {type: [object, 'null']}
+        expiresInSeconds: {type: integer, const: 60}
+    UserAdministrationExport:
+      type: object
+      required: [csv, count, asOf]
+      properties:
+        csv: {type: string, description: UTF-8 BOM CSV, at most 10000 rows and 4 MiB; rejects rather than truncates. No UUIDs, contacts, health answers or payee data.}
+        count: {type: integer, minimum: 0, maximum: 10000}
+        asOf: {type: string, format: date-time}
     SharingMemberCommand: {"type":"object","additionalProperties":false,"required":["action","input"],"properties":{"action":{"type":"string","enum":["apply","payee","share","bind_visit","change_referrer"]},"input":{"type":"object","description":"Action-specific fields are validated by the authoritative server. Rates use basisPoints; all currency values use integer CNY cents. Review/paid/void/change-referrer commands require expectedVersion. A payment record requires finance reviewed tax, actual payment attestation, unique bank reference, and payee version unchanged."}}}
     SharingManagementCommand: {"type":"object","additionalProperties":false,"required":["action","input"],"properties":{"action":{"type":"string","enum":["policy","officer_state","prepare_month","review_line","void_line","record_payment","record_recovery"]},"input":{"type":"object","description":"Action-specific fields are validated by the authoritative server. Rates use basisPoints; all currency values use integer CNY cents. Review/paid/void/change-referrer commands require expectedVersion. A payment record requires finance reviewed tax, actual payment attestation, unique bank reference, and payee version unchanged."}}}
     RewardTerms:
