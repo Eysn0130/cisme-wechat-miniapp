@@ -1,0 +1,49 @@
+{
+  "atUtc": "2026-11-15T19:15:13.765278+00:00",
+  "kind": "native-devtools-scoped-login-recovery",
+  "sourceBaseCommit": "451f3af730044b66082fa9015bd53095d3e41a47",
+  "patchedMiniProgramSourceSha256": "8782985898c793cf3fc6598f473bf7a87773c8750222c3a5e526cc6b6a94a557",
+  "observedQaPackageSourceSha256": "3fbe26f23eeb01935c24b6eda43246887e930eabff89445adaa4b2a383a394d7",
+  "qaOnlyTransportDifference": "devtools and preview origins point to production API; trial and release mappings unchanged",
+  "identityOrApiResponseMocked": false,
+  "authenticatedMember": false,
+  "nativeGuestRoutes": [
+    {
+      "route": "pages/management-support/index",
+      "before": "local permission error with retry dead end",
+      "after": "pages/account/index"
+    },
+    {
+      "route": "pages/management-privacy/index",
+      "before": "local permission error with retry dead end",
+      "after": "pages/account/index"
+    }
+  ],
+  "publicConsoleErrorWarningFilterMatches": 0,
+  "backendMemberOrCommerceTestWrites": 0,
+  "hardwareAcceptance": false,
+  "fullRouteStateMatrixComplete": false,
+  "fullFormalReleaseQualified": false,
+  "files": [
+    {
+      "file": "support-before.jpg",
+      "sha256": "8493272a565b60b75b0d9c8d4fafaf857a7d0da082862fee06d07820e8e42408",
+      "bytes": 25345
+    },
+    {
+      "file": "privacy-before.jpg",
+      "sha256": "1cdccf741bc894fe9fc60277858af87065e9aeb944cf0e524eb51a3cde643411",
+      "bytes": 21634
+    },
+    {
+      "file": "support-after.jpg",
+      "sha256": "5fd2fd9a66e20d1a001bbd4f429c8b70811476e789a9b53c3387281e498e2a1b",
+      "bytes": 50408
+    },
+    {
+      "file": "privacy-after.jpg",
+      "sha256": "e31cbab66f43227027108f741bedb5586d1880650de7cf0f6b3ee901e504a4b0",
+      "bytes": 50322
+    }
+  ]
+}
