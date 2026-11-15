@@ -25,17 +25,18 @@ export interface WeChatReleaseInput {
 export type WeChatCiPreviewInput = Omit<WeChatReleaseInput, "target" | "devtoolsCliAvailable"> & {
   riskAccepted: boolean;
   testTargetIsolated: boolean;
-  paymentsDisabled: boolean;
-  publicUgcDisabled: boolean;
+  capabilitiesApproved: boolean;
   testMembersConfigured: boolean;
 };
 
 export function validateInternalTestPackageSafety(input: Pick<WeChatCiPreviewInput,
-  "testTargetIsolated" | "paymentsDisabled" | "publicUgcDisabled" | "testMembersConfigured">): string[] {
+  "testTargetIsolated" | "capabilitiesApproved" | "testMembersConfigured">): string[] {
   const errors: string[] = [];
   if (!input.testTargetIsolated) errors.push("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED");
-  if (!input.paymentsDisabled) errors.push("INTERNAL_TEST_PAYMENTS_DISABLED_PROOF_REQUIRED");
-  if (!input.publicUgcDisabled) errors.push("INTERNAL_TEST_PUBLIC_UGC_DISABLED_PROOF_REQUIRED");
+  // The approved scope includes real commerce and direct UGC publication.
+  // Isolation and actual runtime authorizations still apply; the word "trial"
+  // must not require those capabilities to remain permanently disabled.
+  if (!input.capabilitiesApproved) errors.push("INTERNAL_TEST_CAPABILITIES_APPROVAL_REQUIRED");
   if (!input.testMembersConfigured) errors.push("INTERNAL_TEST_MEMBERS_SCOPE_PROOF_REQUIRED");
   return errors;
 }

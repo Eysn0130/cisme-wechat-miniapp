@@ -24,8 +24,7 @@ const preflightErrors = validateWeChatCiPreview({
   privacyCheckEnabled: appConfig.__usePrivacyCheck__ === true,
   riskAccepted: flag("WECHAT_CI_RISK_ACCEPTED"),
   testTargetIsolated: flag("WECHAT_TEST_TARGET_ISOLATED_VERIFIED"),
-  paymentsDisabled: flag("WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED"),
-  publicUgcDisabled: flag("WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED"),
+  capabilitiesApproved: flag("WECHAT_TEST_CAPABILITIES_APPROVED"),
   testMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED"),
   manualGates: {
     privacyGuideConfigured: flag("WECHAT_PRIVACY_GUIDE_CONFIGURED"),

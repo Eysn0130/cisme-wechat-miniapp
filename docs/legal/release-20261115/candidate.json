@@ -1,0 +1,27 @@
+{
+  "state": "draft",
+  "version": "2026-11-15-v6-candidate",
+  "approved": false,
+  "published": false,
+  "wechatConsoleSynchronized": false,
+  "basePublishedTrialVersion": "2026-11-03-v5",
+  "productionObservedVersion": "2026-09-09-v3-profile",
+  "documents": [
+    {
+      "documentType": "privacy",
+      "file": "PRIVACY-CANDIDATE.md",
+      "sha256": "4a9ae971d0a3dbedad817df4a5fc705cac7d66d07312186ae15c665715a85a62"
+    },
+    {
+      "documentType": "terms",
+      "file": "TERMS-CANDIDATE.md",
+      "sha256": "c54e128c5f3c44ab896411a06ceac9b5be79cda580926a11570da90c36bd335e"
+    }
+  ],
+  "remainingReview": [
+    "核对当前功能范围与处理用途",
+    "核对 DeepSeek 实际账号所适用的输入输出保存及训练约定",
+    "核对微信后台隐私声明、服务类目与平台资格",
+    "由真实运营主体完成批准及生效发布，保留版本和同意证据"
+  ]
+}

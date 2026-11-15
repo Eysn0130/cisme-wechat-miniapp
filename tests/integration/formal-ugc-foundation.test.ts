@@ -25,7 +25,7 @@ it('keeps formal UGC structurally separate and public publication closed without
   const current=(await pool.query("SELECT enabled,version FROM emergency_switch WHERE key='community'")).rows[0];
   expect(current).toMatchObject({enabled:false,version:1});
   const response=await app.inject({method:'PUT',url:'/v1/admin/switches/community',headers:operatorHeaders(config,'ugc-review-lead',firstMember,{'idempotency-key':'formal-community-enable-v1'}),payload:{enabled:true,reason:'premature test',expectedVersion:1}});
-  expect(response.statusCode).toBe(409);expect(response.json().code).toBe('COMMUNITY_RELEASE_NOT_IMPLEMENTED');
+  expect(response.statusCode).toBe(409);expect(response.json().code).toBe('UGC_GO_LIVE_GATE_CLOSED');
   await expect(pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'")).rejects.toMatchObject({code:'23514'});
   const feed=await app.inject({method:'GET',url:'/v1/ugc/posts',headers:{authorization:`Bearer ${firstSessionToken}`}});
   expect(feed.statusCode).toBe(200);expect(feed.json()).toMatchObject({publicEnabled:false,items:[]});
