@@ -12,7 +12,7 @@ const media = [
   ['brand', 'd5ec985bec7d7126381ae7cf2d8f2eba26dbd2cadf2f921904982caeece4a75b', '40+ 头皮养护', '了解爱格荣', 'shop'],
   ['essence', 'b63a0f255bbd2769553a183bbc40cde64116e978fd2daec31bca7f057e8baf81', '精华照顾头皮', '了解精华', 'essence'],
   ['set', 'c549ecd011c93a8563135aed46f3a02d7a896c64cec114a5be18fc359c9a7c18', '精华套组', '查看套组', 'essence'],
-  ['selection', '180850ebd07f069bbfb4198f6d5580055e5dd48d574b57311c707f8ed4dbf38d', '找到适合你的洗护', '选品咨询', 'support']
+  ['selection', '180850ebd07f069bbfb4198f6d5580055e5dd48d574b57311c707f8ed4dbf38d', '适合你的洗护', '选品咨询', 'support']
 ] as const;
 
 export function homeCampaignSlides(apiOrigin: string): HomeCampaignSlide[] {

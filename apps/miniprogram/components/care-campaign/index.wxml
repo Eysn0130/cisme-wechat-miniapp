@@ -4,7 +4,7 @@
       <view class="campaign__slide" data-index="{{index}}" bindtap="activate" aria-role="button" aria-label="{{item.heading}}{{item.price ? '，' + item.price : ''}}，{{item.action}}">
         <image wx:if="{{item.requested && !item.imageFailed}}" class="campaign__photo {{item.imageLoaded ? 'campaign__photo--ready' : ''}}" src="{{item.image}}" mode="aspectFill" data-index="{{index}}" data-key="{{item.imageKey}}" data-attempt="{{item.imageAttempt}}" bindload="imageLoaded" binderror="imageFailed" aria-hidden="true"/>
         <image wx:if="{{item.imageFailed}}" class="campaign__fallback" src="/assets/icons/spray-bottle-plum.svg" mode="aspectFit" aria-hidden="true"/>
-        <view class="campaign__copy">
+        <view class="campaign__copy {{item.id === 'set' ? 'campaign__copy--set' : ''}}">
           <image class="campaign__brand" src="/assets/commerce/aigerong-wordmark-v1.png" mode="aspectFit" aria-hidden="true"/>
           <view class="campaign__headline"><text>{{item.heading}}</text><text wx:if="{{item.price}}" class="campaign__price">{{item.price}}</text></view>
           <view class="campaign__action"><text>{{item.action}}</text><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit" aria-hidden="true"/></view>
