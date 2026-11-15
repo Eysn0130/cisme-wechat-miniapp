@@ -30,6 +30,13 @@ it('resumes after a non-swiping touch without requiring a change event', () => {
   ready(); rotation.beginTouch(); vi.advanceTimersByTime(dwell); rotation.endTouch(false);
   vi.advanceTimersByTime(dwell); expect(rotation.index).toBe(1);
 });
+it('does not invent an animation wait after a cancelled or vertical gesture with no slide change', () => {
+  ready(); rotation.beginTouch(); rotation.endTouch(true);
+  expect(rotation.snapshot().moving).toBe(false);
+  expect(rotation.canActivate(0)).toBe(false); vi.advanceTimersByTime(duration);
+  expect(rotation.canActivate(0)).toBe(true); expect(vi.getTimerCount()).toBe(1);
+  vi.advanceTimersByTime(dwell - duration); expect(rotation.index).toBe(1);
+});
 it('preserves explicit pause through manual swipes and page hide/show', () => {
   ready(); expect(rotation.togglePause()).toBe(true); rotation.beginTouch(); rotation.changed(2); rotation.endTouch(true);
   vi.advanceTimersByTime(duration); rotation.finished(2); rotation.configure({ visible: false }); rotation.configure({ visible: true });

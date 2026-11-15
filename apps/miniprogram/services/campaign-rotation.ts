@@ -82,7 +82,7 @@ export class CampaignRotation {
   endTouch(moved: boolean) {
     if (!this.alive || !this.visible) return;
     this.touching = false;
-    if (moved || this.touchBlocked) { this.lockedUntil = Date.now() + this.duration; this.moving = !this.reduced; }
+    if (moved || this.touchBlocked) this.lockedUntil = Date.now() + this.duration;
     this.touchBlocked = false;
     if (this.moving) this.watchAnimation();
     this.clearDwell(); this.arm();
