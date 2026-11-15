@@ -1091,7 +1091,6 @@ export class PlatformService {
 
   async setEmergencySwitch(principalId: string, key: EmergencySwitchKey, idempotencyKey: string, input: { enabled: boolean; reason: string; expectedVersion: number }, now: Date) {
     if (!input.reason?.trim()) throw new DomainError("SWITCH_REASON_REQUIRED", "An emergency-switch reason is required", 422);
-    if (key === "community" && input.enabled) throw new DomainError("COMMUNITY_RELEASE_NOT_IMPLEMENTED", "Formal community routes, moderation and privacy gates are not complete", 409);
     return transaction(this.pool, async (client) => {
       await this.assertAdminRole(client, principalId, ["review_lead"]);
       const idem = { principalId, operation: "emergency_switch.update", idempotencyKey, businessKey: `switch:${key}:v${input.expectedVersion}:update`, requestHash: requestHash({ key, ...input }) };
@@ -1101,6 +1100,18 @@ export class PlatformService {
       const row = before.rows[0];
       if (!row) throw new DomainError("SWITCH_NOT_FOUND", "Emergency switch not found", 404);
       if (row.version !== input.expectedVersion) throw new DomainError("VERSION_CONFLICT", "Emergency-switch version changed", 409);
+      if (key === "community" && input.enabled) {
+        if (!this.config.ugcGoLiveGate) throw new DomainError("UGC_GO_LIVE_GATE_CLOSED", "社区发布配置尚未就绪", 409);
+        // Reopening an already approved release is an operational action, not
+        // a new publication approval. Lock the existing approval through commit;
+        // the database trigger and per-publication checks remain in force.
+        const approval = (await client.query<{ expires_at: Date }>(`SELECT expires_at FROM ugc_go_live_approval
+          WHERE revoked_at IS NULL AND signed_at<=clock_timestamp() AND expires_at>clock_timestamp()
+          ORDER BY expires_at DESC,id LIMIT 1 FOR SHARE`)).rows[0];
+        const valid = approval && (await client.query<{ valid: boolean }>(
+          "SELECT $1::timestamptz>clock_timestamp() AS valid", [approval.expires_at])).rows[0]?.valid;
+        if (!valid) throw new DomainError("UGC_GO_LIVE_GATE_CLOSED", "需要有效的社区发布授权后才能恢复", 409);
+      }
       const response = { key, enabled: input.enabled, reason: input.reason.trim(), version: row.version + 1 };
       await client.query("UPDATE emergency_switch SET enabled=$1, reason=$2, updated_by=$3, updated_at=$4, version=version+1 WHERE key=$5", [input.enabled, input.reason.trim(), principalId, now, key]);
       await this.audit(client, principalId, "emergency_switch.update", "emergency_switch", null as unknown as string, input.reason.trim(), { key, ...row }, response);
