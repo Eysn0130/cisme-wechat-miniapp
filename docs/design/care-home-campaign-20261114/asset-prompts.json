@@ -1,0 +1,26 @@
+{
+  "mode": "built-in image_gen",
+  "approved_comp": "/Users/mini/CISME/docs/design/home-brand-placement-20261114/round-2/options/04-split-brand-care.png",
+  "assets": [
+    {
+      "key": "brand",
+      "source": "/Users/mini/CISME/docs/design/home-brand-placement-20261114/round-2/references/02-brand-original.png",
+      "prompt": "Use case: compositing, production mobile campaign photograph. Recompose the supplied EXACT woman and her glossy dark hair onto a seamless pure WHITE studio background, landscape 3:2 composition. Preserve her exact facial identity, skin, profile direction and natural hair texture. Place her head, long hair and upper shoulder within the RIGHT 52% of the frame, leaving the LEFT 48% completely white and empty for native UI copy. Keep the entire facial profile inside the right frame edge with a little margin. Her head must not be cut at the top; hair and shoulder may naturally leave the bottom edge. Remove all original poster text and branding outside the photographed subject. No logo, no headline, no labels, no decorative shapes, no pearl, no watermark, no new people, no accessories. Soft true photographic studio light and an even white background. This is an image-only plate for a WeChat Mini Program, not a full UI or a poster. The empty left side is important."
+    },
+    {
+      "key": "essence",
+      "source": "/Users/mini/CISME/docs/design/home-brand-placement-20261114/round-2/references/01-essence-original.png",
+      "prompt": "Use case: compositing, production product photograph. Recompose the supplied EXACT hand holding the EXACT silver AIGERONG scalp essence tube on a pure WHITE seamless background, landscape 3:2 composition. The tube, cap, hand and fingers occupy the RIGHT 48% of the frame; the LEFT 52% is completely empty white for native UI text. Preserve the silver tube silhouette, label printing, purple AIGERONG brand on the package, white cap, original 100mL size and natural hand pose. Keep the complete tube and cap inside the frame, leave a small margin above it; the wrist can naturally exit the lower edge. Remove all poster headlines, promotional text and standalone logo outside the package. No other product, no extra tube, no bubbles, no background texture, no overlaid text, no UI, no watermark. Realistic soft studio lighting, crisp product material, natural skin and faithful package artwork. Image-only plate."
+    },
+    {
+      "key": "set",
+      "source": "/Users/mini/CISME/docs/design/home-brand-placement-20261114/round-2/references/03-set-original.png",
+      "prompt": "Use case: compositing, production product photograph. Recompose the supplied EXACT three-product AIGERONG group — lavender shampoo bottle with bowl-like white cap, the silver essence tube in the middle, and lavender conditioner bottle with white pump — on pure WHITE, landscape 3:2. Put the complete group in the RIGHT 50% of the image, with a small margin at the top, bottom and right, leaving the LEFT 50% completely white for native UI text. Preserve each package shape, relative heights, printed branding, label colors and quantities. All three products rest on a clean white tabletop with subtle real contact shadows. Remove ALL standalone marketing text, price, headline and arrows from the original background. No overlaid logos or typography outside package labels, no gift props, no fourth product, no UI, no watermark, no gray or silk background. Soft realistic studio photography, not a painting."
+    },
+    {
+      "key": "selection",
+      "source": "/Users/mini/CISME/docs/design/home-brand-placement-20261114/round-2/references/04-selection-original.png",
+      "prompt": "Use case: compositing, production mobile campaign photograph. Use the supplied EXACT woman with long dark glossy hair, preserve her facial identity, profile, skin and natural hair. Recompose on seamless pure WHITE, landscape 3:2. Her face, hair and upper shoulder occupy the RIGHT 48% of the image; the LEFT 52% stays completely empty white for native UI text. Use a slightly closer head-and-shoulder framing than the original wide poster, keep her complete profile within the right edge with breathing room, no cropped nose or forehead. Hair and shoulder can exit the bottom edge. Remove all original poster copy, logo, arrows and labels. No new people, accessories, props, diagnostics, bubbles, UI or watermark. Subtle studio light, no violet background. This is a photographic plate, not a finished poster."
+    }
+  ]
+}

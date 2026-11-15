@@ -1,6 +1,7 @@
 import{stripTypeScriptTypes}from'node:module';
 import{runInNewContext}from'node:vm';
 import{sectionTabs}from'../../apps/miniprogram/services/section-tabs';
+import{nativeCampaignComponent}from'./native-campaign';
 import {readFileSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 
@@ -26,6 +27,6 @@ export function nativePageComponents(simulate:{load:(definition:any)=>string}):R
  runInNewContext(stripTypeScriptTypes(foil),{Component:(value:any)=>{definition=value;},shouldReduceMotion:()=>true});
  // The independent reward lifecycle is exercised by onboarding-feedback.test.ts;
  // tab snapshot fixtures have no first-completion intent or points receipt.
- return {'section-tabs':section,'card-foil':simulate.load({...definition,template:readFileSync('apps/miniprogram/components/card-foil/index.wxml','utf8')}),
+ return {'care-campaign':nativeCampaignComponent(simulate),'section-tabs':section,'card-foil':simulate.load({...definition,template:readFileSync('apps/miniprogram/components/card-foil/index.wxml','utf8')}),
   'points-celebration':simulate.load({properties:{owner:String,enabled:Boolean},template:'<view></view>'})};
 }

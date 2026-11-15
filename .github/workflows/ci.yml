@@ -65,6 +65,7 @@ jobs:
           set -euo pipefail
           mkdir -p tmp
           python3 -m unittest discover -s infra/tencent -p 'test_staging_*.py' -v
+          python3 -m unittest discover -s infra/tencent -p 'test_home_campaign_assets.py' -v
           python3 -m unittest discover -s infra/tencent -p 'test_production_*.py' -v
           python3 -W error::ResourceWarning -m unittest discover -s infra/tencent -p 'test_trial_application_upgrade.py' -v
           python3 -W error::ResourceWarning -m unittest discover -s infra/tencent -p 'test_trial_editorial_comments_upgrade.py' -v
