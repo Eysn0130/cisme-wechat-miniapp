@@ -2,6 +2,7 @@ import { authorityProjection, hasCapability } from "../../services/authority";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { currentChromeStyle } from "../../services/layout";
+import { requireMemberAccess, resumeAuthentication } from "../../services/api";
 
 const labels:Record<string,string>={waiting_human:"待人工",human_active:"人工处理中",ai_active:"AI 处理中",resolved:"已解决"};
 function preview(value:unknown):string{const text=Array.from(String(value||"").replace(/\s+/g," ").trim());return text.slice(0,48).join("")+(text.length>48?"…":"");}
@@ -42,7 +43,7 @@ Page({
     const epoch=this.viewEpoch,token=this.lastToken,seq=++this.listRequestSeq;
     this.readPending=true;
     try{
-      if(!token)throw {status:401};
+      if(!token){requireMemberAccess();throw {status:401};}
       if(!silent){
         const authority=await authorityProjection(this);
         if(!this.current(epoch,token)||seq!==this.listRequestSeq)return;
@@ -80,6 +81,6 @@ Page({
     const epoch=this.viewEpoch,token=this.lastToken;this.setData({navigating:true});
     wx.navigateTo({url:`/pages/management-support-chat/index?id=${encodeURIComponent(id)}`,fail:()=>{if(this.current(epoch,token))this.setData({navigating:false});}});
   },
-  retry(){void this.load();},
+  retry(){if(!getApp<IAppOption>().globalData.sessionToken){resumeAuthentication();return;}void this.load();},
   back(){if(this.data.visible)wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/management/index"})});}
 });

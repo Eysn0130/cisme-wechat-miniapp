@@ -1,7 +1,7 @@
 import { authorityProjection, hasCapability } from "../../services/authority";
 import {beijingDateLabel} from "../../services/business-time";
 import { currentChromeStyle } from "../../services/layout";
-import { request } from "../../services/api";
+import { request, requireMemberAccess, resumeAuthentication } from "../../services/api";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 type PrivacyRow={id:string;kind:string;message:string;status:string;waitingOn:"operator"|"member";response:string|null;replyHistory:Array<{actor:'operator'|'member';body:string;createdAt:string;version:number}>;latestMemberReply?:{body:string}|null;profileVersion:number|null;version:number;due_at:string;execution:{type:string;status:string}|null;kindLabel?:string;statusLabel?:string;dueLabel?:string;executionLabel?:string;editable?:boolean;correctionLabel?:string};
@@ -29,7 +29,7 @@ Page({
   if(!silent){cancelPageReads(this);this.stopPolling();this.epoch++;this.lastToken=getApp<IAppOption>().globalData.sessionToken;this.lastRevision=commerceContextRevision();this.setData({items:[],nextCursor:null,moreBusy:false,moreError:"",selected:null,response:"",coreReady:false,loading:true,error:"",actionError:""});}
   const epoch=this.epoch,token=this.lastToken;this.readPending=true;
   try{
-   if(!token)throw {status:401};
+   if(!token){requireMemberAccess();throw {status:401};}
    const authority=await authorityProjection(this);
    if(!this.current(epoch,token))return;
    if(authority.version!==1||!authority.managementAvailable||!hasCapability(authority,"privacy.request.manage"))throw {status:403};
@@ -94,6 +94,6 @@ Page({
       else this.setData({actionError:"更正结果还未确认，请刷新申请记录和最新资料后核对，不要重复提交。",coreReady:false});
     }finally{if(this.visible&&epoch===this.epoch)this.setData({busy:false});}
   },
- retry(){if(!this.data.busy)void this.load();},
+ retry(){if(this.data.busy)return;if(!getApp<IAppOption>().globalData.sessionToken){resumeAuthentication();return;}void this.load();},
  back(){if(!this.target.requestId&&this.data.selected&&!this.data.busy){this.setData({selected:null,response:"",actionError:""});return;}wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/management/index"})});}
 });

@@ -1,16 +1,22 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
-const mocks=vi.hoisted(()=>({request:vi.fn(),authority:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/api',()=>({request:mocks.request}));
+const mocks=vi.hoisted(()=>({request:vi.fn(),authority:vi.fn(),requireMemberAccess:vi.fn(),resumeAuthentication:vi.fn()}));
+vi.mock('../../apps/miniprogram/services/api',()=>({request:mocks.request,requireMemberAccess:mocks.requireMemberAccess,resumeAuthentication:mocks.resumeAuthentication}));
 vi.mock('../../apps/miniprogram/services/authority',()=>({authorityProjection:mocks.authority,hasCapability:(a:any,c:string)=>a?.capabilities.includes(c)}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>0}));
 let definition:any,token:string;
 const row={id:'synthetic-request',kind:'access',message:'Synthetic private request',status:'received',response:null,version:1,due_at:'2026-10-22T00:00:00Z',execution:null};
-beforeEach(()=>{vi.resetModules();vi.useFakeTimers();token='synthetic-operator';mocks.request.mockReset();mocks.authority.mockReset().mockResolvedValue({version:1,managementAvailable:true,capabilities:['privacy.request.manage']});(globalThis as any).getApp=()=>({globalData:{sessionToken:token}});(globalThis as any).Page=(p:any)=>definition=p;(globalThis as any).wx={navigateBack:vi.fn(),redirectTo:vi.fn()};});
+beforeEach(()=>{vi.resetModules();vi.useFakeTimers();token='synthetic-operator';mocks.request.mockReset();mocks.requireMemberAccess.mockReset();mocks.resumeAuthentication.mockReset();mocks.authority.mockReset().mockResolvedValue({version:1,managementAvailable:true,capabilities:['privacy.request.manage']});(globalThis as any).getApp=()=>({globalData:{sessionToken:token}});(globalThis as any).Page=(p:any)=>definition=p;(globalThis as any).wx={navigateBack:vi.fn(),redirectTo:vi.fn()};});
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 async function page(){await import('../../apps/miniprogram/pages/management-privacy/index');return {...definition,data:structuredClone(definition.data),setData(p:any){Object.assign(this.data,p);}};}
 const select=(p:any)=>p.select({currentTarget:{dataset:{id:row.id}}});
 describe('native privacy management lifecycle',()=>{
+ it('opens authentication for a guest and lets an explicit retry resume it without reading private requests',async()=>{
+  const p=await page();token='';await p.onShow();
+  expect(mocks.requireMemberAccess).toHaveBeenCalledOnce();expect(mocks.authority).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
+  expect(p.data.items).toEqual([]);expect(p.data.coreReady).toBe(false);expect(p.timer).toBeNull();
+  p.retry();expect(mocks.resumeAuthentication).toHaveBeenCalledOnce();expect(mocks.request).not.toHaveBeenCalled();
+ });
  it('clears sensitive rows and drafts on hide and rejects a late queue result',async()=>{const p=await page();let finish!:(x:any)=>void;mocks.request.mockImplementationOnce(()=>new Promise(r=>finish=r));const read=p.onShow();await Promise.resolve();p.onHide();finish({items:[row],nextCursor:null});await read;expect(p.data.items).toEqual([]);expect(p.data.selected).toBeNull();expect(p.data.response).toBe('');expect(p.data.coreReady).toBe(false);});
  it('shows only current capability data and clears it when a polling read is revoked',async()=>{const p=await page();mocks.request.mockResolvedValueOnce({items:[row],nextCursor:null});await p.onShow();select(p);p.onResponse({detail:{value:'private draft'}});mocks.request.mockRejectedValueOnce({status:403});await p.load(true);expect(p.data.items).toEqual([]);expect(p.data.response).toBe('');expect(p.data.coreReady).toBe(false);expect(p.timer).toBeNull();});
  it('never accepts an old account result after the session changes',async()=>{const p=await page();let finish!:(x:any)=>void;mocks.request.mockImplementationOnce(()=>new Promise(r=>finish=r));const read=p.onShow();await Promise.resolve();token='different-account';finish({items:[row],nextCursor:null});await read;expect(p.data.items).toEqual([]);expect(p.data.coreReady).toBe(false);});

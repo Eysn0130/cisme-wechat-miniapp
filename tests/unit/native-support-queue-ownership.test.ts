@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const m = vi.hoisted(() => ({ token: "operator-a", request: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/api", () => ({ request: m.request }));
+const m = vi.hoisted(() => ({ token: "operator-a", request: vi.fn(), requireMemberAccess: vi.fn(), resumeAuthentication: vi.fn() }));
+vi.mock("../../apps/miniprogram/services/api", () => ({ request: m.request, requireMemberAccess: m.requireMemberAccess, resumeAuthentication: m.resumeAuthentication }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "" }));
 const deferred = () => {
   let resolve!: (value: any) => void, reject!: (reason: any) => void;
@@ -31,6 +31,18 @@ const start = async () => { void page.onShow(); authority.resolve(grant); await 
 const ready = async () => { await start(); read.resolve({ items: [row], nextCursor: "older" }); await flush(); };
 
 describe("support queue read ownership", () => {
+  it("opens authentication for a guest before reading staff authority or conversations", async () => {
+    m.token = "";
+    await page.onShow();
+    expect(m.requireMemberAccess).toHaveBeenCalledOnce();
+    expect(m.request).not.toHaveBeenCalled();
+    expect(page.data.items).toEqual([]);
+    expect(page.data.coreReady).toBe(false);
+    expect(page.timer).toBeNull();
+    page.retry();
+    expect(m.resumeAuthentication).toHaveBeenCalledOnce();
+    expect(m.request).not.toHaveBeenCalled();
+  });
   it("cancels its pending GET on hide without accepting its late response", async () => {
     await start(); page.onHide(); expect(aborts.get("/v1/management/support/conversations?limit=30")).toHaveBeenCalledOnce();
     read.resolve({ items: [row], nextCursor: null }); await flush(); expect(page.data.items).toEqual([]);
