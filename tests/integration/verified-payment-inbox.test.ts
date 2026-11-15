@@ -1,4 +1,4 @@
-import { createCipheriv, generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
+import { createHash, createCipheriv, generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { resetDatabase, testPool } from "@cisme/testkit";
 import { VerifiedPaymentInbox } from "../../services/api/src/verifiedPaymentInbox";
@@ -1011,7 +1011,7 @@ it('commits local shipment and WeChat intent together without network I/O; recei
 
 async function externalFixture(suffix:string){
   await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+5 WHERE sku_id=$1',[sku]);
-  const order=await seedOrder(`ext${suffix}`),transactionId=`WX-EXTERNAL-${suffix}`,refundNo=`PORTAL-REFUND-${suffix}`;
+  const order=await seedOrder(createHash("sha256").update(`external:${suffix}`).digest("hex").slice(0,12).toUpperCase()),transactionId=`WX-EXTERNAL-${suffix}`,refundNo=`PORTAL-REFUND-${suffix}`;
   const paidAt=new Date(order.createdAt.getTime()+1000).toISOString();
   const event=notification(order.number,transactionId,`EV-EXTERNAL-${suffix}`,paidAt);
   const receipt=await processor.receive(event.rawBody,event.headers);expect(await processor.processOne(receipt.inboxId)).toBe('applied');
