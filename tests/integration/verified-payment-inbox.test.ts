@@ -1080,7 +1080,7 @@ it('requires current finance permission before a query and again before importin
   const f=await externalFixture('authority');
   await expect(f.ops.reconcileExternalRefund(buyer,f.order.id,{outRefundNo:f.refundNo})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   expect(f.calls).toHaveLength(0);
-  f.beforeResponse(async()=>{await pool.query("UPDATE authority_grant SET revoked_at=now() WHERE member_id=$1 AND capability='commerce.money.reconcile'",[f.actor]);});
+  f.beforeResponse(async()=>{await pool.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='Synthetic mid-query permission withdrawal' WHERE member_id=$1 AND capability='commerce.money.reconcile' AND revoked_at IS NULL",[f.actor]);});
   await expect(f.ops.reconcileExternalRefund(f.actor,f.order.id,{outRefundNo:f.refundNo})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   expect((await pool.query('SELECT count(*)::int n FROM commission_refund_intent WHERE order_id=$1',[f.order.id])).rows[0].n).toBe(0);
 });
