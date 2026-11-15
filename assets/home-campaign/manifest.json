@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "kind": "owner-approved-public-home-campaign",
+  "approved_design": "04-split-brand-care",
+  "assets": [
+    {
+      "key": "brand",
+      "file": "d5ec985bec7d7126381ae7cf2d8f2eba26dbd2cadf2f921904982caeece4a75b.jpg",
+      "sha256": "d5ec985bec7d7126381ae7cf2d8f2eba26dbd2cadf2f921904982caeece4a75b",
+      "bytes": 40738,
+      "source_sha256": "116384266d8dfb373cb13f84bdb91593f04b5ea109a3e95e943cce64b302da0e",
+      "generated_sha256": "5fd746751c5f8b4af1e68eeb6872dd35cba8abb503b01819ebd374559ed5652e"
+    },
+    {
+      "key": "essence",
+      "file": "b63a0f255bbd2769553a183bbc40cde64116e978fd2daec31bca7f057e8baf81.jpg",
+      "sha256": "b63a0f255bbd2769553a183bbc40cde64116e978fd2daec31bca7f057e8baf81",
+      "bytes": 26283,
+      "source_sha256": "626a4a9b45d8f83c44e75bfe3f5ccb047ca5df5f78e06d680bcaf0f6389cff0c",
+      "generated_sha256": "317f1b3cc24ebf1d34f19b8e61de273a3b843a03626db04e616cd5a11a20e5a0"
+    },
+    {
+      "key": "set",
+      "file": "c549ecd011c93a8563135aed46f3a02d7a896c64cec114a5be18fc359c9a7c18.jpg",
+      "sha256": "c549ecd011c93a8563135aed46f3a02d7a896c64cec114a5be18fc359c9a7c18",
+      "bytes": 30788,
+      "source_sha256": "bd1c7f31f9694dd620d52bebff91e59479d502e273161ede95c7b0c8a145fbc0",
+      "generated_sha256": "06b2d4b5d56a0208bbbbbab15016655b1ba524fb2cf6130724e1e6c0aaa59048"
+    },
+    {
+      "key": "selection",
+      "file": "180850ebd07f069bbfb4198f6d5580055e5dd48d574b57311c707f8ed4dbf38d.jpg",
+      "sha256": "180850ebd07f069bbfb4198f6d5580055e5dd48d574b57311c707f8ed4dbf38d",
+      "bytes": 33241,
+      "source_sha256": "4054e8ff28249e4779ccc9a3808e7827e6ec112889ed38d480f4824415fb74d4",
+      "generated_sha256": "5764b4376099efc21e4dd04e7701adb812f0218554250c92322f89157e91d77b"
+    }
+  ]
+}

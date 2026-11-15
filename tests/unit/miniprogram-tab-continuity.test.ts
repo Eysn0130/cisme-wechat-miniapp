@@ -210,7 +210,8 @@ describe("native tab return presentation while real read paths revalidate", () =
     const { page, rendered } = await mount("home");
     const read = later(); held.set("/v1/bootstrap/home", read);
     const cold = page.load(); await flush();
-    expect(rendered.dom.textContent).toContain("正在加载护理安排");
+    expect(rendered.dom.querySelector('.home-care-skeleton')).not.toBeNull();
+    expect(rendered.dom.querySelector('.care-cta')).toBeNull();
     read.resolve(replies.get("/v1/bootstrap/home")); await cold; await flush();
     held.delete("/v1/bootstrap/home");
     const daily = later(); held.set("/v1/me/points/club", daily);

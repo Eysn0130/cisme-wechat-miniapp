@@ -14,6 +14,7 @@ import { saveDailyCareRecord, dailyCarePath, readDailyCareRecords, dailyCareComm
 import { careProducts, careUsagePath, readCareUsage, saveCareUsage, careUsageConfirmed, careRewardLabel, type CareDayRewards, type CareProduct, type CareUsageInput, type CareUsageOverview, type TodayUsage } from "../../services/care-usage";
 import { clientOperationKey } from "../../services/orders";
 import { commerceContextRevision } from "../../services/commerce-command-store";
+import { campaignEssenceCode } from "../../services/home-campaign";
 
 interface CareRecord { milestone: string; completedAt: string; stepCodes?: string[]; selfAssessment?: CareSelfAssessmentValue | null }
 interface CareView { id: string; version: number; phase: string; startedOn: string | null; timezone: string; due: string | null; next: string | null; completed: string[]; records: CareRecord[]; scheduleOffsetDays: number }
@@ -373,6 +374,18 @@ Page({
     if(!requireMemberAccess("/pages/support/index"))return;
     this.setData({accountOpening:true});
     wx.navigateTo({url:"/pages/support/index",fail:()=>{this.setData({accountOpening:false});wx.showToast({title:"客服暂时无法打开，请重试",icon:"none"});}});
+  },
+  openCampaign(event: WechatMiniprogram.CustomEvent<{ destination: string; productCode?: string }>) {
+    if (!this.data.pageAlive || !this.data.pageVisible || this.data.accountOpening || this.data.sessionMounted || this.data.onboardingOpen) return;
+    const destination = event.detail.destination;
+    if (destination === 'support') { this.openSupport(); return; }
+    if (destination !== 'shop' && destination !== 'essence') return;
+    const product = destination === 'essence' && event.detail.productCode === campaignEssenceCode;
+    const url = product ? `/pages/product/index?id=${encodeURIComponent(campaignEssenceCode)}` : '/pages/shop/index';
+    if (!requireMemberAccess(url)) return;
+    this.setData({ accountOpening: true });
+    const fail = () => { if (this.data.pageAlive) this.setData({ accountOpening: false }); wx.showToast({ title: '暂时无法打开，请重试', icon: 'none' }); };
+    if (product) wx.navigateTo({ url, fail }); else wx.switchTab({ url, fail });
   },
   openRecords() {
     if (!this.data.pageAlive || !this.data.pageVisible || this.data.accountOpening || this.data.sessionMounted || this.data.onboardingOpen) return;

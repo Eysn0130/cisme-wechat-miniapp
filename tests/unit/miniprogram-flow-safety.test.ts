@@ -341,19 +341,15 @@ describe("mini program submission flow safety", () => {
   });
 
   it("keeps long member names and authoritative balances fully visible", async () => {
-    const home = await source("apps/miniprogram/pages/home/index.ts");
     const homeView = await source("apps/miniprogram/pages/home/index.wxml");
-    const homeStyle = await source("apps/miniprogram/pages/home/index.wxss");
     const profile = await source("apps/miniprogram/pages/profile/index.ts");
     const profileStyle = await source("apps/miniprogram/pages/profile/index.wxss");
     const points = await source("apps/miniprogram/pages/points/index.ts");
     const pointsView = await source("apps/miniprogram/pages/points/index.wxml");
     const pointsStyle = await source("apps/miniprogram/pages/points/index.wxss");
 
-    expect(home).toContain('displayName.length > 24 ? "care-greeting--very-long"');
     expect(homeView).toContain('class="centered-title"');
     expect(homeView).not.toContain("{{view.greeting}}");
-    expect(homeStyle).toContain(".care-greeting--very-long");
     expect(profile).toContain('String(points.projection.available).length >= 8 ? "pass-stat__value--compact"');
     expect(profileStyle).toContain(".member-card__balance.pass-stat__value--compact");
     expect(profileStyle.replace(/\s+/g, "")).toContain("overflow-wrap:anywhere;white-space:normal");

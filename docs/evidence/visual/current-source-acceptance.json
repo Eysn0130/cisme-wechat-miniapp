@@ -299,16 +299,16 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "93059c739d637d76a53e8c3ef82d409ca54aa03f1579d72fdf51173ad91225e8",
+  "packageSourceSha256": "46a0d5342f2e832e81415e40329c42bcd9275b277af58a7d9e9f1a48a53b08e7",
   "findings": [
     {
-      "id": "CURRENT_SOURCE_45_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
+      "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "45 native routes require full route/font/state and physical-device acceptance. Sharing officer scoped acceptance is in progress."
+      "reason": "47 native routes require full route/font/state and physical-device acceptance. Current care-home scoped validation is in progress."
     }
   ],
-  "note": "Sharing officer source changed. No previous captures are current-source acceptance. Full 45-route and physical-device matrices remain blocked.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-sharing-before-ffebcf98cb22.json",
+  "note": "Approved care-home 04 and campaign rotation changed. Historical captures are not current package acceptance. Full 47-route and physical-device matrices remain blocked; scoped care-home evidence is recorded separately.",
+  "previousSourceRecord": "docs/evidence/visual/source-acceptance-care-home-before-93059c739d63.json",
   "pendingSourceRebind": false
 }
