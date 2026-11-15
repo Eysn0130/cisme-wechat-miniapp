@@ -11,7 +11,7 @@ const states = new WeakMap<object, CampaignState>();
 Component({
   options: { virtualHost: true },
   properties: { suspended: { type: Boolean, value: false }, reducedMotion: { type: Boolean, value: false } },
-  data: { slides: [] as HomeCampaignSlide[], current: 0, paused: false, duration: campaignTransitionMs, productCode: '' },
+  data: { slides: [] as HomeCampaignSlide[], current: 0, duration: campaignTransitionMs, productCode: '' },
   observers: {
     'suspended,reducedMotion': function () {
       states.get(this)?.rotation.configure({ suspended: this.properties.suspended, reduced: this.properties.reducedMotion });
@@ -112,7 +112,6 @@ Component({
     touchCancel() { const state = states.get(this); if (state) { state.touch = null; state.rotation.endTouch(true); } },
     changed(event: WechatMiniprogram.CustomEvent<{ current: number }>) { states.get(this)?.rotation.changed(event.detail.current); },
     animationFinished(event: WechatMiniprogram.CustomEvent<{ current: number }>) { states.get(this)?.rotation.finished(event.detail.current); },
-    togglePause() { const state = states.get(this); if (state) this.setData({ paused: state.rotation.togglePause() }); },
     activate(event: WechatMiniprogram.TouchEvent) {
       const index = Number(event.currentTarget.dataset.index), state = states.get(this), slide = this.data.slides[index];
       if (!slide || !state?.rotation.canActivate(index)) return;

@@ -26,7 +26,7 @@ afterEach(() => { definition?.lifetimes.detached.call(component); vi.useRealTime
 it('prepares following pictures and schedules native index changes after readiness', async () => {
   definition.pageLifetimes.show.call(component); await flush();
   for (let i = 0; i < 4; i++) component.imageLoaded(picture(i));
-  vi.advanceTimersByTime(8000); expect(component.data.current).toBe(1);
+  vi.advanceTimersByTime(5000); expect(component.data.current).toBe(1);
   expect(component.data.slides.every((s: any) => s.requested)).toBe(true);
   expect(component.rotationState().moving).toBe(true);
 });
@@ -57,11 +57,11 @@ it('does not overwrite current metadata with a response arriving after hide', as
 });
 it('stops while a sheet is open and resumes with a complete dwell after close', () => {
   for (let i = 0; i < 4; i++) component.imageLoaded(picture(i));
-  vi.advanceTimersByTime(7999); component.properties.suspended = true; definition.observers['suspended,reducedMotion'].call(component);
+  vi.advanceTimersByTime(4999); component.properties.suspended = true; definition.observers['suspended,reducedMotion'].call(component);
   vi.advanceTimersByTime(20_000); expect(component.data.current).toBe(0);
   component.activate({ currentTarget: { dataset: { index: 0 } } }); expect(component.triggerEvent).not.toHaveBeenCalled();
   component.properties.suspended = false; definition.observers['suspended,reducedMotion'].call(component);
-  vi.advanceTimersByTime(7999); expect(component.data.current).toBe(0); vi.advanceTimersByTime(1); expect(component.data.current).toBe(1);
+  vi.advanceTimersByTime(4999); expect(component.data.current).toBe(0); vi.advanceTimersByTime(1); expect(component.data.current).toBe(1);
 });
 it('blocks gesture clicks and activates only the settled current slide', () => {
   component.touchStart({ touches: [{ pageX: 250, pageY: 150 }] }); component.changed({ detail: { current: 1 } });
@@ -75,6 +75,6 @@ it('releases all timers and observers on detach', () => {
   component.createIntersectionObserver = () => ({ relativeToViewport() { return this; }, observe(_selector: string, callback: Function) { observe = callback; }, disconnect });
   definition.lifetimes.ready.call(component); for (let i = 0; i < 4; i++) component.imageLoaded(picture(i));
   observe({ intersectionRatio: 0 }); vi.advanceTimersByTime(20_000); expect(component.data.current).toBe(0);
-  observe({ intersectionRatio: 1 }); vi.advanceTimersByTime(8000); expect(component.data.current).toBe(1);
+  observe({ intersectionRatio: 1 }); vi.advanceTimersByTime(5000); expect(component.data.current).toBe(1);
   definition.lifetimes.detached.call(component); expect(disconnect).toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0);
 });

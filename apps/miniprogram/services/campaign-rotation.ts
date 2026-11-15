@@ -1,4 +1,5 @@
-export const campaignDwellMs = 8_000;
+export const campaignDwellMs = 5_000;
+export const campaignManualDwellMs = 3_000;
 export const campaignTransitionMs = 420;
 
 /** One dwell timer, plus a bounded native-animation interruption recovery. */
@@ -9,7 +10,7 @@ export class CampaignRotation {
   private inViewport = true;
   private suspended = false;
   private reduced = false;
-  private paused = false;
+  private manual = false;
   private touching = false;
   private touchBlocked = false;
   private moving = false;
@@ -25,7 +26,7 @@ export class CampaignRotation {
   private valid(index: number) { return Number.isInteger(index) && index >= 0 && index < this.count; }
   private enabled() {
     return this.alive && this.visible && this.inViewport && !this.suspended && !this.reduced
-      && !this.paused && !this.touching && !this.moving && this.count > 1;
+      && !this.touching && !this.moving && this.count > 1;
   }
   private clearDwell() { if (this.timer !== null) clearTimeout(this.timer); this.timer = null; }
   private clearRecovery() { if (this.recovery !== null) clearTimeout(this.recovery); this.recovery = null; }
@@ -34,8 +35,9 @@ export class CampaignRotation {
     this.timer = setTimeout(() => {
       this.timer = null;
       if (!this.enabled() || !this.ready[(this.index + 1) % this.count]) return;
+      this.manual = false;
       this.moveTo((this.index + 1) % this.count);
-    }, this.dwell);
+    }, this.manual ? campaignManualDwellMs : this.dwell);
   }
   private watchAnimation() {
     this.clearRecovery();
@@ -69,7 +71,7 @@ export class CampaignRotation {
     if (flags.suspended !== undefined) this.suspended = flags.suspended;
     if (flags.reduced !== undefined) this.reduced = flags.reduced;
     if (!this.visible || this.suspended || !this.inViewport || this.reduced) {
-      this.clearDwell(); this.clearRecovery(); this.moving = false; this.touching = false;
+      this.clearDwell(); this.clearRecovery(); this.moving = false; this.touching = false; this.manual = false;
     }
     if (!before && this.enabled()) this.clearDwell();
     this.arm();
@@ -82,6 +84,7 @@ export class CampaignRotation {
   endTouch(moved: boolean) {
     if (!this.alive || !this.visible) return;
     this.touching = false;
+    if (moved) this.manual = true;
     if (moved || this.touchBlocked) this.lockedUntil = Date.now() + this.duration;
     this.touchBlocked = false;
     if (this.moving) this.watchAnimation();
@@ -91,6 +94,7 @@ export class CampaignRotation {
     if (!this.alive || !this.visible || !this.valid(index)) return;
     this.clearDwell();
     const different = this.index !== index;
+    if (this.touching && different) this.manual = true;
     this.index = index; this.moving = !this.reduced;
     this.lockedUntil = Date.now() + (this.reduced ? 0 : this.duration);
     if (different) this.publish(index);
@@ -101,19 +105,13 @@ export class CampaignRotation {
     this.clearRecovery(); this.moving = false;
     this.clearDwell(); this.arm();
   }
-  togglePause() {
-    if (!this.alive || this.reduced) return this.paused;
-    this.paused = !this.paused;
-    this.clearDwell(); this.arm();
-    return this.paused;
-  }
   canActivate(index: number) {
     return this.alive && this.visible && this.inViewport && !this.suspended && !this.touching && !this.moving
       && this.valid(index) && index === this.index && Date.now() >= this.lockedUntil;
   }
   snapshot() {
     return { index: this.index, alive: this.alive, visible: this.visible, inViewport: this.inViewport,
-      suspended: this.suspended, reduced: this.reduced, paused: this.paused,
+      suspended: this.suspended, reduced: this.reduced, manual: this.manual,
       touching: this.touching, moving: this.moving, timerActive: this.timer !== null };
   }
   destroy() { this.alive = false; this.clearDwell(); this.clearRecovery(); }

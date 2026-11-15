@@ -15,6 +15,5 @@
   </swiper>
   <view class="campaign__controls">
     <view class="campaign__indicators" aria-hidden="true"><view wx:for="{{slides}}" wx:key="id" class="campaign__dot {{index === current ? 'campaign__dot--active' : ''}}"/></view>
-    <button wx:if="{{!reducedMotion}}" class="campaign__pause" catchtap="togglePause" disabled="{{suspended}}" aria-label="{{paused ? '恢复自动轮播' : '暂停自动轮播'}}"><image src="{{paused ? '/assets/icons/play-plum.svg' : '/assets/icons/pause-plum.svg'}}" mode="aspectFit" aria-hidden="true"/></button>
   </view>
 </view>

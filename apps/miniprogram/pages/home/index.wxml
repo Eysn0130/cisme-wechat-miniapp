@@ -4,6 +4,7 @@
   <button class="home-support {{accountOpening || sessionMounted || onboardingOpen ? 'control--disabled' : ''}}" bindtap="openSupport" disabled="{{accountOpening || sessionMounted || onboardingOpen}}" aria-hidden="{{sessionMounted || onboardingOpen}}" aria-label="打开 CISME 客服{{supportState === 'ready' ? (supportUnread ? '，有 ' + supportUnread + ' 条未读消息' : '，没有未读消息') : supportState === 'error' ? '，未读数量暂未确认' : '，未读数量同步中'}}"><image src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><text wx:if="{{supportUnread}}" class="home-support__badge">{{supportUnread > 99 ? '99+' : supportUnread}}</text></button>
   <view class="home-platform" aria-hidden="{{sessionMounted || onboardingOpen}}"><text class="brand-wordmark">CISME</text></view>
   <scroll-view class="home-scroll" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" aria-hidden="{{sessionMounted || onboardingOpen}}">
+  <view class="home-composition">
   <care-campaign id="care-campaign" suspended="{{accountOpening || sessionMounted || onboardingOpen}}" reduced-motion="{{reducedMotion}}" bindactivate="openCampaign"/>
   <view class="care-console care-console--centered" aria-hidden="{{sessionMounted || onboardingOpen}}">
     <block wx:if="{{authorityAvailable || needsAuthentication}}">
@@ -18,6 +19,7 @@
     </block>
     <view wx:elif="{{loading}}" class="home-care-skeleton" aria-role="status" aria-label="正在读取今日护理"><view class="home-care-skeleton__date"/><view class="centered-title">今日护理</view><view class="home-care-skeleton__products"><view/><view/><view/></view><view class="home-care-skeleton__action"/></view>
     <view wx:else class="home-authority-state" aria-live="assertive">护理状态暂不可用，请重试。</view>
+  </view>
   </view>
   </scroll-view>
   <view class="care-signal care-signal--centered" aria-hidden="{{sessionMounted || onboardingOpen}}" aria-live="polite">

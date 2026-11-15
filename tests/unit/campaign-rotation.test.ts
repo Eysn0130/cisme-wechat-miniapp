@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { CampaignRotation, campaignDwellMs as dwell, campaignTransitionMs as duration } from '../../apps/miniprogram/services/campaign-rotation';
+import { CampaignRotation, campaignDwellMs as dwell, campaignManualDwellMs as manualDwell, campaignTransitionMs as duration } from '../../apps/miniprogram/services/campaign-rotation';
 let rotation: CampaignRotation;
 let publish = vi.fn<(index: number) => void>();
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-14T12:00:00Z')); publish = vi.fn<(index: number) => void>(); rotation = new CampaignRotation(4, publish); });
@@ -19,12 +19,15 @@ it('gives each settled slide a full dwell and wraps from four to one', () => {
   }
   expect(publish.mock.calls.map(c => c[0])).toEqual([1, 2, 3, 0]);
 });
-it('cancels the old deadline on touch and resumes eight seconds after manual settling', () => {
+it('cancels the old deadline and resumes three seconds after manual settling, then returns to five seconds', () => {
   ready(); vi.advanceTimersByTime(dwell - 10); rotation.beginTouch(); vi.advanceTimersByTime(dwell * 2);
   expect(publish).not.toHaveBeenCalled(); rotation.changed(2); rotation.endTouch(true);
   vi.advanceTimersByTime(duration); rotation.finished(2); publish.mockClear();
-  vi.advanceTimersByTime(dwell - 1); expect(publish).not.toHaveBeenCalled(); vi.advanceTimersByTime(1);
+  vi.advanceTimersByTime(manualDwell - 1); expect(publish).not.toHaveBeenCalled(); vi.advanceTimersByTime(1);
   expect(publish).toHaveBeenLastCalledWith(3);
+  vi.advanceTimersByTime(duration); rotation.finished(3); publish.mockClear();
+  vi.advanceTimersByTime(dwell - 1); expect(publish).not.toHaveBeenCalled(); vi.advanceTimersByTime(1);
+  expect(publish).toHaveBeenLastCalledWith(0);
 });
 it('resumes after a non-swiping touch without requiring a change event', () => {
   ready(); rotation.beginTouch(); vi.advanceTimersByTime(dwell); rotation.endTouch(false);
@@ -35,13 +38,13 @@ it('does not invent an animation wait after a cancelled or vertical gesture with
   expect(rotation.snapshot().moving).toBe(false);
   expect(rotation.canActivate(0)).toBe(false); vi.advanceTimersByTime(duration);
   expect(rotation.canActivate(0)).toBe(true); expect(vi.getTimerCount()).toBe(1);
-  vi.advanceTimersByTime(dwell - duration); expect(rotation.index).toBe(1);
+  vi.advanceTimersByTime(manualDwell - duration); expect(rotation.index).toBe(1);
 });
-it('preserves explicit pause through manual swipes and page hide/show', () => {
-  ready(); expect(rotation.togglePause()).toBe(true); rotation.beginTouch(); rotation.changed(2); rotation.endTouch(true);
+it('does not retain an old manual deadline across page hide/show', () => {
+  ready(); rotation.beginTouch(); rotation.changed(2); rotation.endTouch(true);
   vi.advanceTimersByTime(duration); rotation.finished(2); rotation.configure({ visible: false }); rotation.configure({ visible: true });
-  publish.mockClear(); vi.advanceTimersByTime(dwell * 3); expect(publish).not.toHaveBeenCalled();
-  expect(rotation.togglePause()).toBe(false); vi.advanceTimersByTime(dwell); expect(rotation.index).toBe(3);
+  publish.mockClear(); vi.advanceTimersByTime(dwell - 1); expect(publish).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(1); expect(rotation.index).toBe(3);
 });
 it.each(['visible', 'inViewport', 'suspended'] as const)('stops timers while %s blocks visibility and gives a fresh dwell on return', flag => {
   ready(); vi.advanceTimersByTime(dwell - 1);
