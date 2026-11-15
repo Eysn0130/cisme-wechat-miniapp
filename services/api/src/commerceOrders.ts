@@ -239,6 +239,7 @@ export class CommerceOrderService {
   }
 
   private async orderView(client: DbClient | pg.Pool, row: OrderRow, audience: "member" | "management" = "member") {
+    const refundedCents=(await this.refundedTotals(client,[row.id])).get(row.id)??0;
     const lines = await client.query<OrderLineRow>("SELECT * FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number", [row.id]);
     const address = await client.query<OrderAddressRow>("SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1", [row.id]);
     const addressPayload = address.rows[0] ? this.addresses.openOrderSnapshot(row.member_id, row.id, address.rows[0].encrypted_payload, address.rows[0].payload_hmac, address.rows[0].key_version) : null;
@@ -247,7 +248,7 @@ export class CommerceOrderService {
       phoneMasked: addressPayload.phone.length > 4 ? `****${addressPayload.phone.slice(-4)}` : "****",
       province: addressPayload.province, city: addressPayload.city, district: addressPayload.district
     };
-    return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
+    return { id: row.id, orderNumber: row.order_number, status: row.status, refundedCents, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       ...(row.coupon_id?{couponId:row.coupon_id,couponDiscountCents:row.coupon_discount_cents}:{}),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
@@ -264,8 +265,8 @@ export class CommerceOrderService {
       address: addressView };
   }
 
-  private orderSummaryView(row: OrderRow, lines: OrderLineRow[],receipt?:{platform_order_state:number;in_complaint:boolean;observed_at:Date}) {
-    return { id: row.id, orderNumber: row.order_number, status: row.status, currency: row.currency, subtotalCents: money(row.subtotal_cents),
+  private orderSummaryView(row: OrderRow, lines: OrderLineRow[],receipt?:{platform_order_state:number;in_complaint:boolean;observed_at:Date},refundedCents=0) {
+    return { id: row.id, orderNumber: row.order_number, status: row.status, refundedCents, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       ...(row.coupon_id?{couponId:row.coupon_id,couponDiscountCents:row.coupon_discount_cents}:{}),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
@@ -307,7 +308,18 @@ export class CommerceOrderService {
       `SELECT order_id,platform_order_state,in_complaint,observed_at
         FROM commerce_wechat_receipt_observation WHERE order_id=ANY($1::uuid[]) AND observed_at IS NOT NULL`,[ids]):{rows:[]};
     const byReceipt=new Map(observed.rows.map(item=>[item.order_id,item]));
-    return { items: rows.map(row => this.orderSummaryView(row, byOrder.get(row.id) ?? [],byReceipt.get(row.id))), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null };
+    const refunded=await this.refundedTotals(client,ids);
+    return { items: rows.map(row => this.orderSummaryView(row, byOrder.get(row.id) ?? [],byReceipt.get(row.id),refunded.get(row.id)??0)), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null };
+  }
+
+  private async refundedTotals(client:DbClient|pg.Pool,orderIds:string[]){
+    if(!orderIds.length)return new Map<string,number>();
+    const rows=(await client.query<{order_id:string;amount:string}>(`SELECT i.order_id,
+      sum(i.payer_refund_cents+COALESCE((SELECT sum(a.amount_cents)
+        FROM commission_credit_refund_allocation a WHERE a.refund_intent_id=i.id),0))::text AS amount
+      FROM commission_refund_intent i WHERE i.order_id=ANY($1::uuid[]) AND i.state='succeeded'
+      GROUP BY i.order_id`,[orderIds])).rows;
+    return new Map(rows.map(row=>[row.order_id,money(row.amount)]));
   }
 
   async create(memberId: string | undefined, principalId: string | undefined, keyInput: string, input: Record<string, unknown>, traceId: string, now = new Date()) {

@@ -4,6 +4,7 @@ const requireCapabilityMock=vi.hoisted(()=>vi.fn());
 const managementOrderMock=vi.hoisted(()=>vi.fn());
 const managementOrdersMock=vi.hoisted(()=>vi.fn());
 const managementCatalogMock=vi.hoisted(()=>vi.fn());
+const requestMock=vi.hoisted(()=>vi.fn());
 vi.mock("../../apps/miniprogram/services/authority",()=>({requireCapability:requireCapabilityMock,authorityProjection:()=>requireCapabilityMock("commerce.order.read"),hasCapability:(projection:any,capability:string)=>Boolean(projection?.capabilities.includes(capability))}));
 vi.mock("../../apps/miniprogram/services/orders",()=>({managementOrder:managementOrderMock,
   managementOrders:managementOrdersMock}));
@@ -11,7 +12,7 @@ vi.mock("../../apps/miniprogram/services/commerce",()=>({centsToYuan:(n:number)=
   managementCatalog:managementCatalogMock}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
 
-vi.mock("../../apps/miniprogram/services/api",()=>({request:vi.fn(),requireMemberAccess:()=>Boolean(session),retainMemberSnapshot:()=>false,clearAuthenticationRedirectSuppression:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/api",()=>({request:requestMock,requireMemberAccess:()=>Boolean(session),retainMemberSnapshot:()=>false,clearAuthenticationRedirectSuppression:vi.fn()}));
 
 type PageDefinition=Record<string,any>&{data:Record<string,any>};
 let definition:PageDefinition|null=null,session="operator-a";
@@ -24,11 +25,34 @@ function mount(overrides:Record<string,unknown>={}){
 beforeEach(async()=>{
   vi.resetModules();requireCapabilityMock.mockReset();managementOrderMock.mockReset();managementOrdersMock.mockReset();
   managementCatalogMock.mockReset();
+  requestMock.mockReset();
   session="operator-a";definition=null;
   (globalThis as any).getApp=()=>({globalData:{sessionToken:session}});
   (globalThis as any).Page=(page:PageDefinition)=>{definition=page;};
   (globalThis as any).wx={showToast:vi.fn(),navigateBack:vi.fn(),redirectTo:vi.fn(),switchTab:vi.fn()};
   await vi.importActual("../../apps/miniprogram/pages/management-order-detail/index");
+});
+
+it('keeps platform refund reconciliation finance-only and drops a modal after switching accounts',async()=>{
+ const page=mount({id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',order:{status:'paid',transactionSourceKind:'verified_commerce'},canReconcileRefund:false});
+ page.lastReadToken=session;
+ await page.reconcileExternalRefund();expect(requestMock).not.toHaveBeenCalled();
+ let answer:any;(globalThis as any).wx.showModal=vi.fn((options:any)=>{answer=options.success;});
+ page.data.canReconcileRefund=true;const pending=page.reconcileExternalRefund();
+ expect(page.data.refundBusy).toBe(true);session='operator-b';answer({confirm:true,content:'PORTAL-REFUND-SYNTHETIC'});await pending;
+ expect(requestMock).not.toHaveBeenCalled();
+ expect(page.data).toMatchObject({refundBusy:false,order:null,canReconcileRefund:false});
+});
+
+it('sends one read-only reconciliation input and can retry an interrupted request',async()=>{
+ const page=mount({id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',order:{status:'paid',transactionSourceKind:'verified_commerce'},canReconcileRefund:true});
+ page.lastReadToken=session;
+ (globalThis as any).wx.showModal=vi.fn((options:any)=>options.success({confirm:true,content:' PORTAL-REFUND-SYNTHETIC '}));
+ requestMock.mockRejectedValue({title:'网络已断开，请重试'});
+ await page.reconcileExternalRefund();expect(page.data.refundBusy).toBe(false);
+ expect(page.data.refundMessage).toBe('网络已断开，请重试');
+ expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({method:'POST',
+  path:'/v1/management/money/orders/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/external-refund',data:{outRefundNo:'PORTAL-REFUND-SYNTHETIC'}}));
 });
 
 it("clears prior operator order data before a denied authority check returns",async()=>{

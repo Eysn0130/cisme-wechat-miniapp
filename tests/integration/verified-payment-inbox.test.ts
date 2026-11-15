@@ -1,5 +1,5 @@
-import { createCipheriv, generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { createHash, createCipheriv, generateKeyPairSync, randomBytes, randomUUID, sign } from "node:crypto";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { resetDatabase, testPool } from "@cisme/testkit";
 import { VerifiedPaymentInbox } from "../../services/api/src/verifiedPaymentInbox";
 import { VerifiedRefundInbox } from "../../services/api/src/verifiedRefundInbox";
@@ -8,8 +8,12 @@ import { claimDueMoneyInbox, recordMoneyInboxFailure, redriveQuarantinedMoneyInb
 import { SettlementCycleService } from "../../services/api/src/settlementCycle";
 import { SettlementCommandService } from "../../services/api/src/settlementCommand";
 import { ShoppingCreditService } from "../../services/api/src/shoppingCredit";
-import type { WechatPayV3Client } from "../../services/api/src/wechatPayV3";
+import { WechatPayV3Client } from "../../services/api/src/wechatPayV3";
 import { AuthorityService } from "../../services/api/src/authority";
+import {MoneyOperationsService} from '../../services/api/src/moneyOperations';
+import {RefundCommandService} from '../../services/api/src/refundCommand';
+import {listMemberRefundRequests} from '../../services/api/src/commerceHistory';
+import {CommerceOrderService} from '../../services/api/src/commerceOrders';
 import {parseFulfillmentWorkbook} from '../../services/api/src/fulfillmentImport';
 import {fulfillmentWorkbook} from '../../services/api/src/fulfillmentWorkbook';
 
@@ -1003,4 +1007,94 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   await revoke.query('COMMIT');revoke.release();await denied;
   expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows[0].n).toBe(1);
 
+});
+
+async function externalFixture(suffix:string){
+  await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+5 WHERE sku_id=$1',[sku]);
+  const order=await seedOrder(createHash("sha256").update(`external:${suffix}`).digest("hex").slice(0,12).toUpperCase()),transactionId=`WX-EXTERNAL-${suffix}`,refundNo=`PORTAL-REFUND-${suffix}`;
+  const paidAt=new Date(order.createdAt.getTime()+1000).toISOString();
+  const event=notification(order.number,transactionId,`EV-EXTERNAL-${suffix}`,paidAt);
+  const receipt=await processor.receive(event.rawBody,event.headers);expect(await processor.processOne(receipt.inboxId)).toBe('applied');
+  const actor=(await pool.query("INSERT INTO member(display_name) VALUES('Synthetic finance operator') RETURNING id")).rows[0].id as string;
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commerce.money.reconcile','fixture','Synthetic external refund query','test','integration_fixture')`,[actor]);
+  const payload={out_trade_no:order.number,transaction_id:transactionId,out_refund_no:refundNo,
+    refund_id:`WX-PORTAL-REFUND-${suffix}`,status:'SUCCESS',create_time:paidAt,
+    success_time:new Date(order.createdAt.getTime()+2000).toISOString(),
+    amount:{total:10000,payer_total:10000,refund:10000,payer_refund:10000,currency:'CNY'}};
+  const calls: Array<{url:string;method:string}>=[];
+  let tamper:(data:typeof payload)=>unknown=value=>value,beforeResponse:()=>Promise<void>=async()=>{};
+  const fetcher:typeof fetch=async(url,init)=>{
+    calls.push({url:String(url),method:String(init?.method)});expect(init?.method).toBe('GET');
+    expect(new URL(String(url)).pathname).toBe(`/v3/refund/domestic/refunds/${refundNo}`);
+    await beforeResponse();const raw=JSON.stringify(tamper(payload));
+    const timestamp=String(Math.floor(Date.now()/1000)),nonce=randomUUID();
+    const signature=sign('RSA-SHA256',Buffer.from(`${timestamp}\n${nonce}\n${raw}\n`),platform.privateKey).toString('base64');
+    return new Response(raw,{headers:{'Wechatpay-Serial':'PUB_KEY_ID_3000000001','Wechatpay-Timestamp':timestamp,
+      'Wechatpay-Nonce':nonce,'Wechatpay-Signature':signature}});
+  };
+  const channel=new WechatPayV3Client(merchantId,'SYNTHETIC-MERCHANT-SERIAL',
+    platform.privateKey.export({type:'pkcs8',format:'pem'}).toString(),new Map([['PUB_KEY_ID_3000000001',publicPem]]),fetcher);
+  const authority=new AuthorityService(pool,'test'),ops=new MoneyOperationsService(pool,authority,channel,processor,refunds,null);
+  return {order,actor,refundNo,channel,authority,ops,calls,payload,
+    tamper:(fn:typeof tamper)=>{tamper=fn;},beforeResponse:(fn:typeof beforeResponse)=>{beforeResponse=fn;}};
+}
+
+it('imports a signed existing portal refund exactly once, reverses commission and shows buyer-owned history without restocking',async()=>{
+  const f=await externalFixture('once');
+  const stock=(await pool.query('SELECT stock_on_hand FROM catalog_inventory_level WHERE sku_id=$1',[sku])).rows[0].stock_on_hand;
+  const first=await f.ops.reconcileExternalRefund(f.actor,f.order.id,{outRefundNo:f.refundNo});
+  expect(first).toMatchObject({persisted:true,state:'pending'});
+  expect(await refunds.processOne(first.inboxId)).toBe('applied');
+  expect(await f.ops.reconcileExternalRefund(f.actor,f.order.id,{outRefundNo:f.refundNo}))
+    .toMatchObject({inboxId:first.inboxId,intentId:first.intentId,state:'applied'});
+  expect((await pool.query('SELECT state,request_id,submission_state FROM commission_refund_intent WHERE id=$1',[first.intentId])).rows[0])
+    .toEqual({state:'succeeded',request_id:null,submission_state:'accepted'});
+  expect((await pool.query("SELECT sum(amount_cents)::int amount,count(*)::int n FROM commission_ledger_entry WHERE order_id=$1 AND kind='refund_reversal'",[f.order.id])).rows[0])
+    .toMatchObject({amount:-2000,n:1});
+  expect((await pool.query('SELECT stock_on_hand FROM catalog_inventory_level WHERE sku_id=$1',[sku])).rows[0].stock_on_hand).toBe(stock);
+  expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[f.order.id])).rows[0].status).toBe('paid');
+  expect((await pool.query('SELECT count(*)::int n FROM commerce_refund_request WHERE order_id=$1',[f.order.id])).rows[0].n).toBe(0);
+  expect(await listMemberRefundRequests(pool,buyer,{orderId:f.order.id}))
+    .toMatchObject({totalCount:1,items:[{id:first.intentId,refundState:'succeeded',amountCents:10000,cashRefundCents:10000,creditReturnCents:0}]});
+  expect(await listMemberRefundRequests(pool,f.actor,{orderId:f.order.id})).toMatchObject({totalCount:0,items:[]});
+  const orders=new CommerceOrderService(pool,f.authority,null as never,null as never,
+    {enabled:false,quoteTtlMinutes:15,pendingOrderTtlMinutes:15});
+  expect(await orders.detailMine(buyer,f.order.id)).toMatchObject({status:'paid',refundedCents:10000});
+  const list=await orders.listMine(buyer,{limit:50});expect(list.items.find(item=>item.id===f.order.id)?.refundedCents).toBe(10000);
+  const commands=new RefundCommandService(pool,f.authority,f.channel,refunds,{merchantId,notifyUrl:'https://synthetic.invalid/refund'});
+  await expect(commands.request(buyer,f.order.id,'after-portal-refund',{amountCents:10000,reason:'Synthetic duplicate request'}))
+    .rejects.toMatchObject({code:'REFUND_AMOUNT_EXCEEDS_REMAINING'});
+  expect(f.calls.every(call=>call.method==='GET')).toBe(true);
+});
+
+it.each(['wrong payment','partial','processing'])('does not import %s as a completed full refund',async kind=>{
+  const f=await externalFixture(kind.replaceAll(' ','-'));
+  f.tamper(data=>({...data,...(kind==='wrong payment'?{transaction_id:'OTHER-TRANSACTION'}:kind==='processing'?{status:'PROCESSING'}:
+    {amount:{...data.amount,refund:5000,payer_refund:5000}})}));
+  await expect(f.ops.reconcileExternalRefund(f.actor,f.order.id,{outRefundNo:f.refundNo})).rejects.toThrow();
+  expect((await pool.query('SELECT count(*)::int n FROM commission_refund_intent WHERE order_id=$1',[f.order.id])).rows[0].n).toBe(0);
+});
+
+it('requires current finance permission before a query and again before importing its response',async()=>{
+  const f=await externalFixture('authority');
+  await expect(f.ops.reconcileExternalRefund(buyer,f.order.id,{outRefundNo:f.refundNo})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  expect(f.calls).toHaveLength(0);
+  f.beforeResponse(async()=>{await pool.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='Synthetic mid-query permission withdrawal' WHERE member_id=$1 AND capability='commerce.money.reconcile' AND revoked_at IS NULL",[f.actor]);});
+  await expect(f.ops.reconcileExternalRefund(f.actor,f.order.id,{outRefundNo:f.refundNo})).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  expect((await pool.query('SELECT count(*)::int n FROM commission_refund_intent WHERE order_id=$1',[f.order.id])).rows[0].n).toBe(0);
+});
+
+it('recovers a crash after the accepted external intent without ever posting another refund',async()=>{
+  const f=await externalFixture('crash');
+  const crash=vi.spyOn(refunds as any,'persistRefund').mockRejectedValueOnce(Error('Synthetic crash after intent commit'));
+  await expect(f.ops.reconcileExternalRefund(f.actor,f.order.id,{outRefundNo:f.refundNo})).rejects.toThrow('Synthetic crash');
+  crash.mockRestore();
+  const intent=(await pool.query('SELECT id,submission_state FROM commission_refund_intent WHERE order_id=$1',[f.order.id])).rows[0];
+  expect(intent.submission_state).toBe('accepted');
+  const commands=new RefundCommandService(pool,f.authority,f.channel,refunds,{merchantId,notifyUrl:'https://synthetic.invalid/refund'});
+  expect(f.calls).toHaveLength(1);
+  expect(await commands.reconcileAccepted()).toContainEqual({id:intent.id,state:'verified_fact_pending'});
+  const inbox=(await pool.query('SELECT id FROM commission_refund_inbox WHERE refund_intent_id=$1',[intent.id])).rows[0];
+  expect(await refunds.processOne(inbox.id)).toBe('applied');expect(f.calls.every(call=>call.method==='GET')).toBe(true);
 });

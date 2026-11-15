@@ -151,6 +151,9 @@ export class AftersaleService{
       if(!order)fail('ORDER_NOT_FOUND','订单不存在',404);
       if(order.status!=='paid'||order.transaction_source_kind!=='verified_commerce'||!(await client.query("SELECT 1 FROM commission_payment_inbox WHERE order_id=$1 AND state='applied'",[orderId])).rowCount)
         fail('AFTERSALE_PAYMENT_REQUIRED','仅已核验支付的订单可申请售后');
+      if((await client.query(`SELECT 1 FROM commission_refund_intent
+        WHERE order_id=$1 AND request_id IS NULL AND state<>'closed'`,[orderId])).rowCount)
+        fail('AFTERSALE_EXISTING_REFUND','本单已有平台退款，请联系客服核对原记录');
       if((await client.query(`SELECT 1 FROM commerce_aftersale_case c LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
         WHERE c.order_id=$1 AND c.state NOT IN ('cancelled','rejected')
           AND NOT (c.state='refund_pending' AND i.state='succeeded')`,[orderId])).rowCount)

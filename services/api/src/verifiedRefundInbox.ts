@@ -62,6 +62,96 @@ export class VerifiedRefundInbox{
       refund_status:fact.status},fact.status,`query:${fact.providerRefundId}:${fact.status}`,rawSha256);
   }
 
+  /** Import an already completed merchant-portal full cash refund. This path
+   * only sends a signed GET; it cannot approve or dispatch a refund command.
+   * Partial/mixed-tender or competing claims require their existing workflow. */
+  async receiveExternalQueried(channel:WechatPayV3Client,orderId:string,outRefundNo:string,
+    authorize:(client:pg.PoolClient)=>Promise<string>){
+    if(!/^[0-9a-f-]{36}$/i.test(orderId)||!refundPattern.test(outRefundNo))
+      throw new DomainError('REFUND_ID_INVALID','请填写商户退款单号',422);
+    const read=async(client:pg.PoolClient)=>{
+      const order=(await client.query('SELECT * FROM commerce_order WHERE id=$1 FOR UPDATE',[orderId])).rows[0];
+      if(!order)throw new DomainError('ORDER_NOT_FOUND','订单不存在',404);
+      const paid=(await client.query(`SELECT * FROM commission_payment_inbox
+        WHERE order_id=$1 AND state='applied'`,[orderId])).rows;
+      const payment=paid[0];
+      if(order.status!=='paid'||order.transaction_source_kind!=='verified_commerce'||paid.length!==1||
+        payment.merchant_id!==this.binding.merchantId||cents(order.credit_tender_cents)!==0||
+        cents(payment.amount_cents)!==cents(order.total_cents)||cents(order.total_cents)===0)
+        throw new DomainError('EXTERNAL_REFUND_POLICY_UNSUPPORTED','请通过原售后流程核对该订单退款',409);
+      return {order,payment};
+    };
+    const original=await transaction(this.pool,async client=>{
+      const actor=await authorize(client),source=await read(client);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+        VALUES($1,'commerce.external_refund.query_admitted','commerce_order',$2,'SIGNED_REFUND_QUERY',
+          jsonb_build_object('outRefundNo',$3::text),gen_random_uuid()::text)`,[`member:${actor}`,orderId,outRefundNo]);
+      return source;
+    });
+    const total=cents(original.payment.amount_cents);
+    // I/O is outside retried transactions; the client verifies response
+    // signatures, merchant/order/transaction, currency and every cash amount.
+    const evidence=await channel.queryRefundByMerchantRefundNumberWithEvidence({merchantId:this.binding.merchantId,
+      outTradeNo:original.order.order_number,providerTransactionId:original.payment.provider_transaction_id,
+      outRefundNo,totalCents:total,refundCents:total,payerTotalCents:total,payerRefundCents:total});
+    if(evidence.fact.status!=='SUCCESS'||!evidence.fact.succeededAt||
+      Date.parse(evidence.fact.succeededAt)<new Date(original.order.paid_at).getTime())
+      throw new DomainError('EXTERNAL_REFUND_NOT_COMPLETED','微信尚未确认这笔整单退款完成',409);
+    const intentId=await transaction(this.pool,async client=>{
+      const actor=await authorize(client),{order,payment}=await read(client);
+      if(payment.id!==original.payment.id||payment.provider_transaction_id!==original.payment.provider_transaction_id||
+        order.order_number!==original.order.order_number||cents(payment.amount_cents)!==total)
+        throw new DomainError('REFUND_PAYMENT_FACT_MISMATCH','原支付事实已变化，请重新核对',409);
+      const existing=(await client.query(`SELECT * FROM commission_refund_intent
+        WHERE out_refund_no=$1 FOR UPDATE`,[outRefundNo])).rows[0];
+      if(existing){
+        if(existing.order_id!==orderId||existing.payment_inbox_id!==payment.id||existing.execution_kind!=='wechat'||
+          cents(existing.refund_cents)!==total||cents(existing.payer_refund_cents)!==total||
+          existing.state==='closed'||existing.submission_state!=='accepted')
+          throw new DomainError('REFUND_EVENT_CONFLICT','退款单与已有记录不一致',409);
+        return existing.id as string;
+      }
+      if((await client.query(`SELECT 1 FROM commission_refund_intent WHERE order_id=$1 AND state<>'closed'
+        UNION ALL SELECT 1 FROM commerce_refund_request WHERE order_id=$1 AND state IN ('requested','approved')
+        UNION ALL SELECT 1 FROM commerce_aftersale_case WHERE order_id=$1 AND state NOT IN ('cancelled','rejected')`,[orderId])).rowCount)
+        throw new DomainError('EXTERNAL_REFUND_EXISTING_CLAIM','本单已有退款或售后，请先核对原记录',409);
+      if((await client.query(`SELECT 1 FROM commission_refund_inbox WHERE provider_refund_id=$1`,
+        [evidence.fact.providerRefundId])).rowCount)
+        throw new DomainError('REFUND_PROVIDER_ID_CONFLICT','微信退款单已关联其他记录',409);
+      const lines=(await client.query(`SELECT id,line_total_cents,credit_tender_cents FROM commerce_order_line
+        WHERE order_id=$1 ORDER BY line_number FOR UPDATE`,[orderId])).rows;
+      const shipping=cents(order.shipping_cents),merchandise=lines.reduce((n,line)=>n+cents(line.line_total_cents),0);
+      const snapshot=(await client.query(`SELECT * FROM commission_order_snapshot WHERE order_id=$1`,[orderId])).rows[0];
+      let eligible=cents(snapshot?.cash_merchandise_cents??0);
+      if(!lines.length||lines.some(line=>cents(line.credit_tender_cents)!==0)||merchandise+shipping!==total||
+        eligible>merchandise||snapshot&&snapshot.source_kind!=='verified_commerce')
+        throw new DomainError('REFUND_CASH_LINES_MISMATCH','原订单金额分摊须人工核对',409);
+      const eligibleTotal=eligible;
+      const lineAllocation=lines.map(line=>{const amount=cents(line.line_total_cents),take=Math.min(amount,eligible);
+        eligible-=take;return {lineId:line.id,eligibleCashRefundCents:take,otherCashRefundCents:amount-take};});
+      const inserted=(await client.query<{id:string}>(`INSERT INTO commission_refund_intent(order_id,payment_inbox_id,
+        out_refund_no,refund_cents,payer_refund_cents,eligible_merchandise_refund_cents,
+        other_merchandise_refund_cents,shipping_cash_refund_cents,line_allocation,allocation_policy_version,
+        created_by,execution_kind,submission_state)
+        VALUES($1,$2,$3,$4,$4,$5,$6,$7,$8,'wechat-external-full-cash-v1',$9,'wechat','accepted') RETURNING id`,
+        [orderId,payment.id,outRefundNo,total,eligibleTotal,merchandise-eligibleTotal,shipping,
+          JSON.stringify(lineAllocation),`member:${actor}`])).rows[0]!;
+      await client.query(`INSERT INTO commission_refund_channel_observation(refund_intent_id,source_kind,
+        raw_sha256,provider_refund_id,accepted_at) VALUES($1,'signed_query',$2,$3,$4)`,
+        [inserted.id,evidence.rawSha256,evidence.fact.providerRefundId,evidence.fact.acceptedAt]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+        VALUES($1,'commerce.external_refund.import','commission_refund_intent',$2,'VERIFIED_EXISTING_REFUND',
+          $3,gen_random_uuid()::text)`,[`member:${actor}`,inserted.id,
+          {orderId,amountCents:total,rawSha256:evidence.rawSha256,source:'signed_query'}]);
+      return inserted.id;
+    },'SERIALIZABLE');
+    // Accepted intents cannot enter the POST submission worker. A crash here
+    // is recovered by its existing query worker using this same refund number.
+    const receipt=await this.persistRefund({...evidence.result,mchid:this.binding.merchantId,
+      refund_status:'SUCCESS'},'SUCCESS',`query:${evidence.fact.providerRefundId}:SUCCESS`,evidence.rawSha256);
+    return {...receipt,intentId};
+  }
+
   private async persistRefund(source:RefundTransaction,status:"SUCCESS"|"CLOSED"|"ABNORMAL",eventId:string,rawHash:string){
     if(typeof source.out_refund_no!=="string"||!refundPattern.test(source.out_refund_no))
       throw new DomainError("REFUND_INTENT_UNMATCHED","商户退款单号未匹配",422);

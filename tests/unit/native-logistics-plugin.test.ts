@@ -9,7 +9,7 @@ beforeEach(async()=>{
   vi.resetModules();vi.clearAllMocks();mocks.token='buyer-a';open=vi.fn();
   (globalThis as any).getApp=()=>({globalData:{sessionToken:mocks.token}});
   (globalThis as any).wx={setClipboardData:vi.fn().mockResolvedValue({})};
-  (globalThis as any).requirePlugin=vi.fn(()=>({openWaybillTracking:open}));
+  (globalThis as any).requirePlugin=Object.assign(vi.fn(),{async:vi.fn().mockResolvedValue({openWaybillTracking:open})});
   (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(patch:any){Object.assign(this.data,patch);}};};
   await import('../../apps/miniprogram/pages/order-detail/index');page.onLoad({id});page.syncSession();
   Object.assign(page.data,{coreReady:true,visible:true,order:{transactionSourceKind:'verified_commerce'},shipment:{id:shipmentId,trackingNumber:'SF123456789001'}});
@@ -21,6 +21,19 @@ it('opens one official view after duplicate taps and keeps the token out of page
   pending.resolve(result);await first;
   expect(open).toHaveBeenCalledExactlyOnceWith({waybillToken:result.waybillToken});expect(JSON.stringify(page.data)).not.toContain(result.waybillToken);
   expect(page.data.trackingLoading).toBe(false);
+});
+it('does not load the plugin before a verified server capability or open after hiding during plugin download',async()=>{
+  expect((globalThis as any).requirePlugin.async).not.toHaveBeenCalled();
+  const loading=deferred();(globalThis as any).requirePlugin.async.mockReturnValue(loading.promise);
+  mocks.request.mockResolvedValue(result);const pending=page.openLogistics();
+  await vi.waitFor(()=>expect((globalThis as any).requirePlugin.async).toHaveBeenCalledExactlyOnceWith('logisticsPlugin'));
+  page.onHide();loading.resolve({openWaybillTracking:open});await pending;
+  expect(open).not.toHaveBeenCalled();expect(JSON.stringify(page.data)).not.toContain(result.waybillToken);
+});
+it('recovers a failed plugin download without losing waybill copying',async()=>{
+  mocks.request.mockResolvedValue(result);(globalThis as any).requirePlugin.async.mockRejectedValue(Error('offline'));
+  await page.openLogistics();expect(open).not.toHaveBeenCalled();expect(page.data.trackingLoading).toBe(false);
+  await page.copyWaybill();expect((globalThis as any).wx.setClipboardData).toHaveBeenCalledWith({data:'SF123456789001'});
 });
 it.each(['hidden','changed member','changed shipment'])('never opens a stale response after %s',async kind=>{
   const pending=deferred();mocks.request.mockReturnValue(pending.promise);const first=page.openLogistics();

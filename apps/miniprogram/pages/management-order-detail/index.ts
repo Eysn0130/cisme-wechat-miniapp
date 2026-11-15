@@ -3,6 +3,7 @@ import { centsToYuan } from "../../services/commerce";
 import { managementOrder, managementShipment, dispatchShipment, reconcileShipment, clientOperationKey, type CommerceOrder, type ManagementOrderAddress, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import { shanghaiShipmentInstant } from "../../services/shipment-time";
+import { request } from "../../services/api";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"支付已核验"};
 const syncLabels:Record<string,string>={prepared:"等待微信同步",dispatching:"正在提交微信",verifying:"微信结果核对中",synced:"微信已确认",manual_review:"微信同步待人工核对"};
 const deliveryLabels:Record<string,string>={awaiting_dispatch:"待发货",not_ready:"尚不满足发货条件",shipped:"已交寄",delivered:"已签收",exception:"物流异常"};
@@ -11,19 +12,19 @@ const emptyForm=()=>({carrierCode:"",carrierName:"",trackingNumber:"",evidenceRe
 Page({
  lastReadToken:"",
  pendingDispatch:null as {key:string;input:ShipmentDispatchInput}|null,
- data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",syncLabel:"",canDispatch:false,shipmentLoading:false,shipmentError:"",dispatchBusy:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
+ data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",syncLabel:"",canDispatch:false,canReconcileRefund:false,refundBusy:false,refundMessage:"",shipmentLoading:false,shipmentError:"",dispatchBusy:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onLoad(query:Record<string,string|undefined>){const id=query.id??"";this.setData({id,invalidId:!orderIdPattern.test(id)});},
  async onShow(){this.data.pageAlive=true;this.setData({navigating:false});await this.load();},
- onHide(){this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,form:emptyForm(),dispatchBusy:false,dispatchMessage:"",shipmentError:""});},
+ onHide(){this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,canReconcileRefund:false,refundBusy:false,refundMessage:"",form:emptyForm(),dispatchBusy:false,dispatchMessage:"",shipmentError:""});},
  onUnload(){this.onHide();},
  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken;},
- normalize(order:CommerceOrder<ManagementOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false,timeZone:"Asia/Shanghai"}),lines:order.lines.map(line=>({...line,totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district}`:""};},
+ normalize(order:CommerceOrder<ManagementOrderAddress>){return {...order,statusLabel:order.status==="paid"&&(order.refundedCents??0)>0?(order.refundedCents!>=order.totalCents?"已退款":"部分退款"):(labels[order.status]??order.status),totalYuan:centsToYuan(order.totalCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false,timeZone:"Asia/Shanghai"}),lines:order.lines.map(line=>({...line,totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district}`:""};},
  async load(){
-  if(this.data.dispatchBusy)return;
+  if(this.data.dispatchBusy||this.data.refundBusy)return;
   const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
   this.lastReadToken=token;
-  this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,form:emptyForm(),loading:true,error:"",shipmentError:"",dispatchMessage:""});
+  this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,canReconcileRefund:false,form:emptyForm(),loading:true,error:"",shipmentError:"",dispatchMessage:""});
   if(this.data.invalidId){if(this.current(epoch,token))this.setData({loading:false,error:"请从订单列表选择一笔订单。"});return;}
   const allowed=await requireCapability("commerce.order.read");
   if(!this.current(epoch,token))return;
@@ -31,14 +32,37 @@ Page({
   try{const order=await managementOrder(this.data.id);
    if(!this.current(epoch,token))return;
    const canDispatch=allowed.capabilities.includes("commerce.fulfillment.manage");
-   this.setData({order:this.normalize(order),canDispatch,loading:false});
+   this.setData({order:this.normalize(order),canDispatch,canReconcileRefund:allowed.capabilities.includes('commerce.money.reconcile'),loading:false});
    if(canDispatch)await this.readShipment(epoch,token);
   }catch(error){if(this.current(epoch,token))this.setData({loading:false,error:(error as {title?:string}).title??"暂时无法查看订单详情，请重试或返回列表。"});}
+ },
+ async reconcileExternalRefund(){
+  const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.epoch;
+  if(!this.current(epoch,token)||token!==this.lastReadToken||!this.data.canReconcileRefund||this.data.dispatchBusy||this.data.refundBusy||
+    this.data.order?.status!=='paid'||this.data.order.transactionSourceKind!=='verified_commerce')return;
+  this.setData({refundBusy:true,refundMessage:''});
+  try{
+   const answer=await new Promise<WechatMiniprogram.ShowModalSuccessCallbackResult>((resolve,reject)=>wx.showModal({
+    title:'核对平台退款',editable:true,placeholderText:'商户退款单号',confirmText:'核对',success:resolve,fail:reject}));
+   if(!this.current(epoch,token)||!answer.confirm)return;
+   const outRefundNo=answer.content?.trim()??'';
+   if(!/^[A-Za-z0-9_-]{8,64}$/.test(outRefundNo)){this.setData({refundMessage:'请填写正确的商户退款单号'});return;}
+   const result=await request<{state:string}>({path:`/v1/management/money/orders/${this.data.id}/external-refund`,
+    method:'POST',data:{outRefundNo},cacheTags:['orders','member','management']});
+   if(!this.current(epoch,token))return;
+   this.setData({refundBusy:false,refundMessage:result.state==='applied'?'退款已同步':'微信已确认退款，正在同步'});
+   await this.load();
+  }catch(error){if(this.current(epoch,token)){
+   const status=(error as {status?:number})?.status;
+   this.setData({refundMessage:(error as {title?:string})?.title??'核对未完成，请重试',
+    ...([401,403].includes(status??0)?{canReconcileRefund:false,order:null}:{} )});
+  }}finally{if(this.data.epoch===epoch)this.setData({refundBusy:false,
+   ...(token!==getApp<IAppOption>().globalData.sessionToken?{order:null,shipment:null,canDispatch:false,canReconcileRefund:false,error:'登录状态已变化，请重新打开订单'}:{})});}
  },
  async readShipment(epoch:number,token:string){
   this.setData({shipmentLoading:true,shipmentError:""});
   try{const shipment=await managementShipment(this.data.id);if(!this.current(epoch,token))return;
-   this.setData({shipment,shipmentLabel:deliveryLabels[shipment.logisticsState]??"状态待核对",syncLabel:syncLabels[shipment.wechatSyncState??""]??"微信同步尚未开始"});
+   this.setData({shipment,shipmentLabel:!shipment.id&&(this.data.order?.refundedCents??0)>0?"退款后暂停发货":deliveryLabels[shipment.logisticsState]??"状态待核对",syncLabel:syncLabels[shipment.wechatSyncState??""]??"微信同步尚未开始"});
    if(shipment.id&&this.pendingDispatch){this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchMessage:"订单已登记交寄。请核对微信同步结果，不要重复发货。"});}
   }catch(error){if(this.current(epoch,token)){const status=(error as {status?:number}).status;
    this.setData({shipment:null,shipmentError:(error as {title?:string}).title??"履约状态暂时无法核验，请刷新后重试。",...(status===401||status===403?{canDispatch:false,order:null,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"}:{})});}}

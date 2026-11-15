@@ -1018,6 +1018,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (request.body??{}) as Record<string,unknown>));
   app.post<{Params:{kind:string;objectId:string}}>("/v1/management/money/recheck/:kind/:objectId",async request=>
     moneyOpsRequired().recheck(request.memberId,request.params.kind,request.params.objectId));
+  app.post<{Params:{orderId:string}}>("/v1/management/money/orders/:orderId/external-refund",async request=>
+    moneyOpsRequired().reconcileExternalRefund(request.memberId,request.params.orderId,
+      (request.body??{}) as Record<string,unknown>));
   app.post<{Body:{billDate:string;billType:"SUCCESS"|"REFUND"}}>("/v1/management/money/trade-bills/import",async request=>{
     if(!tradeBills)throw new DomainError("TRADE_BILL_DISABLED","隔离交易账单核对未启用",503);
     return tradeBills.import(request.memberId,request.body?.billDate,request.body?.billType);

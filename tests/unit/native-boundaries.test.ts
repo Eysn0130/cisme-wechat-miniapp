@@ -227,7 +227,7 @@ describe("native mini program boundary", () => {
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back", "load", "open", "loadMore"],
-      "management-order-detail": ["back", "back", "load", "reconcile", "submitShipment", "load"],
+      "management-order-detail": ["back", "back", "load", "reconcile", "submitShipment", "load", "reconcileExternalRefund"],
       aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit"],
       "management-fulfillment": ["back", "retry", "retry", "next", "exportExcel", "chooseXlsx", "submit", "reconcileBatch", "newBatch", "openImportOrder"],
       "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "executeCorrection", "submit", "closeDetail"],
