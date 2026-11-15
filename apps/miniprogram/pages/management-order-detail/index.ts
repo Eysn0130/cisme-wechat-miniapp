@@ -56,7 +56,8 @@ Page({
    const status=(error as {status?:number})?.status;
    this.setData({refundMessage:(error as {title?:string})?.title??'核对未完成，请重试',
     ...([401,403].includes(status??0)?{canReconcileRefund:false,order:null}:{} )});
-  }}finally{if(this.current(epoch,token))this.setData({refundBusy:false});}
+  }}finally{if(this.data.epoch===epoch)this.setData({refundBusy:false,
+   ...(token!==getApp<IAppOption>().globalData.sessionToken?{order:null,shipment:null,canDispatch:false,canReconcileRefund:false,error:'登录状态已变化，请重新打开订单'}:{})});}
  },
  async readShipment(epoch:number,token:string){
   this.setData({shipmentLoading:true,shipmentError:""});

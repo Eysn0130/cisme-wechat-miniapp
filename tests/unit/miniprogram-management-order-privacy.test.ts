@@ -41,6 +41,7 @@ it('keeps platform refund reconciliation finance-only and drops a modal after sw
  page.data.canReconcileRefund=true;const pending=page.reconcileExternalRefund();
  expect(page.data.refundBusy).toBe(true);session='operator-b';answer({confirm:true,content:'PORTAL-REFUND-SYNTHETIC'});await pending;
  expect(requestMock).not.toHaveBeenCalled();
+ expect(page.data).toMatchObject({refundBusy:false,order:null,canReconcileRefund:false});
 });
 
 it('sends one read-only reconciliation input and can retry an interrupted request',async()=>{
