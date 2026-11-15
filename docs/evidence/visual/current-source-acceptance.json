@@ -299,7 +299,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "46a0d5342f2e832e81415e40329c42bcd9275b277af58a7d9e9f1a48a53b08e7",
+  "packageSourceSha256": "e05ff9fc7312f988da1f0509cecb69e95c4f3e245a2385776786be03878634b6",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -308,7 +308,10 @@
       "reason": "47 native routes require full route/font/state and physical-device acceptance. Current care-home scoped validation is in progress."
     }
   ],
-  "note": "Approved care-home 04 and campaign rotation changed. Historical captures are not current package acceptance. Full 47-route and physical-device matrices remain blocked; scoped care-home evidence is recorded separately.",
-  "previousSourceRecord": "docs/evidence/visual/source-acceptance-care-home-before-93059c739d63.json",
+  "note": "2026-11-15 正式准备：仅将护理记录调整为分包，路由、页面源码、交互不变；包哈希已更新。原有全路由、设备及字号未验状态继续保留，不将当前局部验证当作正式版通过。",
+  "previousSourceRecord": {
+    "packageSourceSha256": "46a0d5342f2e832e81415e40329c42bcd9275b277af58a7d9e9f1a48a53b08e7",
+    "scope": "Prior 0.1.51 source; preserved in care-home-campaign-20261115 and earlier evidence. No visual acceptance inherited."
+  },
   "pendingSourceRebind": false
 }

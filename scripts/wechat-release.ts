@@ -5,6 +5,7 @@ import { miniProgramApiOrigins, miniProgramCloudFunctions } from "../apps/minipr
 import { evaluateDesignQaEvidence } from "./design-qa-lib";
 import { validateInternalTestPackageSafety, validateWeChatRelease, validateWeChatSourceUpload, type WeChatReleaseTarget } from "./wechat-release-lib";
 import { probeLegalEndpoint } from "./legal-endpoint-probe";
+import { probeProductionRuntime } from "./production-runtime-probe";
 import { bundledUnapprovedEditorialFiles } from "./editorial-release-gate";
 
 type Command = "preflight" | "preview" | "upload" | "diagnose";
@@ -89,8 +90,7 @@ const errors = command === "upload"
 if (target === "preview") {
   errors.push(...validateInternalTestPackageSafety({
     testTargetIsolated: flag("WECHAT_TEST_TARGET_ISOLATED_VERIFIED"),
-    paymentsDisabled: flag("WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED"),
-    publicUgcDisabled: flag("WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED"),
+    capabilitiesApproved: flag("WECHAT_TEST_CAPABILITIES_APPROVED"),
     testMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED")
   }));
   const designQa = await evaluateDesignQaEvidence(root);
@@ -101,8 +101,7 @@ if (target === "preview") {
 } else if (target === "trial") {
   errors.push(...validateInternalTestPackageSafety({
     testTargetIsolated: flag("WECHAT_TEST_TARGET_ISOLATED_VERIFIED"),
-    paymentsDisabled: flag("WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED"),
-    publicUgcDisabled: flag("WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED"),
+    capabilitiesApproved: flag("WECHAT_TEST_CAPABILITIES_APPROVED"),
     testMembersConfigured: flag("WECHAT_EXPERIENCE_MEMBERS_CONFIGURED")
   }));
   const designQa = await evaluateDesignQaEvidence(root);
@@ -117,12 +116,14 @@ if (target === "preview") {
 const publicLegalProbe = command !== "upload" && target !== "local" && !miniProgramCloudFunctions[target]
   ? await probeLegalEndpoint(apiOrigin) : null;
 if (publicLegalProbe && !publicLegalProbe.ok) errors.push(`PUBLIC_LEGAL_BOOTSTRAP_FAILED:${publicLegalProbe.code}`);
+const productionRuntimeProbe = target === "release" ? await probeProductionRuntime() : null;
+if (productionRuntimeProbe) errors.push(...productionRuntimeProbe.errors);
 
 if (errors.length) {
-  console.error(JSON.stringify({ ok: false, command, target, errors, editorialBundledFiles, publicLegalProbe }, null, 2));
+  console.error(JSON.stringify({ ok: false, command, target, errors, editorialBundledFiles, publicLegalProbe, productionRuntimeProbe }, null, 2));
   process.exitCode = 1;
 } else if (command === "preflight") {
-  console.log(JSON.stringify({ ok: true, command, target, appid: projectConfig.appid, apiOrigin, publicLegalProbe }, null, 2));
+  console.log(JSON.stringify({ ok: true, command, target, appid: projectConfig.appid, apiOrigin, publicLegalProbe, productionRuntimeProbe }, null, 2));
 } else {
   const evidenceDir = resolve(root, "docs/evidence/wechat");
   await mkdir(evidenceDir, { recursive: true });

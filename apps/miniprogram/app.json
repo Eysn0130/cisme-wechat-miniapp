@@ -3,11 +3,16 @@
     "pages/account/index",
     "pages/home/index",
     "pages/shop/index",
-    "pages/records/index",
     "pages/community/index",
     "pages/profile/index"
   ],
   "subPackages": [
+    {
+      "root": "pages/records",
+      "pages": [
+        "index"
+      ]
+    },
     {
       "root": "pages/rewards",
       "pages": [
@@ -291,7 +296,8 @@
     "pages/home/index": {
       "network": "wifi",
       "packages": [
-        "pages/support"
+        "pages/support",
+        "pages/records"
       ]
     },
     "pages/shop/index": {

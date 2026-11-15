@@ -157,8 +157,7 @@ describe("WeChat release preflight", () => {
       privacyCheckEnabled: true,
       riskAccepted: false,
       testTargetIsolated: false,
-      paymentsDisabled: false,
-      publicUgcDisabled: false,
+      capabilitiesApproved: false,
       testMembersConfigured: false,
       manualGates: { ...completeGates, privacyGuideConfigured: false }
     })).toEqual(expect.arrayContaining([
@@ -198,8 +197,7 @@ describe("WeChat release preflight", () => {
       privacyCheckEnabled: true,
       riskAccepted: true,
       testTargetIsolated: true,
-      paymentsDisabled: true,
-      publicUgcDisabled: true,
+      capabilitiesApproved: true,
       testMembersConfigured: true,
       manualGates: completeGates
     })).toEqual([]);
@@ -231,7 +229,7 @@ describe("WeChat release preflight", () => {
       await writeFile(preloadPath, [
         'import { appendFileSync } from "node:fs";',
         'globalThis.fetch = async (input, options = {}) => {',
-        `  const allowed = ${JSON.stringify([`${miniProgramApiOrigins.trial}/v1/legal`, `${miniProgramApiOrigins.release}/v1/legal`])};`,
+        `  const allowed = ${JSON.stringify([`${miniProgramApiOrigins.trial}/v1/legal`, `${miniProgramApiOrigins.release}/v1/legal`, ...["/health/ready","/v1/identity/capabilities","/v1/capabilities","/v1/ugc/status","/v1/catalog"].map(path=>miniProgramApiOrigins.release+path)])};`,
         '  if (!allowed.includes(input) || options.method !== "GET" || options.credentials !== "omit" || options.redirect !== "manual") throw new Error("UNEXPECTED_PREFLIGHT_FETCH");',
         `  appendFileSync(${JSON.stringify(probePath)}, JSON.stringify({ url: input, method: options.method, credentials: options.credentials, redirect: options.redirect }) + "\\n");`,
         '  return new Response(JSON.stringify({ ready: false, documents: [] }), { status: 200, headers: { "Content-Type": "application/json" } });',
@@ -244,8 +242,7 @@ describe("WeChat release preflight", () => {
       const [failure, releaseFailure] = await Promise.all([
         preflight("trial", {
           WECHAT_DEVELOPER_UPLOAD_CONFIRMED: "false", WECHAT_REAL_IDENTITY_VERIFIED: "false",
-          WECHAT_TEST_TARGET_ISOLATED_VERIFIED: "false", WECHAT_TEST_PAYMENTS_DISABLED_VERIFIED: "false",
-          WECHAT_TEST_PUBLIC_UGC_DISABLED_VERIFIED: "false", WECHAT_EXPERIENCE_MEMBERS_CONFIGURED: "false"
+          WECHAT_TEST_TARGET_ISOLATED_VERIFIED: "false", WECHAT_TEST_CAPABILITIES_APPROVED: "false", WECHAT_EXPERIENCE_MEMBERS_CONFIGURED: "false"
         }),
         preflight("release", { WECHAT_MINIPROGRAM_FILING_COMPLETED: "false" })
       ]);
@@ -258,6 +255,7 @@ describe("WeChat release preflight", () => {
       expect(releaseFailure).toMatchObject({ code: 1 });
       const release = JSON.parse((releaseFailure as { stderr: string }).stderr);
       expect(release.errors).toContain("MINIPROGRAM_FILING_REQUIRED");
+      expect(release.errors).toContain("PRODUCTION_SELLABLE_CATALOG_EMPTY");
       expect(release.errors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
       expect(release.errors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
       for (const [receipt, target] of [[trial, "trial"], [release, "release"]] as const) {
@@ -266,7 +264,8 @@ describe("WeChat release preflight", () => {
       }
       const requests = (await readFile(probePath, "utf8")).trim().split("\n").map(line => JSON.parse(line));
       expect(requests.map(request => request.url).sort()).toEqual([
-        `${miniProgramApiOrigins.trial}/v1/legal`, `${miniProgramApiOrigins.release}/v1/legal`
+        `${miniProgramApiOrigins.trial}/v1/legal`, `${miniProgramApiOrigins.release}/v1/legal`,
+        ...["/health/ready","/v1/identity/capabilities","/v1/capabilities","/v1/ugc/status","/v1/catalog"].map(path=>miniProgramApiOrigins.release+path)
       ].sort());
     } finally {
       await rm(fixtureRoot, { recursive: true, force: true });
@@ -274,21 +273,18 @@ describe("WeChat release preflight", () => {
   }, 20_000);
 
   it("keeps every internal test-package safety proof independent of final design evidence", () => {
-    const safe = { riskAccepted: true, testTargetIsolated: true, paymentsDisabled: true,
-      publicUgcDisabled: true, testMembersConfigured: true };
+    const safe = { riskAccepted: true, testTargetIsolated: true, capabilitiesApproved: true, testMembersConfigured: true };
     expect(validateInternalTestPackageSafety(safe)).toEqual([]);
     expect(validateInternalTestPackageSafety({ ...safe, testTargetIsolated: false })).toContain("INTERNAL_TEST_TARGET_ISOLATION_PROOF_REQUIRED");
-    expect(validateInternalTestPackageSafety({ ...safe, paymentsDisabled: false })).toContain("INTERNAL_TEST_PAYMENTS_DISABLED_PROOF_REQUIRED");
-    expect(validateInternalTestPackageSafety({ ...safe, publicUgcDisabled: false })).toContain("INTERNAL_TEST_PUBLIC_UGC_DISABLED_PROOF_REQUIRED");
+    expect(validateInternalTestPackageSafety({ ...safe, capabilitiesApproved: false })).toContain("INTERNAL_TEST_CAPABILITIES_APPROVAL_REQUIRED");
     expect(validateInternalTestPackageSafety({ ...safe, testMembersConfigured: false })).toContain("INTERNAL_TEST_MEMBERS_SCOPE_PROOF_REQUIRED");
   });
 
   it("does not require unrelated CI-tool risk consent for official DevTools safety checks", () => {
-    expect(validateInternalTestPackageSafety({testTargetIsolated:true,paymentsDisabled:true,
-      publicUgcDisabled:true,testMembersConfigured:true})).toEqual([]);
+    expect(validateInternalTestPackageSafety({testTargetIsolated:true,capabilitiesApproved:true,testMembersConfigured:true})).toEqual([]);
     expect(validateWeChatCiPreview({projectAppId:'wx0123456789abcdef',expectedAppId:'wx0123456789abcdef',
       apiOrigin:'https://demo-api.cisme.example',privacyCheckEnabled:true,manualGates:completeGates,
-      riskAccepted:false,testTargetIsolated:true,paymentsDisabled:true,publicUgcDisabled:true,testMembersConfigured:true
+      riskAccepted:false,testTargetIsolated:true,capabilitiesApproved:true,testMembersConfigured:true
     })).toContain('WECHAT_CI_RISK_ACCEPTANCE_REQUIRED');
   });
 
