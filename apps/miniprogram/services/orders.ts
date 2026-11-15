@@ -57,6 +57,7 @@ export interface MemberOrderAddress {
 }
 export interface ManagementOrderAddress { recipientNameMasked: string; phoneMasked: string; province: string; city: string; district: string }
 export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAddress> {
+  refundedCents?:number;
   couponId?:string;couponDiscountCents?:number;
   shoppingPointsMultiplier?:number;pointsSpent?:number;
   fulfillmentPolicy?:FulfillmentPolicy|null;

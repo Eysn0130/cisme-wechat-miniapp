@@ -93,10 +93,13 @@ export class RefundCommandService{
           AND NOT (c.state='refund_pending' AND i.state='succeeded')`,[orderId])).rows[0];
       if(activeCase && activeCase.id!==aftersaleCaseId)
         throw new DomainError('AFTERSALE_ACTIVE_CASE','本单已有售后案件，请在原案件中继续退款',409);
-      const existing=(await client.query<{reserved:string}>(`SELECT COALESCE(sum(r.amount_cents),0)::text AS reserved
-        FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-        WHERE r.order_id=$1 AND (r.state='requested' OR
-          (r.state='approved' AND (i.id IS NULL OR i.state<>'closed')))`,[orderId])).rows[0];
+      const existing=(await client.query<{reserved:string}>(`SELECT COALESCE(sum(amount_cents),0)::text AS reserved
+        FROM (SELECT r.amount_cents FROM commerce_refund_request r
+          LEFT JOIN commission_refund_intent i ON i.request_id=r.id
+          WHERE r.order_id=$1 AND (r.state='requested' OR
+            (r.state='approved' AND (i.id IS NULL OR i.state<>'closed')))
+          UNION ALL SELECT payer_refund_cents FROM commission_refund_intent
+          WHERE order_id=$1 AND request_id IS NULL AND state<>'closed') reserved_refunds`,[orderId])).rows[0];
       if(Number(existing?.reserved??0)+amount>Number(order.total_cents))
         throw new DomainError("REFUND_AMOUNT_EXCEEDS_REMAINING","累计申请金额超过可退订单金额",409);
       const row=(await client.query<RequestRow>(`INSERT INTO commerce_refund_request(order_id,requested_by_member_id,
@@ -480,7 +483,7 @@ export class RefundCommandService{
           p.provider_transaction_id,p.amount_cents AS paid_cents,p.merchant_id,
           r.reason AS request_reason FROM commission_refund_intent i
           JOIN commerce_order o ON o.id=i.order_id JOIN commission_payment_inbox p ON p.id=i.payment_inbox_id
-          JOIN commerce_refund_request r ON r.id=i.request_id WHERE i.id=$1`,[targetId])).rows[0];
+          LEFT JOIN commerce_refund_request r ON r.id=i.request_id WHERE i.id=$1`,[targetId])).rows[0];
         if(!row||row.state!=="prepared"){
           results.push({id:targetId,state:"already_terminal"});continue;
         }

@@ -97,4 +97,12 @@ export class MoneyOperationsService{
     if(kind==="refund")return this.refund.receiveQueried(this.channel,target);
     return this.settlement!.confirmCallback(target);
   }
+
+  async reconcileExternalRefund(actorId:string|undefined,orderId:string,input:Record<string,unknown>){
+    await this.authority.require(actorId,'commerce.money.reconcile');
+    if(Object.keys(input).some(key=>key!=='outRefundNo')||typeof input.outRefundNo!=='string')
+      throw new DomainError('REFUND_ID_INVALID','请填写商户退款单号',422);
+    return this.refund.receiveExternalQueried(this.channel,id(orderId),input.outRefundNo.trim(),
+      client=>this.authority.requireWithClient(client,actorId,'commerce.money.reconcile'));
+  }
 }

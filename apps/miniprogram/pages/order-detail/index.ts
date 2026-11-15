@@ -78,7 +78,7 @@ Page({
     try{return await wx.showModal(options);}catch{return {confirm:false};}finally{this.confirmationPending=false;}
   },
   onUnload(){this.onHide();this.data.pageAlive=false;this.data.epoch+=1;},
-  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:labels[order.status]??order.status,totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),couponDiscountYuan:centsToYuan(order.couponDiscountCents??0),pointsDiscountYuan:centsToYuan(order.memberDiscountCents-(order.couponDiscountCents??0)),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,image:nativeCatalogImage(line.image),unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
+  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:order.status==="paid"&&(order.refundedCents??0)>0?(order.refundedCents!>=order.totalCents?"已退款":"部分退款"):(labels[order.status]??order.status),totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),couponDiscountYuan:centsToYuan(order.couponDiscountCents??0),pointsDiscountYuan:centsToYuan(order.memberDiscountCents-(order.couponDiscountCents??0)),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,image:nativeCatalogImage(line.image),unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===historicalCommerceToken()&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;this.receiptQueryAttempt+=1;this.trackingAttempt+=1;
@@ -155,7 +155,7 @@ Page({
       if(!this.readCurrent(epoch,token,readEpoch)||attempt!==this.shipmentAttempt)return;
       const labels:Record<string,string>={not_ready:"付款后安排发货",awaiting_dispatch:"待发货",shipped:"已发货",delivered:"快递已签收",exception:"物流异常，请联系客服"};
       if(row.orderId!==this.data.id||!labels[row.logisticsState]||row.id&&(!Number.isSafeInteger(row.version)||row.version!<1))throw new Error("Invalid shipment");
-      this.setData({shipment:{...row,stateLabel:labels[row.logisticsState]!,wechatReceipt:row.wechatReceipt?
+      this.setData({shipment:{...row,stateLabel:!row.id&&(this.data.order?.refundedCents??0)>0?"退款后暂停发货":labels[row.logisticsState]!,wechatReceipt:row.wechatReceipt?
         {...row.wechatReceipt,displayLabel:receiptLabels[row.wechatReceipt.status]??"微信记录：需人工核对",observedLabel:row.wechatReceipt.observedAt?
           new Date(row.wechatReceipt.observedAt).toLocaleString('zh-CN',{hour12:false}):''}:null},shipmentLoading:false,
         ...(row.receiptConfirmedAt?{receiptKey:"",receiptVersion:0}:{})});
@@ -178,7 +178,9 @@ Page({
       if(result.orderId!==this.data.id||result.shipmentId!==shipmentId||result.source!=='wechat_logistics_plugin'
         ||typeof result.waybillToken!=='string'||result.waybillToken.length<20||result.waybillToken.length>4096||/[\s\u0000-\u001f\u007f]/.test(result.waybillToken))throw Error('Invalid logistics view');
       // A buyer-only capability stays in this call, never page data or storage.
-      const plugin=requirePlugin('logisticsPlugin') as {openWaybillTracking:(options:{waybillToken:string})=>void};
+      const plugin=await requirePlugin.async('logisticsPlugin') as {openWaybillTracking:(options:{waybillToken:string})=>void};
+      if(!current())return;
+      if(typeof plugin?.openWaybillTracking!=='function')throw Error('Logistics plugin unavailable');
       plugin.openWaybillTracking({waybillToken:result.waybillToken});
     }catch(error){if(current())this.setData({trackingError:errorTitle(error,'暂时无法打开物流详情，可以复制运单号查询或联系客服。')});}
     finally{if(current())this.setData({trackingLoading:false});}

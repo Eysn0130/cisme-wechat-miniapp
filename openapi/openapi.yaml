@@ -2236,6 +2236,15 @@ paths:
       description: Requires commerce.money.reconcile; signed original-number query for payment order ID, refund intent ID or transfer request ID. Any success effect remains bound to the original command and durable inbox.
       parameters: [{name: kind, in: path, required: true, schema: {type: string, enum: [payment, refund, transfer]}}, {name: objectId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
       responses: {'200': {description: Original channel status or durable fact}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: channel not terminal}, '503': {description: isolated money operations disabled}}
+  /v1/management/money/orders/{orderId}/external-refund:
+    post:
+      tags: [Commerce, Authority]
+      operationId: reconcileExternalWechatRefund
+      security: [{session: []}]
+      description: Requires current commerce.money.reconcile before the signed GET and before import. Imports an already successful full cash refund from the merchant portal into the existing refund inbox; never posts a refund, approves a request, or restocks goods. The verified order, original payment, merchant, currency, amounts and refund number must match. Partial or mixed-tender refunds and competing claims require the original reviewed workflow. Repeated queries have one financial effect.
+      parameters: [{name: orderId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [outRefundNo], properties: {outRefundNo: {type: string, minLength: 8, maxLength: 64, pattern: '^[A-Za-z0-9_-]+$'}}}}}}
+      responses: {'200': {description: Verified existing refund persisted; inbox state is pending or applied}, '401': {$ref: '#/components/responses/Problem'}, '403': {$ref: '#/components/responses/Problem'}, '409': {description: Not completed or conflicting claim}, '422': {$ref: '#/components/responses/Problem'}, '503': {description: Signed provider query unavailable}}
   /v1/management/money/trade-bills/import:
     post:
       tags: [Commerce, Authority]
