@@ -83,10 +83,6 @@ page{--cisme-text-micro:.6875rem;--cisme-text-small:.75rem;--cisme-text-body:.87
 .care-session--reduced .session-complete__icon { animation:none; transition:none; }
 
 @keyframes care-step-in { from { opacity:.55; transform:translateY(10rpx); } to { opacity:1; transform:translateY(0); } }
-@keyframes home-background-breathe { from { transform:scale(1); } to { transform:scale(1.018); } }
-@keyframes care-console-enter { from { opacity:0; transform:translateY(18rpx); } to { opacity:1; transform:translateY(0); } }
-@keyframes care-cta-highlight { 0%,100% { opacity:.45; transform:scaleX(.7); } 50% { opacity:.88; transform:scaleX(1); } }
-@keyframes active-drop-breathe { 0%,100% { opacity:.68; transform:scale(.84); } 50% { opacity:1; transform:scale(1); } }
 @keyframes session-current-breathe { 0%,100% { transform:scale(1); } 50% { transform:scale(1.055); } }
 @keyframes check-disc-pop { 0% { opacity:.55; transform:scale(.55); } 58% { opacity:1; transform:scale(1.15); } 100% { opacity:1; transform:scale(1); } }
 @keyframes check-mark-draw { from { opacity:0; transform:scale(.2) rotate(-16deg); } to { opacity:1; transform:scale(1) rotate(0); } }
@@ -110,10 +106,5 @@ page{--cisme-text-micro:.6875rem;--cisme-text-small:.75rem;--cisme-text-body:.87
 .usage-note-label__optional { color: #81728a; font-size: var(--cisme-text-small); }
 .usage-note { box-sizing: border-box; width: 100%; height: 144rpx; padding: 20rpx 24rpx; border: 1rpx solid #e3dae8; border-radius: 24rpx; color: #493b51; background: #fff; font-size: var(--cisme-text-body); line-height: 1.6; }
 .home-page--reduced .usage-product { transition: none; }
-
-.care-signal__details { display: flex; align-items: center; justify-content: center; flex: none; gap: 2px; min-width: 56px; min-height: var(--cisme-hit-target,44px); margin: 0 -5px 0 0; padding: 0 2px; border: 0; border-radius: 14px; color: var(--cisme-plum,#56306f); background: transparent; font-size: .8125rem; font-weight: 600; line-height: 1.4; text-align: center; transition: background-color var(--cisme-motion-press); }
-.care-signal__details image { flex: none; width: 14px; height: 14px; }
-.care-signal__details--pressed { background: rgba(86,48,111,.09); }
 .home-page--reduced .care-signal__details { transition: none; }
 /* Approved product-focused composition; all primary content shares one axis. */
-.home-background { animation:none; transform:none; }
