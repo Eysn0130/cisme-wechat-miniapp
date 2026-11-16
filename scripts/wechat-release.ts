@@ -87,6 +87,7 @@ const errors = command === "upload"
       privacyCheckEnabled:appConfig.__usePrivacyCheck__===true,devtoolsCliAvailable:await exists(devtoolsCli),
       trialApiOrigin:miniProgramApiOrigins.trial,releaseApiOrigin:miniProgramApiOrigins.release})
   : validateWeChatRelease(releaseInput);
+let waivedDeviceTests: string[] = [];
 if (target === "preview") {
   errors.push(...validateInternalTestPackageSafety({
     testTargetIsolated: flag("WECHAT_TEST_TARGET_ISOLATED_VERIFIED"),
@@ -109,6 +110,7 @@ if (target === "preview") {
 } else if (target === "release") {
   const designQa = await evaluateDesignQaEvidence(root);
   errors.push(...designQa.releaseErrors);
+  waivedDeviceTests = designQa.waivedDeviceTests;
 }
 
 // The configured public endpoint must actually answer before producing another
@@ -120,10 +122,10 @@ const productionRuntimeProbe = target === "release" ? await probeProductionRunti
 if (productionRuntimeProbe) errors.push(...productionRuntimeProbe.errors);
 
 if (errors.length) {
-  console.error(JSON.stringify({ ok: false, command, target, errors, editorialBundledFiles, publicLegalProbe, productionRuntimeProbe }, null, 2));
+  console.error(JSON.stringify({ ok: false, command, target, errors, waivedDeviceTests, editorialBundledFiles, publicLegalProbe, productionRuntimeProbe }, null, 2));
   process.exitCode = 1;
 } else if (command === "preflight") {
-  console.log(JSON.stringify({ ok: true, command, target, appid: projectConfig.appid, apiOrigin, publicLegalProbe, productionRuntimeProbe }, null, 2));
+  console.log(JSON.stringify({ ok: true, command, target, appid: projectConfig.appid, apiOrigin, waivedDeviceTests, publicLegalProbe, productionRuntimeProbe }, null, 2));
 } else {
   const evidenceDir = resolve(root, "docs/evidence/wechat");
   await mkdir(evidenceDir, { recursive: true });
