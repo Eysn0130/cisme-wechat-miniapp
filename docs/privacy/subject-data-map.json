@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "517d9d4246e4fe6adac9c3a793ffbc8663f12430fcd7175381c049d167732ab4",
+  "migrationSetSha256": "d1c502dad7b87942fcc7cb20a45ebd7e4b43ce59135f4529a16cd7f9c93f39ac",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -6366,7 +6366,14 @@
         "created_by",
         "created_at"
       ],
-      "notes": "Creator is a separately authorized operator, not a gift recipient. Campaign token and internal IDs are excluded from portable personal profiles; existing award/voucher projections identify the receiving member. Preserve scoped audit and legal holds."
+      "notes": "Creator is a separately authorized operator, not a gift recipient. Campaign token and internal IDs are excluded from portable personal profiles; existing award/voucher projections identify the receiving member. Preserve scoped audit and legal holds.",
+      "actorColumns": [
+        "created_by"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
     },
     {
       "table": "reward_award",

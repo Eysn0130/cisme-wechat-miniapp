@@ -124,6 +124,16 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
     //117 changes only scoped authority constraints and refuses to discard grant facts.
+    expect(migrationTip).toBe('202611160001_reward_shared_invitations.sql');
+    const shareDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
+    const shareGuard=await pool.connect();
+    try{await shareGuard.query('BEGIN');
+      const actor=(await shareGuard.query("INSERT INTO member(display_name) VALUES('isolated invitation rollback guard') RETURNING id")).rows[0].id;
+      const activity=(await shareGuard.query("INSERT INTO reward_activity(code,title,terms,created_by,updated_by) VALUES('isolated-share-guard','隔离回滚保护','{}',$1,$1) RETURNING id",[actor])).rows[0].id;
+      await shareGuard.query('INSERT INTO reward_activity_share(activity_id,created_by) VALUES($1,$2)',[activity,actor]);
+      await expect(shareGuard.query(shareDown)).rejects.toThrow('REWARD_SHARE_ROLLBACK_REQUIRES_DATA_PRESERVATION');
+    }finally{await shareGuard.query('ROLLBACK');shareGuard.release();}
+    await migrate('down');await migrate('up');await migrate('down');migrationTip='202611140002_member_administration.sql';migrationCount-=1;extensionCount-=1;
     expect(migrationTip).toBe('202611140002_member_administration.sql');
     const userDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
     const userGuard=await pool.connect();
