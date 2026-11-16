@@ -37,6 +37,15 @@ describe("persistent COS upload gateway", () => {
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0]![0]).toMatchObject({ Bucket: "private-evidence", Key: "submission/original", Body: image, ContentType: "image/jpeg", "x-cos-meta-media-id": "media" });
   });
+  it("treats the runtime storage identity's denial as service unavailability, not member permission",async()=>{
+    const denied={statusCode:403,code:"AccessDenied",message:"private provider request and signature"};
+    vi.spyOn(COS.prototype,"putObject").mockRejectedValue(denied);
+    vi.spyOn(COS.prototype,"getObject").mockRejectedValue(denied);
+    const {storage,input}=await authorization();
+    await expect(storage.writeGatewayObject!(input)).rejects.toMatchObject({
+      code:"STORAGE_UPLOAD_UNAVAILABLE",status:503,message:"图片暂时无法上传，请稍后重试"
+    });
+  });
   it.each(["oversize", "expired", "key", "media", "mime", "signature", "content"])("rejects %s before writing COS", async (scenario) => {
     const send = vi.spyOn(COS.prototype, "putObject").mockResolvedValue({} as never);
     const { storage, input } = await authorization();

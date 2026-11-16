@@ -79,6 +79,16 @@ Required proof before any upload: strict `design:qa:gate` pass, real AppID/proje
 
 ## Incidents and recovery
 
+### Community photo uploads return 403
+
+The production private originals use `ugc/<member>/<post>/<media>`, while public checked images use `ugc-derived/`. The previous runtime policies covered `submissions/` and derived/editorial assets but omitted `ugc/`: authorization succeeded and every multipart transfer returned403. On2026-11-16 the owner approved the minimal extension of `CismeCommunityMediaRuntime` for the existing `cisme-storage-runtime` identity, retaining version1 for rollback. The reviewed desired policy is [cisme-community-media-runtime.json](../infra/tencent/policies/cisme-community-media-runtime.json).
+
+Keep the bucket private. Original and derived UGC need GetObject/HeadObject, PutObject with `cos:x-cos-forbid-overwrite=true`, and DeleteObject for the existing owner-data removal workflow; editorial assets retain their original limited operations. This policy does not grant bucket configuration, enumeration, ACL changes or public access. Never fix upload failures with an unrestricted object policy or direct client credentials.
+
+An explicit independent original-prefix canary verified write/read, rejection of changed-byte overwrites and missing-forbid writes, then deletion and404 readback; it wrote no member/database record. The owner also confirmed that the same photograph now uploads from the already-published mini program. This is evidence for the live storage repair, not acceptance of a future package or automatic public posting. Subsequent new-version CI, deployment and WeChat review remain separate checks.
+
+The COS gateway maps its runtime identity's upload denial to503 `STORAGE_UPLOAD_UNAVAILABLE`, rather than a member403. Native uploads retain bounded, safe problem text only from the same API gateway, preserve account state and require explicit retry; provider XML/HTML and SDK details are excluded. The existing byte-identical retry and immutable-object checks continue to apply. See [Tencent's condition-key documentation](https://cloud.tencent.com/document/product/436/71307) for the required write header.
+
 ### WeChat preview boundary
 
 On 2026-08-30, WeChat DevTools RC interpreted a shortcut intended for Security Settings as Preview and generated a short-lived QR for the logged-in interface test account. It was not scanned, distributed, promoted to trial, submitted for review or released. The QR-bearing screenshot was deleted; only a non-QR context image remains outside the acceptance manifest. Treat this as an operator incident, not as preview/upload evidence. Do not enable the DevTools CLI service port merely to reproduce it. A controlled preview still requires strict current-source Design QA, verified AppID/project role, approved legal/privacy/domain configuration, public HTTPS test environment and an authorized operator.

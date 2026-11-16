@@ -1,0 +1,45 @@
+{
+  "version": "2.0",
+  "statement": [
+    {
+      "effect": "allow",
+      "action": [
+        "name/cos:GetObject",
+        "name/cos:HeadObject"
+      ],
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/editorial-derived/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/editorial-video/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/ugc-derived/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/ugc/*"
+      ]
+    },
+    {
+      "effect": "allow",
+      "action": [
+        "name/cos:PutObject"
+      ],
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/editorial-derived/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/editorial-video/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/ugc-derived/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/ugc/*"
+      ],
+      "condition": {
+        "string_equal": {
+          "cos:x-cos-forbid-overwrite": "true"
+        }
+      }
+    },
+    {
+      "effect": "allow",
+      "action": [
+        "name/cos:DeleteObject"
+      ],
+      "resource": [
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/ugc-derived/*",
+        "qcs::cos:ap-shanghai:uid/1257392443:lhcos-81ddf-1257392443/ugc/*"
+      ]
+    }
+  ]
+}
