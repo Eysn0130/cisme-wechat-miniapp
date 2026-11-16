@@ -16,7 +16,7 @@ export class LogisticsRegistrationRejected extends DomainError {
   constructor(readonly providerCode:number){super('LOGISTICS_QUERY_REJECTED','微信暂时不能提供物流详情，请复制运单号查询或联系客服',503);}
 }
 export function validQueryToken(value:unknown):value is string{return typeof value==='string'&&value.length>=20&&value.length<=4096&&!/[\s\u0000-\u001f\u007f]/.test(value);}
-function unavailable():never{throw new DomainError('LOGISTICS_QUERY_NOT_READY','物流详情暂未开通，可以复制运单号查询或联系客服',503);}
+function unavailable():never{throw new DomainError('LOGISTICS_QUERY_NOT_READY','暂时无法查看物流，可复制运单号查询或联系客服',503);}
 /** Official logistics QUERY component, separate from electronic-waybill creation.
  * It registers only an existing paid order's parcel. No courier account,
  * shipment purchase, notification subscription or payment is created here. */
