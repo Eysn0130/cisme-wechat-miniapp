@@ -139,8 +139,66 @@ describe("design QA evidence gate", () => {
     expect(status.releaseErrors).toContain("DESIGN_QA_ROUTE_MATRIX_INCOMPLETE:pages/home/index");
     expect(status.releaseErrors).toContain("DESIGN_QA_OPEN_P0_OR_P1");
     expect(status.releaseErrors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
+    expect(status.releaseErrors).not.toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
+    expect(status.waivedDeviceTests).toEqual(["android"]);
+  });
+
+  it("requires both devices when no owner waiver exists", async () => {
+    const root = await createEvidenceFixture(() => {});
+    const status = await evaluateDesignQaEvidence(root);
+    expect(status.waivedDeviceTests).toEqual([]);
+    expect(status.releaseErrors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
     expect(status.releaseErrors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
   });
+
+  it("records a source-bound Android waiver without passing other acceptance gates", async () => {
+    const root = await createEvidenceFixture((manifest) => {
+      manifest.devices = [{
+        platform: "android", result: "waived", evidenceFiles: [],
+        ownerWaiver: {
+          authority: "project_owner", scope: "android_physical_device",
+          packageSourceSha256: manifest.packageSourceSha256, decisionDate: "2026-11-15",
+          question: "Can the owner provide an Android device for the final physical-device acceptance?",
+          answer: "Skip this Android hardware check."
+        }
+      }];
+    });
+    const status = await evaluateDesignQaEvidence(root);
+    expect(status.ok).toBe(true);
+    expect(status.waivedDeviceTests).toEqual(["android"]);
+    expect(status.releaseErrors).not.toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
+    expect(status.releaseErrors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
+    expect(status.releaseErrors).toContain("DESIGN_QA_ROUTE_MATRIX_INCOMPLETE:pages/home/index");
+    expect(status.releaseReady).toBe(false);
+  });
+
+  it.each(["ios", "stale-source", "missing-owner", "missing-answer", "invalid-date", "mixed-evidence", "passed-with-waiver"])(
+    "rejects an invalid owner waiver: %s", async (fault) => {
+      const root = await createEvidenceFixture((manifest) => {
+        const device: Record<string, any> = {
+          platform: fault === "ios" ? "ios" : "android", result: "waived", evidenceFiles: [],
+          ownerWaiver: {
+            authority: "project_owner", scope: "android_physical_device",
+            packageSourceSha256: manifest.packageSourceSha256, decisionDate: "2026-11-15",
+            question: "Can the owner provide an Android device for the final physical-device acceptance?",
+            answer: "Skip this Android hardware check."
+          }
+        };
+        if (fault === "stale-source") device.ownerWaiver.packageSourceSha256 = "0".repeat(64);
+        if (fault === "missing-owner") device.ownerWaiver.authority = "agent";
+        if (fault === "missing-answer") device.ownerWaiver.answer = "";
+        if (fault === "invalid-date") device.ownerWaiver.decisionDate = "2026-02-30";
+        if (fault === "mixed-evidence") device.evidenceFiles = ["docs/evidence/waiver-must-not-be-device-proof.png"];
+        if (fault === "passed-with-waiver") device.result = "passed";
+        manifest.devices = [device];
+      });
+      const status = await evaluateDesignQaEvidence(root);
+      expect(status.ok).toBe(false);
+      expect(status.waivedDeviceTests).toEqual([]);
+      expect(status.structuralErrors).toContain(`DESIGN_QA_DEVICE_WAIVER_INVALID:${fault === "ios" ? "ios" : "android"}`);
+      expect(status.releaseReady).toBe(false);
+    }
+  );
 
   it("fails the strict release gate while current-source evidence is incomplete", async () => {
     await expect(exec("./node_modules/.bin/tsx", ["scripts/check-design-qa.ts", "--require-passed"]))

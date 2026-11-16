@@ -295,8 +295,16 @@
     },
     {
       "platform": "android",
-      "result": "blocked",
-      "evidenceFiles": []
+      "result": "waived",
+      "evidenceFiles": [],
+      "ownerWaiver": {
+        "authority": "project_owner",
+        "scope": "android_physical_device",
+        "packageSourceSha256": "8782985898c793cf3fc6598f473bf7a87773c8750222c3a5e526cc6b6a94a557",
+        "decisionDate": "2026-11-15",
+        "question": "正式发布门禁还要求 Android 真机验证。你目前是否能提供一台有体验权限的 Android 手机扫码配合？模拟器不能替代这项证据。",
+        "answer": "跳过这一步"
+      }
     }
   ],
   "packageSourceSha256": "8782985898c793cf3fc6598f473bf7a87773c8750222c3a5e526cc6b6a94a557",
@@ -308,7 +316,7 @@
       "reason": "47 native routes require full route/font/state and physical-device acceptance. Current care-home scoped validation is in progress."
     }
   ],
-  "note": "2026-11-15 正式准备：仅将护理记录调整为分包，路由、页面源码、交互不变；包哈希已更新。原有全路由、设备及字号未验状态继续保留，不将当前局部验证当作正式版通过。",
+  "note": "2026-11-15：Owner 明确跳过当前包 Android 真机检查，单独记录为 waived / 未实测；不声明 Android 通过，不豁免 iOS、47 路由状态/字号及其他完整原生验收。护理记录分包及当前包哈希保持不变。",
   "previousSourceRecord": {
     "packageSourceSha256": "46a0d5342f2e832e81415e40329c42bcd9275b277af58a7d9e9f1a48a53b08e7",
     "scope": "Prior 0.1.51 source; preserved in care-home-campaign-20261115 and earlier evidence. No visual acceptance inherited."
