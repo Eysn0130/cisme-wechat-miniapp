@@ -69,7 +69,7 @@ export class ActivityRewardService {
    const row=(await c.query(`INSERT INTO reward_activity_share(activity_id,created_by) VALUES($1,$2)
     ON CONFLICT(activity_id) DO UPDATE SET activity_id=EXCLUDED.activity_id RETURNING id,version,enabled`,[id,owner])).rows[0];
    if(!row.enabled)fail('REWARD_LINK_UNAVAILABLE','领取链接已停用',409);
-   const token=this.shareToken(row);return {id:row.id,activityId:id,title:activity.title,token,path:`/pages/rewards/index?invite=${token}`};
+   const token=this.shareToken(row);return {id:row.id,activityId:id,title:activity.title,token,path:`/pages/home/index?gift=${token}`};
   },'commerce.product.manage');
  }
  async invitation(token:string){

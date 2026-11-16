@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), bootstrap: vi.fn(), resume:vi.fn(),navigate:vi.fn() }));
+const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), bootstrap: vi.fn(), resume:vi.fn(),navigate:vi.fn(),gift:vi.fn(),invitation:vi.fn() }));
 vi.mock("../../apps/miniprogram/services/api", () => ({
   resumeAuthentication:mocks.resume, navigateAfterAuthentication:mocks.navigate, request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => false
 }));
+vi.mock('../../apps/miniprogram/services/rewards',()=>({acceptRewardInvitation:mocks.gift,rewardInvitation:mocks.invitation,rewardCopy:(e:any)=>e.title||'请重试',rewardExpiry:()=> '2026.12.16 08:00'}));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));
 
@@ -21,6 +22,7 @@ const step = (index: number) => ({ currentTarget: { dataset: { index } } });
 beforeEach(async () => {
   vi.resetModules(); vi.clearAllMocks(); vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
   mocks.token = "member-a"; mocks.bootstrap.mockResolvedValue(snapshot());
+  mocks.gift.mockResolvedValue({memberId:'11111111-1111-4111-8111-111111111111',voucher:{id:'22222222-2222-4222-8222-222222222222',state:'unused',expiresAt:'2026-12-16T00:00:00Z'}});
   mocks.request.mockImplementation(async ({ path }: { path: string }) => {
     if (path === "/v1/bootstrap/home") return mocks.bootstrap();
     if (path === "/v1/me/points/club") return {serverDay:"2026-10-30",today:null,enabled:true,streak:0};
@@ -46,13 +48,13 @@ beforeEach(async () => {
 afterEach(() => { page?.onUnload(); vi.useRealTimers(); });
 
 describe("Home canonical nickname continuity", () => {
-  it('waits for the full real credit presentation before returning to the reward invitation, once',async()=>{
+  it('waits for the full real credit presentation before opening the gift on care, once',async()=>{
     const owner='11111111-1111-4111-8111-111111111111',destination='/pages/rewards/index?invite='+'a'.repeat(64);
     const app={globalData:{sessionToken:'member-a',apiBaseUrl:'https://staging-api.cisme.cn',onboardingReturnUrl:destination,onboardingReturnToken:'member-a'}};
     (globalThis as any).getApp=()=>app;page.setData({memberId:owner,pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false,accountOpening:false});
     let finish!:()=>void;const animation=new Promise<void>(resolve=>{finish=resolve;});page.selectComponent=()=>({present:()=>animation});mocks.navigate.mockResolvedValue('target');
     const first=page.resumeOnboardingDestination(),second=page.resumeOnboardingDestination();await flush();expect(mocks.navigate).not.toHaveBeenCalled();
-    finish();await Promise.all([first,second]);expect(mocks.navigate).toHaveBeenCalledTimes(1);expect(mocks.navigate).toHaveBeenCalledWith(destination);
+    finish();await Promise.all([first,second]);expect(mocks.gift).toHaveBeenCalledTimes(1);expect(mocks.gift).toHaveBeenCalledWith('a'.repeat(64),expect.any(String));expect(page.data.giftOpen).toBe(true);expect(mocks.navigate).not.toHaveBeenCalled();
   });
   it('keeps an invitation pending when the first questionnaire credit has not been confirmed',async()=>{
     const owner='11111111-1111-4111-8111-111111111111',destination='/pages/rewards/index?invite='+'b'.repeat(64);
@@ -60,13 +62,42 @@ describe("Home canonical nickname continuity", () => {
     (globalThis as any).getApp=()=>app;page.setData({memberId:owner,pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false,accountOpening:false});
     page.selectComponent=()=>({present:async()=>{}});const feedback=await import('../../apps/miniprogram/services/points-feedback');feedback.queueOnboardingFeedback(owner,'first-questionnaire');
     await page.resumeOnboardingDestination();expect(mocks.navigate).not.toHaveBeenCalled();expect(app.globalData.onboardingReturnUrl).toBe(destination);
-    feedback.consumeOnboardingFeedback(owner,'33333333-3333-4333-8333-333333333333');mocks.navigate.mockResolvedValue('target');await page.resumeOnboardingDestination();expect(mocks.navigate).toHaveBeenCalledWith(destination);
+    feedback.consumeOnboardingFeedback(owner,'33333333-3333-4333-8333-333333333333');mocks.navigate.mockResolvedValue('target');await page.resumeOnboardingDestination();expect(mocks.gift).toHaveBeenCalledTimes(1);expect(page.data.giftOpen).toBe(true);expect(mocks.navigate).not.toHaveBeenCalled();
   });
   it('does not open a previous member reward after identity changes during the points animation',async()=>{
     const app={globalData:{sessionToken:'member-a',onboardingReturnUrl:'/pages/rewards/index?invite='+'a'.repeat(64),onboardingReturnToken:'member-a'}};
     (globalThis as any).getApp=()=>app;page.setData({memberId:'11111111-1111-4111-8111-111111111111',pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false,accountOpening:false});
     let finish!:()=>void;page.selectComponent=()=>({present:()=>new Promise<void>(resolve=>{finish=resolve;})});
     const pending=page.resumeOnboardingDestination();app.globalData.sessionToken='member-b';finish();await pending;expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+  it('remembers a cold care gift link and opens it only after onboarding is complete',async()=>{
+    const app={globalData:{sessionToken:'member-a',apiBaseUrl:'https://staging-api.cisme.cn'}};(globalThis as any).getApp=()=>app;page.onLoad({gift:'c'.repeat(64)});
+    const intent=await import('../../apps/miniprogram/services/reward-invitation');expect(intent.pendingRewardInvitationPath()).toBe('/pages/home/index?gift='+'c'.repeat(64));
+    page.setData({memberId:'11111111-1111-4111-8111-111111111111',onboardingRequired:true,onboardingOpen:true});await page.resumeOnboardingDestination();expect(mocks.gift).not.toHaveBeenCalled();
+    page.setData({onboardingRequired:false,onboardingOpen:false});page.selectComponent=()=>({present:async()=>{}});await page.resumeOnboardingDestination();expect(page.data.giftOpen).toBe(true);expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+  it('keeps the voucher after later and sends an explicit claim to its dedicated flow, not the wallet',async()=>{
+    const owner='11111111-1111-4111-8111-111111111111',voucher='22222222-2222-4222-8222-222222222222';
+    const app={globalData:{sessionToken:'member-a',apiBaseUrl:'https://staging-api.cisme.cn'}};(globalThis as any).getApp=()=>app;
+    page.setData({memberId:owner,pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false});page.selectComponent=()=>({present:async()=>{}});
+    const invite=await import('../../apps/miniprogram/services/reward-invitation');invite.rememberRewardInvitation('a'.repeat(64));await page.resumeOnboardingDestination();
+    expect(page.data.giftOpen).toBe(true);expect(invite.pendingRewardInvitationToken()).toBe('');
+    const event={detail:{owner,reference:voucher}};page.deferGift(event);expect(page.data.giftOpen).toBe(false);expect(page.data.giftVoucher.id).toBe(voucher);expect(wx.navigateTo).not.toHaveBeenCalled();
+    invite.rememberRewardInvitation('a'.repeat(64));await page.resumeOnboardingDestination();page.chooseGift(event);
+    expect(wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/checkout/index?rewardVoucher=${voucher}&from=care`}));expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+  it('preserves the opened link when a receive response arrives after leaving care',async()=>{
+    const app={globalData:{sessionToken:'member-a',apiBaseUrl:'https://staging-api.cisme.cn'}};(globalThis as any).getApp=()=>app;
+    page.setData({memberId:'11111111-1111-4111-8111-111111111111',pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false});page.selectComponent=()=>({present:async()=>{}});
+    const invite=await import('../../apps/miniprogram/services/reward-invitation');invite.rememberRewardInvitation('a'.repeat(64));
+    let received!:(value:any)=>void;mocks.gift.mockImplementationOnce(()=>new Promise(resolve=>{received=resolve;}));const opening=page.resumeOnboardingDestination();await flush();page.onHide();
+    received({memberId:page.data.memberId,voucher:{id:'22222222-2222-4222-8222-222222222222',state:'unused',expiresAt:'2026-12-16T00:00:00Z'}});await opening;
+    expect(page.data.giftOpen).toBe(false);expect(page.data.giftLoading).toBe(false);expect(invite.pendingRewardInvitationToken()).toBe('a'.repeat(64));page.setData({pageVisible:true});await page.resumeOnboardingDestination();expect(page.data.giftOpen).toBe(true);
+  });
+  it('does not force registration for a care gift link whose two sets are sold out',async()=>{
+    const app={globalData:{sessionToken:'',apiBaseUrl:'https://staging-api.cisme.cn'}};(globalThis as any).getApp=()=>app;page.setData({pageAlive:true,pageVisible:true,lifecycleEpoch:0});
+    const invite=await import('../../apps/miniprogram/services/reward-invitation');invite.rememberRewardInvitation('a'.repeat(64));mocks.invitation.mockResolvedValueOnce({bundles:[{stockConfirmed:true,availableQuantity:0},{stockConfirmed:true,availableQuantity:0}]});
+    await page.resumeOnboardingDestination();expect(mocks.resume).not.toHaveBeenCalled();expect(mocks.gift).not.toHaveBeenCalled();expect(page.data.giftError).toContain('已领完');expect(invite.pendingRewardInvitationToken()).toBe('');
   });
   it("keeps a cold-bootstrap nickname through the real minute-clock callback without a shared identity cache", async () => {
     expect(identity.memberIdentity()).toBeNull(); await page.load();

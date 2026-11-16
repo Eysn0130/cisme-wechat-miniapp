@@ -53,6 +53,7 @@ Page({
   mounted: false,
   visible: false,
   data: {
+    rewardMode:false,rewardVoucherId:'',rewardActive:false,rewardBusy:false,rewardFromCare:false,
     couponId:'',eligibleCoupons:[] as EligibleCoupon[],couponSheetOpen:false,couponState:'idle' as 'idle'|'loading'|'ready'|'error',couponError:'',couponLabel:'不使用优惠券',couponDiscountYuan:'',pointsDiscountYuan:'',
     pointsInput:0,
     pointsMaximum:null as number|null,
@@ -70,6 +71,7 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
     this.mounted = true;
+    if(/^[a-f0-9-]{36}$/i.test(query.rewardVoucher??'')){this.setData({rewardMode:true,rewardVoucherId:query.rewardVoucher!,rewardFromCare:query.from==='care',loading:false});return;}
     const requestedQuantity = Number(query.quantity);
     const quantity = Number.isSafeInteger(requestedQuantity) ? Math.max(1, Math.min(99, requestedQuantity)) : 1;
     this.incomingCouponId=/^[0-9a-f-]{36}$/i.test(query.coupon??'')?query.coupon!:'';this.incomingCouponToken=currentSessionToken();
@@ -78,6 +80,7 @@ Page({
   onShow() {
     this.visible = true;
     this.requestEpoch += 1;
+    if(this.data.rewardMode){const ready=requireMemberAccess(`/pages/checkout/index?rewardVoucher=${this.data.rewardVoucherId}${this.data.rewardFromCare?'&from=care':''}`);this.setData({rewardActive:ready,rewardBusy:false,authenticationRequired:!ready});return;}
     // A request that was interrupted by backgrounding is no longer allowed to
     // own this page epoch. Unlock the controls so the same retained
     // idempotency key can be retried safely.
@@ -97,7 +100,7 @@ Page({
     if (!requireMemberAccess()) { this.showLoginRequired(); this.visible = false; return; }
     void this.load();
   },
-  onHide() { this.visible = false; this.requestEpoch += 1; this.couponAttempt++;cancelPageReads(this);this.stopCountdown(); },
+  onHide() { if(this.data.rewardMode)this.setData({rewardActive:false,rewardBusy:false});this.visible = false; this.requestEpoch += 1; this.couponAttempt++;cancelPageReads(this);this.stopCountdown(); },
   onUnload() { this.mounted = false; this.visible = false; this.requestEpoch += 1;this.couponAttempt++;cancelPageReads(this);this.stopCountdown(); },
   ownership() { return { mounted: this.mounted, visible: this.visible, epoch: this.requestEpoch, sessionToken: currentSessionToken() }; },
   showMissingProduct() {
@@ -134,7 +137,10 @@ Page({
     this.tickCountdown();
     if (!quoteClockView(clock).expired && this.visible) this.countdownTimer = setInterval(() => this.tickCountdown(), 1_000);
   },
+  rewardBusyChanged(event:WechatMiniprogram.CustomEvent<{busy:boolean}>){if(this.mounted&&this.visible&&this.data.rewardMode)this.setData({rewardBusy:event.detail.busy});},
+  rewardCompleted(event:WechatMiniprogram.CustomEvent<{id:string;owner:string}>){const child=this.selectComponent?.('#reward-checkout') as {data:{memberId?:string};navigationFailed?:()=>void}|null;if(!this.mounted||!this.visible||!this.data.rewardMode||!this.data.rewardActive||child?.data.memberId!==event.detail.owner||!/^[a-f0-9-]{36}$/i.test(event.detail.id))return;wx.redirectTo({url:`/pages/rewards/index?claim=${event.detail.id}`,fail:()=>{if(this.mounted&&this.visible&&this.data.rewardMode){this.setData({rewardBusy:false});child?.navigationFailed?.();}}});},
   async load() {
+    if(this.data.rewardMode){this.selectComponent?.('#reward-checkout')?.load?.();return;}
     if (this.data.busy) return;
     if (!validProductCode(this.data.productCode)) { this.showMissingProduct(); return; }
     if (!currentSessionToken()) { this.showLoginRequired(); return; }
@@ -199,6 +205,7 @@ Page({
   },
   checkoutBlocked() { return this.data.busy || this.data.loading || this.data.navigating || Boolean(this.data.syncError)||Boolean(this.data.couponId)&&this.data.couponState!=='ready'; },
   async retryLoad() {
+    if(this.data.rewardMode){if(!currentSessionToken()){resumeAuthentication(`/pages/checkout/index?rewardVoucher=${this.data.rewardVoucherId}${this.data.rewardFromCare?'&from=care':''}`);return;}this.setData({rewardActive:true,authenticationRequired:false});this.selectComponent?.('#reward-checkout')?.load?.();return;}
     if (!this.mounted || this.data.busy || this.data.loading || this.data.navigating) return;
     if (this.data.missingProduct) {
       this.setData({ navigating: true });
@@ -305,6 +312,7 @@ Page({
     void this.requestQuote();
   },
   async confirmOrder() {
+    if(this.data.rewardMode)return;
     const quote = this.data.quote;
     if (this.checkoutBlocked() || !quote) return;
     if (!this.data.runtimeEnabled) { this.setData({ error: "下单暂未开放，可先查看商品。" }); return; }
@@ -335,6 +343,7 @@ Page({
     }
   },
   back() {
+    if(this.data.rewardMode){if(this.data.rewardBusy)return;wx.navigateBack({fail:()=>this.data.rewardFromCare?wx.switchTab({url:'/pages/home/index'}):wx.redirectTo({url:'/pages/rewards/index'})});return;}
     if(this.data.couponSheetOpen){this.closeCoupons();return;}
     if (this.data.busy || this.data.navigating) return;
     this.setData({ navigating: true });

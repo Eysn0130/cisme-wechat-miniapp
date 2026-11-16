@@ -33,6 +33,13 @@ beforeEach(()=>{
 });
 afterEach(()=>vi.unstubAllGlobals());
 
+it('uses the existing checkout route for a reward without reading or creating a cash order',async()=>{
+ const page=await checkout({rewardVoucher:'11111111-1111-4111-8111-111111111111',from:'care'});page.onShow();
+ expect(page.data).toMatchObject({rewardMode:true,rewardActive:true,rewardFromCare:true,product:null,quote:null});
+ await page.confirmOrder();expect(m.catalog).not.toHaveBeenCalled();expect(m.runtime).not.toHaveBeenCalled();expect(m.quote).not.toHaveBeenCalled();expect(m.order).not.toHaveBeenCalled();
+ page.onHide();expect(page.data.rewardActive).toBe(false);
+});
+
 describe('checkout distinguishes incomplete navigation from member authentication',()=>{
  it.each(['','../bad','UPPERCASE'])('does not request private or malformed public data for invalid product %j',async(code)=>{
   const page=await checkout({product:code});app.globalData.sessionToken='';page.onShow();

@@ -7,7 +7,7 @@ vi.mock('../../apps/miniprogram/services/rewards',()=>services);
 vi.mock('../../apps/miniprogram/services/page-requests',()=>reads);
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',shouldReduceMotion:()=>false}));
 const owner='11111111-1111-4111-8111-111111111111',voucher='22222222-2222-4222-8222-222222222222',quoteId='33333333-3333-4333-8333-333333333333',claimId='44444444-4444-4444-8444-444444444444';
-let page:any,app:any,storage:Map<string,unknown>,wx:any;
+let page:any,app:any,storage:Map<string,unknown>,wx:any,component:any,definition:any;
 const deferred=<T>()=>{let resolve!:(v:T)=>void,reject!:(e:unknown)=>void;const promise=new Promise<T>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const selection=()=>({memberId:owner,voucher:{id:voucher,state:'unused',expiresAt:'2026-12-13T00:00:00Z'},bundles:[{code:'moisture',availableQuantity:1,stockConfirmed:true},{code:'dandruff',availableQuantity:1,stockConfirmed:true}],survey:{completed:true,version:1,recommendation:'moisture'}});
 beforeEach(async()=>{
@@ -16,10 +16,12 @@ beforeEach(async()=>{
  vi.stubGlobal('getApp',()=>app);vi.stubGlobal('wx',wx);vi.stubGlobal('Page',(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(patch:Record<string,unknown>){Object.assign(this.data,patch);}};});
  services.rewardSelection.mockResolvedValue(selection());reads.pageRead.mockResolvedValue({addresses:[{id:owner,version:1,isDefault:true,recipientName:'测试收件人'}]});
  services.rewardWallet.mockResolvedValue({memberId:owner,vouchers:[],claims:[],coupons:[],moreClaims:false});services.rewardReceipt.mockResolvedValue({status:'not_found'});
- services.rewardQuote.mockResolvedValue({id:quoteId,item:{image:'/pages/rewards/assets/moisture-100-100-v1.jpg',name:'净润洗护礼遇'}});services.confirmReward.mockResolvedValue({id:claimId,state:'placed',version:1});
- await import('../../apps/miniprogram/pages/rewards/index');page.onLoad({voucher});page.visible=true;page.token='member-A';
+ services.rewardQuote.mockResolvedValue({id:quoteId,item:{image:'/pages/rewards/assets/moisture-100-100-v1.jpg',name:'净润洗护礼遇',code:'moisture'}});services.confirmReward.mockResolvedValue({id:claimId,state:'placed',version:1});
+ vi.stubGlobal('Component',(d:any)=>{definition=d;});await import('../../apps/miniprogram/pages/checkout/components/reward-checkout/index');
+ component={...definition.methods,properties:{voucher,active:false},data:structuredClone(definition.data),triggerEvent:vi.fn(),selectComponent:()=>({present:async()=>{}}),setData(patch:any){Object.assign(this.data,patch);}};
+ definition.lifetimes.attached.call(component);component.properties.active=true;component.onHide=()=>definition.pageLifetimes.hide.call(component);component.onShow=()=>definition.pageLifetimes.show.call(component);page=component;
 });
-afterEach(()=>vi.unstubAllGlobals());
+afterEach(()=>{if(component)definition.lifetimes.detached.call(component);vi.unstubAllGlobals();});
 async function loaded(){await page.load();page.setData({selectedBundle:'moisture'});}
 describe('native reward interruption and result ownership',()=>{
  it('never preselects the recommended bundle on initial load',async()=>{await page.load();expect(page.data.selection.survey.recommendation).toBe('moisture');expect(page.data.selectedBundle).toBe('');});
@@ -29,7 +31,7 @@ describe('native reward interruption and result ownership',()=>{
  });
  it('clears member data on account change and never applies the old account response',async()=>{
   const read=deferred<any>();services.rewardSelection.mockReturnValueOnce(read.promise);const loading=page.load();app.globalData.sessionToken='member-B';read.resolve(selection());await loading;
-  expect(page.data.selection).toBeNull();expect(page.current()).toBe(false);
+  expect(page.data.selection).toBeNull();expect(page.data.memberId).toBe('');expect(services.confirmReward).not.toHaveBeenCalled();
  });
  it('does not dispatch a claim when backgrounded while only the quote was pending',async()=>{
   await loaded();const read=deferred<any>();services.rewardQuote.mockReturnValueOnce(read.promise);const confirming=page.confirm();page.onHide();read.resolve({id:quoteId});await confirming;
@@ -39,14 +41,14 @@ describe('native reward interruption and result ownership',()=>{
   await loaded();services.confirmReward.mockRejectedValueOnce({status:503});await page.confirm();expect(page.data.unknown).toBe(true);
   const first=services.confirmReward.mock.calls[0]!;expect(JSON.stringify([...storage])).toContain(first[1]);
   await page.confirm();expect(services.confirmReward).toHaveBeenCalledTimes(1);
-  await page.retryPending();expect(services.confirmReward.mock.calls[1]).toEqual(first);expect(wx.redirectTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/rewards/index?claim=${claimId}`}));
+  await page.retryPending();expect(services.confirmReward.mock.calls[1]).toEqual(first);expect(page.triggerEvent).toHaveBeenCalledWith('complete',{owner,id:claimId});
  });
  it('does not erase the durable hint or navigate from a hidden-page mutation response',async()=>{
   await loaded();const response=deferred<any>();services.confirmReward.mockReturnValueOnce(response.promise);const confirming=page.confirm();
   await vi.waitFor(()=>expect(services.confirmReward).toHaveBeenCalledOnce());page.onHide();response.resolve({id:claimId});await confirming;
   expect(wx.redirectTo).not.toHaveBeenCalled();expect(JSON.stringify([...storage])).toContain(quoteId);
   page.setData({mode:'wallet'});services.rewardReceipt.mockResolvedValueOnce({status:'found',action:'reward.claim',record:{id:claimId}});page.onShow();
-  await vi.waitFor(()=>expect(wx.redirectTo).toHaveBeenCalledOnce());expect(JSON.stringify([...storage])).not.toContain(quoteId);
+  await vi.waitFor(()=>expect(page.triggerEvent).toHaveBeenCalledWith('complete',{owner,id:claimId}));expect(JSON.stringify([...storage])).not.toContain(quoteId);
  });
 });
 
@@ -58,31 +60,33 @@ it('removes private management facts immediately when a refreshed permission che
 describe('shared invitation native flow',()=>{
  const token='a'.repeat(64);
  const wallet=()=>({memberId:owner,vouchers:[{id:voucher,state:'unused',expiresAt:'2026-12-13T00:00:00Z'}],claims:[],coupons:[],moreClaims:false});
- it('retains a newly received voucher when the member chooses later and opens the same two-choice sheet from the wallet',async()=>{
-  page.onLoad({invite:token});services.acceptRewardInvitation.mockResolvedValue({id:voucher,memberId:owner,issued:true,voucher:{id:voucher,state:'unused',claimId:null}});services.rewardWallet.mockResolvedValue(wallet());
-  await page.load();expect(page.data.invitationOpen).toBe(true);expect(page.data.wallet.vouchers).toHaveLength(1);
-  page.deferInvitation();expect(page.data.invitationOpen).toBe(false);expect(services.operateReward).not.toHaveBeenCalled();expect(services.confirmReward).not.toHaveBeenCalled();
-  page.openVoucher({currentTarget:{dataset:{id:voucher}}});await vi.waitFor(()=>expect(page.data.selection).not.toBeNull());
-  expect(page.data.selectionOpen).toBe(true);expect(page.data.selectedBundle).toBe('');expect(page.data.selection.bundles).toHaveLength(2);
-  page.closeSelection();await vi.waitFor(()=>expect(page.data.mode).toBe('wallet'));expect(services.acceptRewardInvitation).toHaveBeenCalledTimes(1);
+ it('redirects legacy invitation links to care without showing an arrival popup in the wallet',async()=>{
+  await import('../../apps/miniprogram/pages/rewards/index');page.onLoad({invite:token});page.onShow();await Promise.resolve();expect(api.navigateAfterAuthentication).toHaveBeenCalledWith('/pages/home/index');expect(services.acceptRewardInvitation).not.toHaveBeenCalled();expect(page.data.wallet).toBeNull();
  });
- it('returns a newly registered member to required onboarding while preserving the invitation destination',async()=>{
-  page.onLoad({invite:token});services.acceptRewardInvitation.mockRejectedValueOnce({code:'REWARD_ONBOARDING_REQUIRED'});await page.load();
-  expect(app.globalData.onboardingReturnUrl).toBe(`/pages/rewards/index?invite=${token}`);expect(app.globalData.onboardingReturnToken).toBe('member-A');
-  expect(api.navigateAfterAuthentication).toHaveBeenCalledWith('/pages/home/index');expect(page.data.invitationOpen).toBe(false);expect(services.confirmReward).not.toHaveBeenCalled();
- });
- it('does not force a visitor through registration when both gifts are already sold out',async()=>{
-  app.globalData.sessionToken='';page.token='';page.onLoad({invite:token});services.rewardInvitation.mockResolvedValue({bundles:[{code:'moisture',stockConfirmed:true,availableQuantity:0},{code:'dandruff',stockConfirmed:true,availableQuantity:0}]});
-  await page.inspectInvitation();expect(page.data.error).toContain('已领完');expect(api.resumeAuthentication).not.toHaveBeenCalled();expect(services.acceptRewardInvitation).not.toHaveBeenCalled();
+ it('closes the picker without discarding the voucher or selected address',async()=>{
+  await page.load();const address=page.data.selectedAddressId;page.closeBundleSheet();expect(page.data.bundleSheetOpen).toBe(false);expect(page.data.selection.voucher.id).toBe(voucher);expect(page.data.selectedAddressId).toBe(address);
  });
  it('shows redemption celebration only after a confirmed claim and opens the exact receipt when it finishes',async()=>{
-  await loaded();await page.confirm();expect(page.data.redemptionId).toBe(claimId);expect(page.data.selectionOpen).toBe(false);expect(wx.redirectTo).not.toHaveBeenCalled();
-  page.finishRedemption({detail:{owner,reference:claimId}});expect(wx.redirectTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/rewards/index?claim=${claimId}`}));
+  await loaded();await page.confirm();expect(page.data.redemptionId).toBe(claimId);expect(page.data.bundleSheetOpen).toBe(false);expect(wx.redirectTo).not.toHaveBeenCalled();
+  page.finishRedemption({detail:{owner,reference:claimId}});expect(page.triggerEvent).toHaveBeenCalledWith('complete',{owner,id:claimId});
  });
  it('refreshes sold-out choices after fencing the rejected operation and leaves the other set available',async()=>{
   await loaded();services.confirmReward.mockRejectedValueOnce({code:'REWARD_SOLD_OUT'});services.abandonReward.mockResolvedValueOnce({status:'abandoned'});
   services.rewardSelection.mockResolvedValueOnce({...selection(),bundles:[{code:'moisture',stockConfirmed:true,availableQuantity:0},{code:'dandruff',stockConfirmed:true,availableQuantity:2}]});
   await page.confirm();expect(page.data.redemptionId).toBe('');expect(page.data.unknown).toBe(false);expect(page.data.selectedBundle).toBe('');
-  page.chooseBundle({currentTarget:{dataset:{code:'moisture'}}});expect(page.data.selectedBundle).toBe('');page.chooseBundle({currentTarget:{dataset:{code:'dandruff'}}});expect(page.data.selectedBundle).toBe('dandruff');
+  page.chooseBundle({currentTarget:{dataset:{code:'moisture'}}});expect(page.data.selectedBundle).toBe('');page.chooseBundle({currentTarget:{dataset:{code:'dandruff'}}});page.confirmBundle();expect(page.data.selectedBundle).toBe('dandruff');
  });
+});
+
+it('rejects a sold-out bundle even when a stale or forged selection event names it',async()=>{
+ services.rewardSelection.mockResolvedValueOnce({...selection(),bundles:[{code:'moisture',stockConfirmed:true,availableQuantity:0},{code:'dandruff',stockConfirmed:true,availableQuantity:1}]});await page.load();
+ page.chooseBundle({currentTarget:{dataset:{code:'moisture'}}});page.confirmBundle();expect(page.data.selectedBundle).toBe('');expect(page.data.draftBundle).toBe('');
+ page.chooseBundle({currentTarget:{dataset:{code:'dandruff'}}});page.confirmBundle();expect(page.data.selectedBundle).toBe('dandruff');
+});
+it('keeps uncertain outcomes out of the picker so recovery controls remain reachable',async()=>{
+ await loaded();services.confirmReward.mockRejectedValueOnce({status:503});await page.confirm();await page.load();expect(page.data.unknown).toBe(true);expect(page.data.bundleSheetOpen).toBe(false);expect(page.data.addressReadOnly).toBe(true);
+});
+it('offers the confirmed receipt again after navigation fails without dispatching another claim',async()=>{
+ await loaded();await page.confirm();page.finishRedemption({detail:{owner,reference:claimId}});page.navigationFailed();expect(page.data).toMatchObject({completedId:claimId,navigating:false,addressReadOnly:true});
+ await page.confirm();expect(services.confirmReward).toHaveBeenCalledTimes(1);page.viewCompleted();expect(page.triggerEvent).toHaveBeenLastCalledWith('complete',{owner,id:claimId});
 });

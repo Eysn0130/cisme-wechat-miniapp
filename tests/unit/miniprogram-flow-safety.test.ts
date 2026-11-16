@@ -98,7 +98,7 @@ describe("mini program submission flow safety", () => {
     expect(home).toContain("care: null, view: homeView(null, homeDisplayName(this)), authorityAvailable: false");
     expect(home).toContain("onUnload() { cancelPageReads(this); this.data.pageAlive = false");
     expect(home).toContain("const refreshed = await this.load(true)");
-    expect(homeView).toContain('disabled="{{loading || working || activationConfirming || sessionMounted || onboardingOpen || (!authorityAvailable && !needsAuthentication) || !view.actionable}}"');
+    expect(homeView).toContain('disabled="{{loading || working || activationConfirming || sessionMounted || onboardingOpen || giftOpen || (!authorityAvailable && !needsAuthentication) || !view.actionable}}"');
     expect(records).toContain("care: null, timeline: [], records: [], recordGroups: [], visibleRecordGroups: [], visibleCycleCount: archivePageSize, hiddenCycleCount: 0, summary: emptySummary");
     expect(records).toContain("onUnload() { this.onHide(); this.data.pageAlive = false");
     expect(records).toContain("if (!current()) return");
@@ -364,8 +364,8 @@ describe("mini program submission flow safety", () => {
     const homeView = await source("apps/miniprogram/pages/home/index.wxml");
     const communityView = await source("apps/miniprogram/pages/community/index.wxml");
 
-    expect(homeView).toContain('disabled="{{accountOpening || sessionMounted || onboardingOpen}}" aria-hidden="{{sessionMounted || onboardingOpen}}"');
-    expect(homeView).toContain('class="care-console care-console--centered" aria-hidden="{{sessionMounted || onboardingOpen}}"');
+    expect(homeView).toContain('disabled="{{accountOpening || sessionMounted || onboardingOpen || giftOpen}}" aria-hidden="{{sessionMounted || onboardingOpen || giftOpen}}"');
+    expect(homeView).toContain('class="care-console care-console--centered" aria-hidden="{{sessionMounted || onboardingOpen || giftOpen}}"');
     expect(homeView).toContain('aria-role="dialog" aria-modal="true"');
     expect(communityView).toContain('<section-tabs');
     expect(communityView).toContain('label="社区内容分类"');

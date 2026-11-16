@@ -5,7 +5,8 @@ import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { memberIdentity } from "../../services/member-identity";
 import {queueCareFeedback,forgetOnboardingFeedback,confirmCreditOwner,isCreditOwner,hasOnboardingFeedback} from '../../services/points-feedback';
-import {pendingRewardInvitationPath} from '../../services/reward-invitation';
+import {pendingRewardInvitationToken,rewardInvitationFromPath,validRewardInvitation,rememberRewardInvitation,clearRewardInvitation} from '../../services/reward-invitation';
+import {rewardInvitation,acceptRewardInvitation,rewardCopy,type RewardVoucher} from '../../services/rewards';
 import { requireMemberAccess, retainMemberSnapshot, request, navigateAfterAuthentication } from "../../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { registerIncomingShare } from "../../services/share";
@@ -120,6 +121,7 @@ function homeDisplayName(page: object, member?: MemberView): string {
 type HomeCareCommand = CareCommand & { method?: "POST" | "PUT" };
 const pendingCareCommands = new WeakMap<object, HomeCareCommand>();
 const writeOwners = new WeakMap<object, object>();
+const homeGiftOwners=new WeakMap<object,{token:string;context:number;owner:string}>();
 const careSessionTargets = new WeakMap<object, { token: string; contextRevision: number; cycleId: string | null; version: number | null; due: string | null; dailyOperationKey?: string; careDay?: string; dailyRecord?: DailyCareRecord | null; usage?: CareUsageInput; usageKey?: string }>();
 
 function visitorView(selectedIndex = 0) {
@@ -135,7 +137,7 @@ function dailyHomeProjection(state: { usageReady: boolean; usageLoading: boolean
 
 Page({
   data: {
-    onboardingRequired:false,onboardingOpen:false,memberId:'',
+    onboardingRequired:false,onboardingOpen:false,memberId:'',giftOpen:false,giftLoading:false,giftError:'',giftInvite:'',giftVoucher:null as RewardVoucher|null,
     usageReady: false, usageLoading: false, usageToday: null as TodayUsage | null, usageAttempt: 0, usageDay: "",
     usageStreak: 0, usageRewards: null as CareDayRewards | null,
     centerDate: "护理状态同步中", centerTitle: "今日护理", centerAction: "记录今日护理",
@@ -147,7 +149,7 @@ Page({
     sessionMounted: false, sessionOpen: false, sessionVisible: false, sessionClosing: false, sessionRecordable: false, sessionLabel: "DAILY CARE", sessionSubmitLabel: "完成本次护理", sessionStage: "usage" as "usage" | "steps" | "assessment", sessionCycleDue: false, sessionProducts: [] as CareProduct[], sessionNote: "", sessionDirty: false, productOptions: careProducts.map(p => ({ ...p, selected: false })), sessionStepIndex: 0, sessionStep: careProtocolSteps[0] as CareProtocolStepView,
     sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [] as string[], sessionAssessment: "" as CareSelfAssessmentValue | "", assessments: careSelfAssessments
   },
-  onLoad(query: Record<string, string | undefined>) { this.data.pageAlive = true; void registerIncomingShare(query.share_id, "invite", "home"); },
+  onLoad(query: Record<string, string | undefined>) { this.data.pageAlive = true; const gift=query.gift;if(validRewardInvitation(gift)){rememberRewardInvitation(gift);this.setData({giftInvite:gift});}else if(gift)wx.showToast({title:'领取链接已失效',icon:'none'});void registerIncomingShare(query.share_id, "invite", "home"); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
   syncCenteredHome() {
     const {care,usageDay,usageToday,usageReady,needsAuthentication,view}=this.data;
@@ -216,30 +218,32 @@ Page({
   },
   onShow() {
     if(!requireGuestCommunityAccess("/pages/home/index"))return;
+    const giftOwner=homeGiftOwners.get(this),giftToken=getApp<IAppOption>().globalData.sessionToken;
+    if(giftOwner&&(giftOwner.token!==giftToken||giftOwner.context!==commerceContextRevision())){homeGiftOwners.delete(this);this.setData({giftOpen:false,giftVoucher:null,giftLoading:false,giftError:''});}
     const pending = pendingCareCommands.get(this);
-    this.setData({ pageVisible: true, accountOpening: false, working: false, activationConfirming: false,
+    this.setData({ pageVisible: true, accountOpening: false, working: false, activationConfirming: false,giftLoading:false,
       mutationState: pending?.token === getApp<IAppOption>().globalData.sessionToken ? "unknown" : "idle" });
     const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 0 }); tab?.syncActive?.(0);
     tab?.setPresentation?.("care-sheet", this.data.sessionMounted);
-    tab?.setPresentation?.('care-onboarding',this.data.onboardingOpen);
+    tab?.setPresentation?.('care-onboarding',this.data.onboardingOpen);tab?.setPresentation?.('care-gift',this.data.giftOpen);
     const identity = memberIdentity();
     if (identity) this.setData({ view: homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
     this.syncDailyHomeView();
     this.startDaypartClock();
-    void Promise.resolve(this.load(retainMemberSnapshot(this))).then(ready=>{if(ready&&!this.data.onboardingRequired&&pendingRewardInvitationPath())void this.resumeOnboardingDestination();});
+    void Promise.resolve(this.load(retainMemberSnapshot(this))).then(ready=>{if(pendingRewardInvitationToken()&&(!getApp<IAppOption>().globalData.sessionToken||ready&&!this.data.onboardingRequired))void this.resumeOnboardingDestination();});
   },
   onHide() {
     cancelPageReads(this);
-    this.data.pageVisible = false; this.data.lifecycleEpoch++;
+    this.data.pageVisible = false; this.data.lifecycleEpoch++;this.setData({giftLoading:false});
     writeOwners.delete(this);
     this.data.loadAttempt += 1;
     this.stopDaypartClock();
     this.getTabBar?.()?.setPresentation?.("care-sheet", false);
-    this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
+    this.getTabBar?.()?.setPresentation?.('care-onboarding',false);this.getTabBar?.()?.setPresentation?.('care-gift',false);
     if (this.data.sessionClosing) this.finishCareSessionClose();
   },
   onUnload() { cancelPageReads(this); this.data.pageAlive = false; this.data.pageVisible = false; this.data.lifecycleEpoch++; writeOwners.delete(this);
-    homeMemberNames.delete(this);
+    homeMemberNames.delete(this);homeGiftOwners.delete(this);
     this.data.loadAttempt += 1;
     this.stopDaypartClock();
     this.clearCareSessionCloseTimer();
@@ -263,7 +267,7 @@ Page({
   },
   restoreGuestIfExpired(attempt: number) {
     if (!this.data.pageAlive || this.data.loadAttempt !== attempt || getApp<IAppOption>().globalData.sessionToken) return;
-    homeMemberNames.delete(this);
+    homeMemberNames.delete(this);homeGiftOwners.delete(this);this.setData({giftOpen:false,giftVoucher:null,giftLoading:false});
     this.setData({ care: null, snapshotVersion: 0, supportUnread: null, supportState: "unknown", view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "",onboardingRequired:false,onboardingOpen:false });
     this.syncCenteredHome();
     this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
@@ -377,7 +381,7 @@ Page({
     wx.navigateTo({url:"/pages/support/index",fail:()=>{this.setData({accountOpening:false});wx.showToast({title:"客服暂时无法打开，请重试",icon:"none"});}});
   },
   openCampaign(event: WechatMiniprogram.CustomEvent<{ destination: string; productCode?: string }>) {
-    if (!this.data.pageAlive || !this.data.pageVisible || this.data.accountOpening || this.data.sessionMounted || this.data.onboardingOpen) return;
+    if (!this.data.pageAlive || !this.data.pageVisible || this.data.accountOpening || this.data.sessionMounted || this.data.onboardingOpen||this.data.giftOpen) return;
     const destination = event.detail.destination;
     if (destination === 'support') { this.openSupport(); return; }
     if (destination !== 'shop' && destination !== 'essence') return;
@@ -389,11 +393,12 @@ Page({
     if (product) wx.navigateTo({ url, fail }); else wx.switchTab({ url, fail });
   },
   openRecords() {
-    if (!this.data.pageAlive || !this.data.pageVisible || this.data.accountOpening || this.data.sessionMounted || this.data.onboardingOpen) return;
+    if (!this.data.pageAlive || !this.data.pageVisible || this.data.accountOpening || this.data.sessionMounted || this.data.onboardingOpen||this.data.giftOpen) return;
     if (!requireMemberAccess("/pages/records/index")) return;
     this.setData({ accountOpening: true });
     wx.navigateTo({ url: "/pages/records/index", fail: () => { this.setData({ accountOpening: false }); wx.showToast({ title: "护理记录暂时无法打开，请重试", icon: "none" }); } });
   },
+  onShareAppMessage(){return {title:validRewardInvitation(this.data.giftInvite)?'领取你的旅行洗护礼遇':'CISME · 今日护理',path:validRewardInvitation(this.data.giftInvite)?`/pages/home/index?gift=${this.data.giftInvite}`:'/pages/home/index',...(validRewardInvitation(this.data.giftInvite)?{imageUrl:'/assets/cisme/travel-reward-share-v1.jpg'}:{})};},
   retryLoad() { void this.load(); },
   async completeOnboarding(){
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;
@@ -406,16 +411,68 @@ Page({
   finishCredit(event:WechatMiniprogram.CustomEvent<{owner:string;kind:string}>){if(event.detail.owner===this.data.memberId&&event.detail.kind==='questionnaire')void this.resumeOnboardingDestination();},
   async resumeOnboardingDestination(){
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;
-    if(!token||this.data.onboardingOpen||this.data.onboardingRequired||!this.data.memberId||this.data.accountOpening)return;
+    if(this.data.giftLoading||this.data.accountOpening||this.data.giftOpen)return;
+    if(!token){await this.inspectGiftInvitation();return;}
+    if(this.data.onboardingOpen||this.data.onboardingRequired||!this.data.memberId||this.data.sessionMounted)return;
+    this.selectComponent?.('#care-gift')?.warm?.();
     await this.selectComponent?.('#onboarding-credit')?.present?.();
-    if(!this.isCurrentUi(epoch,token)||this.data.onboardingOpen||this.data.accountOpening)return;
-    const app=getApp<IAppOption>(),owned=app.globalData.onboardingReturnToken===token?app.globalData.onboardingReturnUrl:undefined,destination=owned&&owned!=='/pages/home/index'?owned:pendingRewardInvitationPath();
-    if(!destination||destination==='/pages/home/index')return;
-    if(destination.includes('/pages/rewards/index?invite=')&&hasOnboardingFeedback(this.data.memberId))return;
+    if(!this.isCurrentUi(epoch,token)||this.data.onboardingOpen||this.data.accountOpening||this.data.giftOpen)return;
+    const app=getApp<IAppOption>(),owned=app.globalData.onboardingReturnToken===token?app.globalData.onboardingReturnUrl:undefined;
+    const invitation=rewardInvitationFromPath(owned)||pendingRewardInvitationToken();
+    if(invitation){
+      if(hasOnboardingFeedback(this.data.memberId))return;
+      delete app.globalData.onboardingReturnUrl;delete app.globalData.onboardingReturnToken;
+      await this.openGiftInvitation(invitation);return;
+    }
+    if(!owned||owned==='/pages/home/index')return;
     delete app.globalData.onboardingReturnUrl;delete app.globalData.onboardingReturnToken;
-    this.setData({accountOpening:true});
-    await navigateAfterAuthentication(destination);
+    this.setData({accountOpening:true});await navigateAfterAuthentication(owned);
     if(this.isCurrentUi(epoch,token))this.setData({accountOpening:false});
+  },
+  async inspectGiftInvitation(){
+    const invitation=pendingRewardInvitationToken(),token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;
+    if(!invitation||token||this.data.giftLoading||!this.isCurrentUi(epoch,token))return;
+    this.setData({giftLoading:true,giftError:''});
+    try{const offer=await rewardInvitation(this,invitation);if(!this.isCurrentUi(epoch,token))return;
+      if(!offer.bundles.some(b=>b.stockConfirmed&&(b.availableQuantity??0)>0)){
+        clearRewardInvitation(invitation);this.giftFailure(offer.bundles.some(b=>!b.stockConfirmed)?'这份礼遇尚未开放，请稍后重试':'这次洗护礼遇已领完',epoch,token,false);return;
+      }
+      resumeAuthentication('/pages/home/index');
+    }catch(error){if(this.isCurrentUi(epoch,token)){const terminal=(error as {code?:string})?.code==='REWARD_LINK_UNAVAILABLE';if(terminal)clearRewardInvitation(invitation);this.giftFailure(rewardCopy(error),epoch,token,!terminal);}}
+    finally{if(this.isCurrentUi(epoch,token))this.setData({giftLoading:false});}
+  },
+  async openGiftInvitation(invitation:string){
+    const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch,owner=this.data.memberId,context=commerceContextRevision();
+    if(!validRewardInvitation(invitation)||!token||!owner||this.data.giftLoading||this.data.giftOpen||this.data.sessionMounted||this.data.onboardingOpen)return;
+    const current=()=>this.isCurrentUi(epoch,token)&&context===commerceContextRevision()&&this.data.memberId===owner;
+    this.setData({giftLoading:true,giftError:''});
+    try{const received=await acceptRewardInvitation(invitation,clientOperationKey('reward-invitation'));if(!current())return;
+      if(received.memberId!==owner)throw {title:'会员信息已更新，请重新打开礼遇'};
+      clearRewardInvitation(invitation);this.setData({giftInvite:invitation});
+      if(received.voucher.state==='unused'){
+        homeGiftOwners.set(this,{token,context,owner});this.setData({giftVoucher:received.voucher,giftOpen:true});
+        this.getTabBar?.()?.setPresentation?.('care-gift',true);
+      }else this.giftFailure(received.voucher.state==='expired'?'这张礼遇券已过期':received.voucher.state==='revoked'?'这张礼遇券已撤销':'这份礼遇已经领取，可在我的奖励查看',epoch,token,false);
+    }catch(error){if(current()){
+      const code=(error as {code?:string})?.code;
+      if(code==='REWARD_ONBOARDING_REQUIRED'){this.setData({onboardingRequired:true,onboardingOpen:true});this.getTabBar?.()?.setPresentation?.('care-onboarding',true);}
+      else{const terminal=['REWARD_LINK_UNAVAILABLE','REWARD_ALL_SOLD_OUT'].includes(code??'');if(terminal)clearRewardInvitation(invitation);this.giftFailure(rewardCopy(error),epoch,token,!terminal);}
+    }}finally{if(current())this.setData({giftLoading:false});}
+  },
+  giftFailure(message:string,epoch:number,token:string,retry=true){
+    if(!this.isCurrentUi(epoch,token))return;this.setData({giftError:message});
+    if(typeof wx.showModal!=='function'){wx.showToast({title:message,icon:'none'});return;}
+    wx.showModal({title:'洗护礼遇',content:message,showCancel:retry,confirmText:retry?'重试':'知道了',cancelText:'关闭',success:result=>{if(result.confirm&&retry&&this.isCurrentUi(epoch,token))void this.resumeOnboardingDestination();}});
+  },
+  chooseGift(event:WechatMiniprogram.CustomEvent<{owner:string;reference:string}>){
+    const owner=homeGiftOwners.get(this),token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch,voucher=this.data.giftVoucher;
+    if(!owner||owner.token!==token||owner.context!==commerceContextRevision()||owner.owner!==this.data.memberId||!this.isCurrentUi(epoch,token)||!this.data.giftOpen||!voucher||event.detail.owner!==owner.owner||event.detail.reference!==voucher.id||this.data.accountOpening)return;
+    this.setData({giftOpen:false,accountOpening:true});this.getTabBar?.()?.setPresentation?.('care-gift',false);
+    wx.navigateTo({url:`/pages/checkout/index?rewardVoucher=${voucher.id}&from=care`,fail:()=>{if(this.isCurrentUi(epoch,token)){this.setData({giftOpen:true,accountOpening:false});this.getTabBar?.()?.setPresentation?.('care-gift',true);wx.showToast({title:'暂时无法打开，请重试',icon:'none'});}}});
+  },
+  deferGift(event:WechatMiniprogram.CustomEvent<{owner:string;reference:string}>){
+    if(!this.data.giftOpen||!this.data.pageAlive||!this.data.pageVisible)return;const owner=homeGiftOwners.get(this);if(!owner||owner.token!==getApp<IAppOption>().globalData.sessionToken||owner.context!==commerceContextRevision()||owner.owner!==this.data.memberId||event.detail.owner!==owner.owner||event.detail.reference!==this.data.giftVoucher?.id)return;
+    this.setData({giftOpen:false});this.getTabBar?.()?.setPresentation?.('care-gift',false);
   },
   selectProtocolStep(event: WechatMiniprogram.TouchEvent) {
     if (this.data.sessionOpen) return;

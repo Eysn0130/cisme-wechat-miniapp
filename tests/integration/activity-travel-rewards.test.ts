@@ -40,7 +40,7 @@ afterAll(async()=>{await app?.close();await pool.end();});
 describe('TRV-SHARE public invitations and two bundle stock',()=>{
  it('creates one reusable administrator link and exposes no member data to visitors',async()=>{
   const a=await rewards.prepareShare(operator.memberId,activity.id,key()),b=await rewards.prepareShare(operator.memberId,activity.id,key());
-  expect(b.token).toBe(a.token);expect(a.token).toMatch(/^[a-f0-9]{64}$/);expect(a.path).toBe(`/pages/rewards/index?invite=${a.token}`);
+  expect(b.token).toBe(a.token);expect(a.token).toMatch(/^[a-f0-9]{64}$/);expect(a.path).toBe(`/pages/home/index?gift=${a.token}`);
   const publicRead=await app.inject({method:'GET',url:`/v1/rewards/invitations/${a.token}`});expect(publicRead.statusCode,publicRead.body).toBe(200);
   expect(publicRead.json().bundles.map((v:any)=>v.code)).toEqual(['moisture','dandruff']);
   expect(publicRead.body).not.toContain(operator.memberId);expect(publicRead.json()).not.toHaveProperty('created_by');
