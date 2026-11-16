@@ -568,7 +568,14 @@ export function createCosGatewayStorage(config: AppConfig,cosClient?:COS): Objec
       const claims = validateGatewayUpload(input, config.objectStorage.uploadTokenSecret);
       const detectedMime = detectImageMime(input.bytes);
       if (detectedMime !== claims.mimeType) throw new DomainError("UPLOAD_CONTENT_MISMATCH", "Image content does not match authorization", 422);
-      await immutablePut(claims.objectKey,input.bytes,claims.mimeType,claims.mediaId);
+      try{await immutablePut(claims.objectKey,input.bytes,claims.mimeType,claims.mediaId);}
+      catch(error){
+        // This denial belongs to our storage identity, not to the signed-in
+        // member. Keep provider details private and expose a service failure.
+        if(!(error instanceof DomainError)&&Number((error as {statusCode?:unknown})?.statusCode)===403)
+          throw new DomainError("STORAGE_UPLOAD_UNAVAILABLE","图片暂时无法上传，请稍后重试",503);
+        throw error;
+      }
       return { bytes: input.bytes.length, checksumBase64: checksum(input.bytes), detectedMime };
     },
     async verify(objectKey) {

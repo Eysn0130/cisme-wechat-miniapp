@@ -391,6 +391,20 @@ export function requestCancelable<T>(options: RequestOptions): { promise: Promis
   return { promise, abort };
 }
 
+function uploadProblem(response:{statusCode:number;data:unknown},url:string){
+  const problem={status:response.statusCode,code:"UPLOAD_FAILED",title:"图片暂时无法上传，请稍后重试"};
+  const origin=app.globalData.apiBaseUrl.replace(/\/$/,"");
+  if(!origin||!url.startsWith(`${origin}/v1/uploads/`))return problem;
+  try{
+    const value=typeof response.data==="string"?(response.data.length<=8192?JSON.parse(response.data):null):response.data;
+    if(value&&typeof value==="object"&&!Array.isArray(value)){
+      if(typeof value.code==="string"&&/^[A-Z][A-Z0-9_]{1,63}$/.test(value.code))problem.code=value.code;
+      if(typeof value.title==="string"&&value.title.length<=180&&/^[\u3400-\u9fff]/.test(value.title))problem.title=value.title;
+    }
+  }catch{/* Proxy HTML and provider XML are not user-facing error messages. */}
+  return problem;
+}
+
 export async function uploadAuthorized(filePath: string, authorization: { url: string; method?: "POST" | "PUT"; fields: Record<string, string>; headers?: Record<string,string>; mediaId?: string }, options: {
   onProgress?: (percent: number) => void;
   registerAbort?: (abort: () => void) => void;
@@ -407,7 +421,7 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
     await new Promise<void>((resolve, reject) => {
       const task = wx.request({
       url: authorization.url, method: "PUT", data, header: authorization.headers ?? {}, timeout: 60_000,
-      success: response => response.statusCode >= 200 && response.statusCode < 300 ? resolve() : reject(response), fail: reject
+      success: response => response.statusCode >= 200 && response.statusCode < 300 ? resolve() : reject(uploadProblem(response,authorization.url)), fail: reject
       });
       abortTransport = () => task.abort();
     });
@@ -435,13 +449,14 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
     options.onProgress?.(100);
     return;
   }
+  assertActive();
   return new Promise((resolve, reject) => {
     const task = wx.uploadFile({
       url: authorization.url,
       filePath,
       name: "file",
       formData: authorization.fields,
-      success: (response) => response.statusCode >= 200 && response.statusCode < 300 ? (options.onProgress?.(100), resolve()) : reject(response),
+      success: (response) => response.statusCode >= 200 && response.statusCode < 300 ? (options.onProgress?.(100), resolve()) : reject(uploadProblem(response,authorization.url)),
       fail: reject
     });
     abortTransport = () => task.abort();
