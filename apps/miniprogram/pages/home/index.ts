@@ -398,8 +398,8 @@ Page({
     this.setData({ accountOpening: true });
     wx.navigateTo({ url: "/pages/records/index", fail: () => { this.setData({ accountOpening: false }); wx.showToast({ title: "护理记录暂时无法打开，请重试", icon: "none" }); } });
   },
-  onShareAppMessage(){return {title:validRewardInvitation(this.data.giftInvite)?'领取你的旅行洗护礼遇':'CISME · 今日护理',path:validRewardInvitation(this.data.giftInvite)?`/pages/home/index?gift=${this.data.giftInvite}`:'/pages/home/index',...(validRewardInvitation(this.data.giftInvite)?{imageUrl:'/assets/cisme/travel-reward-share-v1.jpg'}:{})};},
-  retryLoad() { void this.load(); },
+  onShareAppMessage(){return {title:validRewardInvitation(this.data.giftInvite)?'领取你的旅行洗护礼遇':'CISME · 今日护理',path:validRewardInvitation(this.data.giftInvite)?`/pages/home/index?gift=${this.data.giftInvite}`:'/pages/home/index',...(validRewardInvitation(this.data.giftInvite)?{imageUrl:'/assets/cisme/travel-reward-share-v2.jpg'}:{})};},
+  retryLoad() { void Promise.resolve(this.load()).then(ready=>{if(ready&&!this.data.onboardingRequired&&pendingRewardInvitationToken())void this.resumeOnboardingDestination();}); },
   async completeOnboarding(){
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;
     const confirmed=await this.load(true);

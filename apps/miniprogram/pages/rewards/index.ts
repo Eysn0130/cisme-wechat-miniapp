@@ -54,7 +54,7 @@ Page({
  navigate(url:string,replace=false){if(this.data.navigating||!this.current())return;this.setData({navigating:true});const options={url,fail:()=>{if(this.alive)this.setData({navigating:false,error:'暂时无法打开，请重试'});}};if(replace)wx.redirectTo(options);else wx.navigateTo(options);},
  changeTab(event:WechatMiniprogram.TouchEvent){if(!this.data.busy)this.setData({tab:sectionTabValue(event,'tab'),error:''});},
  openVoucher(event:{currentTarget:{dataset:{id?:unknown}}}){if(consumeFoilDrag(this)||!this.current()||this.data.busy||this.data.unknown||this.data.navigating)return;const id=String(event.currentTarget.dataset.id);if(uuid.test(id))this.navigate(`/pages/checkout/index?rewardVoucher=${id}`);},
- onShareAppMessage(){return {title:'领取你的旅行洗护礼遇',path:validRewardInvitation(this.data.inviteToken)?`/pages/home/index?gift=${this.data.inviteToken}`:'/pages/home/index',imageUrl:'/assets/cisme/travel-reward-share-v1.jpg'};},
+ onShareAppMessage(){return {title:'领取你的旅行洗护礼遇',path:validRewardInvitation(this.data.inviteToken)?`/pages/home/index?gift=${this.data.inviteToken}`:'/pages/home/index',imageUrl:'/assets/cisme/travel-reward-share-v2.jpg'};},
  openClaim(event:WechatMiniprogram.TouchEvent){if(!this.data.busy)this.navigate(`/pages/rewards/index?claim=${event.currentTarget.dataset.id}`);},
  openRules(){this.setData({rulesOpen:true});},closeRules(){this.setData({rulesOpen:false});},stop(){},
  async retryPending(){const p=this.data.pending;if(this.data.busy||!p||p.kind!=='claim'||!p.quoteId)return;const epoch=this.epoch;this.setData({busy:true,error:''});

@@ -76,6 +76,12 @@ describe("Home canonical nickname continuity", () => {
     page.setData({memberId:'11111111-1111-4111-8111-111111111111',onboardingRequired:true,onboardingOpen:true});await page.resumeOnboardingDestination();expect(mocks.gift).not.toHaveBeenCalled();
     page.setData({onboardingRequired:false,onboardingOpen:false});page.selectComponent=()=>({present:async()=>{}});await page.resumeOnboardingDestination();expect(page.data.giftOpen).toBe(true);expect(mocks.navigate).not.toHaveBeenCalled();
   });
+  it('resumes an existing members pending gift after a successful home retry without onboarding again',async()=>{
+    const owner='11111111-1111-4111-8111-111111111111',app={globalData:{sessionToken:'member-a',apiBaseUrl:'https://staging-api.cisme.cn'}};(globalThis as any).getApp=()=>app;
+    page.setData({memberId:owner,pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false});page.selectComponent=()=>({present:async()=>{}});
+    const invite=await import('../../apps/miniprogram/services/reward-invitation');invite.rememberRewardInvitation('d'.repeat(64));page.load=vi.fn().mockResolvedValue(true);page.retryLoad();await flush();
+    expect(mocks.gift).toHaveBeenCalledTimes(1);expect(page.data.giftOpen).toBe(true);expect(page.data.onboardingOpen).toBe(false);expect(mocks.resume).not.toHaveBeenCalled();
+  });
   it('keeps the voucher after later and sends an explicit claim to its dedicated flow, not the wallet',async()=>{
     const owner='11111111-1111-4111-8111-111111111111',voucher='22222222-2222-4222-8222-222222222222';
     const app={globalData:{sessionToken:'member-a',apiBaseUrl:'https://staging-api.cisme.cn'}};(globalThis as any).getApp=()=>app;

@@ -121,7 +121,8 @@ describe("mini program submission flow safety", () => {
     expect(records).toContain("await this.load(true, true)");
     expect(home).toMatch(/await request<T>\([\s\S]*?await this\.load\(true\)/);
     expect(records).toMatch(/await request\([\s\S]*?await this\.load\(true, true\)/);
-    expect(home).toMatch(/retryLoad\(\) \{[^}]*void this\.load\(\); \}/);
+    const retry=home.slice(home.indexOf("retryLoad()"),home.indexOf("async completeOnboarding()"));
+    expect(retry).toContain("this.load()");expect(retry).not.toContain("this.setData");
     expect(records).toContain("if (this.data.authorityAvailable) void this.load(true); else void this.load()");
     for (const view of [homeView, recordsView]) {
       expect(view).toContain('bindtap="retryLoad"');

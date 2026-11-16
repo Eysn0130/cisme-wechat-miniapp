@@ -12,7 +12,7 @@ const deferred=<T>()=>{let resolve!:(v:T)=>void,reject!:(e:unknown)=>void;const 
 const selection=()=>({memberId:owner,voucher:{id:voucher,state:'unused',expiresAt:'2026-12-13T00:00:00Z'},bundles:[{code:'moisture',availableQuantity:1,stockConfirmed:true},{code:'dandruff',availableQuantity:1,stockConfirmed:true}],survey:{completed:true,version:1,recommendation:'moisture'}});
 beforeEach(async()=>{
  vi.resetModules();vi.clearAllMocks();storage=new Map();app={globalData:{sessionToken:'member-A',apiBaseUrl:'https://staging-api.cisme.cn',cloudFunction:null}};
- wx={getStorageSync:(k:string)=>structuredClone(storage.get(k)??''),setStorageSync:(k:string,v:unknown)=>storage.set(k,structuredClone(v)),removeStorageSync:(k:string)=>storage.delete(k),previewImage:vi.fn(),navigateTo:vi.fn(),redirectTo:vi.fn(),switchTab:vi.fn(),navigateBack:vi.fn(),showToast:vi.fn(),showShareMenu:vi.fn(),stopPullDownRefresh:vi.fn()};
+ wx={getStorageSync:(k:string)=>structuredClone(storage.get(k)??''),setStorageSync:(k:string,v:unknown)=>storage.set(k,structuredClone(v)),removeStorageSync:(k:string)=>storage.delete(k),env:{USER_DATA_PATH:'wxfile://usr'},getFileSystemManager:()=>({access:({success}:any)=>success()}),previewImage:vi.fn(),navigateTo:vi.fn(),redirectTo:vi.fn(),switchTab:vi.fn(),navigateBack:vi.fn(),showToast:vi.fn(),showShareMenu:vi.fn(),stopPullDownRefresh:vi.fn()};
  vi.stubGlobal('getApp',()=>app);vi.stubGlobal('wx',wx);vi.stubGlobal('Page',(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(patch:Record<string,unknown>){Object.assign(this.data,patch);}};});
  services.rewardSelection.mockResolvedValue(selection());reads.pageRead.mockResolvedValue({addresses:[{id:owner,version:1,isDefault:true,recipientName:'测试收件人'}]});
  services.rewardWallet.mockResolvedValue({memberId:owner,vouchers:[],claims:[],coupons:[],moreClaims:false});services.rewardReceipt.mockResolvedValue({status:'not_found'});
@@ -93,8 +93,17 @@ it('offers the confirmed receipt again after navigation fails without dispatchin
 
 it('opens original bundle details without selecting or changing an address, including a sold-out set',async()=>{
  await page.load();page.data.selection.bundles[0].availableQuantity=0;const address=page.data.selectedAddressId;
- page.previewBundle({currentTarget:{dataset:{code:'moisture'}}});expect(wx.previewImage).toHaveBeenCalledExactlyOnceWith({current:'/pages/checkout/assets/travel-moisture-detail-v1.jpg',urls:['/pages/checkout/assets/travel-moisture-detail-v1.jpg','/pages/checkout/assets/travel-dandruff-detail-v1.jpg']});
+ await page.previewBundle({currentTarget:{dataset:{code:'moisture'}}});expect(wx.previewImage).toHaveBeenCalledExactlyOnceWith({current:'wxfile://usr/cisme-travel-detail-moisture-v1.jpg',urls:['wxfile://usr/cisme-travel-detail-moisture-v1.jpg','wxfile://usr/cisme-travel-detail-dandruff-v1.jpg']});
  expect(page.data.selectedBundle).toBe('');expect(page.data.draftBundle).toBe('');expect(page.data.selectedAddressId).toBe(address);
  page.chooseBundle({currentTarget:{dataset:{code:'moisture'}}});expect(page.data.draftBundle).toBe('');expect(services.rewardQuote).not.toHaveBeenCalled();
  page.onHide();page.previewBundle({currentTarget:{dataset:{code:'dandruff'}}});expect(wx.previewImage).toHaveBeenCalledTimes(1);
+});
+it('retains the draft choice and open picker after returning from native details',async()=>{
+ await page.load();page.chooseBundle({currentTarget:{dataset:{code:'dandruff'}}});const address=page.data.selectedAddressId;
+ page.onHide();page.onShow();await vi.waitFor(()=>expect(page.data.loading).toBe(false));
+ expect(page.data.draftBundle).toBe('dandruff');expect(page.data.bundleSheetOpen).toBe(true);expect(page.data.selectedAddressId).toBe(address);expect(page.data.selectedBundle).toBe('');
+});
+it('does not open a prepared detail after the page has hidden',async()=>{
+ await page.load();const callbacks:Array<()=>void>=[];wx.getFileSystemManager=()=>({access:({success}:any)=>callbacks.push(success)});
+ const opened=page.previewBundle({currentTarget:{dataset:{code:'moisture'}}});expect(page.data.detailLoading).toBe(true);page.onHide();callbacks.forEach(f=>f());await opened;expect(wx.previewImage).not.toHaveBeenCalled();expect(page.data.detailLoading).toBe(false);
 });

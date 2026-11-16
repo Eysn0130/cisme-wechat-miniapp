@@ -6,7 +6,7 @@
 .reward-bundle-handle{width:70rpx;height:7rpx;margin:16rpx auto 4rpx;background:#d7c9df;border-radius:4rpx;}
 .reward-bundle-head{display:flex;align-items:center;justify-content:space-between;gap:24rpx;padding:12rpx 32rpx;}
 .reward-bundle-head>text{font-size:34rpx;font-weight:600;color:var(--cisme-ink);}
-.reward-bundle-scroll{height:min(800rpx,calc(84vh - 230rpx - env(safe-area-inset-bottom)));}
+.reward-bundle-scroll{height:min(920rpx,calc(84vh - 230rpx - env(safe-area-inset-bottom)));}
 .reward-bundle-content{padding:12rpx 28rpx 24rpx;}
 .reward-bundle-options,.reward-bundle-skeleton{display:flex;flex-direction:column;gap:24rpx;}
 .reward-bundle-skeleton view{height:370rpx;background:#eee5f3;border-radius:24rpx;}
@@ -15,8 +15,8 @@
 .reward-bundle-card-head{display:flex;align-items:center;justify-content:space-between;gap:16rpx;min-height:76rpx;}
 .reward-bundle-name{font-size:32rpx;font-weight:600;line-height:1.5;}
 .reward-bundle-detail{position:relative;z-index:3;flex-shrink:0;display:flex;align-items:center;justify-content:center;min-width:88rpx;min-height:88rpx;padding:0;background:transparent;color:#59316d;font-size:26rpx;line-height:1.4;}
-.reward-bundle-card-body{display:flex;align-items:center;gap:20rpx;min-height:252rpx;}
-.reward-bundle-art{position:relative;flex-shrink:0;width:39%;height:250rpx;overflow:hidden;margin:0;padding:0;background:transparent;border-radius:0;}
+.reward-bundle-card-body{display:flex;align-items:center;gap:14rpx;min-height:240rpx;}
+.reward-bundle-art{position:relative;flex-shrink:0;width:37%;height:238rpx;transform:translateX(-8rpx);overflow:hidden;margin:0;padding:0;background:transparent;border-radius:0;}
 .reward-bundle-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:12rpx;padding:8rpx 0;color:#5e4968;font-size:25rpx;line-height:1.65;}
 .reward-bundle-benefit{margin-bottom:8rpx;color:#4d285f;font-size:28rpx;font-weight:600;line-height:1.55;}
 .reward-bundle-meta{display:flex;align-items:center;justify-content:space-between;gap:16rpx;min-height:88rpx;border-top:1rpx solid rgba(79,42,104,.12);color:#65516f;font-size:25rpx;}
