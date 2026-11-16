@@ -35,8 +35,16 @@ interface DesignQaManifest {
   }>;
   devices: Array<{
     platform: "ios" | "android";
-    result: Result;
+    result: Result | "waived";
     evidenceFiles: string[];
+    ownerWaiver?: {
+      authority: "project_owner";
+      scope: "android_physical_device";
+      packageSourceSha256: string;
+      decisionDate: string;
+      question: string;
+      answer: string;
+    };
   }>;
   findings: Array<{
     id: string;
@@ -270,8 +278,25 @@ function routeMatrixErrors(manifest: DesignQaManifest, route: string, currentSou
   return errors;
 }
 
+function validDeviceWaiver(evidence: DesignQaManifest["devices"][number], currentSourceSha256: string): boolean {
+  const waiver = evidence.ownerWaiver;
+  return evidence.platform === "android"
+    && evidence.result === "waived"
+    && Array.isArray(evidence.evidenceFiles)
+    && evidence.evidenceFiles.length === 0
+    && waiver?.authority === "project_owner"
+    && waiver.scope === "android_physical_device"
+    && waiver.packageSourceSha256 === currentSourceSha256
+    && /^\d{4}-\d{2}-\d{2}$/.test(waiver.decisionDate)
+    && Number.isFinite(Date.parse(`${waiver.decisionDate}T00:00:00Z`))
+    && new Date(`${waiver.decisionDate}T00:00:00Z`).toISOString().slice(0, 10) === waiver.decisionDate
+    && typeof waiver.question === "string" && waiver.question.trim().length >= 20
+    && typeof waiver.answer === "string" && waiver.answer.trim().length > 0;
+}
+
 function deviceEvidenceErrors(manifest: DesignQaManifest, platform: "ios" | "android", currentSourceSha256: string): string[] {
   const evidence = manifest.devices.find((entry) => entry.platform === platform);
+  if (evidence && validDeviceWaiver(evidence, currentSourceSha256)) return [];
   if (!evidence || evidence.result !== "passed" || evidence.evidenceFiles.length === 0) return [`DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:${platform}`];
   const expectedKind: EvidenceKind = platform === "ios" ? "device_ios" : "device_android";
   const valid = evidence.evidenceFiles.some((path) => {
@@ -297,6 +322,7 @@ export async function evaluateDesignQaEvidence(root = resolve(import.meta.dirnam
       ok: false,
       releaseReady: false,
       packageSourceSha256: packageResult.actual.sourceSha256,
+      waivedDeviceTests: [],
       structuralErrors: ["DESIGN_QA_MANIFEST_MISSING_OR_INVALID"],
       releaseErrors: ["DESIGN_QA_CURRENT_SOURCE_EVIDENCE_REQUIRED"]
     };
@@ -323,6 +349,11 @@ export async function evaluateDesignQaEvidence(root = resolve(import.meta.dirnam
   }
   structuralErrors.push(...await evidenceFileErrors(root, evidencePaths, manifest.evidenceIndex ?? {}, packageResult.actual.sourceSha256));
   structuralErrors.push(...typedDevtoolsEvidenceErrors(manifest, packageResult.actual.sourceSha256));
+  for (const device of manifest.devices ?? []) {
+    if ((device.result === "waived" || device.ownerWaiver) && !validDeviceWaiver(device, packageResult.actual.sourceSha256)) {
+      structuralErrors.push(`DESIGN_QA_DEVICE_WAIVER_INVALID:${device.platform}`);
+    }
+  }
 
   const releaseErrors: string[] = [];
   if (manifest.finalResult !== "passed") releaseErrors.push("DESIGN_QA_FINAL_RESULT_NOT_PASSED");
@@ -358,6 +389,9 @@ export async function evaluateDesignQaEvidence(root = resolve(import.meta.dirnam
     ok: structuralErrors.length === 0,
     releaseReady: releaseErrors.length === 0,
     packageSourceSha256: packageResult.actual.sourceSha256,
+    waivedDeviceTests: (manifest.devices ?? [])
+      .filter((device) => validDeviceWaiver(device, packageResult.actual.sourceSha256))
+      .map((device) => device.platform),
     structuralErrors,
     releaseErrors: [...new Set(releaseErrors)]
   };
