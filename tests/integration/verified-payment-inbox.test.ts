@@ -754,6 +754,13 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   await resetMessage();await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[buyer]);await messages.processOne(one.id);
   expect((await pool.query('SELECT response_body FROM idempotency_operation WHERE operation=$1 AND idempotency_key=$2',[logisticsMessageOperation,one.id])).rows[0].response_body.state).toBe('cancelled');expect(messageCalls).toBe(1);
   await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer]);
+  await resetMessage();let preflightReady=false,retryMessageCalls=0;
+  const {LogisticsRegistrationRejected:MessageRejected}=await import('../../services/api/src/wechatLogisticsQuery.js');
+  const retriedMessages=new LogisticsMessageService(pool,messageSource,{assertReady:async()=>{if(!preflightReady)throw Error('synthetic permission pending');},register:async()=>{retryMessageCalls++;if(retryMessageCalls===1)throw new MessageRejected(-1);return 'synthetic-message-retry-token-12345';}},messageOptions);
+  expect(await retriedMessages.processOne(one.id)).toBe('retry');expect(retryMessageCalls).toBe(0);
+  const due=()=>pool.query(`UPDATE idempotency_operation SET response_body=jsonb_set(response_body,'{nextAttemptAt}','"2000-01-01T00:00:00Z"') WHERE operation=$1 AND idempotency_key=$2`,[logisticsMessageOperation,one.id]);
+  preflightReady=true;await due();expect(await retriedMessages.processOne(one.id)).toBe('retry');expect(retryMessageCalls).toBe(1);
+  await retriedMessages.processOne(one.id);expect(retryMessageCalls).toBe(1);await due();expect(await retriedMessages.processOne(one.id)).toBe('registered');expect(retryMessageCalls).toBe(2);
   expect((await pool.query('SELECT quantity FROM commerce_shipment_line WHERE shipment_id=$1',[one.id])).rows).toEqual([{quantity:1}]);
   await expect(service.dispatch(actor,order.id,'local-shipment-0001',{...input,trackingNumber:'SF123456789002'})).rejects.toMatchObject({code:'SHIPMENT_IDEMPOTENCY_CONFLICT'});
   await expect(service.detailMine(referrer,order.id)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});
