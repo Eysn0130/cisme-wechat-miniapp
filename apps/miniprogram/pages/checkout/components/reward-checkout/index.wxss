@@ -1,4 +1,4 @@
-.reward-checkout{display:block;}.reward-checkout__cover{position:relative;flex-shrink:0;width:128rpx;height:150rpx;overflow:hidden;background:#f2eaf6;border-radius:12rpx;}.reward-checkout__cover image{width:100%;height:100%;}.reward-checkout__cover .reward-checkout__pair,.reward-bundle-art .reward-checkout__pair{position:absolute;top:0;width:200%;max-width:none;height:100%;}.reward-checkout__pair--moisture{left:0;}.reward-checkout__pair--dandruff{left:-100%;}.reward-checkout__selector{display:flex;justify-content:space-between;align-items:center;gap:20rpx;width:100%;min-height:88rpx;padding:16rpx 10rpx;background:transparent;color:var(--cisme-plum);font-size:28rpx;text-align:left;}.reward-checkout__selector image{width:24rpx;height:24rpx;}.reward-checkout__delivery{display:flex;justify-content:space-between;gap:20rpx;margin:20rpx 8rpx;color:var(--cisme-muted);font-size:23rpx;line-height:1.6;}
+.reward-checkout{display:block;}.reward-checkout__cover{position:relative;flex-shrink:0;width:128rpx;height:150rpx;overflow:hidden;background:#f2eaf6;border-radius:12rpx;}.reward-checkout__cover image{width:100%;height:100%;}.reward-checkout__cover .reward-checkout__pair,.reward-bundle-art .reward-checkout__pair--moisture{left:0;}.reward-checkout__selector{display:flex;justify-content:space-between;align-items:center;gap:20rpx;width:100%;min-height:88rpx;padding:16rpx 10rpx;background:transparent;color:var(--cisme-plum);font-size:28rpx;text-align:left;}.reward-checkout__selector image{width:24rpx;height:24rpx;}.reward-checkout__delivery{display:flex;justify-content:space-between;gap:20rpx;margin:20rpx 8rpx;color:var(--cisme-muted);font-size:23rpx;line-height:1.6;}
 
 .reward-bundle-mask{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center;}
 .reward-bundle-backdrop{position:absolute;inset:0;background:rgba(37,22,45,.35);}
@@ -6,7 +6,7 @@
 .reward-bundle-handle{width:70rpx;height:7rpx;margin:16rpx auto 4rpx;background:#d7c9df;border-radius:4rpx;}
 .reward-bundle-head{display:flex;align-items:center;justify-content:space-between;gap:24rpx;padding:12rpx 32rpx;}
 .reward-bundle-head>text{font-size:34rpx;font-weight:600;color:var(--cisme-ink);}
-.reward-bundle-scroll{height:min(920rpx,calc(84vh - 230rpx - env(safe-area-inset-bottom)));}
+.reward-bundle-scroll{height:min(960rpx,calc(84vh - 230rpx - env(safe-area-inset-bottom)));}
 .reward-bundle-content{padding:12rpx 28rpx 24rpx;}
 .reward-bundle-options,.reward-bundle-skeleton{display:flex;flex-direction:column;gap:24rpx;}
 .reward-bundle-skeleton view{height:370rpx;background:#eee5f3;border-radius:24rpx;}
@@ -15,8 +15,9 @@
 .reward-bundle-card-head{display:flex;align-items:center;justify-content:space-between;gap:16rpx;min-height:76rpx;}
 .reward-bundle-name{font-size:32rpx;font-weight:600;line-height:1.5;}
 .reward-bundle-detail{position:relative;z-index:3;flex-shrink:0;display:flex;align-items:center;justify-content:center;min-width:88rpx;min-height:88rpx;padding:0;background:transparent;color:#59316d;font-size:26rpx;line-height:1.4;}
-.reward-bundle-card-body{display:flex;align-items:center;gap:14rpx;min-height:240rpx;}
-.reward-bundle-art{position:relative;flex-shrink:0;width:37%;height:238rpx;transform:translateX(-8rpx);overflow:hidden;margin:0;padding:0;background:transparent;border-radius:0;}
+.reward-bundle-card-body{display:flex;align-items:center;gap:14rpx;min-height:260rpx;}
+.reward-bundle-art{position:relative;flex-shrink:0;width:32%;height:260rpx;overflow:hidden;margin:0;padding:0;background:transparent;border-radius:0;}
+.reward-bundle-photo{display:block;width:100%;height:100%;}
 .reward-bundle-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:12rpx;padding:8rpx 0;color:#5e4968;font-size:25rpx;line-height:1.65;}
 .reward-bundle-benefit{margin-bottom:8rpx;color:#4d285f;font-size:28rpx;font-weight:600;line-height:1.55;}
 .reward-bundle-meta{display:flex;align-items:center;justify-content:space-between;gap:16rpx;min-height:88rpx;border-top:1rpx solid rgba(79,42,104,.12);color:#65516f;font-size:25rpx;}
@@ -30,4 +31,5 @@
 .reward-bundle-footer .primary{margin:0;}
 @keyframes reward-picker-arrive{from{opacity:.55;transform:translateY(24rpx);}to{opacity:1;transform:translateY(0);}}
 @media(prefers-reduced-motion:reduce){.reward-bundle-sheet{animation:none;}}
-@media(max-width:374px){.reward-bundle-content{padding-left:22rpx;padding-right:22rpx;}.reward-bundle-option{padding-left:20rpx;padding-right:20rpx;}.reward-bundle-card-body{gap:14rpx;}.reward-bundle-art{width:36%;height:246rpx;}.reward-bundle-name{font-size:30rpx;}.reward-bundle-copy{font-size:24rpx;}.reward-bundle-benefit{font-size:26rpx;}}
+@media(max-width:374px){.reward-bundle-content{padding-left:22rpx;padding-right:22rpx;}.reward-bundle-option{padding-left:20rpx;padding-right:20rpx;}.reward-bundle-card-body{gap:14rpx;}.reward-bundle-art{width:32%;height:250rpx;}.reward-bundle-name{font-size:30rpx;}.reward-bundle-photo{display:block;width:100%;height:100%;}
+.reward-bundle-copy{font-size:24rpx;}.reward-bundle-benefit{font-size:26rpx;}}

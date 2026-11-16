@@ -10,3 +10,7 @@ All member/voucher/address/stock data in these captures is synthetic. wx.request
 - Sold-out full-card translucent gray state and handler refusal were captured earlier in this task; that older screenshot is retained in the private validation directory and is not relabelled as the current tree.
 
 Physical phone gestures, real delivery events and actual WeChat notification delivery have not been observed for this increment. No genuine parcel exists in the current read-only production shipment baseline.
+
+## Centered independent product pairs
+
+Latest selected comparison uses two separately generated transparent photos instead of cropping the four-bottle sprite. Both have matched portrait framing and whole visible pumps/bases; the real native screenshot is gift-selection-centered-pairs-native-v2.png. Source package SHA256:34775517b845ada2670516191bf43280a6444513d96e041b6488fc733e698324. Earlier screenshots in this directory remain scoped to their earlier states, not relabelled as this hash. Full47-route/device acceptance stays blocked.
