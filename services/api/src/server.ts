@@ -109,6 +109,7 @@ interface AppDependencies {
   sharingFetcher?: typeof fetch;
   shippingTestChannel?: Pick<WechatOrderShippingClient,'query'|'uploadOnce'> & Partial<Pick<WechatOrderShippingClient,'queryOrder'>>;
   logisticsQueryTestChannel?:LogisticsQueryChannel;
+  logisticsMessageTestChannel?:LogisticsQueryChannel;
   wechatIdentityFetcher?: typeof fetch;
   suppressionRemote?: SuppressionRemote;
 }
@@ -278,7 +279,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       dependencies.paymentProtocol.refundInbox,{merchantId:paymentProfile.merchantId,
       notifyUrl:dependencies.paymentProtocol.refundNotifyUrl}):null;
   const fulfillment=new FulfillmentReleaseService(pool,authority,config.env);
-  const localFulfillment=fulfillmentRuntime(config,pool,dependencies.shippingTestChannel,dependencies.logisticsQueryTestChannel);
+  const localFulfillment=fulfillmentRuntime(config,pool,dependencies.shippingTestChannel,dependencies.logisticsQueryTestChannel,dependencies.logisticsMessageTestChannel);
   const shipmentRequired=()=>{
     if(!localFulfillment)throw new DomainError('FULFILLMENT_NOT_ENABLED','发货与物流功能尚未在当前环境开放',503);
     return localFulfillment.service;
@@ -1246,6 +1247,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     error=>app.log.error({event:"shipping_worker_tick_failed",...safeFailureFields(error)}),5000):null;
   const receiptWorker=shipping?startWorkerLoop(async()=>{await shipping.runReceiptCycle();return false;},
     error=>app.log.error({event:"receipt_watch_tick_failed",...safeFailureFields(error)}),60_000):null;
+  const logisticsMessageWorker=shipping?startWorkerLoop(async()=>{await shipping.runMessageCycle();return false;},
+    error=>app.log.error({event:"logistics_message_tick_failed",...safeFailureFields(error)}),60_000):null;
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
       privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null,accountClosure:new AccountClosure(
@@ -1274,7 +1277,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>app.log.error({event:"formal_recovery_tick_failed",...safeFailureFields(error)})):null;
   app.addHook("onClose", async () => {
     // Close admission on every lane before awaiting any slow provider call.
-    await Promise.all([shippingWorker?.stop(),receiptWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker?.stop()]);
+    await Promise.all([shippingWorker?.stop(),receiptWorker?.stop(),logisticsMessageWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker?.stop()]);
     await pool.end();
   });
   const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });

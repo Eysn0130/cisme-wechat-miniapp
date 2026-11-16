@@ -39,17 +39,21 @@ function dispatchInput(raw: Record<string,unknown>): Dispatch {
 export class OrderFulfillmentService {
   constructor(private pool:pg.Pool,private authority:AuthorityService,private addresses:DeliveryAddressService,
     private sync:ShippingSyncService,private enabled:boolean,
-    private logistics?:Pick<WechatLogisticsClient,'query'|'capabilities'>) {}
+    private logistics?:Pick<WechatLogisticsClient,'query'|'capabilities'>,
+    private messages?:{enqueue(client:DbClient,owner:string,orderId:string,shipmentId:string):Promise<void>}) {}
   private gate(){if(!this.enabled)fail('FULFILLMENT_NOT_ENABLED',503);}
   private async projection(client:DbClient,row:Shipment){
     const parcel=await this.sync.parcelWithClient(client,row.shipping_sync_id);
     const sync=(await client.query('SELECT state FROM commerce_shipping_sync WHERE id=$1',[row.shipping_sync_id])).rows[0];
     const platform=(await client.query(`SELECT platform_order_state,in_complaint,observed_at
       FROM commerce_wechat_receipt_observation WHERE order_id=$1`,[row.order_id])).rows[0];
+    const message=(await client.query(`SELECT response_body->>'state' AS state FROM idempotency_operation
+      WHERE operation='commerce.logistics.message' AND idempotency_key=$1 AND business_key=$2`,[row.id,row.order_id])).rows[0]?.state;
     return {id:row.id,orderId:row.order_id,carrierCode:parcel.carrierCode,carrierName:row.carrier_name,
       trackingNumber:parcel.trackingNumber,logisticsState:row.logistics_state,version:row.version,
       shippedAt:row.shipped_at.toISOString(),deliveredAt:row.delivered_at?.toISOString()??null,
       receiptConfirmedAt:row.receipt_confirmed_at?.toISOString()??null,wechatSyncState:sync.state,
+      logisticsMessageState:['queued','retry','dispatching','registered','unknown','review','cancelled'].includes(message)?message:null,
       wechatReceipt:platform?.observed_at?receiptView(platform.platform_order_state,platform.in_complaint,platform.observed_at):null};
   }
   async reconcileShipping(actor:string|undefined,orderId:string,requestKey:string,raw:Record<string,unknown>){
@@ -97,6 +101,7 @@ export class OrderFulfillmentService {
         SELECT $1,id,quantity FROM commerce_order_line WHERE order_id=$2`,[row.id,orderId]);
       await client.query(`INSERT INTO commerce_shipment_event(shipment_id,event_key,event_type,actor_principal_id,evidence_reference,occurred_at)
         VALUES($1,$2,'shipped',$3,$4,$5)`,[row.id,`shipment:${row.id}`,`member:${actor}`,input.evidenceReference,input.shippedAt]);
+      await this.messages?.enqueue(client,order.member_id,orderId,row.id);
       const result={id:row.id,orderId,version:1,logisticsState:'shipped',wechatSyncState:proposal.state};
       await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
         VALUES($1,'commerce.shipment.dispatch',$2,$3,$4,200,$5)`,[`member:${actor}`,requestKey,`shipment:${row.id}`,fingerprint,result]);

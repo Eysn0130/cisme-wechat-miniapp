@@ -15,6 +15,7 @@ export interface OrderShipment {
   orderId:string; id?:string; version?:number; carrierName?:string; trackingNumber?:string;
   logisticsState:"not_ready"|"awaiting_dispatch"|"shipped"|"delivered"|"exception";
   shippedAt?:string; deliveredAt?:string|null; receiptConfirmedAt?:string|null; wechatSyncState?:string;
+  logisticsMessageState?:'queued'|'retry'|'dispatching'|'registered'|'unknown'|'review'|'cancelled'|null;
   wechatReceipt?: (WechatReceiptState&{observedLabel?:string;displayLabel?:string})|null;
 }
 export interface WechatReceiptState {source:'wechat_get_order';status:'unverified'|'awaiting_shipping'|'shipped'|'confirmed'|'completed'|'refunded'|'settlement_pending'|'unknown';

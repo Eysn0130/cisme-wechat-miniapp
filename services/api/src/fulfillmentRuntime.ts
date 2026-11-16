@@ -15,8 +15,10 @@ import { ShippingSyncService } from './shippingSync.js';
 import { WechatOrderShippingClient, type ShippingBinding, type ShippingCapability } from './wechatOrderShipping.js';
 import { LogisticsViewService } from './logisticsView.js';
 import { catalogPublicImageUrl } from './catalogPublicMedia.js';
-import { WechatLogisticsQueryClient,type LogisticsQueryCapability,type LogisticsQueryChannel } from './wechatLogisticsQuery.js';
+import { WechatLogisticsQueryClient,WechatLogisticsMessageClient,type LogisticsMessageCapability,type LogisticsQueryCapability,type LogisticsQueryChannel } from './wechatLogisticsQuery.js';
 import { WechatLogisticsClient, type LogisticsCapability } from './wechatLogistics.js';
+import {PaidParcelSource} from './paidParcel.js';
+import {LogisticsMessageService} from './logisticsMessages.js';
 
 function denied():never{throw new DomainError('SHIPPING_OUTBOUND_NOT_AUTHORIZED','微信发货同步权限待核验，本地发货记录已保留',503);}
 export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
@@ -31,7 +33,7 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
       || typeof grant.approvalReference!=='string'||!/^[-A-Za-z0-9_:.]{8,120}$/.test(grant.approvalReference)
       || typeof grant.expiresAt!=='string'||!Number.isFinite(Date.parse(grant.expiresAt))||Date.parse(grant.expiresAt)<=now()
       || !Array.isArray(grant.capabilities)||!grant.capabilities.length
-      || grant.capabilities.some(x=>!['shipping.query','shipping.upload','logistics.accounts.read','logistics.tracking.read','logistics.query.register'].includes(String(x)))
+      || grant.capabilities.some(x=>!['shipping.query','shipping.upload','logistics.accounts.read','logistics.tracking.read','logistics.query.register','logistics.message.register'].includes(String(x)))
       || new Set(grant.capabilities).size!==grant.capabilities.length
       || (config.env==='staging'&&!ownerExperienceCommerceScope(config,grant)&&(grant.dataScope!=='isolated-test-only'||!Array.isArray(grant.orderNumbers)
         || !grant.orderNumbers.length||grant.orderNumbers.length>100||grant.orderNumbers.some(x=>typeof x!=='string'||!/^[A-Za-z0-9_*-]{1,32}$/.test(x)))))denied();
@@ -39,9 +41,9 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
   };
   // Keep local fulfillment and independent workers available when the remote
   // shipping grant expires. Each remote operation still validates it below.
-  return (capability:ShippingCapability|LogisticsCapability|LogisticsQueryCapability,binding?:ShippingBinding&{appId?:string})=>{
+  return (capability:ShippingCapability|LogisticsCapability|LogisticsQueryCapability|LogisticsMessageCapability,binding?:ShippingBinding&{appId?:string})=>{
     const grant=read();
-    if(!(grant.capabilities as string[]).includes(capability)||['logistics.tracking.read','logistics.query.register'].includes(capability)&&binding?.appId!==profile!.appId||binding&&binding.merchantId!==profile!.merchantId
+    if(!(grant.capabilities as string[]).includes(capability)||['logistics.tracking.read','logistics.query.register','logistics.message.register'].includes(capability)&&binding?.appId!==profile!.appId||binding&&binding.merchantId!==profile!.merchantId
       || binding&&config.env==='staging'&&!ownerExperienceCommerceScope(config,grant)&&!(grant.orderNumbers as string[]).includes(binding.merchantOrderNumber))denied();
     return String(grant.approvalReference);
   };
@@ -50,9 +52,9 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
 /** Configuration enables only local records; the protected, revocable grant
  * separately controls network I/O. There is no fallback public/provider URL. */
 export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
-  testChannel?:Pick<WechatOrderShippingClient,'query'|'uploadOnce'> & Partial<Pick<WechatOrderShippingClient,'queryOrder'>>,testQueryChannel?:LogisticsQueryChannel){
+  testChannel?:Pick<WechatOrderShippingClient,'query'|'uploadOnce'> & Partial<Pick<WechatOrderShippingClient,'queryOrder'>>,testQueryChannel?:LogisticsQueryChannel,testMessageChannel?:LogisticsQueryChannel){
   const profile=config.commerce.fulfillment;if(!profile)return undefined;
-  if((testChannel||testQueryChannel)&&config.env!=='test')throw new Error('FAIL_CLOSED:SHIPPING_TEST_TRANSPORT_ONLY');
+  if((testChannel||testQueryChannel||testMessageChannel)&&config.env!=='test')throw new Error('FAIL_CLOSED:SHIPPING_TEST_TRANSPORT_ONLY');
   const authorize=shippingAuthorization(config);
   let cached:{value:string;expiresAt:number}|undefined;
   const token=async()=>{
@@ -75,9 +77,13 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
     encryptionKey:derive(config.contacts.encryptionKey!,'cisme-shipping-encryption-v1'),
     hashKey:derive(config.contacts.hashKey!,'cisme-shipping-request-v1'),keyVersion:config.contacts.keyVersion},
     testChannel??liveChannel);
-  const service=new OrderFulfillmentService(pool,authority,new DeliveryAddressService(pool,config),sync,true,
-    new WechatLogisticsClient(token,authorize));
   const imageOrigin=config.commerce.formalProtocol?new URL(config.commerce.formalProtocol.paymentNotifyUrl).origin:'';
+  const addresses=new DeliveryAddressService(pool,config),parcelOptions={appId:profile.appId,merchantId:profile.merchantId,imageUrl:(code:string)=>catalogPublicImageUrl(imageOrigin,code)};
+  const messages=config.env==='test'&&!testMessageChannel?undefined:new LogisticsMessageService(pool,new PaidParcelSource(addresses,sync,parcelOptions),
+    testMessageChannel??new WechatLogisticsMessageClient(token,authorize),{
+      encryptionKey:derive(config.contacts.encryptionKey!,'cisme-logistics-message-encryption-v1'),
+      hashKey:derive(config.contacts.hashKey!,'cisme-logistics-message-binding-v1'),keyVersion:config.contacts.keyVersion});
+  const service=new OrderFulfillmentService(pool,authority,addresses,sync,true,new WechatLogisticsClient(token,authorize),messages);
   const logisticsView=new LogisticsViewService(pool,new DeliveryAddressService(pool,config),sync,
     testQueryChannel??new WechatLogisticsQueryClient(token,authorize),{appId:profile.appId,merchantId:profile.merchantId,
       encryptionKey:derive(config.contacts.encryptionKey!,'cisme-logistics-query-encryption-v1'),
@@ -100,5 +106,6 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
     if(!testChannel){try{authorize('shipping.query');}catch{return {processed:0,status:'not_authorized'};}}
     return receiptWatch.runCycle();
   };
-  return {service,receipt,sync,logisticsView,runCycle,runReceiptCycle};
+  const runMessageCycle=async()=>messages?messages.runCycle():{processed:0,states:{}};
+  return {service,receipt,sync,logisticsView,messages,runCycle,runReceiptCycle,runMessageCycle};
 }

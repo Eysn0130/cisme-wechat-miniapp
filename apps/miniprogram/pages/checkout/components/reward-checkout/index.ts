@@ -6,13 +6,17 @@ import {confirmCreditOwner} from '../../../../services/points-feedback';
 import {rewardSelection,rewardReceipt,abandonReward,rewardQuote,confirmReward,rewardCopy,rewardExpiry,type RewardSelection,type RewardBundle,type RewardBundleCode} from '../../../../services/rewards';
 import {pendingReward,prepareReward,forgetReward,type RewardPending} from '../../../../services/reward-command-store';
 type Runtime={alive:boolean;visible:boolean;epoch:number;token:string;context:number;voucher:string;reading:number|null};
+const bundleDetails={
+ moisture:{title:'净润洗护礼遇',benefit:'温和净洗 · 柔顺有光',shampoo:'净润洗发露',conditioner:'柔光强韧护发乳',image:'/pages/checkout/assets/travel-moisture-detail-v1.jpg'},
+ dandruff:{title:'净屑洗护礼遇',benefit:'控油净屑 · 洗后清爽',shampoo:'控油净屑洗发水',conditioner:'柔光强韧护发乳',image:'/pages/checkout/assets/travel-dandruff-detail-v1.jpg'}
+};
 const states=new WeakMap<object,Runtime>();
 const empty={selection:null as RewardSelection|null,memberId:'',addresses:[] as CheckoutAddress[],selectedAddressId:'',selectedBundle:'' as RewardBundleCode|'',selectedItem:null as RewardBundle|null,draftBundle:'' as RewardBundleCode|'',bundleSheetOpen:true,
  pending:null as RewardPending|null,unknown:false,error:'',loading:true,busy:false,navigating:false,syncError:'',surveyOpen:false,expiry:'',redemptionId:'',redemptionName:'',redemptionBundle:'',redemptionImage:'',completedId:'',addressReadOnly:false,addressEmptyCopy:'添加收货地址'};
 function current(c:any,epoch?:number){const r=states.get(c);return Boolean(r&&r.alive&&r.visible&&c.properties.active&&(epoch===undefined||r.epoch===epoch)&&r.token===getApp<IAppOption>().globalData.sessionToken&&r.context===commerceContextRevision()&&r.voucher===c.properties.voucher);}
 function stop(c:any,update=true){const r=states.get(c);if(r){r.epoch++;r.reading=null;}cancelPageReads(c);if(update){c.setData({busy:false,navigating:false});c.triggerEvent('busychange',{busy:false});}}
 Component({
- properties:{voucher:{type:String,value:''},active:{type:Boolean,value:false}},data:{...empty},
+ properties:{voucher:{type:String,value:''},active:{type:Boolean,value:false}},data:{...empty,bundleDetails},
  observers:{'voucher,active':function(){this.activate();}},
  lifetimes:{attached(){states.set(this,{alive:true,visible:true,epoch:0,token:'',context:0,voucher:'',reading:null});this.activate();},detached(){const r=states.get(this);if(r)r.alive=false;stop(this,false);states.delete(this);}},
  pageLifetimes:{hide(){const r=states.get(this);if(r)r.visible=false;stop(this);},show(){const r=states.get(this);if(r)r.visible=true;this.activate();}},
@@ -39,6 +43,7 @@ Component({
   openBundleSheet(){if(current(this)&&!this.data.busy&&!this.data.unknown)this.setData({bundleSheetOpen:true,draftBundle:this.data.selectedBundle,error:''});},
   closeBundleSheet(){if(!this.data.busy)this.setData({bundleSheetOpen:false});},stop(){},
   chooseBundle(event:WechatMiniprogram.TouchEvent){if(!current(this)||this.data.busy||this.data.unknown)return;const item=this.data.selection?.bundles.find(b=>b.code===String(event.currentTarget.dataset.code));if(item?.stockConfirmed&&(item.availableQuantity??0)>0)this.setData({draftBundle:item.code});},
+  previewBundle(event:WechatMiniprogram.TouchEvent){if(!current(this)||this.data.busy)return;const code=String(event.currentTarget.dataset.code);if(code!=='moisture'&&code!=='dandruff')return;wx.previewImage({current:bundleDetails[code].image,urls:[bundleDetails.moisture.image,bundleDetails.dandruff.image]});},
   confirmBundle(){if(!current(this)||this.data.busy||this.data.unknown)return;const item=this.data.selection?.bundles.find(b=>b.code===this.data.draftBundle&&b.stockConfirmed&&(b.availableQuantity??0)>0);if(item)this.setData({selectedBundle:item.code,selectedItem:item,bundleSheetOpen:false,error:''});},
   selectAddress(event:WechatMiniprogram.TouchEvent){if(!this.data.busy&&!this.data.loading&&!this.data.unknown&&!this.data.addressReadOnly){const id=String(event.currentTarget.dataset.id);if(this.data.addresses.some(a=>a.id===id))this.setData({selectedAddressId:id,error:''});}},
   editAddresses(){if(!this.data.busy&&!this.data.unknown&&!this.data.addressReadOnly)wx.navigateTo({url:'/pages/settings/index?section=addresses'});},

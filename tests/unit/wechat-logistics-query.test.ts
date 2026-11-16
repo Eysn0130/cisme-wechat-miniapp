@@ -1,5 +1,5 @@
 import {expect,it,vi} from 'vitest';
-import {WechatLogisticsQueryClient,LogisticsRegistrationRejected} from '../../services/api/src/wechatLogisticsQuery';
+import {WechatLogisticsQueryClient,WechatLogisticsMessageClient,LogisticsRegistrationRejected} from '../../services/api/src/wechatLogisticsQuery';
 import {catalogPublicImage,catalogPublicImageByName,catalogPublicImageUrl} from '../../services/api/src/catalogPublicMedia';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -32,6 +32,24 @@ it('keeps platform denial and uncertain registration honest without exposing tok
   await expect(lost.register(input)).rejects.toMatchObject({code:'LOGISTICS_QUERY_OUTCOME_UNKNOWN'});
   const invalid=new WechatLogisticsQueryClient(async()=>'synthetic-access',()=>{},async()=>response({errcode:0,waybill_token:'bad'}));
   await expect(invalid.register(input)).rejects.toMatchObject({code:'LOGISTICS_QUERY_OUTCOME_UNKNOWN'});
+});
+it('registers official messages against the actual verified buyer transaction, not a gift or operator',async()=>{
+ const authorize=vi.fn(),fetcher=vi.fn().mockResolvedValue(response({errcode:0,waybill_token:'synthetic-follow-waybill-token-12345'}));
+ const client=new WechatLogisticsMessageClient(async()=>'synthetic-access',authorize,fetcher);
+ expect(await client.register(input)).toBe('synthetic-follow-waybill-token-12345');
+ const [url,options]=fetcher.mock.calls[0]!;expect(new URL(url).pathname).toBe('/cgi-bin/express/delivery/open_msg/follow_waybill');
+ expect(JSON.parse(options.body)).toMatchObject({openid:binding.payerOpenid,trans_id:binding.transactionId,receiver_phone:input.receiverPhone,waybill_id:input.trackingNumber,order_detail_path:input.orderDetailPath});
+ expect(authorize.mock.calls.every(([cap,b])=>cap==='logistics.message.register'&&b===binding)).toBe(true);
+ fetcher.mockClear();await expect(client.register({...input,binding:{...binding,payerTotalCents:0,transactionId:''}})).rejects.toThrow();expect(fetcher).not.toHaveBeenCalled();
+});
+it('distinguishes a local no-dispatch failure from a lost message response; malformed readiness never passes',async()=>{
+ const fetcher=vi.fn();const denied=new WechatLogisticsMessageClient(async()=>'synthetic-access',()=>{throw Error('revoked');},fetcher);
+ await expect(denied.register(input)).rejects.toMatchObject({code:'LOGISTICS_MESSAGE_NOT_DISPATCHED'});expect(fetcher).not.toHaveBeenCalled();
+ const lost=new WechatLogisticsMessageClient(async()=>'synthetic-access',()=>{},async()=>{throw Error('secret provider URL');});
+ await expect(lost.register(input)).rejects.toMatchObject({code:'LOGISTICS_QUERY_OUTCOME_UNKNOWN'});
+ for(const body of [{errcode:0},{errcode:0,delivery_list:[]},{errcode:0,delivery_list:[{delivery_id:'SF'}],count:2}]){
+  const client=new WechatLogisticsQueryClient(async()=>'synthetic-access',()=>{},async()=>response(body));await expect(client.assertReady(binding)).rejects.toMatchObject({code:'LOGISTICS_QUERY_NOT_READY'});
+ }
 });
 it('rechecks grant revocation before dispatch and after response',async()=>{
   let checks=0;const fetcher=vi.fn(async()=>response({errcode:0,waybill_token:'synthetic-query-token-123456789'}));

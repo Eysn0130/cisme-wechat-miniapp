@@ -12,7 +12,7 @@ const deferred=<T>()=>{let resolve!:(v:T)=>void,reject!:(e:unknown)=>void;const 
 const selection=()=>({memberId:owner,voucher:{id:voucher,state:'unused',expiresAt:'2026-12-13T00:00:00Z'},bundles:[{code:'moisture',availableQuantity:1,stockConfirmed:true},{code:'dandruff',availableQuantity:1,stockConfirmed:true}],survey:{completed:true,version:1,recommendation:'moisture'}});
 beforeEach(async()=>{
  vi.resetModules();vi.clearAllMocks();storage=new Map();app={globalData:{sessionToken:'member-A',apiBaseUrl:'https://staging-api.cisme.cn',cloudFunction:null}};
- wx={getStorageSync:(k:string)=>structuredClone(storage.get(k)??''),setStorageSync:(k:string,v:unknown)=>storage.set(k,structuredClone(v)),removeStorageSync:(k:string)=>storage.delete(k),navigateTo:vi.fn(),redirectTo:vi.fn(),switchTab:vi.fn(),navigateBack:vi.fn(),showToast:vi.fn(),showShareMenu:vi.fn(),stopPullDownRefresh:vi.fn()};
+ wx={getStorageSync:(k:string)=>structuredClone(storage.get(k)??''),setStorageSync:(k:string,v:unknown)=>storage.set(k,structuredClone(v)),removeStorageSync:(k:string)=>storage.delete(k),previewImage:vi.fn(),navigateTo:vi.fn(),redirectTo:vi.fn(),switchTab:vi.fn(),navigateBack:vi.fn(),showToast:vi.fn(),showShareMenu:vi.fn(),stopPullDownRefresh:vi.fn()};
  vi.stubGlobal('getApp',()=>app);vi.stubGlobal('wx',wx);vi.stubGlobal('Page',(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(patch:Record<string,unknown>){Object.assign(this.data,patch);}};});
  services.rewardSelection.mockResolvedValue(selection());reads.pageRead.mockResolvedValue({addresses:[{id:owner,version:1,isDefault:true,recipientName:'测试收件人'}]});
  services.rewardWallet.mockResolvedValue({memberId:owner,vouchers:[],claims:[],coupons:[],moreClaims:false});services.rewardReceipt.mockResolvedValue({status:'not_found'});
@@ -89,4 +89,12 @@ it('keeps uncertain outcomes out of the picker so recovery controls remain reach
 it('offers the confirmed receipt again after navigation fails without dispatching another claim',async()=>{
  await loaded();await page.confirm();page.finishRedemption({detail:{owner,reference:claimId}});page.navigationFailed();expect(page.data).toMatchObject({completedId:claimId,navigating:false,addressReadOnly:true});
  await page.confirm();expect(services.confirmReward).toHaveBeenCalledTimes(1);page.viewCompleted();expect(page.triggerEvent).toHaveBeenLastCalledWith('complete',{owner,id:claimId});
+});
+
+it('opens original bundle details without selecting or changing an address, including a sold-out set',async()=>{
+ await page.load();page.data.selection.bundles[0].availableQuantity=0;const address=page.data.selectedAddressId;
+ page.previewBundle({currentTarget:{dataset:{code:'moisture'}}});expect(wx.previewImage).toHaveBeenCalledExactlyOnceWith({current:'/pages/checkout/assets/travel-moisture-detail-v1.jpg',urls:['/pages/checkout/assets/travel-moisture-detail-v1.jpg','/pages/checkout/assets/travel-dandruff-detail-v1.jpg']});
+ expect(page.data.selectedBundle).toBe('');expect(page.data.draftBundle).toBe('');expect(page.data.selectedAddressId).toBe(address);
+ page.chooseBundle({currentTarget:{dataset:{code:'moisture'}}});expect(page.data.draftBundle).toBe('');expect(services.rewardQuote).not.toHaveBeenCalled();
+ page.onHide();page.previewBundle({currentTarget:{dataset:{code:'dandruff'}}});expect(wx.previewImage).toHaveBeenCalledTimes(1);
 });
