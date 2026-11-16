@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "7f57140505bbeeb6bf8773deada7dcb377397e9936a2a307436043ed332dff62",
+  "migrationSetSha256": "d1c502dad7b87942fcc7cb20a45ebd7e4b43ce59135f4529a16cd7f9c93f39ac",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -6343,6 +6343,32 @@
         "updated_by",
         "created_at",
         "updated_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
+      "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "reward_activity_share",
+      "subjectPaths": [
+        [
+          "reward_activity_share.created_by -> member.id",
+          "member.id"
+        ]
+      ],
+      "exportFields": [],
+      "excludedFields": [
+        "id",
+        "activity_id",
+        "version",
+        "enabled",
+        "created_by",
+        "created_at"
+      ],
+      "notes": "Creator is a separately authorized operator, not a gift recipient. Campaign token and internal IDs are excluded from portable personal profiles; existing award/voucher projections identify the receiving member. Preserve scoped audit and legal holds.",
+      "actorColumns": [
+        "created_by"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",

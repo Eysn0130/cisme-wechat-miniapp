@@ -693,7 +693,17 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   let networkCalls=0;
   const sync=new ShippingSyncService(pool,authority,{enabled:true,appId,merchantId,encryptionKey:'41'.repeat(32),hashKey:'42'.repeat(32),keyVersion:'local-shipping-v1'},
     {query:async()=>{networkCalls++;throw Error('Synthetic offline');},uploadOnce:async()=>{networkCalls++;return {acknowledged:true as const};}});
-  const service=new OrderFulfillmentService(pool,authority,addresses,sync,true);
+  const {PaidParcelSource}=await import('../../services/api/src/paidParcel.js');
+  const {LogisticsMessageService,logisticsMessageOperation}=await import('../../services/api/src/logisticsMessages.js');
+  const messageOptions={encryptionKey:'61'.repeat(32),hashKey:'62'.repeat(32),keyVersion:'synthetic-message-v1'};
+  const messageSource=new PaidParcelSource(addresses,sync,{appId,merchantId,imageUrl:()=>`https://staging-api.cisme.cn/v1/catalog/public-images/synthetic-test-only.jpg`});
+  let messageCalls=0;
+  const messages=new LogisticsMessageService(pool,messageSource,{assertReady:async()=>{},register:async input=>{
+    messageCalls++;expect(input.binding.payerOpenid).toBe('verified-buyer-openid');expect(input.receiverPhone).toBe('13800000000');
+    const check=await pool.connect();try{await check.query('BEGIN');await check.query('SELECT id FROM member WHERE id=$1 FOR UPDATE NOWAIT',[buyer]);await check.query('ROLLBACK');}finally{check.release();}
+    return 'synthetic-message-waybill-token-12345';
+  }},messageOptions);
+  const service=new OrderFulfillmentService(pool,authority,addresses,sync,true,undefined,messages);
   const dbNow=async()=>new Date((await pool.query('SELECT clock_timestamp() AS time')).rows[0].time);
   const order=await seedOrder('LOCALSHIP01',null,await dbNow());
   const input={carrierCode:'SF',carrierName:'顺丰速运',trackingNumber:'SF123456789001',shippedAt:new Date().toISOString(),evidenceReference:'synthetic-handover-001',expectedOrderVersion:1};
@@ -728,6 +738,29 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   const [one,two]=await Promise.all([service.dispatch(actor,order.id,'local-shipment-0001',input),service.dispatch(actor,order.id,'local-shipment-0001',input)]);
   expect(one).toEqual(two);expect(networkCalls).toBe(0);
   expect((await pool.query('SELECT count(*)::int n FROM commerce_shipment WHERE order_id=$1',[order.id])).rows[0].n).toBe(1);
+  expect(messageCalls).toBe(0); // Dispatch commits local facts; no notification I/O in its transaction.
+  expect((await pool.query('SELECT count(*)::int n FROM idempotency_operation WHERE operation=$1 AND idempotency_key=$2',[logisticsMessageOperation,one.id])).rows[0].n).toBe(1);
+  await Promise.all([messages.processOne(one.id),messages.processOne(one.id)]);expect(messageCalls).toBe(1);
+  const messageRow=(await pool.query('SELECT response_body FROM idempotency_operation WHERE operation=$1 AND idempotency_key=$2',[logisticsMessageOperation,one.id])).rows[0];
+  expect(messageRow.response_body.state).toBe('registered');
+  for(const clear of ['synthetic-message-waybill-token','13800000000','verified-buyer-openid','SF123456789001'])expect(JSON.stringify(messageRow)).not.toContain(clear);
+  await messages.runCycle();expect(messageCalls).toBe(1);
+  // Exact synthetic journal reset exercises restart/unknown/blocked-owner lanes;
+  // no real account or production dataset is touched.
+  const resetMessage=async()=>{await pool.query('DELETE FROM idempotency_operation WHERE operation=$1 AND idempotency_key=$2',[logisticsMessageOperation,one.id]);const client=await pool.connect();try{await messages.enqueue(client,buyer,order.id,one.id);}finally{client.release();}};
+  await resetMessage();let lostMessageCalls=0;
+  const lostMessages=new LogisticsMessageService(pool,messageSource,{assertReady:async()=>{},register:async()=>{lostMessageCalls++;throw Error('synthetic response lost');}},messageOptions);
+  expect(await lostMessages.processOne(one.id)).toBe('unknown');await lostMessages.processOne(one.id);await lostMessages.runCycle();expect(lostMessageCalls).toBe(1);
+  await resetMessage();await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[buyer]);await messages.processOne(one.id);
+  expect((await pool.query('SELECT response_body FROM idempotency_operation WHERE operation=$1 AND idempotency_key=$2',[logisticsMessageOperation,one.id])).rows[0].response_body.state).toBe('cancelled');expect(messageCalls).toBe(1);
+  await pool.query("UPDATE member SET status='active' WHERE id=$1",[buyer]);
+  await resetMessage();let preflightReady=false,retryMessageCalls=0;
+  const {LogisticsRegistrationRejected:MessageRejected}=await import('../../services/api/src/wechatLogisticsQuery.js');
+  const retriedMessages=new LogisticsMessageService(pool,messageSource,{assertReady:async()=>{if(!preflightReady)throw Error('synthetic permission pending');},register:async()=>{retryMessageCalls++;if(retryMessageCalls===1)throw new MessageRejected(-1);return 'synthetic-message-retry-token-12345';}},messageOptions);
+  expect(await retriedMessages.processOne(one.id)).toBe('retry');expect(retryMessageCalls).toBe(0);
+  const due=()=>pool.query(`UPDATE idempotency_operation SET response_body=jsonb_set(response_body,'{nextAttemptAt}','"2000-01-01T00:00:00Z"') WHERE operation=$1 AND idempotency_key=$2`,[logisticsMessageOperation,one.id]);
+  preflightReady=true;await due();expect(await retriedMessages.processOne(one.id)).toBe('retry');expect(retryMessageCalls).toBe(1);
+  await retriedMessages.processOne(one.id);expect(retryMessageCalls).toBe(1);await due();expect(await retriedMessages.processOne(one.id)).toBe('registered');expect(retryMessageCalls).toBe(2);
   expect((await pool.query('SELECT quantity FROM commerce_shipment_line WHERE shipment_id=$1',[one.id])).rows).toEqual([{quantity:1}]);
   await expect(service.dispatch(actor,order.id,'local-shipment-0001',{...input,trackingNumber:'SF123456789002'})).rejects.toMatchObject({code:'SHIPMENT_IDEMPOTENCY_CONFLICT'});
   await expect(service.detailMine(referrer,order.id)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});

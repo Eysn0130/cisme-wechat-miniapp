@@ -1,4 +1,4 @@
-import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID} from 'node:crypto';
+import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
 import {transaction,type DbClient} from './db.js';
@@ -36,6 +36,7 @@ export class ActivityRewardService {
    const source=input&&typeof input==='object'?input as Record<string,unknown>:{};
    const evidence=action==='reward.activity.configure'?{code:source.code,title:source.title,terms:source.terms,action:source.action,reason:source.reason}:
     action==='reward.stock.adjust'?{code:source.code,delta:source.delta,reason:source.reason}:
+    action==='reward.bundle.stock.adjust'?{bundleCode:source.bundleCode,delta:source.delta,reason:'管理员调整旅行洗护套库存'}:
     ['reward.voucher.revoke','reward.resolve_return','reward.reject_return'].includes(action)?{reason:source.reason}:{};
    await c.query('INSERT INTO reward_event(actor_member_id,action,object_id,operation_id,request_sha256,details) VALUES($1,$2,$3,$4,$5,$6)',[owner,action,(result as any)?.id??owner,operation,fingerprint,{result,...evidence}]);
    if(cap)await this.authority.requireWithClient(c,owner,cap);return result;
@@ -46,6 +47,64 @@ export class ActivityRewardService {
   shippingCents:r.shipping_cents,questionnaireVersion:r.questionnaire_version,surveyVersion:r.survey_version,recommendation:r.recommendation,
   carrierName:r.carrier_name,shippedAt:r.shipped_at?.toISOString()??null,receivedAt:r.received_at?.toISOString()??null,createdAt:r.created_at.toISOString(),updatedAt:r.updated_at.toISOString(),aftersaleReason:r.aftersale_reason};}
  private async bundleViews(c:DbClient){const stock=(await c.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows;return rewardBundles.map(b=>({...b,availableQuantity:Math.min(...b.components.map(code=>{const r=stock.find(r=>r.code===code);return r?.confirmed?r.stock_on_hand-r.reserved_quantity:0;})),stockConfirmed:b.components.every(code=>stock.some(r=>r.code===code&&r.confirmed))}));}
+ private shareToken(row:{id:string;version:number}){
+  const key=this.config.contacts.hashKey;if(!key||!/^[a-f0-9]{64}$/i.test(key))fail('REWARD_STORAGE_UNAVAILABLE','礼遇暂不可用，请稍后重试',503);
+  return row.id.replaceAll('-','')+createHmac('sha256',Buffer.from(key,'hex')).update(`reward-share:${row.id}:${row.version}`).digest('hex').slice(0,32);
+ }
+ private async activeShare(c:DbClient,token:unknown){
+  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))fail('REWARD_LINK_UNAVAILABLE','领取链接已失效，请向分享人获取新链接',404);
+  const id=token.slice(0,32).replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/,'$1-$2-$3-$4-$5');
+  const row=(await c.query(`SELECT s.id,s.version,s.created_by,s.activity_id,a.title,a.terms,a.version AS activity_version
+   FROM reward_activity_share s JOIN reward_activity a ON a.id=s.activity_id
+   WHERE s.id=$1 AND s.enabled AND a.state='published' FOR SHARE OF s,a`,[id])).rows[0];
+  if(!row||!timingSafeEqual(Buffer.from(token),Buffer.from(this.shareToken(row))))fail('REWARD_LINK_UNAVAILABLE','领取链接已失效，请向分享人获取新链接',404);
+  await this.enabled(c);return row;
+ }
+ async prepareShare(actor:string|undefined,activityId:string,keyInput:string){
+  const id=rewardId(activityId);
+  return this.command(actor,keyInput,'reward.share.prepare',{activityId:id},async(c,owner)=>{
+   await this.authority.requireWithClient(c,owner,'member.manage');await this.enabled(c);
+   const activity=(await c.query("SELECT id,title FROM reward_activity WHERE id=$1 AND state='published' FOR SHARE",[id])).rows[0];
+   if(!activity)fail('REWARD_ACTIVITY_UNAVAILABLE','请先发布活动再分享',409);
+   const row=(await c.query(`INSERT INTO reward_activity_share(activity_id,created_by) VALUES($1,$2)
+    ON CONFLICT(activity_id) DO UPDATE SET activity_id=EXCLUDED.activity_id RETURNING id,version,enabled`,[id,owner])).rows[0];
+   if(!row.enabled)fail('REWARD_LINK_UNAVAILABLE','领取链接已停用',409);
+   const token=this.shareToken(row);return {id:row.id,activityId:id,title:activity.title,token,path:`/pages/home/index?gift=${token}`};
+  },'commerce.product.manage');
+ }
+ async invitation(token:string){
+  return transaction(this.pool,async c=>{const row=await this.activeShare(c,token);return {activityId:row.activity_id,title:row.title,bundles:await this.bundleViews(c),terms:rewardTerms(row.terms)};},'REPEATABLE READ');
+ }
+ async acceptInvitation(actor:string|undefined,token:string,keyInput:string,now=new Date()){
+  const tokenDigest=createHash('sha256').update(String(token)).digest('hex');
+  return this.command(actor,keyInput,'reward.invitation.accept',{tokenDigest},async(c,owner)=>{
+   const row=await this.activeShare(c,token);
+   const profile=(await c.query('SELECT completed_at FROM member_care_profile WHERE member_id=$1 FOR SHARE',[owner])).rows[0];
+   if(!profile?.completed_at)fail('REWARD_ONBOARDING_REQUIRED','请先完成首次建档，再领取礼遇',409);
+   await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',['reward-global-issuance']);
+   const prior=(await c.query('SELECT v.*,a.title FROM reward_voucher v JOIN reward_activity a ON a.id=v.activity_id WHERE v.member_id=$1 FOR SHARE OF v,a',[owner])).rows[0];
+   if(prior)return {id:prior.id,memberId:owner,issued:false,voucher:this.voucherView(prior,now)};
+   const bundles=await this.bundleViews(c);
+   if(!bundles.some(b=>b.stockConfirmed&&b.availableQuantity>0))fail('REWARD_ALL_SOLD_OUT','这次洗护礼遇已领完',409);
+   const terms=rewardTerms(row.terms),source=`share:${row.id}:${owner}`,batch=`share:${row.id}`;
+   const award=(await c.query('INSERT INTO reward_award(activity_id,source_record_id,member_id,batch_id,created_by) VALUES($1,$2,$3,$4,$5) RETURNING id',[row.activity_id,source,owner,batch,row.created_by])).rows[0];
+   const voucher=(await c.query(`INSERT INTO reward_voucher(activity_id,award_id,member_id,terms_snapshot,activity_version,expires_at,issued_at)
+    VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[row.activity_id,award.id,owner,terms,row.activity_version,new Date(now.getTime()+30*86400000),now])).rows[0];
+   return {id:voucher.id,memberId:owner,issued:true,voucher:this.voucherView({...voucher,title:row.title},now)};
+  });
+ }
+ async bundleInventory(actor:string|undefined,keyInput:string,input:unknown){
+  const b=rewardBody(input,['bundleCode','expectedVersions','delta']),bundle=rewardBundle(String(b.bundleCode)),delta=rewardInt(b.delta,-1_000_000_000,1_000_000_000);
+  const expected=rewardBody(b.expectedVersions,[...bundle.components]);
+  const versions=Object.fromEntries(bundle.components.map(code=>[code,rewardInt(expected[code],1)]));
+  return this.command(actor,keyInput,'reward.bundle.stock.adjust',{bundleCode:bundle.code,expectedVersions:versions,delta},async c=>{
+   const rows=(await c.query('SELECT * FROM reward_component_inventory WHERE code=ANY($1::text[]) ORDER BY code FOR UPDATE',[bundle.components])).rows;
+   if(rows.length!==2||rows.some(r=>r.version!==versions[r.code]))fail('REWARD_CHANGED','库存已更新，请刷新后调整',409);
+   if(rows.some(r=>r.stock_on_hand+delta<r.reserved_quantity||r.stock_on_hand+delta>2_000_000_000))fail('REWARD_STOCK_INVALID','调整后库存不能少于已占用数量',409);
+   for(const r of rows)await c.query('UPDATE reward_component_inventory SET stock_on_hand=stock_on_hand+$2,confirmed=true,version=version+1,updated_at=now() WHERE code=$1',[r.code,delta]);
+   return {id:bundle.code,bundleCode:bundle.code,delta};
+  },'commerce.inventory.manage');
+ }
  async mine(actor:string|undefined,now=new Date(),claimsCursor?:string){
   const cursor=claimsCursor?rewardId(claimsCursor):null;
   return transaction(this.pool,async c=>{const owner=await requireActiveMemberWithClient(c,actor);
@@ -183,7 +242,7 @@ export class ActivityRewardService {
   const b=rewardBody(input,['id','code','title','expectedVersion','terms','action','reason']),title=rewardText(b.title,1,80),code=rewardText(b.code,3,64);
   if(!/^[a-z0-9][a-z0-9-]{2,63}$/.test(code))fail('REWARD_CODE_INVALID','活动编号请使用小写字母、数字和连字符');
   if(!['save','publish','pause'].includes(String(b.action)))fail('REWARD_ACTION_INVALID','请选择保存、发布或暂停');
-  const terms=b.terms===null?null:rewardTerms(b.terms),why=rewardText(b.reason,4,500);
+  const terms=b.terms===null?null:rewardTerms(b.terms),why=b.reason===undefined?'管理员更新活动配置':rewardText(b.reason,4,500);
   return this.command(actor,keyInput,'reward.activity.configure',{...b,title,code,terms,reason:why},async(c,owner)=>{
    const id=b.id?rewardId(b.id):randomUUID(),row=(await c.query('SELECT * FROM reward_activity WHERE id=$1 FOR UPDATE',[id])).rows[0];
    if((row?.version??0)!==rewardInt(b.expectedVersion,0))fail('REWARD_CHANGED','活动已有更新，请重新核对',409);
@@ -203,7 +262,7 @@ export class ActivityRewardService {
   },'commerce.product.manage');
  }
  async inventory(actor:string|undefined,keyInput:string,input:unknown){
-  const b=rewardBody(input,['code','expectedVersion','delta','reason']),code=rewardText(b.code),version=rewardInt(b.expectedVersion),delta=rewardInt(b.delta,-2_000_000_000,2_000_000_000),reason=rewardText(b.reason,4,500);
+  const b=rewardBody(input,['code','expectedVersion','delta','reason']),code=rewardText(b.code),version=rewardInt(b.expectedVersion),delta=rewardInt(b.delta,-2_000_000_000,2_000_000_000),reason=b.reason===undefined?'管理员调整旅行装库存':rewardText(b.reason,4,500);
   if(!['moisture100','dandruff50','conditioner100'].includes(code))fail('REWARD_COMPONENT_INVALID','请选择正确的组件');
   return this.command(actor,keyInput,'reward.stock.adjust',{code,version,delta,reason},async(c)=>{const r=(await c.query('SELECT * FROM reward_component_inventory WHERE code=$1 FOR UPDATE',[code])).rows[0];
    if(r.version!==version)fail('REWARD_CHANGED','库存已有更新，请重新核对',409);
@@ -261,7 +320,10 @@ export class ActivityRewardService {
     AND ($3::uuid IS NULL OR v.id>$3) AND ($4::uuid IS NULL OR v.member_id=$4) AND ($5::uuid IS NULL OR v.id=$5) ORDER BY v.id LIMIT 51`,[activity,state,after,target,voucher])).rows:[];
    const claims=canFulfill?(await c.query(`SELECT c.* FROM activity_reward_claim c JOIN reward_voucher v ON v.id=c.voucher_id
     WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR c.state=$2) AND ($3::uuid IS NULL OR c.id>$3) AND ($4::uuid IS NULL OR c.member_id=$4) AND ($5::uuid IS NULL OR c.id=$5) ORDER BY c.id LIMIT 51`,[activity,state,after,target,claim])).rows:[];
-   return {memberId:actor!,selectedActivityId:activity,activities,inventory:(await c.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows,vouchers:vouchers.slice(0,50).map(r=>({...r,state:visibleVoucherState(r,new Date())})),claims:claims.slice(0,50).map(r=>this.claimView(r)),voucherNext:vouchers.length>50?vouchers[49].id:null,claimNext:claims.length>50?claims[49].id:null,
+   const inventory=(await c.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows;
+   const bundles=(await this.bundleViews(c)).map(bundle=>({...bundle,reservedQuantity:inventory.find(r=>r.code===bundle.components.find(code=>code!=='conditioner100'))?.reserved_quantity??0,
+    expectedVersions:Object.fromEntries(bundle.components.map(code=>[code,inventory.find(r=>r.code===code)?.version??0]))}));
+   return {memberId:actor!,selectedActivityId:activity,activities,inventory,bundles,vouchers:vouchers.slice(0,50).map(r=>({...r,state:visibleVoucherState(r,new Date())})),claims:claims.slice(0,50).map(r=>this.claimView(r)),voucherNext:vouchers.length>50?vouchers[49].id:null,claimNext:claims.length>50?claims[49].id:null,
     permissions:{configure:grants.capabilities.includes('commerce.product.manage'),stock:grants.capabilities.includes('commerce.inventory.manage'),issue:canIssue,fulfill:canFulfill}};
   },'REPEATABLE READ');
  }

@@ -9,6 +9,7 @@ import { documentedOperations, registeredSourceOperations } from "../../scripts/
 // become public merely by adding `security: []` to OpenAPI.
 const publicOperations = new Set([
   "GET /v1/capabilities",
+  "GET /v1/rewards/invitations/{token}",
   "GET /v1/identity/capabilities",
   "GET /v1/legal",
   // Independently authorized owned content only; no UGC/preview gate exceptions.

@@ -838,7 +838,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "551268c028309c9efee2a027636a0cfbfd2af9977ac44852b79ba19e2af3a154",
+  "migrationSetSha256": "517d9d4246e4fe6adac9c3a793ffbc8663f12430fcd7175381c049d167732ab4",
   "egressSignatureSha256": "33ae2eff1e443c0d7056b43be6497d2ec5e206f85fb712125173e3e2571d0e9c",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1463,5 +1463,20 @@
     "privacy": "No referred buyer identity, phone, address or openid in officer DTO/CSV/export. No raw bank data in command receipts, logs, frontend storage or default company CSV. Authorized payee reads audited; revoked finance receipts redacted; admin hide clears sensitive memory; temporary exports registered with session cleanup.",
     "testBoundary": "One newly initialized isolated PostgreSQL16 cluster and disposable local object directory only. No real member/payment/finance records are created during acceptance. Remote-tunnel latency is not evidence of deployed co-located API/database speed; original portable-export deadline remains unchanged.",
     "physicalDeviceAccepted": false
+  },
+  "travelRewardSharedInvitationReview20261116": {
+    "scope": "An administrator-created forwardable campaign invitation; authenticated completed members accept their own single voucher. No new third-party recipient or sensitive field.",
+    "storage": "reward_activity_share stores activity/version/enabled plus canonical creating operator ID. The URL contains an opaque campaign capability, never a member ID. Per-member award/voucher and command facts use the existing reward tables.",
+    "localIntent": "Only an explicitly opened link stores an environment-scoped pending campaign token, expiring locally after 30 days; no member profile, session or contact is copied. Successful acceptance or terminal invalid/sold-out link clears it.",
+    "retention": "Existing purpose, audit, owner export and legal-hold boundaries remain. The campaign capability is administrative metadata, not another member’s portable profile. No new permanent-retention promise."
+  },
+  "logisticsMessageReview20261116": {
+    "purpose": "Actual paid shopping shipments trigger official WeChat logistics messages for the verified original payer; WeChat sends collection/delivery/signature notices only to eligible subscribed buyers. Registration is not proof of notification delivery.",
+    "recipient": "WeChat official api.weixin.qq.com open_msg/follow_waybill, using separately revocable logistics.message.register capability. Native query remains lazy-loaded provider wx9ad912bf20548d92 version 2.1.5.",
+    "payload": "Verified payment transaction ID and payer OpenID, immutable order address phone, actual carrier and waybill, approved immutable product names/images, own order detail route. No third-party recipient or new payment.",
+    "storage": "Existing idempotency_operation commerce.logistics.message contains owner/order/shipment IDs, source HMAC, state/backoff, numeric provider error and AES-256-GCM sealed waybill token with owner/shipment/key-version AAD. No clear token/contact/waybill/OpenID in journal, audit or logs.",
+    "authority": "Queue only created with future real paid dispatch in the same local transaction. Fresh shared PaidParcelSource checks actual active owner, verified applied full-cash payment, app/merchant and sealed order parcel before network. No backfill or campaign gift/zero-cash registration.",
+    "failure": "Definite rejection can back off; dispatch crashes/timeouts/unknown replies never automatically register again. Platform permission probe performs no shipment registration or notification. Tracking observations do not confirm receipt or settle points/commission.",
+    "validationScope": "Isolated synthetic tests and read-only live carrier permission probe. No real waybill, customer message or fulfillment was fabricated; end-to-end real notification delivery remains dependent on a real paid parcel."
   }
 }

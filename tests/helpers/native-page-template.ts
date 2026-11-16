@@ -10,6 +10,7 @@ import {dirname,resolve} from 'node:path';
 // compiled in WeChat DevTools, and the production pages keep the one template.
 export function nativePageTemplate(path:string):string {
   let source=readFileSync(path,'utf8');
+  source=source.replace(/<include src="([^"]+)"\s*\/>/g,(_tag,src:string)=>nativePageTemplate(src.startsWith('/')?resolve('apps/miniprogram','.'+src):resolve(dirname(path),src)));
   const imported=source.match(/<import src="([^"]*community-feed\.wxml)"\s*\/>/);
   if(!imported)return source;
   const template=readFileSync(resolve(dirname(path),imported[1]!),'utf8').replace(/^<template[^>]*>\s*/,'').replace(/\s*<\/template>\s*$/,'');
@@ -28,5 +29,7 @@ export function nativePageComponents(simulate:{load:(definition:any)=>string}):R
  // The independent reward lifecycle is exercised by onboarding-feedback.test.ts;
  // tab snapshot fixtures have no first-completion intent or points receipt.
  return {'care-campaign':nativeCampaignComponent(simulate),'section-tabs':section,'card-foil':simulate.load({...definition,template:readFileSync('apps/miniprogram/components/card-foil/index.wxml','utf8')}),
+  'reward-checkout':simulate.load({properties:{voucher:String,active:Boolean},template:'<view></view>'}),
+  'reward-moment':simulate.load({properties:{owner:String,open:Boolean},template:'<view></view>'}),
   'points-celebration':simulate.load({properties:{owner:String,enabled:Boolean},template:'<view></view>'})};
 }

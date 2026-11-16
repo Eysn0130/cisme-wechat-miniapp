@@ -1,0 +1,36 @@
+<view class="reward-checkout" aria-hidden="{{bundleSheetOpen||surveyOpen||!!redemptionId}}">
+ <view wx:if="{{loading&&!selection}}" class="page-read-loading" aria-label="正在核对礼遇"><view class="page-read-loading__indicator"/></view>
+ <view wx:if="{{error}}" class="state state--error" aria-live="assertive"><text>{{error}}</text><button class="text-button {{busy||loading?'control--disabled':''}}" bindtap="load" disabled="{{busy||loading}}">重试</button></view>
+ <view wx:if="{{unknown}}" class="state state--error"><text>领取结果待确认</text><button wx:if="{{pending.kind==='claim'}}" class="text-button {{busy?'control--disabled':''}}" bindtap="retryPending" disabled="{{busy}}">核对并重试</button><button class="text-button {{busy?'control--disabled':''}}" bindtap="cancelPending" disabled="{{busy}}">取消未确认领取</button></view>
+ <block wx:if="{{selection}}">
+  <view class="checkout-card checkout-item"><view class="reward-checkout__cover"><image wx:if="{{selectedItem}}" src="{{bundleDetails[selectedBundle].pair}}" mode="aspectFit"/><image wx:else src="/assets/icons/gift-plum.svg" mode="aspectFit"/></view><view><text class="coupon-heading">{{selectedItem.name||'旅行洗护套'}}</text><text wx:if="{{selectedItem}}">{{selectedItem.shampooMl}}mL + {{selectedItem.conditionerMl}}mL</text><text>¥0.00 · 1 套</text></view></view>
+  <button class="reward-checkout__selector {{busy||unknown?'control--disabled':''}}" bindtap="openBundleSheet" disabled="{{busy||unknown}}"><text>{{selectedItem?'更换套装':'选择洗护套装'}}</text><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></button>
+  <include src="/components/checkout-addresses/template.wxml"/>
+  <view class="checkout-card quote-card"><view><text>商品金额</text><text class="coupon-heading">¥0.00</text></view><view><text>运费</text><text class="coupon-heading">¥0.00</text></view><view class="quote-total"><text>合计</text><text class="coupon-heading">¥0.00</text></view></view>
+  <view class="reward-checkout__delivery"><text>大陆包邮 · 72小时内发货</text><text>有效至 {{expiry}}</text></view>
+  <view wx:if="{{!selection.survey.completed}}" class="state"><text>完善护理档案后领取</text><button class="text-button {{busy||unknown?'control--disabled':''}}" bindtap="editSurvey" disabled="{{busy||unknown}}">去填写</button></view>
+  <view wx:if="{{selection.voucher.state!=='unused'}}" class="state state--error"><text>{{selection.voucher.state==='expired'?'这张礼遇券已过期':selection.voucher.state==='used'?'这份礼遇已领取':'这张券暂不可领取'}}</text><button wx:if="{{selection.voucher.claimId}}" class="text-button" bindtap="viewClaim">查看领取订单</button><button wx:else class="text-button" bindtap="support">联系客服</button></view>
+ </block>
+ <view class="checkout-action"><button wx:if="{{completedId}}" class="primary" bindtap="viewCompleted">查看领取订单</button><button wx:else class="primary {{busy||loading||unknown||navigating||!selectedItem||!selectedAddressId||!selection.survey.completed||selection.voucher.state!=='unused'?'primary--disabled':''}}" bindtap="confirm" loading="{{busy}}" disabled="{{busy||loading||unknown||navigating||!selectedItem||!selectedAddressId||!selection.survey.completed||selection.voucher.state!=='unused'}}">确认领取</button></view>
+</view>
+<view wx:if="{{bundleSheetOpen}}" class="reward-bundle-mask" catchtouchmove="stop">
+ <view class="reward-bundle-backdrop" bindtap="closeBundleSheet"/>
+ <view class="reward-bundle-sheet" aria-role="dialog" aria-modal="true" aria-label="选择一套旅行洗护"><view class="reward-bundle-handle"/><view class="reward-bundle-head"><text>选择洗护套装</text><button class="text-button {{busy?'control--disabled':''}}" bindtap="closeBundleSheet" disabled="{{busy}}">关闭</button></view>
+  <scroll-view class="reward-bundle-scroll" scroll-y enhanced show-scrollbar="{{false}}"><view class="reward-bundle-content">
+   <view wx:if="{{loading&&!selection}}" class="reward-bundle-skeleton" aria-label="正在核对库存"><view/><view/></view>
+   <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button class="text-button {{busy||loading?'control--disabled':''}}" bindtap="load" disabled="{{busy||loading}}">重试</button></view>
+   <view class="reward-bundle-options" aria-role="radiogroup" aria-label="二选一"><view wx:for="{{selection.bundles}}" wx:key="code" class="reward-bundle-option {{draftBundle===item.code?'reward-bundle-option--selected':''}}">
+    <image class="reward-bundle-surface" src="/pages/checkout/assets/travel-card-material-v3.webp" mode="aspectFill" aria-hidden="true"/>
+    <view class="reward-bundle-card-head"><text class="reward-bundle-name">{{bundleDetails[item.code].title}}</text><button class="reward-bundle-detail {{busy||detailLoading?'control--disabled':''}}" bindtap="previewBundle" data-code="{{item.code}}" disabled="{{busy||detailLoading}}" aria-label="{{item.name}}详情">详情<image src="/pages/checkout/assets/detail-arrow-plum.svg" mode="aspectFit" aria-hidden="true"/></button></view>
+    <view class="reward-bundle-card-body"><button class="reward-bundle-art {{busy||detailLoading?'control--disabled':''}}" bindtap="previewBundle" data-code="{{item.code}}" disabled="{{busy||detailLoading}}" aria-label="放大查看{{item.name}}"><image class="reward-bundle-photo" src="{{bundleDetails[item.code].pair}}" mode="aspectFit"/></button><view class="reward-bundle-copy"><text class="reward-bundle-benefit">{{bundleDetails[item.code].benefit}}</text><text>{{bundleDetails[item.code].shampoo}} {{item.shampooMl}}mL</text><text>{{bundleDetails[item.code].conditioner}} {{item.conditionerMl}}mL</text></view></view>
+    <view class="reward-bundle-meta"><text>{{item.stockConfirmed&&item.availableQuantity>0?'剩余 '+item.availableQuantity+' 套':item.stockConfirmed?'已领完':'暂不可领取'}}</text><button class="reward-bundle-select {{busy||unknown||!item.stockConfirmed||item.availableQuantity<1?'control--disabled':''}}" bindtap="chooseBundle" data-code="{{item.code}}" disabled="{{busy||unknown||!item.stockConfirmed||item.availableQuantity<1}}" aria-role="radio" aria-checked="{{draftBundle===item.code}}" aria-label="选择{{item.name}}"><view class="reward-bundle-radio {{draftBundle===item.code?'reward-bundle-radio--selected':''}}"><image wx:if="{{draftBundle===item.code}}" src="/pages/checkout/assets/check-white-regular.svg" mode="aspectFit" aria-hidden="true"/></view></button></view>
+    <view wx:if="{{!item.stockConfirmed||item.availableQuantity<1}}" class="reward-bundle-soldout" aria-hidden="true"><text>{{item.stockConfirmed?'已领完':'暂不可领取'}}</text></view>
+   </view></view>
+   <view wx:if="{{selection.bundles[0].availableQuantity<1&&selection.bundles[1].availableQuantity<1}}" class="state"><text>本次礼遇已领完</text><button class="text-button" bindtap="support">联系客服</button></view>
+  </view></scroll-view>
+  <view class="reward-bundle-footer"><button class="primary {{busy||loading||unknown||!draftBundle?'primary--disabled':''}}" bindtap="confirmBundle" disabled="{{busy||loading||unknown||!draftBundle}}">确认选择</button></view>
+ </view>
+</view>
+<care-onboarding wx:if="{{surveyOpen}}" required="{{false}}" bindclose="closeSurvey" bindcomplete="completeSurvey"/>
+<points-celebration id="reward-profile-credit" owner="{{memberId}}" enabled="{{!surveyOpen&&!loading&&!busy}}"/>
+<reward-moment open="{{!!redemptionId}}" owner="{{memberId}}" reference="{{redemptionId}}" mode="redeemed" bundle="{{redemptionBundle}}" image="{{redemptionImage}}" name="{{redemptionName}}" bindfinished="finishRedemption"/>

@@ -62,7 +62,7 @@ Component({
       if(!current())return;this.setData({phase:'settled',displayAmount:credit.amount});
       await pause(r,660);if(!current())return;this.setData({phase:'leaving'});await pause(r,200);
      }
-     if(current())this.setData({showing:false});else return;
+     if(current()){this.setData({showing:false});this.triggerEvent('finished',{owner,kind:intent.kind,amount:credit.amount});}else return;
     }
    })().finally(()=>{r.promise=null;});return r.promise;
   }

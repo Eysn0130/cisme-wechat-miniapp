@@ -306,6 +306,138 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
+  /v1/rewards/invitations/{token}:
+    get:
+      tags: [Rewards]
+      operationId: getRewardInvitation
+      summary: Public campaign capability; no recipient identity or voucher asset
+      security: []
+      x-release-stage: V2.1-R4-TRV-SHARE
+      x-acceptance-ids: [TRV-SHARE-01, TRV-SHARE-02, TRV-SHARE-03]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: {type: string, pattern: '^[a-f0-9]{64}$'}
+      responses:
+        '200':
+          description: Authoritative result; writes replay by caller and idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardInvitation'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /v1/me/rewards/invitations/{token}/accept:
+    post:
+      tags: [Rewards]
+      operationId: acceptRewardInvitation
+      summary: After completed onboarding receive one own voucher; never reserves physical stock
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV-SHARE
+      x-acceptance-ids: [TRV-SHARE-01, TRV-SHARE-02, TRV-SHARE-03]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: {type: string, pattern: '^[a-f0-9]{64}$'}
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Authoritative result; writes replay by caller and idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardInvitationAcceptance'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/activities/{activityId}/share:
+    post:
+      tags: [Rewards]
+      operationId: prepareRewardInvitation
+      summary: Member and product managers prepare one stable forwardable campaign capability
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV-SHARE
+      x-acceptance-ids: [TRV-SHARE-01, TRV-SHARE-02, TRV-SHARE-03]
+      parameters:
+        - in: path
+          name: activityId
+          required: true
+          schema: {$ref: '#/components/schemas/Uuid'}
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Authoritative result; writes replay by caller and idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardShare'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+  /v1/management/rewards/bundle-inventory:
+    post:
+      tags: [Rewards]
+      operationId: adjustRewardBundleInventory
+      summary: Inventory manager adjusts complete sets and shared conditioner atomically with automatic audit reason
+      security:
+        - session: []
+      x-release-stage: V2.1-R4-TRV-SHARE
+      x-acceptance-ids: [TRV-SHARE-01, TRV-SHARE-02, TRV-SHARE-03]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RewardBundleInventoryInput'
+      responses:
+        '200':
+          description: Authoritative result; writes replay by caller and idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardCommandResult'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
   /v1/me/rewards:
     get:
       tags:
@@ -3787,6 +3919,48 @@ components:
         asOf: {type: string, format: date-time}
     SharingMemberCommand: {"type":"object","additionalProperties":false,"required":["action","input"],"properties":{"action":{"type":"string","enum":["apply","payee","share","bind_visit","change_referrer"]},"input":{"type":"object","description":"Action-specific fields are validated by the authoritative server. Rates use basisPoints; all currency values use integer CNY cents. Review/paid/void/change-referrer commands require expectedVersion. A payment record requires finance reviewed tax, actual payment attestation, unique bank reference, and payee version unchanged."}}}
     SharingManagementCommand: {"type":"object","additionalProperties":false,"required":["action","input"],"properties":{"action":{"type":"string","enum":["policy","officer_state","prepare_month","review_line","void_line","record_payment","record_recovery"]},"input":{"type":"object","description":"Action-specific fields are validated by the authoritative server. Rates use basisPoints; all currency values use integer CNY cents. Review/paid/void/change-referrer commands require expectedVersion. A payment record requires finance reviewed tax, actual payment attestation, unique bank reference, and payee version unchanged."}}}
+    RewardShare:
+      type: object
+      required: [id, activityId, title, token, path]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        activityId: {$ref: '#/components/schemas/Uuid'}
+        title: {type: string}
+        token: {type: string, pattern: '^[a-f0-9]{64}$'}
+        path: {type: string}
+    RewardInvitation:
+      type: object
+      required: [activityId, title, bundles, terms]
+      properties:
+        activityId: {$ref: '#/components/schemas/Uuid'}
+        title: {type: string}
+        bundles:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items: {$ref: '#/components/schemas/RewardBundle'}
+        terms: {$ref: '#/components/schemas/RewardTerms'}
+    RewardInvitationAcceptance:
+      type: object
+      required: [id, memberId, issued, voucher]
+      properties:
+        id: {$ref: '#/components/schemas/Uuid'}
+        memberId: {$ref: '#/components/schemas/Uuid'}
+        issued: {type: boolean}
+        voucher: {$ref: '#/components/schemas/TravelRewardVoucher'}
+    RewardBundleInventoryInput:
+      type: object
+      additionalProperties: false
+      required: [bundleCode, expectedVersions, delta]
+      properties:
+        bundleCode: {type: string, enum: [moisture, dandruff]}
+        expectedVersions:
+          type: object
+          description: Exactly the two component versions returned for this bundle; stale shared stock conflicts.
+          minProperties: 2
+          maxProperties: 2
+          additionalProperties: {type: integer, minimum: 1}
+        delta: {type: integer, minimum: -1000000000, maximum: 1000000000}
     RewardTerms:
       type: object
       properties:
@@ -4233,6 +4407,18 @@ components:
     RewardManagement:
       type: object
       properties:
+        bundles:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/RewardBundle'
+              - type: object
+                required: [reservedQuantity, expectedVersions]
+                properties:
+                  reservedQuantity: {type: integer, minimum: 0}
+                  expectedVersions:
+                    type: object
+                    additionalProperties: {type: integer, minimum: 1}
         memberId:
           $ref: '#/components/schemas/Uuid'
         activities:
@@ -4453,7 +4639,6 @@ components:
         - expectedVersion
         - terms
         - action
-        - reason
       additionalProperties: false
     RewardInventoryInput:
       type: object
@@ -4479,7 +4664,6 @@ components:
         - code
         - expectedVersion
         - delta
-        - reason
       additionalProperties: false
     RewardIssueInput:
       type: object

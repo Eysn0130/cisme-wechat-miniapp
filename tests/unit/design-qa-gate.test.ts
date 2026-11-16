@@ -139,8 +139,8 @@ describe("design QA evidence gate", () => {
     expect(status.releaseErrors).toContain("DESIGN_QA_ROUTE_MATRIX_INCOMPLETE:pages/home/index");
     expect(status.releaseErrors).toContain("DESIGN_QA_OPEN_P0_OR_P1");
     expect(status.releaseErrors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
-    expect(status.releaseErrors).not.toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
-    expect(status.waivedDeviceTests).toEqual(["android"]);
+    expect(status.releaseErrors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
+    expect(status.waivedDeviceTests).toEqual([]);
   });
 
   it("requires both devices when no owner waiver exists", async () => {
