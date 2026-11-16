@@ -505,7 +505,7 @@ describe("mini-program page behavior", () => {
     (globalThis as any).getApp = () => ({ globalData: { sessionToken: "", apiBaseUrl: "https://synthetic.invalid" } });
     const item = { id: "real-submission", title: "Submitted story", excerpt: "Submitted text", cover_object_key: "private/object.jpg" };
     requestMock.mockImplementation(async ({ path }: { path: string }) => {
-      if (path.startsWith("/v1/editorial/articles?")) return {items:[],nextCursor:null};
+      if (path.startsWith("/v1/community/featured?")) return {items:[],nextCursor:null};
       if (path === "/v1/capabilities") return { ugcGoLiveGate: true, communityPreviewEnabled: false };
       if (path === "/v1/ugc/status") return { publicEnabled: true };
       if (path.startsWith("/v1/ugc/posts")) return { items: [], nextCursor: null };

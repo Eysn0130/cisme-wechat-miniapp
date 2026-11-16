@@ -14,7 +14,7 @@ function payload(path:string):unknown {
  if(path===`/v1/editorial/articles/${articleId}`)return article;
  if(path.startsWith(`/v1/editorial/articles/${articleId}/comments?`))return {comments:[{id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",version:1,body:"只对登录会员展示的评论",status:"published",parentId:null,replyToId:null,replyRootId:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",createdAt:"2026-10-26T00:00:00Z",authorId,authorName:"会员昵称",replyToName:null,isMine:false,likeCount:0,liked:false}],authors:{[authorId]:{name:"会员昵称",avatar:"",avatarRevision:null}},commentCount:1,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:1,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-26T00:00:00Z"};
  if(path.startsWith("/v1/community/authors/"))return author;
- if(path.startsWith("/v1/editorial/articles?"))return {items:[card],nextCursor:"next"};
+ if(path.startsWith("/v1/community/featured?"))return {items:[card],nextCursor:"next"};
  if(path==="/v1/capabilities")return {communityPreviewEnabled:false};
  if(path==="/v1/ugc/status")return {publicEnabled:false};
  if(path==="/v1/me/community-access")return {canReview:false};
@@ -75,26 +75,26 @@ describe("editorial reads after a real transport session revocation",()=>{
  });
  it.each(["editorial-before-capabilities","access-after-capabilities","editorial-at-aggregate"])("settles Community when expiry occurs at %s",async(stage)=>{
   await mount("community");Object.assign(page.data,{signedIn:true,follows:["old-private-follow"],profileReviewQueue:[{private:true}],displayFeedCount:1});
-  expirePath=stage.startsWith("access")?"/v1/me/community-access":"/v1/editorial/articles?";
-  if(stage.includes("before-capabilities"))holdPath="/v1/capabilities";else if(stage==="editorial-at-aggregate")holdPath="/v1/editorial/articles?";
+  expirePath=stage.startsWith("access")?"/v1/me/community-access":"/v1/community/featured?";
+  if(stage.includes("before-capabilities"))holdPath="/v1/capabilities";else if(stage==="editorial-at-aggregate")holdPath="/v1/community/featured?";
   const reading=page.load();
   if(holdPath==="/v1/capabilities"){await vi.waitFor(()=>expect(runtime.globalData.sessionToken).toBe(""));releaseHeld();}
   else if(holdPath){await vi.waitFor(()=>expect(requests.some(r=>pathOf(r)==="/v1/me/community-access")).toBe(true));releaseHeld();}
   await reading;expect(runtime.globalData.sessionToken).toBe("");expect(page.data).toMatchObject({loading:false,signedIn:false,mode:"featured",canReview:false,follows:[],profileReviewQueue:[],formalLoadingMore:false,displayFeedCount:0,error:expect.stringContaining("登录状态已失效")});
-  expirePath=null;holdPath=null;await page.load();expect(page.data).toMatchObject({loading:false,error:"",displayFeedCount:1});expect(requests.filter(r=>pathOf(r).startsWith("/v1/editorial/")).at(-1).header.Authorization).toBe("");
+  expirePath=null;holdPath=null;await page.load();expect(page.data).toMatchObject({loading:false,error:"",displayFeedCount:1});expect(requests.filter(r=>pathOf(r).startsWith("/v1/community/featured?")).at(-1).header.Authorization).toBe("");
  });
  it.each(["community","community-author"] as const)("clears %s pagination busy and actor-specific projection on HTTP401",async(route)=>{
-  await mount(route);await page.load();expirePath=route==="community"?"/v1/editorial/articles?":"/v1/community/authors/";
+  await mount(route);await page.load();expirePath=route==="community"?"/v1/community/featured?":"/v1/community/authors/";
   await page.onReachBottom();expect(runtime.globalData.sessionToken).toBe("");expect(page.data.loading).toBe(false);expect(page.data.error).toContain("登录状态已失效");
   if(route==="community")expect(page.data).toMatchObject({formalLoadingMore:false,displayFeedCount:0});else expect(page.data).toMatchObject({loadingMore:false,author:null,feedColumns:[[],[]]});
  });
  it.each(["post","community-author","community"] as const)("does not recover a hidden %s view when an old transport subsequently expires",async(route)=>{
-  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/community/authors/":"/v1/editorial/articles?";
+  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/community/authors/":"/v1/community/featured?";
   const reading=page.load();page.onHide();const before=patches.length;expirePath=holdPath;releaseHeld();await reading;
   expect(patches.slice(before)).toEqual([]);expect(page.data.error).not.toContain("登录状态已失效");
  });
  it.each(["post","community-author","community"] as const)("does not let %s old HTTP401 overwrite a different nonempty session",async(route)=>{
-  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/community/authors/":"/v1/editorial/articles?";
+  await mount(route);holdPath=route==="post"?`/v1/editorial/articles/${articleId}`:route==="community-author"?"/v1/community/authors/":"/v1/community/featured?";
   const reading=page.load();const api=await import("../../apps/miniprogram/services/api");api.setSessionToken("synthetic-different-session");const before=patches.length;
   expirePath=holdPath;releaseHeld();await reading;expect(runtime.globalData.sessionToken).toBe("synthetic-different-session");expect(patches.slice(before)).toEqual([]);expect(page.data.error).not.toContain("登录状态已失效");
  });

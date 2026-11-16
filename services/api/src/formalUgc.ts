@@ -10,6 +10,7 @@ import { communityAuthors, publishedPostAuthors } from "./memberProfile.js";
 import { validateGatewayUpload, type ObjectStorage } from "./storage.js";
 import { pendingReviewRevisionSql, reviewableRevisionSql } from "./ugcVisibility.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
+import {featuredPostSql,featureCommunityPost} from './communityCuration.js';
 
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const keyPattern=/^[A-Za-z0-9._:-]{8,200}$/;
@@ -338,8 +339,9 @@ export class FormalUgcService{
       WHERE p.author_member_id=$1 AND p.state<>'deleted' AND ($2='all' OR (${ownWorkflowStateSql})=$2)`,[owner,state])).rows[0]?.total??0;
     return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};}
 
-  async feed(memberId:string|undefined,input:{q?:unknown;authorId?:unknown;limit?:unknown;cursor?:unknown;following?:unknown}={}){
+  async feed(memberId:string|undefined,input:{q?:unknown;authorId?:unknown;limit?:unknown;cursor?:unknown;following?:unknown;channel?:unknown}={}){
     if(!await this.publicEnabled())return {items:[],total:0,nextCursor:null,publicEnabled:false};
+    if(input.channel!==undefined&&input.channel!=='recommend')throw new DomainError('UGC_CHANNEL_INVALID','内容分类无效',422);
     const followingOnly=input.following===true||input.following==="1";
     if(followingOnly&&!memberId)throw new DomainError("AUTH_REQUIRED","请先登录查看关注内容",401);
     const q=typeof input.q==="string"?input.q.trim().slice(0,80):"";
@@ -367,7 +369,8 @@ export class FormalUgcService{
         AND ($5::timestamptz IS NULL OR (p.published_at,p.id)<($5::timestamptz,$6::uuid))
         AND (NOT $7::boolean OR EXISTS(SELECT 1 FROM ugc_author_follow f
           WHERE f.follower_member_id=$3 AND f.followed_member_id=p.author_member_id))
-      ORDER BY p.published_at DESC,p.id DESC LIMIT $4`,[q,authorId,memberId??null,limit+1,cursorAt,cursorId,followingOnly]);
+        AND (NOT $8::boolean OR NOT COALESCE(${featuredPostSql},false))
+      ORDER BY p.published_at DESC,p.id DESC LIMIT $4`,[q,authorId,memberId??null,limit+1,cursorAt,cursorId,followingOnly,input.channel==='recommend']);
     const page=result.rows.slice(0,limit),last=page[page.length-1],hasMore=result.rows.length>limit;
     const authors=await publishedPostAuthors(this.pool,page.map(row=>row.author_member_id));
     return {items:page.map(row=>({id:row.id,authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",
@@ -829,6 +832,79 @@ export class FormalUgcService{
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
         VALUES($1,'ugc.comment_review','ugc_comment',$2,$3,$4,$5)`,[`member:${reviewer}`,id,why,{decision},randomUUID()]);
       return {id,state:decision==="approve"?"published":"rejected"};
+    });
+  }
+
+  async managementPosts(memberId:string|undefined,input:{state?:unknown;q?:unknown;cursor?:unknown;limit?:unknown}={}){
+    const state=input.state??'recommend',q=typeof input.q==='string'?input.q.trim().slice(0,80):'';
+    if(!['recommend','featured','hidden'].includes(String(state)))throw new DomainError('UGC_CHANNEL_INVALID','内容分类无效',422);
+    const limit=pageLimit(input.limit,20,30),scope=pageScope(['management-posts',memberId,state,q]),cursor=readPageCursor(input.cursor,scope);
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,memberId,'community.moderate');
+      // Only the last public revision is manageable here. New private drafts
+      // and unsubmitted edits never enter this operational list or its detail.
+      const condition=`p.published_revision IS NOT NULL AND p.state IN ('published','hidden')
+        AND CASE WHEN $1='hidden' THEN p.state='hidden' ELSE p.state='published' AND p.visibility='public'
+          AND COALESCE(${featuredPostSql},false)=($1='featured') END
+        AND ($2='' OR r.title ILIKE '%'||$2||'%' OR r.body ILIKE '%'||$2||'%' OR m.display_name ILIKE '%'||$2||'%')`;
+      const rows=(await client.query(`SELECT p.id,p.version,p.published_revision,p.published_at,p.published_at::text AS cursor_at,
+        p.state,r.title,r.body,p.author_member_id,m.display_name,profile.avatar_data_url,profile.avatar_revision,
+        COALESCE(${featuredPostSql},false) AS featured,
+        CASE WHEN p.state='published' AND m.status='active' THEN (SELECT b.media_asset_id FROM ugc_post_media b
+          JOIN ugc_media_asset a ON a.id=b.media_asset_id AND a.state='approved'
+          WHERE b.post_id=p.id AND b.revision=p.published_revision ORDER BY b.position LIMIT 1) END AS cover_id,
+        (SELECT count(*)::int FROM ugc_post_reaction x WHERE x.post_id=p.id AND x.kind='like') AS like_count,
+        (SELECT count(*)::int FROM ugc_comment x WHERE x.post_id=p.id AND x.state='published') AS comment_count
+        FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.published_revision
+        JOIN member m ON m.id=p.author_member_id LEFT JOIN member_profile profile ON profile.member_id=m.id
+        WHERE ${condition} AND ($3::timestamptz IS NULL OR (p.published_at,p.id)<($3::timestamptz,$4::uuid))
+        ORDER BY p.published_at DESC,p.id DESC LIMIT $5`,[state,q,cursor?.at??null,cursor?.id??null,limit+1])).rows;
+      const total=(await client.query(`SELECT count(*)::int AS n FROM ugc_post p
+        JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.published_revision JOIN member m ON m.id=p.author_member_id
+        WHERE ${condition}`,[state,q])).rows[0]!.n;
+      const page=finishPage(rows.map(r=>({id:r.id,cursorAt:r.cursor_at,title:r.title??'',body:r.body??'',version:r.version,
+        revision:r.published_revision,publishedAt:r.published_at,state:r.state,placement:r.state==='hidden'?'hidden':r.featured?'featured':'recommend',
+        authorId:r.author_member_id,author:r.display_name||'CISME 会员',avatar:r.avatar_data_url||'',avatarRevision:r.avatar_revision,
+        coverId:r.cover_id,likeCount:r.like_count,commentCount:r.comment_count})),limit,scope);
+      return {...page,items:page.items.map(({cursorAt:_,...row})=>row),matchingTotal:total};
+    });
+  }
+
+  async managePlacement(memberId:string|undefined,postId:string,input:{placement?:unknown;expectedVersion?:unknown}){
+    const id=uuid(postId),expected=positiveVersion(input.expectedVersion);
+    if(input.placement!=='featured'&&input.placement!=='recommend')throw new DomainError('UGC_CHANNEL_INVALID','内容分类无效',422);
+    return transaction(this.pool,async client=>{
+      const actor=await this.authority.requireWithClient(client,memberId,'community.moderate');
+      if(input.placement==='featured'){
+        await client.query('SELECT id FROM ugc_post WHERE id=$1 FOR UPDATE',[id]);
+        await this.requirePublicGate(client);
+        return featureCommunityPost(client,actor,id,'管理员精选公开帖子',expected);
+      }
+      const post=(await client.query(`SELECT * FROM ugc_post WHERE id=$1 FOR UPDATE`,[id])).rows[0];
+      if(!post||post.state!=='published'||post.visibility!=='public')throw new DomainError('UGC_POST_NOT_FOUND','帖子当前不可公开展示',409);
+      if(!post.featured_at||post.featured_revision!==post.published_revision)return {id,placement:'recommend',version:post.version,replayed:true};
+      if(post.version!==expected)throw new DomainError('UGC_VERSION_CONFLICT','帖子已变化，请刷新后重试',409);
+      await client.query(`UPDATE ugc_post SET featured_revision=NULL,featured_at=NULL,featured_by=NULL,version=version+1,updated_at=now() WHERE id=$1`,[id]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+        VALUES($1,'ugc.post_unfeatured','ugc_post',$2,'ADMIN_RETURN_TO_RECOMMEND',$3,$4,gen_random_uuid()::text)`,
+        [`member:${actor}`,id,{revision:post.published_revision,version:post.version},{version:post.version+1}]);
+      return {id,placement:'recommend',version:post.version+1,replayed:false};
+    });
+  }
+
+  async deleteManagedPost(memberId:string|undefined,postId:string,expectedVersion:unknown){
+    const id=uuid(postId),expected=positiveVersion(expectedVersion);
+    return transaction(this.pool,async client=>{
+      const actor=await this.authority.requireWithClient(client,memberId,'community.moderate');
+      const post=(await client.query(`SELECT * FROM ugc_post WHERE id=$1 AND published_revision IS NOT NULL FOR UPDATE`,[id])).rows[0];
+      if(!post)throw new DomainError('UGC_POST_NOT_FOUND','帖子不存在',404);
+      if(post.state==='deleted')return {id,state:'deleted',version:post.version,replayed:true};
+      if(!['published','hidden'].includes(post.state)||post.version!==expected)throw new DomainError('UGC_VERSION_CONFLICT','帖子已变化，请刷新后重试',409);
+      await client.query(`UPDATE ugc_post SET state='deleted',visibility='private',deleted_at=now(),version=version+1,updated_at=now() WHERE id=$1`,[id]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+        VALUES($1,'ugc.post_deleted','ugc_post',$2,'ADMIN_REMOVED_PUBLIC_POST',$3,$4,gen_random_uuid()::text)`,
+        [`member:${actor}`,id,{state:post.state,revision:post.published_revision,version:post.version},{state:'deleted',version:post.version+1}]);
+      return {id,state:'deleted',version:post.version+1,replayed:false};
     });
   }
 

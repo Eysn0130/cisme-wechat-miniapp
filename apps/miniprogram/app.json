@@ -258,6 +258,12 @@
       "pages": [
         "index"
       ]
+    },
+    {
+      "root": "pages/management-community",
+      "pages": [
+        "index"
+      ]
     }
   ],
   "window": {
@@ -359,7 +365,8 @@
         "pages/management-privacy",
         "pages/management-fulfillment",
         "pages/aftersale",
-        "pages/community-review"
+        "pages/community-review",
+        "pages/management-community"
       ]
     },
     "pages/management-catalog/index": {

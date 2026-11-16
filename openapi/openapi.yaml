@@ -16,6 +16,48 @@ tags:
   - name: Authority
   - name: Support
 paths:
+  /v1/community/featured:
+    get:
+      operationId: communityFeatured
+      security: [{}, {session: []}]
+      description: Canonical brand articles and explicitly selected public member revisions, with one stable reader-bound keyset cursor. Member content obeys the live UGC gate and reader blocks; author and media ownership never change.
+      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      responses:
+        '200': {description: Mixed-source featured cards with explicit editorial or formal kind and nextCursor}
+        '422': {$ref: '#/components/responses/Problem'}
+  /v1/management/ugc/posts:
+    get:
+      operationId: managedCommunityPosts
+      security: [{session: []}]
+      description: Requires current community.moderate. Returns only previously published revisions in recommend, featured or hidden; never private drafts or unsubmitted newer edits. Text and author search, exact matchingTotal and reader/filter-bound cursor.
+      parameters:
+        - {$ref: '#/components/parameters/Cursor'}
+        - {$ref: '#/components/parameters/PageLimit'}
+        - {name: state, in: query, schema: {type: string, enum: [recommend, featured, hidden], default: recommend}}
+        - {name: q, in: query, schema: {type: string, maxLength: 80}}
+      responses:
+        '200': {description: Bounded published-version management page}
+        '403': {$ref: '#/components/responses/Problem'}
+  /v1/management/ugc/posts/{postId}/placement:
+    put:
+      operationId: setCommunityPostPlacement
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/FormalPostId'}]
+      description: Requires community.moderate and expectedVersion. Selecting another member's current public revision records one points source per post; returning it to recommendation and reselecting never issue another bonus. All real placement changes are audited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [placement, expectedVersion]
+              properties:
+                placement: {type: string, enum: [featured, recommend]}
+                expectedVersion: {type: integer, minimum: 1}
+      responses:
+        '200': {description: Confirmed placement and current post version; duplicate same placement is idempotent}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
   /v1/management/users:
     get:
       tags: [Authority]
@@ -2815,6 +2857,24 @@ paths:
   /v1/management/ugc/appeals/{appealId}/decision:
     post: {operationId: decideFormalUgcAppeal, security: [{session: []}], parameters: [{name: appealId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], description: Requires community.moderate; restore also requires a different reviewer from the hiding actor and the public UGC gate. Only the last published approved revision may be restored., requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, reason, expectedVersion], properties: {decision: {type: string, enum: [restore, uphold]}, reason: {type: string, minLength: 4, maxLength: 500}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Audited appeal outcome}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/posts/{postId}:
+    delete:
+      operationId: deleteManagedCommunityPost
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/FormalPostId'}]
+      description: Requires community.moderate and matching published-post version. Tombstones public or hidden content, hides its public comments and media, retains immutable revision and audit evidence, and uses existing points reversal. Does not delete private drafts or another account's originals from storage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedVersion]
+              properties:
+                expectedVersion: {type: integer, minimum: 1}
+      responses:
+        '200': {description: Confirmed tombstone; duplicate deletion returns the same terminal state}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
     get: {operationId: formalUgcReviewCandidate, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires community.moderate; unsubmitted newer revisions are excluded even if an older revision is public., responses: {'200': {description: Eligible private review candidate with version}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/posts/{postId}/review:
     post: {"operationId":"reviewFormalUgcPost","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/FormalPostId"}],"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points.","requestBody":{"$ref":"#/components/requestBodies/UgcReview"},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true}

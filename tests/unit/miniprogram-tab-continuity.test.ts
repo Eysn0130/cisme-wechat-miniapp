@@ -97,8 +97,8 @@ beforeEach(() => {
     ["/v1/me/tasks", [task]], ["/v1/me/support/summary", { unreadCount: 2 }],
     ["/v1/me/commercial-membership", { eligible: true, membershipState: "active", verifiedOrderCount: 1, commission: { netEarnedCents: 0 } }],
     ["/v1/capabilities", { communityPreviewEnabled: false }], ["/v1/ugc/status", { publicEnabled: false, draftsEnabled: false }],
-    ["/v1/feed/page?limit=30", { items: [], authors: {} }], ["/v1/ugc/posts?limit=30", { items: [], nextCursor: null }],
-    ["/v1/editorial/articles?limit=20", { items: [story], nextCursor: null }], ["/v1/me/community-access", { canReview: false }]
+    ["/v1/feed/page?limit=30", { items: [], authors: {} }], ["/v1/ugc/posts?limit=30&channel=recommend", { items: [], nextCursor: null }],
+    ["/v1/community/featured?limit=20", { items: [story], nextCursor: null }], ["/v1/me/community-access", { canReview: false }]
   ]);
   replies.set("/v1/me/points?limit=20&source=all", { projection: { available: 20, frozen: 0, debt: 0,reserved:0,version:1 }, entries: [], rulesEnabled: true,nextCursor:null,totalCount:0,lifetimeEarned:20,used:0,expired:0,expiring:{points:0,earliestAt:null,withinDays:30},clubPolicy:null });
   replies.set('/v1/me/points/club',{memberId:authorId,enabled:false,policy:null,serverDay:'2026-11-10',checkedIn:true,streak:1,today:{id:'usage-a',products:['essence'],note:'',version:1},badges:[],pendingRewardSources:0,birthday:null,questionnaireCompleted:false});
@@ -149,7 +149,7 @@ describe("native tab return presentation while real read paths revalidate", () =
     expect(columns[1].textContent).toContain("新右列");
   });
 
-  it.each(["/v1/capabilities", "/v1/me/community-access", "/v1/feed/page?limit=30", "/v1/ugc/posts?limit=30"])("renders returned Featured content while ancillary %s is still pending", async path => {
+  it.each(["/v1/capabilities", "/v1/me/community-access", "/v1/feed/page?limit=30", "/v1/ugc/posts?limit=30&channel=recommend"])("renders returned Featured content while ancillary %s is still pending", async path => {
     const pending = later(); held.set(path, pending);
     const { page, rendered, states } = await mount("community");
     const reading = page.load();
@@ -164,7 +164,7 @@ describe("native tab return presentation while real read paths revalidate", () =
   });
 
   it("does not reset the two empty column arrays on the first Community read", async () => {
-    const pending = later(); held.set("/v1/editorial/articles?limit=20", pending);
+    const pending = later(); held.set("/v1/community/featured?limit=20", pending);
     const { page, patches } = await mount("community"); const reading = page.load();
     try {
       await flush();
@@ -175,7 +175,7 @@ describe("native tab return presentation while real read paths revalidate", () =
   it("clears previously visible Featured cards immediately when its authoritative read fails, even while capabilities are pending", async () => {
     const { page, rendered } = await mount("community"); await page.load();
     const capabilities = later(), editorial = later();
-    held.set("/v1/capabilities", capabilities); held.set("/v1/editorial/articles?limit=20", editorial);
+    held.set("/v1/capabilities", capabilities); held.set("/v1/community/featured?limit=20", editorial);
     const reading = page.load();
     try {
       editorial.reject({status:503}); await flush();
@@ -284,7 +284,7 @@ describe("native tab return presentation while real read paths revalidate", () =
     m.token = token;
     const { page, rendered } = await mount("community"); await page.load(); await flush();
     const card = rendered.querySelector(".feed-card").dom;
-    const editorial = later(); held.set("/v1/editorial/articles?limit=20", editorial);
+    const editorial = later(); held.set("/v1/community/featured?limit=20", editorial);
     const tasks = later(); held.set("/v1/me/tasks", tasks);
     page.onHide(); page.onShow(); await flush();
     expect(rendered.querySelector(".feed-card").dom).toBe(card);
@@ -295,13 +295,13 @@ describe("native tab return presentation while real read paths revalidate", () =
     tasks.resolve([task]); await flush();
     expect(rendered.querySelector(".feed-card").dom).toBe(card);
     expect(card.textContent).toContain("更新后的合成故事");
-    expect(m.request.mock.calls.filter(([options]) => options.path === "/v1/editorial/articles?limit=20")).toHaveLength(2);
+    expect(m.request.mock.calls.filter(([options]) => options.path === "/v1/community/featured?limit=20")).toHaveLength(2);
   });
 
   it.each(["actor", "environment"])("clears Community snapshots before reading a different %s", async kind => {
     const { page, rendered } = await mount("community"); await page.load(); await flush();
     if (kind === "actor") m.token = "member-b"; else { m.revision++; m.origin = "https://other-synthetic.invalid"; }
-    const editorial = later(); held.set("/v1/editorial/articles?limit=20", editorial);
+    const editorial = later(); held.set("/v1/community/featured?limit=20", editorial);
     const tasks = later(); held.set("/v1/me/tasks", tasks);
     page.onHide(); page.onShow(); await flush();
     expect(rendered.querySelector(".feed-card")).toBeFalsy();
@@ -455,10 +455,10 @@ describe("native tab return presentation while real read paths revalidate", () =
   });
 
   it("keeps a confirmed empty Community state through a return read", async () => {
-    replies.set("/v1/editorial/articles?limit=20", { items: [], nextCursor: null });
+    replies.set("/v1/community/featured?limit=20", { items: [], nextCursor: null });
     replies.set("/v1/me/tasks", []);
     const { page, rendered } = await mount("community"); await page.load(); await flush();
-    const pending = later(); held.set("/v1/editorial/articles?limit=20", pending);
+    const pending = later(); held.set("/v1/community/featured?limit=20", pending);
     page.onHide(); page.onShow(); await flush();
     expect(page.data).toMatchObject({ feedReady: true, displayFeedCount: 0, loading: true });
     expect(rendered.dom.textContent).toContain("还没有精选内容");

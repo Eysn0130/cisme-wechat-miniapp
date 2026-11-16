@@ -360,7 +360,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         /^\/v1\/ugc\/scan-source\/[0-9a-f-]+$/i.test(path) ||
         /^\/v1\/ugc\/own-preview\/[0-9a-f-]+\/[0-9a-f-]+$/i.test(path));
     const publicEditorialRead = request.method === "GET" && !request.headers.authorization &&
-      (path === "/v1/editorial/articles" || /^\/v1\/editorial\/(articles|authors)\/[^/]+$/.test(path) ||
+      (path === "/v1/community/featured" || path === "/v1/editorial/articles" || /^\/v1\/editorial\/(articles|authors)\/[^/]+$/.test(path) ||
         /^\/v1\/editorial\/media\/[0-9a-f-]{36}\/[0-9a-f]{64}$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || /^\/v1\/catalog\/public-images\/[a-z0-9-]+\.jpg$/.test(path) || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
     if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || publicRewardInvitation || (request.method==="POST"&&/^\/v1\/officer-shares\/[0-9a-f]{32}\/visits$/.test(path)) || publicCommunityRead) return;
@@ -427,6 +427,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.put("/v1/management/community/official-profile",request=>communityProfile.updateOfficialBio(request.memberId,request.principalId,(request.body??{}) as never));
   app.post("/v1/me/legal-acceptances",request=>editorial.acceptCurrentLegal(request.memberId,request.principalId,(request.body??{}) as {consents?:unknown}));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/articles",request=>editorial.list(request.query));
+  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/community/featured",request=>editorial.communityFeatured(request.memberId,request.query));
   app.get<{Params:{id:string}}>("/v1/editorial/articles/:id",request=>editorial.detail(request.memberId,request.params.id));
   app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/editorial/authors/:id",request=>editorial.author(request.memberId,request.params.id,request.query));
   app.get<{Params:{id:string;sha:string}}>("/v1/editorial/media/:id/:sha",async(request,reply)=>{
@@ -453,7 +454,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{commentId:string}}>("/v1/management/editorial/comments/:commentId/review",request=>editorialComments.review(request.memberId,request.principalId,request.params.commentId,(request.body??{}) as never));
   app.put<{Params:{id:string}}>("/v1/management/editorial/articles/:id/comments-policy",request=>editorialComments.setPolicy(request.memberId,request.principalId,request.params.id,(request.body??{}) as never));
 
-  app.get<{Querystring:{q?:string;authorId?:string;limit?:string;cursor?:string;following?:string}}>("/v1/ugc/posts", async request => formalUgc.feed(request.memberId,request.query));
+  app.get<{Querystring:{q?:string;authorId?:string;limit?:string;cursor?:string;following?:string;channel?:string}}>("/v1/ugc/posts", async request => formalUgc.feed(request.memberId,request.query));
   app.get<{Params:{authorId:string}}>("/v1/ugc/authors/:authorId", async request => formalUgc.publicAuthor(request.memberId,request.params.authorId));
   app.get<{Params:{postId:string}}>("/v1/ugc/posts/:postId", async request => formalUgc.publicPost(request.memberId,request.params.postId));
   app.get<{Params:{postId:string};Querystring:{limit?:string;cursor?:string;reader?:string}}>("/v1/ugc/posts/:postId/comments",
@@ -527,6 +528,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post<{Params:{targetType:string;targetId:string}}>("/v1/ugc/reports/:targetType/:targetId", async request => formalUgc.report(request.memberId,request.params.targetType,request.params.targetId,(request.body??{}) as never));
   app.put<{Params:{memberId:string}}>("/v1/me/ugc/blocks/:memberId", async request => formalUgc.block(request.memberId,request.params.memberId,(request.body as {active?:unknown})?.active));
   app.get("/v1/management/ugc/review-queue", async request => formalUgc.reviewQueue(request.memberId));
+  app.get<{Querystring:{state?:string;q?:string;limit?:string;cursor?:string}}>("/v1/management/ugc/posts",request=>formalUgc.managementPosts(request.memberId,request.query));
+  app.put<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId/placement",request=>formalUgc.managePlacement(request.memberId,request.params.postId,(request.body??{}) as never));
+  app.delete<{Params:{postId:string}}>("/v1/management/ugc/posts/:postId",request=>formalUgc.deleteManagedPost(request.memberId,request.params.postId,(request.body as {expectedVersion?:unknown})?.expectedVersion));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/ugc/reports",async request=>
     formalUgc.reportQueue(request.memberId,request.query));
   app.post<{Params:{reportId:string}}>("/v1/management/ugc/reports/:reportId/decision",async request=>

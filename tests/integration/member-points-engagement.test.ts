@@ -97,7 +97,7 @@ it('rewards only two newly safe public posts per Shanghai week, adds featured se
  publicPost=posts[1]!;await processRewards();expect(await balance(owner)).toBe(100);
  await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'community.moderate','fixture','Synthetic points featured','test','integration_fixture')",[reader.memberId]);
  const selected=await app.inject({method:'POST',url:`/v1/management/points/featured/${posts[0]!.id}`,headers:auth(reader),payload:{reason:'合成真实来源精选核对'}});expect(selected.statusCode,selected.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(200);
- const removed=await app.inject({method:'DELETE',url:`/v1/me/ugc/posts/${posts[0]!.id}`,headers:auth(),payload:{expectedVersion:posts[0]!.version}});expect(removed.statusCode,removed.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(50);
+ const removed=await app.inject({method:'DELETE',url:`/v1/me/ugc/posts/${posts[0]!.id}`,headers:auth(),payload:{expectedVersion:selected.json().version}});expect(removed.statusCode,removed.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(50);
 });
 it('supports an image-only published note without a null-body reward failure',async()=>{
  const previous=owner;owner=await identity('合成纯图片积分');try{const d=await draft(1,null),p=await submit(d.post);expect(p.statusCode,p.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(50);}finally{owner=previous;}

@@ -35,7 +35,7 @@ const imageEvent=(src=page.data.media[0],identity=page.data.imageEventId,index=0
 describe("published editorial native contracts",()=>{
  it.each(['community','post','community-author'] as const)('shows the brand portrait on %s while preserving the real article and author relationships',async(name)=>{
   if(name==='community')mocks.request.mockImplementation(({path}:any)=>{
-   if(path==='/v1/editorial/articles?limit=20')return Promise.resolve({items:[{...card(),author:defaultEditorialPublisherName,authorId:officialEditorialPublisherId}],nextCursor:null});
+   if(path==='/v1/community/featured?limit=20')return Promise.resolve({items:[{...card(),author:defaultEditorialPublisherName,authorId:officialEditorialPublisherId}],nextCursor:null});
    if(path==='/v1/capabilities')return Promise.resolve({communityPreviewEnabled:false});
    if(path==='/v1/ugc/status')return Promise.resolve({publicEnabled:false});
    return Promise.reject({status:403});
@@ -171,7 +171,7 @@ describe("published editorial native contracts",()=>{
  });
  it("shows published featured content while ordinary UGC and preview remain closed",async()=>{
   mocks.request.mockImplementation(({path}:any)=>{
-   if(path==="/v1/editorial/articles?limit=20")return Promise.resolve({items:[card()],nextCursor:null});
+   if(path==="/v1/community/featured?limit=20")return Promise.resolve({items:[card()],nextCursor:null});
    if(path==="/v1/capabilities")return Promise.resolve({communityPreviewEnabled:false});if(path==="/v1/ugc/status")return Promise.resolve({publicEnabled:false});
    return Promise.reject({status:403});
   });
@@ -199,10 +199,10 @@ describe("published editorial native contracts",()=>{
   page.openPublisher();expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();
  });
  it("keeps featured empty and error separate and deduplicates real pagination",async()=>{
-  mocks.request.mockImplementation(({path}:any)=>Promise.resolve(path==="/v1/editorial/articles?limit=20"?{items:[],nextCursor:null}:{}));
+  mocks.request.mockImplementation(({path}:any)=>Promise.resolve(path==="/v1/community/featured?limit=20"?{items:[],nextCursor:null}:{}));
   await mount("community");await page.load();expect(page.data).toMatchObject({loading:false,error:"",displayFeedCount:0});
   mocks.request.mockImplementation(({path}:any)=>path.startsWith("/v1/editorial/")?Promise.reject(new Error("offline")):Promise.resolve({}));await page.load();expect(page.data.error).toContain("暂时无法加载");
-  mocks.request.mockImplementation(({path}:any)=>Promise.resolve(path==="/v1/editorial/articles?limit=20"?{items:[card()],nextCursor:"next"}:{}));await page.load();
+  mocks.request.mockImplementation(({path}:any)=>Promise.resolve(path==="/v1/community/featured?limit=20"?{items:[card()],nextCursor:"next"}:{}));await page.load();
   mocks.request.mockResolvedValueOnce({items:[card(),card(secondId),card(secondId)],nextCursor:null});await page.onReachBottom();
   expect(page.data.feedColumns.flat().map((item:any)=>item.id).sort()).toEqual([articleId,secondId].sort());expect(page.data.editorialNextCursor).toBeNull();
  });

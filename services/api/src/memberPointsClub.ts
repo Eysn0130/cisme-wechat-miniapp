@@ -1,3 +1,4 @@
+import {featureCommunityPost} from './communityCuration.js';
 import {saveMemberBirthday} from './memberBirthday.js';
 import {careDayRewards} from './careUsageRewards.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID} from 'node:crypto';
@@ -165,12 +166,7 @@ export class MemberPointsClub{
   async selectFeatured(memberId:string|undefined,postId:string,input:unknown,at?:Date){
     const b=object(input,['reason']);if(typeof b.reason!=='string'||b.reason.trim().length<4||b.reason.trim().length>500)fail('POINTS_FEATURE_REASON_REQUIRED','请填写4至500字精选依据');
     const reason=b.reason.trim();return transaction(this.pool,async c=>{const actor=await this.authority.requireWithClient(c,memberId,'community.moderate');
-      const now=at??(await c.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
-      const post=(await c.query(`SELECT * FROM ugc_post WHERE id=$1 AND state='published' AND visibility='public' FOR SHARE`,[uuid(postId)])).rows[0];
-      if(!post)fail('POINTS_FEATURE_POST_UNAVAILABLE','只能精选当前公开的会员笔记',409);
-      const selected=(await c.query(`INSERT INTO member_points_featured(post_id,selected_by,selected_at,reason) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING post_id`,[postId,actor,now,reason])).rowCount;
-      if(selected)await c.query(`INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at) VALUES('featured',$1,$2,$3) ON CONFLICT DO NOTHING`,[postId,post.author_member_id,now]);
-      return {selected:true,replayed:!selected};
+      return featureCommunityPost(c,actor,uuid(postId),reason,undefined,at);
     });
   }
 }

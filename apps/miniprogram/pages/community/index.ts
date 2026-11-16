@@ -4,7 +4,7 @@ import { measurementClock, recordClientMetric } from "../../services/performance
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors, prepareFeedPage } from "../../services/member-avatar";
 import { request, resumeAuthentication } from "../../services/api";
-import { editorialStoriesForRuntime, editorialMediaSrc, publishedEditorialArticles, expiredEditorialRead, type PublishedEditorialCard } from "../../services/editorial";
+import { editorialStoriesForRuntime, editorialMediaSrc, publishedCommunityFeatured, expiredEditorialRead, type PublishedEditorialCard } from "../../services/editorial";
 import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { currentChromeStyle } from "../../services/layout";
 import { memberIdentity } from "../../services/member-identity";
@@ -284,7 +284,7 @@ Page({
     const token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({formalLoadingMore:true,moreError:""});
     try{
-      const following=mode==="following"?"&following=1":"";
+      const following=mode==="following"?"&following=1":"&channel=recommend";
       const page=await pageRead<{items:any[];nextCursor:string|null}>(this, {path:`/v1/ugc/posts?limit=30&cursor=${encodeURIComponent(cursor)}${following}`,
         authMode:token?"optional":"public"});
       if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||mode!==this.data.mode)return;
@@ -303,7 +303,7 @@ Page({
     const cursor=this.data.editorialNextCursor,attempt=this.data.feedAttempt,token=getApp<IAppOption>().globalData.sessionToken;
     if(this.data.mode!=="featured"||!cursor||this.data.loading||this.data.formalLoadingMore)return;
     this.setData({formalLoadingMore:true,moreError:""});
-    try{const page=await publishedEditorialArticles(this,cursor);
+    try{const page=await publishedCommunityFeatured(this,cursor);
       if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||this.data.mode!=="featured"||cursor!==this.data.editorialNextCursor)return;
       const model=feedModel(this),seen=new Set(model.editorial.map(item=>item.id));
       model.editorial=[...model.editorial,...page.items.filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true;})];
@@ -334,7 +334,10 @@ Page({
     const reviewed = (this.data.mode === "following" ? model.following : model.feed).map((item: any) => item.kind === "editorial" ? item : item.kind === "formal"
       ? { ...item, avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: `${item.likeCount || 0} 赞` }
       : { ...item, kind: "ugc", image: item.image || "", avatar: item.avatar || defaultMemberAvatar, author: item.author || "CISME 会员", engagementLabel: "" });
-    const featured = model.editorial.map(item => ({ ...item, kind:"editorial", author_id:item.authorId,
+    const origin=getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/,'');
+    const featured = model.editorial.map(item => item.kind==='formal'?({...item,kind:'formal',author_id:item.authorId,
+      image:item.coverId&&/^[0-9a-f-]{36}$/i.test(item.coverId)?`${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail`:'',
+      avatar:item.avatar||defaultMemberAvatar,engagementLabel:`${item.likeCount} 赞`}):({ ...item, kind:"editorial", author_id:item.authorId,
       image:editorialMediaSrc(item.coverUrl),avatar:editorialPublisherAvatar(item.author,defaultMemberAvatar,item.authorId),engagementLabel:`${item.likeCount} 赞` }));
     const items = this.data.mode === "featured" ? featured : reviewed;
     const patch = { ...feedColumnPatch(this.data.feedColumns, projectFeedCards(items)), ...state };
@@ -541,7 +544,7 @@ Page({
     const failedRead=(error:unknown)=>{this.recoverExpiredEditorialRead(attempt,session,error);return {error};};
     // Featured content owns first paint. Ancillary capability/access reads
     // must not hold returned cards behind their network deadline.
-    const editorialPromise=publishedEditorialArticles(this).then(feed=>{
+    const editorialPromise=publishedCommunityFeatured(this).then(feed=>{
       if(!Array.isArray(feed?.items))throw new Error("EDITORIAL_PAGE_INVALID");
       if(current()&&this.data.mode==="featured"){
         model.editorial=feed.items;
@@ -561,7 +564,7 @@ Page({
       .then(([health,ugc]) => ({ ugcFeedEnabled: ugc.publicEnabled === true, ugcDraftsEnabled: ugc.draftsEnabled === true, socialPreviewEnabled: health.communityPreviewEnabled === true }))
       .catch(error => {failedRead(error);return { ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false };});
     const feedPromise = pageRead<{items:any[];authors?:Record<string,any>}>(this,{ path: "/v1/feed/page?limit=30", authMode: "public" }).then(feed => ({ feed }), failedRead);
-    const formalPromise = pageRead<{items:any[];nextCursor:string|null}>(this,{ path: "/v1/ugc/posts?limit=30", authMode: getApp<IAppOption>().globalData.sessionToken ? "optional" : "public" })
+    const formalPromise = pageRead<{items:any[];nextCursor:string|null}>(this,{ path: "/v1/ugc/posts?limit=30&channel=recommend", authMode: getApp<IAppOption>().globalData.sessionToken ? "optional" : "public" })
       .then(feed => ({ feed }), failedRead);
     this.setData({ canReview: false, follows: [], profileReviewQueue: [] });
     const capabilities = await capabilityPromise;

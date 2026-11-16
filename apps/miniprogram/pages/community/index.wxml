@@ -1,7 +1,7 @@
 <import src="../../templates/community-feed.wxml"/>
 <view class="page community-page" style="{{chromeStyle}}">
   <view class="community-head">
-    <view class="community-title-row"><view class="community-wordmark">CISME <text class="community-wordmark__section">社区</text></view><view class="community-curation">{{mode === 'following' ? '关注动态' : '品牌精选'}}</view></view>
+    <view class="community-title-row"><view class="community-wordmark">CISME <text class="community-wordmark__section">社区</text></view><view class="community-curation">{{mode === 'following' ? '关注动态' : mode === 'featured' ? '社区精选' : ''}}</view></view>
     <view class="community-mode"><section-tabs id="page-tabs" items="{{[{id:'featured',label:'精选'},{id:'following',label:'关注'},{id:'recommend',label:'推荐',hidden:!ugcFeedEnabled&&!socialPreviewEnabled},{id:'review',label:'内容管理',hidden:!canReview}]}}" value="{{mode}}" label="社区内容分类" bindchange="selectMode" disabled="{{reviewBusy||publishEntryBusy||navigating}}"/></view>
   </view>
 
