@@ -350,6 +350,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       /^\/v1\/community\/authors\/[0-9a-f-]{36}$/i.test(path)) && !request.headers.authorization;
     const publicShareRead = request.method === "GET" && /^\/v1\/shares\/[0-9a-f]{32}$/.test(path);
     const publicShareVisit = request.method === "POST" && /^\/v1\/shares\/[0-9a-f]{32}\/visits$/.test(path);
+    const publicRewardInvitation = request.method === "GET" && /^\/v1\/rewards\/invitations\/[0-9a-f]{64}$/.test(path);
     const publicFeedRead = request.method === "GET" && (path === "/v1/feed" || path.startsWith("/v1/feed/"));
     const publicUgcRead = request.method === "GET" && !request.headers.authorization &&
       (path === "/v1/ugc/status" || path === "/v1/ugc/posts" || /^\/v1\/ugc\/posts\/[0-9a-f-]+$/i.test(path) ||
@@ -361,7 +362,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (path === "/v1/editorial/articles" || /^\/v1\/editorial\/(articles|authors)\/[^/]+$/.test(path) ||
         /^\/v1\/editorial\/media\/[0-9a-f-]{36}\/[0-9a-f]{64}$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || /^\/v1\/catalog\/public-images\/[a-z0-9-]+\.jpg$/.test(path) || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
-    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || (request.method==="POST"&&/^\/v1\/officer-shares\/[0-9a-f]{32}\/visits$/.test(path)) || publicCommunityRead) return;
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || publicRewardInvitation || (request.method==="POST"&&/^\/v1\/officer-shares\/[0-9a-f]{32}\/visits$/.test(path)) || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if(principal.scope==="privacy_rights"){
@@ -808,6 +809,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/catalog", async request => catalog.publicList(request.query));
   app.get<{Params:{productCode:string}}>("/v1/catalog/:productCode", async request => catalog.publicDetail(request.params.productCode));
   app.get("/v1/commerce/orders/status", async () => orders.status());
+  app.get<{Params:{token:string}}>('/v1/rewards/invitations/:token',request=>activityRewards.invitation(request.params.token));
+  app.post<{Params:{token:string}}>('/v1/me/rewards/invitations/:token/accept',request=>activityRewards.acceptInvitation(request.memberId,request.params.token,idempotencyKey(request)));
   app.get<{Querystring:{claimsCursor?:string}}>('/v1/me/rewards',async(request,reply)=>{reply.header('Cache-Control','private, no-store');return activityRewards.mine(request.memberId,undefined,request.query.claimsCursor);});
   app.get<{Params:{voucherId:string}}>('/v1/me/rewards/vouchers/:voucherId',request=>activityRewards.selection(request.memberId,request.params.voucherId));
   app.post('/v1/me/rewards/quotes',request=>activityRewards.quote(request.memberId,idempotencyKey(request),request.body));
@@ -823,6 +826,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{activityId?:string;state?:string;after?:string;memberId?:string;voucherId?:string;claimId?:string}}>('/v1/management/rewards',request=>activityRewards.management(request.memberId,request.query));
   app.post('/v1/management/rewards/activities',request=>activityRewards.configure(request.memberId,idempotencyKey(request),request.body));
   app.post('/v1/management/rewards/inventory',request=>activityRewards.inventory(request.memberId,idempotencyKey(request),request.body));
+  app.post('/v1/management/rewards/bundle-inventory',request=>activityRewards.bundleInventory(request.memberId,idempotencyKey(request),request.body));
+  app.post<{Params:{activityId:string}}>('/v1/management/rewards/activities/:activityId/share',request=>activityRewards.prepareShare(request.memberId,request.params.activityId,idempotencyKey(request)));
   app.post<{Params:{activityId:string}}>('/v1/management/rewards/activities/:activityId/issue',request=>activityRewards.issue(request.memberId,request.params.activityId,idempotencyKey(request),request.body));
   app.post<{Params:{voucherId:string}}>('/v1/management/rewards/vouchers/:voucherId/revoke',request=>activityRewards.revoke(request.memberId,request.params.voucherId,idempotencyKey(request),request.body));
   app.get<{Params:{claimId:string}}>('/v1/management/rewards/claims/:claimId',request=>activityRewards.detail(request.memberId,request.params.claimId,true));

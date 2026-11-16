@@ -291,23 +291,17 @@
     {
       "platform": "ios",
       "result": "blocked",
+      "packageSourceSha256": null,
       "evidenceFiles": []
     },
     {
       "platform": "android",
-      "result": "waived",
-      "evidenceFiles": [],
-      "ownerWaiver": {
-        "authority": "project_owner",
-        "scope": "android_physical_device",
-        "packageSourceSha256": "8782985898c793cf3fc6598f473bf7a87773c8750222c3a5e526cc6b6a94a557",
-        "decisionDate": "2026-11-15",
-        "question": "正式发布门禁还要求 Android 真机验证。你目前是否能提供一台有体验权限的 Android 手机扫码配合？模拟器不能替代这项证据。",
-        "answer": "跳过这一步"
-      }
+      "result": "blocked",
+      "packageSourceSha256": null,
+      "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "8782985898c793cf3fc6598f473bf7a87773c8750222c3a5e526cc6b6a94a557",
+  "packageSourceSha256": "affe571e3704369cf06e8ea61ce9a2c907333fa75840dc8fde9a14aa9fffd77a",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",

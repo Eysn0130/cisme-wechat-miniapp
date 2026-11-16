@@ -257,8 +257,8 @@ describe("WeChat release preflight", () => {
       expect(release.errors).toContain("MINIPROGRAM_FILING_REQUIRED");
       expect(release.errors).toContain("PRODUCTION_SELLABLE_CATALOG_EMPTY");
       expect(release.errors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:ios");
-      expect(release.errors).not.toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
-      expect(release.waivedDeviceTests).toEqual(["android"]);
+      expect(release.errors).toContain("DESIGN_QA_DEVICE_EVIDENCE_REQUIRED:android");
+      expect(release.waivedDeviceTests).toEqual([]);
       expect(release.errors.some((error: string) => error.startsWith("DESIGN_QA_ROUTE_MATRIX_INCOMPLETE"))).toBe(true);
       for (const [receipt, target] of [[trial, "trial"], [release, "release"]] as const) {
         expect(receipt.errors).toContain("PUBLIC_LEGAL_BOOTSTRAP_FAILED:LEGAL_NOT_PUBLISHED");

@@ -4,7 +4,8 @@ import { careCommandConfirmed, type CareCommand } from "../../services/care-comm
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { memberIdentity } from "../../services/member-identity";
-import {queueCareFeedback,forgetOnboardingFeedback,confirmCreditOwner,isCreditOwner} from '../../services/points-feedback';
+import {queueCareFeedback,forgetOnboardingFeedback,confirmCreditOwner,isCreditOwner,hasOnboardingFeedback} from '../../services/points-feedback';
+import {pendingRewardInvitationPath} from '../../services/reward-invitation';
 import { requireMemberAccess, retainMemberSnapshot, request, navigateAfterAuthentication } from "../../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { registerIncomingShare } from "../../services/share";
@@ -225,7 +226,7 @@ Page({
     if (identity) this.setData({ view: homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
     this.syncDailyHomeView();
     this.startDaypartClock();
-    void this.load(retainMemberSnapshot(this));
+    void Promise.resolve(this.load(retainMemberSnapshot(this))).then(ready=>{if(ready&&!this.data.onboardingRequired&&pendingRewardInvitationPath())void this.resumeOnboardingDestination();});
   },
   onHide() {
     cancelPageReads(this);
@@ -400,11 +401,21 @@ Page({
     if(!confirmed||!this.isCurrentUi(epoch,token)||this.data.onboardingRequired)return;
     await new Promise<void>(resolve=>this.setData({onboardingOpen:false},resolve));this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
     await this.selectComponent?.('#onboarding-credit')?.present?.();
-    if(!this.isCurrentUi(epoch,token))return;
-    const app=getApp<IAppOption>(),destination=app.globalData.onboardingReturnToken===token?app.globalData.onboardingReturnUrl:undefined;
-    delete app.globalData.onboardingReturnUrl;
-    delete app.globalData.onboardingReturnToken;
-    if(destination&&destination!=='/pages/home/index')await navigateAfterAuthentication(destination);
+    if(this.isCurrentUi(epoch,token))await this.resumeOnboardingDestination();
+  },
+  finishCredit(event:WechatMiniprogram.CustomEvent<{owner:string;kind:string}>){if(event.detail.owner===this.data.memberId&&event.detail.kind==='questionnaire')void this.resumeOnboardingDestination();},
+  async resumeOnboardingDestination(){
+    const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;
+    if(!token||this.data.onboardingOpen||this.data.onboardingRequired||!this.data.memberId||this.data.accountOpening)return;
+    await this.selectComponent?.('#onboarding-credit')?.present?.();
+    if(!this.isCurrentUi(epoch,token)||this.data.onboardingOpen||this.data.accountOpening)return;
+    const app=getApp<IAppOption>(),owned=app.globalData.onboardingReturnToken===token?app.globalData.onboardingReturnUrl:undefined,destination=owned&&owned!=='/pages/home/index'?owned:pendingRewardInvitationPath();
+    if(!destination||destination==='/pages/home/index')return;
+    if(destination.includes('/pages/rewards/index?invite=')&&hasOnboardingFeedback(this.data.memberId))return;
+    delete app.globalData.onboardingReturnUrl;delete app.globalData.onboardingReturnToken;
+    this.setData({accountOpening:true});
+    await navigateAfterAuthentication(destination);
+    if(this.isCurrentUi(epoch,token))this.setData({accountOpening:false});
   },
   selectProtocolStep(event: WechatMiniprogram.TouchEvent) {
     if (this.data.sessionOpen) return;

@@ -37,6 +37,56 @@ beforeAll(async()=>{
  activity=await rewards.configure(operator.memberId,key(),{code:'reward-isolated-20261113',title:'隔离活动',expectedVersion:0,terms:{maxAwardsPerMember:1,voucherValidityDays:30,shippingCents:0,dispatchHours:72,restoreGraceDays:0,stockoutPolicy:'retain_until_expiry',eligibleProductIds:[product.productId]},action:'publish',reason:'隔离活动完整回归'});
 });
 afterAll(async()=>{await app?.close();await pool.end();});
+describe('TRV-SHARE public invitations and two bundle stock',()=>{
+ it('creates one reusable administrator link and exposes no member data to visitors',async()=>{
+  const a=await rewards.prepareShare(operator.memberId,activity.id,key()),b=await rewards.prepareShare(operator.memberId,activity.id,key());
+  expect(b.token).toBe(a.token);expect(a.token).toMatch(/^[a-f0-9]{64}$/);expect(a.path).toBe(`/pages/rewards/index?invite=${a.token}`);
+  const publicRead=await app.inject({method:'GET',url:`/v1/rewards/invitations/${a.token}`});expect(publicRead.statusCode,publicRead.body).toBe(200);
+  expect(publicRead.json().bundles.map((v:any)=>v.code)).toEqual(['moisture','dandruff']);
+  expect(publicRead.body).not.toContain(operator.memberId);expect(publicRead.json()).not.toHaveProperty('created_by');
+  const p=await person();await expect(rewards.prepareShare(p.memberId,activity.id,key())).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+  expect((await app.inject({method:'POST',url:`/v1/me/rewards/invitations/${a.token}/accept`,headers:{'idempotency-key':key()},payload:{}})).statusCode).toBe(401);
+  const invalid=a.token.slice(0,-1)+(a.token.endsWith('0')?'1':'0');await expect(rewards.invitation(invalid)).rejects.toMatchObject({code:'REWARD_LINK_UNAVAILABLE'});
+ });
+ it('waits for first onboarding and retains the received voucher without reserving a physical set',async()=>{
+  const share=await rewards.prepareShare(operator.memberId,activity.id,key()),p=await person();
+  await expect(rewards.acceptInvitation(p.memberId,share.token,key())).rejects.toMatchObject({code:'REWARD_ONBOARDING_REQUIRED'});
+  expect((await rewards.mine(p.memberId)).vouchers).toHaveLength(0);await survey(p);
+  const before=(await pool.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows;
+  const received=await rewards.acceptInvitation(p.memberId,share.token,key());expect(received).toMatchObject({issued:true,memberId:p.memberId,voucher:{state:'unused',claimId:null}});
+  expect((await rewards.mine(p.memberId)).vouchers[0]?.id).toBe(received.id);
+  expect((await pool.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows).toEqual(before);
+  expect((await rewards.mine(p.memberId)).claims).toHaveLength(0);
+ });
+ it('never grants a second voucher when a link is forwarded or accepted with a new operation',async()=>{
+  const share=await rewards.prepareShare(operator.memberId,activity.id,key()),p=await person();await survey(p);
+  const a=await rewards.acceptInvitation(p.memberId,share.token,key()),again=await rewards.acceptInvitation(p.memberId,share.token,key());
+  expect(again).toMatchObject({issued:false,id:a.id});expect((await rewards.mine(p.memberId)).vouchers).toHaveLength(1);
+  const q=await person();await survey(q);const other=await rewards.acceptInvitation(q.memberId,share.token,key());expect(other.issued).toBe(true);expect(other.id).not.toBe(a.id);
+  const rows=(await pool.query('SELECT source_record_id,batch_id FROM reward_award WHERE member_id=$1',[p.memberId])).rows;
+  expect(rows).toHaveLength(1);expect(rows[0].source_record_id).toBe(`share:${share.id}:${p.memberId}`);
+ });
+ it('coalesces simultaneous accepts for the same canonical member into one voucher',async()=>{
+  const share=await rewards.prepareShare(operator.memberId,activity.id,key()),p=await person();await survey(p);
+  const received=await Promise.all([rewards.acceptInvitation(p.memberId,share.token,key()),rewards.acceptInvitation(p.memberId,share.token,key())]);
+  expect(new Set(received.map(r=>r.id)).size).toBe(1);expect(received.filter(r=>r.issued)).toHaveLength(1);
+  expect((await rewards.mine(p.memberId)).vouchers).toHaveLength(1);
+  expect(Number((await pool.query('SELECT count(*) n FROM reward_award WHERE member_id=$1',[p.memberId])).rows[0].n)).toBe(1);
+ });
+ it('adjusts full sets without a typed reason and includes their shared conditioner atomically',async()=>{
+  const before=(await rewards.management(operator.memberId)).bundles;
+  const first=before.find(b=>b.code==='moisture')!,second=before.find(b=>b.code==='dandruff')!;
+  const stock=(await pool.query('SELECT code,stock_on_hand FROM reward_component_inventory ORDER BY code')).rows;
+  await rewards.bundleInventory(operator.memberId,key(),{bundleCode:'moisture',expectedVersions:first.expectedVersions,delta:50});
+  await expect(rewards.bundleInventory(operator.memberId,key(),{bundleCode:'dandruff',expectedVersions:second.expectedVersions,delta:50})).rejects.toMatchObject({code:'REWARD_CHANGED'});
+  const updated=(await rewards.management(operator.memberId)).bundles.find(b=>b.code==='dandruff')!;
+  await rewards.bundleInventory(operator.memberId,key(),{bundleCode:'dandruff',expectedVersions:updated.expectedVersions,delta:50});
+  const after=(await pool.query('SELECT code,stock_on_hand FROM reward_component_inventory ORDER BY code')).rows;
+  for(const row of stock)expect(after.find(r=>r.code===row.code).stock_on_hand-row.stock_on_hand).toBe(row.code==='conditioner100'?100:50);
+  const audit=(await pool.query("SELECT details FROM reward_event WHERE action='reward.bundle.stock.adjust' ORDER BY created_at DESC LIMIT 1")).rows[0];
+  expect(audit.details).toMatchObject({reason:'管理员调整旅行洗护套库存',delta:50,bundleCode:'dandruff'});
+ });
+});
 describe('TRV native service and HTTP business authority',()=>{
  it('binds awards to existing members, deduplicates award records and globally limits one voucher per user ID',async()=>{
   const p=await person(),source=key(),b={batchId:'first-batch',awards:[{sourceRecordId:source,memberId:p.memberId}]};
@@ -159,4 +209,24 @@ it('reconciles available coupons, consumed travel awards and owned source links 
  const expired=await person();await issue(expired,new Date(Date.now()-31*86400000));
  expect((await admin.overview(operator.memberId,expired.memberId)).member.rewards).toEqual({availableCoupons:0,unclaimedRewards:0});
  expect((await admin.section(operator.memberId,expired.memberId,'vouchers') as any).items[0].state).toBe('expired');
+});
+
+// Last in this disposable fixture: drive both real component ledgers to their
+// final units, without changing any live environment or other test file.
+it('awards the last set once under contention and leaves only the other bundle selectable',async()=>{
+ const a=await ready(),b=await ready(),share=await rewards.prepareShare(operator.memberId,activity.id,key());
+ await pool.query("UPDATE reward_component_inventory SET stock_on_hand=CASE WHEN code='conditioner100' THEN 2 ELSE 1 END,reserved_quantity=0,confirmed=true,version=version+1");
+ const quotes=await Promise.all([quote(a),quote(b)]),operations=[key(),key()];
+ const results=await Promise.allSettled([rewards.claim(a.p.memberId,operations[0]!,{quoteId:quotes[0]!.id}),rewards.claim(b.p.memberId,operations[1]!,{quoteId:quotes[1]!.id})]);
+ expect(results.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+ const rejected=results.findIndex(r=>r.status==='rejected');expect((results[rejected] as PromiseRejectedResult).reason).toMatchObject({code:'REWARD_SOLD_OUT'});
+ const remaining=rejected===0?a:b,selection=await rewards.selection(remaining.p.memberId,remaining.v);
+ expect(selection.voucher.state).toBe('unused');expect(selection.bundles.map(r=>[r.code,r.availableQuantity])).toEqual([['moisture',0],['dandruff',1]]);
+ const next=await quote(remaining,'dandruff');await rewards.claim(remaining.p.memberId,key(),{quoteId:next.id});
+ expect((await rewards.selection(remaining.p.memberId,remaining.v)).bundles.every(r=>r.availableQuantity===0)).toBe(true);
+ const newcomer=await person();await survey(newcomer);
+ await expect(rewards.acceptInvitation(newcomer.memberId,share.token,key())).rejects.toMatchObject({code:'REWARD_ALL_SOLD_OUT'});
+ expect((await rewards.mine(newcomer.memberId)).vouchers).toHaveLength(0);
+ expect((await rewards.acceptInvitation(remaining.p.memberId,share.token,key())).voucher.state).toBe('used');
+ expect((await pool.query('SELECT stock_on_hand,reserved_quantity FROM reward_component_inventory')).rows.every(r=>r.stock_on_hand===0&&r.reserved_quantity===0)).toBe(true);
 });

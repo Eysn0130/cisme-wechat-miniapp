@@ -57,7 +57,7 @@ it('offers activity issuance only when the server explicitly grants that operati
  await inspector();component.setData({scope:{...scope,issueRewards:false}});await component.management();
  expect(wx.showActionSheet).toHaveBeenLastCalledWith({itemList:['商业会员资格','分享官资格']});
  component.setData({scope:{...scope,issueRewards:true}});await component.management();
- expect(wx.showActionSheet).toHaveBeenLastCalledWith({itemList:['商业会员资格','分享官资格','活动发券']});
+ expect(wx.showActionSheet).toHaveBeenLastCalledWith({itemList:['商业会员资格','分享官资格','分享领取链接']});
 });
 
 it('names a coupon occupied by an unpaid order without exposing a raw state code',async()=>{

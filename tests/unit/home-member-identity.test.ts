@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), bootstrap: vi.fn(), resume:vi.fn() }));
+const mocks = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), bootstrap: vi.fn(), resume:vi.fn(),navigate:vi.fn() }));
 vi.mock("../../apps/miniprogram/services/api", () => ({
-  resumeAuthentication:mocks.resume, request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => false
+  resumeAuthentication:mocks.resume, navigateAfterAuthentication:mocks.navigate, request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => false
 }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));
@@ -46,6 +46,28 @@ beforeEach(async () => {
 afterEach(() => { page?.onUnload(); vi.useRealTimers(); });
 
 describe("Home canonical nickname continuity", () => {
+  it('waits for the full real credit presentation before returning to the reward invitation, once',async()=>{
+    const owner='11111111-1111-4111-8111-111111111111',destination='/pages/rewards/index?invite='+'a'.repeat(64);
+    const app={globalData:{sessionToken:'member-a',apiBaseUrl:'https://staging-api.cisme.cn',onboardingReturnUrl:destination,onboardingReturnToken:'member-a'}};
+    (globalThis as any).getApp=()=>app;page.setData({memberId:owner,pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false,accountOpening:false});
+    let finish!:()=>void;const animation=new Promise<void>(resolve=>{finish=resolve;});page.selectComponent=()=>({present:()=>animation});mocks.navigate.mockResolvedValue('target');
+    const first=page.resumeOnboardingDestination(),second=page.resumeOnboardingDestination();await flush();expect(mocks.navigate).not.toHaveBeenCalled();
+    finish();await Promise.all([first,second]);expect(mocks.navigate).toHaveBeenCalledTimes(1);expect(mocks.navigate).toHaveBeenCalledWith(destination);
+  });
+  it('keeps an invitation pending when the first questionnaire credit has not been confirmed',async()=>{
+    const owner='11111111-1111-4111-8111-111111111111',destination='/pages/rewards/index?invite='+'b'.repeat(64);
+    const app={globalData:{sessionToken:'member-a',apiBaseUrl:'https://staging-api.cisme.cn',onboardingReturnUrl:destination,onboardingReturnToken:'member-a'}};
+    (globalThis as any).getApp=()=>app;page.setData({memberId:owner,pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false,accountOpening:false});
+    page.selectComponent=()=>({present:async()=>{}});const feedback=await import('../../apps/miniprogram/services/points-feedback');feedback.queueOnboardingFeedback(owner,'first-questionnaire');
+    await page.resumeOnboardingDestination();expect(mocks.navigate).not.toHaveBeenCalled();expect(app.globalData.onboardingReturnUrl).toBe(destination);
+    feedback.consumeOnboardingFeedback(owner,'33333333-3333-4333-8333-333333333333');mocks.navigate.mockResolvedValue('target');await page.resumeOnboardingDestination();expect(mocks.navigate).toHaveBeenCalledWith(destination);
+  });
+  it('does not open a previous member reward after identity changes during the points animation',async()=>{
+    const app={globalData:{sessionToken:'member-a',onboardingReturnUrl:'/pages/rewards/index?invite='+'a'.repeat(64),onboardingReturnToken:'member-a'}};
+    (globalThis as any).getApp=()=>app;page.setData({memberId:'11111111-1111-4111-8111-111111111111',pageAlive:true,pageVisible:true,lifecycleEpoch:0,onboardingOpen:false,onboardingRequired:false,accountOpening:false});
+    let finish!:()=>void;page.selectComponent=()=>({present:()=>new Promise<void>(resolve=>{finish=resolve;})});
+    const pending=page.resumeOnboardingDestination();app.globalData.sessionToken='member-b';finish();await pending;expect(mocks.navigate).not.toHaveBeenCalled();
+  });
   it("keeps a cold-bootstrap nickname through the real minute-clock callback without a shared identity cache", async () => {
     expect(identity.memberIdentity()).toBeNull(); await page.load();
     expect(page.data.view.greeting).toBe("晚上好，合成昵称甲");

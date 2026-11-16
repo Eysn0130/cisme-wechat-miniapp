@@ -1,0 +1,11 @@
+<view wx:if="{{showing}}" class="reward-moment {{reducedMotion?'reward-moment--still':''}} reward-moment--{{phase}}" catchtouchmove="stop">
+ <view class="reward-moment__shade"/>
+ <view class="reward-moment__card reward-moment__card--{{mode}}" aria-role="dialog" aria-modal="true" aria-label="{{mode==='redeemed'?'洗护礼遇领取成功':'洗护礼遇券已到账'}}">
+  <scroll-view class="reward-moment__scroll" scroll-y enhanced show-scrollbar="{{false}}"><view class="reward-moment__content"><view class="reward-moment__light" aria-hidden="true"/>
+  <view class="reward-moment__seal" aria-hidden="true"><image class="reward-moment__pearl" src="/assets/cisme/onboarding-pearl-seal-v1.png" mode="aspectFit"/><image wx:if="{{phase==='checked'}}" class="reward-moment__check" src="/assets/icons/check-plum.svg" mode="aspectFit"/></view>
+  <view wx:if="{{!reducedMotion}}" class="reward-moment__glints" aria-hidden="true"><view wx:for="{{glints}}" wx:key="*this" class="reward-moment__glint reward-moment__glint--{{item}}"/></view>
+  <text class="reward-moment__title" aria-live="polite">{{mode==='redeemed'?'这份洗护，属于你了':'洗护礼遇已到账'}}</text>
+  <block wx:if="{{mode==='redeemed'}}"><image wx:if="{{image}}" class="reward-moment__product" src="{{image}}" mode="aspectFit"/><text class="reward-moment__name">{{name}}</text><button class="reward-moment__primary" bindtap="finish">查看领取订单</button></block>
+  <block wx:else><text class="reward-moment__copy">净润或净屑，选一套带回家</text><view class="reward-moment__choices" aria-hidden="true"><image src="/pages/rewards/assets/moisture-100-100-v1.jpg" mode="aspectFit"/><image src="/pages/rewards/assets/dandruff-50-100-v1.jpg" mode="aspectFit"/></view><button class="reward-moment__primary" bindtap="choose">立即领取</button><button class="reward-moment__later" bindtap="defer" aria-label="稍后领取，券保留在我的奖励">稍后领取</button></block>
+ </view></scroll-view></view>
+</view>
