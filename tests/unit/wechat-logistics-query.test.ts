@@ -51,6 +51,11 @@ it('distinguishes a local no-dispatch failure from a lost message response; malf
   const client=new WechatLogisticsQueryClient(async()=>'synthetic-access',()=>{},async()=>response(body));await expect(client.assertReady(binding)).rejects.toMatchObject({code:'LOGISTICS_QUERY_NOT_READY'});
  }
 });
+it('invalidates a rejected access token without automatically replaying the waybill registration',async()=>{
+ const invalidate=vi.fn(),fetcher=vi.fn().mockResolvedValue(response({errcode:40001}));
+ const client=new WechatLogisticsMessageClient(async()=>'synthetic-old-access',()=>{},fetcher,invalidate);
+ await expect(client.register(input)).rejects.toBeInstanceOf(LogisticsRegistrationRejected);expect(invalidate).toHaveBeenCalledTimes(1);expect(fetcher).toHaveBeenCalledTimes(1);
+});
 it('rechecks grant revocation before dispatch and after response',async()=>{
   let checks=0;const fetcher=vi.fn(async()=>response({errcode:0,waybill_token:'synthetic-query-token-123456789'}));
   const revoked=new WechatLogisticsQueryClient(async()=>'synthetic-access',()=>{if(++checks===2)throw Error('revoked');},fetcher);

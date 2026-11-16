@@ -80,12 +80,12 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
   const imageOrigin=config.commerce.formalProtocol?new URL(config.commerce.formalProtocol.paymentNotifyUrl).origin:'';
   const addresses=new DeliveryAddressService(pool,config),parcelOptions={appId:profile.appId,merchantId:profile.merchantId,imageUrl:(code:string)=>catalogPublicImageUrl(imageOrigin,code)};
   const messages=config.env==='test'&&!testMessageChannel?undefined:new LogisticsMessageService(pool,new PaidParcelSource(addresses,sync,parcelOptions),
-    testMessageChannel??new WechatLogisticsMessageClient(token,authorize),{
+    testMessageChannel??new WechatLogisticsMessageClient(token,authorize,fetch,()=>{cached=undefined;}),{
       encryptionKey:derive(config.contacts.encryptionKey!,'cisme-logistics-message-encryption-v1'),
       hashKey:derive(config.contacts.hashKey!,'cisme-logistics-message-binding-v1'),keyVersion:config.contacts.keyVersion});
   const service=new OrderFulfillmentService(pool,authority,addresses,sync,true,new WechatLogisticsClient(token,authorize),messages);
   const logisticsView=new LogisticsViewService(pool,new DeliveryAddressService(pool,config),sync,
-    testQueryChannel??new WechatLogisticsQueryClient(token,authorize),{appId:profile.appId,merchantId:profile.merchantId,
+    testQueryChannel??new WechatLogisticsQueryClient(token,authorize,fetch,'query',()=>{cached=undefined;}),{appId:profile.appId,merchantId:profile.merchantId,
       encryptionKey:derive(config.contacts.encryptionKey!,'cisme-logistics-query-encryption-v1'),
       hashKey:derive(config.contacts.hashKey!,'cisme-logistics-query-binding-v1'),keyVersion:config.contacts.keyVersion,
       imageUrl:code=>catalogPublicImageUrl(imageOrigin,code)});

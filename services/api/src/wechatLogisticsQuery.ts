@@ -22,7 +22,7 @@ function unavailable():never{throw new DomainError('LOGISTICS_QUERY_NOT_READY','
  * shipment purchase, notification subscription or payment is created here. */
 export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
   private readyUntil=0;
-  constructor(private token:()=>Promise<string>,private authorize:(cap:LogisticsQueryCapability|LogisticsMessageCapability,binding:LogisticsBinding)=>void,private fetcher:typeof fetch=fetch,private mode:'query'|'message'='query'){}
+  constructor(private token:()=>Promise<string>,private authorize:(cap:LogisticsQueryCapability|LogisticsMessageCapability,binding:LogisticsBinding)=>void,private fetcher:typeof fetch=fetch,private mode:'query'|'message'='query',private invalidateToken:()=>void=()=>{}){}
   private get capability():LogisticsQueryCapability|LogisticsMessageCapability{return this.mode==='query'?'logistics.query.register':'logistics.message.register';}
   private async call(path:'get_delivery_list'|'trace_waybill'|'follow_waybill',binding:LogisticsBinding,payload:unknown){
     let token:string;
@@ -35,6 +35,7 @@ export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
     catch{throw new DomainError('LOGISTICS_QUERY_OUTCOME_UNKNOWN','物流详情请求尚未确认，请保留运单并联系客服核对',503);}
     if(body.errcode!==undefined&&body.errcode!==0){
       if(!Number.isSafeInteger(body.errcode))throw new DomainError('LOGISTICS_QUERY_OUTCOME_UNKNOWN','物流详情请求尚未确认，请稍后核对',503);
+      if(body.errcode===40001||body.errcode===42001)this.invalidateToken();
       throw new LogisticsRegistrationRejected(Number(body.errcode));
     }
     this.authorize(this.capability,binding);return body;
@@ -63,5 +64,5 @@ export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
 /** Free official logistics messages for the actual buyer of an existing paid
  * order. Does not request a subscription or claim that a message was delivered. */
 export class WechatLogisticsMessageClient extends WechatLogisticsQueryClient {
-  constructor(token:()=>Promise<string>,authorize:(cap:LogisticsQueryCapability|LogisticsMessageCapability,binding:LogisticsBinding)=>void,fetcher:typeof fetch=fetch){super(token,authorize,fetcher,'message');}
+  constructor(token:()=>Promise<string>,authorize:(cap:LogisticsQueryCapability|LogisticsMessageCapability,binding:LogisticsBinding)=>void,fetcher:typeof fetch=fetch,invalidateToken:()=>void=()=>{}){super(token,authorize,fetcher,'message',invalidateToken);}
 }
