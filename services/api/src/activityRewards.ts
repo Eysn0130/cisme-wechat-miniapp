@@ -1,3 +1,4 @@
+import {pageScope,readPageCursor,finishPage} from './keysetPage.js';
 import {managementDates} from './managementDates.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
 import type pg from 'pg';
@@ -331,7 +332,7 @@ export class ActivityRewardService {
    return (await c.query("UPDATE reward_voucher SET state='revoked',version=version+1 WHERE id=$1 RETURNING id,state,version",[id])).rows[0];
   },'commerce.product.manage');
  }
- async management(actor:string|undefined,query:{activityId?:unknown;state?:unknown;after?:unknown;memberId?:unknown;voucherId?:unknown;claimId?:unknown;from?:unknown;through?:unknown}={}){
+ async management(actor:string|undefined,query:{activityId?:unknown;state?:unknown;after?:unknown;memberId?:unknown;voucherId?:unknown;claimId?:unknown;from?:unknown;through?:unknown;claimCursor?:unknown}={}){
   const dates=managementDates(query);await this.authority.requireAny(actor,['commerce.product.manage','commerce.inventory.manage','commerce.fulfillment.manage']);
   let activity=query.activityId?rewardId(query.activityId):null;const target=query.memberId?rewardId(query.memberId):null,voucher=query.voucherId?rewardId(query.voucherId):null,claim=query.claimId?rewardId(query.claimId):null;const after=query.after?rewardId(query.after):null,state=query.state??'all';
   if(!['all','unused','used','expired','revoked','placed','shipped','received','cancelled','aftersale_requested','closed'].includes(String(state)))fail('REWARD_FILTER_INVALID','状态筛选无效');
@@ -347,12 +348,13 @@ export class ActivityRewardService {
     FROM reward_voucher v JOIN reward_award a ON a.id=v.award_id JOIN member m ON m.id=v.member_id
     WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR CASE WHEN v.state='unused' AND v.expires_at<=now() THEN 'expired' ELSE v.state END=$2)
     AND ($3::uuid IS NULL OR v.id>$3) AND ($4::uuid IS NULL OR v.member_id=$4) AND ($5::uuid IS NULL OR v.id=$5) ORDER BY v.id LIMIT 51`,[activity,state,after,target,voucher])).rows:[];
-   const claims=canFulfill?(await c.query(`SELECT c.*,m.display_name,n.user_code,'No. '||lpad(n.number::text,GREATEST(5,length(n.number::text)),'0') AS card_number FROM activity_reward_claim c JOIN reward_voucher v ON v.id=c.voucher_id JOIN member m ON m.id=c.member_id LEFT JOIN member_card_number n ON n.member_id=m.id
-    WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR c.state=$2) AND ($3::uuid IS NULL OR c.id>$3) AND ($4::uuid IS NULL OR c.member_id=$4) AND ($5::uuid IS NULL OR c.id=$5) AND ($6::date IS NULL OR c.created_at>=($6::date::timestamp AT TIME ZONE 'Asia/Shanghai')) AND ($7::date IS NULL OR c.created_at<(($7::date+1)::timestamp AT TIME ZONE 'Asia/Shanghai')) ORDER BY c.id LIMIT 51`,[activity,state,after,target,claim,dates.from,dates.through])).rows:[];
+   const recent=query.claimCursor!==undefined,scope=pageScope(['reward-claims',actor,activity,target,claim,state,dates.from,dates.through]),cursor=readPageCursor(query.claimCursor==='start'?null:query.claimCursor,scope);
+   const claims=canFulfill?(await c.query(`SELECT c.*,c.created_at::text AS cursor_at,m.display_name,n.user_code,'No. '||lpad(n.number::text,GREATEST(5,length(n.number::text)),'0') AS card_number FROM activity_reward_claim c JOIN reward_voucher v ON v.id=c.voucher_id JOIN member m ON m.id=c.member_id LEFT JOIN member_card_number n ON n.member_id=m.id
+    WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR c.state=$2) AND ($8::boolean OR $3::uuid IS NULL OR c.id>$3) AND ($4::uuid IS NULL OR c.member_id=$4) AND ($5::uuid IS NULL OR c.id=$5) AND ($6::date IS NULL OR c.created_at>=($6::date::timestamp AT TIME ZONE 'Asia/Shanghai')) AND ($7::date IS NULL OR c.created_at<(($7::date+1)::timestamp AT TIME ZONE 'Asia/Shanghai')) AND ($9::timestamptz IS NULL OR (c.created_at,c.id)<($9,$10::uuid)) ORDER BY CASE WHEN $8 THEN c.created_at END DESC,CASE WHEN $8 THEN c.id END DESC,c.id LIMIT 51`,[activity,state,after,target,claim,dates.from,dates.through,recent,cursor?.at??null,cursor?.id??null])).rows:[];
    const inventory=(await c.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows;
    const bundles=(await this.bundleViews(c)).map(bundle=>({...bundle,reservedQuantity:inventory.find(r=>r.code===bundle.components.find(code=>code!=='conditioner100'))?.reserved_quantity??0,
     expectedVersions:Object.fromEntries(bundle.components.map(code=>[code,inventory.find(r=>r.code===code)?.version??0]))}));
-   return {memberId:actor!,selectedActivityId:activity,activities,inventory,bundles,vouchers:vouchers.slice(0,50).map(r=>({...r,state:visibleVoucherState(r,new Date())})),claims:claims.slice(0,50).map(r=>this.claimView(r)),voucherNext:vouchers.length>50?vouchers[49].id:null,claimNext:claims.length>50?claims[49].id:null,
+   return {memberId:actor!,selectedActivityId:activity,activities,inventory,bundles,vouchers:vouchers.slice(0,50).map(r=>({...r,state:visibleVoucherState(r,new Date())})),claims:claims.slice(0,50).map(r=>this.claimView(r)),voucherNext:vouchers.length>50?vouchers[49].id:null,claimNext:recent?finishPage(claims.map(r=>({...r,cursorAt:r.cursor_at})),50,scope).nextCursor:claims.length>50?claims[49].id:null,
     permissions:{configure:grants.capabilities.includes('commerce.product.manage'),stock:grants.capabilities.includes('commerce.inventory.manage'),issue:canIssue,fulfill:canFulfill}};
   },'REPEATABLE READ');
  }

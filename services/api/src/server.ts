@@ -830,7 +830,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Params:{operationId:string}}>('/v1/me/rewards/command-receipts/:operationId',request=>activityRewards.commandReceipt(request.memberId,request.params.operationId));
   app.post<{Params:{operationId:string}}>('/v1/me/rewards/command-receipts/:operationId/abandon',request=>activityRewards.abandonCommand(request.memberId,request.params.operationId));
   app.get<{Querystring:{skuId:string;quantity?:string}}>('/v1/me/coupons/eligible',request=>activityRewards.eligibleCoupons(request.memberId,request.query.skuId,request.query.quantity));
-  app.get<{Querystring:{activityId?:string;state?:string;after?:string;memberId?:string;voucherId?:string;claimId?:string;from?:string;through?:string}}>('/v1/management/rewards',request=>activityRewards.management(request.memberId,request.query));
+  app.get<{Querystring:{activityId?:string;state?:string;after?:string;memberId?:string;voucherId?:string;claimId?:string;from?:string;through?:string;claimCursor?:string}}>('/v1/management/rewards',request=>activityRewards.management(request.memberId,request.query));
   app.post('/v1/management/rewards/activities',request=>activityRewards.configure(request.memberId,idempotencyKey(request),request.body));
   app.post('/v1/management/rewards/inventory',request=>activityRewards.inventory(request.memberId,idempotencyKey(request),request.body));
   app.post('/v1/management/rewards/bundle-inventory',request=>activityRewards.bundleInventory(request.memberId,idempotencyKey(request),request.body));

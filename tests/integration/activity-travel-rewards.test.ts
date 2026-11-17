@@ -229,6 +229,7 @@ it('exports the exact filtered gift fulfillment with frozen recipient data, both
 // final units, without changing any live environment or other test file.
 it('previews real gift shipment rows and registers a confirmed workbook atomically with exact replay',async()=>{
  const a=await ready(),b=await ready(),ca=await claim(a),cb=await claim(b),ra=await rewards.detail(operator.memberId,ca.id,true),rb=await rewards.detail(operator.memberId,cb.id,true);
+ const recent=await rewards.management(operator.memberId,{activityId:activity.id,claimCursor:'start'});expect(recent.claims.slice(0,2).map(c=>c.id)).toEqual([cb.id,ca.id]);await expect(rewards.management(operator.memberId,{activityId:activity.id,claimCursor:'invalid'})).rejects.toMatchObject({code:'PAGE_CURSOR_INVALID'});
  const url=`/v1/management/rewards/activities/${activity.id}/shipments`,xlsx=fulfillmentWorkbook([['领取单号','承运商','物流单号'],[ra.claimNumber,'合成承运商','SYNBULK00001'],[rb.claimNumber,'合成承运商','SYNBULK00002']]);
  const payload={filename:'合成礼品发货.xlsx',contentBase64:xlsx.toString('base64')};
  expect((await app.inject({method:'POST',url:url+'/preview',headers:auth(a.p),payload})).statusCode).toBe(403);

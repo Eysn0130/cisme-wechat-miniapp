@@ -866,6 +866,10 @@ paths:
         - TRV-09
       parameters:
         - in: query
+          name: claimCursor
+          schema: {type: string, maxLength: 600}
+          description: Use start for recent-first claim listing, then the returned actor/filter-bound opaque cursor. Legacy after remains supported.
+        - in: query
           name: from
           schema: {type: string, format: date}
           description: Inclusive creation date in Asia/Shanghai.
