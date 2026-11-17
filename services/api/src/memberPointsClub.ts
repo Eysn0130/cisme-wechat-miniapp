@@ -6,7 +6,7 @@ import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
 import {DomainError} from '@cisme/domain';
 import {transaction,type DbClient} from './db.js';
-import {AuthorityService} from './authority.js';
+import {AuthorityService,requireActiveMemberWithClient} from './authority.js';
 import {activePointPolicy,pointPolicyByVersion,clubRulesV1,validClubRules,pointDay,lockPointWallet,grantMemberPoints,reverseMemberGrant,sweepMemberPoints,returnOrderPoints,type PointsPolicy} from './pointsLedger.js';
 const digest=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 function fail(code:string,title:string,status=422):never{throw new DomainError(code,title,status);}
@@ -75,6 +75,20 @@ async function attendance(client:DbClient,memberId:string,day:string,sourceId:st
 }
 export class MemberPointsClub{
   constructor(private pool:pg.Pool,private config:AppConfig,private authority:AuthorityService){}
+  async contentReceipt(memberId:string|undefined,input:{kind?:string;id?:string}){
+    const target=uuid(input.id),kind=input.kind;
+    if(!['post','ugc_comment','editorial_comment'].includes(kind??''))fail('POINTS_SOURCE_INVALID','积分来源无效');
+    return transaction(this.pool,async c=>{
+      const member=await requireActiveMemberWithClient(c,memberId),table=kind==='post'?'ugc_post':kind!;
+      if(!(await c.query(`SELECT 1 FROM ${table} WHERE id=$1 AND author_member_id=$2`,[target,member])).rowCount)
+        fail('POINTS_SOURCE_NOT_FOUND','积分来源不存在',404);
+      const source=kind==='post'?target:`${kind}:${target}`,sourceType=kind==='post'?'post':'comment';
+      const event=(await c.query('SELECT state FROM member_points_source_event WHERE kind=$1 AND source_id=$2 AND member_id=$3',[sourceType,source,member])).rows[0];
+      const grants=(await c.query<{id:string;amount:number;reversed_total:number}>(`SELECT id,amount,reversed_total FROM points_grant
+        WHERE member_id=$1 AND source_type=$2 AND source_id=$3 ORDER BY id LIMIT 4`,[member,sourceType,source])).rows;
+      return {memberId:member,pending:event?.state!=='applied',grants:grants.map(g=>({id:g.id,points:Math.max(0,g.amount-g.reversed_total)}))};
+    },'REPEATABLE READ');
+  }
   async publicPolicy(now=new Date()) {
     // Managed pool queries await request-budget cleanup before returning.
     // A detached manual release can let response cancellation outlive a lease.

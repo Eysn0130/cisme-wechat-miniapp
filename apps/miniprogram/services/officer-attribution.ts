@@ -38,7 +38,7 @@ export function flushOfficerVisits():Promise<void>{
    if(!saved.token)await resolve(saved);
    const entry=queue().find(v=>same(v,saved));if(!entry)continue;if(!entry.token)throw {title:'推荐信息暂未同步，请重试'};
    if(session!==getApp<IAppOption>().globalData.sessionToken||from!==origin())return;
-   try{await request({path:'/v1/me/sharing-officer/commands',method:'POST',idempotencyKey:`touch-${entry.token}`,data:{action:'bind_visit',input:{visitToken:entry.token}}});}
+   try{await request({path:'/v1/me/sharing-officer/commands',method:'POST',authMode:'optional',idempotencyKey:`touch-${entry.token}`,data:{action:'bind_visit',input:{visitToken:entry.token}}});}
    catch(error){if(!['SHARING_VISIT_ALREADY_BOUND','SHARING_VISIT_NOT_FOUND'].includes(String((error as {code?:string})?.code)))throw error;}
    if(session!==getApp<IAppOption>().globalData.sessionToken||from!==origin())return;discard(entry);
   }

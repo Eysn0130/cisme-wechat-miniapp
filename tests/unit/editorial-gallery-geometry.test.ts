@@ -8,7 +8,7 @@ vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,resumeAuth
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:{path:string})=>
  /\/editorial\/articles\/[^/]+\/comments\?/.test(options.path)?Promise.resolve({comments:[],authors:{},commentCount:0,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:0,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-28T00:00:00Z"}):m.request(options),cancelPageReads:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
-vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const media=(letter:string)=>({id:letter.repeat(64),url:`/v1/editorial/media/${id}/${letter.repeat(64)}`});
 const article=()=>({id,version:3,authorId,author:"公开作者",title:"真实比例图片",body:"首段\n\n末段 #护理",publishedAt:"2026-10-26T00:00:00Z",media:[media("d"),media("e")],interactionsEnabled:true,liked:false,saved:false,following:false,isMine:false,likeCount:0,saveCount:0});

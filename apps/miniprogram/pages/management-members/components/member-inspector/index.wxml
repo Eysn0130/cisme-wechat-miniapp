@@ -1,6 +1,6 @@
 <view wx:if="{{visible}}" class="inspector-host {{full?'inspector-full':'inspector-mask'}}" bindtap="{{full?'stop':'close'}}">
  <view class="inspector-panel" catchtap="stop"><view wx:if="{{!full}}" class="inspector-grip"/><view class="inspector-heading"><text class="inspector-title">用户详情</text><view class="inspector-heading-actions"><button wx:if="{{!full&&member}}" class="action-text" bindtap="expand">展开</button><button wx:if="{{!full}}" class="action-text" bindtap="close">关闭</button></view></view>
- <view wx:if="{{member}}" class="inspector-identity"><image class="inspector-avatar" src="{{member.avatar||'/assets/icons/user-circle-plum.svg'}}" mode="aspectFill"/><view class="inspector-identity-copy"><text class="inspector-name">{{member.displayName}}</text><text class="inspector-number">{{member.cardNumber||'编号待生成'}}<text class="inspector-status"> · {{memberStatus}}</text></text></view></view>
+ <view wx:if="{{member}}" class="inspector-identity"><image class="inspector-avatar" src="{{member.avatar||'/assets/icons/user-circle-plum.svg'}}" mode="aspectFill"/><view class="inspector-identity-copy"><text class="inspector-name">{{member.displayName}}</text><text class="inspector-number">{{member.cardNumber||'编号待生成'}}<text class="inspector-status"> · {{memberStatus}}</text></text><text class="inspector-number" user-select>{{member.userCode}}</text></view></view>
  <view wx:if="{{!member}}" class="inspector-identity inspector-identity-placeholder" aria-hidden="true"><view class="inspector-avatar"/><view class="inspector-identity-copy"><view class="inspector-placeholder-line"/><view class="inspector-placeholder-line inspector-placeholder-line--short"/></view></view>
  <section-tabs wx:if="{{member}}" items="{{tabs}}" value="{{tab}}" bindchange="tabChange" label="用户详情分类"/>
  <view wx:if="{{!member}}" class="inspector-tabs-placeholder" aria-hidden="true"><view wx:for="{{[1,2,3,4]}}" wx:key="*this"/></view>
@@ -23,7 +23,7 @@
  </scroll-view>
  <view wx:if="{{roleSheet}}" class="administrator-sheet" catchtap="stop">
   <view class="inspector-heading"><text class="inspector-title">管理权限</text><button class="action-text" bindtap="closeAdministrator">关闭</button></view>
-  <text class="administrator-subject">{{member.displayName}} · {{member.cardNumber}}<text wx:if="{{roleRootOwner}}"> · 最高管理员</text></text>
+  <text class="administrator-subject">{{member.displayName}} · {{member.cardNumber}} · {{member.userCode}}<text wx:if="{{roleRootOwner}}"> · 最高管理员</text></text>
   <view wx:if="{{roleError}}" class="inspector-error"><text>{{roleError}}</text><button class="action-text {{roleBusy?'control--disabled':''}}" disabled="{{roleBusy}}" bindtap="openAdministrator">重新读取</button></view>
   <scroll-view class="administrator-options" scroll-y="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
    <view wx:if="{{roleLoading}}" class="inspector-skeleton" aria-role="status" aria-label="正在读取管理权限"><view class="inspector-skeleton-line"/><view class="inspector-skeleton-line inspector-skeleton-line--short"/></view>

@@ -3308,6 +3308,19 @@ paths:
       description: Authorized CAS update for this article only. Closing new comments and comment likes preserves reads and administrator deletion. Uses commentsPolicyVersion separately from the article content version.
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, expectedVersion], properties: {enabled: {type: boolean}, expectedVersion: {type: integer, minimum: 0}}}}}}
       responses: {'200': {description: commentsEnabled and commentsPolicyVersion}, '403': {description: No effective permission}, '409': {description: Stale policy version}}
+  /v1/me/points/content-receipt:
+    get:
+      operationId: myContentPointsReceipt
+      summary: Owned content reward receipt from canonical grants, never an award command
+      security: [{session: []}]
+      parameters:
+        - {in: query, name: kind, required: true, schema: {type: string, enum: [post, ugc_comment, editorial_comment]}}
+        - {in: query, name: id, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+      responses:
+        '200': {description: Canonical memberId, pending source status and immutable grant IDs with net earned points; an applied zero-grant receipt includes no award}
+        '401': {description: Current authenticated member required}
+        '404': {description: Owned source not found}
+        '422': {description: Invalid bounded source}
   /v1/me/points/club:
     get:
       tags:
@@ -3954,6 +3967,7 @@ components:
         id: {type: string, format: uuid}
         displayName: {type: string}
         cardNumber: {type: [string, 'null']}
+        userCode: {type: string, pattern: '^[A-Z0-9]{12}$', description: Stable public lookup identifier shared with the officer/referrer surfaces; never grants authority}
         avatar: {type: [string, 'null']}
         administrator: {type: boolean}
         highestAdministrator: {type: boolean}

@@ -82,3 +82,11 @@ it('supports reduced motion and cancels the visual immediately on backgrounding'
  m.reduced=true;feedback.queueOnboardingFeedback(owner,'complete-first');const c=await mount();expect(c.data).toMatchObject({showing:true,reducedMotion:true});
  definition.pageLifetimes.hide.call(c);expect(c.data.showing).toBe(false);await vi.advanceTimersByTimeAsync(3000);expect(c.data.showing).toBe(false);expect(m.cancel).toHaveBeenCalled();
 });
+it('reuses the same medallion and counter for a confirmed community reward, once per grant',async()=>{
+ feedback.queueContentFeedback(owner,'post',other);m.read.mockResolvedValue({memberId:owner,pending:false,grants:[{id:receipt,points:50}]});const c=await mount();
+ expect(c.data).toMatchObject({showing:true,amount:50,displayAmount:0,phase:'spinning'});await vi.advanceTimersByTimeAsync(2100);expect(c.data.showing).toBe(false);
+ feedback.queueContentFeedback(owner,'post',other);await c.present();await flush();expect(c.data.showing).toBe(false);
+});
+it('does not celebrate a pending or quota-exhausted community award',async()=>{
+ feedback.queueContentFeedback(owner,'ugc_comment',other);m.read.mockResolvedValue({memberId:owner,pending:false,grants:[]});const c=await mount();expect(c.data.showing).toBe(false);expect(feedback.pendingCredit(owner)).toBeNull();
+});

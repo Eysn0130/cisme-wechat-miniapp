@@ -3,7 +3,7 @@ const m=vi.hoisted(()=>({token:'owner-a',request:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,request:m.request,requireMemberAccess:()=>Boolean(m.token),retainMemberSnapshot:()=>true}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',shouldReduceMotion:()=>true}));
 vi.mock('../../apps/miniprogram/services/member-identity',()=>({memberIdentity:()=>null}));
-vi.mock('../../apps/miniprogram/services/share',()=>({registerIncomingShare:vi.fn()}));
+vi.mock('../../apps/miniprogram/services/share',()=>({prepareShareDetails:async()=>null,registerIncomingShare:vi.fn()}));
 let page:any, usage:any, care:any, day:string, posts:any[], write:(o:any)=>any, coreFails:boolean;
 const flush=async()=>{for(let i=0;i<50;i++)await Promise.resolve();};
 function deferred(){let resolve!:(v:any)=>void,reject!:(v:any)=>void;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{resolve,reject,promise};}
@@ -21,7 +21,7 @@ beforeEach(()=>{
   throw new Error('Unexpected synthetic route');
  });
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token}});
- (globalThis as any).wx={showToast:vi.fn(),showModal:vi.fn(async()=>({confirm:true})),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),nextTick:(f:()=>void)=>f(),navigateTo:vi.fn()};
+ (globalThis as any).wx={showShareMenu:vi.fn(),showToast:vi.fn(),showModal:vi.fn(async()=>({confirm:true})),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),nextTick:(f:()=>void)=>f(),navigateTo:vi.fn()};
  (globalThis as any).Page=(d:any)=>{page={...d,data:structuredClone(d.data),setData(p:any,done?:()=>void){Object.assign(this.data,p);done?.();}};};
 });
 afterEach(()=>page?.stopDaypartClock?.());

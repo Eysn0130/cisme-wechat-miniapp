@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "fd2c763f22edd41affa36998e4f60d4805d346425f457bc2cdd953324632f3a3",
+  "migrationSetSha256": "bdf8df0217f4273b36b703d59e3a9b644334b87433405df2c5be5466d0ebdb9d",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -4898,10 +4898,11 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Stable private display number, independent of UUID authentication and authority. Project only formatted number and issued_at to its owner. Registration assigns atomically; backfill preserves original member facts. Never raw-export member_id or publish in community author data. Issued numbers are immutable and sequences do not cycle; runtime rollback retains the mapping. No general erasure or indefinite unrelated-content retention permission is added.",
+      "specialHandling": "Stable private display number, independent of UUID authentication and authority. Project only formatted number and issued_at to its owner. Registration assigns atomically; backfill preserves original member facts. Never raw-export member_id or publish in community author data. Issued numbers are immutable and sequences do not cycle; runtime rollback retains the mapping. No general erasure or indefinite unrelated-content retention permission is added. user_code is a stable uppercase alphanumeric lookup identifier shared by settings, referral search and officer identity; the sequential number remains independent. Existing officer codes are preserved; possession never grants authority.",
       "exportFields": [
         "number",
-        "issued_at"
+        "issued_at",
+        "user_code"
       ],
       "excludedFields": [
         "member_id"
@@ -9672,5 +9673,11 @@
     "newThirdPartyRecipient": false,
     "automaticErasureExpanded": false,
     "retentionChanged": false
+  },
+  "memberUserCodeReview20261117": {
+    "newField": "member_card_number.user_code",
+    "ownerExport": true,
+    "newThirdPartyRecipient": false,
+    "noAuthorityFromCode": true
   }
 }

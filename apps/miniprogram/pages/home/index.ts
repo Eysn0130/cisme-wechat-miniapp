@@ -1,3 +1,4 @@
+import {incomingOfficerShare} from '../../services/officer-attribution';
 import { requireGuestCommunityAccess, resumeAuthentication } from "../../services/api";
 import { needsLoginProfile } from "../../services/member-setup";
 import { careCommandConfirmed, type CareCommand } from "../../services/care-command-state";
@@ -9,7 +10,7 @@ import {pendingRewardInvitationToken,rewardInvitationFromPath,validRewardInvitat
 import {rewardInvitation,acceptRewardInvitation,rewardCopy,type RewardVoucher} from '../../services/rewards';
 import { requireMemberAccess, retainMemberSnapshot, request, navigateAfterAuthentication } from "../../services/api";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
-import { registerIncomingShare } from "../../services/share";
+import { registerIncomingShare,prepareShareDetails } from "../../services/share";
 import { careDaypart, careGreeting, careProtocolSteps, careSelfAssessments, type CareProtocolStepView, type CareSelfAssessmentValue } from "../../services/care-protocol";
 import { careHomeSchedule } from "../../services/care-home-state";
 import { saveDailyCareRecord, dailyCarePath, readDailyCareRecords, dailyCareCommandConfirmed, isDailyCarePath, type DailyCareInput, type DailyCareRecord, type DailyCarePage } from "../../services/daily-care";
@@ -136,8 +137,9 @@ function dailyHomeProjection(state: { usageReady: boolean; usageLoading: boolean
 }
 
 Page({
+  shareOwner:'',shareContext:-1,
   data: {
-    onboardingRequired:false,onboardingOpen:false,memberId:'',giftOpen:false,giftLoading:false,giftError:'',giftInvite:'',giftVoucher:null as RewardVoucher|null,
+    shareId:'',officerShareId:'',onboardingRequired:false,onboardingOpen:false,memberId:'',giftOpen:false,giftLoading:false,giftError:'',giftInvite:'',giftVoucher:null as RewardVoucher|null,
     usageReady: false, usageLoading: false, usageToday: null as TodayUsage | null, usageAttempt: 0, usageDay: "",
     usageStreak: 0, usageRewards: null as CareDayRewards | null,
     centerDate: "护理状态同步中", centerTitle: "今日护理", centerAction: "记录今日护理",
@@ -149,7 +151,7 @@ Page({
     sessionMounted: false, sessionOpen: false, sessionVisible: false, sessionClosing: false, sessionRecordable: false, sessionLabel: "DAILY CARE", sessionSubmitLabel: "完成本次护理", sessionStage: "usage" as "usage" | "steps" | "assessment", sessionCycleDue: false, sessionProducts: [] as CareProduct[], sessionNote: "", sessionDirty: false, productOptions: careProducts.map(p => ({ ...p, selected: false })), sessionStepIndex: 0, sessionStep: careProtocolSteps[0] as CareProtocolStepView,
     sessionSteps: sessionRail(0, 0), sessionProgressStyle: progressStyle(0), sessionProgressLabel: "0 / 4", sessionCompletedCodes: [] as string[], sessionAssessment: "" as CareSelfAssessmentValue | "", assessments: careSelfAssessments
   },
-  onLoad(query: Record<string, string | undefined>) { this.data.pageAlive = true; const gift=query.gift;if(validRewardInvitation(gift)){rememberRewardInvitation(gift);this.setData({giftInvite:gift});}else if(gift)wx.showToast({title:'领取链接已失效',icon:'none'});void registerIncomingShare(query.share_id, "invite", "home"); },
+  onLoad(query: Record<string, string | undefined>) { this.data.pageAlive = true; const gift=query.gift;if(validRewardInvitation(gift)){rememberRewardInvitation(gift);this.setData({giftInvite:gift});}else if(gift)wx.showToast({title:'领取链接已失效',icon:'none'});void registerIncomingShare(query.share_id, "invite", "home");if(query.officer_share)void incomingOfficerShare(query.officer_share).catch(()=>{}); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion: shouldReduceMotion() }); },
   syncCenteredHome() {
     const {care,usageDay,usageToday,usageReady,needsAuthentication,view}=this.data;
@@ -218,6 +220,8 @@ Page({
   },
   onShow() {
     if(!requireGuestCommunityAccess("/pages/home/index"))return;
+    const sharingToken=getApp<IAppOption>().globalData.sessionToken;if(this.shareOwner!==sharingToken||this.shareContext!==commerceContextRevision()){this.shareOwner=sharingToken;this.shareContext=commerceContextRevision();this.setData({shareId:'',officerShareId:''});void this.prepareHomeShare();}
+    wx.showShareMenu({menus:['shareAppMessage','shareTimeline']});
     const giftOwner=homeGiftOwners.get(this),giftToken=getApp<IAppOption>().globalData.sessionToken;
     if(giftOwner&&(giftOwner.token!==giftToken||giftOwner.context!==commerceContextRevision())){homeGiftOwners.delete(this);this.setData({giftOpen:false,giftVoucher:null,giftLoading:false,giftError:''});}
     const pending = pendingCareCommands.get(this);
@@ -398,7 +402,10 @@ Page({
     this.setData({ accountOpening: true });
     wx.navigateTo({ url: "/pages/records/index", fail: () => { this.setData({ accountOpening: false }); wx.showToast({ title: "护理记录暂时无法打开，请重试", icon: "none" }); } });
   },
-  onShareAppMessage(){return {title:validRewardInvitation(this.data.giftInvite)?'领取你的旅行洗护礼遇':'CISME · 今日护理',path:validRewardInvitation(this.data.giftInvite)?`/pages/home/index?gift=${this.data.giftInvite}`:'/pages/home/index',...(validRewardInvitation(this.data.giftInvite)?{imageUrl:'/assets/cisme/travel-reward-share-v2.jpg'}:{})};},
+  async prepareHomeShare(){const token=this.shareOwner,context=this.shareContext;if(!token)return;const link=await prepareShareDetails('invite','home');if(this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken&&context===commerceContextRevision())this.setData({shareId:link?.shareId??'',officerShareId:link?.officerShareId??''});},
+  homeShareQuery(){const own=this.shareOwner===getApp<IAppOption>().globalData.sessionToken&&this.shareContext===commerceContextRevision();return [validRewardInvitation(this.data.giftInvite)?`gift=${this.data.giftInvite}`:'',own&&this.data.shareId?`share_id=${this.data.shareId}`:'',own&&this.data.officerShareId?`officer_share=${this.data.officerShareId}`:''].filter(Boolean).join('&');},
+  onShareAppMessage(){const query=this.homeShareQuery();return {title:validRewardInvitation(this.data.giftInvite)?'领取你的旅行洗护礼遇':'CISME · 今日护理',path:`/pages/home/index${query?'?'+query:''}`,...(validRewardInvitation(this.data.giftInvite)?{imageUrl:'/assets/cisme/travel-reward-share-v2.jpg'}:{})};},
+  onShareTimeline(){return {title:'CISME · 今日护理',query:this.homeShareQuery()};},
   retryLoad() { void Promise.resolve(this.load()).then(ready=>{if(ready&&!this.data.onboardingRequired&&pendingRewardInvitationToken())void this.resumeOnboardingDestination();}); },
   async completeOnboarding(){
     const token=getApp<IAppOption>().globalData.sessionToken,epoch=this.data.lifecycleEpoch;

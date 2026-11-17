@@ -7,7 +7,7 @@ vi.mock("../../apps/miniprogram/services/api",()=>({request:mocks.request,resume
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:unknown)=>mocks.request(options),cancelPageReads:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
 vi.mock("../../apps/miniprogram/services/member-avatar",()=>({defaultMemberAvatar:"local-default",localMemberAvatar:mocks.avatar,prepareFeedAuthors:async(rows:unknown)=>rows}));
-vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const rootId="cccccccc-cccc-4ccc-8ccc-cccccccccccc",replyId="dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const base=`/v1/editorial/articles/${articleId}/comments`,returnUrl=`/pages/post/index?id=${articleId}&source=editorial`;

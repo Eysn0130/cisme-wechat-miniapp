@@ -1,3 +1,7 @@
+import {confirmCreditOwner,currentCreditOwner,queueContentFeedback} from '../../services/points-feedback';
+import {commerceContextRevision} from '../../services/commerce-command-store';
+import {pageRead} from '../../services/page-requests';
+import {incomingOfficerShare} from '../../services/officer-attribution';
 import {publishedFormalStory,formalStoryMedia,readFormalComments,createFormalComment,likeFormalComment,deleteFormalComment,reactToFormalStory,followFormalAuthor} from "../../services/formal-story";
 import { readPresentationKey } from "../../services/read-presentation";
 import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors } from "../../services/member-avatar";
@@ -7,7 +11,7 @@ import { cancelPageReads } from "../../services/page-requests";
 import { editorialPreviewAllowed, editorialStory, isBundledEditorialId, editorialIdentifier, editorialDisplayMedia, editorialAiLabel, type EditorialVideo, type PublishedEditorialMedia, publishedEditorialArticle, reactToEditorialArticle, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
 import { readEditorialComments, createEditorialComment, setEditorialCommentLike, deleteEditorialComment, reportEditorialComment, setEditorialBlock, setEditorialCommentsPolicy, readEditorialBlocks, type EditorialReportCategory } from "../../services/editorial-comments";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
-import { prepareShareLink, registerIncomingShare } from "../../services/share";
+import { prepareShareDetails, registerIncomingShare } from "../../services/share";
 
 import { commentThreads, emptyCommunity, prepareCommentAuthors, type CommunityView, type CommunityComment } from "../../services/community";
 import { readingSegments } from "./reading-segments";
@@ -74,7 +78,7 @@ Page({
   commentDraftToken:null as string|null,
   commentDraftArticle:"",
   editorialSocialRefusal:null as string|null,
-  data: { blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", formalSource:false,ownerBusy:false,ownerWriteUnknown:false,ownerError:"",editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { rewardOwner:'',rewardRevision:0,officerShareId:'',blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", formalSource:false,ownerBusy:false,ownerWriteUnknown:false,ownerError:"",editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.cancelGallerySizing?.();this.readingRead=null;this.pendingReadingRestore=null;this.readingScrollRevision+=1;this.setData({ chromeStyle: currentChromeStyle() },()=>this.measureComposer()); },
   onReachBottom() {
     if(this.data.editorialSource&&!this.data.commentsError&&!this.data.composerOpen&&!this.data.blocksOpen)void this.loadMoreEditorialComments();
@@ -86,11 +90,11 @@ Page({
   onLoad(query: Record<string, string | undefined>) {
     const id = query.id ?? "";
     this.setData({ id, formalSource:query.source==="formal",editorialSource:query.source==="editorial"||query.source==="formal", pageAlive: true });
-    if (query.source!=="editorial"&&query.source!=="formal"&&(!isBundledEditorialId(id) || editorialPreviewAllowed())) void registerIncomingShare(query.share_id, "post", id);
+    if(query.share_id&&(editorialIdentifier(id)||!isBundledEditorialId(id)||editorialPreviewAllowed()))void registerIncomingShare(query.share_id,"post",id);if(query.officer_share)void incomingOfficerShare(query.officer_share).catch(()=>{});
     wx.hideShareMenu();
   },
-  onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false }); void this.load(true); },
-  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.loading)this.clearArticlePresentation();if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
+  onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false,rewardOwner:currentCreditOwner() }); void this.load(true); },
+  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.loading)this.clearArticlePresentation();if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ rewardOwner:'',composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
   onUnload() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.gallerySizingCache=null;this.pauseVideo(true);this.galleryRead=null;this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
   onPageScroll(event:WechatMiniprogram.Page.IPageScrollOption) {
     const top=event.scrollTop;
@@ -280,7 +284,7 @@ Page({
               });
               });
             });
-          wx.showShareMenu({menus:["shareAppMessage"]});
+          wx.showShareMenu({menus:["shareAppMessage","shareTimeline"]});void this.prepareShare(attempt);
         }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;this.dropChangedArticleOwner(attempt);if(this.currentArticleLoad(attempt,token)){const missing=(error as {status?:number}).status===404;
           this.clearArticlePresentation();
           this.setData({loading:false,errorKind:missing?"missing":"load",errorTitle:missing?"这篇精选暂不可见":"暂时无法加载精选",error:missing?"内容已撤回或尚未发布，请返回社区。":"请检查网络后重试。"});}}
@@ -289,7 +293,7 @@ Page({
       if (editorial) {
         if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
         this.setData({ authorId: "brand:cisme", item: editorial, media: editorial.media ?? [editorial.image], mediaIndex: 0, loading: false, errorKind: "none", errorTitle: "", error: "" });
-        wx.showShareMenu({ menus: ["shareAppMessage"] });
+        wx.showShareMenu({ menus: ["shareAppMessage","shareTimeline"] });
         void this.prepareShare(attempt);
         void this.loadSocial();
         return;
@@ -302,7 +306,7 @@ Page({
       this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, author: reviewed.author || "CISME 会员", publishedLabel: "用户投稿", provenanceLabel: "经作者授权并审核后展示" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、授权已失效，或链接无效。请返回社区查看其他内容。" });
       if (reviewed) {
         void this.loadSocial();
-        wx.showShareMenu({ menus: ["shareAppMessage"] });
+        wx.showShareMenu({ menus: ["shareAppMessage","shareTimeline"] });
         void this.prepareShare(attempt);
       }
     }
@@ -841,11 +845,20 @@ Page({
       this.failPreview(intent);
     }
   },
+  shareOwner:'',shareContext:-1,
   async prepareShare(loadAttempt?: number) {
-    if(this.data.editorialSource)return;
-    const attempt = loadAttempt ?? this.data.loadAttempt;
-    const shareId = await prepareShareLink("post", this.data.id);
-    if (this.data.pageAlive && this.data.loadAttempt === attempt && this.data.item) this.setData({ shareId });
+    const attempt=loadAttempt??this.data.loadAttempt,token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();
+    this.shareOwner='';this.shareContext=-1;this.setData({shareId:'',officerShareId:''});
+    if(!token)return;const share=await prepareShareDetails('post',this.data.id);
+    if(this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&this.data.item&&token===getApp<IAppOption>().globalData.sessionToken&&context===commerceContextRevision()){this.shareOwner=token;this.shareContext=context;this.setData({shareId:share?.shareId??'',officerShareId:share?.officerShareId??''});}
+  },
+  async presentCommentCredit(kind:'ugc_comment'|'editorial_comment',id:string){
+    const token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision(),article=this.data.id;
+    const known=currentCreditOwner();if(known){queueContentFeedback(known,kind,id);this.setData({rewardOwner:known,rewardRevision:this.data.rewardRevision+1});return;}
+    try{const receipt=await pageRead<{memberId:string}>(this,{path:`/v1/me/points/content-receipt?kind=${kind}&id=${id}`,budgetMs:1000});
+      if(!this.readVisible||!this.data.pageAlive||article!==this.data.id||token!==getApp<IAppOption>().globalData.sessionToken||context!==commerceContextRevision()||!editorialIdentifier(receipt.memberId))return;
+      confirmCreditOwner(receipt.memberId);queueContentFeedback(receipt.memberId,kind,id);this.setData({rewardOwner:receipt.memberId,rewardRevision:this.data.rewardRevision+1});
+    }catch{/* Points are read from confirmed ledger facts on the next eligible presentation. */}
   },
   canManageOwnPost(){
     const token=getApp<IAppOption>().globalData.sessionToken;
@@ -904,7 +917,7 @@ Page({
       wx.showToast({title:"暂时无法返回社区，请重试",icon:"none"});
     }});
   },
-  onShareAppMessage() { return this.data.item
-    ? { title: this.data.item.title, path: `/pages/post/index?id=${encodeURIComponent(this.data.id)}${this.data.editorialSource?`&source=${this.data.formalSource?"formal":"editorial"}`:this.data.shareId ? `&share_id=${this.data.shareId}` : ""}` }
-    : { title: "CISME 社区", path: "/pages/community/index" }; }
+  shareQuery(){const own=this.shareOwner===getApp<IAppOption>().globalData.sessionToken&&this.shareContext===commerceContextRevision();return `id=${encodeURIComponent(this.data.id)}${this.data.editorialSource?`&source=${this.data.formalSource?'formal':'editorial'}`:''}${own&&this.data.shareId?`&share_id=${this.data.shareId}`:''}${own&&this.data.officerShareId?`&officer_share=${this.data.officerShareId}`:''}`;},
+  onShareAppMessage(){return this.data.item?{title:this.data.item.title,path:`/pages/post/index?${this.shareQuery()}`}:{title:'CISME 社区',path:'/pages/community/index'};},
+  onShareTimeline(){return {title:this.data.item?.title||'CISME 社区',query:this.data.item?this.shareQuery():''};}
 });

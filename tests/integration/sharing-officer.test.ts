@@ -20,7 +20,7 @@ const platform=generateKeyPairSync('rsa',{modulusLength:2048}),binding={appId,me
 const payments=new VerifiedPaymentInbox(pool,binding),refunds=new VerifiedRefundInbox(pool,binding);
 let app:FastifyInstance,manager:any,a:any,b:any,buyer:any,other:any,product:string,sku:string,address:string,shareA:string,shareB:string,codeA:string,codeB:string,policyVersion:number;
 let first:any,second:any,monthBatch:string,line:any;let n=0;
-let historical:any,period:string;
+let historical:any,period:string,qualProduct:string,qualSku:string;
 const auth=(p:any)=>({authorization:'Bearer '+p.sessionToken});
 const command=async(p:any,action:string,input:Record<string,unknown>,management=false,key=`sharing-test-${++n}`)=>{
  const r=await app.inject({method:'POST',url:`/v1/${management?'management':'me'}/sharing-officer/commands`,headers:{...auth(p),'idempotency-key':key},payload:{action,input}});return r;
@@ -34,31 +34,32 @@ function signedFact(payload:any,eventType:string,eventId:string,originalType:str
  const signature=sign('RSA-SHA256',Buffer.concat([Buffer.from(`${timestamp}\n${requestNonce}\n`),rawBody,Buffer.from('\n')]),platform.privateKey).toString('base64');
  return {rawBody,headers:{'Wechatpay-Serial':'PUB_KEY_ID_3000000001','Wechatpay-Timestamp':timestamp,'Wechatpay-Nonce':requestNonce,'Wechatpay-Signature':signature}};
 }
-async function seedOrder(owner:any,historical=false){
+async function seedOrder(owner:any,historical=false,qualified=false){
+ const orderProduct=qualified?qualProduct:product,orderSku=qualified?qualSku:sku,unit=qualified?29800:10000,discount=qualified?0:1200,shipping=qualified?0:500,net=unit-discount,total=net+shipping;
  const orderId=randomUUID(),quote=randomUUID(),number='CM20261113'+randomBytes(6).toString('hex').toUpperCase();
  const now=new Date(),at=historical?new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-1,5,2)):new Date(now.getTime()-5000),expires=new Date(at.getTime()+3600_000);
  await pool.query(`INSERT INTO commerce_checkout_quote(id,member_id,product_id,sku_id,address_id,address_version,quantity,currency,unit_price_cents,subtotal_cents,member_discount_cents,shipping_cents,total_cents,pricing_rule_version,product_version,sku_version,price_version,status,idempotency_key,request_hash,expires_at,consumed_at,created_at)
-  VALUES($1,$2,$3,$4,$5,1,1,'CNY',10000,10000,1200,500,9300,'sharing-synthetic-v1',1,1,1,'consumed',$6,$7,$8,$9,$9)`,[quote,owner.memberId,product,sku,address,'sharing-quote-'+quote,'a'.repeat(64),expires,at]);
+  VALUES($1,$2,$3,$4,$5,1,1,'CNY',${unit},${unit},${discount},${shipping},${total},'sharing-synthetic-v1',1,1,1,'consumed',$6,$7,$8,$9,$9)`,[quote,owner.memberId,orderProduct,orderSku,address,'sharing-quote-'+quote,'a'.repeat(64),expires,at]);
  await pool.query(`INSERT INTO commerce_order(id,order_number,member_id,source_quote_id,status,currency,subtotal_cents,member_discount_cents,shipping_cents,total_cents,pricing_rule_version,expires_at,created_at,updated_at,transaction_source_kind)
-  VALUES($1,$2,$3,$4,'pending_payment','CNY',10000,1200,500,9300,'sharing-synthetic-v1',$5,$6,$6,'verified_commerce')`,[orderId,number,owner.memberId,quote,expires,at]);
+  VALUES($1,$2,$3,$4,'pending_payment','CNY',${unit},${discount},${shipping},${total},'sharing-synthetic-v1',$5,$6,$6,'verified_commerce')`,[orderId,number,owner.memberId,quote,expires,at]);
  await pool.query(`INSERT INTO commerce_order_line(order_id,line_number,product_id,sku_id,product_code,product_name,sku_code,sku_label,quantity,unit_price_cents,line_subtotal_cents,line_discount_cents,line_total_cents)
-  VALUES($1,1,$2,$3,'sharing-test-product','合成分享商品','SHARING_SKU','One',1,10000,10000,1200,8800)`,[orderId,product,sku]);
+  VALUES($1,1,$2,$3,'${qualified?'aigerong-scalp-repair-essence-100':'sharing-test-product'}','合成分享商品','SHARING_SKU','One',1,${unit},${unit},${discount},${net})`,[orderId,orderProduct,orderSku]);
  await pool.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at)
-  VALUES($1,$2,$3,$4,$5,$6,9300,'CNY',$7,'sharing-synthetic-v1',1,$8)`,[orderId,number,owner.memberId,'payer-'+owner.memberId,appId,merchantId,quote,expires]);
- await pool.query('INSERT INTO commerce_inventory_reservation(order_id,sku_id,quantity,expires_at) VALUES($1,$2,1,$3)',[orderId,sku,expires]);
- await pool.query('UPDATE catalog_inventory_level SET reserved_quantity=reserved_quantity+1 WHERE sku_id=$1',[sku]);
+  VALUES($1,$2,$3,$4,$5,$6,${total},'CNY',$7,'sharing-synthetic-v1',1,$8)`,[orderId,number,owner.memberId,'payer-'+owner.memberId,appId,merchantId,quote,expires]);
+ await pool.query('INSERT INTO commerce_inventory_reservation(order_id,sku_id,quantity,expires_at) VALUES($1,$2,1,$3)',[orderId,orderSku,expires]);
+ await pool.query('UPDATE catalog_inventory_level SET reserved_quantity=reserved_quantity+1 WHERE sku_id=$1',[orderSku]);
  const client=await pool.connect();try{
   if(historical){
    // Historical synthetic source fixtures exercise month cutoff/carryover. No production clock or immutable fact is modified.
    await client.query(`INSERT INTO commission_order_snapshot(order_id,buyer_member_id,referrer_member_id,basis_points,cash_merchandise_cents,source_kind,program,sharing_policy_id,sharing_visit_id,sharing_relation_event_id,created_at)
     SELECT $1,r.buyer_id,r.officer_id,p.basis_points,8800,'verified_commerce','sharing_officer',p.id,r.visit_id,e.id,$3
     FROM sharing_customer_relation r JOIN sharing_relation_event e ON e.buyer_id=r.buyer_id AND e.version=r.version CROSS JOIN LATERAL(SELECT id,basis_points FROM sharing_policy ORDER BY version DESC LIMIT 1)p WHERE r.buyer_id=$2`,[orderId,owner.memberId,at]);
-  }else await snapshotSharingOfficer(client,orderId,owner.memberId,'verified_commerce',8800);
+  }else await snapshotSharingOfficer(client,orderId,owner.memberId,'verified_commerce',net);
  }finally{client.release();}
- return {id:orderId,number,owner,at,transactionId:'TX'+randomBytes(12).toString('hex')};
+ return {id:orderId,number,owner,at,total,transactionId:'TX'+randomBytes(12).toString('hex')};
 }
 async function pay(order:any){
- const fact=signedFact({appid:appId,mchid:merchantId,out_trade_no:order.number,transaction_id:order.transactionId,trade_type:'JSAPI',trade_state:'SUCCESS',success_time:new Date(order.at.getTime()+1000).toISOString(),amount:{total:9300,payer_total:9300,currency:'CNY',payer_currency:'CNY'},payer:{openid:'payer-'+order.owner.memberId}},'TRANSACTION.SUCCESS','pay-'+order.id,'transaction');
+ const fact=signedFact({appid:appId,mchid:merchantId,out_trade_no:order.number,transaction_id:order.transactionId,trade_type:'JSAPI',trade_state:'SUCCESS',success_time:new Date(order.at.getTime()+1000).toISOString(),amount:{total:order.total,payer_total:order.total,currency:'CNY',payer_currency:'CNY'},payer:{openid:'payer-'+order.owner.memberId}},'TRANSACTION.SUCCESS','pay-'+order.id,'transaction');
  const received=await payments.receive(fact.rawBody,fact.headers);expect(await payments.processOne(received.inboxId)).toBe('applied');expect(await payments.processOne(received.inboxId)).toBe('applied');return received.inboxId;
 }
 async function refund(order:any,amount:number,paymentId:string){
@@ -83,26 +84,36 @@ beforeAll(async()=>{
  product=(await pool.query(`INSERT INTO catalog_product(code,name,source_kind,qualification_status,publication_status,created_by,updated_by,published_at) VALUES('sharing-test-product','合成分享商品','admin','eligible','published','fixture','fixture',now()) RETURNING id`)).rows[0].id;
  sku=(await pool.query(`INSERT INTO catalog_sku(product_id,code,label,created_by,updated_by) VALUES($1,'SHARING_SKU','One','fixture','fixture') RETURNING id`,[product])).rows[0].id;
  await pool.query("INSERT INTO catalog_inventory_level(sku_id,stock_on_hand,updated_by) VALUES($1,100,'fixture')",[sku]);
+ qualProduct=(await pool.query(`INSERT INTO catalog_product(code,name,source_kind,qualification_status,publication_status,created_by,updated_by,published_at) VALUES('aigerong-scalp-repair-essence-100','合成精华套组','synthetic_test','eligible','published','fixture','fixture',now()) RETURNING id`)).rows[0].id;
+ qualSku=(await pool.query(`INSERT INTO catalog_sku(product_id,code,label,created_by,updated_by) VALUES($1,'QUALIFYING_ESSENCE','100mL','fixture','fixture') RETURNING id`,[qualProduct])).rows[0].id;
+ await pool.query("INSERT INTO catalog_inventory_level(sku_id,stock_on_hand,updated_by) VALUES($1,100,'fixture')",[qualSku]);
  address=randomUUID();await pool.query(`INSERT INTO member_delivery_address(id,member_id,encrypted_payload,payload_hmac,key_version,label,client_request_key) VALUES($1,$2,'synthetic-only',$3,'fixture','home','sharing-fixture-address')`,[address,buyer.memberId,'a'.repeat(64)]);
 });
 afterAll(async()=>{await app?.close();await pool.end();});
 
-it('opens free applications, isolates review authority and preserves idempotent decisions',async()=>{
+it('requires a paid essence set before applications, isolates review authority and preserves idempotent decisions',async()=>{
  expect((await app.inject({method:'GET',url:'/v1/me/sharing-officer'})).statusCode).toBe(401);
- const status=await service.mine(a.memberId);expect(status).toMatchObject({canApply:true,policy:{attributionDays:null,priority:'first',selfPurchase:false,basisPoints:1000,releaseDays:7}});policyVersion=status.policy!.version;
+ const status=await service.mine(a.memberId);expect(status).toMatchObject({canApply:false,qualification:{met:false},policy:{attributionDays:null,priority:'first',selfPurchase:false,basisPoints:1000,releaseDays:7}});policyVersion=status.policy!.version;
+ expect((await command(a,'apply',{})).json().code).toBe('SHARING_PURCHASE_REQUIRED');
+ for(const member of [a,b])await pay(await seedOrder(member,false,true));
+ expect((await service.mine(a.memberId)).canApply).toBe(true);
  const applyKey='sharing-application-replay';const applied=await expectOk(command(a,'apply',{note:'合成申请'},false,applyKey));expect(applied).toMatchObject({state:'pending',version:1});codeA=applied.referralCode;
  expect((await expectOk(command(a,'apply',{note:'合成申请'},false,applyKey))).referralCode).toBe(codeA);
  expect((await command(a,'apply',{note:'不同内容'},false,applyKey)).statusCode).toBe(409);
  expect((await command(a,'officer_state',{memberId:a.memberId,state:'active',expectedVersion:1,reason:'无权自审'},true)).statusCode).toBe(403);
  for(const target of [a,b]){const application=target===a?applied:await expectOk(command(target,'apply',{}));if(target===b)codeB=application.referralCode;
   await expectOk(command(manager,'officer_state',{memberId:target.memberId,state:'active',expectedVersion:1,reason:'合成审核通过'},true));}
- expect((await service.mine(a.memberId)).canShare).toBe(true);const owned=await finance.management(manager.memberId,{memberId:a.memberId});expect('items'in owned&&owned.items.map((r:any)=>r.memberId)).toEqual([a.memberId]);expect((await pool.query('SELECT count(*)::int AS n FROM commercial_membership')).rows[0].n).toBe(0);
+ expect((await service.mine(a.memberId)).canShare).toBe(true);expect((await pool.query('SELECT user_code FROM member_card_number WHERE member_id=$1',[a.memberId])).rows[0].user_code).toBe(codeA);const owned=await finance.management(manager.memberId,{memberId:a.memberId});expect('items'in owned&&owned.items.map((r:any)=>r.memberId)).toEqual([a.memberId]);expect((await pool.query('SELECT count(*)::int AS n FROM commercial_membership')).rows[0].n).toBe(0);
 });
 it('creates native product attribution and keeps first permanent ownership until the buyer changes it',async()=>{
  shareA=(await expectOk(command(a,'share',{productCode:'sharing-test-product'}))).shareId;shareB=(await expectOk(command(b,'share',{productCode:'sharing-test-product'}))).shareId;
  const generic=await expectOk(app.inject({method:'POST',url:'/v1/shares',headers:{...auth(a),'idempotency-key':'sharing-generic-product'},payload:{targetType:'product',targetRef:'sharing-test-product'}}));expect(generic.officerShareId).toBe(shareA);
  const firstVisit=await expectOk(app.inject({method:'POST',url:`/v1/officer-shares/${shareA}/visits`,payload:{visitKey:'synthetic-first-visit-0001'}}));
  const lastVisit=await service.visit(shareB,'synthetic-second-visit-0002');
+ const returning=buyer,oldVisit=await service.visit(shareA,'synthetic-existing-member-0001');await expectOk(command(returning,'bind_visit',{visitToken:oldVisit.visitToken}));expect((await service.mine(returning.memberId)).relation).toBeNull();
+ buyer=await expectOk(app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'sharing-new-after-link',displayName:'合成受邀新会员',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}}));
+ address=randomUUID();await pool.query(`INSERT INTO member_delivery_address(id,member_id,encrypted_payload,payload_hmac,key_version,label,client_request_key) VALUES($1,$2,'synthetic-only',$3,'fixture','home','sharing-new-buyer-address')`,[address,buyer.memberId,'a'.repeat(64)]);
+
  await expectOk(command(buyer,'bind_visit',{visitToken:lastVisit.visitToken}));await expectOk(command(buyer,'bind_visit',{visitToken:firstVisit.visitToken}));
  expect((await service.mine(buyer.memberId)).relation).toMatchObject({code:codeA,expiresAt:null,source:'first_touch'});
  first=await seedOrder(buyer);expect((await pool.query('SELECT referrer_member_id,basis_points FROM commission_order_snapshot WHERE order_id=$1',[first.id])).rows[0]).toEqual({referrer_member_id:a.memberId,basis_points:1000});
@@ -148,7 +159,7 @@ it('recovers ambiguous commands without permitting a delayed abandoned request t
  expect(await service.commandStatus(a.memberId,key)).toMatchObject({state:'abandoned'});
 });
 it('generates monthly held sources, rechecks changed payee/refunds and records reviewed tax and manual payment exactly once',async()=>{
- const visit=await service.visit(shareB,'synthetic-historical-visit-0004');await expectOk(command(other,'bind_visit',{visitToken:visit.visitToken}));
+ const preview=await service.previewReferrer(other.memberId,codeB);await expectOk(command(other,'change_referrer',{code:codeB,confirmed:true,expectedVersion:preview.current?.version??0}));
  historical=await seedOrder(other,true);historical.paymentId=await pay(historical);await ship(historical);
  await pool.query(`INSERT INTO commission_ledger_entry(order_id,referrer_member_id,event_key,kind,amount_cents,source_fact_id,actor_principal_id,occurred_at)
   SELECT order_id,referrer_member_id,$2,'release',1760,sharing_policy_id,'synthetic-history-fixture',$3 FROM commission_order_snapshot WHERE order_id=$1`,

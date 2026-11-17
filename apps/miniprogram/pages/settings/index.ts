@@ -155,7 +155,7 @@ Page({
     const avatarUrl=!profile.avatar_data_url ? defaultMemberAvatar : sameMember ? this.data.avatarUrl : known && known.id === profile.id ? known.avatarUrl : defaultMemberAvatar;
     this.profileSessionToken=token;
     publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision || 0,completed_at:profile.completed_at,public_status:profile.public_status});
-    this.setData({...birthdayPicker(profile.birthday_month_day),birthdayDirty:false,birthdaySupported:Object.prototype.hasOwnProperty.call(profile,"birthday_month_day"),displayName:profile.display_name,wechatHandle:profile.wechat_handle || "",avatarUrl,memberId:profile.id,memberCardNumber:profile.card_number || "",memberCode:String(profile.id || "").slice(0,8).toUpperCase(),avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true,nicknameInvalid:false},()=>this.checkAddressDraftRecovery(profile.id));
+    this.setData({...birthdayPicker(profile.birthday_month_day),birthdayDirty:false,birthdaySupported:Object.prototype.hasOwnProperty.call(profile,"birthday_month_day"),displayName:profile.display_name,wechatHandle:profile.wechat_handle || "",avatarUrl,memberId:profile.id,memberCardNumber:profile.card_number || "",memberCode:profile.user_code || "",avatarPayload:null,avatarChanged:false,profileVersion:profile.profile_revision || 0,profileCompleted:Boolean(profile.completed_at),communityVisible:profile.community_visible === true,publicStatus:profile.public_status || "private",publicReviewNote:profile.public_review_note || "",profileReady:true,nicknameInvalid:false},()=>this.checkAddressDraftRecovery(profile.id));
     return true;
   },
   async loadProfileAvatar(profile:any,token:string,current:()=>boolean) {
@@ -482,7 +482,7 @@ Page({
     if(this.data.addressDirty && !await this.confirmAddressLeave())return;
     this.setData({editingProfile:false,editingAddresses:false,addressEditorOpen:false,aboutOpen:!this.data.aboutOpen});
   },
-  copyMemberId(){if(this.data.memberId)wx.setClipboardData({data:this.data.memberId});},
+  copyMemberId(){if(/^[A-Z0-9]{12}$/.test(this.data.memberCode))wx.setClipboardData({data:this.data.memberCode});},
   async load(event?: WechatMiniprogram.TouchEvent) {
     if (event?.type) clearAuthenticationRedirectSuppression();
     const attempt = this.data.loadAttempt + 1;

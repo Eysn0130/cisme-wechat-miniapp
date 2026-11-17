@@ -4,7 +4,7 @@ import {beforeEach,describe,expect,it,vi} from "vitest";
 // Only native responses are synthetic; no real identity or consent is created.
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
 vi.mock("../../apps/miniprogram/services/member-avatar",()=>({defaultMemberAvatar:"local-default",clearMemberAvatarCache:vi.fn(),localMemberAvatar:async()=>"local-default",prepareFeedAuthors:async(items:unknown)=>items}));
-vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const articlePath=`/v1/editorial/articles/${id}`,commentsPath=`${articlePath}/comments`;
 const legalTitle="请阅读并同意当前用户协议和隐私指引后再互动";

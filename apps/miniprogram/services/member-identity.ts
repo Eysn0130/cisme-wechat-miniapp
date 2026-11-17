@@ -1,5 +1,5 @@
 export interface MemberIdentity {
-  id: string; display_name: string; avatarUrl: string; profile_revision: number;
+  id: string; user_code?:string; display_name: string; avatarUrl: string; profile_revision: number;
   completed_at?: string | null; public_status?: string; phone_masked?: string | null;
 }
 let session = '';

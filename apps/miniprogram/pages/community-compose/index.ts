@@ -1,3 +1,4 @@
+import {confirmCreditOwner,queueContentFeedback} from '../../services/points-feedback';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, uploadAuthorized } from "../../services/api";
@@ -1025,6 +1026,7 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,postId=this.data.postId;
     const draft = await this.saveDraft(); if (!draft) return;
     if(!this.pageAlive||!this.mediaVisible||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||postId!==this.data.postId||!["draft","rejected","published"].includes(this.data.state))return;
+    if(!draft.publicVersionActive){confirmCreditOwner(draft.ownerId);queueContentFeedback(draft.ownerId,'post',draft.id);}
     const pending=this.newPendingWrite("submit");this.pendingWrite=pending;
     this.setData({ busy: true,operation:"submitting", error: "", notice: "" });
     try {

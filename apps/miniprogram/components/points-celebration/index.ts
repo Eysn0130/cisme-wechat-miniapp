@@ -29,18 +29,21 @@ Component({
    const context=commerceContextRevision(),attempt=++r.attempt;
    const current=()=>r.alive&&r.visible&&r.attempt===attempt&&this.properties.enabled&&this.properties.owner===owner&&isCreditOwner(owner)&&token===getApp<IAppOption>().globalData.sessionToken&&context===commerceContextRevision();
    r.promise=(async()=>{
-    for(let notice=0;notice<2;notice++){
+    for(let notice=0;notice<4;notice++){
      const intent=pendingCredit(owner);if(!intent||!current())return;
      let credit:{ids:string[];amount:number}|null=null;
-     for(const delay of[0,250,500]){
+     for(const delay of intent.kind==='content'?[0,400,800,1600,3200,6400]:[0,250,500]){
       if(delay)await pause(r,delay);if(!current())return;
       try{
        if(intent.kind==='questionnaire'){
         const point=questionnaireCredit(parsePointsSnapshot(await pageRead(this,{path:'/v1/me/points?limit=20&source=earn',cacheTags:['points'],budgetMs:1000})));
         if(point)credit={ids:[point.id],amount:point.amount};
-       }else{
+       }else if(intent.kind==='care'){
         const history=await readCareUsageHistory(this,null,intent.day,1000),receipt=history.items.find(row=>row.careDay===intent.day)?.rewards;
         if(receipt){credit=careCredit(owner,intent,receipt);if(credit&&current())this.triggerEvent('carecredit',{owner,receipt});}
+       }else{
+        const receipt=await pageRead<{memberId:string;pending:boolean;grants:Array<{id:string;points:number}>}>(this,{path:`/v1/me/points/content-receipt?kind=${intent.sourceType}&id=${intent.sourceId}`,budgetMs:1000});
+        if(receipt.memberId===owner&&!receipt.pending&&Array.isArray(receipt.grants)&&receipt.grants.every(g=>/^[a-f0-9-]{36}$/i.test(g.id)&&Number.isSafeInteger(g.points)&&g.points>=0))credit={ids:receipt.grants.map(g=>g.id),amount:receipt.grants.reduce((n,g)=>n+g.points,0)};
        }
       }catch{return;}
       if(!current())return;if(credit)break;

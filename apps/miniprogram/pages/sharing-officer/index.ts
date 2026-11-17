@@ -4,6 +4,7 @@ import {cancelPageReads} from '../../services/page-requests';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 import {catalogList} from '../../services/commerce';
 import {nativeCatalogImage} from '../../services/catalog';
+import {campaignEssenceCode} from '../../services/home-campaign';
 import {sectionTabValue} from '../../services/section-tabs';
 import {officerRead,officerCommand,officerPending,resolveOfficerPending,officerMoney,officerDate,officerError,officerLabels,officerHistoryRow,type OfficerPending} from '../../services/sharing-officer';
 const tabs=[{id:'overview',label:'推广'},{id:'orders',label:'推广订单'},{id:'settlements',label:'结算'}];
@@ -31,18 +32,19 @@ Page({
  }catch(error){if(this.current(epoch))this.setData({error:officerError(error)});}finally{if(this.current(epoch))this.setData({loading:false,busy:false});wx.stopPullDownRefresh();}},
  async loadProducts(more=false,epoch?:number){const page=await catalogList(more&&this.data.productCursor?this.data.productCursor:undefined,this);if(!this.current(epoch))return;
   this.setData({products:[...(more?this.data.products:[]),...page.items.map((p:any)=>({...p,displayImage:nativeCatalogImage(p.imagePath||p.image||''),price:p.price!==null?officerMoney(p.price):''}))],productCursor:page.nextCursor,moreProducts:Boolean(page.nextCursor)});},
+ qualifyPurchase(){if(!this.current()||this.data.busy||this.data.pending)return;wx.navigateTo({url:`/pages/product/index?id=${campaignEssenceCode}`});},
  retry(){if(!this.data.busy)void this.load();},
  onPullDownRefresh(){if(!this.data.busy)void this.load();else wx.stopPullDownRefresh();},
  more(){if(!this.data.loading&&!this.data.busy&&this.data.hasMore)void this.load(true);},
  async moreProducts(){if(this.data.loading||this.data.busy)return;this.setData({busy:true});try{await this.loadProducts(true);}catch(e){this.setData({error:officerError(e)});}finally{if(this.current())this.setData({busy:false});}},
  changeTab(e:unknown){const tab=sectionTabValue(e);if(this.data.busy||this.data.pending||!tabs.some(t=>t.id===tab)||tab===this.data.tab)return;cancelPageReads(this);this.epoch++;this.setData({tab,items:[],nextCursor:null,hasMore:false,orderLineId:'',sourcePeriod:''});void this.load();},
  edit(e:WechatMiniprogram.CustomEvent){const field=String(e.currentTarget.dataset.field);if(['note','legalName','channel','account','code'].includes(field)&&!this.data.busy)this.setData({[field]:String(e.detail.value),...(field==='code'?{preview:null}:{})});},
- open(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending)return;const sheet=String(e.currentTarget.dataset.sheet);if(['apply','payee','referrer'].includes(sheet))this.setData({sheet,preview:null,code:'',note:'',legalName:'',channel:'',account:'',error:''});},
+ open(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending)return;const sheet=String(e.currentTarget.dataset.sheet);if(sheet==='apply'&&!this.data.wallet?.canApply)return;if(['apply','payee','referrer'].includes(sheet))this.setData({sheet,preview:null,code:'',note:'',legalName:'',channel:'',account:'',error:''});},
  close(){if(!this.data.busy){this.cleanupQr();this.setData({sheet:'',selected:null,history:[],historyCursor:null,historyMore:false,historyLoading:false,assets:null,preview:null,legalName:'',channel:'',account:'',error:''});}},
  stop(){},back(){if(this.data.busy)return;wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},
  async operate(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||!this.current())return;const action=String(e.currentTarget.dataset.action);let input:Record<string,unknown>;
-  if(action==='apply')input={note:this.data.note};else if(action==='payee')input={legalName:this.data.legalName,channel:this.data.channel,account:this.data.account,expectedVersion:this.data.wallet?.payee?.version??0};
-  else if(action==='change_referrer'&&this.data.preview)input={code:this.data.preview.code,confirmed:true,expectedVersion:this.data.wallet?.relation?.version??0};else return;
+  if(action==='apply'){if(!this.data.wallet?.canApply)return;input={note:this.data.note};}else if(action==='payee')input={legalName:this.data.legalName,channel:this.data.channel,account:this.data.account,expectedVersion:this.data.wallet?.payee?.version??0};
+  else if(action==='change_referrer'&&this.data.preview?.eligible===true)input={code:this.data.preview.code,confirmed:true,expectedVersion:this.data.wallet?.relation?.version??0};else return;
   this.setData({busy:true,error:''});const epoch=this.epoch;
   try{await officerCommand(this.data.memberId,action,input);if(!this.current(epoch))return;this.setData({sheet:'',legalName:'',channel:'',account:'',preview:null});wx.showToast({title:action==='apply'?'申请已提交':action==='payee'?'收款资料已保存':'推荐人已更新',icon:'success'});await this.load();}
   catch(error){if(this.current(epoch))this.setData({error:officerError(error),pending:officerPending(this.data.memberId)});}finally{if(this.current(epoch))this.setData({busy:false});}},

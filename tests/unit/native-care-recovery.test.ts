@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ token: "session-a", request: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/api", async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess, request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => true }));
 vi.mock("../../apps/miniprogram/services/member-identity", () => ({ memberIdentity: () => null }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
-vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));
+vi.mock("../../apps/miniprogram/services/share", () => ({ prepareShareDetails:async()=>null,registerIncomingShare: vi.fn() }));
 const deferred = <T = any>() => { let resolve!: (value:T)=>void, reject!:(value:unknown)=>void; const promise = new Promise<T>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject}; };
 const flush = async () => { for (let i=0;i<40;i++) await Promise.resolve(); };
 const initial = () => ({ id: "cycle-a", phase: "active", version: 2, startedOn: "2026-09-20", timezone: "Asia/Shanghai", due: "D1", next: "D1", completed: [] as string[], records: [] as any[], scheduleOffsetDays: 0 });
@@ -22,7 +22,7 @@ beforeEach(()=>{
     if(options.path==="/v1/me/support/summary")return {unreadCount:0};
     throw new Error("Unexpected synthetic route");
   });
-  wxMock={showModal:vi.fn(async()=>({confirm:true})),showToast:vi.fn(),disableAlertBeforeUnload:vi.fn(),enableAlertBeforeUnload:vi.fn(),navigateTo:vi.fn(),nextTick:(f:()=>void)=>f()};
+  wxMock={showShareMenu:vi.fn(),showModal:vi.fn(async()=>({confirm:true})),showToast:vi.fn(),disableAlertBeforeUnload:vi.fn(),enableAlertBeforeUnload:vi.fn(),navigateTo:vi.fn(),nextTick:(f:()=>void)=>f()};
   (globalThis as any).wx=wxMock;(globalThis as any).getApp=()=>({globalData:{sessionToken:mocks.token}});
   (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(patch:any,callback?:()=>void){Object.assign(this.data,patch);callback?.();}};};
 });

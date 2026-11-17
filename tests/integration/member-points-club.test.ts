@@ -321,3 +321,14 @@ describe('Care product-use entry and atomic cycle completion',()=>{
   expect((await get(a,'/v1/me/care-usage-records')).json().totalCount).toBe(1);expect((await invariant(a)).available).toBe(0);
  });
 });
+it('returns only the owner’s canonical community reward receipt and distinguishes pending from zero-award',async()=>{
+ const a=await actor('合成奖励接收者'),foreign=await actor('合成其他会员'),post=randomUUID();
+ await pool.query("INSERT INTO ugc_post(id,author_member_id,title,body) VALUES($1,$2,'合成奖励正文','合成验收未公开草稿')",[post,a.memberId]);
+ const url=`/v1/me/points/content-receipt?kind=post&id=${post}`;
+ expect((await get(a,url)).json()).toMatchObject({memberId:a.memberId,pending:true,grants:[]});expect((await get(foreign,url)).statusCode).toBe(404);
+ await pool.query("INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at,payload,state,processed_at) VALUES('post',$1,$2,$3,'{}','applied',$3)",[post,a.memberId,base]);
+ expect((await get(a,url)).json()).toMatchObject({pending:false,grants:[]});
+ const id=await transaction(pool,c=>grantMemberPoints(c,{owner:a.memberId,sourceType:'post',sourceId:post,component:'base',amount:50,policy,now:base}));
+ expect((await get(a,url)).json()).toMatchObject({pending:false,grants:[{id,points:50}]});
+ expect((await app.inject({url})).statusCode).toBe(401);
+});

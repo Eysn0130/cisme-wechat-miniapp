@@ -4,7 +4,7 @@ const m = vi.hoisted(() => ({ token: "member-a", request: vi.fn(), authenticate:
 vi.mock("../../apps/miniprogram/services/api", () => ({ request: m.request, requireMemberAccess: () => Boolean(m.token), retainMemberSnapshot: () => true, clearAuthenticationRedirectSuppression: vi.fn(), resumeAuthentication: m.authenticate }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true, motionDuration: () => 0 }));
 vi.mock("../../apps/miniprogram/services/member-identity", () => ({ memberIdentity: () => null }));
-vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));
+vi.mock("../../apps/miniprogram/services/share", () => ({ prepareShareDetails:async()=>null,registerIncomingShare: vi.fn() }));
 const path = "/v1/me/daily-care-records";
 const steps = ["00", "01", "02", "03"];
 const deferred = () => { let resolve!: (value: any) => void, reject!: (error: any) => void; const promise = new Promise<any>((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };

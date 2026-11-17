@@ -86,3 +86,10 @@ it('backfills existing accounts in a deterministic order without changing member
     expect((await c.query('SELECT member_id,number::text FROM member_card_number ORDER BY member_card_number.number')).rows).toEqual(before.map((r,i)=>({member_id:r.id,number:String(i+1)})));
   }finally{await c.query('ROLLBACK');c.release();}
 });
+it('assigns unique public lookup codes without replacing private card numbers or permitting code edits',async()=>{
+ const rows=(await pool.query('SELECT member_id,user_code,number::text FROM member_card_number WHERE member_id=ANY($1::uuid[])',[[owner.memberId,other.memberId]])).rows;
+ expect(rows).toHaveLength(2);expect(new Set(rows.map(r=>r.user_code)).size).toBe(2);for(const row of rows)expect(row.user_code).toMatch(/^[A-Z0-9]{12}$/);
+ await expect(pool.query("UPDATE member_card_number SET user_code='CM0000000000' WHERE member_id=$1",[owner.memberId])).rejects.toThrow('MEMBER_CARD_NUMBER_IMMUTABLE');
+ await expect(pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) VALUES($1,'CMWRONG00000','pending')",[owner.memberId])).rejects.toMatchObject({code:'23503'});
+ for(const url of ['/v1/me','/v1/me/profile','/v1/bootstrap/settings']){const r=await app.inject({url,headers:headers(owner.sessionToken)});const body=r.json();expect((body.member??body).user_code).toBe(rows.find(r=>r.member_id===owner.memberId).user_code);}
+});

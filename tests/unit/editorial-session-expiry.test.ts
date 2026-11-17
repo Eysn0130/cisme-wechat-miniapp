@@ -4,7 +4,7 @@ import {beforeEach,describe,expect,it,vi} from "vitest";
 // callbacks below must actually revoke the captured token on a 401.
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
 vi.mock("../../apps/miniprogram/services/member-avatar",()=>({defaultMemberAvatar:"local-default",clearMemberAvatarCache:vi.fn(),localMemberAvatar:async()=>"local-default",prepareFeedAuthors:async(items:unknown)=>items,prepareFeedPage:async()=>[]}));
-vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const card={id:articleId,title:"公开精选",excerpt:"公开摘要",authorId,author:"公开作者",avatar:"",coverUrl:null,publishedAt:"2026-10-26T00:00:00Z",likeCount:0,saveCount:0};
 const article={...card,version:1,body:"公开正文",media:[],liked:false,saved:false,following:false,isMine:false,interactionsEnabled:true,sourceUrl:null,provenanceLabel:"AI辅助配图"};

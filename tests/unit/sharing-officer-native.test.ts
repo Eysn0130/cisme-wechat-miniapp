@@ -25,7 +25,7 @@ beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token='owner-session';m.c
  m.authority.mockResolvedValue({capabilities:['member.manage','commission.rate.manage','commission.read','commission.settlement.approve']});
 });
 it('sends a deliberate referrer change with the displayed relation version',async()=>{
- m.read.mockResolvedValue(wallet);const p=await mount('consumer');p.onShow();await flush();p.setData({sheet:'referrer',preview:{code:'SOBBBBBBBBBB'}});m.command.mockResolvedValue({});
+ m.read.mockResolvedValue(wallet);const p=await mount('consumer');p.onShow();await flush();p.setData({sheet:'referrer',preview:{code:'SOBBBBBBBBBB',eligible:true}});m.command.mockResolvedValue({});
  await p.operate({currentTarget:{dataset:{action:'change_referrer'}}});expect(m.command).toHaveBeenCalledWith(owner,'change_referrer',{code:'SOBBBBBBBBBB',confirmed:true,expectedVersion:1});
 });
 it('does not let a late wallet read repopulate another session or a hidden page',async()=>{
