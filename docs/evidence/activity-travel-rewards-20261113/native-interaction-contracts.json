@@ -86,7 +86,7 @@
       "Single and atomic batch registration have explicit review, idempotence, actor/environment binding and unknown-result recovery",
       "Native screenshots are synthetic read-only UI evidence, never physical-device or production shipping acceptance"
     ],
-    "packageSourceSha256": "f3ff36522e046da36a1b312f18f90db08255727fd36289c0507d35a49949f246"
+    "packageSourceSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad"
   },
   "officerGiftSharing": {
     "mode": "Operate; extension of the approved product comparison and officer page",

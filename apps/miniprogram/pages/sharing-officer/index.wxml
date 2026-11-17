@@ -7,8 +7,8 @@
   <block wx:if="{{wallet}}">
    <block wx:if="{{giftMode}}">
     <block wx:if="{{wallet.canShare}}">
-     <picker wx:if="{{giftActivities.length>1}}" range="{{giftActivities}}" range-key="title" bindchange="chooseGiftActivity" disabled="{{loading||giftShareBusy}}"><view class="officer-gift-activity"><text>选择活动</text><image src="/assets/icons/caret-right-muted.svg"/></view></picker>
-     <view class="officer-gift-intro"><text class="officer-gift-heading">把这份洗护礼遇，<text>送给在意的人。</text></text><text class="officer-muted">净润与净屑 · 每人任选一套</text></view>
+     <picker wx:if="{{giftActivities.length>1}}" range="{{giftActivities}}" range-key="title" value="{{giftActivityIndex}}" bindchange="chooseGiftActivity" disabled="{{loading||giftShareBusy}}"><view class="officer-gift-activity"><text>{{giftActivityTitle}}</text><image src="/assets/icons/caret-right-muted.svg"/></view></picker>
+     <view class="officer-gift-intro"><text class="officer-gift-heading">旅行洗护礼遇</text><text class="officer-muted">净润与净屑 · 每人任选一套</text></view>
      <view wx:for="{{giftBundles}}" wx:key="code" class="officer-gift-card {{item.available?'':'officer-gift-card--empty'}}">
       <view class="officer-between"><text class="officer-strong">{{item.code==='moisture'?'净润洗护礼遇':'净屑洗护礼遇'}}</text><button class="action-text {{detailBusy?'control--disabled':''}}" data-code="{{item.code}}" bindtap="giftDetails" disabled="{{detailBusy}}" aria-label="{{item.name+'产品详情'}}">详情</button></view>
       <view class="officer-gift-product"><view class="officer-gift-photo"><image src="{{item.photo}}" mode="aspectFit"/><view wx:if="{{!item.available}}" class="officer-gift-soldout"><text>已领完</text></view></view><view class="officer-gift-copy"><text class="officer-gift-benefit">{{item.benefit}}</text><text>{{item.shampoo}} {{item.shampooMl}}mL</text><text>{{item.conditioner}} {{item.conditionerMl}}mL</text></view></view>
