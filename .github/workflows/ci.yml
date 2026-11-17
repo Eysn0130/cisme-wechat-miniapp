@@ -136,7 +136,7 @@ jobs:
           # Compare both source revisions under today's exact fixed lock. Keep
           # baseline scripts; unrelated manifest/workspace drift fails closed.
           node --input-type=module - "$baseline" "$candidate" "$out" "$baseline_ref" <<'NODE'
-          import { readFileSync, writeFileSync } from 'node:fs';
+          import { readFileSync, writeFileSync, readdirSync, lstatSync, existsSync, cpSync } from 'node:fs';
           import { join } from 'node:path';
           import { createHash } from 'node:crypto';
           import { deepStrictEqual } from 'node:assert';
@@ -154,14 +154,33 @@ jobs:
           for (const key of ['preinstall', 'install', 'postinstall', 'prepare', 'prepublish']) {
             deepStrictEqual(base.scripts?.[key], current.scripts?.[key], `INSTALL_SCRIPT_DRIFT:${key}`);
           }
+          // This reviewed file dependency is build tooling, not a workspace or
+          // a runtime fix. Install the same patched bytes in both cohorts.
+          const buildVendor = 'tools/vendor/picomatch-hardened';
+          deepStrictEqual(current.devDependencies?.picomatch, `file:${buildVendor}`);
+          deepStrictEqual(current.overrides?.picomatch, '$picomatch');
+          deepStrictEqual(JSON.parse(read(candidate, `${buildVendor}/package.json`)).name, '@cisme/picomatch-hardened');
           const locals = root => Object.keys(JSON.parse(read(root, 'package-lock.json')).packages)
-            .filter(path => path && !path.split('/').includes('node_modules')).sort();
+            .filter(path => path && path !== buildVendor && !path.split('/').includes('node_modules')).sort();
           deepStrictEqual(locals(baseline), locals(candidate), 'WORKSPACE_SET_DRIFT');
           const workspaceManifestSha256 = Object.fromEntries(locals(candidate).map(path => {
             const file = `${path}/package.json`;
             deepStrictEqual(read(baseline, file), read(candidate, file), `WORKSPACE_MANIFEST_DRIFT:${path}`);
             return [file, sha(read(candidate, file))];
           }));
+          const vendorFiles = root => {
+            const result = {};
+            const visit = path => {
+              const info = lstatSync(join(root, path));
+              if (info.isDirectory()) for (const name of readdirSync(join(root, path)).sort()) visit(`${path}/${name}`);
+              else if (info.isFile()) result[path] = { sha256: sha(read(root, path)), executable: info.mode & 0o111 };
+              else throw new Error('UNSUPPORTED_BUILD_DEPENDENCY_FILE');
+            };
+            visit(buildVendor); return result;
+          };
+          const buildDependencyFiles = vendorFiles(candidate);
+          if (!existsSync(join(baseline, buildVendor))) cpSync(join(candidate, buildVendor), join(baseline, buildVendor), { recursive: true, errorOnExist: true, force: false });
+          deepStrictEqual(vendorFiles(baseline), buildDependencyFiles, 'BUILD_DEPENDENCY_BYTES_DRIFT');
           for (const key of dependencyKeys) { delete base[key]; if (Object.hasOwn(current, key)) base[key] = current[key]; }
           const manifest = JSON.stringify(base, null, 2) + '\n', lock = read(candidate, 'package-lock.json');
           for (const root of [baseline, candidate]) { writeFileSync(join(root, 'package.json'), manifest); writeFileSync(join(root, 'package-lock.json'), lock); }
@@ -169,7 +188,7 @@ jobs:
             schemaVersion: 1, baselineSourceHead: baselineRef, candidateSourceHead: read(out, 'checkout-sha.txt').toString().trim(),
             scope: 'Fixed baseline source versus candidate source under shared candidate dependencies; not historical results under the old dependencies or native acceptance',
             manifestPolicy: 'Baseline non-dependency fields/scripts plus candidate dependency fields; workspace and install-lifecycle drift forbidden',
-            originalInputs: originals, workspaceManifestSha256,
+            originalInputs: originals, workspaceManifestSha256, buildDependencyFiles,
             comparisonInputs: { manifestSha256: sha(manifest), lockSha256: sha(lock) }, installedDependencies: {}
           }, null, 2) + '\n');
           NODE
@@ -211,6 +230,10 @@ jobs:
           };
           const file = join(out, 'performance-dependency-context.json'), evidence = JSON.parse(readFileSync(file));
           for (const [cohort, root] of [['baseline', baseline], ['candidate', candidate]]) {
+            for (const [path, expected] of Object.entries(evidence.buildDependencyFiles)) {
+              const info = lstatSync(join(root, path));
+              deepStrictEqual(info.isFile() && { sha256: sha(readFileSync(join(root, path))), executable: info.mode & 0o111 }, expected, `BUILD_DEPENDENCY_CHANGED:${cohort}:${path}`);
+            }
             const actualLock = readFileSync(join(root, 'node_modules/.package-lock.json'));
             const inventory = Object.keys(JSON.parse(actualLock).packages).sort().map(path => [path, sha(readFileSync(join(root, path, 'package.json')))]);
             const actual = { manifestSha256: sha(readFileSync(join(root, 'package.json'))), lockSha256: sha(readFileSync(join(root, 'package-lock.json'))) };
@@ -219,7 +242,7 @@ jobs:
               installedNodeModulesSha256: installedTreeSha(root), installedPackageManifestsSha256: sha(JSON.stringify(inventory)),
               installedPackageCount: inventory.length, nodeVersion: process.version };
           }
-          evidence.dependencyDigestPolicy = 'Relative node_modules paths, file bytes/execute bits and unfollowed symlink targets; hidden lock recorded separately; linked workspace runtime remains cohort source';
+          evidence.dependencyDigestPolicy = 'Relative node_modules paths, file bytes/execute bits and unfollowed symlink targets; hidden lock and reviewed build-file dependency bytes recorded separately; linked workspace runtime remains cohort source';
           writeFileSync(file, JSON.stringify(evidence, null, 2) + '\n');
           deepStrictEqual(evidence.installedDependencies.baseline.installedPackageManifestsSha256,
             evidence.installedDependencies.candidate.installedPackageManifestsSha256, 'INSTALLED_DEPENDENCY_DRIFT');
