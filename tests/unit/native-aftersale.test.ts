@@ -77,7 +77,7 @@ it('keeps confirmed rows during refresh and offline errors, while disabling stal
 });
 it('does not return the entire case queue when refreshing a selected case',async()=>{
  const p=await page(true);p.selection=record.id;m.request.mockClear().mockResolvedValue(record);await p.load();
- expect(m.request).toHaveBeenCalledTimes(1);expect(m.request.mock.calls[0][0].path).toBe(`/v1/management/aftersales/${record.id}`);
+ expect(m.request).toHaveBeenCalledTimes(1);expect(m.request.mock.calls[0]![0].path).toBe(`/v1/management/aftersales/${record.id}`);
 });
 it('clears the decision form and return contacts when leaving or changing identity',async()=>{
  const p=await page(true);p.data.actionId='send_return_instruction';p.data.returnPhone='13800000000';p.data.returnAddress='合成地址';p.data.recipientName='合成收件人';
