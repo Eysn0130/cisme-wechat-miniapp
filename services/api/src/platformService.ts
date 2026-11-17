@@ -1,3 +1,4 @@
+import {captureValidContentShare} from './memberPointsTasks.js';
 import {saveMemberUsage,privateUsageDigest} from './memberPointsClub.js';
 import {lockPointWallet} from './pointsLedger.js';
 import {memberCardNumberProjection} from './memberCard.js';
@@ -573,7 +574,7 @@ export class PlatformService {
   async attributeShareIdentity(memberId: string | undefined, shareId: string, visitKey: string, now: Date) {
     const owner = requireMember(memberId);
     return transaction(this.pool, async (client) => {
-      const visit = await client.query<{ target_type:string;visit_id: string; sharer_member_id: string; visitor_member_id: string | null; first_seen_at: Date; state: string }>(`SELECT sl.target_type,sv.id AS visit_id, sl.member_id AS sharer_member_id, sv.visitor_member_id, sv.first_seen_at, sl.state
+      const visit = await client.query<{ target_type:string;target_ref:string;visit_id: string; sharer_member_id: string; visitor_member_id: string | null; first_seen_at: Date; state: string }>(`SELECT sl.target_type,sl.target_ref,sv.id AS visit_id, sl.member_id AS sharer_member_id, sv.visitor_member_id, sv.first_seen_at, sl.state
         FROM share_visit sv JOIN share_link sl ON sl.id=sv.share_link_id
         WHERE sl.share_id=$1 AND sv.visit_key=$2 FOR UPDATE OF sv`, [shareId, visitKey]);
       const row = visit.rows[0];
@@ -582,6 +583,7 @@ export class PlatformService {
       if (row.state === "revoked" || now.getTime() < row.first_seen_at.getTime() || now.getTime() - row.first_seen_at.getTime() > 30 * 86400_000) return { shareId, credited: false, reason: "ATTRIBUTION_WINDOW_EXPIRED" };
       await client.query("UPDATE share_visit SET visitor_member_id=COALESCE(visitor_member_id,$1), last_seen_at=GREATEST(last_seen_at,$2) WHERE id=$3", [owner, now, row.visit_id]);
       if (row.sharer_member_id === owner) return { shareId, credited: false, reason: "SELF_ATTRIBUTION" };
+      await captureValidContentShare(client,row,owner,now);
       const attributionId = randomUUID();
       const created = await client.query<{ id: string }>(`INSERT INTO share_attribution(id, share_visit_id, sharer_member_id, converted_member_id, conversion_type, occurred_at)
         VALUES ($1,$2,$3,$4,'identity',$5)
@@ -596,7 +598,7 @@ export class PlatformService {
         businessKey: `share:${shareId}:identity:${owner}`, payload: { shareId, shareVisitId: row.visit_id, sharerMemberId: row.sharer_member_id, convertedMemberId: owner }, occurredAt: now
       });
       const registered=(await client.query<{created_at:Date}>('SELECT created_at FROM member WHERE id=$1',[owner])).rows[0];
-      if(row.target_type==='invite'&&registered&&registered.created_at>=row.first_seen_at&&registered.created_at<=now&&await activePointPolicy(client,registered.created_at))
+      if((row.target_type==='invite'||(await activePointPolicy(client,now))?.rules.taskVersion===2)&&registered&&registered.created_at>=row.first_seen_at&&registered.created_at<=now&&await activePointPolicy(client,registered.created_at))
         await client.query(`INSERT INTO member_points_referral(member_id,referrer_member_id,share_attribution_id,created_at)
           VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[owner,row.sharer_member_id,attributionId,now]);
       return { shareId, credited: true, attributionId };

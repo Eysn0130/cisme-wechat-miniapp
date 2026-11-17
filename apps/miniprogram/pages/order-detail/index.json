@@ -1,1 +1,6 @@
-{"navigationStyle":"custom"}
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "points-celebration": "../../components/points-celebration/index"
+  }
+}

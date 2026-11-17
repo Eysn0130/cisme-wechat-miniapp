@@ -1,1 +1,7 @@
-{"navigationBarTitleText":"我的积分","usingComponents":{"section-tabs":"/components/section-tabs/index"}}
+{
+  "navigationBarTitleText": "我的积分",
+  "usingComponents": {
+    "section-tabs": "/components/section-tabs/index",
+    "points-celebration": "../../components/points-celebration/index"
+  }
+}

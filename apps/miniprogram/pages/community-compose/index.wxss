@@ -84,3 +84,5 @@
 @media (max-width:374px) { .composer-media-scroll { --composer-media-size:82px; } .composer-actions { padding-right:18px; padding-left:18px; } .composer-actions__buttons { gap:10px; } .composer-actions__buttons button { padding:12px 10px; } }
 @media (min-width:420px) { .composer-media-scroll { --composer-media-size:88px; } }
 @media (prefers-reduced-motion: reduce) { .composer-media--shifting,.composer-drag-photo--dropping { transition:none; } .composer-handoff__spinner { animation:none; } }
+
+.composer-task-kind{display:flex;gap:20rpx;margin:18rpx 0 8rpx}.composer-task-kind .text-button{margin:0;padding:0 8rpx;min-height:44px;color:#807188}.composer-task-kind .composer-task-kind--active{color:#55316d;font-weight:600}.composer-experience{display:flex;align-items:center;justify-content:space-between;gap:16rpx;padding:12rpx 0;border-bottom:1rpx solid #e8dfee}.composer-experience>button{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.composer-experience>view{display:flex;align-items:center;gap:8rpx;color:#76647f}.composer-experience input{width:138rpx;min-height:44px;text-align:right;font-size:26rpx}

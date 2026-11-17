@@ -32,3 +32,5 @@
 .community-publisher-recovery { display:flex; align-items:center; justify-content:center; min-height:var(--cisme-hit-target); margin:8px 0 0; padding:8px 14px; border:1rpx solid var(--cisme-line); border-radius:24px; background:#fff; color:var(--cisme-plum); font-size:var(--cisme-text-body); line-height:1.5; }
 .community-publisher-cancel { display:flex; align-items:center; justify-content:center; width:100%; min-height:50px; margin:12px 0 0; padding:10px; border:0; border-radius:14px; background:#f7f4f8; color:var(--cisme-ink); font-size:var(--cisme-text-action); line-height:1.5; }
 .community-publisher-sheet .control--disabled { opacity:.45; }
+
+.community-points-guide{display:flex;align-items:center;gap:12rpx;min-height:44px;width:100%;margin:0;padding:0 2rpx 4rpx;background:transparent;color:#634477;text-align:left;font-size:24rpx}.community-points-guide text{flex:1}.community-points-guide image{width:29rpx;height:29rpx}

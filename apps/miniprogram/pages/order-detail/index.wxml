@@ -87,3 +87,5 @@
 <view wx:if="{{!closedRights&&order.status==='pending_payment'&&isolatedPayment}}" class="order-paymentbar"><text class="order-paymentbar__amount">¥{{order.cashYuan}}</text><button class="primary action-main {{busy||!coreReady?'primary--disabled':''}}" hover-class="action-pressed" bindtap="preparePayment" disabled="{{busy||!coreReady}}" loading="{{busy}}">{{runtimeMode==='formal'?'微信支付':'测试支付'}}</button></view>
 <button wx:if="{{!closedRights&&order.status==='pending_payment'&&(order.transactionSourceKind!=='verified_commerce'||isolatedPayment)}}" class="secondary danger-action {{busy?'secondary--disabled':''}}" bindtap="cancel" loading="{{busy}}" disabled="{{busy}}">取消订单</button></block><view wx:if="{{coreReady}}" class="order-history"><button class="text-button" bindtap="toggleRecordedHistory" aria-expanded="{{recordedHistoryOpen}}">{{recordedHistoryOpen?'收起处理记录':'查看处理记录'}}</button><template wx:if="{{recordedHistoryOpen}}" is="recorded-commands" data="{{recordedGroups,compact:true}}"/></view></view>
 </view>
+
+<points-celebration owner="{{rewardOwner}}" auto-receipts="{{true}}" enabled="{{!loading}}"/>

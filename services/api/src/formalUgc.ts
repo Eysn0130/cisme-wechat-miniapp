@@ -32,7 +32,7 @@ function mediaIds(value:unknown):string[]{
   if(!Array.isArray(value)||value.length>9)throw new DomainError("UGC_MEDIA_INVALID","最多选择 9 张图片",422);
   const ids=value.map(uuid);if(new Set(ids).size!==ids.length)throw new DomainError("UGC_MEDIA_INVALID","请移除重复图片",422);return ids;
 }
-type DraftInput={title?:unknown;body?:unknown;mediaIds?:unknown;aiUsage?:unknown;rightsConfirmed?:unknown;publicConsentConfirmed?:unknown;expectedVersion?:unknown};
+type DraftInput={rewardKind?:unknown;experienceProductCode?:unknown;experienceDays?:unknown;title?:unknown;body?:unknown;mediaIds?:unknown;aiUsage?:unknown;rightsConfirmed?:unknown;publicConsentConfirmed?:unknown;expectedVersion?:unknown};
 function ownWorkflowState(post:{state:string;published_revision:number|null;current_revision:number;moderation_state:string;direct_publication?:boolean}):string{
   if(post.state==="hidden"||post.state==="deleted")return post.state;
   if(post.current_revision!==post.published_revision){
@@ -109,15 +109,18 @@ export class FormalUgcService{
       if(!post)throw new DomainError("UGC_POST_NOT_FOUND","草稿不存在或不属于当前账号",404);
       if(!["draft","rejected","published","pending_review"].includes(post.state))throw new DomainError("UGC_POST_LOCKED","当前内容不能编辑",409);
       if(post.version!==expected)throw new DomainError("UGC_VERSION_CONFLICT","草稿已更新，请重新加载后核对",409);
-      const current=(await client.query("SELECT moderation_state,ai_usage FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
+      const current=(await client.query("SELECT moderation_state,ai_usage,reward_kind,experience_product_code,experience_days FROM ugc_post_revision WHERE post_id=$1 AND revision=$2",[id,post.current_revision])).rows[0];
       const aiUsage=input.aiUsage??current?.ai_usage??"unknown";
+      const rewardKind=input.rewardKind??current?.reward_kind??'original',productCode=input.experienceProductCode===undefined?current?.experience_product_code:input.experienceProductCode,days=input.experienceDays===undefined?current?.experience_days:input.experienceDays;
+      if(!['original','experience'].includes(String(rewardKind))||productCode!=null&&(typeof productCode!=='string'||!/^[a-z0-9][a-z0-9-]{2,63}$/.test(productCode))||days!=null&&(!Number.isInteger(days)||Number(days)<1||Number(days)>36500))throw new DomainError('UGC_EXPERIENCE_INVALID','请核对关联商品和使用天数',422);
+      if(productCode&&!(await client.query('SELECT 1 FROM catalog_product WHERE code=$1 AND qualification_status=\'eligible\'',[productCode])).rowCount)throw new DomainError('UGC_EXPERIENCE_PRODUCT_INVALID','关联商品暂不可用',422);
       if(images.length){const owned=await client.query(`SELECT id FROM ugc_media_asset WHERE id=ANY($1::uuid[]) AND owner_member_id=$2
         AND source_post_id=$3 AND state IN ('uploaded','scanning','approved')
         AND (bound_post_id IS NULL OR bound_post_id=$3) FOR UPDATE`,[images,owner,id]);
         if(owned.rowCount!==images.length)throw new DomainError("UGC_MEDIA_NOT_READY","有图片尚未上传完成或不属于这篇内容",409);}
       const revision=post.current_revision+1;
-      await client.query(`INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body,ai_usage,rights_confirmed,public_consent_confirmed)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,[id,revision,owner,title,body,aiUsage,input.rightsConfirmed??false,input.publicConsentConfirmed??false]);
+      await client.query(`INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body,ai_usage,rights_confirmed,public_consent_confirmed,reward_kind,experience_product_code,experience_days)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[id,revision,owner,title,body,aiUsage,input.rightsConfirmed??false,input.publicConsentConfirmed??false,rewardKind,rewardKind==='experience'?productCode??null:null,rewardKind==='experience'?days??null:null]);
       for(let position=0;position<images.length;position+=1)await client.query(`INSERT INTO ugc_post_media(post_id,revision,media_asset_id,position)
         VALUES($1,$2,$3,$4)`,[id,revision,images[position],position]);
       await client.query(`UPDATE ugc_post SET current_revision=$2,version=version+1,
@@ -152,8 +155,8 @@ export class FormalUgcService{
       // declarations or inventing a rights confirmation.
       const submittedRevision=post.current_revision+1;
       await client.query(`INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body,content_warning,
-        ai_usage,rights_confirmed,public_consent_confirmed,moderation_state)
-        SELECT post_id,$2,created_by_member_id,title,body,content_warning,ai_usage,rights_confirmed,true,'pending'
+        ai_usage,rights_confirmed,public_consent_confirmed,moderation_state,reward_kind,experience_product_code,experience_days)
+        SELECT post_id,$2,created_by_member_id,title,body,content_warning,ai_usage,rights_confirmed,true,'pending',reward_kind,experience_product_code,experience_days
         FROM ugc_post_revision WHERE post_id=$1 AND revision=$3`,[id,submittedRevision,post.current_revision]);
       await client.query(`INSERT INTO ugc_post_media(post_id,revision,media_asset_id,position,alt_text)
         SELECT post_id,$2,media_asset_id,position,alt_text FROM ugc_post_media WHERE post_id=$1 AND revision=$3`,
@@ -288,7 +291,7 @@ export class FormalUgcService{
 
   private async readOwnWithClient(client:DbClient,owner:string,id:string){
     const post=(await client.query(`SELECT p.id,p.state,p.visibility,p.current_revision,p.published_revision,p.version,p.updated_at,r.title,r.body,r.ai_usage,
-      r.rights_confirmed,r.public_consent_confirmed,r.moderation_state,
+      r.rights_confirmed,r.public_consent_confirmed,r.moderation_state,r.reward_kind,r.experience_product_code,r.experience_days,
       ${directPublicationIntentSql} AS direct_publication
       FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
       WHERE p.id=$1 AND p.author_member_id=$2`,[id,owner])).rows[0];
@@ -306,7 +309,7 @@ export class FormalUgcService{
     const workflowState=ownWorkflowState(post);
     return {id:post.id,ownerId:owner,state:workflowState,directPublication:post.direct_publication===true,publicVersionActive:post.state==="published"&&Boolean(post.published_revision),
       visibility:post.visibility,revision:post.current_revision,publishedRevision:post.published_revision,version:post.version,
-      title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,rightsConfirmed:post.rights_confirmed,
+      title:post.title??"",body:post.body??"",rewardKind:post.reward_kind,experienceProductCode:post.experience_product_code,experienceDays:post.experience_days,aiUsage:post.ai_usage,rightsConfirmed:post.rights_confirmed,
       publicConsentConfirmed:post.public_consent_confirmed,moderationState:post.moderation_state,revisionState:post.moderation_state,updatedAt:post.updated_at,
       media:media.rows.map(row=>({id:row.id,state:row.state,position:row.position})),
       reviewNote:post.direct_publication===true&&post.moderation_state==="rejected"?"内容安全检查未通过或未完成，请修改后重新发布。":review.rows[0]?.reason??null,reviewedAt:review.rows[0]?.created_at??null,
@@ -422,7 +425,7 @@ export class FormalUgcService{
         :Promise.resolve({rows:[{following:false}]})
     ]);
     return {id,version:post.version,authorId:post.author_member_id,author:authors[post.author_member_id]?.name??"CISME 会员",
-      avatar:authors[post.author_member_id]?.avatar??"",avatarRevision:authors[post.author_member_id]?.avatarRevision??null,title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,
+      avatar:authors[post.author_member_id]?.avatar??"",avatarRevision:authors[post.author_member_id]?.avatarRevision??null,title:post.title??"",body:post.body??"",rewardKind:post.reward_kind,experienceProductCode:post.experience_product_code,experienceDays:post.experience_days,aiUsage:post.ai_usage,
       publishedAt:post.published_at,isMine:memberId===post.author_member_id,following:follow.rows[0]?.following===true,media:media.rows,
       likeCount:reactions.rows.find(row=>row.kind==="like")?.count??0,saveCount:reactions.rows.find(row=>row.kind==="save")?.count??0,
       liked:reactions.rows.find(row=>row.kind==="like")?.mine??false,saved:reactions.rows.find(row=>row.kind==="save")?.mine??false,
@@ -625,7 +628,7 @@ export class FormalUgcService{
         WHERE post_id=$1 AND revision=$2 ORDER BY created_at DESC LIMIT 1`,[id,post.current_revision])]);
     return {id:post.id,authorId:post.author_member_id,state:post.state,revision:post.current_revision,
       publishedRevision:post.published_revision,version:post.version,
-      title:post.title??"",body:post.body??"",aiUsage:post.ai_usage,rightsConfirmed:post.rights_confirmed,
+      title:post.title??"",body:post.body??"",rewardKind:post.reward_kind,experienceProductCode:post.experience_product_code,experienceDays:post.experience_days,aiUsage:post.ai_usage,rightsConfirmed:post.rights_confirmed,
       publicConsentConfirmed:post.public_consent_confirmed,moderationState:post.moderation_state,
       media:media.rows.map(row=>({id:row.id,state:row.state,scanVerdict:row.scan_verdict,scanProvider:row.scan_provider,position:row.position})),
       lastAction:approval.rows[0]??null};

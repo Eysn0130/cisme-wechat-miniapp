@@ -4,7 +4,14 @@ import type {DbClient} from './db.js';
 export const clubRulesV1={daily:10,note:5,streak7:50,streak30:200,post:50,featured:100,comment:5,questionnaire:100,
   firstOrder:300,inviteSponsor:300,inviteFriend:200,postWeeklyLimit:2,commentDailyLimit:2,
   expiryMonths:12,reminderDays:30,discountBps:2000,pointsPerYuan:100,refundGraceDays:30,birthdayMultiplier:2};
-export type ClubRules=typeof clubRulesV1;
+export const clubTaskRulesV2={taskVersion:2,firstPost:20,originalPost:30,originalMonthlyLimit:2,experiencePost:80,experienceMonthlyLimit:1,
+  share:5,shareDailyLimit:3,suggestion:20,suggestionMonthlyLimit:2,profile:50,commentMinHan:15,postMinHan:15,experienceMinHan:30,
+  memberDay:18,dailyShoppingMultiplier:2,shoppingPointsPerYuan:1,awardOnPayment:1,inviteExclusive:1,
+  shareOrder:30,shareOrderWindowDays:30};
+export const clubRulesV2={...clubRulesV1,...clubTaskRulesV2,streak7:20,streak30:50,post:0,postWeeklyLimit:0,comment:2,commentDailyLimit:3};
+export type ClubRules=typeof clubRulesV1 & Partial<typeof clubTaskRulesV2>;
+export const pointRulesV2=(r:ClubRules)=>r.taskVersion===2;
+export const hanCount=(s:string)=>Array.from(s.match(/\p{Script=Han}/gu)??[]).length;
 export type PointsPolicy={version:string;rules:ClubRules;monthly_budget:number|null;starts_at:Date;ends_at:Date|null;state:string};
 export const pointDay=(date:Date)=>new Date(date.getTime()+8*3600000).toISOString().slice(0,10);
 export function addPointMonths(date:Date,months:number){
@@ -13,15 +20,19 @@ export function addPointMonths(date:Date,months:number){
   return new Date(Date.UTC(target.getUTCFullYear(),target.getUTCMonth(),Math.min(d.getUTCDate(),last),d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds(),d.getUTCMilliseconds())-8*3600000);
 }
 export function validClubRules(input:unknown):ClubRules{
-  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).sort().join()!==Object.keys(clubRulesV1).sort().join())
+  const fields=(input as ClubRules)?.taskVersion===2?clubRulesV2:clubRulesV1;
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).sort().join()!==Object.keys(fields).sort().join())
     throw new DomainError('POINTS_RULES_INVALID','积分规则字段不完整',422);
   const r=input as ClubRules;
-  for(const k of Object.keys(clubRulesV1) as Array<keyof ClubRules>)if(!Number.isSafeInteger(r[k])||r[k]<0||r[k]>100000)
+  for(const k of Object.keys(fields) as Array<keyof ClubRules>)if(!Number.isSafeInteger(r[k])||r[k]!<0||r[k]!>100000)
     throw new DomainError('POINTS_RULES_INVALID','积分规则必须为支持范围内的整数',422);
   if(r.expiryMonths<1||r.expiryMonths>36||r.reminderDays<1||r.reminderDays>90||r.discountBps>2000||r.pointsPerYuan<1||r.pointsPerYuan>10000||r.refundGraceDays<1||r.refundGraceDays>90
     ||r.postWeeklyLimit>10||r.commentDailyLimit>10||r.birthdayMultiplier<1||r.birthdayMultiplier>3)
     throw new DomainError('POINTS_RULES_INVALID','有效期、兑换比例或频控超出支持范围',422);
   if(r.pointsPerYuan!==100)throw new DomainError('POINTS_VALUE_CONTRACT_FIXED','积分兑换比例固定为100积分抵1元，规则更新不能降低已获得积分的权益',422);
+  if(pointRulesV2(r)&&(r.memberDay!<1||r.memberDay!>28||r.commentMinHan!<15||r.commentDailyLimit>3||r.originalMonthlyLimit!>10||r.experienceMonthlyLimit!>10
+    ||r.shareDailyLimit!>10||r.suggestionMonthlyLimit!>10||r.dailyShoppingMultiplier!==2||r.shoppingPointsPerYuan!==1||r.awardOnPayment!==1||r.inviteExclusive!==1
+    ||r.shareOrderWindowDays!<1||r.shareOrderWindowDays!>90))throw new DomainError('POINTS_RULES_INVALID','任务条件、购物基数或频次不符合已确认规则',422);
   return {...r};
 }
 export async function activePointPolicy(client:Pick<DbClient,'query'>,now=new Date()):Promise<PointsPolicy|null>{
@@ -202,13 +213,14 @@ export async function returnOrderPoints(client:DbClient,orderId:string,cumulativ
 }
 export async function quoteMemberPoints(client:DbClient,owner:string,skuId:string,subtotal:number,requested:number,now:Date){
   const policy=await activePointPolicy(client,now);
-  const offer=(await client.query<{version:number}>('SELECT version FROM catalog_price WHERE sku_id=$1 FOR SHARE',[skuId])).rows[0];
+  const offer=(await client.query<{version:number;points_discount_enabled:boolean}>('SELECT pr.version,p.points_discount_enabled FROM catalog_price pr JOIN catalog_sku s ON s.id=pr.sku_id JOIN catalog_product p ON p.id=s.product_id WHERE pr.sku_id=$1 FOR SHARE OF pr,p',[skuId])).rows[0];
   await sweepMemberPoints(client,owner,now);const wallet=await lockPointWallet(client,owner,true);
-  const maximum=policy&&offer&&!wallet.debt
+  const allowed=Boolean(policy&&offer&&offer.points_discount_enabled&&(!pointRulesV2(policy.rules)||Number(pointDay(now).slice(8))===policy.rules.memberDay));
+  const maximum=allowed&&policy&&!wallet.debt
     ?Math.min(wallet.available,Number(BigInt(subtotal)*BigInt(policy.rules.discountBps)*BigInt(policy.rules.pointsPerYuan)/1000000n)):0;
   if(requested>maximum)throw new DomainError('POINTS_DISCOUNT_UNAVAILABLE','本次可抵扣积分不足或规则已更新，请重新确认',409);
   const discount=requested&&policy?Number(BigInt(requested)*100n/BigInt(policy.rules.pointsPerYuan)):0;
   if(requested&&!discount)throw new DomainError('POINTS_DISCOUNT_TOO_SMALL','本次积分不足以抵扣一分钱',422);
   return {policyVersion:policy?.version??null,offerVersion:offer?.version??null,maximum,discount,points:requested,
-    enabled:Boolean(policy&&offer),pointsPerYuan:policy?.rules.pointsPerYuan??null,capBps:policy?.rules.discountBps??null};
+    enabled:allowed,pointsPerYuan:policy?.rules.pointsPerYuan??null,capBps:policy?.rules.discountBps??null};
 }

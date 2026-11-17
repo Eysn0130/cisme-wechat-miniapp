@@ -325,7 +325,6 @@
     "pages/profile/index": {
       "network": "wifi",
       "packages": [
-        "pages/points",
         "pages/support"
       ]
     },

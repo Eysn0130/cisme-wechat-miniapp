@@ -113,7 +113,7 @@ it("does not refill deliberately cleared card text from an existing body on back
 it("creates and saves raw text only after an explicit Save on exit, without generating or uploading an image",async()=>{
   const page=await entry();changed(page,"用户明确选择保存的原始文字","memo");wxMock.showActionSheet.mockResolvedValue({tapIndex:0});
   page.cancelTextCard({detail:{contextKey:page.data.textCardContext}});await flush();
-  expect(creates()).toHaveLength(1);expect(m.request).toHaveBeenCalledWith({path:`/v1/me/ugc/posts/${post}/draft`,method:"PUT",data:{expectedVersion:1,title:"",body:"用户明确选择保存的原始文字",mediaIds:[]}});
+  expect(creates()).toHaveLength(1);expect(m.request).toHaveBeenCalledWith({path:`/v1/me/ugc/posts/${post}/draft`,method:"PUT",data:{expectedVersion:1,title:"",body:"用户明确选择保存的原始文字",mediaIds:[],rewardKind:"original",experienceProductCode:null,experienceDays:null}});
   expect(m.upload).not.toHaveBeenCalled();expect(fs.getFileInfo).not.toHaveBeenCalled();expect(wxMock.navigateBack).toHaveBeenCalledOnce();expect(page.data.body).toBe("用户明确选择保存的原始文字");
 });
 it("uses direct-body intent to transfer local text, while an old direct-body event neither creates nor focuses",async()=>{

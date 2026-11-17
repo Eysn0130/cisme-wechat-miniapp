@@ -77,7 +77,7 @@ it('shows the member’s own operations and excludes administrator activity on t
  const record=(await pool.query('SELECT id FROM member_points_checkin WHERE member_id=$1 LIMIT 1',[member.memberId])).rows[0];await pool.query("INSERT INTO member_points_command(member_id,operation_id,action,source_id,request_sha256,created_at) VALUES($1,'user-log-checkin','checkin',$2,$3,now())",[member.memberId,record.id,'a'.repeat(64)]);expect((await service.section(reader.memberId,member.memberId,'logs') as any).items.some((r:any)=>r.title==='care.usage.save')).toBe(false);await grant(reader,['member.care.read']);const withCare:any=await service.section(reader.memberId,member.memberId,'logs');expect(withCare.items.find((r:any)=>r.title==='care.usage.save')).toMatchObject({source:{kind:'care'}});const first:any=await service.section(reader.memberId,member.memberId,'logs',{limit:1});expect(first.nextCursor).toBeTruthy();const next:any=await service.section(reader.memberId,member.memberId,'logs',{limit:1,cursor:first.nextCursor});expect(next.items[0].id).not.toBe(first.items[0].id);
 });
 it('finds the same member by both the sequential card number and the stable public user code',async()=>{
- const result=await service.overview(manager.memberId,member.memberId);expect(result.member.userCode).toMatch(/^[A-Z0-9]{12}$/);
- for(const q of [result.member.userCode.toLowerCase(),result.member.cardNumber])expect((await service.list(manager.memberId,{q})).items.map(r=>r.id)).toEqual([member.memberId]);
+ const result=await service.overview(reader.memberId,member.memberId);expect(result.member.userCode).toMatch(/^[A-Z0-9]{12}$/);
+ for(const q of [result.member.userCode.toLowerCase(),result.member.cardNumber])expect((await service.list(reader.memberId,{q})).items.map(r=>r.id)).toEqual([member.memberId]);
  const own=await app.inject({url:'/v1/me/profile',headers:auth(member)});expect(own.statusCode).toBe(200);expect(own.json().user_code).toBe(result.member.userCode);
 });

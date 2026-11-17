@@ -2314,7 +2314,7 @@ it('rolls back the direct request if approval authority is absent and refuses al
  const denied=await aftersalePost(only,`/v1/management/aftersales/${claim.id}/actions`,command,'direct-no-money-cap');expect(denied.statusCode,denied.body).toBe(403);
  expect((await service.detail(owner.memberId,claim.id))).toMatchObject({state:'requested',version:1,refundRequestId:null});
  expect((await pool.query('SELECT 1 FROM commerce_refund_request WHERE order_id=$1',[order.id])).rowCount).toBe(0);
- await pool.query(`INSERT INTO commerce_shipment(order_id,created_by_member_id,request_key,request_hmac,encrypted_parcel,key_version,evidence_reference)
+ await pool.query(`INSERT INTO commerce_shipping_sync(order_id,created_by_member_id,request_key,request_hmac,encrypted_parcel,key_version,evidence_reference)
   VALUES($1,$2,'synthetic-shipping-race',$3,'synthetic-ciphertext','synthetic','synthetic-race-evidence')`,[order.id,operator.memberId,createHash('sha256').update('direct-shipping-race').digest('hex')]);
  const shipped=await aftersalePost(operator,`/v1/management/aftersales/${claim.id}/actions`,command,'direct-shipping-block');expect(shipped.statusCode,shipped.body).toBe(409);expect(shipped.json().code).toBe('AFTERSALE_RETURN_REQUIRED');
  expect((await service.detail(owner.memberId,claim.id)).fulfillment).toEqual({state:'shipped',canRefundWithoutReturn:false});

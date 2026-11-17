@@ -1,11 +1,12 @@
 import {request} from './api';
-export type PointRules=Record<'daily'|'note'|'streak7'|'streak30'|'post'|'featured'|'comment'|'questionnaire'|'firstOrder'|'inviteSponsor'|'inviteFriend'|'postWeeklyLimit'|'commentDailyLimit'|'expiryMonths'|'reminderDays'|'discountBps'|'pointsPerYuan'|'refundGraceDays'|'birthdayMultiplier',number>;
+export type PointRules=Record<'daily'|'note'|'streak7'|'streak30'|'post'|'featured'|'comment'|'questionnaire'|'firstOrder'|'inviteSponsor'|'inviteFriend'|'postWeeklyLimit'|'commentDailyLimit'|'expiryMonths'|'reminderDays'|'discountBps'|'pointsPerYuan'|'refundGraceDays'|'birthdayMultiplier',number>&Partial<Record<'taskVersion'|'firstPost'|'originalPost'|'originalMonthlyLimit'|'experiencePost'|'experienceMonthlyLimit'|'share'|'shareDailyLimit'|'suggestion'|'suggestionMonthlyLimit'|'profile'|'commentMinHan'|'postMinHan'|'experienceMinHan'|'memberDay'|'dailyShoppingMultiplier'|'shoppingPointsPerYuan'|'awardOnPayment'|'inviteExclusive'|'shareOrder'|'shareOrderWindowDays',number>>;
 export type PointBalances={available:number;frozen:number;debt:number;reserved:number;version:number};
 export type PointEntry={id:string;entry_type:string;available_delta:number;frozen_delta:number;debt_delta:number;reserved_delta?:number;used_delta?:number;expired_delta?:number;
  business_key:string;occurred_at:string;source_type?:string;component?:string;amount_points?:string|null;displayTitle?:string;displaySource?:string;displayAmount?:string;displayDate?:string};
 export interface PointsSnapshot {projection:PointBalances;rulesEnabled:boolean;entries:PointEntry[];nextCursor:string|null;totalCount:number;
  lifetimeEarned:number;used:number;expired:number;expiring:{points:number;earliestAt:string|null;withinDays:number};clubPolicy:{version:string;rules:PointRules}|null}
-export interface PointsClub {upcomingPolicies?:Array<{version:string;rules:PointRules;starts_at:string;ends_at:string|null}>;memberId:string;enabled:boolean;policy:{version:string;rules:PointRules}|null;serverDay:string;checkedIn:boolean;streak:number;
+export type PointsTask={id:string;title:string;amount:number;condition:string;limit:number;count:number|null;state:'available'|'pending'|'completed'|'limit'|'login';destination:string;bucket:string};
+export interface PointsClub {tasks?:PointsTask[];upcomingPolicies?:Array<{version:string;rules:PointRules;starts_at:string;ends_at:string|null}>;memberId:string;enabled:boolean;policy:{version:string;rules:PointRules}|null;serverDay:string;checkedIn:boolean;streak:number;
  today:{id:string;products:string[];note:string;version:number}|null;badges:Array<{code:string;earned_at:string}>;pendingRewardSources:number;questionnaireCompleted:boolean;birthday:string|null;birthdayChangeAfter:string|null}
 export interface PointsGift {skuId:string;name:string;label:string;image:string|null;points:number;version:number;availableQuantity:number;policyVersion:string}
 export interface PointsRedemption {id:string;skuId:string;quantity:number;pointsCost:number;item:{name:string;label:string;image:string|null};state:string;version:number;carrierName:string|null;trackingNumber:string|null;createdAt:string;updatedAt:string;stateLabel?:string}
@@ -16,8 +17,8 @@ export function parsePointBalances(v:any):PointBalances{
  if(p.debt>0&&p.available>0)throw new Error('POINTS_DEBT_BALANCE_INVALID');return p;
 }
 const titles:Record<string,string>={grant_available:'积分到账',grant_frozen:'奖励进入冻结期',unfreeze:'冻结积分转为可用',expire:'积分到期失效',reversal:'奖励撤回',debt_created:'待冲抵积分',debt_offset:'冲抵欠分',reserve:'订单预占积分',release:'订单积分释放',spend:'积分已使用',refund_return:'退款退回积分',adjustment:'积分调整'};
-const sources:Record<string,string>={care_day:'每日护理打卡',care_streak:'连续护理奖励',questionnaire:'首次护理建档',post:'体验笔记',featured:'官方精选',comment:'社区互动',order:'购物与邀请奖励'};
-const components:Record<string,string>={daily:'每日护理',note:'护理感受',streak7:'连续7天',streak30:'连续30天',shopping:'购物积分',first_order:'首次购物',birthday:'生日双倍',invite_sponsor:'好友首购邀请奖励',invite_friend:'受邀首购奖励'};
+const sources:Record<string,string>={care_day:'每日护理打卡',care_streak:'连续护理奖励',questionnaire:'首次护理建档',post:'体验笔记',featured:'官方精选',comment:'社区互动',order:'购物与邀请奖励',profile:'完善个人资料',share:'有效内容分享',suggestion:'有效改进建议'};
+const components:Record<string,string>={daily:'每日护理',note:'护理感受',streak7:'连续7天',streak30:'连续30天',shopping:'购物积分',first_order:'首次购物',birthday:'生日双倍',invite_sponsor:'好友首购邀请奖励',invite_friend:'受邀首购奖励',first_post:'首次发帖',original:'原创护理心得',experience:'产品体验分享',share_order:'分享下单奖励'};
 export function presentPointEntry(e:PointEntry):PointEntry{
  const a=pointInteger(e.available_delta??0,false),f=pointInteger(e.frozen_delta??0,false),d=pointInteger(e.debt_delta??0,false),r=pointInteger(e.reserved_delta??0,false),u=pointInteger(e.used_delta??0,false),x=pointInteger(e.expired_delta??0,false);
  const amount=e.entry_type==='spend'?-u:e.entry_type==='reserve'?-r:e.entry_type==='expire'?-(x||Math.max(0,-a-f)):e.entry_type==='unfreeze'?a:e.entry_type==='release'?(x>0?-x:a):e.entry_type==='refund_return'?a:a+f-d;

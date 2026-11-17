@@ -151,7 +151,7 @@ export class CommerceCatalogService {
 
   private async rows(client: DbClient | pg.Pool, productIds: string[]): Promise<{ products: ProductRow[]; skus: SkuRow[] }> {
     if (!productIds.length) return { products: [], skus: [] };
-    const products = await client.query<ProductRow>("SELECT * FROM catalog_product WHERE id=ANY($1::uuid[]) ORDER BY updated_at DESC,id DESC", [productIds]);
+    const products = await client.query<ProductRow>("SELECT catalog_product.*,effective_shopping_points_multiplier(id,now()) AS shopping_points_multiplier FROM catalog_product WHERE id=ANY($1::uuid[]) ORDER BY updated_at DESC,id DESC", [productIds]);
     const skus = await client.query<SkuRow>(`SELECT s.*,p.id price_id,p.currency,p.amount_cents price_cents,p.version price_version,
       i.stock_on_hand,i.reserved_quantity,i.version inventory_version,i.updated_at inventory_updated_at FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id
       JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.product_id=ANY($1::uuid[]) ORDER BY s.product_id,s.sort_order,s.id`, [productIds]);
@@ -160,7 +160,7 @@ export class CommerceCatalogService {
 
   async publicList(query: { limit?: unknown; cursor?: unknown }) {
     const limit = pageLimit(query.limit); const cursor = decodeCursor(query.cursor);
-    const page = await this.pool.query<ProductRow>(`SELECT * FROM catalog_product
+    const page = await this.pool.query<ProductRow>(`SELECT catalog_product.*,effective_shopping_points_multiplier(id,now()) AS shopping_points_multiplier FROM catalog_product
       WHERE publication_status='published' AND qualification_status='eligible'
         AND ($1::timestamptz IS NULL OR (updated_at,id) < ($1::timestamptz,$2::uuid))
       ORDER BY updated_at DESC,id DESC LIMIT $3`, [cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
@@ -175,7 +175,7 @@ export class CommerceCatalogService {
 
   async publicDetail(codeInput: string) {
     const code = productCode(codeInput);
-    const product = await this.pool.query<ProductRow>(`SELECT * FROM catalog_product WHERE code=$1
+    const product = await this.pool.query<ProductRow>(`SELECT catalog_product.*,effective_shopping_points_multiplier(id,now()) AS shopping_points_multiplier FROM catalog_product WHERE code=$1
       AND publication_status='published' AND qualification_status='eligible'`, [code]);
     if (!product.rows[0]) throw new DomainError("CATALOG_PRODUCT_NOT_FOUND", "Product is not available in the catalog", 404);
     const skus = await this.pool.query<SkuRow>(`SELECT s.*,p.id price_id,p.currency,p.amount_cents price_cents,p.version price_version,
@@ -186,7 +186,7 @@ export class CommerceCatalogService {
 
   async managementList(memberId: string | undefined, query: { limit?: unknown; cursor?: unknown }) {
     await this.requireAny(memberId); const limit = pageLimit(query.limit); const cursor = decodeCursor(query.cursor);
-    const page = await this.pool.query<ProductRow>(`SELECT * FROM catalog_product
+    const page = await this.pool.query<ProductRow>(`SELECT catalog_product.*,effective_shopping_points_multiplier(id,now()) AS shopping_points_multiplier FROM catalog_product
       WHERE ($1::timestamptz IS NULL OR (updated_at,id) < ($1::timestamptz,$2::uuid))
       ORDER BY updated_at DESC,id DESC LIMIT $3`, [cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
     const hasMore = page.rows.length > limit; const products = page.rows.slice(0, limit);
@@ -243,7 +243,7 @@ export class CommerceCatalogService {
     return transaction(this.pool, async (client) => {
       await this.require(client, memberId, "commerce.product.manage");
       const replay = await this.replay<unknown>(client, principalId, "catalog.product.update", key, businessKey, hash); if (replay) return replay;
-      const before = (await client.query<ProductRow>("SELECT * FROM catalog_product WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      const before = (await client.query<ProductRow>("SELECT catalog_product.*,effective_shopping_points_multiplier(id,now()) AS shopping_points_multiplier FROM catalog_product WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!before) throw new DomainError("CATALOG_PRODUCT_NOT_FOUND", "Product was not found", 404);
       if (before.version !== normalized.expectedVersion) throw new DomainError("CATALOG_VERSION_CONFLICT", "Product changed; reload before saving", 409);
       const skuBefore = (await client.query<SkuRow>(`SELECT s.*,p.id price_id,p.currency,p.amount_cents price_cents,p.version price_version,
@@ -279,7 +279,7 @@ export class CommerceCatalogService {
     return transaction(this.pool, async (client) => {
       await this.require(client, memberId, "commerce.qualification.manage");
       const replay = await this.replay<unknown>(client, principalId, "catalog.product.qualify", key, businessKey, hash); if (replay) return replay;
-      const before = (await client.query<ProductRow>("SELECT * FROM catalog_product WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      const before = (await client.query<ProductRow>("SELECT catalog_product.*,effective_shopping_points_multiplier(id,now()) AS shopping_points_multiplier FROM catalog_product WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!before) throw new DomainError("CATALOG_PRODUCT_NOT_FOUND", "Product was not found", 404);
       if (before.version !== normalized.expectedVersion) throw new DomainError("CATALOG_VERSION_CONFLICT", "Product changed; reload before qualifying", 409);
       if (before.qualification_status === status) throw new DomainError("QUALIFICATION_NO_CHANGE", "Qualification status is already selected", 409);
@@ -306,7 +306,7 @@ export class CommerceCatalogService {
     return transaction(this.pool, async (client) => {
       await this.require(client, memberId, "commerce.product.manage");
       const replay = await this.replay<unknown>(client, principalId, "catalog.product.publication", key, businessKey, hash); if (replay) return replay;
-      const before = (await client.query<ProductRow>("SELECT * FROM catalog_product WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      const before = (await client.query<ProductRow>("SELECT catalog_product.*,effective_shopping_points_multiplier(id,now()) AS shopping_points_multiplier FROM catalog_product WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!before) throw new DomainError("CATALOG_PRODUCT_NOT_FOUND", "Product was not found", 404);
       if (before.version !== normalized.expectedVersion) throw new DomainError("CATALOG_VERSION_CONFLICT", "Product changed; reload before publication", 409);
       if (action === "publish") {

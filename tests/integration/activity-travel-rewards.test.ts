@@ -211,6 +211,18 @@ it('reconciles available coupons, consumed travel awards and owned source links 
  expect((await admin.section(operator.memberId,expired.memberId,'vouchers') as any).items[0].state).toBe('expired');
 });
 
+it('exports the exact filtered gift fulfillment with frozen recipient data, both user identifiers and cancelled history',async()=>{
+ const receiver=(await pool.query(`SELECT c.*,m.display_name FROM activity_reward_claim c JOIN member m ON m.id=c.member_id WHERE c.state='placed' ORDER BY c.created_at LIMIT 1`)).rows[0];expect(receiver).toBeTruthy();
+ const day=new Date(receiver.created_at.getTime()+8*3600000).toISOString().slice(0,10),fulfiller=await person();await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'commerce.fulfillment.manage','fixture','isolated shipping export','test','integration_fixture')`,[fulfiller.memberId]);
+ const address=(await rewards.detail(fulfiller.memberId,receiver.id,true)).address;
+ const result=await rewards.export(fulfiller.memberId,activity.id,'pending_dispatch',undefined,{from:day,through:day,state:'placed'});expect(result.count).toBeGreaterThan(0);const xml=result.workbook.toString('utf8');
+ for(const text of ['收件人','手机号','详细地址','用户编号','会员卡编号',receiver.claim_number,address.recipientName,address.phone,address.detail])expect(xml).toContain(text);
+ expect((await rewards.export(fulfiller.memberId,activity.id,'claimed',undefined,{state:'cancelled'})).count).toBeGreaterThan(0);
+ await expect(rewards.export(fulfiller.memberId,activity.id,'issued')).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+ await expect(rewards.management(fulfiller.memberId,{activityId:activity.id,from:'2026-02-30'})).rejects.toMatchObject({code:'MANAGEMENT_DATE_INVALID'});
+ const impossible=await rewards.management(fulfiller.memberId,{activityId:activity.id,from:'2000-01-01',through:'2000-01-01'});expect(impossible.claims).toHaveLength(0);
+});
+
 // Last in this disposable fixture: drive both real component ledgers to their
 // final units, without changing any live environment or other test file.
 it('awards the last set once under contention and leaves only the other bundle selectable',async()=>{

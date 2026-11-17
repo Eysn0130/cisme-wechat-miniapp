@@ -49,4 +49,4 @@
 
   </block>
 </view>
-<points-celebration id="onboarding-credit" owner="{{member.id || ''}}" enabled="{{!loading}}"/>
+<points-celebration auto-receipts="{{true}}" id="onboarding-credit" owner="{{member.id || ''}}" enabled="{{!loading}}"/>

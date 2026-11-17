@@ -9,7 +9,8 @@ import type { CommerceCapability } from "./formalCommerceAuthorization.js";
 import {CareOnboardingService} from './careOnboarding.js';
 import {MemberPointsClub} from './memberPointsClub.js';
 import {PointsGiftService} from './pointsGifts.js';
-import {clubRulesV1} from './pointsLedger.js';
+import {clubRulesV2} from './pointsLedger.js';
+import {MemberPointsTasks} from './memberPointsTasks.js';
 import { operationalSignals } from './operationalSignals.js';
 import { exchangeWechatIdentity } from './wechatIdentity.js';
 import { discoverCommerceCommands } from "./commerceCommandDiscovery.js";
@@ -200,6 +201,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const deliveryAddresses = new DeliveryAddressService(pool, config,
     config.privacy.suppressionDirectory?accountClosure:undefined);
   const memberPointsClub=new MemberPointsClub(pool,config,authority);
+  const memberPointsTasks=new MemberPointsTasks(pool,config,authority);
   const pointsGifts=new PointsGiftService(pool,authority,deliveryAddresses,config.env);
   const activityRewards=new ActivityRewardService(pool,config,authority,deliveryAddresses);
  const officers=new SharingOfficerService(pool,authority,config),officerFinance=new SharingOfficerFinance(officers),officerAssets=new SharingOfficerAssets(officers,
@@ -363,7 +365,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       (path === "/v1/community/featured" || path === "/v1/editorial/articles" || /^\/v1\/editorial\/(articles|authors)\/[^/]+$/.test(path) ||
         /^\/v1\/editorial\/media\/[0-9a-f-]{36}\/[0-9a-f]{64}$/i.test(path));
     const publicCatalogRead = request.method === "GET" && (path === "/v1/catalog" || /^\/v1\/catalog\/public-images\/[a-z0-9-]+\.jpg$/.test(path) || path === "/v1/commerce/orders/status" || /^\/v1\/catalog\/[a-z0-9][a-z0-9-]{2,63}$/.test(path));
-    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || publicRewardInvitation || (request.method==="POST"&&/^\/v1\/officer-shares\/[0-9a-f]{32}\/visits$/.test(path)) || publicCommunityRead) return;
+    if (!path.startsWith("/v1/") || path.startsWith("/v1/identity/") || path === "/v1/capabilities" || request.method==="GET"&&path==="/v1/points/guide" || path === "/v1/legal" || path === "/v1/ugc/safety-callback" || path === "/v1/payments/wechat/callback" || path === "/v1/payments/wechat/refund-callback" || path === "/v1/payments/wechat/transfer-callback" || path.startsWith("/v1/uploads/") || publicFeedRead || publicUgcRead || publicEditorialRead || publicCatalogRead || publicShareRead || publicShareVisit || publicRewardInvitation || (request.method==="POST"&&/^\/v1\/officer-shares\/[0-9a-f]{32}\/visits$/.test(path)) || publicCommunityRead) return;
     const token = bearer(request.headers.authorization);
     const principal = verifySessionToken(token, config.sessionSecret, { wechatAppId: config.wechat.appId, allowDevAdapters: config.allowDevAdapters });
     if(principal.scope==="privacy_rights"){
@@ -828,7 +830,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Params:{operationId:string}}>('/v1/me/rewards/command-receipts/:operationId',request=>activityRewards.commandReceipt(request.memberId,request.params.operationId));
   app.post<{Params:{operationId:string}}>('/v1/me/rewards/command-receipts/:operationId/abandon',request=>activityRewards.abandonCommand(request.memberId,request.params.operationId));
   app.get<{Querystring:{skuId:string;quantity?:string}}>('/v1/me/coupons/eligible',request=>activityRewards.eligibleCoupons(request.memberId,request.query.skuId,request.query.quantity));
-  app.get<{Querystring:{activityId?:string;state?:string;after?:string;memberId?:string;voucherId?:string;claimId?:string}}>('/v1/management/rewards',request=>activityRewards.management(request.memberId,request.query));
+  app.get<{Querystring:{activityId?:string;state?:string;after?:string;memberId?:string;voucherId?:string;claimId?:string;from?:string;through?:string}}>('/v1/management/rewards',request=>activityRewards.management(request.memberId,request.query));
   app.post('/v1/management/rewards/activities',request=>activityRewards.configure(request.memberId,idempotencyKey(request),request.body));
   app.post('/v1/management/rewards/inventory',request=>activityRewards.inventory(request.memberId,idempotencyKey(request),request.body));
   app.post('/v1/management/rewards/bundle-inventory',request=>activityRewards.bundleInventory(request.memberId,idempotencyKey(request),request.body));
@@ -840,8 +842,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     if(!['ship','resolve_return','reject_return'].includes(request.params.action))throw new DomainError('REWARD_ACTION_INVALID','请选择有效管理操作',422);
     return activityRewards.operate(request.memberId,request.params.claimId,idempotencyKey(request),request.params.action,request.body);
   });
-  app.get<{Params:{activityId:string;kind:string};Querystring:{after?:string}}>('/v1/management/rewards/activities/:activityId/export/:kind',async(request,reply)=>{
-    reply.header('Cache-Control','private, no-store');const result=await activityRewards.export(request.memberId,request.params.activityId,request.params.kind,request.query.after);
+  app.get<{Params:{activityId:string;kind:string};Querystring:{after?:string;from?:string;through?:string;state?:string}}>('/v1/management/rewards/activities/:activityId/export/:kind',async(request,reply)=>{
+    reply.header('Cache-Control','private, no-store');const result=await activityRewards.export(request.memberId,request.params.activityId,request.params.kind,request.query.after,request.query);
     return {fileBase64:result.workbook.toString('base64'),fileName:`CISME-rewards-${request.params.kind}.xlsx`,count:result.count,nextCursor:result.nextCursor};
   });
   app.get<{Params:{kind:string};Querystring:Record<string,unknown>}>("/v1/me/commerce/command-receipts/:kind", async (request,reply) => {
@@ -1063,7 +1065,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       return reply.status(204).send();
     });
   });
-  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/commerce/orders", async request => orders.managementList(request.memberId,request.query));
+  app.get<{Querystring:{limit?:string;cursor?:string;stage?:string;from?:string;through?:string}}>("/v1/management/commerce/orders", async request => orders.managementList(request.memberId,request.query));
   app.get<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId", async request => orders.managementDetail(request.memberId,request.params.orderId));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/management/catalog/products", async request => catalog.managementList(request.memberId, request.query));
   app.get<{Params:{productId:string}}>("/v1/management/catalog/products/:productId", async request => catalog.managementDetail(request.memberId, request.params.productId));
@@ -1159,6 +1161,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.post<{ Params: { consentGrantId: string } }>("/v1/consents/:consentGrantId/revoke", async (request) => service.revokeConsent(request.memberId, request.params.consentGrantId, idempotencyKey(request), (request.body as { reason: string }).reason, service.now(devClock(request))));
   app.get<{ Querystring: { limit?: string; cursor?: string;source?:string } }>("/v1/me/points", async (request) => service.getPoints(request.memberId, service.now(devClock(request)), { ...(request.query.limit ? { limit: Number(request.query.limit) } : {}), ...(request.query.cursor ? { cursor: request.query.cursor } : {}),...(request.query.source?{source:request.query.source}:{}) }));
+  app.get('/v1/points/guide',()=>memberPointsTasks.guide());
+  app.get('/v1/me/points/receipts',request=>memberPointsTasks.receipts(request.memberId,service.now(devClock(request))));
+  app.get('/v1/me/points/suggestions',request=>memberPointsTasks.suggestions(request.memberId));
+  app.post('/v1/me/points/suggestions',request=>memberPointsTasks.submitSuggestion(request.memberId,idempotencyKey(request),request.body,service.now(devClock(request))));
+  app.get('/v1/management/points/suggestions',request=>memberPointsTasks.suggestions(request.memberId,true));
+  app.post<{Params:{id:string}}>('/v1/management/points/suggestions/:id/review',request=>memberPointsTasks.reviewSuggestion(request.memberId,request.params.id,request.body));
+  app.put<{Params:{skuId:string}}>('/v1/management/points/skus/:skuId/offer',request=>pointsGifts.configureOffer(request.memberId,request.params.skuId,request.body));
   app.get('/v1/me/points/club',request=>memberPointsClub.overview(request.memberId,service.now(devClock(request))));
   app.get<{Querystring:{kind?:string;id?:string}}>('/v1/me/points/content-receipt',request=>memberPointsClub.contentReceipt(request.memberId,request.query));
   app.get<{Querystring:{before?:string;limit?:string;day?:string}}>('/v1/me/care-usage-records',request=>memberPointsClub.usageHistory(request.memberId,request.query,service.now(devClock(request))));
@@ -1179,7 +1188,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const view=await authority.projection(request.memberId);
     const has=(capability:string)=>view.capabilities.includes(capability as never);
     await authority.requireAny(request.memberId,['commerce.money.reconcile','commerce.product.manage','commerce.fulfillment.manage','community.moderate']);
-    return {reconciliation:has('commerce.money.reconcile')?(await pool.query("SELECT member_id,projection_version,status,checked_at FROM member_points_wallet_check WHERE status='mismatch' ORDER BY checked_at LIMIT 100")).rows:[],defaultRules:clubRulesV1,policies:has('commerce.money.reconcile')?await memberPointsClub.policies(request.memberId):[],
+    return {reconciliation:has('commerce.money.reconcile')?(await pool.query("SELECT member_id,projection_version,status,checked_at FROM member_points_wallet_check WHERE status='mismatch' ORDER BY checked_at LIMIT 100")).rows:[],defaultRules:clubRulesV2,policies:has('commerce.money.reconcile')?await memberPointsClub.policies(request.memberId):[],
       offers:has('commerce.product.manage')?(await pointsGifts.managementOffers(request.memberId)).items:[],
       redemptions:has('commerce.fulfillment.manage')?(await pointsGifts.list(request.memberId,true)).items:[]};
   });

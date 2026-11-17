@@ -84,6 +84,6 @@
     </view>
   </view>
   <care-onboarding id="care-onboarding" wx:if="{{onboardingOpen}}" required="{{true}}" bindcomplete="completeOnboarding"/>
-  <points-celebration id="onboarding-credit" bindcarecredit="careCreditConfirmed" bindfinished="finishCredit" owner="{{memberId}}" enabled="{{!onboardingOpen && !sessionMounted && !loading && !giftOpen}}" receipt-version="{{usageRewards.pointsGranted || 0}}"/>
+  <points-celebration auto-receipts="{{true}}" id="onboarding-credit" bindcarecredit="careCreditConfirmed" bindfinished="finishCredit" owner="{{memberId}}" enabled="{{!onboardingOpen && !onboardingRequired && !sessionMounted && !loading && !giftOpen}}" receipt-version="{{usageRewards.pointsGranted || 0}}"/>
   <reward-moment id="care-gift" open="{{giftOpen}}" owner="{{memberId}}" reference="{{giftVoucher.id}}" mode="offer" bindchoose="chooseGift" binddefer="deferGift"/>
 </view>

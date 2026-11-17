@@ -21,29 +21,41 @@ export class PointsGiftService{
    carrierName:r.carrier_name,trackingNumber:r.tracking_number,createdAt:r.created_at,updatedAt:r.updated_at};}
  async offers(memberId:string|undefined,now=new Date(),management=false){
   const member=owner(memberId);if(management)await this.authority.require(member,'commerce.product.manage');return transaction(this.pool,async c=>{await lockPointWallet(c,member,true);const policy=await activePointPolicy(c,now);
-   const rows=(await c.query(`SELECT s.id AS sku_id,p.id AS product_id,p.version AS product_version,p.shopping_points_multiplier,p.publication_status,p.qualification_status,p.name,p.image_path,s.label,pr.version,pr.amount_cents AS unit_price_cents,
+   const rows=(await c.query(`SELECT s.id AS sku_id,p.id AS product_id,p.version AS product_version,effective_shopping_points_multiplier(p.id,$3::timestamptz) AS shopping_points_multiplier,p.points_promotion_starts_at,p.points_promotion_ends_at,p.points_discount_enabled,p.publication_status,p.qualification_status,p.name,p.image_path,s.label,s.version AS sku_version,s.points_price,s.points_redeemable,s.points_member_limit,(pr.version+s.version-1) AS version,pr.amount_cents AS unit_price_cents,
     GREATEST(0,i.stock_on_hand-i.reserved_quantity)::int AS available_quantity
     FROM catalog_sku s JOIN catalog_product p ON p.id=s.product_id JOIN catalog_price pr ON pr.sku_id=s.id
-    JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE ($2::boolean OR p.qualification_status='eligible' AND p.publication_status='published' AND s.active)
-     AND ($1::boolean OR p.source_kind='admin') ORDER BY p.created_at DESC,p.id,s.sort_order,s.id`,[this.environment==='test'||management,management])).rows;
-   return {enabled:Boolean(policy),items:policy?rows.map(r=>({publicationStatus:r.publication_status,qualificationStatus:r.qualification_status,productId:r.product_id,productVersion:r.product_version,shoppingPointsMultiplier:r.shopping_points_multiplier,skuId:r.sku_id,name:r.name,label:r.label,image:r.image_path,
-    points:this.unitPoints(r.unit_price_cents,policy.rules.pointsPerYuan),version:r.version,policyVersion:policy.version,availableQuantity:r.available_quantity})):[]};
+    JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE ($2::boolean OR p.qualification_status='eligible' AND p.publication_status='published' AND s.active AND s.points_redeemable)
+     AND ($1::boolean OR p.source_kind='admin') ORDER BY p.created_at DESC,p.id,s.sort_order,s.id`,[this.environment==='test'||management,management,now])).rows;
+   return {enabled:Boolean(policy),items:policy?rows.map(r=>({publicationStatus:r.publication_status,qualificationStatus:r.qualification_status,productId:r.product_id,productVersion:r.product_version,shoppingPointsMultiplier:r.shopping_points_multiplier,promotionStartsAt:r.points_promotion_starts_at,promotionEndsAt:r.points_promotion_ends_at,discountEnabled:r.points_discount_enabled,skuVersion:r.sku_version,redeemable:r.points_redeemable,memberLimit:r.points_member_limit,skuId:r.sku_id,name:r.name,label:r.label,image:r.image_path,
+    points:r.points_price??this.unitPoints(r.unit_price_cents,policy.rules.pointsPerYuan),version:r.version,policyVersion:policy.version,availableQuantity:r.available_quantity})):[]};
   });
  }
  private unitPoints(cents:unknown,ratio:number){const n=Number(cents);if(!Number.isSafeInteger(n)||n<1)fail('POINTS_PRICE_INVALID','商品价格需重新核对',409);
   return int(Number((BigInt(n)*BigInt(ratio)+99n)/100n),1,2147483647);}
  async managementOffers(memberId:string|undefined){await this.authority.require(memberId,'commerce.product.manage');return this.offers(memberId,new Date(),true);}
  async configureMultiplier(memberId:string|undefined,productId:string,input:unknown){
-  const b=body(input,['expectedVersion','multiplier','reason']),version=int(b.expectedVersion);if(![1,3].includes(Number(b.multiplier))||typeof b.multiplier!=='number')fail('POINTS_MULTIPLIER_INVALID','请选择普通1倍或已公示的商品3倍');
+  const b=body(input,['expectedVersion','multiplier','reason','startsAt','endsAt','discountEnabled']),version=int(b.expectedVersion);if(![1,3].includes(Number(b.multiplier))||typeof b.multiplier!=='number')fail('POINTS_MULTIPLIER_INVALID','请选择日常积分或已公示的预售3倍');
   const reason=typeof b.reason==='string'?b.reason.trim():'';if(reason.length<4||reason.length>500)fail('POINTS_MULTIPLIER_REASON_REQUIRED','请填写至少4字的商品积分公示依据');
   return transaction(this.pool,async c=>{const actor=await this.authority.requireWithClient(c,memberId,'commerce.product.manage');
    const previous=(await c.query('SELECT * FROM catalog_product WHERE id=$1 FOR UPDATE',[id(productId)])).rows[0];if(!previous)fail('CATALOG_PRODUCT_NOT_FOUND','商品不存在',404);
    if(previous.version!==version)fail('CATALOG_VERSION_CONFLICT','商品已有更新，请重新核对',409);
-   if(previous.shopping_points_multiplier===b.multiplier)return {productId,version,multiplier:b.multiplier,replayed:true};
-   const updated=(await c.query('UPDATE catalog_product SET shopping_points_multiplier=$2,version=version+1,updated_by=$3,updated_at=now() WHERE id=$1 RETURNING version',[productId,b.multiplier,`member:${actor}`])).rows[0];
+   const starts=b.multiplier===3?new Date(String(b.startsAt)):null,ends=b.multiplier===3?new Date(String(b.endsAt)):null;
+   if(b.multiplier===3&&(!Number.isFinite(+starts!)||!Number.isFinite(+ends!)||ends!<=starts!||ends!<=new Date()))fail('POINTS_PROMOTION_WINDOW_INVALID','请填写真实的预售开始与结束时间');
+   if(b.discountEnabled!==undefined&&typeof b.discountEnabled!=='boolean')fail('POINTS_OFFER_INVALID','请核对积分抵扣开关');
+   const updated=(await c.query('UPDATE catalog_product SET shopping_points_multiplier=$2,version=version+1,updated_by=$3,updated_at=now(),points_promotion_starts_at=$4,points_promotion_ends_at=$5,points_discount_enabled=$6 WHERE id=$1 RETURNING version',[productId,b.multiplier,`member:${actor}`,starts,ends,b.discountEnabled??previous.points_discount_enabled])).rows[0];
    await c.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id) VALUES($1,'points.product_multiplier_changed','catalog_product',$2,'EXPLICIT_PRODUCT_PROMOTION',$3,$4,$5)`,[`member:${actor}`,productId,{version,multiplier:previous.shopping_points_multiplier},{version:updated.version,multiplier:b.multiplier,reason},randomUUID()]);
    await enqueue(c,{eventType:'catalog.product.changed.v1',aggregateType:'catalog_product',aggregateId:productId,aggregateVersion:updated.version,businessKey:`catalog-product:${productId}:v${updated.version}`,payload:{productId,action:'points_multiplier_updated'},occurredAt:new Date()});
    return {productId,version:updated.version,multiplier:b.multiplier,replayed:false};
+  });
+ }
+ async configureOffer(memberId:string|undefined,skuId:string,input:unknown){
+  const b=body(input,['expectedVersion','points','enabled','memberLimit']);if(typeof b.enabled!=='boolean')fail('POINTS_OFFER_INVALID','请核对兑换开关');
+  const price=b.points===null?null:int(b.points,1,2147483647),limit=int(b.memberLimit,0,9999),version=int(b.expectedVersion);
+  return transaction(this.pool,async c=>{const actor=await this.authority.requireWithClient(c,memberId,'commerce.product.manage'),sku=(await c.query('SELECT * FROM catalog_sku WHERE id=$1 FOR UPDATE',[id(skuId)])).rows[0];
+   if(!sku||sku.version!==version)fail('POINTS_OFFER_CHANGED','商品已有更新，请刷新',409);
+   await c.query('UPDATE catalog_sku SET points_price=$2,points_redeemable=$3,points_member_limit=$4,version=version+1,updated_at=clock_timestamp(),updated_by=$5 WHERE id=$1',[skuId,price,b.enabled,limit,`member:${actor}`]);
+   await c.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id) VALUES($1,'points.offer_configured','catalog_sku',$2,'EXPLICIT_ADMIN_CONFIGURATION',$3,$4,gen_random_uuid()::text)`,[`member:${actor}`,skuId,{points:sku.points_price,enabled:sku.points_redeemable,memberLimit:sku.points_member_limit},{points:price,enabled:b.enabled,memberLimit:limit}]);
+   return {skuId,version:version+1};
   });
  }
  async redeem(memberId:string|undefined,keyInput:string,input:unknown,now=new Date()){
@@ -56,11 +68,12 @@ export class PointsGiftService{
    if(priorCommand)fail(priorCommand.action==='abandoned'?'POINTS_COMMAND_ABANDONED':'IDEMPOTENCY_CONFLICT',priorCommand.action==='abandoned'?'该待确认兑换已取消，请重新核对后再兑换':'该操作编号已用于其他业务',409);
    const policy=await activePointPolicy(c,now);if(!policy)fail('POINTS_POLICY_UNAVAILABLE','积分兑换当前未开放',503);
    await sweepMemberPoints(c,member,now);
-   const offer=(await c.query(`SELECT pr.version,pr.amount_cents AS unit_price_cents,p.name,p.image_path,p.source_kind,p.publication_status,p.qualification_status,s.label,s.active
+   const offer=(await c.query(`SELECT (pr.version+s.version-1) AS version,s.points_price,s.points_redeemable,s.points_member_limit,pr.amount_cents AS unit_price_cents,p.name,p.image_path,p.source_kind,p.publication_status,p.qualification_status,s.label,s.active
     FROM catalog_sku s JOIN catalog_product p ON p.id=s.product_id JOIN catalog_price pr ON pr.sku_id=s.id
     WHERE s.id=$1 FOR SHARE OF pr,p,s`,[args.skuId])).rows[0];
-   if(!offer||!offer.active||offer.publication_status!=='published'||offer.qualification_status!=='eligible'||this.environment!=='test'&&offer.source_kind!=='admin')fail('POINTS_GIFT_UNAVAILABLE','商品当前不可兑换',409);
-   const unitPoints=this.unitPoints(offer.unit_price_cents,policy.rules.pointsPerYuan);
+   if(!offer||!offer.active||!offer.points_redeemable||offer.publication_status!=='published'||offer.qualification_status!=='eligible'||this.environment!=='test'&&offer.source_kind!=='admin')fail('POINTS_GIFT_UNAVAILABLE','商品当前不可兑换',409);
+   const unitPoints=offer.points_price??this.unitPoints(offer.unit_price_cents,policy.rules.pointsPerYuan);
+   if(offer.points_member_limit){const used=(await c.query<{n:number}>(`SELECT COALESCE(sum(quantity),0)::int AS n FROM member_points_redemption WHERE member_id=$1 AND sku_id=$2 AND state NOT IN ('cancelled','returned')`,[member,args.skuId])).rows[0]!.n;if(used+args.quantity>offer.points_member_limit)fail('POINTS_GIFT_LIMIT','已达到这件商品的兑换数量上限',409);}
    if(offer.version!==args.offerVersion||policy.version!==args.policyVersion||unitPoints!==args.expectedPoints)fail('POINTS_OFFER_CHANGED','商品价格或积分规则已有更新，请重新确认',409);
    const cost=int(unitPoints*args.quantity,1,2147483647),wallet=await lockPointWallet(c,member,true);
    if(wallet.debt||wallet.available<cost)fail('POINTS_INSUFFICIENT','可用积分不足或存在待冲抵欠分',409);

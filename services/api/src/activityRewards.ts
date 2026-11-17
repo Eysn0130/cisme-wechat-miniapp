@@ -1,3 +1,4 @@
+import {managementDates} from './managementDates.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
@@ -45,7 +46,7 @@ export class ActivityRewardService {
  private voucherView(r:any,now:Date){return {id:r.id,activityId:r.activity_id,activityTitle:r.title,name:'旅行洗护套兑换券',state:visibleVoucherState(r,now),version:r.version,claimId:r.claim_id,issuedAt:r.issued_at.toISOString(),expiresAt:r.expires_at.toISOString(),terms:r.terms_snapshot};}
  private claimView(r:any){return {id:r.id,claimNumber:r.claim_number,memberId:r.member_id,voucherId:r.voucher_id,state:r.state,version:r.version,item:r.item_snapshot,terms:r.terms_snapshot,
   shippingCents:r.shipping_cents,questionnaireVersion:r.questionnaire_version,surveyVersion:r.survey_version,recommendation:r.recommendation,
-  carrierName:r.carrier_name,shippedAt:r.shipped_at?.toISOString()??null,receivedAt:r.received_at?.toISOString()??null,createdAt:r.created_at.toISOString(),updatedAt:r.updated_at.toISOString(),aftersaleReason:r.aftersale_reason};}
+  carrierName:r.carrier_name,shippedAt:r.shipped_at?.toISOString()??null,receivedAt:r.received_at?.toISOString()??null,createdAt:r.created_at.toISOString(),updatedAt:r.updated_at.toISOString(),aftersaleReason:r.aftersale_reason,memberName:r.display_name??null,userCode:r.user_code??null,cardNumber:r.card_number??null};}
  private async bundleViews(c:DbClient){const stock=(await c.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows;return rewardBundles.map(b=>({...b,availableQuantity:Math.min(...b.components.map(code=>{const r=stock.find(r=>r.code===code);return r?.confirmed?r.stock_on_hand-r.reserved_quantity:0;})),stockConfirmed:b.components.every(code=>stock.some(r=>r.code===code&&r.confirmed))}));}
  private shareToken(row:{id:string;version:number}){
   const key=this.config.contacts.hashKey;if(!key||!/^[a-f0-9]{64}$/i.test(key))fail('REWARD_STORAGE_UNAVAILABLE','礼遇暂不可用，请稍后重试',503);
@@ -302,8 +303,8 @@ export class ActivityRewardService {
    return (await c.query("UPDATE reward_voucher SET state='revoked',version=version+1 WHERE id=$1 RETURNING id,state,version",[id])).rows[0];
   },'commerce.product.manage');
  }
- async management(actor:string|undefined,query:{activityId?:unknown;state?:unknown;after?:unknown;memberId?:unknown;voucherId?:unknown;claimId?:unknown}={}){
-  await this.authority.requireAny(actor,['commerce.product.manage','commerce.inventory.manage','commerce.fulfillment.manage']);
+ async management(actor:string|undefined,query:{activityId?:unknown;state?:unknown;after?:unknown;memberId?:unknown;voucherId?:unknown;claimId?:unknown;from?:unknown;through?:unknown}={}){
+  const dates=managementDates(query);await this.authority.requireAny(actor,['commerce.product.manage','commerce.inventory.manage','commerce.fulfillment.manage']);
   let activity=query.activityId?rewardId(query.activityId):null;const target=query.memberId?rewardId(query.memberId):null,voucher=query.voucherId?rewardId(query.voucherId):null,claim=query.claimId?rewardId(query.claimId):null;const after=query.after?rewardId(query.after):null,state=query.state??'all';
   if(!['all','unused','used','expired','revoked','placed','shipped','received','cancelled','aftersale_requested','closed'].includes(String(state)))fail('REWARD_FILTER_INVALID','状态筛选无效');
   return transaction(this.pool,async c=>{
@@ -313,13 +314,13 @@ export class ActivityRewardService {
    for(const cap of allowed)await this.authority.requireWithClient(c,actor,cap);
    if(canIssue)await this.authority.requireWithClient(c,actor,'member.manage');
    if(voucher||claim){const ref=(await c.query(`SELECT v.activity_id FROM reward_voucher v WHERE ($1::uuid IS NULL OR v.id=$1) AND ($2::uuid IS NULL OR EXISTS(SELECT 1 FROM activity_reward_claim claim WHERE claim.id=$2 AND claim.voucher_id=v.id)) AND ($3::uuid IS NULL OR v.member_id=$3)`,[voucher,claim,target])).rows[0];if(!ref)fail('REWARD_NOT_FOUND','奖励记录不存在',404);activity=ref.activity_id;}
-   const activities=(await c.query('SELECT id,code,title,state,version,terms,created_at FROM reward_activity ORDER BY created_at DESC,id DESC LIMIT 100')).rows;
+   const activities=(await c.query('SELECT id,code,title,state,version,terms,created_at FROM reward_activity ORDER BY created_at DESC,id DESC LIMIT 100')).rows;if(!activity)activity=activities[0]?.id??null;
    const vouchers=canIssue?(await c.query(`SELECT v.id,v.member_id,v.state,v.version,v.expires_at,v.claim_id,a.batch_id,a.source_record_id,m.display_name
     FROM reward_voucher v JOIN reward_award a ON a.id=v.award_id JOIN member m ON m.id=v.member_id
     WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR CASE WHEN v.state='unused' AND v.expires_at<=now() THEN 'expired' ELSE v.state END=$2)
     AND ($3::uuid IS NULL OR v.id>$3) AND ($4::uuid IS NULL OR v.member_id=$4) AND ($5::uuid IS NULL OR v.id=$5) ORDER BY v.id LIMIT 51`,[activity,state,after,target,voucher])).rows:[];
-   const claims=canFulfill?(await c.query(`SELECT c.* FROM activity_reward_claim c JOIN reward_voucher v ON v.id=c.voucher_id
-    WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR c.state=$2) AND ($3::uuid IS NULL OR c.id>$3) AND ($4::uuid IS NULL OR c.member_id=$4) AND ($5::uuid IS NULL OR c.id=$5) ORDER BY c.id LIMIT 51`,[activity,state,after,target,claim])).rows:[];
+   const claims=canFulfill?(await c.query(`SELECT c.*,m.display_name,n.user_code,'No. '||lpad(n.number::text,GREATEST(5,length(n.number::text)),'0') AS card_number FROM activity_reward_claim c JOIN reward_voucher v ON v.id=c.voucher_id JOIN member m ON m.id=c.member_id LEFT JOIN member_card_number n ON n.member_id=m.id
+    WHERE ($1::uuid IS NULL OR v.activity_id=$1) AND ($2='all' OR c.state=$2) AND ($3::uuid IS NULL OR c.id>$3) AND ($4::uuid IS NULL OR c.member_id=$4) AND ($5::uuid IS NULL OR c.id=$5) AND ($6::date IS NULL OR c.created_at>=($6::date::timestamp AT TIME ZONE 'Asia/Shanghai')) AND ($7::date IS NULL OR c.created_at<(($7::date+1)::timestamp AT TIME ZONE 'Asia/Shanghai')) ORDER BY c.id LIMIT 51`,[activity,state,after,target,claim,dates.from,dates.through])).rows:[];
    const inventory=(await c.query('SELECT * FROM reward_component_inventory ORDER BY code')).rows;
    const bundles=(await this.bundleViews(c)).map(bundle=>({...bundle,reservedQuantity:inventory.find(r=>r.code===bundle.components.find(code=>code!=='conditioner100'))?.reserved_quantity??0,
     expectedVersions:Object.fromEntries(bundle.components.map(code=>[code,inventory.find(r=>r.code===code)?.version??0]))}));
@@ -327,19 +328,24 @@ export class ActivityRewardService {
     permissions:{configure:grants.capabilities.includes('commerce.product.manage'),stock:grants.capabilities.includes('commerce.inventory.manage'),issue:canIssue,fulfill:canFulfill}};
   },'REPEATABLE READ');
  }
- async export(actor:string|undefined,activityId:string,kind:string,after?:string){
+ async export(actor:string|undefined,activityId:string,kind:string,after?:string,filters:{from?:unknown;through?:unknown;state?:unknown}={}){
+  const dates=managementDates(filters),state=filters.state??'all';const date=(v:Date|null)=>v?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(v):'';if(!['all','placed','shipped','received','cancelled','aftersale_requested','closed'].includes(String(state)))fail('REWARD_FILTER_INVALID','状态筛选无效');
   const activity=rewardId(activityId),cursor=after?rewardId(after):null;
   if(!['awarded','issued','claimed','pending_dispatch','unclaimed'].includes(kind))fail('REWARD_EXPORT_INVALID','导出类型无效');
-  return transaction(this.pool,async c=>{await this.authority.requireWithClient(c,actor,'member.manage');await this.authority.requireWithClient(c,actor,'commerce.product.manage');
+  return transaction(this.pool,async c=>{if(['claimed','pending_dispatch'].includes(kind))await this.authority.requireWithClient(c,actor,'commerce.fulfillment.manage');else{await this.authority.requireWithClient(c,actor,'member.manage');await this.authority.requireWithClient(c,actor,'commerce.product.manage');}
    const exportTracking=await this.authority.has(actor,'commerce.fulfillment.manage',c);if(exportTracking)await this.authority.requireWithClient(c,actor,'commerce.fulfillment.manage');
-   const rows=(await c.query(`SELECT a.id AS award_id,a.source_record_id,a.batch_id,a.member_id,v.id AS voucher_id,CASE WHEN v.state='unused' AND v.expires_at<=clock_timestamp() THEN 'expired' ELSE v.state END AS voucher_state,v.expires_at,c.id AS claim_id,c.claim_number,c.state AS claim_state,c.item_snapshot,c.bundle_code,c.survey_version,c.questionnaire_version,c.recommendation,c.carrier_name,c.shipment_encrypted,c.key_version,c.shipping_cents,c.shipped_at,c.received_at
-    FROM reward_award a LEFT JOIN reward_voucher v ON v.award_id=a.id LEFT JOIN activity_reward_claim c ON c.id=v.claim_id
-    WHERE a.activity_id=$1 AND ($2::uuid IS NULL OR a.id>$2) AND
-    ($3 IN ('awarded','issued') OR $3='claimed' AND v.state='used' OR $3='pending_dispatch' AND c.state='placed' OR $3='unclaimed' AND v.state IN ('unused','expired'))
-    ORDER BY a.id LIMIT 501`,[activity,cursor,kind])).rows;
-   const page=rows.slice(0,500),last=rows.length>500?page.at(-1)!.award_id:null;
-   const workbook=fulfillmentWorkbook([['获奖记录','发放批次','会员ID','兑换券ID','券状态','有效期','领取单号','领取状态','套装','规格','运费实付','发货时间','收货时间','档案引用','问卷版本','推荐套装','领取订单ID','最终套装SKU','承运商','物流单号'],...page.map(r=>[r.source_record_id,r.batch_id,r.member_id,r.voucher_id??'',r.voucher_state??'',r.expires_at?.toISOString()??'',r.claim_number??'',r.claim_state??'',r.item_snapshot?.name??'',r.item_snapshot?`${r.item_snapshot.shampooMl}+${r.item_snapshot.conditionerMl}mL`:'','0.00',r.shipped_at?.toISOString()??'',r.received_at?.toISOString()??'',r.claim_id?`${r.member_id}#${r.survey_version}`:'',r.questionnaire_version??'',r.recommendation??'',r.claim_id??'',r.bundle_code??'',exportTracking?r.carrier_name??'':'',exportTracking&&r.claim_id?this.openShipment({...r,id:r.claim_id})??'':''])]);
-   await c.query("INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id) VALUES($1,'reward.export','reward_activity',$2,$3,$4)",[`member:${actor}`,activity,{kind,count:page.length,sha256:createHash('sha256').update(workbook).digest('hex'),nextCursor:last},randomUUID()]);
+   const rows=(await c.query(`SELECT a.id AS award_id,a.source_record_id,a.batch_id,a.member_id,m.display_name,n.user_code,n.number AS member_number,v.id AS voucher_id,CASE WHEN v.state='unused' AND v.expires_at<=clock_timestamp() THEN 'expired' ELSE v.state END AS voucher_state,v.expires_at,c.id AS claim_id,c.claim_number,c.state AS claim_state,c.item_snapshot,c.bundle_code,c.survey_version,c.questionnaire_version,c.recommendation,c.carrier_name,c.shipment_encrypted,c.key_version,c.shipping_cents,c.shipped_at,c.received_at,c.created_at AS claimed_at,c.encrypted_address,c.address_hmac,CASE WHEN $3 IN ('claimed','pending_dispatch') THEN c.id ELSE a.id END AS export_cursor
+    FROM reward_award a LEFT JOIN reward_voucher v ON v.award_id=a.id LEFT JOIN activity_reward_claim c ON CASE WHEN $3 IN ('claimed','pending_dispatch') THEN c.voucher_id=v.id ELSE c.id=v.claim_id END JOIN member m ON m.id=a.member_id LEFT JOIN member_card_number n ON n.member_id=a.member_id
+    WHERE a.activity_id=$1 AND ($2::uuid IS NULL OR CASE WHEN $3 IN ('claimed','pending_dispatch') THEN c.id ELSE a.id END>$2) AND
+    ($3 IN ('awarded','issued') OR $3='claimed' AND c.id IS NOT NULL OR $3='pending_dispatch' AND c.state='placed' OR $3='unclaimed' AND v.state IN ('unused','expired'))
+    AND ($4::date IS NULL OR COALESCE(c.created_at,v.issued_at,a.created_at)>=($4::date::timestamp AT TIME ZONE 'Asia/Shanghai')) AND ($5::date IS NULL OR COALESCE(c.created_at,v.issued_at,a.created_at)<(($5::date+1)::timestamp AT TIME ZONE 'Asia/Shanghai')) AND ($6='all' OR c.state=$6)
+    ORDER BY export_cursor LIMIT 501`,[activity,cursor,kind,dates.from,dates.through,state])).rows;
+   const page=rows.slice(0,500),last=rows.length>500?page.at(-1)!.export_cursor:null;
+   const workbook=fulfillmentWorkbook([['领取单号','领取状态','套装','洗发产品','洗发容量mL','护发产品','护发容量mL','数量','用户昵称','会员卡编号','用户编号','收件人','手机号','省','市','区','详细地址','领取时间(北京时间)','承运商','物流单号','发货时间(北京时间)','收货时间(北京时间)','券状态','券有效期(北京时间)'],...page.map(r=>{
+    const address=exportTracking&&['claimed','pending_dispatch'].includes(kind)&&r.claim_id?this.addresses.openOrderSnapshot(r.member_id,r.claim_id,r.encrypted_address,r.address_hmac,r.key_version):null;
+    return [r.claim_number??'',({placed:'待发货',shipped:'已发货',received:'已收货',cancelled:'已取消',aftersale_requested:'售后中',closed:'已完成'} as Record<string,string>)[r.claim_state]??r.claim_state??'',r.item_snapshot?.name??'',r.item_snapshot?.shampoo??'',r.item_snapshot?.shampooMl??'',r.item_snapshot?.conditioner??'',r.item_snapshot?.conditionerMl??'',r.claim_id?'1':'',r.display_name??'',r.member_number?'No. '+String(r.member_number).padStart(5,'0'):'',r.user_code??'',address?.recipientName??'',address?.phone??'',address?.province??'',address?.city??'',address?.district??'',address?.detail??'',date(r.claimed_at),exportTracking?r.carrier_name??'':'',exportTracking&&r.claim_id?this.openShipment({...r,id:r.claim_id})??'':'',date(r.shipped_at),date(r.received_at),({unused:'待领取',used:'已领取',expired:'已过期',revoked:'已撤销'} as Record<string,string>)[r.voucher_state]??r.voucher_state??'',date(r.expires_at)].map(value=>String(value));
+   })]);
+   await c.query("INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id) VALUES($1,'reward.export','reward_activity',$2,$3,$4)",[`member:${actor}`,activity,{kind,from:dates.from,through:dates.through,state,count:page.length,sha256:createHash('sha256').update(workbook).digest('hex'),nextCursor:last},randomUUID()]);
    return {workbook,nextCursor:last,count:page.length};
   },'REPEATABLE READ');
  }

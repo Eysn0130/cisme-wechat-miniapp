@@ -24,6 +24,8 @@ ALTER TABLE member_card_number ALTER COLUMN user_code SET DEFAULT new_member_use
  ALTER COLUMN user_code SET NOT NULL,
  ADD CONSTRAINT member_user_code_format CHECK(user_code ~ '^[A-Z0-9]{12}$'),
  ADD CONSTRAINT member_user_code_owner_pair UNIQUE(member_id,user_code);
+ALTER TABLE sharing_officer DROP CONSTRAINT sharing_officer_referral_code_check,
+ ADD CONSTRAINT sharing_officer_referral_code_check CHECK(referral_code ~ '^[A-Z0-9]{12}$');
 ALTER TABLE sharing_officer ADD CONSTRAINT sharing_officer_member_user_code_fk
  FOREIGN KEY(member_id,referral_code) REFERENCES member_card_number(member_id,user_code);
 

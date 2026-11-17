@@ -16,11 +16,11 @@ function snapshot(earned=true,source='questionnaire'){
   entries:earned?[{id:receipt,entry_type:'grant_available',source_type:source,component:'base',available_delta:100,frozen_delta:0,debt_delta:0,business_key:'synthetic-grant',occurred_at:'2026-11-13T00:00:00Z'}]:[],
   nextCursor:null,totalCount:earned?1:0,lifetimeEarned:earned?100:0,used:0,expired:0,expiring:{points:0,earliestAt:null,withinDays:30},clubPolicy:null};
 }
-async function mount(){
+async function mount(autoReceipts=false){
  (globalThis as any).Component=(d:any)=>{definition=d;};await import('../../apps/miniprogram/components/points-celebration/index');
  const template=readFileSync('apps/miniprogram/components/points-celebration/index.wxml','utf8');
  rendered=simulate.render(simulate.load({template,data:structuredClone(definition.data)}));rendered.attach(document.body);
- component={...definition.methods,triggerEvent:vi.fn(),properties:{owner,enabled:true},data:structuredClone(definition.data),setData(p:any){Object.assign(this.data,p);rendered.setData(structuredClone(this.data));}};
+ component={...definition.methods,triggerEvent:vi.fn(),properties:{owner,enabled:true,autoReceipts},data:structuredClone(definition.data),setData(p:any){Object.assign(this.data,p);rendered.setData(structuredClone(this.data));}};
  definition.lifetimes.attached.call(component);await flush();return component;
 }
 beforeEach(async()=>{
@@ -89,4 +89,11 @@ it('reuses the same medallion and counter for a confirmed community reward, once
 });
 it('does not celebrate a pending or quota-exhausted community award',async()=>{
  feedback.queueContentFeedback(owner,'ugc_comment',other);m.read.mockResolvedValue({memberId:owner,pending:false,grants:[]});const c=await mount();expect(c.data.showing).toBe(false);expect(feedback.pendingCredit(owner)).toBeNull();
+});
+
+it('uses the care medallion for an independently confirmed profile or shopping receipt and never replays it',async()=>{
+ m.read.mockResolvedValue({memberId:owner,pending:false,receipts:[{id:receipt,sourceType:'profile',sourceId:owner,points:50}]});const c=await mount(true);expect(c.data).toMatchObject({showing:true,amount:50,phase:'spinning'});await vi.advanceTimersByTimeAsync(2100);expect(c.data.showing).toBe(false);definition.pageLifetimes.hide.call(c);definition.pageLifetimes.show.call(c);await flush();expect(c.data.showing).toBe(false);
+});
+it('rejects another member receipt and retries pending actual processing without fabricating a reward',async()=>{
+ m.read.mockResolvedValueOnce({memberId:owner,pending:true,receipts:[]}).mockResolvedValue({memberId:other,pending:false,receipts:[{id:receipt,sourceType:'order',sourceId:owner,points:300}]});const c=await mount(true);expect(c.data.showing).toBe(false);await vi.advanceTimersByTimeAsync(600);expect(c.data.showing).toBe(false);expect(feedback.pendingCredit(owner)).toBeNull();
 });

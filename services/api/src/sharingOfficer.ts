@@ -27,6 +27,7 @@ export async function sharingQualification(client:DbClient,memberId:string){
      LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
      CROSS JOIN LATERAL jsonb_array_elements(c.lines) x
      WHERE c.order_id=o.id AND c.state NOT IN ('cancelled','rejected') AND x->>'lineId'=l.id::text),0)
+   AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case c WHERE c.order_id=o.id AND c.state NOT IN ('cancelled','rejected') AND jsonb_array_length(c.lines)=0)
    AND NOT EXISTS(SELECT 1 FROM commission_refund_intent i WHERE i.order_id=o.id AND i.request_id IS NULL AND i.state<>'closed')
    AND NOT EXISTS(SELECT 1 FROM commerce_refund_request r WHERE r.order_id=o.id AND r.state IN ('requested','approved')
      AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case c WHERE c.refund_request_id=r.id))

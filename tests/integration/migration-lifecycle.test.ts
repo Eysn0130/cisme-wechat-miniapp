@@ -306,6 +306,9 @@ describe("empty and N-1 database lifecycle", () => {
     // Migration99 is independent from the existing98 article facts. Verify
     // its empty round-trip, then its comment preservation refusal, before
     // testing the older article-evidence rollback guard.
+    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('POINTS_V2_ROLLBACK_REQUIRES_ASSET_PRESERVATION')});
+    expect((await pool.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(migrationFiles.length);
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     const capabilityNames=async()=>{
@@ -403,6 +406,9 @@ describe("empty and N-1 database lifecycle", () => {
     await migrate('down');
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount-1);
+    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('POINTS_V2_ROLLBACK_REQUIRES_ASSET_PRESERVATION')});
+    expect((await pool.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(migrationFiles.length);
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBeNull();
     expect(await capabilityNames()).toEqual(extendedCapabilities.filter(name=>name!=='editorial.manage'));
@@ -416,6 +422,9 @@ describe("empty and N-1 database lifecycle", () => {
     await migrate('down');
     pool=migrationPool();
     expect((await pool.query('SELECT count(*)::int count FROM schema_migration')).rows[0].count).toBe(migrationCount);
+    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('POINTS_V2_ROLLBACK_REQUIRES_ASSET_PRESERVATION')});
+    expect((await pool.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(migrationFiles.length);
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     expect(await capabilityNames()).toEqual(extendedCapabilities);
@@ -563,12 +572,15 @@ describe("empty and N-1 database lifecycle", () => {
     await pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) VALUES($1,'SO0987654321','active')",[legacyOfficer]);
     const originalNumber=(await pool.query('SELECT number::text FROM member_card_number WHERE member_id=$1',[legacyOfficer])).rows[0].number;
     await closePool(pool);
-    migrationTip=migrationFiles.at(-1)!;
+    migrationTip='202611170001_member_user_code.sql';
     await migrate('up');
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.length);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.indexOf(migrationTip)+1);
     await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('MEMBER_PUBLIC_CODE_ROLLBACK_REQUIRES_IDENTIFIER_PRESERVATION')});
     expect((await pool.query('SELECT user_code,number::text FROM member_card_number WHERE member_id=$1',[legacyOfficer])).rows[0]).toEqual({user_code:'SO0987654321',number:originalNumber});
+    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('POINTS_V2_ROLLBACK_REQUIRES_ASSET_PRESERVATION')});
+    expect((await pool.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(migrationFiles.length);
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     expect(await capabilityNames()).toEqual([...CAPABILITIES].sort());

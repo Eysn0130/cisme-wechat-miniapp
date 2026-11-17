@@ -70,7 +70,7 @@ describe("community composer command ownership",()=>{
     m.request.mockResolvedValue(draft({body:page.data.body,version:2}));
     const saved=await page.saveDraft();expect(saved?.version).toBe(2);expect(m.request).toHaveBeenCalledOnce();
     expect(m.request.mock.calls[0]![0]).toMatchObject({method:"PUT",path:`/v1/me/ugc/posts/${post}/draft`,data:{title:"",body:page.data.body,mediaIds:[],expectedVersion:1}});
-    expect(Object.keys(m.request.mock.calls[0]![0].data).sort()).toEqual(["body","expectedVersion","mediaIds","title"]);
+    expect(Object.keys(m.request.mock.calls[0]![0].data).sort()).toEqual(["body","expectedVersion","experienceDays","experienceProductCode","mediaIds","rewardKind","title"]);
     expect(page.data).toMatchObject({state:"draft",publicVersionActive:false,dirty:false,notice:"草稿已保存。"});
   });
   it("publishes directly through save and submit without a settings step or legacy flags",async()=>{

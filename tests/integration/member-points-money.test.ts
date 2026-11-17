@@ -24,7 +24,7 @@ let payerOpenid='verified-buyer-openid';
 let databaseClockOffset=0;
 let buyer:string,referrer:string,sku:string,product:string,codeId:string,ruleId:string,addressId:string;
 
-async function seedOrder(suffix:string,commissionBasis:number|null=10000,createdAt=new Date()){
+async function seedOrder(suffix:string,commissionBasis:number|null=10000,createdAt=new Date(),v2=false){
   const quoteId=randomUUID(),orderId=randomUUID(),number=`CM20260912${suffix.padStart(12,"0")}`;
   const now=createdAt,expires=new Date(now.getTime()+60*60_000);
   await pool.query(`INSERT INTO commerce_checkout_quote(id,member_id,product_id,sku_id,address_id,address_version,
@@ -35,8 +35,8 @@ async function seedOrder(suffix:string,commissionBasis:number|null=10000,created
     [quoteId,buyer,product,sku,addressId,`payment-quote-${suffix}`,"a".repeat(64),expires,now,now]);
   await pool.query(`INSERT INTO commerce_order(id,order_number,member_id,source_quote_id,status,currency,
     subtotal_cents,member_discount_cents,shipping_cents,total_cents,points_spent,points_policy_version,points_birthday_month,shopping_points_multiplier,pricing_rule_version,expires_at,
-    created_at,updated_at,transaction_source_kind) VALUES($1,$2,$3,$4,'pending_payment','CNY',10000,500,0,9500,500,'club-owner-20261110-v1',extract(month from clock_timestamp() AT TIME ZONE 'Asia/Shanghai'),3,
-    'fixture-r1',$5,$6,$6,'verified_commerce')`,[orderId,number,buyer,quoteId,expires,now]);
+    created_at,updated_at,transaction_source_kind) VALUES($1,$2,$3,$4,'pending_payment','CNY',10000,500,0,9500,500,CASE WHEN $7::boolean THEN 'club-owner-20261117-v2' ELSE 'club-owner-20261110-v1' END,CASE WHEN $7::boolean THEN NULL ELSE extract(month from clock_timestamp() AT TIME ZONE 'Asia/Shanghai') END,3,
+    'fixture-r1',$5,$6,$6,'verified_commerce')`,[orderId,number,buyer,quoteId,expires,now,v2]);
   await pool.query(`INSERT INTO commerce_payment_attempt(order_id,out_trade_no,member_id,payer_openid,
     app_id,merchant_id,amount_cents,currency,quote_id,pricing_rule_version,quote_price_version,expires_at)
     VALUES($1,$2,$3,$8,$4,$5,9500,'CNY',$6,'fixture-r1',1,$7)`,
@@ -205,4 +205,40 @@ it('books invalid reserved points as debt only on signed payment and reverses th
  expect((await pool.query('SELECT available,reserved,debt FROM points_projection WHERE member_id=$1',[buyer])).rows[0]).toEqual({available:200,reserved:0,debt:0});
  expect((await pool.query("SELECT count(*)::int n FROM points_grant WHERE member_id=$1 AND source_type='refund_recovery'",[buyer])).rows[0].n).toBe(1);
  expect((await pool.query("SELECT COALESCE(sum(available_delta+frozen_delta),0)::int n FROM points_entry WHERE member_id=$1 AND entry_type IN ('grant_available','grant_frozen')",[buyer])).rows[0].n).toBe(1200);
+});
+
+
+it('v2 awards after signed payment with exclusive invited-first-purchase and fully reverses signed refunds without waiting for delivery',async()=>{
+ const {loadConfig}=await import('@cisme/config'),{TEST_DATABASE_URL}=await import('@cisme/testkit');
+ const {PlatformService}=await import('../../services/api/src/platformService'),{createApiGatewayStorage}=await import('../../services/api/src/storage');
+ const {transaction}=await import('../../services/api/src/db'),{grantMemberPoints,reserveMemberPoints}=await import('../../services/api/src/pointsLedger');
+ const {processMemberPointSources}=await import('../../services/api/src/memberPointsClub');
+ const conf=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'v2-payment-fixture',UPLOAD_TOKEN_SECRET:'v2-payment-upload'});
+ const service=new PlatformService(pool,conf,createApiGatewayStorage(conf));
+ const policy=(await pool.query("SELECT * FROM member_points_policy WHERE version='club-owner-20261117-v2'")).rows[0];
+ for(const invited of [false,true]){
+  const suffix=invited?'V2INVITED':'V2ORDINARY',at=new Date(Date.now()+databaseClockOffset+5);
+  let share:any;
+  if(invited){share=await service.createShare(referrer,`points-${suffix}-share`,{targetType:'invite',targetRef:'home'},at);await service.recordShareVisit(share.shareId,`points-${suffix}-visitor`,at);}
+  const registered=await service.identity({provider:'dev_test',appId:'dev',openid:'v2-'+suffix,displayName:'合成支付会员',adapter:'dev',consents:[{documentType:'privacy',version:'fixture'},{documentType:'terms',version:'fixture'}]},new Date(+at+1));
+  buyer=registered.memberId;payerOpenid='v2-payer-'+suffix;
+  if(invited)await service.attributeShareIdentity(buyer,share.shareId,`points-${suffix}-visitor`,new Date(+at+2));
+  await pool.query("INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter) VALUES($1,'wechat_miniprogram',$2,$3,'wechat')",[buyer,appId,payerOpenid]);
+  addressId=(await pool.query("INSERT INTO member_delivery_address(member_id,encrypted_payload,payload_hmac,key_version,label,client_request_key) VALUES($1,'synthetic',$2,'synthetic','home',$3) RETURNING id",[buyer,'b'.repeat(64),'v2-address-'+suffix])).rows[0].id;
+  await transaction(pool,c=>grantMemberPoints(c,{owner:buyer,sourceType:'fixture',sourceId:randomUUID(),component:'base',amount:1000,policy,now:at}));
+  const order=await seedOrder(suffix,null,new Date(+at+3),true);await transaction(pool,c=>reserveMemberPoints(c,buyer,order.id,500,at));
+  const transactionId='42000000'+suffix,signed=notification(order.number,transactionId,'EV-'+suffix,new Date(+at+4).toISOString(),9500,9500);
+  const paid=await processor.receive(signed.rawBody,signed.headers);expect(await processor.processOne(paid.inboxId)).toBe('applied');
+  await processMemberPointSources(pool,new Date(+at+2000));await processMemberPointSources(pool,new Date(+at+2000));
+  const rows=(await pool.query("SELECT member_id,component,amount FROM points_grant WHERE source_type='order' AND source_id=$1 ORDER BY component",[order.id])).rows;
+  expect(rows.filter(g=>g.member_id===buyer).map(g=>[g.component,g.amount])).toEqual(invited?[['invite_friend',200],['shopping',285]]:[['first_order',300],['shopping',285]]);
+  expect(rows.filter(g=>g.component==='invite_sponsor').map(g=>g.amount)).toEqual(invited?[300]:[]);
+  expect(rows.some(g=>g.component==='share_order')).toBe(false);
+  expect((await pool.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1',[order.id])).rowCount).toBe(0);
+  const number='RF'+suffix;await refundIntent({orderId:order.id,paymentId:paid.inboxId,refundNumber:number,refundCents:9500,eligibleCents:0});
+  const r=refundNotification({orderNumber:order.number,transactionId,refundNumber:number,providerRefundId:'5000000'+suffix,eventId:'EV-REFUND-'+suffix,refundCents:9500,total:9500,status:'SUCCESS',successTime:new Date(+at+10).toISOString()});
+  const received=await refunds.receive(r.rawBody,r.headers);expect(await refunds.processOne(received.inboxId)).toBe('applied');await processMemberPointSources(pool,new Date(+at+2000));
+  expect((await pool.query("SELECT sum(amount-reversed_total)::int AS remaining FROM points_grant WHERE source_type='order' AND source_id=$1",[order.id])).rows[0].remaining).toBe(0);
+  expect((await pool.query('SELECT available,reserved,debt FROM points_projection WHERE member_id=$1',[buyer])).rows[0]).toEqual({available:1000,reserved:0,debt:0});
+ }
 });

@@ -1,3 +1,4 @@
+import {clubRulesV1} from '../../services/api/src/pointsLedger';
 import {createHash,randomUUID} from 'node:crypto';
 import {afterAll,beforeAll,expect,it,vi} from 'vitest';
 import sharp from 'sharp';
@@ -71,7 +72,11 @@ const intent=()=>new FormalUgcService(pool,config,storage,new AuthorityService(p
 const finish=(id:string)=>new UgcDirectPublication(pool,config,storage).finish(id);
 const scan=(id:string)=>new UgcSafetyService(pool,config,storage,provider).scanPost(owner.memberId,id,'https://scan.synthetic.invalid');
 beforeAll(async()=>{
-  vi.stubGlobal('fetch',provider);await resetDatabase(pool);await storage.ensureReady();app=await createApp({config,pool,storage});
+  vi.stubGlobal('fetch',provider);await resetDatabase(pool);
+  // Keep this historical-rule regression under its original immutable policy.
+  await pool.query("UPDATE member_points_policy SET state='retired',retired_at=clock_timestamp() WHERE state='active'");
+  await pool.query(`INSERT INTO member_points_policy(version,rules,state,starts_at,approved_at,approval_source,approval_evidence) VALUES('synthetic-engagement-legacy-v1',$1,'active',clock_timestamp(),clock_timestamp(),'owner_instruction_20261110','isolated historical policy regression only')`,[clubRulesV1]);
+  await storage.ensureReady();app=await createApp({config,pool,storage});
   owner=await identity('sync-owner');reader=await identity('sync-reader');
   await pool.query(`INSERT INTO ugc_go_live_approval(approval_reference,signed_by,evidence,signed_at,expires_at)
     VALUES('synthetic-sync','isolated fixture','{"scope":"isolated only"}',now(),now()+interval '1 hour')`);

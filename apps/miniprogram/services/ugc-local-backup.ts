@@ -6,7 +6,7 @@ const legacyKey="cisme.ugcComposerBackup.v1";
 const prefix="cisme.ugcDraftBackup.v2.";
 const ttlMs=7*24*60*60_000;
 const id=/^[0-9a-f-]{36}$/i;
-export type UgcLocalBackup={ownerId:string;postId:string;baseVersion:number;title:string;body:string;
+export type UgcLocalBackup={ownerId:string;postId:string;baseVersion:number;title:string;body:string;rewardKind?:'original'|'experience';experienceProductCode?:string;experienceDays?:number|null;
   // Legacy snapshots may contain these facts; the composer no longer writes or restores them.
   rightsConfirmed?:boolean;publicConsentConfirmed?:boolean;mediaIds:string[];savedAt:number;
   textCardText?:string;textCardTemplate?:TextCardTemplate;

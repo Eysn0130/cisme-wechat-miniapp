@@ -55,7 +55,7 @@ Page({
   },
   async prepareOfficerShare(attempt:number){const token=getApp<IAppOption>().globalData.sessionToken;try{const result=await request<ShareLink>({path:'/v1/shares',method:'POST',idempotencyKey:`officer-invite-${Date.now().toString(36)}`,data:{targetType:'invite',targetRef:'home'}});if(this.data.pageAlive&&this.data.attempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken)this.setData({shareId:result.shareId,officerShareId:result.officerShareId??'',expiresAt:result.expiresAt});}catch{if(this.data.pageAlive&&this.data.attempt===attempt)this.setData({referralError:'分享信息暂未同步，请重试'});}},
   copyReferralCode(){if(!this.data.loading&&this.data.referralCode)wx.setClipboardData({data:this.data.referralCode});},
-  openReferralConfirm(){wx.navigateTo({url:"/pages/sharing-officer/index?mode=referrer",fail:()=>wx.showToast({title:"推荐码页面暂时无法打开",icon:"none"})});},
+  openReferralConfirm(){wx.navigateTo({url:"/pages/sharing-officer/index?mode=referrer",fail:()=>wx.showToast({title:"推荐人页面暂时无法打开",icon:"none"})});},
   async prepare() {
     if (this.data.loading || this.data.preparing || this.data.leaving || !this.data.pageAlive) return;
     const attempt = this.data.attempt;

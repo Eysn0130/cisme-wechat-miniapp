@@ -444,3 +444,12 @@ it('keeps the separately encrypted order snapshot after erasing its source addre
   expect(detail.statusCode,detail.body).toBe(200);
   expect(detail.json().address).toMatchObject({recipientName:'合成收货人9888',phone:'13800009888'});
 });
+
+it('filters administrator orders by stage and Beijing dates and rejects cursors from a different filter',async()=>{
+ const actor=await identity('isolated-order-filter-'+Date.now());await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'commerce.order.read','fixture','isolated filter test','test','integration_fixture')`,[actor.memberId]);
+ const first=await app.inject({url:'/v1/management/commerce/orders?limit=1&stage=all',headers:auth(actor.sessionToken)});expect(first.statusCode,first.body).toBe(200);expect(first.json().totalCount).toBeGreaterThan(1);expect(first.json().items.every((r:any)=>r.address===null)).toBe(true);expect(first.json().nextCursor).toBeTruthy();
+ const wrong=await app.inject({url:'/v1/management/commerce/orders?limit=1&stage=closed&cursor='+encodeURIComponent(first.json().nextCursor),headers:auth(actor.sessionToken)});expect(wrong.statusCode).toBe(422);
+ const closed=await app.inject({url:'/v1/management/commerce/orders?stage=closed',headers:auth(actor.sessionToken)});expect(closed.statusCode,closed.body).toBe(200);expect(closed.json().items.every((r:any)=>['cancelled','expired'].includes(r.status))).toBe(true);
+ for(const query of ['from=2026-02-30','from=2026-11-18&through=2026-11-17','stage=not-a-state'])expect((await app.inject({url:'/v1/management/commerce/orders?'+query,headers:auth(actor.sessionToken)})).statusCode).toBe(422);
+ const empty=await app.inject({url:'/v1/management/commerce/orders?from=2000-01-01&through=2000-01-01',headers:auth(actor.sessionToken)});expect(empty.statusCode,empty.body).toBe(200);expect(empty.json()).toMatchObject({totalCount:0,items:[],nextCursor:null});
+});

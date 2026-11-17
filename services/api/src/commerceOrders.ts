@@ -1,3 +1,5 @@
+import {managementDates} from './managementDates.js';
+import {pageScope,cursorTimestamp} from './keysetPage.js';
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
 import { DomainError } from "@cisme/domain";
@@ -9,7 +11,7 @@ import { DeliveryAddressService } from "./deliveryAddress.js";
 import { CommercialMembershipService } from "./commercialMembership.js";
 import { receiptView } from './wechatReceipt.js';
 import { releaseReservedCreditForCheckout, reserveCreditForCheckout } from "./shoppingCredit.js";
-import {quoteMemberPoints,reserveMemberPoints,settleOrderPoints} from './pointsLedger.js';
+import {quoteMemberPoints,reserveMemberPoints,settleOrderPoints,pointDay} from './pointsLedger.js';
 import {quotePurchaseCoupon,reservePurchaseCoupon,settlePurchaseCoupon} from './rewardLedger.js';
 
 type OrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
@@ -31,7 +33,7 @@ type CatalogCheckoutRow = {
   stock_on_hand: number; reserved_quantity: number; inventory_version: number;
 };
 type OrderRow = {
-  coupon_id:string|null;coupon_discount_cents:number;
+  cursor_at?:string;coupon_id:string|null;coupon_discount_cents:number;
   shopping_points_multiplier:number;points_spent:number;points_policy_version:string|null;
   fulfillment_policy: ReturnType<typeof launchFulfillmentPolicy>|null;
   id: string; order_number: string; member_id: string; source_quote_id: string; status: OrderStatus; currency: "CNY";
@@ -89,14 +91,14 @@ function orderNumber(now: Date): string {
   const date = now.toISOString().slice(0, 10).replaceAll("-", "");
   return `CM${date}${randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase()}`;
 }
-function encodeCursor(row: OrderRow): string {
-  return Buffer.from(JSON.stringify({ at: row.created_at.toISOString(), id: row.id })).toString("base64url");
+function encodeCursor(row: OrderRow,scope?:string): string {
+  return Buffer.from(JSON.stringify({ at: row.cursor_at??row.created_at.toISOString(), id: row.id,...(scope?{scope}:{}) })).toString("base64url");
 }
-function decodeCursor(value: unknown): { at: string; id: string } | null {
+function decodeCursor(value: unknown,scope?:string): { at: string; id: string } | null {
   if (value === undefined) return null;
   try {
-    const decoded = JSON.parse(Buffer.from(String(value), "base64url").toString("utf8")) as { at?: unknown; id?: unknown };
-    if (typeof decoded.at !== "string" || !Number.isFinite(Date.parse(decoded.at)) || typeof decoded.id !== "string" || !UUID.test(decoded.id)) throw new Error();
+    const decoded = JSON.parse(Buffer.from(String(value), "base64url").toString("utf8")) as { at?: unknown; id?: unknown;scope?:unknown };
+    if (scope&&decoded.scope!==scope||!cursorTimestamp(decoded.at) || typeof decoded.id !== "string" || !UUID.test(decoded.id)) throw new Error();
     return { at: decoded.at, id: decoded.id };
   } catch { throw new DomainError("CURSOR_INVALID", "Order cursor is invalid", 422); }
 }
@@ -150,14 +152,14 @@ export class CommerceOrderService {
       throw new DomainError("COMMERCE_QUOTE_POLICY_CHANGED","结算规则已更新，请重新获取报价",409);
   }
 
-  private async catalogRow(client: DbClient, skuId: string, lockInventory: boolean, requireSellable = true): Promise<CatalogCheckoutRow> {
+  private async catalogRow(client: DbClient, skuId: string, lockInventory: boolean, requireSellable = true,at=new Date()): Promise<CatalogCheckoutRow> {
     const suffix = lockInventory ? " FOR UPDATE OF i" : " FOR SHARE OF p,s,pr,i";
     const result = await client.query<CatalogCheckoutRow>(`SELECT p.id product_id,p.code product_code,p.name product_name,p.image_path product_image,p.source_kind,
-      p.shopping_points_multiplier,p.qualification_status,p.publication_status,p.version product_version,s.id sku_id,s.code sku_code,s.label sku_label,
+      effective_shopping_points_multiplier(p.id,$2::timestamptz) AS shopping_points_multiplier,p.qualification_status,p.publication_status,p.version product_version,s.id sku_id,s.code sku_code,s.label sku_label,
       s.active sku_active,s.version sku_version,pr.currency,pr.amount_cents,pr.version price_version,
       i.stock_on_hand,i.reserved_quantity,i.version inventory_version
       FROM catalog_product p JOIN catalog_sku s ON s.product_id=p.id JOIN catalog_price pr ON pr.sku_id=s.id
-      JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.id=$1${suffix}`, [skuId]);
+      JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE s.id=$1${suffix}`, [skuId,at]);
     const row = result.rows[0];
     if (!row) throw new DomainError("CATALOG_SKU_NOT_FOUND", "商品规格不存在", 404);
     if(requireSellable&&this.options.formalPayment&&row.source_kind!=="admin")
@@ -208,7 +210,7 @@ export class CommerceOrderService {
       }
       const delivery=await this.addresses.checkoutSnapshot(client, owner, normalized.addressId, normalized.addressVersion);
       const fulfillmentPolicy=launchFulfillmentPolicy(delivery.payload);
-      const item = await this.catalogRow(client, normalized.skuId, false);
+      const item = await this.catalogRow(client, normalized.skuId, false,true,now);
       const available = item.stock_on_hand - item.reserved_quantity;
       if (available < normalized.quantity) throw new DomainError("INVENTORY_NOT_AVAILABLE", "当前库存不足，请调整数量后重试", 409);
       const subtotal = item.amount_cents * normalized.quantity;
@@ -285,12 +287,16 @@ export class CommerceOrderService {
       address: null };
   }
 
-  private async listPage(client: DbClient, owner: string | null, limit: number, cursor: { at: string; id: string } | null) {
+  private async listPage(client: DbClient, owner: string | null, limit: number, cursor: { at: string; id: string } | null,filter?:{stage:string;from:string|null;through:string|null;scope:string}) {
+    const refundSql="COALESCE((SELECT sum(i.refund_cents) FROM commission_refund_intent i WHERE i.order_id=o.id AND i.state='succeeded'),0)";
+    const stages:Record<string,string>={all:'true',pending_payment:"o.status='pending_payment'",unshipped:`o.status='paid' AND ${refundSql}<o.total_cents AND NOT EXISTS(SELECT 1 FROM commerce_shipment s WHERE s.order_id=o.id)`,
+      shipped:`o.status='paid' AND EXISTS(SELECT 1 FROM commerce_shipment s WHERE s.order_id=o.id AND s.receipt_confirmed_at IS NULL)`,completed:`EXISTS(SELECT 1 FROM commerce_shipment s WHERE s.order_id=o.id AND s.receipt_confirmed_at IS NOT NULL)`,refunded:`${refundSql}>0`,closed:"o.status IN ('cancelled','expired')"};
+    const predicate=stages[filter?.stage??'all']!+" AND ($4::date IS NULL OR o.created_at>=($4::date::timestamp AT TIME ZONE 'Asia/Shanghai')) AND ($5::date IS NULL OR o.created_at<(($5::date+1)::timestamp AT TIME ZONE 'Asia/Shanghai'))";
     const page = owner
-      ? await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE member_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
+      ? await client.query<OrderRow>(`SELECT commerce_order.*,created_at::text AS cursor_at FROM commerce_order WHERE member_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
           ORDER BY created_at DESC,id DESC LIMIT $4`, [owner,cursor?.at??null,cursor?.id??null,limit+1])
-      : await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE ($1::timestamptz IS NULL OR (created_at,id)<($1::timestamptz,$2::uuid))
-          ORDER BY created_at DESC,id DESC LIMIT $3`, [cursor?.at??null,cursor?.id??null,limit+1]);
+      : await client.query<OrderRow>(`SELECT o.*,o.created_at::text AS cursor_at FROM commerce_order o WHERE ($1::timestamptz IS NULL OR (o.created_at,o.id)<($1::timestamptz,$2::uuid)) AND ${predicate}
+          ORDER BY o.created_at DESC,o.id DESC LIMIT $3`, [cursor?.at??null,cursor?.id??null,limit+1,filter?.from??null,filter?.through??null]);
     const hasMore = page.rows.length > limit;
     const rows = page.rows.slice(0, limit);
     const ids = rows.map(row => row.id);
@@ -309,7 +315,10 @@ export class CommerceOrderService {
         FROM commerce_wechat_receipt_observation WHERE order_id=ANY($1::uuid[]) AND observed_at IS NOT NULL`,[ids]):{rows:[]};
     const byReceipt=new Map(observed.rows.map(item=>[item.order_id,item]));
     const refunded=await this.refundedTotals(client,ids);
-    return { items: rows.map(row => this.orderSummaryView(row, byOrder.get(row.id) ?? [],byReceipt.get(row.id),refunded.get(row.id)??0)), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!) : null };
+    const fulfillment=ids.length?(await client.query<{order_id:string;receipt_confirmed_at:Date|null}>('SELECT order_id,receipt_confirmed_at FROM commerce_shipment WHERE order_id=ANY($1::uuid[])',[ids])).rows:[];
+    const shipping=new Map(fulfillment.map(r=>[r.order_id,r.receipt_confirmed_at?'completed':'shipped']));
+    const total=!owner?(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_order o WHERE ${predicate.replaceAll('$4','$1').replaceAll('$5','$2')}`, [filter?.from??null,filter?.through??null])).rows[0]!.n:null;
+    return { totalCount:total,items: rows.map(row => ({...this.orderSummaryView(row, byOrder.get(row.id) ?? [],byReceipt.get(row.id),refunded.get(row.id)??0),fulfillmentState:shipping.get(row.id)??'unshipped'})), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!,filter?.scope) : null };
   }
 
   private async refundedTotals(client:DbClient|pg.Pool,orderIds:string[]){
@@ -350,6 +359,8 @@ export class CommerceOrderService {
       }
       this.requireFormalRefundableQuote(quote);
       if(quote.points_spent){
+        const policy=(await client.query('SELECT rules FROM member_points_policy WHERE version=$1 AND approved_at IS NOT NULL',[quote.points_policy_version])).rows[0];
+        if(policy?.rules.taskVersion===2&&Number(pointDay(now).slice(8))!==policy.rules.memberDay)throw new DomainError('POINTS_DISCOUNT_UNAVAILABLE','会员日已结束，请重新确认金额',409);
         const offer=(await client.query('SELECT version FROM catalog_price WHERE sku_id=$1 FOR SHARE',[quote.sku_id])).rows[0];
         if(!offer||offer.version!==quote.points_offer_version)throw new DomainError('POINTS_OFFER_CHANGED','商品价格已有更新，请重新确认',409);
       }
@@ -498,11 +509,13 @@ export class CommerceOrderService {
     },"REPEATABLE READ");
   }
 
-  async managementList(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown}) {
-    await this.authority.require(memberId,"commerce.order.read");const limit=pageLimit(query.limit),cursor=decodeCursor(query.cursor);
+  async managementList(memberId: string | undefined, query: {limit?:unknown;cursor?:unknown;stage?:unknown;from?:unknown;through?:unknown}) {
+    await this.authority.require(memberId,"commerce.order.read");const stage=String(query.stage??'all'),dates=managementDates(query);
+    if(!['all','pending_payment','unshipped','shipped','completed','refunded','closed'].includes(stage))throw new DomainError('ORDER_FILTER_INVALID','请选择有效订单状态',422);
+    const filter={stage,...dates,scope:pageScope(['management-orders',memberId,stage,dates])},limit=pageLimit(query.limit),cursor=decodeCursor(query.cursor,filter.scope);
     return transaction(this.pool, async client => {
       await this.authority.requireWithClient(client,memberId,"commerce.order.read");
-      return this.listPage(client, null, limit, cursor);
+      return this.listPage(client, null, limit, cursor,filter);
     }, "REPEATABLE READ");
   }
 

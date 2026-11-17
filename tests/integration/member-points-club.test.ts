@@ -142,7 +142,7 @@ describe('member club points closed loop',()=>{
  it('locks a product promotion into the quote and order and makes later promotion changes require a new quote',async()=>{
   const a=await actor(),addr=await address(a),p=(await pool.query('SELECT product_id FROM catalog_sku WHERE id=$1',[sku.id])).rows[0].product_id;
   let version=(await pool.query('SELECT version FROM catalog_product WHERE id=$1',[p])).rows[0].version;
-  const set=await app.inject({method:'PUT',url:`/v1/management/points/products/${p}/multiplier`,headers:headers(maker),payload:{expectedVersion:version,multiplier:3,reason:'合成已公示商品三倍积分'}});expect(set.statusCode,set.body).toBe(200);version=set.json().version;
+  const set=await app.inject({method:'PUT',url:`/v1/management/points/products/${p}/multiplier`,headers:headers(maker),payload:{expectedVersion:version,multiplier:3,startsAt:new Date(base.getTime()-86400000).toISOString(),endsAt:day(30).toISOString(),reason:'合成已公示商品三倍积分'}});expect(set.statusCode,set.body).toBe(200);version=set.json().version;
   const payload={skuId:sku.id,quantity:1,addressId:addr.id,addressVersion:addr.version},q=await app.inject({method:'POST',url:'/v1/me/commerce/quotes',headers:headers(a),payload});expect(q.statusCode,q.body).toBe(200);expect(q.json().shoppingPointsMultiplier).toBe(3);
   const order=await app.inject({method:'POST',url:'/v1/me/orders',headers:headers(a),payload:{quoteId:q.json().id}});expect(order.statusCode,order.body).toBe(200);expect(order.json().shoppingPointsMultiplier).toBe(3);
   const q2=await app.inject({method:'POST',url:'/v1/me/commerce/quotes',headers:headers(a),payload});
@@ -323,7 +323,7 @@ describe('Care product-use entry and atomic cycle completion',()=>{
 });
 it('returns only the owner’s canonical community reward receipt and distinguishes pending from zero-award',async()=>{
  const a=await actor('合成奖励接收者'),foreign=await actor('合成其他会员'),post=randomUUID();
- await pool.query("INSERT INTO ugc_post(id,author_member_id,title,body) VALUES($1,$2,'合成奖励正文','合成验收未公开草稿')",[post,a.memberId]);
+ await pool.query("INSERT INTO ugc_post(id,author_member_id,client_request_key) VALUES($1,$2,'synthetic-receipt-post')",[post,a.memberId]);
  const url=`/v1/me/points/content-receipt?kind=post&id=${post}`;
  expect((await get(a,url)).json()).toMatchObject({memberId:a.memberId,pending:true,grants:[]});expect((await get(foreign,url)).statusCode).toBe(404);
  await pool.query("INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at,payload,state,processed_at) VALUES('post',$1,$2,$3,'{}','applied',$3)",[post,a.memberId,base]);

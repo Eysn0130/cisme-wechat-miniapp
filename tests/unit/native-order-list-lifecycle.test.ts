@@ -16,7 +16,7 @@ beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token="member-a";read=lat
   (globalThis as any).Page=(def:any)=>{page={...def,data:structuredClone(def.data),setData(p:any){Object.assign(this.data,p);}};};
 });
 describe.each(["orders","management-orders"])("owned list reads: %s",name=>{
-  const path=()=>name==="orders"?"/v1/me/orders?limit=20":"/v1/management/commerce/orders?limit=20";
+  const path=()=>name==="orders"?"/v1/me/orders?limit=20":"/v1/management/commerce/orders?limit=20&stage=all";
   const load=async()=>{if(name==="orders")await import("../../apps/miniprogram/pages/orders/index");else await import("../../apps/miniprogram/pages/management-orders/index");void page.onShow();authority.resolve(grant);await flush();};
   it("cancels its outstanding list read on hide and ignores its response",async()=>{await load();page.onHide();const aborted=aborts.get(path())?.mock.calls.length??0;read.resolve({items:[item],nextCursor:null});await flush();expect(aborted).toBe(1);expect(page.data.items).toEqual([]);});
   it("does not start retry or pagination while hidden",async()=>{await load();read.resolve({items:[item],nextCursor:"cursor"});await flush();page.onHide();m.request.mockClear();await page.load();await page.loadMore();expect(m.request).not.toHaveBeenCalled();});
@@ -24,6 +24,6 @@ describe.each(["orders","management-orders"])("owned list reads: %s",name=>{
   it("clears retained sensitive display on forbidden refresh",async()=>{await load();read.resolve({items:[item],nextCursor:null});await flush();read=later();void page.onShow();await flush();read.reject({status:403,title:"synthetic revoked"});await flush();expect(page.data.items).toEqual([]);expect(page.data.nextCursor).toBeNull();});
   it("blocks navigation immediately after account change even before onShow",async()=>{await load();read.resolve({items:[item],nextCursor:null});await flush();m.token="member-b";page.open({currentTarget:{dataset:{id:item.id}}});expect(wx.navigateTo).not.toHaveBeenCalled();});
   it("ignores an old page after unload and allows fresh reads after show",async()=>{await load();const old=read;page.onUnload();read=later();void page.onShow();await flush();old.resolve({items:[item],nextCursor:"obsolete"});await flush();expect(page.data.items).toEqual([]);read.resolve({items:[{...item,orderNumber:"FRESH"}],nextCursor:null});await flush();expect(page.data.items[0].orderNumber).toBe("FRESH");});
-  it("keeps the explicit paid display instead of an internal state label",async()=>{await load();read.resolve({items:[item],nextCursor:null});await flush();expect(page.data.items[0].statusLabel).toBe("已付款");});
+  it("keeps the explicit paid display instead of an internal state label",async()=>{await load();read.resolve({items:[item],nextCursor:null});await flush();expect(page.data.items[0].statusLabel).toBe(name==="management-orders"?"待发货":"已付款");});
 });
 it("hidden management authority denial cannot navigate the newly visible page",async()=>{await import("../../apps/miniprogram/pages/management-orders/index");void page.onShow();page.onHide();authority.reject({status:403});await flush();expect(wx.navigateBack).not.toHaveBeenCalled();expect(m.request.mock.calls.filter(([o])=>o.path.startsWith("/v1/management/"))).toHaveLength(0);});

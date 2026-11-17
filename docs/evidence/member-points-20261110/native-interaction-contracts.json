@@ -71,5 +71,27 @@
         "All operations remain reachable through native scrolling, safe areas and labeled controls, including large text; no UI action grants authority."
       ]
     }
-  ]
+  ],
+  "prospectiveV2": {
+    "source": "Owner-adopted /Users/mini/Downloads/爱格荣会员积分攻略_V1.0.docx and 2026-11-17 confirmations",
+    "acceptanceReferences": [
+      "PTS-GUIDE-01",
+      "PTS-TASK-01",
+      "PTS-TASK-02",
+      "PTS-TASK-03",
+      "PTS-ORDER-01",
+      "PTS-ORDER-02",
+      "PTS-REDEEM-01",
+      "PTS-LEDGER-01",
+      "PTS-FEEDBACK-02"
+    ],
+    "requirements": [
+      "Public community guide; member-only progress and owner-bound wallet",
+      "Versioned payment-based 2x / finite 30-day 3x snapshot, exclusive first-purchase invite reward",
+      "15 Han character comments, monthly original/experience quotas and private reviewed suggestions",
+      "Member-day checkout validation, SKU gift limits and exact refund reversal",
+      "Actual receipt-only medallion; reduced motion; deduplication and account/environment interruption"
+    ],
+    "verificationStatus": "Source implementation and automated isolated verification in progress; prior native screenshots are not new-source acceptance"
+  }
 }

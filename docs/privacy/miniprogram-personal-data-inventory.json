@@ -843,7 +843,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "851cebc107d3e4fa47d57c3ac74eed8e57164f18a9c7d9a71efb6c062be964d7",
+  "migrationSetSha256": "f35491140f17471d0619c33c8a69db52c5796f9a36e9f74b86a02e4652513721",
   "egressSignatureSha256": "33ae2eff1e443c0d7056b43be6497d2ec5e206f85fb712125173e3e2571d0e9c",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1483,5 +1483,10 @@
     "authority": "Queue only created with future real paid dispatch in the same local transaction. Fresh shared PaidParcelSource checks actual active owner, verified applied full-cash payment, app/merchant and sealed order parcel before network. No backfill or campaign gift/zero-cash registration.",
     "failure": "Definite rejection can back off; dispatch crashes/timeouts/unknown replies never automatically register again. Platform permission probe performs no shipment registration or notification. Tracking observations do not confirm receipt or settle points/commission.",
     "validationScope": "Isolated synthetic tests and read-only live carrier permission probe. No real waybill, customer message or fulfillment was fabricated; end-to-end real notification delivery remains dependent on a real paid parcel."
+  },
+  "pointsTasksV2Review": {
+    "reviewed": true,
+    "source": "2026-11-17 owner-adopted guide and confirmed task values",
+    "scope": "Prospective versioned point grants, private suggestions, immutable public-post reward metadata and shipping-scoped reward exports. No real member rows read for this mapping; actual migrated-schema validation remains a required CI check."
   }
 }

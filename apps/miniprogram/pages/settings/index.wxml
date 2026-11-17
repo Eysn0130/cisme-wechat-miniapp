@@ -52,3 +52,5 @@
   </view>
   <care-onboarding wx:if="{{careProfileOpen}}" bindclose="closeCareProfile" bindcomplete="closeCareProfile"/>
 </view>
+
+<points-celebration owner="{{memberId}}" auto-receipts="{{true}}" enabled="{{profileReady && !profileBusy && !avatarBusy}}"/>

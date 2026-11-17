@@ -1,3 +1,4 @@
+import {currentCreditOwner} from '../../services/points-feedback';
 import { loadRecordedCommands, type RecordedGroup } from "../../services/commerce-command-discovery";
 import type { CommerceCommandKind } from "../../services/commerce-command-store";
 import { commerceContextRevision } from "../../services/commerce-command-store";
@@ -41,7 +42,7 @@ Page({
   wechatReturn:null as 'success'|'fail'|'cancel'|null,shipmentAttempt:0,receiptQueryAttempt:0,
   launchAftersale:false,
   sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,sheetValidationError:false,
-  data:{recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
+  data:{rewardOwner:'',recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
     tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
@@ -53,7 +54,7 @@ Page({
   onResize(){this.setData({chromeStyle:currentChromeStyle(),sheetHeight:supportSheetHeight()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
     this.launchAftersale=query.aftersale==='1';
     this.setData({id,invalidId:!orderIdPattern.test(id),sheetHeight:supportSheetHeight()});},
-  onShow(){this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false,closedRights:historicalCommerceClosed()});this.syncSession();
+  onShow(){this.setData({rewardOwner:currentCreditOwner()});this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false,closedRights:historicalCommerceClosed()});this.syncSession();
     if(!requireHistoricalCommerceAccess())return;
     this.wechatReturn=takeWechatReceiptReturn(this.data.id,historicalCommerceToken());
     if(this.data.supportSheetOpen&&!this.data.sheetSendAttempt){
