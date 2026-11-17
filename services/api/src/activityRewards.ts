@@ -239,6 +239,34 @@ export class ActivityRewardService {
    const updated=(await c.query(`UPDATE activity_reward_claim SET state=$2,version=version+1,updated_at=$3,carrier_name=COALESCE($4,carrier_name),shipment_encrypted=COALESCE($5,shipment_encrypted),shipped_at=COALESCE($6,shipped_at),received_at=COALESCE($7,received_at),aftersale_reason=COALESCE($8,aftersale_reason),previous_state=COALESCE($9,previous_state) WHERE id=$1 RETURNING id,state,version`,[r.id,next,now,patch.carrier??null,patch.shipment??null,patch.shipped??null,patch.received??null,patch.reason??null,patch.previous??null])).rows[0];return updated;
   },management?'commerce.fulfillment.manage':undefined);
  }
+ async previewShipments(actor:string|undefined,activityId:string,raw:string,sha256:string){
+  const activity=rewardId(activityId);if(typeof raw!=='string'||Buffer.byteLength(raw)>120000)fail('REWARD_IMPORT_INVALID','表格内容过大');
+  const lines=raw.split('\n').map(line=>line.split('\t'));if(!lines.length||lines.length>500||lines.some(x=>x.length!==3))fail('REWARD_IMPORT_INVALID','每批最多500笔领取订单');
+  return transaction(this.pool,async c=>{await this.authority.requireWithClient(c,actor,'commerce.fulfillment.manage');
+   const rows=(await c.query(`SELECT c.*,m.display_name FROM activity_reward_claim c JOIN reward_voucher v ON v.id=c.voucher_id JOIN member m ON m.id=c.member_id WHERE v.activity_id=$1 AND c.claim_number=ANY($2::text[])`,[activity,lines.map(x=>x[0])])).rows;
+   const seen=new Set<string>(),waybills=new Set<string>();const entries=lines.map(([number,carrier,tracking],index)=>{
+    if(!number||!carrier||!tracking||!/^[A-Za-z0-9-]{8,40}$/.test(number)||carrier.length>50||!/^[A-Za-z0-9-]{6,80}$/.test(tracking))fail('REWARD_IMPORT_INVALID','请核对表格物流信息');
+    const r=rows.find(x=>x.claim_number===number),duplicate=seen.has(number)||waybills.has(carrier+':'+tracking);seen.add(number);waybills.add(carrier+':'+tracking);
+    const already=Boolean(r?.shipped_at&&r.carrier_name===carrier&&this.openShipment(r)===tracking);
+    const problem=duplicate?'领取单或物流单号重复':!r?'当前活动无此领取单':r.state!=='placed'&&!already?'状态已变化，请打开订单核对':null;
+    return {row:index+2,id:r?.id??null,claimNumber:number,expectedVersion:r?.version??0,name:r?.display_name??'',item:r?.item_snapshot?.name??'',carrierName:carrier,trackingNumber:tracking,state:problem?'invalid':already?'registered':'ready',problem};
+   });
+   await this.authority.requireWithClient(c,actor,'commerce.fulfillment.manage');
+   return {sha256,entries,readyCount:entries.filter(x=>x.state==='ready').length,registeredCount:entries.filter(x=>x.state==='registered').length,errorCount:entries.filter(x=>x.state==='invalid').length};
+  },'REPEATABLE READ');
+ }
+ async importShipments(actor:string|undefined,activityId:string,keyInput:string,input:unknown,now=new Date()){
+  const activity=rewardId(activityId),body=rewardBody(input,['entries']);if(!Array.isArray(body.entries)||body.entries.length<1||body.entries.length>500)fail('REWARD_IMPORT_INVALID','每批须为1至500笔领取订单');
+  const seen=new Set<string>(),waybills=new Set<string>();const entries=body.entries.map(value=>{const b=rewardBody(value,['id','expectedVersion','carrierName','trackingNumber']);const id=rewardId(b.id),version=rewardInt(b.expectedVersion),carrier=rewardText(b.carrierName,1,50),tracking=rewardText(b.trackingNumber,6,80);
+   if(!/^[A-Za-z0-9-]{6,80}$/.test(tracking)||seen.has(id)||waybills.has(carrier+':'+tracking))fail('REWARD_IMPORT_INVALID','领取单或物流单号重复、无效');seen.add(id);waybills.add(carrier+':'+tracking);return {id,expectedVersion:version,carrierName:carrier,trackingNumber:tracking};}).sort((a,b)=>a.id.localeCompare(b.id));
+  return this.command(actor,keyInput,'reward.shipment.import',{activityId:activity,entries},async(c,owner)=>{
+   const rows=(await c.query(`SELECT c.* FROM activity_reward_claim c JOIN reward_voucher v ON v.id=c.voucher_id WHERE v.activity_id=$1 AND c.id=ANY($2::uuid[]) ORDER BY c.id FOR UPDATE OF c`,[activity,entries.map(x=>x.id)])).rows;
+   if(rows.length!==entries.length)fail('REWARD_IMPORT_CHANGED','存在不属于当前活动的领取单，请重新上传核对',409);
+   const patches=entries.map(e=>{const row=rows.find(r=>r.id===e.id)!;if(row.state!=='placed'||row.version!==e.expectedVersion)fail('REWARD_IMPORT_CHANGED',`领取单${row.claim_number}已更新，本批没有登记，请重新核对`,409);return {id:row.id,carrier:e.carrierName,shipment:this.sealShipment(row.member_id,row.id,e.trackingNumber)};});
+   await c.query(`UPDATE activity_reward_claim c SET state='shipped',version=version+1,updated_at=$2,shipped_at=$2,carrier_name=p.carrier,shipment_encrypted=p.shipment FROM jsonb_to_recordset($1::jsonb) AS p(id uuid,carrier text,shipment text) WHERE c.id=p.id`,[JSON.stringify(patches),now]);
+   return {id:activity,state:'shipped',count:entries.length,claimIds:entries.map(x=>x.id)};
+  },'commerce.fulfillment.manage');
+ }
  async configure(actor:string|undefined,keyInput:string,input:unknown){
   const b=rewardBody(input,['id','code','title','expectedVersion','terms','action','reason']),title=rewardText(b.title,1,80),code=rewardText(b.code,3,64);
   if(!/^[a-z0-9][a-z0-9-]{2,63}$/.test(code))fail('REWARD_CODE_INVALID','活动编号请使用小写字母、数字和连字符');

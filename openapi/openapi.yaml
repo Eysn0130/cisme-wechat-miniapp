@@ -997,6 +997,24 @@ paths:
           $ref: '#/components/responses/Problem'
         '422':
           $ref: '#/components/responses/Problem'
+  /v1/management/rewards/activities/{activityId}/shipments/preview:
+    post:
+      tags: [Rewards, Authority]
+      operationId: previewRewardShipmentWorkbook
+      summary: Fulfillment-authorized in-memory XLSX preview; no shipment writes or raw file persistence
+      security: [{session: []}]
+      parameters: [{in: path, name: activityId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [filename, contentBase64], properties: {filename: {type: string, maxLength: 160}, contentBase64: {type: string, maxLength: 2800000}}}}}}
+      responses: {'200': {description: Up to 500 matched claim rows with ready/registered/invalid status}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/management/rewards/activities/{activityId}/shipments/import:
+    post:
+      tags: [Rewards, Authority]
+      operationId: confirmRewardShipmentWorkbook
+      summary: Atomic version-checked shipment registration for 1 to 500 claims; exact replay or no partial writes
+      security: [{session: []}]
+      parameters: [{in: path, name: activityId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [entries], properties: {entries: {type: array, minItems: 1, maxItems: 500, items: {type: object, additionalProperties: false, required: [id, expectedVersion, carrierName, trackingNumber], properties: {id: {$ref: '#/components/schemas/Uuid'}, expectedVersion: {type: integer, minimum: 1}, carrierName: {type: string, maxLength: 50}, trackingNumber: {type: string, minLength: 6, maxLength: 80}}}}}}}}}
+      responses: {'200': {description: Committed shipment count and non-personal command receipt}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /v1/management/rewards/activities/{activityId}/issue:
     post:
       tags:

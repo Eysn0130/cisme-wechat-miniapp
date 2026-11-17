@@ -148,7 +148,7 @@ describe("native mini program boundary", () => {
       "product/index.wxml": 3,
       "referral/index.wxml": 2,
       "rewards/index.wxml": 3,
-      "management-rewards/index.wxml": 6,
+      "management-rewards/index.wxml": 7,
       "sharing-officer/index.wxml": 8,
       "management-sharing/index.wxml": 5,
     });
@@ -254,7 +254,7 @@ describe("native mini program boundary", () => {
       support: ["back", "loadOlder", "openAftersaleCase", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "requestHuman", "startNewTopic", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
       "checkout/components/reward-checkout": ["load", "retryPending", "cancelPending", "openBundleSheet", "editAddresses", "selectAddress", "editSurvey", "viewClaim", "support", "viewCompleted", "confirm", "closeBundleSheet", "load", "previewBundle", "previewBundle", "chooseBundle", "support", "confirmBundle"],
       "rewards": ["back", "load", "openWallet", "retryPending", "cancelPending", "openVoucher", "openClaim", "support", "support", "openClaim", "loadMoreClaims", "useCoupon", "copyTracking", "openCoupons", "cancelClaim", "openReturn", "support", "receive", "closeRules", "support", "closeReturn", "submitReturn", "closeProducts", "openCouponProduct", "support"],
-      "management-rewards": ["back","retryLoad","reconcile","openConfig","openConfig","openStock","openIssue","openRevoke","loadMore","export","clearDates","export","export","openDetail","loadMore","closeSheet","reconcile","loadProducts","saveConfig","saveConfig","saveConfig","stockDirection","stockDirection","saveStock","@share","revoke","operate","operate","operate"],
+      "management-rewards": ["back","retryLoad","reconcile","openConfig","openConfig","openStock","openIssue","openRevoke","loadMore","export","clearDates","openExportMenu","openBulk","openDetail","loadMore","closeSheet","reconcile","loadProducts","saveConfig","saveConfig","saveConfig","stockDirection","stockDirection","saveStock","@share","revoke","export","chooseBulkFile","confirmBulk","copyDelivery","copyTracking","operate","operate","operate"],
       "sharing-officer": ["back", "retry", "recover", "recover", "open", "open", "qualifyPurchase", "open", "open", "promote", "moreProducts", "clearSource", "detail", "more", "close", "operate", "operate", "previewReferrer", "operate", "@share", "copyLink", "moreHistory", "settlementOrders", "recover", "recover"],
       "management-sharing": ["back", "retry", "recover", "recover", "selectOfficer", "openPolicy", "order", "operate", "selectBatch", "closeBatch", "exportBatch", "operate", "selectLine", "more", "close", "operate", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "operate", "readPayee", "loadLineOrders", "order", "moreLineOrders", "operate", "operate", "operate", "moreHistory", "operate", "recover", "recover"],
       "management-members/commercial": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],

@@ -4,7 +4,8 @@ import {XMLParser,XMLValidator} from 'fast-xml-parser';
 import {DomainError} from '@cisme/domain';
 
 const maximumFile=2*1024*1024,maximumExpanded=8*1024*1024;
-const headers=['订单号','快递代码','快递名称','运单号','实际交寄时间'] as const;
+const commerceHeaders=['订单号','快递代码','快递名称','运单号','实际交寄时间'];
+const rewardHeaders=['领取单号','承运商','物流单号'];
 function invalid(code:string,detail:string):never{throw new DomainError(code,`表格无法导入：${detail}`,422);}
 
 /** Bounded in-memory ZIP reader. No extraction paths, ZIP64, encryption,
@@ -82,7 +83,8 @@ function dateValue(cell:Cell,dateStyles:Set<number>,date1904:boolean,row:number)
 
 /** Parses the exported template or a five-column logistics workbook. All
  * recipient/address columns are discarded; source files are never persisted. */
-export function parseFulfillmentWorkbook(bytes:Buffer){
+export function parseFulfillmentWorkbook(bytes:Buffer,kind:'commerce'|'reward'='commerce'){
+  const headers=kind==='reward'?rewardHeaders:commerceHeaders;
   const files=unzip(bytes);
   const content=xml(files,'[Content_Types].xml');
   if(JSON.stringify(content).toLowerCase().includes('macroenabled'))invalid('SHIPMENT_XLSX_CONTENT','不支持宏表格');
@@ -123,6 +125,13 @@ export function parseFulfillmentWorkbook(bytes:Buffer){
     if(values.slice(1).every(v=>!v)){skipped++;continue;}
     if(['1','true'].includes(String(rows[i]['@_hidden'])))invalid('SHIPMENT_XLSX_ROW',`第${i+1}行已隐藏，请取消隐藏后核对`);
     if(values.some(v=>!v||/[\t\r\n\u0000-\u001f]/.test(v)))invalid('SHIPMENT_XLSX_ROW',`第${i+1}行物流信息不完整或含换行`);
+    if(kind==='reward'){
+      const [number,name,tracking]=values as [string,string,string];
+      if(!/^[A-Za-z0-9-]{8,40}$/.test(number)||seen.has(number))invalid('SHIPMENT_XLSX_ORDER',`第${i+1}行领取单号重复或无效`);
+      if(Array.from(name).length>50||!/^[A-Za-z0-9-]{6,80}$/.test(tracking))invalid('SHIPMENT_XLSX_ROW',`第${i+1}行承运商或物流单号无效`);
+      if(cells[2]!.type==='n')invalid('SHIPMENT_XLSX_TRACKING_TEXT',`第${i+1}行物流单号须设为文本，避免丢失前导零或长号码`);
+      seen.add(number);logistics.push([number,name,tracking].join('\t'));continue;
+    }
     const [number,carrier,name,tracking]=values as [string,string,string,string,string];
     if(!/^[A-Za-z0-9_*-]{1,32}$/.test(number)||seen.has(number))invalid('SHIPMENT_XLSX_ORDER',`第${i+1}行订单号重复或无效`);
     if(!/^[A-Z0-9_]{2,32}$/.test(carrier)||Array.from(name).length>80||!/^[A-Za-z0-9-]{6,64}$/.test(tracking))invalid('SHIPMENT_XLSX_ROW',`第${i+1}行快递信息无效`);

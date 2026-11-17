@@ -11,6 +11,7 @@ import {CareOnboardingService,careQuestions} from '../../services/api/src/careOn
 import {settlePurchaseCoupon} from '../../services/api/src/rewardLedger';
 import {transaction} from '../../services/api/src/db';
 import {VerifiedPaymentInbox} from '../../services/api/src/verifiedPaymentInbox';
+import {fulfillmentWorkbook} from '../../services/api/src/fulfillmentWorkbook';
 import {collectRewardPortableData} from '../../services/api/src/rewardPrivacy';
 import {VerifiedRefundInbox} from '../../services/api/src/verifiedRefundInbox';
 import {MemberAdministration} from '../../services/api/src/memberAdministration';
@@ -226,6 +227,23 @@ it('exports the exact filtered gift fulfillment with frozen recipient data, both
 
 // Last in this disposable fixture: drive both real component ledgers to their
 // final units, without changing any live environment or other test file.
+it('previews real gift shipment rows and registers a confirmed workbook atomically with exact replay',async()=>{
+ const a=await ready(),b=await ready(),ca=await claim(a),cb=await claim(b),ra=await rewards.detail(operator.memberId,ca.id,true),rb=await rewards.detail(operator.memberId,cb.id,true);
+ const url=`/v1/management/rewards/activities/${activity.id}/shipments`,xlsx=fulfillmentWorkbook([['领取单号','承运商','物流单号'],[ra.claimNumber,'合成承运商','SYNBULK00001'],[rb.claimNumber,'合成承运商','SYNBULK00002']]);
+ const payload={filename:'合成礼品发货.xlsx',contentBase64:xlsx.toString('base64')};
+ expect((await app.inject({method:'POST',url:url+'/preview',headers:auth(a.p),payload})).statusCode).toBe(403);
+ const preview=await app.inject({method:'POST',url:url+'/preview',headers:auth(operator),payload});expect(preview.statusCode,preview.body).toBe(200);expect(preview.json()).toMatchObject({readyCount:2,errorCount:0,registeredCount:0});expect((await rewards.detail(a.p.memberId,ca.id)).state).toBe('placed');
+ const entries=preview.json().entries.map((x:any)=>({id:x.id,expectedVersion:x.expectedVersion,carrierName:x.carrierName,trackingNumber:x.trackingNumber}));
+ const changed=entries.map((x:any,i:number)=>i===1?{...x,expectedVersion:x.expectedVersion+1}:x);
+ const rejected=await app.inject({method:'POST',url:url+'/import',headers:{...auth(operator),'idempotency-key':key()},payload:{entries:changed}});expect(rejected.statusCode,rejected.body).toBe(409);expect((await rewards.detail(a.p.memberId,ca.id)).state).toBe('placed');
+ const operation=key(),submit=()=>app.inject({method:'POST',url:url+'/import',headers:{...auth(operator),'idempotency-key':operation},payload:{entries}});
+ const result=await submit();expect(result.statusCode,result.body).toBe(200);expect(result.json()).toMatchObject({state:'shipped',count:2});expect((await submit()).json()).toEqual(result.json());
+ expect(await rewards.detail(a.p.memberId,ca.id)).toMatchObject({state:'shipped',trackingNumber:'SYNBULK00001',version:2});
+ const again=await app.inject({method:'POST',url:url+'/preview',headers:auth(operator),payload});expect(again.json()).toMatchObject({readyCount:0,registeredCount:2,errorCount:0});
+ const raw=(await pool.query('SELECT details FROM reward_event WHERE actor_member_id=$1 AND operation_id=$2',[operator.memberId,operation])).rows[0];expect(JSON.stringify(raw)).not.toContain('SYNBULK00001');
+ const wrong=await rewards.previewShipments(operator.memberId,activity.id,ra.claimNumber+'\t合成承运商\tSYNBULKWRONG','synthetic-hash');expect(wrong.errorCount).toBe(1);
+});
+
 it('awards the last set once under contention and leaves only the other bundle selectable',async()=>{
  const a=await ready(),b=await ready(),share=await rewards.prepareShare(operator.memberId,activity.id,key());
  await pool.query("UPDATE reward_component_inventory SET stock_on_hand=CASE WHEN code='conditioner100' THEN 2 ELSE 1 END,reserved_quantity=0,confirmed=true,version=version+1");

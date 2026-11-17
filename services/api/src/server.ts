@@ -835,6 +835,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.post('/v1/management/rewards/inventory',request=>activityRewards.inventory(request.memberId,idempotencyKey(request),request.body));
   app.post('/v1/management/rewards/bundle-inventory',request=>activityRewards.bundleInventory(request.memberId,idempotencyKey(request),request.body));
   app.post<{Params:{activityId:string}}>('/v1/management/rewards/activities/:activityId/share',request=>activityRewards.prepareShare(request.memberId,request.params.activityId,idempotencyKey(request)));
+  app.post<{Params:{activityId:string};Body:{filename?:unknown;contentBase64?:unknown}}>('/v1/management/rewards/activities/:activityId/shipments/preview',{bodyLimit:2_900_000},async request=>{
+    await authority.require(request.memberId,'commerce.fulfillment.manage');const input=request.body;
+    if(!input||Object.keys(input).some(k=>!['filename','contentBase64'].includes(k))||typeof input.filename!=='string'||input.filename.length>160||!input.filename.toLowerCase().endsWith('.xlsx')||typeof input.contentBase64!=='string'||input.contentBase64.length>2_800_000||!/^[A-Za-z0-9+/]+={0,2}$/.test(input.contentBase64))throw new DomainError('SHIPMENT_XLSX_INPUT','请选择2MB以内的XLSX文件',422);
+    const bytes=Buffer.from(input.contentBase64,'base64');if(bytes.toString('base64')!==input.contentBase64)throw new DomainError('SHIPMENT_XLSX_INPUT','表格数据不完整，请重新选择',422);
+    const preview=parseFulfillmentWorkbook(bytes,'reward');return {...await activityRewards.previewShipments(request.memberId,request.params.activityId,preview.rows,preview.sha256),skippedRows:preview.skippedRows};
+  });
+  app.post<{Params:{activityId:string}}>('/v1/management/rewards/activities/:activityId/shipments/import',request=>activityRewards.importShipments(request.memberId,request.params.activityId,idempotencyKey(request),request.body));
   app.post<{Params:{activityId:string}}>('/v1/management/rewards/activities/:activityId/issue',request=>activityRewards.issue(request.memberId,request.params.activityId,idempotencyKey(request),request.body));
   app.post<{Params:{voucherId:string}}>('/v1/management/rewards/vouchers/:voucherId/revoke',request=>activityRewards.revoke(request.memberId,request.params.voucherId,idempotencyKey(request),request.body));
   app.get<{Params:{claimId:string}}>('/v1/management/rewards/claims/:claimId',request=>activityRewards.detail(request.memberId,request.params.claimId,true));

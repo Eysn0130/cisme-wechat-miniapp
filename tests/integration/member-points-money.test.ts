@@ -165,7 +165,8 @@ it('spends points only on verified payment, earns after owner receipt, and alloc
  await pool.query('INSERT INTO commerce_order_address(order_id,encrypted_payload,payload_hmac,key_version,source_address_id,source_address_version) VALUES($1,$2,$3,$4,$5,1)',[order.id,sealed.encryptedPayload,sealed.payloadHmac,sealed.keyVersion,addressId]);
  await pool.query('UPDATE catalog_product SET shopping_points_multiplier=1,version=version+1 WHERE id=$1',[product]);
  await expect(pool.query('UPDATE commerce_order SET shopping_points_multiplier=1 WHERE id=$1',[order.id])).rejects.toThrow('COMMERCE_POINTS_SNAPSHOT_IMMUTABLE');
- const shipped=await fulfillment.dispatch(referrer,order.id,'club-shipment-0001',{carrierCode:'SF',carrierName:'顺丰速运',trackingNumber:'SF123456789002',shippedAt:now().toISOString(),evidenceReference:'synthetic-club-dispatch-01',expectedOrderVersion:2});
+ const dispatchTime=(await pool.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+ const shipped=await fulfillment.dispatch(referrer,order.id,'club-shipment-0001',{carrierCode:'SF',carrierName:'顺丰速运',trackingNumber:'SF123456789002',shippedAt:dispatchTime.toISOString(),evidenceReference:'synthetic-club-dispatch-01',expectedOrderVersion:2});
  await fulfillment.confirmReceipt(buyer,order.id,'club-receipt-0001',1);
  await processMemberPointSources(pool,new Date(Date.now()+1000));
  expect((await pool.query("SELECT state,last_error FROM member_points_source_event WHERE kind='receipt' AND source_id=$1",[order.id])).rows).toEqual([{state:'applied',last_error:null}]);
