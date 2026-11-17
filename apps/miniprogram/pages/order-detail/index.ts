@@ -39,6 +39,7 @@ function supportSheetHeight(){
 }
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
+  merchantOrderNumber:"",
   wechatReturn:null as 'success'|'fail'|'cancel'|null,shipmentAttempt:0,receiptQueryAttempt:0,
   launchAftersale:false,
   sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,sheetValidationError:false,
@@ -52,8 +53,12 @@ Page({
     sheetReason:"",sheetSubmitting:false,sheetAttempt:null as {key:string;payload:Record<string,unknown>}|null,
     sheetInput:"",sheetSending:false,sheetSendAttempt:null as SheetSendAttempt|null,sheetKeyboardHeight:0,sheetHeight:'78vh'},
   onResize(){this.setData({chromeStyle:currentChromeStyle(),sheetHeight:supportSheetHeight()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
+    this.merchantOrderNumber=query.outTradeNo??query.merchant_trade_no??"";
     this.launchAftersale=query.aftersale==='1';
-    this.setData({id,invalidId:!orderIdPattern.test(id),sheetHeight:supportSheetHeight()});},
+    const merchantPresent=query.outTradeNo!==undefined||query.merchant_trade_no!==undefined;
+    const merchantEntry=Boolean(this.merchantOrderNumber)&&/^CM[0-9]{8}[A-Z0-9]{12}$/.test(this.merchantOrderNumber)&&query.id===undefined
+      &&!(query.outTradeNo&&query.merchant_trade_no&&query.outTradeNo!==query.merchant_trade_no);
+    this.setData({id:merchantEntry?'':id,invalidId:!merchantEntry&&(!orderIdPattern.test(id)||merchantPresent),sheetHeight:supportSheetHeight()});},
   onShow(){this.setData({rewardOwner:currentCreditOwner()});this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false,closedRights:historicalCommerceClosed()});this.syncSession();
     if(!requireHistoricalCommerceAccess())return;
     this.wechatReturn=takeWechatReceiptReturn(this.data.id,historicalCommerceToken());
@@ -67,6 +72,7 @@ Page({
     }
     void this.load();},
   syncSession(){const token=historicalCommerceToken(),changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
+    if(changed&&this.merchantOrderNumber)this.setData({id:''});
     if(changed){clearWechatReceiptReturn();this.wechatReturn=null;this.receiptQueryAttempt+=1;this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
     if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.sheetValidationError=false;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetContextVersion:0,sheetContextStartSequence:0,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
@@ -135,7 +141,14 @@ Page({
     if(this.data.invalidId){this.setData({loading:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,error:"请从订单列表选择一笔订单。",order:null});return;}
     this.setData({loading:!this.data.order,coreReady:false,error:"",isolatedPayment:false,paymentRecovery:false});
     if(!this.data.closedRights)void this.loadRuntime(epoch,token);
-    try{const order=await myOrder(this.data.id,this);
+    try{
+      if(this.merchantOrderNumber&&!this.data.id){
+        const resolved=await pageRead<{id:string}>(this,{path:`/v1/me/orders/resolve?outTradeNo=${encodeURIComponent(this.merchantOrderNumber)}`});
+        if(!this.readCurrent(epoch,token,readEpoch))return;
+        if(!orderIdPattern.test(resolved?.id))throw new Error('Invalid order resolution');
+        this.setData({id:resolved.id});
+      }
+      const order=await myOrder(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
       this.setData({order:this.normalize(order),coreReady:true,loading:false});

@@ -305,3 +305,15 @@ it("keeps a new nickname out of public projection until version-bound provider s
   await expect(profiles.review(reviewer,`member:${reviewer}`,owner,
     {decision:"approve",expectedVersion:2,reason:"旧检测不能覆盖新昵称"})).rejects.toMatchObject({code:"UGC_NICKNAME_SCAN_REQUIRED"});
 });
+
+
+it('dispatches only signature-verified AES trade events and leaves media callbacks on their original handler',async()=>{
+ const privateConfig={...config,wechat:{...config.wechat,messageAesKey,plaintextCallbackTestOnly:false}};
+ const received=vi.fn(async()=> 'success'),fetcher=vi.fn();
+ const safety=new UgcSafetyService(pool,privateConfig,createApiGatewayStorage(privateConfig),fetcher,received);
+ const body={MsgType:'event',Event:'wxa_trade_controlled',CreateTime:Math.floor(Date.now()/1000)};
+ const vector=encryptedVector(JSON.stringify(body));expect(await safety.receiveCallback(vector.query,vector.body)).toBe('success');expect(received).toHaveBeenCalledWith(body);
+ received.mockClear();await expect(safety.receiveCallback({...vector.query,msg_signature:'bad'},vector.body)).rejects.toThrow();expect(received).not.toHaveBeenCalled();
+ const wrong=encryptedVector(JSON.stringify(body),'wx-wrong-app');await expect(safety.receiveCallback(wrong.query,wrong.body)).rejects.toThrow();expect(received).not.toHaveBeenCalled();
+ const plain=new UgcSafetyService(pool,config,createApiGatewayStorage(config),fetcher,received);await expect(plain.receiveCallback(signedQuery('plain-trade'),body)).rejects.toMatchObject({code:'UGC_CALLBACK_ENCRYPTION_REQUIRED'});expect(received).not.toHaveBeenCalled();
+});

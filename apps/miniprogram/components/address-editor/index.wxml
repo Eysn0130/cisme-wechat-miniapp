@@ -19,8 +19,8 @@
     <input class="field-input {{fieldErrors.recipientName ? 'field-input--error' : ''}}" data-field="recipientName" value="{{draft.recipientName}}" bindinput="emitField" maxlength="40" disabled="{{busy}}" placeholder="填写真实姓名" aria-label="收货人" />
     <text wx:if="{{fieldErrors.recipientName}}" class="field-error">{{fieldErrors.recipientName}}</text>
   </label>
-  <label id="address-field-phone" class="field-label">联系电话
-    <input class="field-input {{fieldErrors.phone ? 'field-input--error' : ''}}" type="number" data-field="phone" value="{{draft.phone}}" bindinput="emitField" maxlength="20" disabled="{{busy}}" placeholder="用于配送联系" aria-label="联系电话" />
+  <label id="address-field-phone" class="field-label">收件人电话
+    <input class="field-input {{fieldErrors.phone ? 'field-input--error' : ''}}" type="number" data-field="phone" value="{{draft.phone}}" bindinput="emitField" maxlength="20" disabled="{{busy}}" placeholder="用于配送联系" aria-label="收件人电话，用于配送联系" />
     <text wx:if="{{fieldErrors.phone}}" class="field-error">{{fieldErrors.phone}}</text>
   </label>
   <view id="address-field-region" class="field-label">所在地区

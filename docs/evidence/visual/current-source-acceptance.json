@@ -307,19 +307,19 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+  "packageSourceSha256": "e4fcf5d3350c18ad3324d4f9406c40f508cae961649bc34c26151418a24c0c2a",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
       "severity": "P1",
       "status": "blocked",
-      "reason": "47 native routes require full route/font/state and physical-device acceptance. Current care-home scoped validation is in progress."
+      "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-15：Owner 明确跳过当前包 Android 真机检查，单独记录为 waived / 未实测；不声明 Android 通过，不豁免 iOS、47 路由状态/字号及其他完整原生验收。护理记录分包及当前包哈希保持不变。",
+  "note": "2026-11-17 compliance source rebind. Historical Android waiver does not create device evidence; current official privacy dialogs and new order entry still require scoped native/device checks.",
   "previousSourceRecord": {
-    "packageSourceSha256": "46a0d5342f2e832e81415e40329c42bcd9275b277af58a7d9e9f1a48a53b08e7",
-    "scope": "Prior 0.1.51 source; preserved in care-home-campaign-20261115 and earlier evidence. No visual acceptance inherited."
+    "packageSourceSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+    "scope": "Pre-compliance native source on merged main fbfc18917214; scoped preview acceptance is historical and no screenshot/device result is inherited."
   },
   "pendingSourceRebind": false
 }

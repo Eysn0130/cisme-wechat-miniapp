@@ -73,6 +73,7 @@ export interface CommerceOrderPage {totalCount?:number|null;
   items: CommerceOrderSummary[]; nextCursor: string | null;
 }
 export interface CommerceOrderRuntimeStatus {
+  paymentRestriction?:'wechat_trade_management'|null;
   version: 1|2; orderFlowEnabled: boolean; paymentAvailable: boolean; paymentOnboarding: "IN_PROGRESS"|"READY"; currency: "CNY";
   scope: "synthetic_nonproduction" | "verified_isolated_test" | "formal_protocol_synthetic_test" | "formal_commerce" | "disabled";
   formalMoneyOperationsAvailable?:boolean; formalRecoveryAvailable?:boolean;

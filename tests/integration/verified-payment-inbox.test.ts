@@ -1131,3 +1131,57 @@ it('recovers a crash after the accepted external intent without ever posting ano
   const inbox=(await pool.query('SELECT id FROM commission_refund_inbox WHERE refund_intent_id=$1',[intent.id])).rows[0];
   expect(await refunds.processOne(inbox.id)).toBe('applied');expect(f.calls.every(call=>call.method==='GET')).toBe(true);
 });
+
+
+it('resolves only the immutable owner/AppID/merchant order and treats duplicate trade settlement notices as read-only observations',async()=>{
+ const {WechatTradeEvents}=await import('../../services/api/src/wechatTradeEvents');
+ const order=await seedOrder('TRADENT01',null),transactionId='420000000000000000001801';
+ const event=notification(order.number,transactionId,'trade-notice-payment-01',new Date().toISOString());
+ const paid=await processor.receive(event.rawBody,event.headers);expect(await processor.processOne(paid.inboxId)).toBe('applied');
+ const source=new CommerceOrderService(pool,null as never,null as never,null as never,{enabled:false,quoteTtlMinutes:10,pendingOrderTtlMinutes:30,identityAppId:appId,formalTestPayment:{appId,merchantId}});
+ expect(await source.resolveMine(buyer,order.number)).toEqual({id:order.id});
+ for(const number of [order.number,'CM20261117ZZZZZZZZZZZZ','../../bad'])await expect(source.resolveMine(referrer,number)).rejects.toMatchObject({code:'ORDER_NOT_FOUND',status:404});
+ await expect(new CommerceOrderService(pool,null as never,null as never,null as never,{enabled:false,quoteTtlMinutes:10,pendingOrderTtlMinutes:30,identityAppId:appId,formalTestPayment:{appId:'wx0000000000000001',merchantId}}).resolveMine(buyer,order.number)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});
+ const before=(await pool.query('SELECT count(*)::int n FROM commission_ledger_entry')).rows[0].n;
+ const query=vi.fn(async()=>({platformOrderState:6,inComplaint:false}));const service=new WechatTradeEvents(pool,appId,merchantId,{queryOrder:query});
+ const body={MsgType:'event',Event:'trade_manage_order_settlement',CreateTime:Math.floor(Date.now()/1000),merchant_id:merchantId,transaction_id:transactionId,merchant_trade_no:order.number,settlement_time:Math.floor(Date.now()/1000)};
+ await service.receive(body);await service.receive(body);
+ expect(await new WechatTradeEvents(pool,appId,merchantId,{queryOrder:query}).runCycle()).toMatchObject({processed:1});expect(query).toHaveBeenCalledOnce();
+ expect((await pool.query("SELECT state,order_id,observation FROM wechat_trade_notice WHERE event_type='trade_manage_order_settlement' AND payload->>'merchant_trade_no'=$1",[order.number])).rows[0]).toMatchObject({state:'observed',order_id:order.id,observation:{platformOrderState:6,inComplaint:false}});
+ expect((await pool.query('SELECT count(*)::int n FROM commission_ledger_entry')).rows[0].n).toBe(before);
+ await expect(pool.query("UPDATE wechat_trade_notice SET payload='{}' WHERE payload->>'merchant_trade_no'=$1",[order.number])).rejects.toThrow();
+ await service.receive({...body,merchant_trade_no:'CM20261117ZZZZZZZZZZZZ'});expect(await service.runCycle()).toMatchObject({processed:0});expect(query).toHaveBeenCalledOnce();
+});
+it('persists trade restriction across service restart and never clears it from an access reminder or an unknown status',async()=>{
+ const {WechatTradeEvents}=await import('../../services/api/src/wechatTradeEvents');
+ const service=new WechatTradeEvents(pool,appId,merchantId);
+ const body={MsgType:'event',Event:'wxa_trade_controlled',CreateTime:Math.floor(Date.now()/1000)};
+ await service.receive(body);await service.receive(body);
+ expect(await new WechatTradeEvents(pool,appId,merchantId).restriction()).toMatchObject({restricted:true});
+ await service.receive({...body,Event:'trade_manage_remind_access_api'});await expect(service.requirePaymentsAllowed()).rejects.toMatchObject({code:'WECHAT_TRADE_RESTRICTED'});
+ const account={read:async()=>({appId,observedAt:new Date().toISOString(),managed:null,settlementConfirmed:null,checks:[],orderDetailPath:null,pathVerified:false,pathCheck:{httpStatus:null,errcode:null},expectedOrderDetailPath:'',paymentPermissionVerified:false as const})};
+ const recovering=new WechatTradeEvents(pool,appId,merchantId,undefined,account);await recovering.refreshAccount();
+ await expect(recovering.clearControl('member:'+buyer,'official-case-01',async()=>{})).rejects.toMatchObject({code:'WECHAT_TRADE_NOT_READY'});
+ expect(await service.restriction()).toMatchObject({restricted:true});
+});
+
+it('preserves a previously verified false on UNKNOWN and fences concurrent control notices during explicit clearance',async()=>{
+ const {WechatTradeEvents}=await import('../../services/api/src/wechatTradeEvents');
+ const isolatedApp='wx0000000000000002';
+ await pool.query('INSERT INTO wechat_trade_account_state(app_id,managed,settlement_confirmed) VALUES($1,true,false)',[isolatedApp]);
+ const unknown=new WechatTradeEvents(pool,isolatedApp,merchantId,undefined,{read:async()=>({appId:isolatedApp,observedAt:new Date().toISOString(),managed:null,settlementConfirmed:null,checks:[],orderDetailPath:null,pathVerified:false,pathCheck:{httpStatus:null,errcode:null},expectedOrderDetailPath:'',paymentPermissionVerified:false as const})});
+ expect(await unknown.refreshAccount()).toMatchObject({managed:null,restricted:true});expect(await unknown.restriction()).toMatchObject({restricted:true});
+ const body={MsgType:'event',Event:'wxa_trade_controlled',CreateTime:Math.floor(Date.now()/1000)};
+ let concurrent=false;
+ const ready=new WechatTradeEvents(pool,isolatedApp,merchantId,undefined,{read:async()=>{
+   if(concurrent)await unknown.receive({...body,CreateTime:body.CreateTime+1});
+   return {appId:isolatedApp,observedAt:new Date().toISOString(),managed:true,settlementConfirmed:true,checks:[],orderDetailPath:'',pathVerified:true,pathCheck:{httpStatus:200,errcode:0},expectedOrderDetailPath:'',paymentPermissionVerified:false as const};
+ }});
+ await unknown.receive(body);
+ await expect(ready.clearControl('member:'+buyer,'platform-clearance-01',async()=>{throw Error('Synthetic role revoked');})).rejects.toThrow('Synthetic role revoked');expect(await ready.restriction()).toMatchObject({restricted:true});
+ concurrent=true;await expect(ready.clearControl('member:'+buyer,'platform-clearance-02',async()=>{})).rejects.toMatchObject({code:'WECHAT_TRADE_STATE_CHANGED'});expect(await ready.restriction()).toMatchObject({restricted:true});
+ concurrent=false;expect(await ready.clearControl('member:'+buyer,'platform-clearance-03',async()=>{})).toMatchObject({restricted:false});
+ await unknown.receive(body);expect(await ready.restriction()).toMatchObject({restricted:false});
+ const audit=(await pool.query("SELECT object_id,after_state FROM audit_log WHERE action='commerce.wechat_trade.clearance_recorded' AND after_state->>'appId'=$1",[isolatedApp])).rows;
+ expect(audit).toEqual([{object_id:null,after_state:{appId:isolatedApp,reference:'platform-clearance-03'}}]);
+});

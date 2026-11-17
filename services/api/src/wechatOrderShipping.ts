@@ -130,7 +130,7 @@ export async function queryShippingAccountReadiness(appId:string,accessToken:()=
     }catch{/* Preserve UNKNOWN separately from a verified false; never return raw errors/token URLs. */}
     checks.push(check);
   }
-  return {managed:results.is_trade_managed!,settlementConfirmed:results.completed!,checks};
+  return {managed:results.is_trade_managed??null,settlementConfirmed:results.completed??null,checks};
 }
 /** Outbound access is denied unless explicitly supplied by the composition
  * root. No live credentials/configuration are installed by this module. */

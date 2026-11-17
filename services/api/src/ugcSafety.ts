@@ -10,6 +10,7 @@ import { UgcDirectPublication } from "./ugcDirectPublication.js";
 import { decryptWechatMessage, type MessageQuery } from "./wechatMessageCrypto.js";
 import { startWorkerLoop } from '../../worker/src/loop.js';
 import { prepareUgcSyncImage } from './ugcSyncImage.js';
+import {WECHAT_TRADE_EVENTS} from './wechatTradeEvents.js';
 
 type WechatResult={errcode?:number;errmsg?:string;trace_id?:string;result?:{suggest?:string;label?:number};detail?:unknown};
 type ScanCallback=WechatResult&{Event?:string;appid?:string;version?:number};
@@ -36,7 +37,7 @@ export function securityTextParts(content:string):string[]{
 export class UgcSafetyService{
   private tokenCache:{value:string;until:number}|null=null;
   constructor(private readonly pool:pg.Pool,private readonly config:AppConfig,private readonly storage:ObjectStorage,
-    private readonly fetcher:typeof fetch=fetch){}
+    private readonly fetcher:typeof fetch=fetch,private readonly tradeCallback?:(body:unknown)=>Promise<string>){}
 
   private async accessToken():Promise<string>{
     if(!this.config.wechat.appId||!this.config.wechat.appSecret)throw new DomainError("UGC_SCAN_UNAVAILABLE","内容安全服务暂不可用，请稍后重试",503);
@@ -425,6 +426,11 @@ export class UgcSafetyService{
     }else{
       this.verifyCallback(query);
       body=outer as ScanCallback;
+    }
+    if(body&&typeof body==='object'&&typeof body.Event==='string'&&WECHAT_TRADE_EVENTS.has(body.Event)){
+      if(envelope.Encrypt===undefined)throw new DomainError('UGC_CALLBACK_ENCRYPTION_REQUIRED','交易通知须使用安全模式密文',401);
+      if(!this.tradeCallback)throw new DomainError('WECHAT_TRADE_NOT_CONFIGURED','微信交易通知暂不可处理',503);
+      return this.tradeCallback(body);
     }
     if(!body||typeof body!=="object"||body.Event!=="wxa_media_check"||body.appid!==this.config.wechat.appId||body.version!==2||
       typeof body.trace_id!=="string"||body.trace_id.length>200)

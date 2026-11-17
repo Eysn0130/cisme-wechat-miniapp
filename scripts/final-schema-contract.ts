@@ -6,7 +6,7 @@ type Named={table_name:string;name:string;definition:string};
 /** Query the *result* of all forward migrations. A string in an old migration
  * does not prove that a later migration retained the protection. */
 export async function assertFinalSchemaContract(db:Database){
-  const requiredTables=[
+  const requiredTables=["wechat_trade_account_state","wechat_trade_notice",
     "commercial_membership","commercial_membership_event","commercial_referral_code","commercial_referral_relation",
     "commission_rate_rule","commission_order_snapshot","commission_ledger_entry","commission_payment_inbox",
     "commerce_payment_attempt","commerce_refund_request","commerce_fulfillment_attestation",
@@ -85,6 +85,7 @@ export async function assertFinalSchemaContract(db:Database){
   const indexes=(await db.query<{name:string;definition:string}>(`SELECT indexname AS name,indexdef AS definition
     FROM pg_indexes WHERE schemaname='public'`)).rows;
   for(const [name,part] of [
+    ["wechat_trade_notice_pending","next_attempt_at"],
     ["commission_one_accrual_per_order","UNIQUE"],
     ["commission_one_reversal_per_refund_fact","UNIQUE"],
     ["commission_refund_one_applied_success","UNIQUE"],
@@ -130,6 +131,7 @@ export async function assertFinalSchemaContract(db:Database){
     WHERE NOT t.tgisinternal AND n.nspname='public'`)).rows;
   const triggerNames=new Set(triggers.map(row=>`${row.table_name}.${row.name}`));
   for(const trigger of [
+    "wechat_trade_notice.wechat_trade_notice_guard",
     "commercial_referral_relation.commercial_referral_relation_guard",
     "commercial_referral_code.commercial_referral_code_guard",
     "commission_rate_rule.commission_rate_rule_guard",
@@ -167,5 +169,5 @@ export async function assertFinalSchemaContract(db:Database){
     "data_erasure_job.data_erasure_job_synthetic_guard",
     "privacy_request.privacy_request_synthetic_scope_guard"
   ])if(!triggerNames.has(trigger))throw new Error(`FINAL_SCHEMA_TRIGGER_MISSING:${trigger}`);
-  return {tables:requiredTables.length,constraints:49,indexes:36,triggers:36};
+  return {tables:requiredTables.length,constraints:49,indexes:37,triggers:37};
 }

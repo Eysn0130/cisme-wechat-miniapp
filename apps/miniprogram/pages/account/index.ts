@@ -1,3 +1,4 @@
+import { ensureWechatPrivacy } from "../../services/wechat-privacy";
 import {prepareOfficerLoginVisits} from '../../services/officer-attribution';
 import { publishMemberIdentity } from "../../services/member-identity";
 import { needsLoginName, needsLoginProfile } from "../../services/member-setup";
@@ -35,7 +36,7 @@ Page({
   authenticationReturnUrl:"/pages/home/index",
   renewalSessionToken:"",
   renewalDestination:"",
-  data: { restoringSession:false,sessionRestoreFailed:false,renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login",loginName:"",loginNameInvalid:false,loginProfileUncertain:false,phoneSkipped:false,profileAttempt:0, avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, phoneBindingEnabled:false, phoneCapabilityKnown:false, capabilityAttempt:0, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  data: { restoringSession:false,sessionRestoreFailed:false,renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login",loginName:"",loginNameInvalid:false,loginProfileUncertain:false,profileAttempt:0, avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
   async openAccountHelp(){
     if(this.data.accountHelpBusy)return;
     const attempt=++this.data.authAttempt;
@@ -124,7 +125,7 @@ Page({
       const me=await request<{id:string;profile_revision?:number;display_name?:string;avatar_data_url?:string|null;completed_at?:string|null}>({path:"/v1/me",authMode:"optional"});
       if(!current()){
         if(this.data.pageAlive&&this.data.pageVisible&&attempt===this.data.authAttempt&&!getApp<IAppOption>().globalData.sessionToken&&this.revealExpiredLogin()){
-          void this.syncLegalDocuments();void this.loadCapabilities();
+          void this.syncLegalDocuments();
         }
         return;
       }
@@ -138,14 +139,14 @@ Page({
     } catch {
       if(!this.data.pageAlive||!this.data.pageVisible||attempt!==this.data.authAttempt)return;
       if(!getApp<IAppOption>().globalData.sessionToken){
-        if(this.revealExpiredLogin()){void this.syncLegalDocuments();void this.loadCapabilities();}
+        if(this.revealExpiredLogin()){void this.syncLegalDocuments();}
         return;
       }
       if(current())this.setData({sessionRestoreFailed:true,error:"暂时无法连接，原登录状态已保留。请重新连接，或选择重新登录。"});
     } finally {
       if(this.data.pageAlive&&attempt===this.data.authAttempt){
         this.setData({loading:false,restoringSession:false});
-        if(current()&&!this.data.leaving){void this.syncLegalDocuments();void this.loadCapabilities();}
+        if(current()&&!this.data.leaving){void this.syncLegalDocuments();}
       }
     }
   },
@@ -159,7 +160,7 @@ Page({
   onShow() {
     this.data.pageVisible = true;if(this.data.leaving)return;
     const flowToken=getApp<IAppOption>().globalData.sessionToken;
-    if(this.loginFlowToken&&this.loginFlowToken!==flowToken){loginAvatarDrafts.delete(this);this.loginFlowToken='';this.loginOwnerId='';this.setData({loginStage:'login',loginName:'',loginNameInvalid:false,avatarUrl:defaultMemberAvatar,avatarBusy:false,loading:false,phoneSkipped:false,loginProfileUncertain:false});}
+    if(this.loginFlowToken&&this.loginFlowToken!==flowToken){loginAvatarDrafts.delete(this);this.loginFlowToken='';this.loginOwnerId='';this.setData({loginStage:'login',loginName:'',loginNameInvalid:false,avatarUrl:defaultMemberAvatar,avatarBusy:false,loading:false,loginProfileUncertain:false});}
     else if(this.loginFlowToken&&this.data.loginProfileUncertain&&!this.data.loading&&!this.data.avatarBusy)void this.advanceLogin();
     const reducedMotion=shouldReduceMotion(),token=getApp<IAppOption>().globalData.sessionToken;
     this.setData({reducedMotion,heroMotionActive:!reducedMotion});
@@ -176,7 +177,6 @@ Page({
     // public login bootstrap after that verdict, rather than aborting it on401.
     if(!this.data.restoringSession){
       void this.syncLegalDocuments();
-      if(!this.data.renewalMode)void this.loadCapabilities();
     }
   },
   revealExpiredLogin() {
@@ -255,33 +255,14 @@ Page({
     }
     wx.navigateTo({ url: "/pages/legal/index?type=privacy", fail: () => this.setData({error:"隐私指引暂时无法打开，请重试。"},scrollToAccountError) });
   },
-  async loadCapabilities() {
-    const attempt=++this.data.capabilityAttempt;
-    try {
-      const result=await request<{phoneBindingEnabled:boolean}>({path:"/v1/identity/capabilities",authMode:"public"});
-      if(this.data.pageAlive && attempt===this.data.capabilityAttempt && !this.data.loading)this.setData({phoneBindingEnabled:result.phoneBindingEnabled === true,phoneCapabilityKnown:true});
-    } catch { if(this.data.pageAlive && attempt===this.data.capabilityAttempt)this.setData({phoneBindingEnabled:false,phoneCapabilityKnown:false}); }
-  },
   loginTap() {
     if(this.data.renewalMode){void this.login();return;}
     if(this.revealExpiredLogin())return;
     if(this.data.loginProfileUncertain&&this.loginFlowToken)return this.advanceLogin();
-    if(this.data.loginStage==='phone'||this.data.loginStage==='avatar')return;
+    if(this.data.loginStage==='avatar')return;
     if(this.data.loginStage==='nickname')return; // Native form submission carries the final quick-filled nickname.
     if(this.loginFlowToken)return this.advanceLogin();
     return this.login();
-  },
-  async loginWithPhone(event:WechatMiniprogram.CustomEvent){
-    if(this.data.renewalMode||!this.data.pageAlive||!this.data.pageVisible||this.data.loading||this.data.leaving)return;
-    const code=typeof event.detail.code==='string'&&event.detail.code?event.detail.code:undefined;
-    if(!this.loginFlowToken){await this.login(code,!code);return;}
-    if(this.data.loginStage!=='phone')return;
-    const token=this.loginFlowToken,attempt=++this.data.profileAttempt;
-    const current=()=>this.data.pageAlive&&this.data.pageVisible&&attempt===this.data.profileAttempt&&token===getApp<IAppOption>().globalData.sessionToken;
-    this.setData({loading:true,error:'',phoneSkipped:!code});
-    try{if(code)await request({path:'/v1/me/phone',method:'POST',data:{code}});if(current())await this.advanceLogin();}
-    catch(error){if(current())this.setData({loginProfileUncertain:true,error:(error as {title?:string}).title||'手机号保存结果待确认，请核对后继续'});}
-    finally{if(current())this.setData({loading:false});}
   },
   async continueLogin() {
     if(this.data.renewalMode){await this.confirmLegalRenewal();return;}
@@ -298,20 +279,23 @@ Page({
     const attempt=++this.data.profileAttempt,current=()=>this.data.pageAlive&&this.data.pageVisible&&!this.data.leaving&&attempt===this.data.profileAttempt&&token===getApp<IAppOption>().globalData.sessionToken;
     this.setData({loading:true,error:'',loginProfileUncertain:false});
     try{
-      let [profile,phone]=await Promise.all([request<any>({path:'/v1/me/profile'}),request<{bound:boolean;enabled:boolean;masked?:string|null}>({path:'/v1/me/phone'})]);
+      let profile=await request<any>({path:'/v1/me/profile'});
       if(!current())return;
-      if(!profile?.id||typeof profile.display_name!=='string'||!Number.isSafeInteger(profile.profile_revision)||typeof phone?.bound!=='boolean'||typeof phone.enabled!=='boolean'||this.loginOwnerId&&profile.id!==this.loginOwnerId)throw Error('LOGIN_PROFILE_INVALID');
+      if(!profile?.id||typeof profile.display_name!=='string'||!Number.isSafeInteger(profile.profile_revision)||this.loginOwnerId&&profile.id!==this.loginOwnerId)throw Error('LOGIN_PROFILE_INVALID');
       this.loginOwnerId=profile.id;
-      if(!phone.bound&&phone.enabled&&!this.data.phoneSkipped){this.setData({loginStage:'phone'});return;}
       let draft=loginAvatarDrafts.get(this);if(draft&&(draft.token!==token||draft.owner!==profile.id)){loginAvatarDrafts.delete(this);draft=undefined;}
       if(profile.avatar_data_url){loginAvatarDrafts.delete(this);draft=undefined;}
       const avatarUrl=draft?.local??await localMemberAvatar(profile.avatar_data_url,profile.avatar_revision);if(!current())return;
       this.setData({avatarUrl});
-      if(!profile.avatar_data_url&&!draft){this.setData({loginStage:'avatar'});return;}
-      if(needsLoginName(profile)){this.setData({loginStage:'nickname'});return;}
+      if(!profile.avatar_data_url&&!draft||needsLoginName(profile)){
+        // The official privacy dialog records WeChat consent separately from our legal checkbox.
+        // Nickname input alone cannot trigger it, so confirm before focusing the native field.
+        await ensureWechatPrivacy();if(!current())return;
+        this.setData({loginStage:!profile.avatar_data_url&&!draft?'avatar':'nickname'});return;
+      }
       if(draft){const saved=await request<any>({path:'/v1/me/profile',method:'PUT',data:{displayName:profile.display_name,expectedVersion:profile.profile_revision,avatarDataUrl:draft.dataUrl}});if(!current())return;if(saved.id!==profile.id)throw Error('LOGIN_PROFILE_OWNER_INVALID');profile=saved;loginAvatarDrafts.delete(this);}
       const finalAvatar=await localMemberAvatar(profile.avatar_data_url,profile.avatar_revision);if(!current())return;
-      publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl:finalAvatar,profile_revision:profile.profile_revision,completed_at:profile.completed_at,public_status:profile.public_status,phone_masked:phone.masked??null});
+      publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl:finalAvatar,profile_revision:profile.profile_revision,completed_at:profile.completed_at,public_status:profile.public_status,phone_masked:profile.phone_masked??null});
       this.setData({loginStage:'login',avatarUrl:finalAvatar});
       const landed=await navigateAfterAuthentication(this.data.pendingDestination||'/pages/home/index');
       if(landed==='target'&&token===getApp<IAppOption>().globalData.sessionToken&&this.loginFlowToken===token)this.loginFlowToken='';else if(current())this.setData({error:'页面暂时无法打开，请再次点击继续'});
@@ -355,7 +339,7 @@ Page({
     }catch(error){if(current())this.setData({loginProfileUncertain:true,error:(error as {title?:string}).title||'资料保存结果待确认，请核对后继续'});}
     finally{if(current())this.setData({loading:false});}
   },
-  async login(phoneCode?:string,phoneDeclined=false) {
+  async login() {
     if (this.data.loading || this.data.leaving || this.data.avatarBusy || !this.data.pageAlive) return;
     if(this.data.renewalMode){await this.confirmLegalRenewal();return;}
     if(this.data.sessionRestoreFailed&&getApp<IAppOption>().globalData.sessionToken){await this.restoreRetainedSession();return;}
@@ -387,7 +371,7 @@ Page({
       // this default only for a new member; later logins retain saved profile.
       const base = { displayName: "CISME 会员", consents: [{ documentType: "privacy", version: legalDocuments.privacy }, { documentType: "terms", version: legalDocuments.terms }] };
       if (legalDocuments.crossBorder) base.consents.push({documentType:"cross_border",version:legalDocuments.crossBorder});
-      let result: { sessionToken: string; phoneBindingEnabled?: boolean; onboardingRequired?:boolean };
+      let result: { sessionToken: string; onboardingRequired?:boolean };
       const runtime = getApp<IAppOption>().globalData;
       await prepareOfficerLoginVisits();
       if(!this.data.pageAlive||this.data.authAttempt!==attempt)return;
@@ -413,17 +397,13 @@ Page({
         result = await request({ path: "/v1/identity/wechat", method: "POST", authMode: "public", data: { ...base, code: login.code } });
       }
       if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
-      setSessionToken(result.sessionToken);this.loginFlowToken=result.sessionToken;this.loginOwnerId="";this.setData({phoneSkipped:phoneDeclined});
+      setSessionToken(result.sessionToken);this.loginFlowToken=result.sessionToken;this.loginOwnerId="";
       void attributePendingShare();
       if(result.onboardingRequired){runtime.onboardingReturnUrl=this.authenticationReturnUrl;runtime.onboardingReturnToken=result.sessionToken;}
       else {delete runtime.onboardingReturnUrl;delete runtime.onboardingReturnToken;}
       const pendingDestination = result.onboardingRequired ? '/pages/home/index' : this.authenticationReturnUrl;
       this.setData({ pendingDestination });
       wx.disableAlertBeforeUnload();
-      if(phoneCode) {
-        try { await request({path:"/v1/me/phone",method:"POST",data:{code:phoneCode}}); }
-        catch(error) { if(this.data.pageAlive&&this.data.authAttempt===attempt&&result.sessionToken===getApp<IAppOption>().globalData.sessionToken)this.setData({notice:(error as {title?:string}).title || "账号已登录，手机号绑定结果尚未确认，可在设置中查看。"}); }
-      }
       if(!this.data.pageAlive || this.data.authAttempt !== attempt || result.sessionToken !== getApp<IAppOption>().globalData.sessionToken)return;
       await this.advanceLogin();
     } catch (error) {

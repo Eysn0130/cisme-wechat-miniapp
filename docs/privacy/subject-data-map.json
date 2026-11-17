@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "7fab85fdef2cdd9dc41d4373ae6794fa1f2dede189fc1c3726d6b5ef6aa914ed",
+  "migrationSetSha256": "8192d35d25da02d18ac47ca0cca7e32c6afc21438a42c0a7aade704dfa64fe2e",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -9668,6 +9668,61 @@
       "productionErasure": "SELF_OPTIONAL_PROFILE_V1",
       "retention": "POLICY_PENDING_NO_AUTOMATIC_DELETION",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "wechat_trade_account_state",
+      "subjectPaths": [],
+      "actorColumns": [],
+      "specialHandling": "App-level enrollment and path observations only, with a control latch. No member subject or credentials. Platform clearance audit belongs to the independent operator; booleans do not prove payment permission.",
+      "exportFields": [],
+      "excludedFields": [
+        "app_id",
+        "managed",
+        "settlement_confirmed",
+        "checked_at",
+        "order_detail_path",
+        "path_verified",
+        "checks",
+        "restricted_at",
+        "restriction_cleared_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "APP_CONFIGURATION_NO_MEMBER_SUBJECT"
+    },
+    {
+      "table": "wechat_trade_notice",
+      "subjectPaths": [
+        [
+          "wechat_trade_notice.order_id -> commerce_order.id",
+          "commerce_order.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Verified AES provider notices only. Owner binding uses immutable payment attempt and applied payment inbox. No FromUserName, OpenID or arbitrary message text. Observations never authorize money, shipping or settlement facts. Raw provider/payment identifiers and operational leases are excluded from portable exports; owner order/receipt projections remain separate.",
+      "exportFields": [],
+      "excludedFields": [
+        "notice_key",
+        "app_id",
+        "event_type",
+        "event_created_at",
+        "payload",
+        "order_id",
+        "state",
+        "attempts",
+        "next_attempt_at",
+        "lease_token",
+        "lease_until",
+        "observation",
+        "received_at",
+        "processed_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
+      "fullSubjectResolverStatus": "OWNER_ORDER_PROJECTION_ONLY"
     }
   ],
   "formalSelfServiceErasureScope": "member_optional_profile_v1; optional account/contact/address data only; transactions retained; legal holds delay execution",

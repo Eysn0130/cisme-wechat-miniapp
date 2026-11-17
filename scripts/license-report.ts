@@ -5,7 +5,7 @@ const lock = JSON.parse(await readFile("package-lock.json", "utf8")) as { packag
 function declaredLicense(item: PackageMetadata): string | undefined {
   return item.license ?? (item.licenses?.map((entry) => entry.type).filter(Boolean).join(" OR ") || undefined);
 }
-const rows = await Promise.all(Object.entries(lock.packages).filter(([path, item]) => path.startsWith("node_modules/") && item.version).map(async ([path, item]) => {
+const rows = await Promise.all(Object.entries(lock.packages).filter(([path, item]) => (path.startsWith("node_modules/")||path.startsWith("tools/vendor/")) && item.version).map(async ([path, item]) => {
   let license = declaredLicense(item);
   if (!license) {
     try { license = declaredLicense(JSON.parse(await readFile(`${path}/package.json`, "utf8")) as PackageMetadata); }

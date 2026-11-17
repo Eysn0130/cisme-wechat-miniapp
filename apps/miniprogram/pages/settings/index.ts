@@ -265,17 +265,6 @@ Page({
     } catch { if (this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken) this.setData({ phoneError: "暂时无法查看手机号绑定情况，其他账号功能仍可使用。" }); }
     finally { if(this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken)this.setData({phoneLoading:false}); }
   },
-  async bindPhone(event: WechatMiniprogram.CustomEvent) {
-    if (this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut || this.data.leavePromptOpen || this.data.phoneBusy || this.data.profileBusy || this.data.avatarBusy || !this.data.authenticated) return;
-    if (!event.detail.code) { this.setData({phoneError:"未授权手机号，你仍可浏览并使用不需要手机号的功能。"}); return; }
-    const token=getApp<IAppOption>().globalData.sessionToken;
-    this.setData({phoneBusy:true,phoneError:""});
-    try {
-      const result=await request<{bound:boolean;masked:string}>({path:"/v1/me/phone",method:"POST",data:{code:event.detail.code}});
-      if(this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken){this.setData({phoneBound:result.bound,phoneMasked:result.masked});const identity=memberIdentity();if(identity)publishMemberIdentity({...identity,phone_masked:result.masked});}
-    } catch(error) {if(this.data.pageAlive && token === getApp<IAppOption>().globalData.sessionToken)this.setData({phoneError:(error as {title?:string}).title || "暂未确认手机号是否绑定成功，请重新授权。会员账号不受影响。"});}
-    finally{if(this.data.pageAlive)this.setData({phoneBusy:false});}
-  },
   async unbindPhone() {
     if(this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut || this.data.leavePromptOpen || this.data.phoneBusy || this.data.profileBusy || this.data.avatarBusy || !this.data.phoneBound)return;
     const token=getApp<IAppOption>().globalData.sessionToken;

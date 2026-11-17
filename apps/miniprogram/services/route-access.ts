@@ -62,11 +62,10 @@ export function nativeRoutePath(url: string): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-/** The explicit "browse community" choice allows reading, not other workspaces.
- * Account and legal/data-rights pages remain reachable for authentication and rights. */
+/** Explicit guest browsing follows the same public read boundary as cold entry.
+ * Member data and writes remain authenticated on both the page and server. */
 export function guestCommunityRouteAllowed(url:string):boolean {
-  return ["/pages/community/index","/pages/post/index","/pages/community-post/index",
-    "/pages/account/index","/pages/legal/index","/pages/privacy-rights/index"].includes(nativeRoutePath(url));
+  return nativeRouteAccess[nativeRoutePath(url)] === "public";
 }
 
 export function nativeRouteRequiresMember(url: string): boolean {

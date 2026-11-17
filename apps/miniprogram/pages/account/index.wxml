@@ -9,7 +9,7 @@
       <view class="account-hero__copy">
         <text class="account-hero__brand">CISME</text>
         <view class="account-hero__rule" aria-hidden="true"/>
-        <text class="account-hero__title">{{renewalMode?'服务条款更新':loginStage==='phone'?'微信授权':loginStage==='avatar'?'设置头像':loginStage==='nickname'?'确认昵称':pendingDestination?'欢迎回来':'留住每次护理'}}</text>
+        <text class="account-hero__title">{{renewalMode?'服务条款更新':loginStage==='avatar'?'设置头像':loginStage==='nickname'?'确认昵称':pendingDestination?'欢迎回来':'留住每次护理'}}</text>
 
       </view>
     </view>
@@ -30,7 +30,7 @@
         <view wx:if="{{crossBorderRequired && !renewalMode}}" class="account-cross-border">
           <checkbox-group class="account-agreement__selector" bindchange="toggleCrossBorder"><label class="account-agreement__label"><checkbox class="account-checkbox" value="accepted" checked="{{crossBorderAccepted}}" disabled="{{loading || leaving || !legalTextsReady}}" color="#56306f"/><text class="account-row__title">同意个人信息境外存储</text></label></checkbox-group>
           <button class="account-legal-entry {{loading || leaving ? 'control--disabled' : ''}}" bindtap="openCrossBorder" disabled="{{loading || leaving}}">查看境外存储告知</button>
-          <text class="account-row__meta">单独选择；不同意仍可浏览公开社区。</text>
+          <text class="account-row__meta">单独选择；不同意仍可浏览公开内容。</text>
         </view>
       </view>
 
@@ -43,8 +43,8 @@
       <button wx:if="{{accountHelpAvailable}}" class="text-button account-help {{accountHelpBusy ? 'text-button--disabled' : ''}}" bindtap="openAccountHelp" loading="{{accountHelpBusy}}" disabled="{{accountHelpBusy}}">查看历史隐私请求</button>
       <button wx:if="{{error && loginStage === 'login'}}" class="text-button account-help" open-type="contact">{{renewalMode ? '无法确认？联系微信客服' : '无法登录？联系微信客服'}}</button>
       <button wx:if="{{sessionRestoreFailed}}" class="text-button account-help {{loading || leaving ? 'text-button--disabled' : ''}}" bindtap="restartLogin" disabled="{{loading || leaving}}">重新微信登录</button>
-      <button class="primary action-main account-login {{loading || leaving || avatarBusy || ((!pendingDestination || renewalMode) && !renewalComplete && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted && !renewalMode))) ? 'primary--disabled' : ''}}" hover-class="action-pressed" form-type="{{loginStage === 'nickname' ? 'submit' : ''}}" loading="{{loading || avatarBusy}}" disabled="{{loading || leaving || avatarBusy || ((!pendingDestination || renewalMode) && !renewalComplete && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted && !renewalMode)))}}" open-type="{{renewalMode || loginProfileUncertain ? '' : loginStage === 'avatar' ? 'chooseAvatar' : loginStage === 'phone' ? 'getPhoneNumber' : ''}}" bindtap="loginTap" bindgetphonenumber="loginWithPhone" bindchooseavatar="chooseLoginAvatar"><text class="action-label">{{renewalMode ? renewalComplete ? '返回原文' : loading ? '正在确认…' : '确认并返回' : restoringSession ? '正在恢复登录…' : sessionRestoreFailed ? '重新连接' : loginProfileUncertain ? '核对资料' : loginStage === 'phone' ? '授权手机号' : loginStage === 'avatar' ? '选择微信头像' : loginStage === 'nickname' ? '确认昵称并继续' : pendingDestination ? '继续使用' : loading ? '正在登录…' : legalTextsReady ? localLegalFixture ? '本地测试登录' : '微信登录' : legalLoading ? '正在读取协议…' : '暂时无法登录'}}</text></button>
-      <button class="text-button action-text account-browse {{leavePromptOpen || leaving || avatarBusy ? 'text-button--disabled' : ''}}" hover-class="action-pressed" bindtap="browseCommunity" disabled="{{leavePromptOpen || leaving || avatarBusy}}"><text class="action-label">{{renewalMode ? legalAcceptanceStarted ? '停止等待，返回阅读' : '暂不确认，返回阅读' : loginStage !== 'login' ? '返回社区' : identityCommitStarted ? '登录处理中，前往社区' : loading ? '停止等待，浏览公开社区' : pendingDestination ? '前往社区' : '暂不登录，浏览公开社区'}}</text></button>
+      <button class="primary action-main account-login {{loading || leaving || avatarBusy || ((!pendingDestination || renewalMode) && !renewalComplete && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted && !renewalMode))) ? 'primary--disabled' : ''}}" hover-class="action-pressed" form-type="{{loginStage === 'nickname' ? 'submit' : ''}}" loading="{{loading || avatarBusy}}" disabled="{{loading || leaving || avatarBusy || ((!pendingDestination || renewalMode) && !renewalComplete && (!legalTextsReady || !agreementAccepted || (crossBorderRequired && !crossBorderAccepted && !renewalMode)))}}" open-type="{{renewalMode || loginProfileUncertain ? '' : loginStage === 'avatar' ? 'chooseAvatar' : ''}}" bindtap="loginTap" bindchooseavatar="chooseLoginAvatar"><text class="action-label">{{renewalMode ? renewalComplete ? '返回原文' : loading ? '正在确认…' : '确认并返回' : restoringSession ? '正在恢复登录…' : sessionRestoreFailed ? '重新连接' : loginProfileUncertain ? '核对资料' : loginStage === 'avatar' ? '选择微信头像' : loginStage === 'nickname' ? '确认昵称并继续' : pendingDestination ? '继续使用' : loading ? '正在登录…' : legalTextsReady ? localLegalFixture ? '本地测试登录' : '微信登录' : legalLoading ? '正在读取协议…' : '暂时无法登录'}}</text></button>
+      <button class="text-button action-text account-browse {{leavePromptOpen || leaving || avatarBusy ? 'text-button--disabled' : ''}}" hover-class="action-pressed" bindtap="browseCommunity" disabled="{{leavePromptOpen || leaving || avatarBusy}}"><text class="action-label">{{renewalMode ? legalAcceptanceStarted ? '停止等待，返回阅读' : '暂不确认，返回阅读' : loginStage !== 'login' ? '返回社区' : identityCommitStarted ? '登录处理中，前往社区' : loading ? '停止等待，先逛逛' : pendingDestination ? '前往社区' : '暂不登录，先逛逛'}}</text></button>
     </form>
   </view>
 </view>

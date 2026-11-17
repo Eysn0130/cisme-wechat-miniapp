@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-11-14",
+  "inventoryDate": "2026-11-17",
   "wechatApis": [
     "wx.base64ToArrayBuffer",
     "wx.canIUse",
@@ -63,7 +63,6 @@
     "input-type:nickname",
     "open-type:chooseAvatar",
     "open-type:contact",
-    "open-type:getPhoneNumber",
     "open-type:share"
   ],
   "requiredPrivateInfos": [
@@ -113,10 +112,10 @@
     {
       "surface": "open-type:getPhoneNumber",
       "informationType": "手机号",
-      "purpose": "选填会员联系与账号冲突核验",
-      "activation": "用户点击绑定并授权后",
+      "purpose": "历史会员联系电话：暂停新增收集，不参与登录、护理或公开浏览；收件电话另属主动配送地址用途",
+      "activation": "当前原生登录和设置均无 getPhoneNumber 入口，正式与体验能力开关已关闭",
       "serverStorage": "AES-GCM 密文、HMAC 盲索引、掩码",
-      "currentGate": "phone binding configuration and authenticated action"
+      "currentGate": "PAUSED; authenticated own status and unbind remain; ciphertext/HMAC removed and active exports revoked on unbind; one-time credential hashes are replay/audit metadata, not phone indexes"
     },
     {
       "surface": "wx.requestPayment",
@@ -759,6 +758,14 @@
       "surface": "ugc_post.featured_revision/featured_at/featured_by",
       "purpose": "管理员仅选择本人明确公开且安全检查通过的帖子版本；原作者及私密草稿不变；精选调整记录仅授权管理员可读，相关会员奖励来源保持唯一。",
       "source": "2026-11-16 Owner 社区帖子管理指令；COMM-ADMIN-POST-01/02/03/04"
+    },
+    {
+      "surface": "wx.requirePrivacyAuthorize",
+      "informationType": "微信侧隐私同意状态",
+      "purpose": "在用户请求补齐头像昵称时，由微信官方弹窗单独确认平台隐私协议",
+      "activation": "缺失资料且用户已主动微信登录；不在游客进入或切Tab时调用",
+      "serverStorage": "不把本地勾选伪装成微信同意；版本化业务协议另行保存",
+      "currentGate": "Official dialog fallback; rejection allows public browsing"
     }
   ],
   "runtimeDataEgress": [
@@ -843,8 +850,8 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "f35491140f17471d0619c33c8a69db52c5796f9a36e9f74b86a02e4652513721",
-  "egressSignatureSha256": "33ae2eff1e443c0d7056b43be6497d2ec5e206f85fb712125173e3e2571d0e9c",
+  "migrationSetSha256": "3f9ef7f13c4ca80b3fbf5706364fbd57400b0b293d66240f73e737400a32d5b2",
+  "egressSignatureSha256": "0a41c60115f1738f7d359d94342bc56770e95b9c6a939bbd5d3c08d75bea697e",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",

@@ -54,7 +54,7 @@ describe("explicit current-legal renewal with an existing session",()=>{
   await mount();mocks.token="";page.onShow();await Promise.resolve();expect(page.data.renewalMode).toBe(false);expect(mocks.accept).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.storage.has("cisme.authReturnUrl")).toBe(false);expect(page.authenticationReturnUrl).toBe(source);
  });
  it("does not invoke phone or avatar callbacks in renewal mode",async()=>{
-  await mount();page.data.phoneBindingEnabled=true;await page.loginWithPhone({detail:{code:"synthetic-phone-code"}});await page.chooseLoginAvatar({detail:{avatarUrl:"synthetic-avatar"}});
+  await mount();page.data.phoneBindingEnabled=true;expect(page.loginWithPhone).toBeUndefined();await page.chooseLoginAvatar({detail:{avatarUrl:"synthetic-avatar"}});
   expect(mocks.accept).not.toHaveBeenCalled();expect(wxMock.login).not.toHaveBeenCalled();expect(mocks.request).not.toHaveBeenCalled();
  });
  it("explains an in-flight explicit confirmation before leaving and ignores its late response",async()=>{

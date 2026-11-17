@@ -140,8 +140,8 @@ export function isGuestCommunityBrowsing():boolean {
   return !app.globalData.sessionToken&&wx.getStorageSync("cisme.guestBrowsing")===true;
 }
 
-/** Gate navigation AND direct/resumed public pages after the explicit guest choice.
- * The first cold care welcome remains public before that choice. */
+/** Public browsing is identical on cold, shared, direct and resumed entry.
+ * Explicit guest choice does not grant access to member data or writes. */
 export function requireGuestCommunityAccess(returnUrl=currentRouteUrl()):boolean {
   if(!isGuestCommunityBrowsing()||guestCommunityRouteAllowed(returnUrl))return true;
   resumeAuthentication(returnUrl);
@@ -276,7 +276,7 @@ function performRequest<T>(options: RequestOptions): { promise: Promise<T>; abor
   const path=options.path.split("?")[0]||options.path;
   const rightsPath=/^\/v1\/me\/privacy-requests(?:\/|$)/.test(path)||
     (method==="GET"&&(
-      path==="/v1/me/orders"||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
+      path==="/v1/me/orders"||path==="/v1/me/orders/resolve"||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
       /^\/v1\/me\/orders\/[0-9a-f-]{36}\/(?:aftersales\/availability|shipment(?:\/tracking)?)$/i.test(path)||
       path==="/v1/me/aftersales"||/^\/v1\/me\/aftersales\/[0-9a-f-]{36}$/i.test(path)||
       path==="/v1/me/refund-requests"||path==="/v1/me/commercial-membership"||path==="/v1/me/support/messages"||
