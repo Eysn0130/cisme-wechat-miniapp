@@ -111,6 +111,7 @@ export class CommerceOrderService {
     private readonly addresses: DeliveryAddressService,
     private readonly commercial: CommercialMembershipService,
     private readonly options: { enabled: boolean; quoteTtlMinutes: number; pendingOrderTtlMinutes: number;
+      identityAppId?: string;
       simulatedPayment?: { appId: string; merchantId: string; transferSceneId?: string };
       formalTestPayment?: { appId: string; merchantId: string };
       formalPayment?: { appId:string; merchantId:string; authorize:()=>void; recoveryAvailable:()=>boolean }; isolatedCreditCheckout?:boolean }
@@ -497,6 +498,26 @@ export class CommerceOrderService {
       await requireHistoricalMemberWithClient(client,owner,closedRights);
       return this.listPage(client, owner, limit, cursor);
     }, "REPEATABLE READ");
+  }
+
+  /** WeChat Order Center passes out_trade_no, never our internal UUID. Resolve
+   * only an immutable payment attempt owned by this authenticated member in
+   * this database and AppID. Disabled new checkout must not disable recovery. */
+  async resolveMine(memberId:string|undefined, outTradeNo:unknown, closedRights=false) {
+    const owner=member(memberId);
+    const notFound=()=>new DomainError('ORDER_NOT_FOUND','订单不存在或不可访问',404);
+    if(typeof outTradeNo!=='string'||!/^CM[0-9]{8}[A-Z0-9]{12}$/.test(outTradeNo))throw notFound();
+    const binding=this.options.formalPayment??this.options.formalTestPayment??this.options.simulatedPayment;
+    if(!binding||this.options.identityAppId&&binding.appId!==this.options.identityAppId)throw notFound();
+    return transaction(this.pool,async client=>{
+      await requireHistoricalMemberWithClient(client,owner,closedRights);
+      const row=(await client.query<{id:string}>(`SELECT o.id FROM commerce_order o
+        JOIN commerce_payment_attempt p ON p.order_id=o.id AND p.member_id=o.member_id
+        WHERE p.out_trade_no=$1 AND o.order_number=p.out_trade_no AND o.member_id=$2
+          AND p.app_id=$3 AND p.merchant_id=$4`,[outTradeNo,owner,binding.appId,binding.merchantId])).rows[0];
+      if(!row)throw notFound();
+      return {id:row.id};
+    },'REPEATABLE READ');
   }
 
   async detailMine(memberId: string | undefined, orderIdInput: string,closedRights=false) {

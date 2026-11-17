@@ -68,9 +68,12 @@ it("binds, reads and unbinds phones only for the signed member despite forged bo
     .toEqual(expect.arrayContaining([{ member_id: memberA.memberId, phone_masked: "***0001" },
       { member_id: memberB.memberId, phone_masked: "***0002" }]));
 
+  const revisionBefore=(await pool.query("SELECT privacy_erasure_revision FROM member WHERE id=$1",[memberB.memberId])).rows[0].privacy_erasure_revision;
   const bUnbind = await app.inject({ method: "DELETE", url: "/v1/me/phone", headers: auth(memberB.sessionToken),
     payload: { memberId: memberA.memberId, principalId: "forged" } });
   expect(bUnbind.statusCode).toBe(200);
+  expect(Number((await pool.query("SELECT privacy_erasure_revision FROM member WHERE id=$1",[memberB.memberId])).rows[0].privacy_erasure_revision)).toBe(Number(revisionBefore)+1);
+  expect((await pool.query("SELECT count(*)::int n FROM member_contact WHERE member_id=$1",[memberB.memberId])).rows[0].n).toBe(0);
   expect(bUnbind.json()).toEqual({ bound: false, masked: null });
   expect((await app.inject({ method: "GET", url: "/v1/me/phone", headers: auth(memberA.sessionToken) })).json().masked)
     .toBe("***0001");

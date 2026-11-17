@@ -44,7 +44,7 @@ export function validateRuntime(value: unknown): CommerceOrderRuntimeStatus {
 export function runtimeView(status: CommerceOrderRuntimeStatus) {
   return { runtimeState: "ready" as RuntimeState, runtimeStatus: status,
     runtimeMode: (status.scope === "formal_commerce" ? "formal" : status.scope === "disabled" ? "disabled" : "test") as RuntimeMode,
-    runtimeCopy: status.scope === "formal_commerce" ? (status.paymentAvailable?"可使用微信支付。":"付款暂不可用，订单与售后仍可查看。") : status.scope === "disabled" ? "付款暂不可用，已有订单仍可查看。" :
+    runtimeCopy: status.paymentRestriction==='wechat_trade_management'?'微信支付暂不可用，已有订单与售后仍可查看。':status.scope === "formal_commerce" ? (status.paymentAvailable?"可使用微信支付。":"付款暂不可用，订单与售后仍可查看。") : status.scope === "disabled" ? "付款暂不可用，已有订单仍可查看。" :
       "测试环境，不会真实扣款或转账。" };
 }
 export function runtimeActions(status: CommerceOrderRuntimeStatus | null) {

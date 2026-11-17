@@ -154,7 +154,7 @@ describe("mini program submission flow safety", () => {
     expect(accountView).toContain('disabled="{{leavePromptOpen || leaving || avatarBusy}}"');
     expect(account).toContain('confirmIdentityLeave(destination: "source" | "community")');
     expect(account).toContain('wx.navigateBack({ delta: 1');
-    expect(accountView).toContain("停止等待，浏览公开社区");
+    expect(accountView).toContain("停止等待，先逛逛");
 
 
     expect(profile).toContain("设置与隐私暂时无法打开");

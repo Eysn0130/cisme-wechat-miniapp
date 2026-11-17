@@ -19,6 +19,8 @@ import { WechatLogisticsQueryClient,WechatLogisticsMessageClient,type LogisticsM
 import { WechatLogisticsClient, type LogisticsCapability } from './wechatLogistics.js';
 import {PaidParcelSource} from './paidParcel.js';
 import {LogisticsMessageService} from './logisticsMessages.js';
+import {WechatTradeAccountClient} from './wechatTradeAccount.js';
+import {WechatTradeEvents} from './wechatTradeEvents.js';
 
 function denied():never{throw new DomainError('SHIPPING_OUTBOUND_NOT_AUTHORIZED','微信发货同步权限待核验，本地发货记录已保留',503);}
 export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
@@ -73,6 +75,16 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
   const authority=new AuthorityService(pool,config.env);
   const derive=(secret:string,label:string)=>createHmac('sha256',Buffer.from(secret,'hex')).update(label).digest('hex');
   const liveChannel=new WechatOrderShippingClient(token,authorize);
+  const account=new WechatTradeAccountClient(profile.appId,token,()=>authorize('shipping.query'));
+  const trade=new WechatTradeEvents(pool,profile.appId,profile.merchantId,liveChannel,account);
+  let accountNextRead=0;
+  const runTradeCycle=async()=>{
+    try{authorize('shipping.query');}catch{return {processed:0,status:'not_authorized'};}
+    // Restart-safe durable facts; at most hourly diagnostics per process and
+    // bounded order queries. A failed read never becomes a successful status.
+    if(Date.now()>=accountNextRead){accountNextRead=Date.now()+3600_000;try{await trade.refreshAccount();}catch{accountNextRead=Date.now()+30*60_000;}}
+    return trade.runCycle();
+  };
   const sync=new ShippingSyncService(pool,authority,{enabled:true,appId:profile.appId,merchantId:profile.merchantId,
     encryptionKey:derive(config.contacts.encryptionKey!,'cisme-shipping-encryption-v1'),
     hashKey:derive(config.contacts.hashKey!,'cisme-shipping-request-v1'),keyVersion:config.contacts.keyVersion},
@@ -107,5 +119,5 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
     return receiptWatch.runCycle();
   };
   const runMessageCycle=async()=>messages?messages.runCycle():{processed:0,states:{}};
-  return {service,receipt,sync,logisticsView,messages,runCycle,runReceiptCycle,runMessageCycle};
+  return {service,receipt,sync,logisticsView,messages,trade,runCycle,runReceiptCycle,runMessageCycle,runTradeCycle};
 }

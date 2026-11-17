@@ -28,10 +28,10 @@ beforeEach(async()=>{
 it('does not create an identity before an explicit login or accepted terms',async()=>{
  page.onLoad({});expect(m.request).not.toHaveBeenCalled();page.data.agreementAccepted=false;await page.loginTap();expect(wxMock.login).not.toHaveBeenCalled();
 });
-it('checks existing facts before asking, and only the missing phone first',async()=>{
- await page.loginTap();expect(wxMock.login).toHaveBeenCalledTimes(1);expect(page.data.loginStage).toBe('phone');expect(m.navigate).not.toHaveBeenCalled();expect(writes()).toEqual([]);
+it('checks the canonical profile and asks only for missing profile fields without a phone dependency',async()=>{
+ await page.loginTap();expect(wxMock.login).toHaveBeenCalledTimes(1);expect(page.data.loginStage).toBe('avatar');expect(m.navigate).not.toHaveBeenCalled();expect(writes()).toEqual([]);
  await page.loginTap();expect(wxMock.login).toHaveBeenCalledTimes(1);
- await page.loginWithPhone({detail:{code:'native-phone-code'}});expect(phone.bound).toBe(true);expect(page.data.loginStage).toBe('avatar');expect(m.request.mock.calls.find(([v])=>v.method==='POST'&&v.path==='/v1/me/phone')?.[0].data).toEqual({code:'native-phone-code'});
+ expect(m.request.mock.calls.some(([v])=>v.path.includes('/phone'))).toBe(false);
 });
 it('holds an explicitly chosen avatar privately then saves it with the confirmed native nickname to the same owner',async()=>{
  phone.bound=true;await page.loginTap();await page.chooseLoginAvatar({detail:{avatarUrl:'wxfile://selected.jpg'}});
@@ -54,8 +54,8 @@ it('fills only a missing nickname without asking for an existing avatar again',a
 it('does not overwrite another already-completed nickname when the same account changed in another page',async()=>{
  profile.avatar_data_url='saved';phone.bound=true;await page.loginTap();profile.display_name='其他页面已保存';page.editLoginName({detail:{value:'旧输入'}});await page.saveLoginNickname();expect(writes()).toEqual([]);expect(m.publish).toHaveBeenCalledWith(expect.objectContaining({display_name:'其他页面已保存'}));
 });
-it('keeps denial of optional phone truthful and continues the same login flow',async()=>{
- await page.loginTap();await page.loginWithPhone({detail:{errMsg:'getPhoneNumber:fail user deny'}});expect(phone.bound).toBe(false);expect(page.data).toMatchObject({loginStage:'avatar',phoneSkipped:true});expect(m.request.mock.calls.some(([v])=>v.path==='/v1/me/phone'&&v.method==='POST')).toBe(false);
+it('does not enter a phone step even if a stale server capability advertises it',async()=>{
+ await page.loginTap();expect(phone.bound).toBe(false);expect(page.data.loginStage).toBe('avatar');expect(m.request.mock.calls.some(([v])=>v.path.includes('/phone'))).toBe(false);
 });
 it('never treats an unavailable phone service as a binding',async()=>{
  phone.enabled=false;await page.loginTap();expect(page.data.loginStage).toBe('avatar');expect(phone.bound).toBe(false);
@@ -72,7 +72,7 @@ it('requires a valid explicit nickname and does not hide a failed native nicknam
  phone.bound=true;profile.avatar_data_url='saved';await page.loginTap();await page.saveLoginNickname();expect(writes()).toEqual([]);page.editLoginName({detail:{value:'被拒昵称'}});page.reviewLoginName({detail:{pass:false}});await page.saveLoginNickname();expect(writes()).toEqual([]);
 });
 it('keeps all native actions on Account and removes the skip-avatar path',async()=>{
- const wxml=await readFile('apps/miniprogram/pages/account/index.wxml','utf8');expect(wxml).toContain('type="nickname"');expect(wxml).toContain("loginStage === 'phone' ? 'getPhoneNumber'");expect(wxml).toContain("loginStage === 'avatar' ? 'chooseAvatar'");expect(wxml).not.toContain('稍后设置');expect(wxml).not.toContain('member-setup-form');
+ const wxml=await readFile('apps/miniprogram/pages/account/index.wxml','utf8');expect(wxml).toContain('type="nickname"');expect(wxml).not.toContain("getPhoneNumber");expect(wxml).toContain("loginStage === 'avatar' ? 'chooseAvatar'");expect(wxml).not.toContain('稍后设置');expect(wxml).not.toContain('member-setup-form');
 });
 
 it('resumes missing profile confirmation after Account is reconstructed with a verified retained session',async()=>{
@@ -110,4 +110,10 @@ it('leaves as a guest when the retained profile read is still pending and ignore
  m.request.mockImplementation((o:any)=>o.path==='/v1/me'?new Promise(r=>{finish=r;}):original(o));
  const restoring=page.restoreRetainedSession();await Promise.resolve();await page.browseCommunity();expect(m.token).toBe('');
  finish({...profile});await restoring;expect(m.navigate).not.toHaveBeenCalled();expect(writes()).toEqual([]);
+});
+
+it('keeps the canonical session and public escape when official privacy confirmation is declined',async()=>{
+ wxMock.requirePrivacyAuthorize=vi.fn(({fail}:any)=>fail({errMsg:'user denied'}));await page.loginTap();
+ expect(m.token).toBe('current-session');expect(page.data.loginProfileUncertain).toBe(true);expect(page.data.error).toContain('隐私确认');expect(m.navigate).not.toHaveBeenCalled();expect(writes()).toEqual([]);
+ await page.browseCommunity();expect(m.token).toBe('');expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/community/index'}));
 });

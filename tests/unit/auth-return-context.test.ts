@@ -27,21 +27,21 @@ beforeEach(()=>{vi.resetModules();vi.clearAllMocks();storage=new Map();runtime={
  wxMock={getAccountInfoSync:()=>({miniProgram:{envVersion:'trial'}}),getDeviceInfo:()=>({platform:'ios'}),getStorageSync:(key:string)=>storage.get(key)||'',getStorageInfoSync:()=>({keys:[...storage.keys()]}),setStorageSync:vi.fn((key:string,value:unknown)=>storage.set(key,value)),removeStorageSync:vi.fn((key:string)=>storage.delete(key)),login:vi.fn(async()=>({code:'synthetic-login-code'})),navigateTo:vi.fn(),reLaunch:vi.fn(),switchTab:vi.fn((o:any)=>o.success?.()),navigateBack:vi.fn((o:any)=>o.success?.()),redirectTo:vi.fn((o:any)=>o.success?.()),showModal:vi.fn(async()=>({confirm:true})),showToast:vi.fn(),pageScrollTo:vi.fn(),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),request:vi.fn((o:any)=>{requests.push(o);queueMicrotask(()=>response(o));return {abort:vi.fn()};})};(globalThis as any).wx=wxMock;
 });
 describe('Account return destinations belong to one live authentication flow',()=>{
- it('limits the explicit guest choice to community reading and keeps blocked targets for later login',async()=>{
+ it('allows every public read after the explicit guest choice and keeps member targets authenticated',async()=>{
   await mount();await page.browseCommunity();expect(storage.get('cisme.guestBrowsing')).toBe(true);
   const api=await import('../../apps/miniprogram/services/api');wxMock.navigateTo.mockClear();
-  for(const url of ['/pages/community/index',article,'/pages/post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&source=formal','/pages/community-post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','/pages/legal/index?type=privacy','/pages/privacy-rights/index'])expect(api.requireGuestCommunityAccess(url)).toBe(true);
+  for(const url of ['/pages/community/index',article,'/pages/post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&source=formal','/pages/community-post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','/pages/legal/index?type=privacy','/pages/privacy-rights/index','/pages/home/index','/pages/shop/index','/pages/product/index?id=serum','/pages/community-author/index?id=someone'])expect(api.requireGuestCommunityAccess(url)).toBe(true);
   expect(wxMock.navigateTo).not.toHaveBeenCalled();
-  for(const target of ['/pages/home/index','/pages/shop/index','/pages/product/index?id=serum','/pages/profile/index','/pages/community-author/index?id=someone']){
+  for(const target of ['/pages/profile/index','/pages/settings/index','/pages/records/index','/pages/checkout/index?id=serum']){
    api.cancelAuthentication();wxMock.navigateTo.mockClear();expect(api.requireGuestCommunityAccess(target)).toBe(false);expect(wxMock.navigateTo).toHaveBeenCalledOnce();
    const query=flowQuery(wxMock.navigateTo.mock.calls[0][0].url);await mount(query);expect(page.authenticationReturnUrl).toBe(target);
   }
   expect(wxMock.login).not.toHaveBeenCalled();expect(paths()).not.toContain('/v1/identity/wechat');
  });
  it('backs out of a blocked guest target to community without suppressing the next explicit login',async()=>{
-  storage.set('cisme.guestBrowsing',true);const {api,query}=await start('/pages/shop/index');await mount(query);await page.back();
+  storage.set('cisme.guestBrowsing',true);const {api,query}=await start('/pages/profile/index');await mount(query);await page.back();
   expect(wxMock.switchTab).toHaveBeenLastCalledWith(expect.objectContaining({url:'/pages/community/index'}));expect(wxMock.navigateBack).not.toHaveBeenCalled();
-  wxMock.navigateTo.mockClear();expect(api.requireGuestCommunityAccess('/pages/shop/index')).toBe(false);expect(wxMock.navigateTo).toHaveBeenCalledOnce();
+  wxMock.navigateTo.mockClear();expect(api.requireGuestCommunityAccess('/pages/profile/index')).toBe(false);expect(wxMock.navigateTo).toHaveBeenCalledOnce();
  });
  it('keeps the comment login return on its exact post and clears guest mode after a real login flow',async()=>{
   storage.set('cisme.guestBrowsing',true);const {query}=await start(article);await mount(query);await page.login();
@@ -53,19 +53,17 @@ describe('Account return destinations belong to one live authentication flow',()
   expect(wxMock.switchTab).toHaveBeenLastCalledWith(expect.objectContaining({url:home}));expect(runtime.globalData.onboardingReturnUrl).toBe(article);
   expect(runtime.globalData.onboardingReturnToken).toBe('synthetic-new-session');expect(storage.has('cisme.guestBrowsing')).toBe(false);
  });
- it.each(['home','shop','product','community-author'])('guards direct/resumed %s before its read or retained presentation can run',async(route)=>{
-  storage.set('cisme.guestBrowsing',true);pages=[{route:'pages/'+route+'/index',options:{}}];
-  await import('../../apps/miniprogram/pages/'+route+'/index');
-  const target={...definition,data:structuredClone(definition.data),setData(v:any,done?:()=>void){Object.assign(this.data,v);done?.();}};
-  target.data.id='serum';target.data.authorId='public-author';target.onShow();
-  expect(wxMock.navigateTo).toHaveBeenCalledOnce();expect(wxMock.navigateTo.mock.calls[0][0].url).toMatch(/^\/pages\/account\/index\?/);
-  expect(requests).toEqual([]);expect(wxMock.login).not.toHaveBeenCalled();
- });
- it.each([0,1,3])('redirects guest tab %s to Account without switching the underlying community',async(index)=>{
+ it.each([0,1])('keeps public guest tab %s usable without authentication',async(index)=>{
   storage.set('cisme.guestBrowsing',true);pages=[{route:'pages/community/index',data:{}}];let component:any;
   vi.stubGlobal('Component',(value:any)=>{component=value;});await import('../../apps/miniprogram/custom-tab-bar/index');
   const bar={...component.methods,data:{...structuredClone(component.data),active:2},setData(v:any){Object.assign(this.data,v);},leaveCommunityFab:vi.fn(),enterCommunityFab:vi.fn()};
-  bar.switchTab({currentTarget:{dataset:{index}}});expect(wxMock.navigateTo).toHaveBeenCalledOnce();expect(wxMock.switchTab).not.toHaveBeenCalled();expect(bar.data.active).toBe(2);
+  bar.switchTab({currentTarget:{dataset:{index}}});expect(wxMock.navigateTo).not.toHaveBeenCalled();expect(wxMock.switchTab).toHaveBeenCalledOnce();
+ });
+ it('still redirects the private member tab to authentication',async()=>{
+  storage.set('cisme.guestBrowsing',true);pages=[{route:'pages/community/index',data:{}}];let component:any;
+  vi.stubGlobal('Component',(value:any)=>{component=value;});await import('../../apps/miniprogram/custom-tab-bar/index');
+  const bar={...component.methods,data:{...structuredClone(component.data),active:2},setData(v:any){Object.assign(this.data,v);},leaveCommunityFab:vi.fn(),enterCommunityFab:vi.fn()};
+  bar.switchTab({currentTarget:{dataset:{index:3}}});expect(wxMock.navigateTo).toHaveBeenCalledOnce();expect(wxMock.switchTab).not.toHaveBeenCalled();
  });
  it.each([{intent:'login'},{}])('ignores a persisted old management target at direct/cold entry %j',async(query)=>{storage.set('cisme.authReturnUrl',old);await mount(query);await page.login();expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));expect(wxMock.redirectTo).not.toHaveBeenCalled();expect(storage.has('cisme.authReturnUrl')).toBe(false);expect(paths().filter(x=>x==='/v1/identity/wechat')).toHaveLength(1);});
  it('discards a cold-restarted flow query without a matching in-memory flow',async()=>{storage.set('cisme.authReturnUrl',old);await mount({intent:'login',authFlow:'previous-process-flow'});await page.login();expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));expect(wxMock.redirectTo).not.toHaveBeenCalled();expect(storage.has('cisme.authReturnUrl')).toBe(false);});
@@ -110,7 +108,7 @@ describe('cold business-session recovery and explicit logout',()=>{
   expect(runtime.globalData.sessionToken).toBe('synthetic-existing-session');expect(wxMock.switchTab).not.toHaveBeenCalled();
   meFailure='';await page.login();expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));
   expect(paths().every(path=>path==='/v1/me'||path==='/v1/identity/capabilities')).toBe(true);
-  expect(paths().filter(path=>path==='/v1/identity/capabilities')).toHaveLength(1);
+  expect(paths().filter(path=>path==='/v1/identity/capabilities')).toHaveLength(0);
   expect(requests.every(request=>(request.method??'GET')==='GET')).toBe(true);expect(wxMock.login).not.toHaveBeenCalled();
  });
  it('only clears an unverified retained session after the user explicitly chooses another login',async()=>{

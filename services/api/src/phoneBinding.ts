@@ -29,6 +29,11 @@ export class PhoneBinding {
   await transaction(this.pool,async client=>{
    await this.lockActiveMember(client,memberId);
    const removed=await client.query('DELETE FROM member_contact WHERE member_id=$1',[memberId]);
+   // Stop old, still-downloadable snapshots from continuing to expose a
+   // withdrawn contact. The member can request a fresh export without it.
+   if(removed.rowCount)await client.query(`UPDATE privacy_export_artifact a SET revoked_at=clock_timestamp()
+     FROM data_export_job j WHERE a.job_id=j.id AND j.member_id=$1 AND a.revoked_at IS NULL`,[memberId]);
+   if(removed.rowCount)await client.query('UPDATE member SET privacy_erasure_revision=privacy_erasure_revision+1 WHERE id=$1',[memberId]);
    if(removed.rowCount)await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id) VALUES($1,'member.phone_unbound','member',$2,'USER_PHONE_UNBIND',gen_random_uuid()::text)`,[`member:${memberId}`,memberId]);
   });
   return {bound:false,masked:null};

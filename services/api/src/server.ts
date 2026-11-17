@@ -65,6 +65,7 @@ import { RefundCommandService } from "./refundCommand.js";
 import { FulfillmentReleaseService } from "./fulfillmentRelease.js";
 import { startWorkerLoop } from "../../worker/src/loop.js";
 import { fulfillmentRuntime } from "./fulfillmentRuntime.js";
+import {WechatTradeEvents} from './wechatTradeEvents.js';
 import type { WechatOrderShippingClient } from "./wechatOrderShipping.js";
 import { SettlementCommandService } from "./settlementCommand.js";
 import { SettlementCycleService } from "./settlementCycle.js";
@@ -188,7 +189,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const commercial = new CommercialMembershipService(pool, authority,config.env);
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
   const followingFeed = new CommunityFollowingService(pool, config, editorial, formalUgc);
-  const ugcSafety = new UgcSafetyService(pool, config, storage);
+  // The same encrypted callback URL continues to accept content-safety events.
+  // Trade notices are durable provider observations, never money commands.
+  const tradeEvents=new WechatTradeEvents(pool,config.wechat.appId??'',config.commerce.fulfillment?.merchantId??'');
+  const ugcSafety = new UgcSafetyService(pool, config, storage,fetch,body=>tradeEvents.receive(body));
   const communityProfile = new CommunityProfileService(pool,config,editorial,formalUgc,ugcSafety,authority);
   const supportAi = createSupportAiBoundary(config.supportAi);
   const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi, async () => {
@@ -243,6 +247,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     (config.env!=="test"||!config.commerce.simulatedPayment?.transferSceneId))
     throw new Error("FAIL_CLOSED:LEGACY_DIRECT_SETTLEMENT_TEST_FIXTURE_ONLY");
   const orders = new CommerceOrderService(pool, authority, deliveryAddresses, commercial, {
+    ...(config.wechat.appId?{identityAppId:config.wechat.appId}:{}),
     enabled: config.commerce.orderFlowEnabled,
     quoteTtlMinutes: config.commerce.quoteTtlMinutes,
     pendingOrderTtlMinutes: config.commerce.pendingOrderTtlMinutes,
@@ -267,7 +272,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       }}}:{})
   });
   const catalog = new CommerceCatalogService(pool, authority, config.env, config.commerce.orderFlowEnabled,
-    formalRecoveryProfile?()=>orders.status().paymentAvailable:undefined);
+    formalRecoveryProfile?()=>orders.status().paymentAvailable:undefined,async()=>!(await tradeEvents.restriction()).restricted);
   if(paymentProfile&&!dependencies.paymentProtocol)
     throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_REQUIRED");
   const payment= paymentProfile&&dependencies.paymentProtocol
@@ -377,7 +382,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         request.method==='GET'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/media\/[0-9a-f-]{36}$/i.test(path) ||
         request.method==='POST'&&/^\/v1\/me\/privacy-requests\/[0-9a-f-]{36}\/export-(revoke|retry)$/i.test(path);
       const historicalCommerceRoute=request.method==='GET'&&(
-        path==='/v1/me/orders'||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
+        path==='/v1/me/orders'||path==='/v1/me/orders/resolve'||/^\/v1\/me\/orders\/[0-9a-f-]{36}$/i.test(path)||
         /^\/v1\/me\/orders\/[0-9a-f-]{36}\/aftersales\/availability$/i.test(path)||
         /^\/v1\/me\/orders\/[0-9a-f-]{36}\/shipment(?:\/tracking)?$/i.test(path)||
         path==='/v1/me/aftersales'||/^\/v1\/me\/aftersales\/[0-9a-f-]{36}$/i.test(path)||
@@ -815,7 +820,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{ Querystring: { targetType?: string } }>("/v1/me/shares", async (request) => service.getShareLinks(request.memberId, service.now(devClock(request)), request.query.targetType));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/catalog", async request => catalog.publicList(request.query));
   app.get<{Params:{productCode:string}}>("/v1/catalog/:productCode", async request => catalog.publicDetail(request.params.productCode));
-  app.get("/v1/commerce/orders/status", async () => orders.status());
+  app.get("/v1/commerce/orders/status", async () => {
+    const status=orders.status(),restriction=await tradeEvents.restriction();
+    return restriction.restricted?{...status,orderFlowEnabled:false,formalMoneyOperationsAvailable:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',paymentRestriction:restriction.reason}:status;
+  });
   app.get('/v1/me/sharing-officer/reward-activities',async(request,reply)=>{reply.header('Cache-Control','private, no-store');return activityRewards.officerOffers(request.memberId);});
   app.post<{Params:{activityId:string}}>('/v1/me/sharing-officer/reward-activities/:activityId/share',request=>activityRewards.prepareOfficerShare(request.memberId,request.params.activityId,idempotencyKey(request)));
   app.get<{Params:{token:string}}>('/v1/rewards/invitations/:token',request=>activityRewards.invitation(request.params.token));
@@ -863,9 +871,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     reply.header("Cache-Control", "no-store");
     return discoverCommerceCommands(pool,request.memberId,request.principalId,config.env,request.params.kind,request.query);
   });
-  app.post("/v1/me/commerce/quotes", async request => orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,service.now(devClock(request))));
-  app.post("/v1/me/orders", async request => orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id,service.now(devClock(request))));
+  app.post("/v1/me/commerce/quotes", async request => {await tradeEvents.requirePaymentsAllowed();return orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,service.now(devClock(request)));});
+  app.post("/v1/me/orders", async request => {await tradeEvents.requirePaymentsAllowed();return orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id,service.now(devClock(request)));});
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query,request.authScope==='privacy_rights'));
+  app.get<{Querystring:{outTradeNo?:string}}>("/v1/me/orders/resolve", async (request,reply) => {
+    reply.header('Cache-Control','private, no-store');
+    return orders.resolveMine(request.memberId,request.query.outTradeNo,request.authScope==='privacy_rights');
+  });
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId", async request => orders.detailMine(request.memberId,request.params.orderId,request.authScope==='privacy_rights'));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel", async request => orders.cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
   const recoveryGate=(capability:RecoveryCapability)=>{
@@ -893,8 +905,21 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       "退款协议测试仅在隔离环境可用",503);
     return refunds;
   };
-  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
-    paymentRequired().prepare(request.memberId,request.principalId,request.params.orderId,request.id));
+  app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>{
+    await tradeEvents.requirePaymentsAllowed();return paymentRequired().prepare(request.memberId,request.principalId,request.params.orderId,request.id);});
+  app.get('/v1/management/commerce/wechat-trade',async(request,reply)=>{
+    await authority.require(request.memberId,'commerce.fulfillment.manage');reply.header('Cache-Control','private, no-store');
+    if(!localFulfillment)throw new DomainError('FULFILLMENT_NOT_ENABLED','微信交易接入尚未配置',503);
+    return localFulfillment.trade.refreshAccount();
+  });
+  app.post('/v1/management/commerce/wechat-trade/clear-control',async request=>{
+    await authority.require(request.memberId,'commerce.fulfillment.manage');await authority.require(request.memberId,'commerce.money.reconcile');
+    if(!localFulfillment)throw new DomainError('FULFILLMENT_NOT_ENABLED','微信交易接入尚未配置',503);
+    return localFulfillment.trade.clearControl(request.principalId??'',(request.body as {reference?:unknown})?.reference,async client=>{
+      await authority.requireWithClient(client,request.memberId,'commerce.fulfillment.manage');
+      await authority.requireWithClient(client,request.memberId,'commerce.money.reconcile');
+    });
+  });
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>
     paymentRequired("query").refresh(request.memberId,request.principalId,request.params.orderId,request.id));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel-verified",async request=>
@@ -1273,6 +1298,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     error=>app.log.error({event:"receipt_watch_tick_failed",...safeFailureFields(error)}),60_000):null;
   const logisticsMessageWorker=shipping?startWorkerLoop(async()=>{await shipping.runMessageCycle();return false;},
     error=>app.log.error({event:"logistics_message_tick_failed",...safeFailureFields(error)}),60_000):null;
+  const tradeWorker=shipping?startWorkerLoop(async()=>{await shipping.runTradeCycle();return false;},
+    error=>app.log.error({event:'wechat_trade_tick_failed',...safeFailureFields(error)}),60_000):null;
   const worker = process.env.RUN_BACKGROUND_WORKER === "true"
     ? startBackgroundWorker(pool, storage, { ugcGoLiveGate: config.ugcGoLiveGate,privacyEnvironment:config.env,
       privacySyntheticExportKey:config.env==='test'?config.privacy.syntheticExportKey:null,accountClosure:new AccountClosure(
@@ -1301,7 +1328,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     ?startFormalRecoveryWorker(config,pool,formalProtocol,error=>app.log.error({event:"formal_recovery_tick_failed",...safeFailureFields(error)})):null;
   app.addHook("onClose", async () => {
     // Close admission on every lane before awaiting any slow provider call.
-    await Promise.all([shippingWorker?.stop(),receiptWorker?.stop(),logisticsMessageWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker?.stop()]);
+    await Promise.all([shippingWorker?.stop(),receiptWorker?.stop(),logisticsMessageWorker?.stop(),tradeWorker?.stop(),recoveryWorker?.stop(),moneyWorker?.stop(),safetyWorker?.stop(),worker?.stop()]);
     await pool.end();
   });
   const stop = () => void app.close().catch((error) => { app.log.error({ event: "shutdown_failed", ...safeFailureFields(error) }); process.exitCode = 1; });

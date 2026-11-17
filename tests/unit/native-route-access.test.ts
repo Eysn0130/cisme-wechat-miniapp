@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { nativeRouteAccess, nativeRouteRequiresMember } from "../../apps/miniprogram/services/route-access";
+import { guestCommunityRouteAllowed, nativeRouteAccess, nativeRouteRequiresMember } from "../../apps/miniprogram/services/route-access";
 import { CommunityAccess } from "../../services/api/src/communityAccess";
 
 const publicRoutes = [
@@ -74,9 +74,10 @@ describe("native route access policy", () => {
   });
 
   it("keeps public read routes open and fails closed for protected or unknown routes", () => {
-    for (const route of publicRoutes) expect(nativeRouteRequiresMember(`${route}?from=test`)).toBe(false);
+    for (const route of publicRoutes) { expect(nativeRouteRequiresMember(`${route}?from=test`)).toBe(false); expect(guestCommunityRouteAllowed(`${route}?from=test`)).toBe(true); }
     for (const route of memberRoutes) expect(nativeRouteRequiresMember(route)).toBe(true);
     expect(nativeRouteRequiresMember("/pages/future/index")).toBe(true);
+    for(const route of [...memberRoutes,"/pages/future/index"])expect(guestCommunityRouteAllowed(route)).toBe(false);
   });
 
   it("does not reintroduce a client login gate on public catalog or community reads", async () => {

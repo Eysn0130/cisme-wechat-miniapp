@@ -2225,6 +2225,31 @@ paths:
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CommerceOrderCreateInput'}}}}
       responses: {'200': {description: Pending-payment order or exact replay}, '409': {description: quote stale or expired, address changed, or inventory unavailable}, '503': {description: order-flow or exact-environment commerce approval closed}}
+  /v1/me/orders/resolve:
+    get:
+      tags: [Commerce]
+      operationId: resolveMyWechatMerchantOrder
+      security: [{session: []}]
+      description: Resolves an immutable payment attempt in this database and current AppID/merchant for the authenticated owner, including narrow historical-order rights. Invalid, missing and other-owner numbers share a 404. No contacts or payment identifiers in the response; private no-store.
+      parameters: [{in: query, name: outTradeNo, required: true, schema: {type: string, pattern: '^CM[0-9]{8}[A-Z0-9]{12}$'}}]
+      responses:
+        '200': {description: Internal UUID only, content: {application/json: {schema: {type: object, required: [id], properties: {id: {type: string, format: uuid}}}}}}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/management/commerce/wechat-trade:
+    get:
+      tags: [Commerce]
+      operationId: readWechatTradeReadiness
+      security: [{session: []}]
+      description: Requires commerce.fulfillment.manage. Reads three fixed official endpoints and durably records sanitized enrollment and path observations. Unknown remains distinct from false or an empty path. Does not assert payment permission or accept any agreement.
+      responses: {'200': {description: Timestamped enrollment, settlement confirmation, detail path and safe error codes; paymentPermissionVerified is always false}, '403': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+  /v1/management/commerce/wechat-trade/clear-control:
+    post:
+      tags: [Commerce]
+      operationId: acknowledgeWechatTradeClearance
+      security: [{session: []}]
+      description: Requires both commerce.fulfillment.manage and commerce.money.reconcile, an explicit platform clearance reference and fresh verified enrollment/confirmation. Clears only the local control latch. No payment, shipping or refund is executed; does not claim a successful real payment.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [reference], properties: {reference: {type: string, minLength: 8, maxLength: 200}}}}}}
+      responses: {'200': {description: Local restriction projection after the audited acknowledgement}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/me/orders/{orderId}:
     get:
       tags: [Commerce]

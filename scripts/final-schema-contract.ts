@@ -6,7 +6,7 @@ type Named={table_name:string;name:string;definition:string};
 /** Query the *result* of all forward migrations. A string in an old migration
  * does not prove that a later migration retained the protection. */
 export async function assertFinalSchemaContract(db:Database){
-  const requiredTables=[
+  const requiredTables=["wechat_trade_account_state","wechat_trade_notice",
     "commercial_membership","commercial_membership_event","commercial_referral_code","commercial_referral_relation",
     "commission_rate_rule","commission_order_snapshot","commission_ledger_entry","commission_payment_inbox",
     "commerce_payment_attempt","commerce_refund_request","commerce_fulfillment_attestation",
