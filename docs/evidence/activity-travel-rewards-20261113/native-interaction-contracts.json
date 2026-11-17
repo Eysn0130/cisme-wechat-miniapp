@@ -1,7 +1,69 @@
 {
   "kind": "Required interaction contracts; not executed native acceptance",
   "routes": [
-    {"route":"pages/rewards/index","primaryContract":"docs/product/CISME-活动奖励与体验券-20261113.md: My Rewards -> restored care questionnaire -> explicit one-of-two bundle -> address -> atomic zero-cash claim -> receipt coupon; owner/environment-bound pending command survives interruption.","acceptanceReferences":["TRV-01","TRV-02","TRV-03","TRV-04","TRV-05","TRV-07","TRV-08","TRV-10"],"statesRequired":["loading","empty","ready","error","sold_out","stale_quote","unknown_command","session_changed","resume","reduced_motion"]},
-    {"route":"pages/management-rewards/index","primaryContract":"docs/product/CISME-活动奖励与体验券-20261113.md: Explicit current grants -> configured campaign -> actual component stock -> canonical awarded member IDs -> idempotent voucher issue -> physical dispatch -> aftersale and bounded XLSX reconciliation; no inferred real inventory or recipient.","acceptanceReferences":["TRV-01","TRV-02","TRV-05","TRV-07","TRV-09","TRV-10"],"statesRequired":["loading","empty","ready","error","capability_revoked","invalid_input","stale_version","unknown_command","session_changed","resume"]}
-  ]
+    {
+      "route": "pages/rewards/index",
+      "primaryContract": "docs/product/CISME-活动奖励与体验券-20261113.md: My Rewards -> restored care questionnaire -> explicit one-of-two bundle -> address -> atomic zero-cash claim -> receipt coupon; owner/environment-bound pending command survives interruption.",
+      "acceptanceReferences": [
+        "TRV-01",
+        "TRV-02",
+        "TRV-03",
+        "TRV-04",
+        "TRV-05",
+        "TRV-07",
+        "TRV-08",
+        "TRV-10"
+      ],
+      "statesRequired": [
+        "loading",
+        "empty",
+        "ready",
+        "error",
+        "sold_out",
+        "stale_quote",
+        "unknown_command",
+        "session_changed",
+        "resume",
+        "reduced_motion"
+      ]
+    },
+    {
+      "route": "pages/management-rewards/index",
+      "primaryContract": "PRD TRV-SHARE-01..08 / TRV-FULFILL-01..03 / TRV-BATCH-01..02: compact campaign context and explicit share link; activity settings, voucher records and claim orders use shared section-tabs. Two real bundle stocks, native date range, recent actor/filter-bound pagination, single dispatch and previewed atomic XLSX batch registration. No manual winner ID entry, no inferred real inventory or fake shipping.",
+      "acceptanceReferences": [
+        "TRV-01",
+        "TRV-02",
+        "TRV-05",
+        "TRV-07",
+        "TRV-09",
+        "TRV-10",
+        "TRV-FULFILL-01",
+        "TRV-FULFILL-02",
+        "TRV-FULFILL-03",
+        "TRV-BATCH-01",
+        "TRV-BATCH-02"
+      ],
+      "statesRequired": [
+        "loading",
+        "empty",
+        "ready",
+        "error",
+        "capability_revoked",
+        "invalid_input",
+        "stale_version",
+        "unknown_command",
+        "session_changed",
+        "resume",
+        "filtered_empty",
+        "date_range",
+        "batch_preview",
+        "batch_invalid",
+        "batch_already_registered",
+        "batch_unknown",
+        "long_member_name",
+        "two_bundle_stock"
+      ]
+    }
+  ],
+  "evidenceScope": "Updated 2026-11-17 contract. Native simulator captures and CI receipts have separate exact source hashes; full route/device acceptance is not inferred."
 }
