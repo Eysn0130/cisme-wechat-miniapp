@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/points/index",
+        "guide": true,
+        "tasks": 14,
+        "suggestion": true,
+        "queries": [
+          "/v1/me/points?limit=20&source=all",
+          "/v1/me/points/club",
+          "/v1/me/points/receipts",
+          "/v1/me/points/suggestions"
+        ]
+      }
+    }
+  }
+}
