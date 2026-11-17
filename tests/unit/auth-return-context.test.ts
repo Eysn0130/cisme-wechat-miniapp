@@ -3,7 +3,7 @@ import {beforeEach,describe,expect,it,vi} from 'vitest';
 // transport callbacks and unrelated avatar/layout/share adapters are synthetic.
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',motionDuration:()=>0,shouldReduceMotion:()=>false}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'local-avatar',clearMemberAvatarCache:vi.fn(),localMemberAvatar:async()=> 'local-avatar',prepareAvatarUpload:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/share',()=>({attributePendingShare:vi.fn()}));
+vi.mock('../../apps/miniprogram/services/share',()=>({prepareShareDetails:async()=>null,attributePendingShare:vi.fn()}));
 vi.mock('../../apps/miniprogram/release-config',()=>({legalDocumentVersions:()=>({terms:'current-terms',privacy:'current-privacy',localFixture:false}),shouldUseDevelopmentIdentity:()=>false}));
 let storage:Map<string,unknown>,runtime:any,page:any,definition:any,pages:any[],wxMock:any,requests:any[],holdIdentity:boolean,heldIdentity:any,newMember:boolean,expireMe:boolean,meFailure:""|"network"|"unavailable",holdMe:boolean,heldMe:(()=>void)|null;
 const home='/pages/home/index',old='/pages/management-fulfillment/index';

@@ -7,7 +7,7 @@ vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,resumeAuth
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:{path:string})=>
  /\/editorial\/articles\/[^/]+\/comments\?/.test(options.path)?Promise.resolve({comments:[],authors:{},commentCount:0,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:0,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-28T00:00:00Z"}):m.request(options),cancelPageReads:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
-vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 
 const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",other="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const media=(letter:string,articleId=id)=>({id:letter.repeat(64),url:`/v1/editorial/media/${articleId}/${letter.repeat(64)}`});

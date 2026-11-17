@@ -41,6 +41,7 @@ const memberRoutes = [
   "/pages/management-members/commercial/index",
   "/pages/management-member/index",
   "/pages/management-catalog/index",
+  "/pages/management-community/index",
   "/pages/management-product/index",
   "/pages/management-support/index",
   "/pages/management-support-chat/index"

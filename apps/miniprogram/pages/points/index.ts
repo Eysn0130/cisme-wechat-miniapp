@@ -1,34 +1,41 @@
+import {confirmCreditOwner} from '../../services/points-feedback';
 import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess,retainMemberSnapshot,request} from '../../services/api';
 import {currentChromeStyle} from '../../services/layout';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 import {clientOperationKey,memberAddresses,type CheckoutAddress} from '../../services/orders';
-import {readMyPoints,readPointsClub,readPointsGifts,readMyRedemptions,redemptionLabels,type PointRules,type PointsSnapshot,type PointsClub,type PointsGift,type PointsRedemption} from '../../services/points';
+import {readMyPoints,readPointsClub,readPointsGifts,readMyRedemptions,redemptionLabels,type PointsTask,type PointRules,type PointsSnapshot,type PointsClub,type PointsGift,type PointsRedemption} from '../../services/points';
 import {pendingPointsGift,preparePointsGift,dispatchPointsGift,inspectPointsGift} from '../../services/points-gift-recovery';
 import {nativeCatalogImage} from '../../services/catalog';
-function pointRuleRows(r:PointRules){return [{title:'护理与连续记录',copy:`每日首次有效护理记录 ${r.daily} 分；满10个有效字的感受额外 ${r.note} 分。同日多个产品只计一次。每连续满7天加 ${r.streak7} 分，每满30天加 ${r.streak30} 分，可叠加并循环；中断重新计数。不要求每天使用洗发水。`},
+function pointRuleRows(r:PointRules){if(r.taskVersion===2)return [
+ {title:'每天记录，认真分享',copy:`每日护理${r.daily}分，满10个有效字的感受再得${r.note}分。连续7天${r.streak7}分、30天${r.streak30}分，可循环，中断重计。评论需至少${r.commentMinHan}个汉字，每日最多${r.commentDailyLimit}条。点赞和浏览不计分。`},
+ {title:'真实体验同样值得',copy:`首次发帖${r.firstPost}分；原创护理心得每月${r.originalMonthlyLimit}篇，每篇${r.originalPost}分；产品体验需关联商品、使用天数和真实过程/感受，每月${r.experienceMonthlyLimit}篇，每篇${r.experiencePost}分。同篇心得与体验不叠加，首次奖励可叠加。正面、负面反馈一视同仁，重复内容不计分；下架或删除撤回对应奖励。`},
+ {title:'购物与分享',copy:`实付商品每满1元计1基础分，不含运费；日常2倍，已配置预售期3倍，两者不叠加。有效支付后到账，退款按原快照冲回。普通首购${r.firstOrder}分，受邀首购改为${r.inviteFriend}分，邀请人${r.inviteSponsor}分；受邀与普通首购不叠加。其他有效分享下单奖励${r.shareOrder}分，同单不与邀请首购奖励叠加。积分与分享官佣金分账。`},
+ {title:'兑换与抵扣',copy:`100积分抵1元。每月${r.memberDay}日可多次抵扣，每笔最多抵可参与商品现金金额的20%，运费不抵。商品范围以结算与后台配置为准。积分兑换单独计价和校验库存，失败不扣分。`},
+ {title:'有效期与退款',copy:`获得后${r.expiryMonths}个自然月有效，提前${r.reminderDays}天提醒。取消释放原批次预占；退款按实际商品现金退款比例返还抵扣积分，已到期的退回积分延长${r.refundGraceDays}天。奖励撤回不足时形成欠分，后续所得先冲抵。已发放和已下单事实保留原规则。不可提现、转让。`}
+ ];return [{title:'护理与连续记录',copy:`每日首次有效护理记录 ${r.daily} 分；满10个有效字的感受额外 ${r.note} 分。同日多个产品只计一次。每连续满7天加 ${r.streak7} 分，每满30天加 ${r.streak30} 分，可叠加并循环；中断重新计数。不要求每天使用洗发水。`},
    {title:'建档与社区',copy:`首次完成基础护理建档 ${r.questionnaire} 分，跳过个人情况或拒绝可选授权不影响。安全检查通过的体验笔记 ${r.post} 分，每周最多 ${r.postWeeklyLimit} 篇；官方精选额外 ${r.featured} 分。同日最多 ${r.commentDailyLimit} 条有效评论，每条 ${r.comment} 分。重复或无意义内容不计分，删除或下架计分内容会撤回奖励。`},
    {title:'购物与邀请',copy:`现金实付商品每满1元基础1分；商品公示3倍时按订单倍率计分，运费不计；首笔有效订单额外 ${r.firstOrder} 分，确认收货后处理。生日当月首单购物积分在商品倍率基础上再乘 ${r.birthdayMultiplier}（3倍商品合计6倍），生日须在下单前填写，每年可设置一次。经邀请分享注册并完成首购收货，邀请人 ${r.inviteSponsor} 分、好友 ${r.inviteFriend} 分。退款会撤回奖励，不重复重置首购资格。`},
    {title:'使用与有效期',copy:`${r.pointsPerYuan} 积分可抵扣商品价1元，单笔最高 ${(r.discountBps/100).toFixed(0)}%，运费不抵扣；全部正常上架商品均可纯积分兑换。获得后 ${r.expiryMonths} 个自然月内有效，提前 ${r.reminderDays} 天在此提示。取消订单释放预占，已过期部分按原规则失效；实际退款退回原批次，已到期的退回积分延长 ${r.refundGraceDays} 天。不可提现或转让。`},
    {title:'异常和权益',copy:'新规则仅处理生效后的新事实，每笔奖励有唯一来源。已使用奖励被撤回后形成欠分，后续所得优先冲抵，欠分未清不能使用积分。规则变更提前公示，已到账积分按原权益保留，未到账来源可在此核对，异常可联系客服。'}];}
 Page({
  token:'',context:0,visible:false,
- data:{chromeStyle:currentChromeStyle(),points:null as PointsSnapshot|null,club:null as PointsClub|null,balanceClass:'',loading:true,loadingMore:false,
+ data:{guideMode:false,taskRows:[] as PointsTask[],suggestionOpen:false,suggestionBody:'',suggestionKey:'',suggestionPendingBody:'',suggestions:[] as Array<{id:string;body:string;state:string;reason:string|null}>,suggestionBusy:false,suggestionError:'',chromeStyle:currentChromeStyle(),points:null as PointsSnapshot|null,club:null as PointsClub|null,balanceClass:'',loading:true,loadingMore:false,
   navigating:false,loadAttempt:0,pageAlive:true,error:'',clubError:'',giftError:'',moreError:'',actionError:'',actionStatus:'',busy:false,
   section:'earn',sections:[{id:'earn',label:'赚积分'},{id:'ledger',label:'积分明细'},{id:'gifts',label:'积分兑换'}],
   source:'all',sources:[{id:'all',label:'全部'},{id:'earn',label:'获得'},{id:'spend',label:'使用'},{id:'expiry',label:'失效'},{id:'adjustment',label:'其他变动'}],
   gifts:[] as PointsGift[],redemptions:[] as PointsRedemption[],addresses:[] as CheckoutAddress[],giftSelected:null as PointsGift|null,selectedAddressId:'',
   rulesOpen:false,
   redemptionsCursor:null as string|null,redemptionsLoading:false,redemptionsError:'',giftQuantity:1,giftTotal:0,addressesState:'loading',addressError:'',recoveryPending:false,recoveryRetryable:false,recoveryKey:'',expiryDate:'',upcomingRules:[] as Array<{version:string;startsLabel:string;rows:Array<{title:string;copy:string}>}>,rulesRows:[] as Array<{title:string;copy:string}>},
- onLoad(){this.data.pageAlive=true;},onResize(){this.setData({chromeStyle:currentChromeStyle()});},
+ onLoad(query:Record<string,string|undefined>={}){this.data.pageAlive=true;this.setData({guideMode:query.guide==='1'});},onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onShow(){this.visible=true;this.data.pageAlive=true;const token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();
   if(this.token!==token||this.context!==context||!retainMemberSnapshot(this)){
-   this.setData({points:null,club:null,gifts:[],redemptions:[],addresses:[],giftSelected:null,balanceClass:'',selectedAddressId:'',addressesState:'loading',addressError:'',recoveryPending:false,error:'',actionError:'',actionStatus:''});
+   this.setData({suggestionBusy:false,suggestionOpen:false,suggestionBody:'',suggestionKey:'',suggestionPendingBody:'',suggestions:[],suggestionError:'',taskRows:[],points:null,club:null,gifts:[],redemptions:[],addresses:[],giftSelected:null,balanceClass:'',selectedAddressId:'',addressesState:'loading',addressError:'',recoveryPending:false,error:'',actionError:'',actionStatus:''});
   }
-  this.token=token;this.context=context;if(!requireMemberAccess()){this.setData({loading:false,error:'登录后即可查看积分。'});return;}
-  this.setData({navigating:false,busy:false,loadingMore:false,redemptionsLoading:false});void this.load();
+  this.token=token;this.context=context;if(!token&&this.data.guideMode){void this.loadPublicGuide();return;}if(!requireMemberAccess()){this.setData({loading:false,error:'登录后即可查看积分。'});return;}
+  this.setData({navigating:false,busy:false,suggestionBusy:false,loadingMore:false,redemptionsLoading:false});void this.load();
  },
- onHide(){this.visible=false;this.data.loadAttempt++;if(this.data.busy)this.setData({busy:false});},
+ onHide(){this.visible=false;this.data.loadAttempt++;this.setData({busy:false,suggestionBusy:false});},
  onUnload(){this.data.pageAlive=false;this.onHide();},
  current(attempt?:number){return this.data.pageAlive&&this.visible&&(attempt??this.data.loadAttempt)===this.data.loadAttempt&&this.token===getApp<IAppOption>().globalData.sessionToken&&this.context===commerceContextRevision();},
  async load(){
@@ -38,16 +45,16 @@ Page({
     this.setData({points,balanceClass:String(points.projection.available).length>=8?'points-hero__balance--compact':'',expiryDate:points.expiring.earliestAt?new Date(Date.parse(points.expiring.earliestAt)+8*3600000).toISOString().slice(0,10):''});
    }).catch(()=>{if(this.current(attempt))this.setData({points:null,error:'积分账本暂时无法加载，请重新查询。'});}),
    readPointsClub().then(c=>{if(!this.current(attempt))return;
-    this.setData({club:c});this.projectRules();
+    confirmCreditOwner(c.memberId);this.setData({club:c,taskRows:c.tasks??[]});this.projectRules();
     try{const pending=pendingPointsGift(c.memberId);this.setData({recoveryPending:Boolean(pending),recoveryRetryable:Boolean(pending?.payload),recoveryKey:pending?.key??''});}
     catch{this.setData({recoveryPending:true,recoveryRetryable:false,actionError:'上次兑换恢复记录需核对，请联系客服后再提交。'});}
    }).catch(()=>{if(this.current(attempt))this.setData({club:null,clubError:'赚分活动暂时无法加载，历史账本仍可查看。'});}),
-   readPointsGifts().then(result=>{if(this.current(attempt))this.setData({gifts:result.items.map(g=>({...g,image:g.image?nativeCatalogImage(g.image):null,stockLabel:g.availableQuantity<1?'暂时兑完':'剩余 '+g.availableQuantity+' 份'}))});})
+   ...(this.data.guideMode?[]:[readPointsGifts().then(result=>{if(this.current(attempt))this.setData({gifts:result.items.map(g=>({...g,image:g.image?nativeCatalogImage(g.image):null,stockLabel:g.availableQuantity<1?'暂时兑完':'剩余 '+g.availableQuantity+' 份'}))});})
     .catch(()=>{if(this.current(attempt))this.setData({gifts:[],giftError:'兑换商品暂时无法加载，请重试。'});}),
    readMyRedemptions().then(result=>{if(this.current(attempt))this.setData({redemptionsCursor:result.nextCursor,redemptionsError:'',redemptions:result.items.map(r=>({...r,stateLabel:redemptionLabels[r.state]??'状态待核对'}))});})
     .catch(()=>{if(this.current(attempt))this.setData({redemptions:[],giftError:'兑换记录暂时无法加载，请重试。'});}),
    memberAddresses().then(result=>{if(this.current(attempt))this.setData({addresses:result.addresses,addressesState:'ready',addressError:''});})
-    .catch(()=>{if(this.current(attempt))this.setData({addresses:[],addressesState:'error',addressError:'收货地址暂时无法加载，请重新核对。'});})
+    .catch(()=>{if(this.current(attempt))this.setData({addresses:[],addressesState:'error',addressError:'收货地址暂时无法加载，请重新核对。'});})])
   ]);
   if(this.current(attempt))this.setData({loading:false});
  },
@@ -56,6 +63,21 @@ Page({
  async loadMore(){const p=this.data.points;if(!p?.nextCursor||this.data.loadingMore||this.data.loading)return;const attempt=this.data.loadAttempt,source=this.data.source;this.setData({loadingMore:true,moreError:''});
   try{const next=await readMyPoints(source,p.nextCursor);if(!this.current(attempt)||source!==this.data.source)return;const ids=new Set(p.entries.map(e=>e.id));this.setData({points:{...next,entries:p.entries.concat(next.entries.filter(e=>!ids.has(e.id)))}});
   }catch{if(this.current(attempt))this.setData({moreError:'更多记录加载失败，请重试。'});}finally{if(this.current(attempt))this.setData({loadingMore:false});}
+ },
+ async loadPublicGuide(){const attempt=++this.data.loadAttempt;this.setData({loading:true,error:'',taskRows:[]});try{const guide=await request<{policy:{rules:PointRules}|null;tasks:PointsTask[]}>({path:'/v1/points/guide',authMode:'public'});if(!this.current(attempt))return;this.setData({taskRows:guide.tasks,rulesRows:guide.policy?pointRuleRows(guide.policy.rules):[],loading:false});}catch{if(this.current(attempt))this.setData({loading:false,error:'积分攻略暂时无法打开，请重试'});}},
+ openLedger(){this.setData({guideMode:false,section:'ledger'});void this.load();},
+ async openTask(event:WechatMiniprogram.TouchEvent){const task=this.data.taskRows.find(x=>x.id===event.currentTarget.dataset.id);if(!task||this.data.navigating||this.data.busy)return;if(!requireMemberAccess('/pages/points/index?guide=1'))return;
+  const destination=task.destination;if(task.state==='pending'&&destination!=='suggestion'){if(!this.data.loading)void this.load();return;}if(destination==='suggestion'){this.setData({suggestionOpen:true,suggestionError:''});void this.loadSuggestions();return;}
+  const urls:Record<string,string>={care:'/pages/home/index',questionnaire:'/pages/home/index',profile:'/pages/settings/index?section=profile',post:'/pages/community-compose/index?new=1&entry=text',experience:'/pages/community-compose/index?new=1&entry=text&task=experience',community:'/pages/community/index',shop:'/pages/shop/index',invite:'/pages/invite/index'};
+  const url=urls[destination];if(!url)return;this.setData({navigating:true});const fail=()=>{if(this.visible)this.setData({navigating:false});wx.showToast({title:'页面暂时无法打开，请重试',icon:'none'});};if(['care','questionnaire','community','shop'].includes(destination))wx.switchTab({url,fail});else wx.navigateTo({url,fail});
+ },
+ closeSuggestion(){if(!this.data.suggestionBusy)this.setData({suggestionOpen:false});},
+ editSuggestion(event:WechatMiniprogram.Input){if(!this.data.suggestionBusy&&!this.data.suggestionKey)this.setData({suggestionBody:event.detail.value,suggestionError:''});},
+ async loadSuggestions(){const attempt=this.data.loadAttempt;try{const result=await request<{items:Array<{id:string;body:string;state:string;reason:string|null}>}>({path:'/v1/me/points/suggestions'});if(this.current(attempt))this.setData({suggestions:result.items});}catch{if(this.current(attempt))this.setData({suggestionError:'建议记录暂未加载，可重试查看'});}},
+ async submitSuggestion(){if(this.data.suggestionBusy||!this.data.club?.memberId)return;const body=this.data.suggestionPendingBody||this.data.suggestionBody.trim();if((body.match(/\p{Script=Han}/gu)??[]).length<15){this.setData({suggestionError:'请填写至少15个汉字的具体建议'});return;}
+  const key=this.data.suggestionKey||clientOperationKey('points-suggestion'),attempt=this.data.loadAttempt;this.setData({suggestionBusy:true,suggestionKey:key,suggestionPendingBody:body,suggestionError:''});
+  try{await request({path:'/v1/me/points/suggestions',method:'POST',idempotencyKey:key,data:{body},cacheTags:['points']});if(!this.current(attempt))return;this.setData({suggestionKey:'',suggestionPendingBody:'',suggestionBody:'',suggestionBusy:false,actionStatus:'建议已提交，审核通过后积分到账'});await this.loadSuggestions();}
+  catch(error){if(this.current(attempt)){const status=(error as {status?:number}).status,definite=!!status&&status<500;this.setData({suggestionBusy:false,suggestionError:(error as {title?:string}).title||'结果待确认，请重试原提交',...(definite?{suggestionKey:'',suggestionPendingBody:''}:{})});}}
  },
  openRules(){this.setData({rulesOpen:true});},closeRules(){this.setData({rulesOpen:false});},
  projectRules(){const c=this.data.club;this.setData({rulesRows:c?.policy?pointRuleRows(c.policy.rules):[],upcomingRules:(c?.upcomingPolicies??[]).map(p=>({version:p.version,startsLabel:new Date(Date.parse(p.starts_at)+8*3600000).toISOString().slice(0,16).replace('T',' '),rows:pointRuleRows(p.rules)}))});},

@@ -47,15 +47,16 @@ it('stops new reads immediately after the member service grant is revoked',async
 it('does not turn qualification management into commission, settlement or contact permission',async()=>{await grant(reader,['member.manage']);const qualification:any=await service.section(reader.memberId,member.memberId,'sharing');expect(qualification.data.commission).toBeNull();expect(qualification.data.orderCount).toBeNull();for(const section of ['sharing-orders','settlements'])await expect(service.section(reader.memberId,member.memberId,section)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});});
 
 it('does not present an expired referrer as the current member relation',async()=>{
- await pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) VALUES($1,'SO1234567890','active')",[reader.memberId]);
+ await pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) SELECT $1,user_code,'active' FROM member_card_number WHERE member_id=$1",[reader.memberId]);
+ const code=(await pool.query('SELECT user_code FROM member_card_number WHERE member_id=$1',[reader.memberId])).rows[0].user_code;
  const policy=(await pool.query("INSERT INTO sharing_policy(enabled,priority,self_purchase,basis_points,release_days,reason,created_principal) VALUES(true,'first',false,1000,7,'isolated expired relation','fixture') RETURNING id")).rows[0].id;
  try{
   await pool.query("INSERT INTO sharing_customer_relation(buyer_id,officer_id,source,effective_at,expires_at,policy_id) VALUES($1,$2,'first_touch',now()-interval '2 day',now()-interval '1 day',$3)",[member.memberId,reader.memberId,policy]);
   expect((await service.overview(reader.memberId,member.memberId)).member.sharing?.referrerCode).toBeNull();
   const detail:any=await service.section(reader.memberId,member.memberId,'sharing');expect(detail.data.relation).toBeNull();
   await pool.query('UPDATE sharing_customer_relation SET expires_at=NULL WHERE buyer_id=$1',[member.memberId]);
-  expect((await service.overview(reader.memberId,member.memberId)).member.sharing?.referrerCode).toBe('SO1234567890');
-  expect((await service.section(reader.memberId,member.memberId,'sharing') as any).data.relation.referral_code).toBe('SO1234567890');
+  expect((await service.overview(reader.memberId,member.memberId)).member.sharing?.referrerCode).toBe(code);
+  expect((await service.section(reader.memberId,member.memberId,'sharing') as any).data.relation.referral_code).toBe(code);
  }finally{/* Immutable synthetic history belongs to this disposable database and is removed only with its owned instance. */}
 });
 
@@ -74,4 +75,9 @@ it('shows the member’s own operations and excludes administrator activity on t
  ($3,$4,'member.admin.roles.read','member',$6,'member-administrator-fixture')`,[own,staff,adminAction,'member:'+member.memberId,'member:'+manager.memberId,member.memberId]);
  const logs:any=await service.section(reader.memberId,member.memberId,'logs');expect(logs.items.some((r:any)=>r.id===own)).toBe(true);expect(logs.items.some((r:any)=>r.id===staff||r.id===adminAction)).toBe(false);expect(logs.items.every((r:any)=>!r.title.startsWith('member.admin.'))).toBe(true);
  const record=(await pool.query('SELECT id FROM member_points_checkin WHERE member_id=$1 LIMIT 1',[member.memberId])).rows[0];await pool.query("INSERT INTO member_points_command(member_id,operation_id,action,source_id,request_sha256,created_at) VALUES($1,'user-log-checkin','checkin',$2,$3,now())",[member.memberId,record.id,'a'.repeat(64)]);expect((await service.section(reader.memberId,member.memberId,'logs') as any).items.some((r:any)=>r.title==='care.usage.save')).toBe(false);await grant(reader,['member.care.read']);const withCare:any=await service.section(reader.memberId,member.memberId,'logs');expect(withCare.items.find((r:any)=>r.title==='care.usage.save')).toMatchObject({source:{kind:'care'}});const first:any=await service.section(reader.memberId,member.memberId,'logs',{limit:1});expect(first.nextCursor).toBeTruthy();const next:any=await service.section(reader.memberId,member.memberId,'logs',{limit:1,cursor:first.nextCursor});expect(next.items[0].id).not.toBe(first.items[0].id);
+});
+it('finds the same member by both the sequential card number and the stable public user code',async()=>{
+ const result=await service.overview(reader.memberId,member.memberId);expect(result.member.userCode).toMatch(/^[A-Z0-9]{12}$/);
+ for(const q of [result.member.userCode.toLowerCase(),result.member.cardNumber])expect((await service.list(reader.memberId,{q})).items.map(r=>r.id)).toEqual([member.memberId]);
+ const own=await app.inject({url:'/v1/me/profile',headers:auth(member)});expect(own.statusCode).toBe(200);expect(own.json().user_code).toBe(result.member.userCode);
 });

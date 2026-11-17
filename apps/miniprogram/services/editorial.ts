@@ -34,6 +34,7 @@ import { pageRead } from "./page-requests";
 export interface PublishedEditorialCard {
   id:string; title:string; excerpt:string; authorId:string; author:string; avatar:string;
   coverUrl:string|null; publishedAt:string; likeCount:number; saveCount:number;
+  kind?:'editorial'|'formal';coverId?:string|null;avatarRevision?:string|null;
 }
 export interface PublishedEditorialArticle extends PublishedEditorialCard {
   version:number; body:string; media:PublishedEditorialMedia[]; liked:boolean; saved:boolean;
@@ -86,6 +87,9 @@ function read<T>(page:object|undefined,path:string):Promise<T> {
 }
 export function publishedEditorialArticles(page?:object,cursor?:string|null):Promise<PublishedEditorialPage> {
   return read(page,`/v1/editorial/articles?limit=20${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`);
+}
+export function publishedCommunityFeatured(page?:object,cursor?:string|null):Promise<PublishedEditorialPage> {
+  return read(page,`/v1/community/featured?limit=20${cursor?`&cursor=${encodeURIComponent(cursor)}`:''}`);
 }
 export function publishedEditorialArticle(id:string,page?:object):Promise<PublishedEditorialArticle> {
   return read(page,`/v1/editorial/articles/${identifier(id)}`);

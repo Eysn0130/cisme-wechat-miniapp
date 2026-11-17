@@ -115,3 +115,20 @@ condition = "AND"
 paths = ['''^tests/integration/activity-travel-rewards\.test\.ts$''']
 regexTarget = "match"
 regexes = ["apiV3Key='0123456789abcdef0123456789abcdef'"]
+
+
+[[allowlists]]
+description = "Exact synthetic session secret label in the isolated points-v2 HTTP fixture; not a live credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/integration/member-points-v2\.test\.ts$''']
+regexTarget = "match"
+regexes = ["APP_SESSION_SECRET:'points-v2-isolated'"]
+
+[[allowlists]]
+description = "Exact public local-storage queue name in historical account fixture 91cc22c7; not a credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/unit/account-expired-pending\.test\.ts$''']
+regexTarget = "match"
+regexes = ["key==='cisme\\.officer-visits\\.v1'"]

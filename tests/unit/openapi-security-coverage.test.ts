@@ -9,6 +9,7 @@ import { documentedOperations, registeredSourceOperations } from "../../scripts/
 // become public merely by adding `security: []` to OpenAPI.
 const publicOperations = new Set([
   "GET /v1/capabilities",
+  "GET /v1/points/guide",
   "GET /v1/rewards/invitations/{token}",
   "GET /v1/identity/capabilities",
   "GET /v1/legal",
@@ -45,7 +46,7 @@ const publicOperations = new Set([
   "GET /v1/ugc/safety-callback",
   "POST /v1/ugc/safety-callback"
 ]);
-const optionalSessionOperations = new Set(["GET /v1/community/{postId}",
+const optionalSessionOperations = new Set(["GET /v1/community/featured", "GET /v1/community/{postId}",
   "GET /v1/community/authors/{id}",
   "GET /v1/editorial/articles/{id}", "GET /v1/editorial/authors/{id}"]);
 

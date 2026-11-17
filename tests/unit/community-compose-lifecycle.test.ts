@@ -2,7 +2,7 @@ import {beforeEach,afterEach,describe,expect,it,vi} from "vitest";
 const m=vi.hoisted(()=>({request:vi.fn(),upload:vi.fn(),token:"member-a"}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,uploadAuthorized:m.upload,resumeAuthentication:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
-vi.mock("../../apps/miniprogram/services/commerce-command-store",()=>({commerceContextRevision:()=>1}));
+vi.mock("../../apps/miniprogram/services/commerce-command-store",()=>({commerceContextRevision:()=>1,commerceUuid:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i}));
 const owner="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",post="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",image="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 let definition:any,wxMock:any,storage:Map<string,unknown>,pages:any[];
 const deferred=()=>{let resolve!:(value:any)=>void,reject!:(error:any)=>void;return{promise:new Promise<any>((yes,no)=>{resolve=yes;reject=no;}),resolve,reject};};
@@ -70,7 +70,7 @@ describe("community composer command ownership",()=>{
     m.request.mockResolvedValue(draft({body:page.data.body,version:2}));
     const saved=await page.saveDraft();expect(saved?.version).toBe(2);expect(m.request).toHaveBeenCalledOnce();
     expect(m.request.mock.calls[0]![0]).toMatchObject({method:"PUT",path:`/v1/me/ugc/posts/${post}/draft`,data:{title:"",body:page.data.body,mediaIds:[],expectedVersion:1}});
-    expect(Object.keys(m.request.mock.calls[0]![0].data).sort()).toEqual(["body","expectedVersion","mediaIds","title"]);
+    expect(Object.keys(m.request.mock.calls[0]![0].data).sort()).toEqual(["body","expectedVersion","experienceDays","experienceProductCode","mediaIds","rewardKind","title"]);
     expect(page.data).toMatchObject({state:"draft",publicVersionActive:false,dirty:false,notice:"草稿已保存。"});
   });
   it("publishes directly through save and submit without a settings step or legacy flags",async()=>{

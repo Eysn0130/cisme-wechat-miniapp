@@ -55,7 +55,7 @@ describe("empty and N-1 database lifecycle", () => {
     // order to manufacture an old fixture boundary.
     prefixDirectory=await mkdtemp(join(tmpdir(),'cisme-owned-migration-prefix-'));
     await mkdir(join(prefixDirectory,'db/migrations'),{recursive:true});
-    let migrationTip = migrationFiles.at(-1)!;
+    let migrationTip = '202611160002_community_post_curation.sql';
     const migrate = async (direction:"up"|"down") => {
       for(const name of migrationFiles){const target=join(prefixDirectory!,'db/migrations',name);
         if(direction==='down'||name<=migrationTip)await writeFile(target,await readFile(join('db/migrations',name)));
@@ -63,8 +63,8 @@ describe("empty and N-1 database lifecycle", () => {
       }
       return exec(resolve('node_modules/.bin/tsx'),[resolve('scripts/migrate.ts'),direction],{env,cwd:prefixDirectory});
     };
-    let migrationCount = migrationFiles.length;
-    let extensionCount = migrationFiles.filter((file) => file >= "202609120002_commercial_membership_referral.sql").length;
+    let migrationCount = migrationFiles.filter(name=>name<=migrationTip).length;
+    let extensionCount = migrationFiles.filter((file) => file >= "202609120002_commercial_membership_referral.sql"&&file<=migrationTip).length;
     await migrate('up');
     let pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
@@ -123,7 +123,18 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
-    //117 changes only scoped authority constraints and refuses to discard grant facts.
+    expect(migrationTip).toBe('202611160002_community_post_curation.sql');
+    const curationDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
+    const curationGuard=await pool.connect();
+    try{await curationGuard.query('BEGIN');
+      const actor=(await curationGuard.query("INSERT INTO member(display_name) VALUES('isolated curation rollback guard') RETURNING id")).rows[0].id;
+      const post=(await curationGuard.query("INSERT INTO ugc_post(author_member_id,client_request_key) VALUES($1,'isolated-curation-rollback') RETURNING id",[actor])).rows[0].id;
+      await curationGuard.query("INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body) VALUES($1,1,$2,'isolated guard','isolated nonpublic fixture')",[post,actor]);
+      await curationGuard.query('UPDATE ugc_post SET featured_revision=1,featured_at=now(),featured_by=$2 WHERE id=$1',[post,actor]);
+      await expect(curationGuard.query(curationDown)).rejects.toThrow('COMMUNITY_CURATION_ROLLBACK_REQUIRES_DATA_PRESERVATION');
+    }finally{await curationGuard.query('ROLLBACK');curationGuard.release();}
+    await migrate('down');await migrate('up');await migrate('down');migrationTip='202611160001_reward_shared_invitations.sql';migrationCount-=1;extensionCount-=1;
+    //118 preserves invitation grant facts on a down migration.
     expect(migrationTip).toBe('202611160001_reward_shared_invitations.sql');
     const shareDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
     const shareGuard=await pool.connect();
@@ -547,10 +558,20 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT count(*)::int count FROM emergency_switch")).rows[0].count).toBe(7);
     await closePool(pool);
 
-    migrationTip=migrationFiles.at(-1)!;
+    migrationTip='202611160002_community_post_curation.sql';await migrate('up');
+    pool=migrationPool();const legacyOfficer=(await pool.query("INSERT INTO member(display_name) VALUES('synthetic legacy officer code') RETURNING id")).rows[0].id;
+    await pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) VALUES($1,'SO0987654321','active')",[legacyOfficer]);
+    const originalNumber=(await pool.query('SELECT number::text FROM member_card_number WHERE member_id=$1',[legacyOfficer])).rows[0].number;
+    await closePool(pool);
+    migrationTip='202611170001_member_user_code.sql';
     await migrate('up');
     pool = migrationPool();
-    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.length);
+    expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.indexOf(migrationTip)+1);
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('MEMBER_PUBLIC_CODE_ROLLBACK_REQUIRES_IDENTIFIER_PRESERVATION')});
+    expect((await pool.query('SELECT user_code,number::text FROM member_card_number WHERE member_id=$1',[legacyOfficer])).rows[0]).toEqual({user_code:'SO0987654321',number:originalNumber});
+    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('POINTS_V2_ROLLBACK_REQUIRES_ASSET_PRESERVATION')});
+    expect((await pool.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(migrationFiles.length);
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     expect(await capabilityNames()).toEqual([...CAPABILITIES].sort());

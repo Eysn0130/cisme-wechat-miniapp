@@ -35,3 +35,10 @@ it('drops a definitively invalid link without blocking unrelated checkout, and r
  const api=await import('../../apps/miniprogram/services/officer-attribution');m.request.mockRejectedValue({code:'SHARING_LINK_NOT_FOUND'});expect(await api.incomingOfficerShare(a)).toBeNull();expect(storage.get(key)).toHaveLength(0);
  storage.set(key,[{shareId:'bad'}]);m.token='owner-a';await expect(api.flushOfficerVisits()).rejects.toMatchObject({code:'SHARING_RECOVERY_INVALID'});
 });
+
+it('resolves a queued anonymous visit before identity creation and blocks only a transient unresolved visit',async()=>{
+ const api=await import('../../apps/miniprogram/services/officer-attribution');m.request.mockRejectedValue({code:'NETWORK_TIMEOUT'});await expect(api.incomingOfficerShare(a)).rejects.toMatchObject({code:'NETWORK_TIMEOUT'});
+ const original=m.request.mock.calls[0]![0].data.visitKey;await expect(api.prepareOfficerLoginVisits()).rejects.toMatchObject({code:'NETWORK_TIMEOUT'});expect(m.token).toBe('');
+ m.request.mockResolvedValue({productCode:'test-product',visitToken:tokenA});await api.prepareOfficerLoginVisits();expect(m.request.mock.calls.at(-1)![0].data.visitKey).toBe(original);expect(storage.get(key)[0].token).toBe(tokenA);expect(m.request.mock.calls.every(([o])=>o.path.endsWith('/visits'))).toBe(true);
+ m.token='newly-created-member';m.request.mockResolvedValue({recorded:true});await api.flushOfficerVisits();expect(storage.get(key)).toHaveLength(0);
+});

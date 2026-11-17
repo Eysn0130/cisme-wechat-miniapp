@@ -4,7 +4,7 @@ const mocks=vi.hoisted(()=>({request:vi.fn(),pause:vi.fn(),stop:vi.fn(),exit:vi.
 vi.mock("../../apps/miniprogram/services/api",()=>({request:mocks.request,resumeAuthentication:vi.fn(),beginLegalRenewal:vi.fn(),clearAuthenticationRedirectSuppression:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:unknown)=>mocks.request(options),cancelPageReads:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
-vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const videoPath=`/v1/editorial/media/${id}/${"c".repeat(64)}`;
 const posterPath=`/v1/editorial/media/${id}/${"d".repeat(64)}`;

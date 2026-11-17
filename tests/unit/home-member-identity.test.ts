@@ -6,7 +6,7 @@ vi.mock("../../apps/miniprogram/services/api", () => ({
 }));
 vi.mock('../../apps/miniprogram/services/rewards',()=>({acceptRewardInvitation:mocks.gift,rewardInvitation:mocks.invitation,rewardCopy:(e:any)=>e.title||'请重试',rewardExpiry:()=> '2026.12.16 08:00'}));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
-vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));
+vi.mock("../../apps/miniprogram/services/share", () => ({ prepareShareDetails:async()=>null,registerIncomingShare: vi.fn() }));
 
 let page: any;
 let identity: typeof import("../../apps/miniprogram/services/member-identity");

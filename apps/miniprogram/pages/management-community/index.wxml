@@ -1,0 +1,30 @@
+<view class="management-ui posts-page" style="{{chromeStyle}}">
+  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回管理中心"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">社区帖子管理</text></view>
+  <view class="posts-body">
+    <view class="posts-search"><input value="{{qInput}}" bindinput="inputSearch" bindconfirm="search" maxlength="80" confirm-type="search" placeholder="搜索帖子或作者" aria-label="搜索帖子或作者" disabled="{{!!busyId}}"/><button class="text-button {{!!busyId?'control--disabled':''}}" bindtap="search" disabled="{{!!busyId}}">搜索</button></view>
+    <section-tabs items="{{[{id:'recommend',label:'推荐'},{id:'featured',label:'精选'},{id:'hidden',label:'已下架'}]}}" value="{{tab}}" label="帖子展示位置" bindchange="selectTab" disabled="{{!!busyId}}"/>
+    <view class="posts-summary"><text wx:if="{{total!==null}}">{{total}} 篇</text><text wx:else aria-hidden="true"> </text><button class="text-button {{!!busyId?'control--disabled':''}}" bindtap="openGovernance" disabled="{{!!busyId}}">举报与申诉</button><button class="text-button {{loading||loadingMore||!!busyId?'control--disabled':''}}" bindtap="refresh" disabled="{{loading||loadingMore||!!busyId}}">刷新</button></view>
+    <view wx:if="{{error}}" class="posts-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{!denied}}" class="text-button {{!!busyId?'control--disabled':''}}" bindtap="refresh" disabled="{{!!busyId}}">重试</button></view>
+    <view wx:if="{{loading&&!ready}}" class="posts-skeleton" aria-role="status" aria-label="正在读取帖子"><view wx:for="{{[0,1,2]}}" wx:key="*this" class="posts-skeleton__row"><view class="posts-skeleton__image"/><view class="posts-skeleton__copy"><view/><view/><view class="posts-skeleton__line--short"/></view></view></view>
+    <view wx:if="{{ready&&!rows.length&&!error}}" class="posts-empty">{{q?'没有找到相关帖子':tab==='featured'?'还没有会员精选':tab==='hidden'?'暂无下架帖子':'暂无推荐帖子'}}</view>
+    <view wx:for="{{rows}}" wx:key="id" class="post-row">
+      <view class="post-row__content" data-id="{{item.id}}" bindtap="openDetail" aria-role="button" aria-label="查看{{item.displayTitle}}">
+        <image wx:if="{{item.coverSrc}}" class="post-row__cover" src="{{item.coverSrc}}" mode="aspectFill" lazy-load/>
+        <view class="post-row__copy"><text class="post-row__title">{{item.displayTitle}}</text><text wx:if="{{item.excerpt&&item.title}}" class="post-row__excerpt">{{item.excerpt}}</text></view>
+      </view>
+      <view class="post-row__author"><image src="{{item.avatarSrc}}" mode="aspectFill"/><text class="post-row__name">{{item.author}}</text><text class="post-row__date">{{item.dateLabel}}</text></view>
+      <view class="post-row__footer"><text class="post-row__stats">{{item.likeCount}} 赞 · {{item.commentCount}} 评论</text><view class="post-row__actions">
+        <button wx:if="{{item.state==='published'}}" class="text-button {{loading||!!busyId?'control--disabled':''}}" data-id="{{item.id}}" data-action="{{item.placement==='featured'?'recommend':'featured'}}" bindtap="act" disabled="{{loading||!!busyId}}">{{item.placement==='featured'?'移回推荐':'设为精选'}}</button>
+        <button wx:if="{{item.state==='published'}}" class="text-button {{loading||!!busyId?'control--disabled':''}}" data-id="{{item.id}}" data-action="hide" bindtap="act" disabled="{{loading||!!busyId}}">下架</button>
+        <button class="text-button post-row__delete {{loading||!!busyId?'control--disabled':''}}" data-id="{{item.id}}" data-action="delete" bindtap="act" disabled="{{loading||!!busyId}}">删除</button>
+      </view></view>
+    </view>
+    <view wx:if="{{loadingMore}}" class="posts-more" aria-role="status" aria-label="正在读取更多帖子"><view class="page-read-loading__indicator"/></view>
+    <button wx:elif="{{nextCursor}}" class="text-button posts-more {{!!busyId?'control--disabled':''}}" bindtap="onReachBottom" disabled="{{!!busyId}}">查看更多</button>
+  </view>
+  <view wx:if="{{detail}}" class="post-detail-mask" bindtap="closeDetail" catchtouchmove="hold"><view class="post-detail" catchtap="hold" aria-role="dialog" aria-modal="{{true}}" aria-label="帖子详情">
+    <view class="post-detail__head"><text>帖子详情</text><button class="text-button {{!!busyId?'control--disabled':''}}" bindtap="closeDetail" disabled="{{!!busyId}}">关闭</button></view>
+    <scroll-view class="post-detail__scroll" scroll-y enhanced show-scrollbar="{{false}}"><view class="post-detail__body"><text class="post-detail__title">{{detail.displayTitle}}</text><text class="post-detail__author">{{detail.author}}</text><image wx:if="{{detail.coverSrc}}" class="post-detail__image" src="{{detail.coverSrc}}" mode="aspectFill"/><text wx:if="{{detail.body}}" class="post-detail__text">{{detail.body}}</text><text wx:if="{{detail.state==='hidden'}}" class="post-detail__state">已下架</text></view></scroll-view>
+    <button wx:if="{{detail.state==='published'}}" class="text-button post-detail__original" bindtap="openOriginal">打开原帖</button>
+  </view></view>
+</view>

@@ -1,3 +1,4 @@
+import {clubRulesV1} from '../../services/api/src/pointsLedger';
 import {createHash,randomUUID} from 'node:crypto';
 import {afterAll,beforeAll,expect,it,vi} from 'vitest';
 import sharp from 'sharp';
@@ -71,7 +72,11 @@ const intent=()=>new FormalUgcService(pool,config,storage,new AuthorityService(p
 const finish=(id:string)=>new UgcDirectPublication(pool,config,storage).finish(id);
 const scan=(id:string)=>new UgcSafetyService(pool,config,storage,provider).scanPost(owner.memberId,id,'https://scan.synthetic.invalid');
 beforeAll(async()=>{
-  vi.stubGlobal('fetch',provider);await resetDatabase(pool);await storage.ensureReady();app=await createApp({config,pool,storage});
+  vi.stubGlobal('fetch',provider);await resetDatabase(pool);
+  // Keep this historical-rule regression under its original immutable policy.
+  await pool.query("UPDATE member_points_policy SET state='retired',retired_at=clock_timestamp() WHERE state='active'");
+  await pool.query(`INSERT INTO member_points_policy(version,rules,state,starts_at,approved_at,approval_source,approval_evidence) VALUES('synthetic-engagement-legacy-v1',$1,'active',clock_timestamp(),clock_timestamp(),'owner_instruction_20261110','isolated historical policy regression only')`,[clubRulesV1]);
+  await storage.ensureReady();app=await createApp({config,pool,storage});
   owner=await identity('sync-owner');reader=await identity('sync-reader');
   await pool.query(`INSERT INTO ugc_go_live_approval(approval_reference,signed_by,evidence,signed_at,expires_at)
     VALUES('synthetic-sync','isolated fixture','{"scope":"isolated only"}',now(),now()+interval '1 hour')`);
@@ -97,7 +102,7 @@ it('rewards only two newly safe public posts per Shanghai week, adds featured se
  publicPost=posts[1]!;await processRewards();expect(await balance(owner)).toBe(100);
  await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'community.moderate','fixture','Synthetic points featured','test','integration_fixture')",[reader.memberId]);
  const selected=await app.inject({method:'POST',url:`/v1/management/points/featured/${posts[0]!.id}`,headers:auth(reader),payload:{reason:'合成真实来源精选核对'}});expect(selected.statusCode,selected.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(200);
- const removed=await app.inject({method:'DELETE',url:`/v1/me/ugc/posts/${posts[0]!.id}`,headers:auth(),payload:{expectedVersion:posts[0]!.version}});expect(removed.statusCode,removed.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(50);
+ const removed=await app.inject({method:'DELETE',url:`/v1/me/ugc/posts/${posts[0]!.id}`,headers:auth(),payload:{expectedVersion:selected.json().version}});expect(removed.statusCode,removed.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(50);
 });
 it('supports an image-only published note without a null-body reward failure',async()=>{
  const previous=owner;owner=await identity('合成纯图片积分');try{const d=await draft(1,null),p=await submit(d.post);expect(p.statusCode,p.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(50);}finally{owner=previous;}

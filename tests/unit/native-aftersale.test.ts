@@ -11,7 +11,7 @@ beforeEach(()=>{vi.resetModules();vi.useFakeTimers();token='synthetic';m.request
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 async function page(management=false){await import('../../apps/miniprogram/pages/aftersale/index');const p={...def,data:structuredClone(def.data),setData(p:any){Object.assign(this.data,p);}};p.onLoad({mode:management?'management':'',orderId:record.orderId});await p.onShow();return p;}
 it('uses only server capabilities for management and keeps customer reads owner-scoped',async()=>{const p=await page();expect(p.data.coreReady).toBe(true);expect(m.authority).not.toHaveBeenCalled();expect(m.request.mock.calls[0]![0].path).toContain('/v1/me/aftersales?');const q=await page(true);expect(q.data.coreReady).toBe(true);expect(m.request.mock.calls.at(-1)![0].path).toContain('/v1/management/aftersales?');});
-it('does not confuse returned stock, channel acceptance and verified refund success',async()=>{const p=await page(true);expect(p.normalize({...record,state:'refund_pending',refund:{submissionState:'accepted'},resolved:false}).label).toBe('退款处理中');expect(p.normalize({...record,resolved:true}).label).toBe('已退款');expect(p.selectActions({...record,state:'return_received',kind:'return_refund'})).toEqual([]);p.data.capabilities=['commerce.return.inspect'];expect(p.selectActions({...record,state:'return_received'})).toEqual([{action:'inspect_return',label:'记录质检结果'}]);});
+it('does not confuse returned stock, channel acceptance and verified refund success',async()=>{const p=await page(true);expect(p.normalize({...record,state:'refund_pending',refund:{submissionState:'accepted'},resolved:false}).label).toBe('退款处理中');expect(p.normalize({...record,resolved:true}).label).toBe('已退款');expect(p.selectActions({...record,state:'return_received',kind:'return_refund'})).toEqual([]);p.data.capabilities=['commerce.return.inspect'];expect(p.selectActions({...record,state:'return_received'})).toEqual([{action:'inspect_return',label:'提交质检'}]);});
 it('uses the same key/payload after uncertainty and blocks duplicate submission',async()=>{const p=await page();p.selection=record.id;p.data.selected=record;p.data.available=[{action:'cancel',label:'撤回申请'}];p.data.note='原始合成说明';let reject!:(e:any)=>void;m.request.mockImplementationOnce(()=>new Promise((_,r)=>reject=r));const event={currentTarget:{dataset:{action:'cancel'}}};const write=p.submit(event);await Promise.resolve();await p.submit(event);reject({status:504});await write;const original=structuredClone(p.pending);p.data.note='不能替换原请求';m.request.mockResolvedValueOnce(record).mockResolvedValueOnce({items:[record],nextCursor:null}).mockResolvedValueOnce(record);await p.submit(event);const writes=m.request.mock.calls.map(([x])=>x).filter(x=>x.method==='POST');expect(writes).toHaveLength(2);for(const w of writes){expect(w.idempotencyKey).toBe(original.key);expect(w.data.note).toBe('原始合成说明');}});
 it('clears private data and ignores late responses on hide',async()=>{const p=await page();let resolve!:(e:any)=>void;m.request.mockImplementationOnce(()=>new Promise(r=>resolve=r));p.data.note='合成私密说明';const load=p.load();p.onHide();resolve({items:[record],nextCursor:null});await load;expect(p.data.items).toEqual([]);expect(p.data.note).toBe('');expect(p.data.coreReady).toBe(false);});
 it('requires fresh facts and explicit reconciliation after an interrupted request',async()=>{const p=await page();p.selection=record.id;p.data.selected=record;p.data.available=[{action:'cancel',label:'撤回申请'}];p.data.note='合成未确认操作';m.request.mockRejectedValueOnce({status:504});const event={currentTarget:{dataset:{action:'cancel'}}};await p.submit(event);await p.reconcile();expect(p.pending).not.toBeNull();expect(p.data.notice).toContain('刷新');p.onHide();expect(p.pending).toBeNull();expect(p.data.needsReconcile).toBe(true);await p.onShow();p.data.note='新的申请';await p.submit(event);expect(m.request.mock.calls.filter(([x])=>x.method==='POST')).toHaveLength(1);await p.reconcile();expect(p.data.needsReconcile).toBe(false);expect(p.data.note).toBe('');});
@@ -42,7 +42,7 @@ it('registers the version actually used for an old valid return address and clea
  const old={version:1,recipientName:'旧收件人',phone:'13800000000',region:'上海市',address:'合成旧地址',freightPayer:'merchant',instructions:''};
  const latest={...old,version:2,address:'合成新地址'};
  const detail={...record,kind:'return_refund',state:'awaiting_return',version:6,returnDestination:latest,returnInstructionHistory:[latest,old]};
- m.request.mockResolvedValueOnce({items:[detail],nextCursor:null}).mockResolvedValueOnce(detail);
+ m.request.mockResolvedValueOnce(detail);
  await p.load();expect(p.data.shipmentInstruction.version).toBe(2);
  p.chooseShipmentInstruction({detail:{value:'1'}});expect(p.data.shipmentInstruction.version).toBe(1);
  p.data.note='已按旧址寄出';p.data.carrier='合成物流';p.data.tracking='SYNTHETIC123456';
@@ -51,4 +51,35 @@ it('registers the version actually used for an old valid return address and clea
  const write=m.request.mock.calls.map(([input])=>input).find(input=>input.method==='POST');
  expect(write.data).toMatchObject({action:'ship_return',instructionVersion:1,carrier:'合成物流',tracking:'SYNTHETIC123456'});
  p.onHide();expect(p.data.shipmentInstruction).toBeNull();
+});
+it('offers direct approval only from server shipping facts and current money capability',async()=>{
+ const p=await page(true),unshipped={...record,kind:'return_refund',fulfillment:{state:'unshipped',canRefundWithoutReturn:true}};
+ expect(p.selectActions(unshipped)).toContainEqual({action:'request_refund',label:'提交退款复核'});
+ p.data.capabilities.push('commerce.refund.approve');
+ expect(p.selectActions(unshipped)[0]).toEqual({action:'request_refund',label:'同意退款'});
+ expect(p.selectActions({...unshipped,canReview:false})).toEqual([]);
+ expect(p.selectActions({...unshipped,fulfillment:{state:'shipped',canRefundWithoutReturn:false}})).not.toContainEqual({action:'request_refund',label:'同意退款'});
+});
+it('atomically requests direct approval from an explicit confirmation without requiring a redundant note',async()=>{
+ const p=await page(true),r={...record,orderNumber:'SYNTHETIC-ORDER',fulfillment:{state:'unshipped',canRefundWithoutReturn:true}};
+ p.data.capabilities.push('commerce.refund.approve');p.selection=r.id;p.data.selected=r;p.data.available=p.selectActions(r);
+ p.prepareAction({currentTarget:{dataset:{action:'request_refund'}}});expect(p.data.actionDirectRefund).toBe(true);
+ m.request.mockResolvedValueOnce({...r,state:'refund_pending',refund:{reviewState:'approved'},version:2}).mockResolvedValueOnce({...r,state:'refund_pending',refund:{reviewState:'approved'},version:2});
+ await p.submit({currentTarget:{dataset:{action:'request_refund'}}});
+ const writes=m.request.mock.calls.map(([r])=>r).filter(r=>r.method==='POST');expect(writes).toHaveLength(1);
+ expect(writes[0].data).toMatchObject({action:'request_refund',approveRefund:true,expectedVersion:1,note:'同意退款'});
+ expect(p.data.selected.resolved).toBe(false);expect(p.data.selected.label).toBe('退款处理中');
+});
+it('keeps confirmed rows during refresh and offline errors, while disabling stale actions',async()=>{
+ const p=await page(true);let reject!:(error:any)=>void;m.request.mockImplementationOnce(()=>new Promise((_,r)=>reject=r));
+ const pending=p.load();await Promise.resolve();expect(p.data.items[0].id).toBe(record.id);expect(p.data.coreReady).toBe(true);
+ reject({status:503});await pending;expect(p.data.items[0].id).toBe(record.id);expect(p.canAct()).toBe(false);expect(p.data.error).toContain('重试');
+});
+it('does not return the entire case queue when refreshing a selected case',async()=>{
+ const p=await page(true);p.selection=record.id;m.request.mockClear().mockResolvedValue(record);await p.load();
+ expect(m.request).toHaveBeenCalledTimes(1);expect(m.request.mock.calls[0]![0].path).toBe(`/v1/management/aftersales/${record.id}`);
+});
+it('clears the decision form and return contacts when leaving or changing identity',async()=>{
+ const p=await page(true);p.data.actionId='send_return_instruction';p.data.returnPhone='13800000000';p.data.returnAddress='合成地址';p.data.recipientName='合成收件人';
+ p.onHide();expect(p.data).toMatchObject({actionId:'',returnPhone:'',returnAddress:'',recipientName:'',selected:null});
 });

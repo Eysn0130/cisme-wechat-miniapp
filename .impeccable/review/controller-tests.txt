@@ -1,0 +1,8 @@
+
+ RUN  v4.1.12 /private/tmp/cisme-reward-share-20261116/source
+
+
+ Test Files  4 passed (4)
+      Tests  35 passed (35)
+   Start at  11:20:59
+   Duration  403ms (transform 298ms, setup 209ms, import 104ms, tests 390ms, environment 0ms)

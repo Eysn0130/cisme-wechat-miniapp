@@ -68,8 +68,8 @@ export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAd
   cancelledAt: string | null; expiredAt: string | null; terminalReason: string | null; createdAt: string; updatedAt: string;
   paymentAvailable: boolean; transactionSourceKind:"synthetic_nonproduction"|"verified_commerce"; lines: OrderLine[]; address: TAddress | null;
 }
-export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null; wechatReceipt?:WechatReceiptState|null };
-export interface CommerceOrderPage {
+export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null;fulfillmentState?:string; wechatReceipt?:WechatReceiptState|null };
+export interface CommerceOrderPage {totalCount?:number|null;
   items: CommerceOrderSummary[]; nextCursor: string | null;
 }
 export interface CommerceOrderRuntimeStatus {
@@ -113,8 +113,8 @@ export function myOrder(id: string, page?: object): Promise<CommerceOrder<Member
 export function cancelMyOrder(id: string, expectedVersion: number, reason: string, idempotencyKey: string): Promise<CommerceOrder<MemberOrderAddress>> {
   return request({ path: `/v1/me/orders/${encodeURIComponent(id)}/cancel`, method: "POST", data: { expectedVersion, reason }, idempotencyKey, cacheTags: ["orders", "catalog"] });
 }
-export function managementOrders(cursor?: string, page?: object): Promise<CommerceOrderPage> {
-  const options = { path: `/v1/management/commerce/orders?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, cacheTags: ["orders", "authority"] };
+export function managementOrders(cursor?: string, page?: object,filters:{stage?:string;from?:string;through?:string}={}): Promise<CommerceOrderPage> {
+  const options = { path: `/v1/management/commerce/orders?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}${Object.entries(filters).filter(([,value])=>value).map(([key,value])=>'&'+key+'='+encodeURIComponent(value!)).join('')}`, cacheTags: ["orders", "authority"] };
   return page ? pageRead<CommerceOrderPage>(page, options) : request<CommerceOrderPage>(options);
 }
 export function managementOrder(id: string): Promise<CommerceOrder<ManagementOrderAddress>> {

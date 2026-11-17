@@ -1,6 +1,6 @@
 import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
 const api=vi.hoisted(()=>({requireMemberAccess:vi.fn(()=>true),resumeAuthentication:vi.fn(),navigateAfterAuthentication:vi.fn()}));
-const services=vi.hoisted(()=>({rewardManagement:vi.fn(),rewardWallet:vi.fn(),rewardSelection:vi.fn(),rewardClaim:vi.fn(),rewardReceipt:vi.fn(),abandonReward:vi.fn(),rewardQuote:vi.fn(),confirmReward:vi.fn(),operateReward:vi.fn(),acceptRewardInvitation:vi.fn(),rewardInvitation:vi.fn(),rewardCopy:vi.fn(()=> '请重试'),rewardDate:vi.fn(()=> '2026.11.13'),rewardExpiry:vi.fn(()=> '2026.12.13 08:00'),rewardState:{placed:'待发货',unused:'待领取'},purchaseCouponState:{used:'已使用'}}));
+const services=vi.hoisted(()=>({exportRewards:vi.fn(),rewardManagement:vi.fn(),rewardWallet:vi.fn(),rewardSelection:vi.fn(),rewardClaim:vi.fn(),rewardReceipt:vi.fn(),abandonReward:vi.fn(),rewardQuote:vi.fn(),confirmReward:vi.fn(),operateReward:vi.fn(),acceptRewardInvitation:vi.fn(),rewardInvitation:vi.fn(),rewardCopy:vi.fn(()=> '请重试'),rewardDate:vi.fn(()=> '2026.11.13'),rewardExpiry:vi.fn(()=> '2026.12.13 08:00'),rewardState:{placed:'待发货',unused:'待领取'},purchaseCouponState:{used:'已使用'}}));
 const reads=vi.hoisted(()=>({cancelPageReads:vi.fn(),pageRead:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',()=>api);
 vi.mock('../../apps/miniprogram/services/rewards',()=>services);
@@ -106,4 +106,15 @@ it('retains the draft choice and open picker after returning from native details
 it('does not open a prepared detail after the page has hidden',async()=>{
  await page.load();const callbacks:Array<()=>void>=[];wx.getFileSystemManager=()=>({access:({success}:any)=>callbacks.push(success)});
  const opened=page.previewBundle({currentTarget:{dataset:{code:'moisture'}}});expect(page.data.detailLoading).toBe(true);page.onHide();callbacks.forEach(f=>f());await opened;expect(wx.previewImage).not.toHaveBeenCalled();expect(page.data.detailLoading).toBe(false);
+});
+
+
+it('exports subsequent fulfillment batches only after an explicit next action and clears progress with filters',async()=>{
+ await import('../../apps/miniprogram/pages/management-rewards/index');page.onLoad({tab:'fulfill'});page.visible=true;page.token='member-A';page.setData({activityId:voucher,manager:{permissions:{fulfill:true}},loading:false});
+ wx.base64ToArrayBuffer=()=>new ArrayBuffer(1);wx.getFileSystemManager=()=>({writeFile:({success}:any)=>success(),unlink:vi.fn()});wx.openDocument=({success}:any)=>success();services.rewardManagement.mockResolvedValue({memberId:owner,activities:[{id:voucher}],vouchers:[],claims:[],claimNext:null,voucherNext:null,permissions:{fulfill:true}});
+ services.exportRewards.mockResolvedValue({fileBase64:'AA==',count:500,nextCursor:quoteId});
+ const first={currentTarget:{dataset:{kind:'pending_dispatch'}}};await page.export(first);expect(services.exportRewards.mock.calls[0]![2]).toBeUndefined();expect(page.data).toMatchObject({exportAfter:quoteId,exportCount:500,exportDone:false});
+ await page.export(first);expect(services.exportRewards.mock.calls[1]![2]).toBeUndefined();expect(page.data.exportCount).toBe(500);
+ services.exportRewards.mockResolvedValue({fileBase64:'AA==',count:1,nextCursor:null});await page.exportNext();expect(services.exportRewards.mock.calls[2]![2]).toBe(quoteId);expect(page.data).toMatchObject({exportAfter:'',exportCount:501,exportDone:true});
+ page.selectDate({currentTarget:{dataset:{field:'from'}},detail:{value:'2026-11-17'}});expect(page.data).toMatchObject({exportKind:'',exportAfter:'',exportCount:0,exportDone:false});
 });

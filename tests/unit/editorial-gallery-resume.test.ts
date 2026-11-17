@@ -2,7 +2,7 @@ import {beforeEach,describe,expect,it,vi}from'vitest';
 const m=vi.hoisted(()=>({request:vi.fn(),token:'synthetic-member-a',pause:vi.fn(),exit:vi.fn(),stop:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,resumeAuthentication:vi.fn(),beginLegalRenewal:vi.fn(),clearAuthenticationRedirectSuppression:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',motionDuration:()=>0}));
-vi.mock('../../apps/miniprogram/services/share',()=>({prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
+vi.mock('../../apps/miniprogram/services/share',()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',other='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const media=(name:string,article=id)=>({id:name.repeat(64),url:`/v1/editorial/media/${article}/${name.repeat(64)}`});
 const article=()=>({id,version:3,authorId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',author:'公开作者',title:'两图原帖',body:'正文',publishedAt:'2026-10-26T09:00:00Z',media:[media('d'),media('e')],interactionsEnabled:true,liked:false,saved:false,following:false,isMine:true,likeCount:0,saveCount:0});

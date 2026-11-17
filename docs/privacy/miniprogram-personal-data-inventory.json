@@ -711,7 +711,7 @@
     },
     {
       "surface": "wx.chooseMessageFile",
-      "purpose": "有履约权限的管理员主动选择本次发货XLSX，读取订单号、承运商、运单号和交寄时间；服务端只在内存校验，忽略收件人、电话和地址列，原文件不落服务器磁盘。",
+      "purpose": "有履约权限的管理员主动选择本次发货XLSX，读取商品订单号或礼品领取单号、承运商、运单号及商品交寄时间；服务端只在内存校验，忽略收件人、电话和地址列，原文件不落服务器磁盘。",
       "data": "用户主动选择的XLSX文件，最多2MiB、500行；预览返回物流字段，受履约权限与会话保护。",
       "recipient": "既有 staging-api.cisme.cn / api.cisme.cn",
       "retention": "原文件不持久化；已确认的物流仍使用既有加密包裹及审计保留规则。"
@@ -754,6 +754,11 @@
       "surface": "member_administration",
       "purpose": "Current authorized administrator member service, owned business lookup and atomic role-scoped summary export. New care/contact/export grants are independent. Contact reveal reason audited without plaintext, at most60s and cleared on hide; no contact/health/payee data in CSV or search query values in logs. No new processor, consent, bulk asset mutation or automatic role grant.",
       "source": "services/api/src/memberAdministration.ts; apps/miniprogram/pages/management-members; PRD UM-01–08"
+    },
+    {
+      "surface": "ugc_post.featured_revision/featured_at/featured_by",
+      "purpose": "管理员仅选择本人明确公开且安全检查通过的帖子版本；原作者及私密草稿不变；精选调整记录仅授权管理员可读，相关会员奖励来源保持唯一。",
+      "source": "2026-11-16 Owner 社区帖子管理指令；COMM-ADMIN-POST-01/02/03/04"
     }
   ],
   "runtimeDataEgress": [
@@ -838,7 +843,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "517d9d4246e4fe6adac9c3a793ffbc8663f12430fcd7175381c049d167732ab4",
+  "migrationSetSha256": "f35491140f17471d0619c33c8a69db52c5796f9a36e9f74b86a02e4652513721",
   "egressSignatureSha256": "33ae2eff1e443c0d7056b43be6497d2ec5e206f85fb712125173e3e2571d0e9c",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1478,5 +1483,10 @@
     "authority": "Queue only created with future real paid dispatch in the same local transaction. Fresh shared PaidParcelSource checks actual active owner, verified applied full-cash payment, app/merchant and sealed order parcel before network. No backfill or campaign gift/zero-cash registration.",
     "failure": "Definite rejection can back off; dispatch crashes/timeouts/unknown replies never automatically register again. Platform permission probe performs no shipment registration or notification. Tracking observations do not confirm receipt or settle points/commission.",
     "validationScope": "Isolated synthetic tests and read-only live carrier permission probe. No real waybill, customer message or fulfillment was fabricated; end-to-end real notification delivery remains dependent on a real paid parcel."
+  },
+  "pointsTasksV2Review": {
+    "reviewed": true,
+    "source": "2026-11-17 owner-adopted guide and confirmed task values",
+    "scope": "Prospective versioned point grants, private suggestions, immutable public-post reward metadata and shipping-scoped reward exports. No real member rows read for this mapping; actual migrated-schema validation remains a required CI check."
   }
 }

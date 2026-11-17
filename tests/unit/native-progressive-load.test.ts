@@ -7,7 +7,7 @@ vi.mock("../../apps/miniprogram/services/member-identity", () => ({ memberIdenti
 vi.mock("../../apps/miniprogram/services/member-avatar", () => ({ defaultMemberAvatar: "neutral", localMemberAvatar: mocks.avatar }));
 vi.mock("../../apps/miniprogram/services/authority", async original => ({ ...await original<typeof import("../../apps/miniprogram/services/authority")>(), authorityProjection: mocks.authority }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
-vi.mock("../../apps/miniprogram/services/share", () => ({ registerIncomingShare: vi.fn() }));
+vi.mock("../../apps/miniprogram/services/share", () => ({ prepareShareDetails:async()=>null,registerIncomingShare: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/task-entry", () => ({ consumerTaskEntries: (items: unknown) => items }));
 
 const deferred = <T = any>() => {

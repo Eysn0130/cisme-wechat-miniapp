@@ -15,6 +15,7 @@ export const nativeRouteAccess: Readonly<Record<string, NativeRouteAccess>> = {
   "/pages/community-author/index": "public",
   "/pages/community-compose/index": "member",
   "/pages/community-review/index": "member",
+  "/pages/management-community/index": "member",
   "/pages/community-activity/index": "member",
   "/pages/profile/index": "member",
   "/pages/task/index": "member",

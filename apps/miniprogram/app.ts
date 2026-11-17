@@ -3,6 +3,7 @@ import { pruneUgcBackups } from "./services/ugc-local-backup";
 import { miniProgramApiOrigins, miniProgramCloudFunctions, remoteDebugApiOrigin, type RemoteDebugQuery } from "./release-config";
 import { chromeStyle, readChromeMetrics } from "./services/layout";
 import { acceptWechatReceiptReferrer } from "./services/wechat-receipt-return";
+import {flushOfficerVisits} from './services/officer-attribution';
 
 function runtimeApiConfig(query: RemoteDebugQuery): { origin: string; remoteDebugMode: boolean; cloudFunction?: import("./release-config").CloudHttpTarget } {
   const { miniProgram } = wx.getAccountInfoSync();
@@ -48,5 +49,6 @@ App({
   onShow(options){
     pruneUgcBackups();
     acceptWechatReceiptReferrer(options?.referrerInfo);
+    if(this.globalData.sessionToken)void flushOfficerVisits().catch(()=>{});
   }
 });

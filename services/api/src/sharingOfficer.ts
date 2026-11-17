@@ -16,6 +16,24 @@ function commandCapability(action:string):Capability|null{
 }
 export const sharingHash=(input:unknown)=>createHash('sha256').update(JSON.stringify(input)).digest('hex');
 export const currentSharingPolicySql=`SELECT p.* FROM sharing_policy p ORDER BY p.version DESC LIMIT 1`;
+export const sharingQualificationProduct='aigerong-scalp-repair-essence-100';
+/** Paid canonical product units, excluding units reserved by an open return or
+ * already refunded. Unallocated external refunds require reconciliation first. */
+export async function sharingQualification(client:DbClient,memberId:string){
+ const row=(await client.query<{met:boolean}>(`SELECT EXISTS(SELECT 1 FROM commerce_order_line l
+   JOIN commerce_order o ON o.id=l.order_id JOIN commission_payment_inbox p ON p.order_id=o.id AND p.state='applied'
+   WHERE o.member_id=$1 AND o.status='paid' AND o.transaction_source_kind='verified_commerce' AND l.product_code=$2 AND l.unit_price_cents>0
+   AND l.quantity>COALESCE((SELECT sum((x->>'quantity')::integer) FROM commerce_aftersale_case c
+     LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
+     CROSS JOIN LATERAL jsonb_array_elements(c.lines) x
+     WHERE c.order_id=o.id AND c.state NOT IN ('cancelled','rejected') AND x->>'lineId'=l.id::text),0)
+   AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case c WHERE c.order_id=o.id AND c.state NOT IN ('cancelled','rejected') AND jsonb_array_length(c.lines)=0)
+   AND NOT EXISTS(SELECT 1 FROM commission_refund_intent i WHERE i.order_id=o.id AND i.request_id IS NULL AND i.state<>'closed')
+   AND NOT EXISTS(SELECT 1 FROM commerce_refund_request r WHERE r.order_id=o.id AND r.state IN ('requested','approved')
+     AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case c WHERE c.refund_request_id=r.id))
+ ) AS met`,[memberId,sharingQualificationProduct])).rows[0];
+ return {met:row?.met===true,productCode:sharingQualificationProduct,quantity:1,priceCents:29800};
+}
 export const sharingDisputeSql=(alias:string)=>`(EXISTS(SELECT 1 FROM commission_payment_composition_observation x WHERE x.order_id=${alias}.order_id)
  OR EXISTS(SELECT 1 FROM commerce_wechat_receipt_observation w WHERE w.order_id=${alias}.order_id AND w.in_complaint=true)
  OR EXISTS(SELECT 1 FROM commerce_aftersale_case c LEFT JOIN commission_refund_intent ci ON ci.request_id=c.refund_request_id
@@ -84,8 +102,9 @@ export class SharingOfficerService {
    const paid=(await client.query(`SELECT COALESCE(sum(tax_cents),0)::text AS tax,COALESCE(sum(net_cents),0)::text AS net
     FROM sharing_settlement_line WHERE member_id=$1 AND state='paid'`,[actor])).rows[0];
    const relation=await this.relationWithClient(client,actor);
+   const qualification=await sharingQualification(client,actor);
    return {memberId:actor,officer:officerView(officer),policy:officerPolicyView(p),relation,
-    canApply:Boolean(p?.enabled&&(!officer||['rejected','terminated'].includes(officer.state))),
+    qualification,canApply:Boolean(p?.enabled&&qualification.met&&(!officer||['rejected','terminated'].includes(officer.state))),
     canShare:Boolean(p?.enabled&&officer?.state==='active'),payee:payee?{version:payee.version,updatedAt:payee.updated_at}:null,
     metrics:{...metrics,settledTaxCents:Number(paid.tax),settledNetCents:Number(paid.net)}};
   },'REPEATABLE READ');
@@ -111,10 +130,11 @@ export class SharingOfficerService {
    if(action==='apply'){
     if(!p?.enabled)fail('SHARING_APPLICATION_UNAVAILABLE','分享官申请尚未开放',503);
     if(officer&&!['rejected','terminated'].includes(officer.state))fail('SHARING_APPLICATION_EXISTS','申请已提交，请查看当前状态');
+    if(!(await sharingQualification(client,actor)).met)fail('SHARING_PURCHASE_REQUIRED','购买精华套组1组后可申请；退款或售后中的商品暂不计入',409);
     const note=input.note===undefined?'':text(input.note,'申请说明',0,500);
     const row=(await client.query(`INSERT INTO sharing_officer(member_id,state,application_note,referral_code) VALUES($1,'pending',$2,$3)
-     ON CONFLICT(member_id) DO UPDATE SET state='pending',application_note=$2,review_reason='',version=sharing_officer.version+1,updated_at=clock_timestamp() RETURNING *`,[actor,note,'SO'+randomBytes(5).toString('hex').toUpperCase()])).rows[0];
-    await this.event(client,actor,row,officer?.state??null,'免费申请');return {state:row.state,version:row.version,referralCode:row.referral_code};
+     ON CONFLICT(member_id) DO UPDATE SET state='pending',application_note=$2,review_reason='',version=sharing_officer.version+1,updated_at=clock_timestamp() RETURNING *`,[actor,note,(await client.query('SELECT user_code FROM member_card_number WHERE member_id=$1',[actor])).rows[0].user_code])).rows[0];
+    await this.event(client,actor,row,officer?.state??null,'购买条件已核验，提交申请');return {state:row.state,version:row.version,referralCode:row.referral_code};
    }
    if(!officer)fail('SHARING_OFFICER_REQUIRED','请先申请分享官资格',403);
    if(action==='payee'){
@@ -137,7 +157,7 @@ export class SharingOfficerService {
   VALUES($1,$2,$3,$4,$5,$6)`,[row.member_id,row.version,from,row.state,actor,reason]);}
  async visit(shareId:string,visitKeyInput:unknown){
   if(!/^[0-9a-f]{32}$/.test(shareId))fail('SHARING_LINK_NOT_FOUND','分享链接不可用',404);
-  const visitKey=text(visitKeyInput,'访问凭据',16,160);
+  const visitKey=text(visitKeyInput,'访问凭据',16,160),visitedAt=new Date();
   return transaction(this.pool,async client=>{
    const link=(await client.query(`SELECT l.product_code,o.state,p.publication_status,p.qualification_status,m.status AS member_status
     FROM sharing_link l JOIN sharing_officer o ON o.member_id=l.officer_id JOIN member m ON m.id=o.member_id
@@ -146,9 +166,9 @@ export class SharingOfficerService {
    const policy=(await client.query(currentSharingPolicySql)).rows[0];
    if(link.state!=='active'||link.member_status!=='active'||!policy?.enabled)return {productCode:link.product_code,visitToken:null};
    const token=randomBytes(32).toString('base64url');
-   const visit=(await client.query(`INSERT INTO sharing_visit(share_id,visit_key,token_hash,token_ciphertext)
-    VALUES($1,$2,$3,$4) ON CONFLICT(share_id,visit_key) DO UPDATE SET visit_key=EXCLUDED.visit_key RETURNING token_ciphertext`,
-    [shareId,visitKey,sharingHash(token),this.seal({token},`sharing-visit:${shareId}:${visitKey}`)])).rows[0];
+   const visit=(await client.query(`INSERT INTO sharing_visit(share_id,visit_key,token_hash,token_ciphertext,visited_at)
+    VALUES($1,$2,$3,$4,$5) ON CONFLICT(share_id,visit_key) DO UPDATE SET visit_key=EXCLUDED.visit_key RETURNING token_ciphertext`,
+    [shareId,visitKey,sharingHash(token),this.seal({token},`sharing-visit:${shareId}:${visitKey}`),visitedAt])).rows[0];
    return {productCode:link.product_code,visitToken:this.unseal(visit.token_ciphertext,`sharing-visit:${shareId}:${visitKey}`).token};
   });
  }
@@ -167,9 +187,11 @@ export class SharingOfficerService {
    const now=(await client.query('SELECT clock_timestamp() AS at')).rows[0].at as Date;
    const inWindow=p.attribution_days===null||new Date(visit.visited_at).getTime()>now.getTime()-p.attribution_days*86400_000;
    const expired=current?.expires_at&&new Date(current.expires_at)<=now;
+   const registered=(await client.query<{created_at:Date}>('SELECT created_at FROM member WHERE id=$1',[actor])).rows[0];
+   const newFromLink=Boolean(registered&&new Date(registered.created_at)>=new Date(visit.visited_at));
    const correctEarlier=current?.source==='first_touch'&&p.priority==='first'&&new Date(visit.visited_at)<new Date(current.effective_at);
    const later=current?.source!=='member_choice'&&p.priority==='last'&&new Date(visit.visited_at)>new Date(current?.effective_at??0);
-   if(inWindow&&(!current||expired||correctEarlier||later))await this.setRelation(client,actor,link.officer_id,visit.id,
+   if(newFromLink&&inWindow&&(!current||expired||correctEarlier||later))await this.setRelation(client,actor,link.officer_id,visit.id,
     p.priority==='first'?'first_touch':'last_touch',visit.visited_at,p,current);
   }
   return {recorded:true};
@@ -183,23 +205,25 @@ export class SharingOfficerService {
    [buyer,officer,visit,source,at,expiry,p.id,version]);
  }
  async relationWithClient(client:DbClient,buyer:string){
-  const r=(await client.query(`SELECT r.*,o.referral_code,o.state FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1`,[buyer])).rows[0];
-  return r?{code:r.referral_code,label:`CISME 分享官 · ${r.referral_code.slice(-4)}`,version:r.version,state:r.state,expiresAt:r.expires_at,source:r.source}:null;
+  const r=(await client.query(`SELECT r.*,o.referral_code,o.state,m.display_name FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id JOIN member m ON m.id=o.member_id WHERE r.buyer_id=$1`,[buyer])).rows[0];
+  return r?{code:r.referral_code,label:r.display_name,displayName:r.display_name,version:r.version,state:r.state,expiresAt:r.expires_at,source:r.source}:null;
  }
  async previewReferrer(actorId:string|undefined,codeInput:unknown){
-  const code=text(codeInput,'分享官编号',12,12).toUpperCase();
+  const code=text(codeInput,'用户编号',12,12).toUpperCase();
   return transaction(this.pool,async client=>{
    const actor=await requireActiveMemberWithClient(client,actorId);
-   const row=(await client.query(`SELECT o.member_id,o.referral_code FROM sharing_officer o JOIN member m ON m.id=o.member_id
-    WHERE o.referral_code=$1 AND o.state='active' AND m.status='active'`,[code])).rows[0];
-   if(!row)fail('SHARING_REFERRER_UNAVAILABLE','分享官编号无效或资格已停用',404);
+   const row=(await client.query(`SELECT n.member_id,n.user_code,m.display_name,o.state FROM member_card_number n
+    JOIN member m ON m.id=n.member_id LEFT JOIN sharing_officer o ON o.member_id=n.member_id
+    WHERE n.user_code=$1 AND m.status='active'`,[code])).rows[0];
+   if(!row)fail('SHARING_REFERRER_UNAVAILABLE','未找到此用户编号',404);
    if(row.member_id===actor)fail('SHARING_SELF_REFERRAL','不能将自己设为推荐人',422);
-   return {code:row.referral_code,label:`CISME 分享官 · ${row.referral_code.slice(-4)}`,current:await this.relationWithClient(client,actor)};
+   const p=(await client.query(currentSharingPolicySql)).rows[0];
+   return {code:row.user_code,label:row.display_name,displayName:row.display_name,eligible:row.state==='active'&&p?.enabled===true,current:await this.relationWithClient(client,actor)};
   });
  }
  private async changeReferrer(client:DbClient,actor:string,input:Row){
   if(input.confirmed!==true)fail('SHARING_REFERRER_CONFIRM_REQUIRED','请确认更换后的推荐人',422);
-  const code=text(input.code,'分享官编号',12,12).toUpperCase(),p=(await client.query(currentSharingPolicySql)).rows[0];
+  const code=text(input.code,'用户编号',12,12).toUpperCase(),p=(await client.query(currentSharingPolicySql)).rows[0];
   if(!p?.enabled)fail('SHARING_UNAVAILABLE','当前暂不可更换推荐人',503);
   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`sharing-relation:${actor}`]);
   const prior=(await client.query('SELECT * FROM sharing_customer_relation WHERE buyer_id=$1 FOR UPDATE',[actor])).rows[0];
@@ -250,6 +274,8 @@ export class SharingOfficerService {
     if(!row||row.version!==expected)fail('VERSION_CONFLICT','申请已更新，请重新加载');
     const allowed:Record<string,string[]>={pending:['active','rejected'],active:['suspended','terminated'],suspended:['active','terminated'],rejected:[],terminated:[]};
     if(!allowed[row.state]?.includes(desired))fail('SHARING_STATE_INVALID','当前不能切换到此资格状态');
+    if(row.state==='pending'&&desired==='active'&&!(await sharingQualification(client,target)).met)
+      fail('SHARING_PURCHASE_REQUIRED','该会员的精华套组购买条件未达成，请核对退款及售后状态',409);
     const updated=(await client.query('UPDATE sharing_officer SET state=$2,review_reason=$3,version=version+1,updated_at=clock_timestamp() WHERE member_id=$1 RETURNING *',[target,desired,reason])).rows[0];
     await this.event(client,actor,updated,row.state,reason);return {state:updated.state,version:updated.version,referralCode:updated.referral_code};
    }

@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/management-rewards/index",
+        "tab": "fulfill",
+        "detail": true,
+        "queries": [
+          "/v1/me/authority",
+          "/v1/management/commerce/orders?limit=20&stage=all",
+          "/v1/me/authority",
+          "/v1/management/commerce/orders?limit=20&stage=unshipped&from=2026-11-01",
+          "/v1/management/rewards?state=all&claimCursor=start",
+          "/v1/management/rewards/claims/cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+        ]
+      }
+    }
+  }
+}

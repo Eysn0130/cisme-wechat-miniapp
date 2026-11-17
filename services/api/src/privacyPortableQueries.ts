@@ -114,7 +114,7 @@ export const portableQuerySpecs = [
         WHERE c.member_id=$1 ORDER BY m.sequence,m.id`},
   {section:'community',collection:'posts',single:false,sql:`SELECT id,state,visibility,published_at,created_at,updated_at
         FROM ugc_post WHERE author_member_id=$1 ORDER BY created_at,id`},
-  {section:'community',collection:'revisions',single:false,sql:`SELECT r.post_id,r.revision,r.title,r.body,r.content_warning,r.created_at
+  {section:'community',collection:'revisions',single:false,sql:`SELECT r.post_id,r.revision,r.title,r.body,r.content_warning,r.reward_kind,r.experience_product_code,r.experience_days,r.created_at
         FROM ugc_post_revision r JOIN ugc_post p ON p.id=r.post_id
         WHERE p.author_member_id=$1 ORDER BY r.post_id,r.revision`},
   {section:'community',collection:'comments',single:false,sql:`SELECT id,post_id,parent_id,reply_to_id,body,state,created_at,updated_at

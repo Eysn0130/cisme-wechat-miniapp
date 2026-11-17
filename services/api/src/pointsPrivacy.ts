@@ -1,7 +1,9 @@
+import {openPointsSuggestion} from './memberPointsTasks.js';
 import type {AppConfig} from '@cisme/config';
 import {openPointsNote} from './memberPointsClub.js';
 import type {DeliveryAddressService} from './deliveryAddress.js';
 export const pointsPortableSpecs=[
+ {section:'pointsClub',collection:'suggestions',single:false,sql:`SELECT id,member_id,encrypted_body,key_version,state,review_reason,created_at FROM member_points_suggestion WHERE member_id=$1 ORDER BY created_at,id`},
  {section:'pointsClub',collection:'checkins',single:false,sql:`SELECT id,member_id,care_day,products,note_encrypted,key_version,version,created_at,updated_at FROM member_points_checkin WHERE member_id=$1 ORDER BY care_day,id`},
  {section:'pointsClub',collection:'birthday',single:true,sql:`SELECT birthday_month_day,birthday_set_at,birthday_change_after,updated_at FROM member_points_profile WHERE member_id=$1`},
  {section:'pointsClub',collection:'badges',single:false,sql:`SELECT code,earned_at FROM member_points_badge WHERE member_id=$1 ORDER BY earned_at,code`},
@@ -11,6 +13,7 @@ export const pointsPortableSpecs=[
  {section:'pointsClub',collection:'grants',single:false,sql:`SELECT id,amount,source_type,component,rule_version,rule_snapshot,reversed_total,available_after,expires_at,created_at FROM points_grant WHERE member_id=$1 ORDER BY created_at,id`}
 ];
 export function pointsPortableRow(config:AppConfig,addresses:DeliveryAddressService,collection:string,row:Record<string,any>){
+ if(collection==='suggestions'){const {member_id,encrypted_body,key_version,...safe}=row;return {...safe,body:openPointsSuggestion(config,row)};}
  if(collection==='checkins'){const {member_id,note_encrypted,key_version,...safe}=row;return {...safe,note:openPointsNote(config,row as Parameters<typeof openPointsNote>[1])};}
  if(collection==='redemptions'){const {member_id,encrypted_address,address_hmac,key_version,...safe}=row;
   return {...safe,address:addresses.openOrderSnapshot(member_id,row.id,encrypted_address,address_hmac,key_version)};}

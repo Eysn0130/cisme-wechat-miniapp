@@ -1,0 +1,48 @@
+{
+  "ok": true,
+  "tool": "automation_evaluate",
+  "clientName": "Codex",
+  "result": {
+    "success": true,
+    "result": {
+      "result": {
+        "route": "pages/sharing-officer/index",
+        "giftMode": true,
+        "bundles": [
+          {
+            "code": "moisture",
+            "name": "净润旅行洗护套",
+            "shampoo": "净润洗发露",
+            "shampooMl": 100,
+            "conditioner": "柔光强韧护发乳",
+            "conditionerMl": 100,
+            "available": true,
+            "photo": "/pages/sharing-officer/assets/travel-moisture-pair-v3.webp",
+            "benefit": "温和净洗 · 柔顺有光"
+          },
+          {
+            "code": "dandruff",
+            "name": "净屑旅行洗护套",
+            "shampoo": "控油净屑洗发水",
+            "shampooMl": 50,
+            "conditioner": "柔光强韧护发乳",
+            "conditionerMl": 100,
+            "available": true,
+            "photo": "/pages/sharing-officer/assets/travel-dandruff-pair-v3.webp",
+            "benefit": "控油净屑 · 洗后清爽"
+          }
+        ],
+        "share": {
+          "title": "送你一份旅行洗护礼遇",
+          "path": "/pages/home/index?gift=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&officer_share=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "imageUrl": "/assets/cisme/travel-reward-share-v2.jpg"
+        },
+        "queries": [
+          "/v1/me/sharing-officer",
+          "/v1/me/sharing-officer/reward-activities",
+          "/v1/me/sharing-officer/reward-activities/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/share"
+        ]
+      }
+    }
+  }
+}

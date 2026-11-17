@@ -1,0 +1,46 @@
+{
+  "route": "pages/management-community/index",
+  "primaryContract": "COMM-ADMIN-POST-01/02/03/04",
+  "acceptanceReferences": [
+    "COMM-ADMIN-POST-01",
+    "COMM-ADMIN-POST-02",
+    "COMM-ADMIN-POST-03",
+    "COMM-ADMIN-POST-04",
+    "PTS-CLUB-04",
+    "NATIVE-LOAD-02",
+    "NATIVE-LOAD-05"
+  ],
+  "statesRequired": [
+    "cold-loading",
+    "ready",
+    "refresh-with-confirmed-content",
+    "empty",
+    "offline-error-and-retry",
+    "pagination",
+    "detail-open-and-close",
+    "version-conflict",
+    "permission-denied",
+    "account-or-environment-change",
+    "confirmation-cancel",
+    "write-outcome-unknown",
+    "hide-and-resume",
+    "loading",
+    "error",
+    "unknown",
+    "unauthorized",
+    "expired_session",
+    "resume"
+  ],
+  "interactionContract": {
+    "entry": "管理中心 → 社区帖子管理；入口与每个服务端请求均核验 community.moderate",
+    "list": "推荐 / 精选 / 已下架；原生 section-tabs；正文/作者搜索；20条稳定游标分页",
+    "placement": "当前公开版本从推荐移到精选，可撤回；原作者、媒体、互动和链接不变",
+    "detail": "仅读取最后已公开版本；可打开仍公开的原帖；不读取未提交私人改稿",
+    "destructive": "原生确认下架/删除；取消不写；版本冲突刷新；写请求不自动重试",
+    "lifecycle": "离页取消本页面 GET；切号、切环境清空列表与详情；迟到结果不填回",
+    "loading": "冷读结构占位；同身份刷新保留节点；图片尺寸固定；无加载文本闪烁",
+    "points": "精选奖励每篇一次；撤销展示不重复发放；下架/删除沿用既有奖励撤回规则",
+    "governance": "Consumer community retains featured/following/recommend only for every role. Reports and appeals remain available from 管理中心 → 社区帖子管理 → 举报与申诉; each read/write is server capability scoped and clears on actor/environment change."
+  },
+  "evidenceScope": "Contract only; no full matrix or real-device pass is asserted."
+}

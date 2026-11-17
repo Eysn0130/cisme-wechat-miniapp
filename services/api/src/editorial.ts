@@ -8,6 +8,9 @@ import {readSnapshot,transaction,type DbClient} from './db.js';
 import {inspectEditorialMp4,type ObjectStorage} from './storage.js';
 import {editorialCommentSummary} from './editorialComments.js';
 import {officialPublisher,editorialPublicAuthorId,editorialPublicAuthorIdSql} from './editorialPublisher.js';
+import {publishedPostAuthors} from './memberProfile.js';
+import {featuredPostSql} from './communityCuration.js';
+import {cursorTimestamp,pageLimit,pageScope} from './keysetPage.js';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA=/^[0-9a-f]{64}$/;
@@ -199,6 +202,50 @@ export class EditorialService{
         AND ($2::timestamptz IS NULL OR (a.published_at,a.id)<($2::timestamptz,$3::uuid))
         ORDER BY a.published_at DESC,a.id DESC LIMIT $4`,[this.canonicalApp(),p.cursor?.at??null,p.cursor?.id??null,p.limit+1])).rows;
       return {items:rows.slice(0,p.limit).map(card),nextCursor:next(rows,p.limit,p.scope)};
+    });
+  }
+  async communityFeatured(memberId:string|undefined,input:{limit?:unknown;cursor?:unknown}={}){
+    const limit=pageLimit(input.limit,20,30),scope=pageScope(['community-featured',memberId??'guest']);
+    let cursor:{at:string;id:string;kind:string}|null=null;
+    if(input.cursor!==undefined){try{
+      if(typeof input.cursor!=='string'||input.cursor.length>600||!/^[A-Za-z0-9_-]+$/.test(input.cursor))throw Error();
+      const v=JSON.parse(Buffer.from(input.cursor,'base64url').toString('utf8'));
+      if(v.v!==1||v.s!==scope||!cursorTimestamp(v.t)||!UUID.test(v.i)||!['editorial','formal'].includes(v.k))throw Error();
+      cursor={at:v.t,id:v.i,kind:v.k};
+    }catch{throw new DomainError('PAGE_CURSOR_INVALID','列表位置已失效，请重新加载',422);}}
+    return readSnapshot(this.pool,async client=>{
+      // One ordering and one reader-bound cursor for both sources. Each member
+      // item still opens its own UGC detail/media routes and retains its author.
+      const rows=(await client.query<{id:string;kind:'editorial'|'formal';cursor_at:string}>(`WITH candidates AS (
+        SELECT a.id,a.published_at AS sort_at,'editorial'::text AS kind FROM ${relations} WHERE ${visible}
+        UNION ALL
+        SELECT p.id,p.featured_at AS sort_at,'formal'::text AS kind FROM ugc_post p JOIN member m ON m.id=p.author_member_id
+        WHERE p.state='published' AND p.visibility='public' AND m.status='active' AND ${featuredPostSql}
+          AND $2::boolean AND EXISTS(SELECT 1 FROM emergency_switch WHERE key='community' AND enabled)
+          AND EXISTS(SELECT 1 FROM ugc_go_live_approval WHERE revoked_at IS NULL AND signed_at<=now() AND expires_at>now())
+          AND ($3::uuid IS NULL OR NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE b.blocker_member_id=$3 AND b.blocked_member_id=p.author_member_id))
+        ) SELECT id,kind,sort_at::text AS cursor_at FROM candidates
+        WHERE ($4::timestamptz IS NULL OR (sort_at,id,kind)<($4::timestamptz,$5::uuid,$6::text))
+        ORDER BY sort_at DESC,id DESC,kind DESC LIMIT $7`,
+        [this.canonicalApp(),this.config.ugcGoLiveGate,memberId??null,cursor?.at??null,cursor?.id??null,cursor?.kind??null,limit+1])).rows;
+      const ids=rows.slice(0,limit),officialIds=ids.filter(r=>r.kind==='editorial').map(r=>r.id),memberIds=ids.filter(r=>r.kind==='formal').map(r=>r.id);
+      const official=officialIds.length?(await client.query<Article>(`SELECT ${columns} FROM ${relations} WHERE ${visible} AND a.id=ANY($2::uuid[])`,[this.canonicalApp(),officialIds])).rows:[];
+      const posts=memberIds.length?(await client.query(`SELECT p.id,p.author_member_id,p.published_at,r.title,r.body,
+        (SELECT b.media_asset_id FROM ugc_post_media b JOIN ugc_media_asset a ON a.id=b.media_asset_id AND a.state='approved'
+          WHERE b.post_id=p.id AND b.revision=p.published_revision ORDER BY b.position LIMIT 1) AS cover_id,
+        (SELECT count(*)::int FROM ugc_post_reaction x WHERE x.post_id=p.id AND x.kind='like') AS like_count,
+        (SELECT count(*)::int FROM ugc_post_reaction x WHERE x.post_id=p.id AND x.kind='save') AS save_count
+        FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.published_revision WHERE p.id=ANY($1::uuid[])`,[memberIds])).rows:[];
+      const authors=await publishedPostAuthors(client,posts.map(p=>p.author_member_id));
+      type FeaturedCard=EditorialCard&{kind:'editorial'|'formal';avatarRevision?:string|null;coverId?:string|null};
+      const cards=new Map<string,FeaturedCard>(official.map(a=>['editorial:'+a.id,{...card(a),kind:'editorial'}]));
+      for(const p of posts){const author=authors[p.author_member_id];cards.set('formal:'+p.id,{id:p.id,kind:'formal',
+        title:p.title||p.body?.slice(0,40)||'图片护理故事',excerpt:p.body?.slice(0,100)||'',authorId:p.author_member_id,
+        author:author?.name??'CISME 会员',avatar:author?.avatar??'',avatarRevision:author?.avatarRevision??null,coverId:p.cover_id,
+        coverUrl:p.cover_id?`/v1/ugc/media/${p.cover_id}?variant=thumbnail`:null,publishedAt:p.published_at.toISOString(),likeCount:p.like_count,saveCount:p.save_count});}
+      const last=ids.at(-1);
+      return {items:ids.map(r=>cards.get(r.kind+':'+r.id)!),nextCursor:rows.length>limit&&last?
+        Buffer.from(JSON.stringify({v:1,s:scope,t:last.cursor_at,i:last.id,k:last.kind})).toString('base64url'):null};
     });
   }
   async detail(memberId:string|undefined,id:string):Promise<EditorialDetail>{return readSnapshot(this.pool,async client=>{

@@ -16,6 +16,48 @@ tags:
   - name: Authority
   - name: Support
 paths:
+  /v1/community/featured:
+    get:
+      operationId: communityFeatured
+      security: [{}, {session: []}]
+      description: Canonical brand articles and explicitly selected public member revisions, with one stable reader-bound keyset cursor. Member content obeys the live UGC gate and reader blocks; author and media ownership never change.
+      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      responses:
+        '200': {description: Mixed-source featured cards with explicit editorial or formal kind and nextCursor}
+        '422': {$ref: '#/components/responses/Problem'}
+  /v1/management/ugc/posts:
+    get:
+      operationId: managedCommunityPosts
+      security: [{session: []}]
+      description: Requires current community.moderate. Returns only previously published revisions in recommend, featured or hidden; never private drafts or unsubmitted newer edits. Text and author search, exact matchingTotal and reader/filter-bound cursor.
+      parameters:
+        - {$ref: '#/components/parameters/Cursor'}
+        - {$ref: '#/components/parameters/PageLimit'}
+        - {name: state, in: query, schema: {type: string, enum: [recommend, featured, hidden], default: recommend}}
+        - {name: q, in: query, schema: {type: string, maxLength: 80}}
+      responses:
+        '200': {description: Bounded published-version management page}
+        '403': {$ref: '#/components/responses/Problem'}
+  /v1/management/ugc/posts/{postId}/placement:
+    put:
+      operationId: setCommunityPostPlacement
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/FormalPostId'}]
+      description: Requires community.moderate and expectedVersion. Selecting another member's current public revision records one points source per post; returning it to recommendation and reselecting never issue another bonus. All real placement changes are audited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [placement, expectedVersion]
+              properties:
+                placement: {type: string, enum: [featured, recommend]}
+                expectedVersion: {type: integer, minimum: 1}
+      responses:
+        '200': {description: Confirmed placement and current post version; duplicate same placement is idempotent}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
   /v1/management/users:
     get:
       tags: [Authority]
@@ -824,6 +866,18 @@ paths:
         - TRV-09
       parameters:
         - in: query
+          name: claimCursor
+          schema: {type: string, maxLength: 600}
+          description: Use start for recent-first claim listing, then the returned actor/filter-bound opaque cursor. Legacy after remains supported.
+        - in: query
+          name: from
+          schema: {type: string, format: date}
+          description: Inclusive creation date in Asia/Shanghai.
+        - in: query
+          name: through
+          schema: {type: string, format: date}
+          description: Inclusive creation date in Asia/Shanghai; must not precede from.
+        - in: query
           name: memberId
           schema: {type: string, format: uuid}
           description: Optional exact member or owned source filter; does not grant authority.
@@ -947,6 +1001,24 @@ paths:
           $ref: '#/components/responses/Problem'
         '422':
           $ref: '#/components/responses/Problem'
+  /v1/management/rewards/activities/{activityId}/shipments/preview:
+    post:
+      tags: [Rewards, Authority]
+      operationId: previewRewardShipmentWorkbook
+      summary: Fulfillment-authorized in-memory XLSX preview; no shipment writes or raw file persistence
+      security: [{session: []}]
+      parameters: [{in: path, name: activityId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [filename, contentBase64], properties: {filename: {type: string, maxLength: 160}, contentBase64: {type: string, maxLength: 2800000}}}}}}
+      responses: {'200': {description: Up to 500 matched claim rows with ready/registered/invalid status}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
+  /v1/management/rewards/activities/{activityId}/shipments/import:
+    post:
+      tags: [Rewards, Authority]
+      operationId: confirmRewardShipmentWorkbook
+      summary: Atomic version-checked shipment registration for 1 to 500 claims; exact replay or no partial writes
+      security: [{session: []}]
+      parameters: [{in: path, name: activityId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [entries], properties: {entries: {type: array, minItems: 1, maxItems: 500, items: {type: object, additionalProperties: false, required: [id, expectedVersion, carrierName, trackingNumber], properties: {id: {$ref: '#/components/schemas/Uuid'}, expectedVersion: {type: integer, minimum: 1}, carrierName: {type: string, maxLength: 50}, trackingNumber: {type: string, minLength: 6, maxLength: 80}}}}}}}}}
+      responses: {'200': {description: Committed shipment count and non-personal command receipt}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}
   /v1/management/rewards/activities/{activityId}/issue:
     post:
       tags:
@@ -1134,7 +1206,7 @@ paths:
       tags:
         - Rewards
       operationId: exportActivityRewardLedger
-      summary: Audited bounded XLSX export; cursor supports subsequent batches; no raw survey answers or recipient contacts
+      summary: Audited bounded XLSX; fulfillment exports include sealed recipient snapshots only for authorized fulfillment managers
       security:
         - session: []
       x-release-stage: V2.1-R4-TRV
@@ -1145,6 +1217,14 @@ paths:
         - TRV-08
         - TRV-09
       parameters:
+        - in: query
+          name: from
+          schema: {type: string, format: date}
+          description: Inclusive creation date in Asia/Shanghai.
+        - in: query
+          name: through
+          schema: {type: string, format: date}
+          description: Inclusive creation date in Asia/Shanghai; must not precede from.
         - in: path
           name: activityId
           required: true
@@ -2238,7 +2318,12 @@ paths:
       operationId: managementCommerceOrders
       security: [{session: []}]
       description: Requires commerce.order.read; the list does not read delivery snapshots and always returns address as null. Masked delivery detail is available only from the authorized detail endpoint.
-      parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}]
+      parameters:
+        - {$ref: '#/components/parameters/Cursor'}
+        - {$ref: '#/components/parameters/PageLimit'}
+        - {in: query, name: stage, schema: {type: string, enum: [all, pending_payment, unshipped, shipped, completed, refunded, closed]}}
+        - {in: query, name: from, schema: {type: string, format: date}, description: Inclusive creation date in Asia/Shanghai.}
+        - {in: query, name: through, schema: {type: string, format: date}, description: Inclusive creation date in Asia/Shanghai.}
       responses: {'200': {description: Cursor-paged order summary list with address always null}, '403': {$ref: '#/components/responses/Problem'}}
   /v1/management/commerce/orders/{orderId}:
     get:
@@ -2815,6 +2900,24 @@ paths:
   /v1/management/ugc/appeals/{appealId}/decision:
     post: {operationId: decideFormalUgcAppeal, security: [{session: []}], parameters: [{name: appealId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}], description: Requires community.moderate; restore also requires a different reviewer from the hiding actor and the public UGC gate. Only the last published approved revision may be restored., requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision, reason, expectedVersion], properties: {decision: {type: string, enum: [restore, uphold]}, reason: {type: string, minLength: 4, maxLength: 500}, expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: Audited appeal outcome}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/posts/{postId}:
+    delete:
+      operationId: deleteManagedCommunityPost
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/FormalPostId'}]
+      description: Requires community.moderate and matching published-post version. Tombstones public or hidden content, hides its public comments and media, retains immutable revision and audit evidence, and uses existing points reversal. Does not delete private drafts or another account's originals from storage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedVersion]
+              properties:
+                expectedVersion: {type: integer, minimum: 1}
+      responses:
+        '200': {description: Confirmed tombstone; duplicate deletion returns the same terminal state}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
     get: {operationId: formalUgcReviewCandidate, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}], description: Requires community.moderate; unsubmitted newer revisions are excluded even if an older revision is public., responses: {'200': {description: Eligible private review candidate with version}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}}}
   /v1/management/ugc/posts/{postId}/review:
     post: {"operationId":"reviewFormalUgcPost","security":[{"session":[]}],"parameters":[{"$ref":"#/components/parameters/FormalPostId"}],"description":"Removed workflow. This compatibility operation returns HTTP 410 without changing content, eligibility or points.","requestBody":{"$ref":"#/components/requestBodies/UgcReview"},"responses":{"410":{"$ref":"#/components/responses/Problem"}},"deprecated":true}
@@ -3117,6 +3220,8 @@ paths:
         - {in: query, name: orderId, schema: {$ref: '#/components/schemas/Uuid'}}
         - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 50}}
         - {in: query, name: cursor, schema: {type: string, maxLength: 600}}
+        - {in: query, name: attention, schema: {type: string, enum: [requested, instruction, old_route, receiving, inspection]}}
+        - {in: query, name: stage, schema: {type: string, enum: [review, returns, refunds, closed]}}
       responses:
         '200': {description: Local case facts; channel refund success is a separate verified fact}
         '401': {description: Session required}
@@ -3143,12 +3248,12 @@ paths:
   /v1/management/aftersales/{caseId}/actions:
     post:
       operationId: actManagedAftersale
-      summary: Separated review, receiving and inspection permissions; linked refund uses existing commerce gate
+      summary: Separated review, receiving and inspection permissions; unshipped refunds can atomically reserve approval under both review and refund capabilities; channel success remains separate
       security: [{session: []}]
       parameters:
         - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
         - {$ref: '#/components/parameters/IdempotencyKey'}
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, approve_refund_without_return, receive_return, inspect_return, request_refund, reopen_refund]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, approve_refund_without_return, receive_return, inspect_return, request_refund, reopen_refund, resolve_old_route]}, approveRefund: {type: boolean, description: "Only for an unshipped request_refund; requires commerce.refund.approve and formal refund approval authorization. Atomically records the existing buyer request and administrator approval without dispatching in the transaction."}, routeOutcome: {type: string, enum: [carrier_contacted, rerouted, received]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
       responses:
         '200': {description: Local case facts; channel refund success is a separate verified fact}
         '401': {description: Session required}
@@ -3246,6 +3351,19 @@ paths:
       description: Authorized CAS update for this article only. Closing new comments and comment likes preserves reads and administrator deletion. Uses commentsPolicyVersion separately from the article content version.
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled, expectedVersion], properties: {enabled: {type: boolean}, expectedVersion: {type: integer, minimum: 0}}}}}}
       responses: {'200': {description: commentsEnabled and commentsPolicyVersion}, '403': {description: No effective permission}, '409': {description: Stale policy version}}
+  /v1/me/points/content-receipt:
+    get:
+      operationId: myContentPointsReceipt
+      summary: Owned content reward receipt from canonical grants, never an award command
+      security: [{session: []}]
+      parameters:
+        - {in: query, name: kind, required: true, schema: {type: string, enum: [post, ugc_comment, editorial_comment]}}
+        - {in: query, name: id, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+      responses:
+        '200': {description: Canonical memberId, pending source status and immutable grant IDs with net earned points; an applied zero-grant receipt includes no award}
+        '401': {description: Current authenticated member required}
+        '404': {description: Owned source not found}
+        '422': {description: Invalid bounded source}
   /v1/me/points/club:
     get:
       tags:
@@ -3757,7 +3875,7 @@ paths:
       tags:
         - Commerce
       operationId: configureProductPointsMultiplier
-      summary: Owner-adopted 1x base or advertised 3x product promotion; new orders snapshot the multiplier.
+      summary: Daily 2x or finite advertised 3x promotion with member-day participation; new orders snapshot their actual multiplier.
       security:
         - session: []
       parameters:
@@ -3786,6 +3904,9 @@ paths:
                   enum:
                     - 1
                     - 3
+                startsAt: {type: string, format: date-time, nullable: true}
+                endsAt: {type: string, format: date-time, nullable: true}
+                discountEnabled: {type: boolean}
                 reason:
                   type: string
                   minLength: 4
@@ -3796,6 +3917,33 @@ paths:
         '409':
           $ref: '#/components/responses/Problem'
 
+  /v1/me/sharing-officer/reward-activities:
+    get:
+      tags: [Rewards, Attribution]
+      operationId: officerRewardActivities
+      summary: Active officers see published gift products and boolean availability, without inventory counts or recipient data
+      security: [{session: []}]
+      responses:
+        '200': {description: Owner memberId and published activities with two bundle specifications and available booleans only}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
+  /v1/me/sharing-officer/reward-activities/{activityId}/share:
+    post:
+      tags: [Rewards, Attribution]
+      operationId: prepareOfficerRewardInvitation
+      summary: Prepare a stable gift invitation combined with the active officer's opaque attribution link; no voucher or stock reservation is created
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: activityId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '200': {description: Stable gift token and path containing gift and officer_share; current officer authorization is checked even on replay}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
   /v1/me/sharing-officer:
     get: {"tags":["Attribution"],"operationId":"sharingOfficer1","summary":"本人资格、推广和税前税后汇总","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}}}
   /v1/me/sharing-officer/commands/{key}:
@@ -3809,7 +3957,7 @@ paths:
   /v1/me/sharing-officer/settlements:
     get: {"tags":["Attribution"],"operationId":"sharingOfficer6","summary":"settlements","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"parameters":[{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":50}},{"name":"cursor","in":"query","schema":{"type":"string","maxLength":600}}]}
   /v1/me/sharing-officer/referrer-preview:
-    get: {"tags":["Attribution"],"operationId":"sharingOfficer7","summary":"referrer-preview","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"parameters":[{"name":"code","in":"query","required":true,"schema":{"type":"string","pattern":"^SO[A-Z0-9]{10}$"}}]}
+    get: {"tags":["Attribution"],"operationId":"sharingOfficer7","summary":"referrer-preview","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"parameters":[{"name":"code","in":"query","required":true,"schema":{"type":"string","pattern":"^[A-Z0-9]{12}$"}}]}
   /v1/me/sharing-officer/commands:
     post: {"tags":["Attribution"],"operationId":"sharingOfficer8","summary":"commands","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/SharingMemberCommand"}}}},"parameters":[{"name":"Idempotency-Key","in":"header","required":true,"schema":{"type":"string","minLength":8,"maxLength":160}}]}
   /v1/officer-shares/{shareId}/visits:
@@ -3826,6 +3974,48 @@ paths:
     post: {"tags":["Attribution"],"operationId":"sharingOfficer14","summary":"{memberId}","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"parameters":[{"name":"memberId","in":"path","required":true,"schema":{"type":"string","format":"uuid"}}]}
   /v1/management/sharing-officer/batches/{batchId}/export:
     get: {"tags":["Attribution"],"operationId":"sharingOfficer15","summary":"export","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}},"parameters":[{"name":"batchId","in":"path","required":true,"schema":{"type":"string","format":"uuid"}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":50}},{"name":"cursor","in":"query","schema":{"type":"string","maxLength":600}}]}
+  /v1/points/guide:
+    get:
+      operationId: publicPointsGuide
+      security: []
+      summary: Active versioned points rules and task definitions without personal progress
+      responses: {'200': {description: Approved public rules and enabled tasks only}}
+  /v1/me/points/receipts:
+    get:
+      operationId: myConfirmedPointsReceipts
+      security: [{session: []}]
+      summary: Bounded current-member net grant receipts for once-only reward animation
+      responses: {'200': {description: Current memberId, pending flag and recent immutable grant receipts}, '401': {description: Current member required}}
+  /v1/me/points/suggestions:
+    get:
+      operationId: myPointsSuggestions
+      security: [{session: []}]
+      responses: {'200': {description: Only own suggestions with actual review state}}
+    post:
+      operationId: submitPointsSuggestion
+      security: [{session: []}]
+      parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [body], properties: {body: {type: string, minLength: 15, maxLength: 2000}}}}}}
+      responses: {'200': {description: Actual private pending suggestion; no points before review}, '409': {description: Monthly limit or different payload for the same key}, '422': {description: At least 15 Han characters required}}
+  /v1/management/points/suggestions:
+    get:
+      operationId: managePointsSuggestions
+      security: [{session: []}]
+      responses: {'200': {description: Pending suggestions scoped to effective community.moderate authority}, '403': {description: Permission missing or revoked}}
+  /v1/management/points/suggestions/{id}/review:
+    parameters: [{name: id, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+    post:
+      operationId: reviewPointsSuggestion
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [state, expectedVersion, reason], properties: {state: {type: string, enum: [approved, rejected]}, expectedVersion: {type: integer, minimum: 1}, reason: {type: string, minLength: 4, maxLength: 500}}}}}}
+      responses: {'200': {description: Versioned review; valid approval queues one source for the worker}, '403': {description: Missing authority or self review forbidden}, '409': {description: Stale state or version}}
+  /v1/management/points/skus/{skuId}/offer:
+    parameters: [{name: skuId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+    put:
+      operationId: configurePointsSkuOffer
+      security: [{session: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion, points, enabled, memberLimit], properties: {expectedVersion: {type: integer, minimum: 1}, points: {type: integer, nullable: true, minimum: 1}, enabled: {type: boolean}, memberLimit: {type: integer, minimum: 0, maximum: 9999}}}}}}
+      responses: {'200': {description: Versioned SKU points price, availability and per-member quantity limit}, '403': {description: Effective commerce.product.manage authority required}, '409': {description: Stale SKU version}}
 components:
   securitySchemes:
     session: {type: http, scheme: bearer}
@@ -3892,6 +4082,7 @@ components:
         id: {type: string, format: uuid}
         displayName: {type: string}
         cardNumber: {type: [string, 'null']}
+        userCode: {type: string, pattern: '^[A-Z0-9]{12}$', description: Stable public lookup identifier shared with the officer/referrer surfaces; never grants authority}
         avatar: {type: [string, 'null']}
         administrator: {type: boolean}
         highestAdministrator: {type: boolean}

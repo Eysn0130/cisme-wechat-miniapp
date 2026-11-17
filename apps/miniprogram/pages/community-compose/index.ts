@@ -1,3 +1,5 @@
+import {catalogList} from '../../services/commerce';
+import {confirmCreditOwner,queueContentFeedback} from '../../services/points-feedback';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, uploadAuthorized } from "../../services/api";
@@ -8,7 +10,7 @@ import { editUgcLocalImage, ugcImageEditCapabilities } from "../../services/ugc-
 import { hasTextCardContent, normalizeTextCardTemplate, normalizeTextCardText, textCardGraphemes, type TextCardTemplate } from "../../services/ugc-text-card-layout";
 
 type MediaItem = { id: string; localPath: string; previewUrl: string; size: number; state: "uploading" | "uploaded" | "failed"; progress: number; error: string };
-type Draft = { directPublication?:boolean; id: string; ownerId:string; state: string; version: number; title: string; body: string;
+type Draft = { directPublication?:boolean; id: string; ownerId:string; state: string; version: number; title: string; body: string;rewardKind?:'original'|'experience';experienceProductCode?:string|null;experienceDays?:number|null;
   revision?:number;publishedRevision?:number|null;moderationState?:string;revisionState?:string;
   publicVersionActive: boolean; media: Array<{ id: string; state: string }>;
   reviewNote:string|null;reviewedAt:string|null;hiddenReason:string|null;hiddenAt:string|null;
@@ -17,7 +19,7 @@ const operationKey = () => `ugc-${Date.now().toString(36)}-${Math.random().toStr
 const stateLabel = (state: string) => ({ draft: "草稿", pending_review: "发布中", awaiting_publication:"待重新发布", rejected: "待修改", published: "已发布", hidden: "已下架" }[state] || state);
 const message = (error: unknown, fallback: string) => (error as { title?: string })?.title || fallback;
 const imageEditPendingError="请先重试使用修改后的图片，或放弃本次图片修改。";
-type DraftSnapshot={title:string;body:string;mediaIds:string[]};
+type DraftSnapshot={title:string;body:string;mediaIds:string[];rewardKind?:'original'|'experience';experienceProductCode?:string|null;experienceDays?:number|null};
 type PendingWrite={kind:"save"|"submit";postId:string;ownerId:string;version:number;epoch:number;token:string;revision:number;snapshot:DraftSnapshot};
 type PublishedReturn={postId:string;ownerId:string;epoch:number;token:string;revision:number};
 type PublicationFlow=PublishedReturn&{contentRevision:number|undefined;checks:number};
@@ -33,7 +35,7 @@ type MediaDrag=MediaPress&{index:number;target:number;drawnTarget:number;offsetX
 const mediaSignature=(files:MediaItem[])=>files.map(file=>`${file.id}:${file.localPath}:${file.previewUrl}:${file.state}`).join("|");
 const unknownWrite=(error:unknown)=>{const value=error as {status?:number;code?:string};return !value?.status||value.status>=500||value.code==="UGC_VERSION_CONFLICT"||value.code==="UGC_POST_LOCKED";};
 const sameDraft=(draft:Draft,snapshot:DraftSnapshot)=>draft.title.trim()===snapshot.title.trim()&&draft.body.trim()===snapshot.body.trim()&&
-  draft.media.map(item=>item.id).join(",")===snapshot.mediaIds.join(",");
+  draft.media.map(item=>item.id).join(',')===snapshot.mediaIds.join(',')&&(draft.rewardKind??'original')===(snapshot.rewardKind??'original')&&(draft.experienceProductCode??null)===(snapshot.experienceProductCode??null)&&(draft.experienceDays??null)===(snapshot.experienceDays??null);
 
 async function mimeOf(path: string): Promise<string> {
   const bytes = await new Promise<Uint8Array>((resolve, reject) => wx.getFileSystemManager().readFile({
@@ -81,7 +83,7 @@ Page({
   mediaPress:null as MediaPress|null,mediaDrag:null as MediaDrag|null,
   mediaDragTimer:null as ReturnType<typeof setTimeout>|null,mediaMoveTimer:null as ReturnType<typeof setTimeout>|null,mediaEdgeTimer:null as ReturnType<typeof setInterval>|null,
   mediaScrollPosition:0,mediaTapBlockedUntil:0,
-  data: { directPublication:false,publicationComplete:false,chromeStyle: currentChromeStyle(), postId: "", ownerId:"", state: "draft", publicVersionActive: false, version: 0, title: "", body: "",
+  data: { rewardKind:'original' as 'original'|'experience',experienceProductCode:'',experienceProductName:'',experienceDays:'',experienceLoading:false,directPublication:false,publicationComplete:false,chromeStyle: currentChromeStyle(), postId: "", ownerId:"", state: "draft", publicVersionActive: false, version: 0, title: "", body: "",
     textCardVisible:false,textCardContext:"",textCardText:"",textCardHandoffPath:"",textCardTemplate:"plain" as TextCardTemplate,photoEditorVisible:false,photoEditorAdditional:false,photoEditorContext:"",photoEditorFiles:[] as Array<{path:string;size:number}>,
     files: [] as MediaItem[],mediaDragging:false,mediaDragId:"",mediaDragSource:"",mediaDragLeft:0,mediaDragTop:0,mediaDragSize:0,mediaDragDropping:false,mediaDragOffsets:[] as number[],mediaScrollLeft:0,
     drafts: [] as Array<{ id: string; title: string; status: string; state:string;version:number;imageCount: number;publicVersionActive?:boolean }>,
@@ -93,7 +95,7 @@ Page({
     draftFilter:"all",draftFilters:[{value:"all",label:"全部"},{value:"draft",label:"草稿"},{value:"pending_review",label:"发布中"},{value:"awaiting_publication",label:"待重新发布"},{value:"rejected",label:"待修改"},{value:"published",label:"已发布"},{value:"hidden",label:"已下架"}],
     requestedDraftId: "", requestedNew: false },
   onLoad(query: Record<string, string | undefined>) {
-    this.pageAlive=true;
+    this.pageAlive=true;if(query.task==='experience')this.setData({rewardKind:'experience'});
     this.readRevision=commerceContextRevision();
     this.lastSessionToken=getApp<IAppOption>().globalData.sessionToken;
     this.pendingInitialMedia=null;this.initialTextEntry=query.new==="1"&&!query.id&&query.entry==="text";
@@ -106,7 +108,7 @@ Page({
     if (!getApp<IAppOption>().globalData.sessionToken) {
       this.setData({ loading: false, error: "登录后可写自己的护理故事。" });
       resumeAuthentication(query.id ? `/pages/community-compose/index?id=${encodeURIComponent(query.id)}` :
-        query.new === "1" ? `/pages/community-compose/index?new=1${this.initialTextEntry?"&entry=text":""}` : "/pages/community-compose/index");
+        query.new === "1" ? `/pages/community-compose/index?new=1${this.initialTextEntry?"&entry=text":""}${query.task==="experience"?"&task=experience":""}` : "/pages/community-compose/index");
       return;
     }
     if (query.id) void this.loadDraft(query.id);
@@ -152,7 +154,7 @@ Page({
     this.mediaAbort=null;
     this.data.epoch+=1;
     this.setData({postId:"",ownerId:"",version:0,files:[],drafts:[],listTotal:0,listCursor:null,listLoadingMore:false,listMoreError:"",
-      title:"",body:"",notice:"",error:"",busy:false,uploadBusy:false,dirty:false,loading:true,writeRecovery:"",recoveryBusy:false,publicationComplete:false,
+      title:"",body:"",rewardKind:"original",experienceProductCode:"",experienceProductName:"",experienceDays:"",experienceLoading:false,notice:"",error:"",busy:false,uploadBusy:false,dirty:false,loading:true,writeRecovery:"",recoveryBusy:false,publicationComplete:false,
       createKey:operationKey(),textCardVisible:false,textCardContext:"",textCardText:"",textCardHandoffPath:"",textCardTemplate:"plain",photoEditorVisible:false,photoEditorContext:"",photoEditorFiles:[],mediaRecovery:"",imageEditingId:"",bodyFocused:false});
     if(!token){this.setData({loading:false,error:"登录后可写自己的护理故事。"});return;}
     if(resumeInitialText){this.initialTextEntry=true;this.localTextEntry={nonce:operationKey(),epoch:this.data.epoch,token,revision,createKey:this.data.createKey};}
@@ -231,7 +233,7 @@ Page({
     if(!this.data.dirty)return true;
     if(!this.data.postId||!this.data.ownerId||!token||token!==this.lastSessionToken)return false;
     const backup:UgcLocalBackup={ownerId:this.data.ownerId,postId:this.data.postId,baseVersion:this.data.version,
-      title:this.data.title,body:this.data.body,...(this.textCardInputInitialized?{textCardText:this.data.textCardText}:{}),textCardTemplate:this.data.textCardTemplate,
+      title:this.data.title,body:this.data.body,rewardKind:this.data.rewardKind,experienceProductCode:this.data.experienceProductCode,experienceDays:Number(this.data.experienceDays)||null,...(this.textCardInputInitialized?{textCardText:this.data.textCardText}:{}),textCardTemplate:this.data.textCardTemplate,
       mediaIds:this.data.files.filter(file=>file.state==="uploaded"&&!file.id.startsWith("local-")).map(file=>file.id),
       mediaItems:this.data.files.map(file=>({id:file.id,localPath:file.localPath,size:file.size,state:file.state==="uploaded"?"uploaded":"failed",error:file.state==="uploaded"?"":file.error||"图片上传已中断，可重试或重新选择。"})),savedAt:Date.now()};
     try{writeUgcBackup(backup);return true;}catch{this.setData({notice:"本次修改尚未保存，请点击“存草稿”。"});return false;}
@@ -285,14 +287,14 @@ Page({
       if(this.mediaVisible&&this.data.postId){if(this.pendingInitialMedia)void this.importInitialMedia();else if(this.initialTextEntry){this.initialTextEntry=false;this.openTextCard("entry");}}
     } }
   },
-  startNew() { if(this.data.busy||this.data.writeRecovery)return;this.clearLocalTextEntryScope();this.setData({ createKey: operationKey(),requestedNew:true,requestedDraftId:"",textCardHandoffPath:"" }); void this.openNewIfAvailable(); },
+  startNew() { if(this.data.busy||this.data.writeRecovery)return;this.clearLocalTextEntryScope();this.setData({rewardKind:"original",experienceProductCode:"",experienceProductName:"",experienceDays:"",experienceLoading:false, createKey: operationKey(),requestedNew:true,requestedDraftId:"",textCardHandoffPath:"" }); void this.openNewIfAvailable(); },
   async loadDraft(id: string,restoreBackup=true) {
     this.stopPublicationTracking();this.setData({publicationComplete:false});
     this.cancelMediaDrag();
     this.clearPendingImageEdit();
     const epoch = ++this.data.epoch, token = getApp<IAppOption>().globalData.sessionToken;
     this.clearLocalTextEntryScope();
-    this.setData({ listMode: false, requestedDraftId:id, postId:"", ownerId:"",files:[],title:"",body:"",textCardHandoffPath:"",dirty:false,loading: true, error: "",writeRecovery:"",recoveryBusy:false });
+    this.setData({ listMode: false, requestedDraftId:id, postId:"", ownerId:"",files:[],title:"",body:"",rewardKind:"original",experienceProductCode:"",experienceProductName:"",experienceDays:"",experienceLoading:false,textCardHandoffPath:"",dirty:false,loading: true, error: "",writeRecovery:"",recoveryBusy:false });
     try {
       const draft = await pageRead<Draft>(this,{ path: `/v1/me/ugc/posts/${id}` });
       if (this.mediaVisible && epoch === this.data.epoch && token === getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()) this.applyDraft(draft,restoreBackup);
@@ -310,7 +312,7 @@ Page({
     this.setData({ postId: draft.id,ownerId:draft.ownerId, state: draft.state,directPublication:draft.directPublication===true, publicVersionActive: draft.publicVersionActive, version: draft.version,publicationComplete:false,
       reviewNote:draft.reviewNote??"",reviewedLabel:draft.reviewedAt?new Date(draft.reviewedAt).toLocaleDateString("zh-CN"):"",
       hiddenReason:draft.hiddenReason??"",hiddenPublished:draft.hiddenPublished??null,appeal:draft.appeal??null,
-      title: backup?.title??draft.title, body: backup?.body??draft.body,
+      title: backup?.title??draft.title, body: backup?.body??draft.body,rewardKind:backup?.rewardKind??(this.data.requestedNew?this.data.rewardKind:draft.rewardKind??'original'),experienceProductCode:backup?.experienceProductCode??draft.experienceProductCode??'',experienceProductName:backup?.experienceProductCode??draft.experienceProductCode??'',experienceDays:String(backup?.experienceDays??draft.experienceDays??''),
       requestedNew:false,requestedDraftId:draft.id,textCardHandoffPath:"",textCardText:typeof backup?.textCardText==="string"?backup.textCardText:"",textCardTemplate:normalizeTextCardTemplate(backup?.textCardTemplate),
       files: restored?restored.map(item=>({...item,previewUrl:"",progress:item.state==="uploaded"?100:0})):mediaIds.map(id => ({ id, localPath: "", previewUrl: "", size: 0, state: "uploaded" as const, progress: 100, error: "" })),
       loading: false, error: "",mediaRecovery:"", dirty: Boolean(backup), notice: backup?"已恢复未提交的修改；若有图片未显示，请检查后保存草稿。":
@@ -367,7 +369,7 @@ Page({
     if(file.state!=="uploaded")this.queueLocalBackup();
   },
   previewImage(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id||"");
-    if(this.data.busy||this.data.uploadBusy||this.data.writeRecovery)return;
+    if(this.data.busy||this.data.uploadBusy||this.data.mediaDragging||this.data.writeRecovery)return;
     const readonly=["pending_review","awaiting_publication"].includes(this.data.state);
     const source=(file:MediaItem)=>readonly?(file.previewUrl||file.localPath):(file.localPath||file.previewUrl);
     const file=this.data.files.find(item=>item.id===id),current=file?source(file):"";
@@ -403,6 +405,9 @@ Page({
   },
   retryLoad(){if(this.pendingLocalText)void this.materializeLocalText(this.pendingLocalText);else if(this.pendingWrite)void this.verifyWriteResult();else if(this.data.requestedDraftId)void this.loadDraft(this.data.requestedDraftId);
     else if(this.data.requestedNew)void this.openNewIfAvailable();else void this.loadList();},
+  selectRewardKind(event:WechatMiniprogram.TouchEvent){const kind=event.currentTarget.dataset.kind;if(this.data.busy||this.data.uploadBusy||this.data.mediaDragging||this.data.writeRecovery||!['original','experience'].includes(String(kind)))return;this.setData({rewardKind:kind,dirty:true});this.queueLocalBackup();},
+  editExperienceDays(event:WechatMiniprogram.Input){if(this.data.busy||this.data.uploadBusy||this.data.mediaDragging||this.data.writeRecovery)return;this.setData({experienceDays:event.detail.value,dirty:true});this.queueLocalBackup();},
+  async chooseExperienceProduct(){if(this.data.busy||this.data.uploadBusy||this.data.mediaDragging||this.data.experienceLoading||this.data.writeRecovery)return;const epoch=this.data.epoch,token=this.lastSessionToken;this.setData({experienceLoading:true,error:''});try{const catalog=await catalogList(),items=catalog.items.slice(0,6);if(!this.pageAlive||!this.mediaVisible||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken)return;if(!items.length)throw {title:'暂时没有可关联的产品'};const answer=await wx.showActionSheet({itemList:items.map((x:any)=>x.name)});if(!this.pageAlive||!this.mediaVisible||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken)return;const item=items[answer.tapIndex];if(item){this.setData({experienceProductCode:item.code,experienceProductName:item.name,dirty:true});this.queueLocalBackup();}}catch(error){if(this.pageAlive&&epoch===this.data.epoch&&!(error as any)?.errMsg?.includes('cancel'))this.setData({error:message(error,'产品暂未加载，请重试')});}finally{if(this.pageAlive&&epoch===this.data.epoch)this.setData({experienceLoading:false});}},
   editTitle(event: WechatMiniprogram.Input) { if(this.data.mediaDragging)return;this.setData({ title: event.detail.value, dirty: true, notice: "" });this.queueLocalBackup(); },
   editBody(event: WechatMiniprogram.Input) { if(this.data.mediaDragging)return;this.setData({ body: event.detail.value, dirty: true, notice: "" });this.queueLocalBackup(); },
   onKeyboardHeightChange(event:{detail:{height:number}}){this.setData({keyboardVisible:event.detail.height>0,...(event.detail.height===0?{bodyFocused:false}:{})});},
@@ -898,7 +903,7 @@ Page({
   },
   newPendingWrite(kind:"save"|"submit"):PendingWrite{return {kind,postId:this.data.postId,ownerId:this.data.ownerId,version:this.data.version,
     epoch:this.data.epoch,token:getApp<IAppOption>().globalData.sessionToken,revision:this.readRevision,
-    snapshot:{title:this.data.title,body:this.data.body,mediaIds:this.data.files.map(item=>item.id)}};},
+    snapshot:{title:this.data.title,body:this.data.body,mediaIds:this.data.files.map(item=>item.id),rewardKind:this.data.rewardKind,experienceProductCode:this.data.experienceProductCode||null,experienceDays:Number(this.data.experienceDays)||null}};},
   writeIsCurrent(pending:PendingWrite){return this.pageAlive&&this.pendingWrite===pending&&pending.epoch===this.data.epoch&&
     pending.token===getApp<IAppOption>().globalData.sessionToken&&pending.revision===commerceContextRevision()&&pending.postId===this.data.postId&&pending.ownerId===this.data.ownerId;},
   finishWrite(pending:PendingWrite,draft:Draft){
@@ -1009,7 +1014,7 @@ Page({
     this.pendingWrite=null;void this.loadDraft(postId,false);
   },
   refreshPublication(){
-    if(this.data.busy||this.data.uploadBusy||this.data.writeRecovery)return;
+    if(this.data.busy||this.data.uploadBusy||this.data.mediaDragging||this.data.writeRecovery)return;
     if(this.publicationFlow){
       if(this.data.publicationComplete){this.openPublicationResult();return;}
       this.pausePublicationTracking();this.publicationFlow.checks=0;void this.checkPublication(this.publicationFlow);
@@ -1025,6 +1030,7 @@ Page({
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,postId=this.data.postId;
     const draft = await this.saveDraft(); if (!draft) return;
     if(!this.pageAlive||!this.mediaVisible||epoch!==this.data.epoch||token!==getApp<IAppOption>().globalData.sessionToken||postId!==this.data.postId||!["draft","rejected","published"].includes(this.data.state))return;
+    if(!draft.publicVersionActive){confirmCreditOwner(draft.ownerId);queueContentFeedback(draft.ownerId,'post',draft.id);}
     const pending=this.newPendingWrite("submit");this.pendingWrite=pending;
     this.setData({ busy: true,operation:"submitting", error: "", notice: "" });
     try {

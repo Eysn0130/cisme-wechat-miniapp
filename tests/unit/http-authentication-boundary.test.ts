@@ -22,7 +22,7 @@ beforeAll(async()=>{
 });
 afterAll(async()=>{await app?.close();});
 it("retains the explicit authentication denominator",()=>{
-  expect(routes).toHaveLength(321);
+  expect(routes).toHaveLength(335);
   // Editorial comments and blocks are member-private. Article text stays public.
   for(const operation of [
     {method:"POST",path:"/v1/management/money/orders/{orderId}/external-refund"},

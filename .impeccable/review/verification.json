@@ -1,0 +1,439 @@
+{
+  "packageSourceSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+  "sourceHead": "37c09795",
+  "nativePlatform": "Official WeChat Developer Tools 0.3.15 native simulator, WXML/WXSS/TypeScript",
+  "scope": "Management rewards/order fulfillment, point tasks and suggestion sheet, active-officer gift sharing. Synthetic read fixtures replace requests; actual mutations and money/logistics operations are blocked. Original requests/session restored and owned synthetic XLSX removed.",
+  "interactionEvidence": "Real controller unit tests in controller-tests.txt verify submission hide/resume, exact-key retries, owner changes, explicit export continuation and officer-owned links. Export next/end screenshot states are injected view fixtures, not a claim that 501 live orders were exported.",
+  "notClaimed": [
+    "Physical iOS/Android or keyboard acceptance",
+    "Live parcel delivery/notification acceptance",
+    "Full 48-route/font/state matrix",
+    "Production inventory or real recipient data"
+  ],
+  "rawNativeFrames": [
+    {
+      "path": ".impeccable/review/phone-375/officer-gift-all-soldout.png",
+      "sha256": "7d64375e6aff46c37d3dfa704c46bd2f661a513c4c49e34e558d961eff295c0f",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/officer-gift-bottom.png",
+      "sha256": "93f590f450594c83442714eea6db837dc2b66a35ee08145dfefe0fc9217b0222",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/officer-gift-one-soldout.png",
+      "sha256": "eb14d9bf4b7eea43881a5e64103e7c9e3b855c7e3277579acbe6b637afa83064",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/officer-gift-ready.png",
+      "sha256": "f6720e54c8f6667530623b544b54256de10332c17eec41ff208a6a224ecb8521",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/officer-gift-second-activity.png",
+      "sha256": "ff40adde6f0733b7c00a414e228a88db8e23ad186f6cbd569a71050478e4f7c0",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/orders-all.png",
+      "sha256": "2e67f6595ccce0712c85e60efbe6846cbe151956fea2a1863b641c0d9146a745",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/orders-filter-date.png",
+      "sha256": "8368356c81388b0d081c491a1866ee2a9032d88d78152127ccacc866d4c538c7",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/points-guide-bottom.png",
+      "sha256": "2f21a51f600cbad66257d9ea5efa5c28ae5280728013d5e72702d6fcfce5247d",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/points-guide.png",
+      "sha256": "6811a586fc1df28c769de64f5866bcb947700f8d550b9cee365d635de21a7a9e",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/points-suggestion.png",
+      "sha256": "5eba0441f4ba63311157102abc9162ad64357fca931048c1b12bfa8a252ee08e",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-activity-main.png",
+      "sha256": "5491466060cd1d3230bec3da260e5cb2e10118f0407b4cccecbdba3ffe0ae4d5",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-batch-empty.png",
+      "sha256": "f0cb79bfc3873fda71b7b84674835b6a92b3f1f271632b72bbcb964eca268109",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-batch-invalid.png",
+      "sha256": "b1054ac92ae3920245fa2e412b0f330c81be54a0624a5920db8630f5f862b24d",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-batch-preview.png",
+      "sha256": "e6f9a20980185396c934e30bdbb211e51a068c0ed59cf180f43e5ec20beae30a",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-claim-detail.png",
+      "sha256": "daabed62b85ca1efae9d84a2073fa0fc14177c0df862fad7ee823a38a7fd295a",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-claims.png",
+      "sha256": "f6c5a8e0cb160d7100e859cc3d701e3c9af6f59e9543f3901c1c60d46c608e46",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-export-done.png",
+      "sha256": "5bc73527546766628013ff777d7ce37690189f1de1f8fb67f8a1d598eb455bcb",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-export-next.png",
+      "sha256": "a9730c6cf5a129b489c03f26cd32a6b7308153b3885bc227e6b968dcc2b6bdf7",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-375/reward-vouchers-main.png",
+      "sha256": "c2cbbe9b9c39003f135a6fe8bb8c8cd6336987df337fc9c83b741f9fec0afe36",
+      "nativeViewport": {
+        "width": 375,
+        "height": 812
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/officer-gift-all-soldout.png",
+      "sha256": "7c444be425b5190be5aa8f94d7ba45ba57c2e3a1ffb46d342a3e632285b0a6a1",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/officer-gift-bottom.png",
+      "sha256": "322ec414212d5bdc329fdee29846a31594feb87e0a9d6600a01bd2f9e378579e",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/officer-gift-one-soldout.png",
+      "sha256": "49f3a8a3ea74f093e3193b3ca03eff9fa15931a3d677c9f1acb24d840f0e6ed6",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/officer-gift-ready.png",
+      "sha256": "322ec414212d5bdc329fdee29846a31594feb87e0a9d6600a01bd2f9e378579e",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/officer-gift-second-activity.png",
+      "sha256": "49563abc4d5b4e39612690dc194dba8b8897a31a9963936a91e10413abc5ff2a",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/orders-all.png",
+      "sha256": "2261b6942fe5246c8e6c8bea454b1282a969a140a14911e69a89d90d13cd6db4",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/orders-filter-date.png",
+      "sha256": "3b8a3d359bd028b14e0c1e6dc61985f96073bb16097b91d1cbb094712016fe06",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/points-guide-bottom.png",
+      "sha256": "5aec085b8e9a66d8ee429b4b7e20aacd4a21e213a47ddb7c0ac91547d36ff47c",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/points-guide.png",
+      "sha256": "2529cfdcadd3548d183bb5d1793b9be220389b62cd8a2d9a851f9640d1882046",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/points-suggestion.png",
+      "sha256": "c6bbaa48b3417d2507a014e2dcbc24f996f0bc85fa77dbb2d1746e7f8656ef8a",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-activity-main.png",
+      "sha256": "192c4fd67fa388a406bcadc806f92330b0e6135aff28ab82c40a8de2dd6e26a4",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-batch-empty.png",
+      "sha256": "a916e71a7911faad468cad73db814cea24d4c6788f2a31fb5c4eec1316f783d4",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-batch-invalid.png",
+      "sha256": "a0af988e454c0781fe580bd11f48013a40ca10448670a0ff4d0647de7f94aca5",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-batch-preview.png",
+      "sha256": "bac33ee60e76ef81901d66566fd182e692d713080d68b2e7884abcabcfecc8ac",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-claim-detail.png",
+      "sha256": "62c77845193ebb30e35bd06d413d449c58d6397d6e6ab35d6c2f21f2c6a82505",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-claims.png",
+      "sha256": "846ade6c142c0132f435cd2ef2c12a433965b2b50bcf05c14dd1b5d19211bc46",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-export-done.png",
+      "sha256": "aa11a874e5799f77d502ef8606208dcda2eaabfff3f98f8fbc56e447216ebd47",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-export-next.png",
+      "sha256": "8592be4bf2e2ba9cb3e0ea0c771a0ceac2adcbbd1be57d1ce9807923e90e2911",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    },
+    {
+      "path": ".impeccable/review/phone-430/reward-vouchers-main.png",
+      "sha256": "7a8b0a191f19dc9311217b9bc78db4642391ebab92a39ea97de59db53a38cf30",
+      "nativeViewport": {
+        "width": 430,
+        "height": 932
+      },
+      "sourcePackageSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
+      "syntheticOnly": true
+    }
+  ],
+  "rasterProvenance": [
+    {
+      "source": "apps/miniprogram/pages/checkout/assets/travel-moisture-pair-v3.webp",
+      "destination": "apps/miniprogram/pages/sharing-officer/assets/travel-moisture-pair-v3.webp",
+      "sha256": "3823ffd542c8a7a33fd8a70b5b7cc222ce2b68bc0566b329ccd8955af20112a8",
+      "origin": "Previously approved user-supplied product photographs, copied byte-for-byte for native subpackage access. No regeneration or retouching."
+    },
+    {
+      "source": "apps/miniprogram/pages/checkout/assets/travel-dandruff-pair-v3.webp",
+      "destination": "apps/miniprogram/pages/sharing-officer/assets/travel-dandruff-pair-v3.webp",
+      "sha256": "b694907303128b717fdc5658e0936a275fdd940c85deee04d4762e299bb33d1b",
+      "origin": "Previously approved user-supplied product photographs, copied byte-for-byte for native subpackage access. No regeneration or retouching."
+    },
+    {
+      "source": "apps/miniprogram/pages/checkout/assets/travel-moisture-detail-v1.jpg",
+      "destination": "apps/miniprogram/pages/sharing-officer/assets/travel-moisture-detail-v1.jpg",
+      "sha256": "f716ebf90e783180a5098ed4d7ee6c9a288f261619943c351986fe7e37a8f479",
+      "origin": "Previously approved user-supplied product photographs, copied byte-for-byte for native subpackage access. No regeneration or retouching."
+    },
+    {
+      "source": "apps/miniprogram/pages/checkout/assets/travel-dandruff-detail-v1.jpg",
+      "destination": "apps/miniprogram/pages/sharing-officer/assets/travel-dandruff-detail-v1.jpg",
+      "sha256": "21995de30ff562a1a030842094da7ab4f8b5dfd18d9f348302e886c304a81dd0",
+      "origin": "Previously approved user-supplied product photographs, copied byte-for-byte for native subpackage access. No regeneration or retouching."
+    }
+  ],
+  "review": {
+    "reviewer": "impeccable_finish_reviewer",
+    "disposition": "ship",
+    "remaining": "clear within reviewed scope",
+    "observations": "38 native frames reviewed; all requested layout fixes and 9 review items resolved. Not a full-app, physical-keyboard or real-shipment acceptance.",
+    "contrastRatio": 5.69
+  },
+  "ci": {
+    "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/actions/runs/44122933606",
+    "conclusion": "success",
+    "sourceHead": "37c09795",
+    "unitFiles": 231,
+    "integrationFiles": 88,
+    "v1Operations": 376,
+    "documentedOperations": 378,
+    "unitPassed": 3599,
+    "integrationPassed": 1518
+  }
+}

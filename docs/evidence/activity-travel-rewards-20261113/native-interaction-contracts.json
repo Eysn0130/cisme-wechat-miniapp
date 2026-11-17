@@ -1,7 +1,122 @@
 {
   "kind": "Required interaction contracts; not executed native acceptance",
   "routes": [
-    {"route":"pages/rewards/index","primaryContract":"docs/product/CISME-活动奖励与体验券-20261113.md: My Rewards -> restored care questionnaire -> explicit one-of-two bundle -> address -> atomic zero-cash claim -> receipt coupon; owner/environment-bound pending command survives interruption.","acceptanceReferences":["TRV-01","TRV-02","TRV-03","TRV-04","TRV-05","TRV-07","TRV-08","TRV-10"],"statesRequired":["loading","empty","ready","error","sold_out","stale_quote","unknown_command","session_changed","resume","reduced_motion"]},
-    {"route":"pages/management-rewards/index","primaryContract":"docs/product/CISME-活动奖励与体验券-20261113.md: Explicit current grants -> configured campaign -> actual component stock -> canonical awarded member IDs -> idempotent voucher issue -> physical dispatch -> aftersale and bounded XLSX reconciliation; no inferred real inventory or recipient.","acceptanceReferences":["TRV-01","TRV-02","TRV-05","TRV-07","TRV-09","TRV-10"],"statesRequired":["loading","empty","ready","error","capability_revoked","invalid_input","stale_version","unknown_command","session_changed","resume"]}
-  ]
+    {
+      "route": "pages/rewards/index",
+      "primaryContract": "docs/product/CISME-活动奖励与体验券-20261113.md: My Rewards -> restored care questionnaire -> explicit one-of-two bundle -> address -> atomic zero-cash claim -> receipt coupon; owner/environment-bound pending command survives interruption.",
+      "acceptanceReferences": [
+        "TRV-01",
+        "TRV-02",
+        "TRV-03",
+        "TRV-04",
+        "TRV-05",
+        "TRV-07",
+        "TRV-08",
+        "TRV-10"
+      ],
+      "statesRequired": [
+        "loading",
+        "empty",
+        "ready",
+        "error",
+        "sold_out",
+        "stale_quote",
+        "unknown_command",
+        "session_changed",
+        "resume",
+        "reduced_motion"
+      ]
+    },
+    {
+      "route": "pages/management-rewards/index",
+      "primaryContract": "PRD TRV-SHARE-01..08 / TRV-FULFILL-01..03 / TRV-BATCH-01..02: compact campaign context and explicit share link; activity settings, voucher records and claim orders use shared section-tabs. Two real bundle stocks, native date range, recent actor/filter-bound pagination, single dispatch and previewed atomic XLSX batch registration. No manual winner ID entry, no inferred real inventory or fake shipping.",
+      "acceptanceReferences": [
+        "TRV-01",
+        "TRV-02",
+        "TRV-05",
+        "TRV-07",
+        "TRV-09",
+        "TRV-10",
+        "TRV-FULFILL-01",
+        "TRV-FULFILL-02",
+        "TRV-FULFILL-03",
+        "TRV-BATCH-01",
+        "TRV-BATCH-02"
+      ],
+      "statesRequired": [
+        "loading",
+        "empty",
+        "ready",
+        "error",
+        "capability_revoked",
+        "invalid_input",
+        "stale_version",
+        "unknown_command",
+        "session_changed",
+        "resume",
+        "filtered_empty",
+        "date_range",
+        "batch_preview",
+        "batch_invalid",
+        "batch_already_registered",
+        "batch_unknown",
+        "long_member_name",
+        "two_bundle_stock"
+      ]
+    }
+  ],
+  "evidenceScope": "Updated 2026-11-17 contract. Native simulator captures and CI receipts have separate exact source hashes; full route/device acceptance is not inferred.",
+  "surfaceReview": {
+    "mode": "Operate; ordinary extension of the existing native CISME interface, no replacement brand world",
+    "recordedAtStage": "Recorded explicitly after the first native implementation pass; not claimed as a pre-code artifact",
+    "productBaseline": "docs/product/CISME-产品需求文档-PRD-V2.1-R4.md; root AGENTS.md; apps/miniprogram/app.wxss; components/section-tabs",
+    "standaloneProductAndDesignFiles": "No PRODUCT.md or DESIGN.md exists at this artifact root. Existing PRD, native tokens and approved consumer assets are the incumbent truth; this extension does not invent or overwrite a new design system.",
+    "directionContract": {
+      "THESIS": "把活动、券和实物履约的状态清楚地连起来；管理员在一个紧凑工作台分享礼遇、查单、导出和发货。",
+      "OWN-WORLD": "沿用CISME紫色、暖白底、原生文字短下划线Tab、既有按钮和已批准的两套产品实拍；不改用户券面。",
+      "STORY": "先确认当前活动，再选择设置/领券/领取订单；查看所选套装和真实收件快照；单笔登记或预览校验XLSX后批量登记。",
+      "FIRST VIEWPORT": "固定原生标题；紧凑活动选择与分享；统一三页签。设置展示四行必要规则和两套真实库存；订单把状态、日期、导出和批量发货收拢，卡片区分套装、会员、状态和领取单号。",
+      "FORM": "Code-led local extension inside the established native system; no new-world roll or generated comp. User explicitly authorized autonomous design choices.",
+      "FINISH": "unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance"
+    },
+    "qualityBar": [
+      "PRD/state/permissions precede appearance; two bundles, one per member, no fabricated inventory or logistics",
+      "375 and430 native viewport hierarchy, 44px targets, capsule/safe-area fit and real long text",
+      "Necessary amounts, expiry, shipping and recoverable errors retained; redundant explanations and outlined secondary buttons removed",
+      "Single and atomic batch registration have explicit review, idempotence, actor/environment binding and unknown-result recovery",
+      "Native screenshots are synthetic read-only UI evidence, never physical-device or production shipping acceptance"
+    ],
+    "packageSourceSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad"
+  },
+  "officerGiftSharing": {
+    "mode": "Operate; extension of the approved product comparison and officer page",
+    "goal": "Active sharing officers preview the two gift bundles and share an owned invitation; only administrators see exact inventory.",
+    "hierarchy": [
+      "Native title and compact activity selector if needed",
+      "Two approved product photographs, exact contents, available/sold-out status",
+      "One sticky share action, enabled only after an owned server link is ready"
+    ],
+    "interactionContracts": [
+      "Management-free GET projects no quantity, reservation, component or recipient fields",
+      "Only active officer and enabled policy may prepare or replay a gift share; published activity and physical availability checked",
+      "Share path combines the real reward invitation and opaque officer-owned attribution, no referral code as permission",
+      "Public visit is resolved before creating a new identity, including queued weak-network retries; existing members are not rebound",
+      "Recipient completes login/100-point onboarding first, then the existing gift popup; defer retains the voucher in My Rewards",
+      "Hide, account/environment change, activity change or revoked qualification discards prepared share context; details use independent action and native preview"
+    ],
+    "states": [
+      "loading",
+      "ready",
+      "all_sold_out",
+      "one_sold_out",
+      "no_activity",
+      "link_error_retry",
+      "inactive_officer",
+      "session_changed",
+      "hidden",
+      "native_image_preview_resume"
+    ],
+    "visual": "Keep established plum/warm-white palette, two vertical image/text product comparisons; no quantities, new voucher face or selection controls. One 44px+ sticky share action; ordinary native scroll and safe area; no looping decorative motion.",
+    "evidence": "New scope recorded before UI edits; native render and isolated attribution/authorization tests required."
+  }
 }

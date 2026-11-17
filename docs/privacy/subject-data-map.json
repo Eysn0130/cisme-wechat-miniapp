@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "d1c502dad7b87942fcc7cb20a45ebd7e4b43ce59135f4529a16cd7f9c93f39ac",
+  "migrationSetSha256": "7fab85fdef2cdd9dc41d4373ae6794fa1f2dede189fc1c3726d6b5ef6aa914ed",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -373,7 +373,10 @@
         "updated_at",
         "published_at",
         "unpublished_at",
-        "shopping_points_multiplier"
+        "shopping_points_multiplier",
+        "points_discount_enabled",
+        "points_promotion_starts_at",
+        "points_promotion_ends_at"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -423,7 +426,10 @@
         "created_by",
         "updated_by",
         "created_at",
-        "updated_at"
+        "updated_at",
+        "points_price",
+        "points_redeemable",
+        "points_member_limit"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -1003,7 +1009,9 @@
         "shopping_points_multiplier",
         "points_spent",
         "points_policy_version",
-        "points_birthday_month"
+        "points_birthday_month",
+        "points_share_referrer",
+        "points_share_visit_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -4898,10 +4906,11 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Stable private display number, independent of UUID authentication and authority. Project only formatted number and issued_at to its owner. Registration assigns atomically; backfill preserves original member facts. Never raw-export member_id or publish in community author data. Issued numbers are immutable and sequences do not cycle; runtime rollback retains the mapping. No general erasure or indefinite unrelated-content retention permission is added.",
+      "specialHandling": "Stable private display number, independent of UUID authentication and authority. Project only formatted number and issued_at to its owner. Registration assigns atomically; backfill preserves original member facts. Never raw-export member_id or publish in community author data. Issued numbers are immutable and sequences do not cycle; runtime rollback retains the mapping. No general erasure or indefinite unrelated-content retention permission is added. user_code is a stable uppercase alphanumeric lookup identifier shared by settings, referral search and officer identity; the sequential number remains independent. Existing officer codes are preserved; possession never grants authority.",
       "exportFields": [
         "number",
-        "issued_at"
+        "issued_at",
+        "user_code"
       ],
       "excludedFields": [
         "member_id"
@@ -5453,6 +5462,39 @@
       "productionErasure": "DISABLED",
       "retention": "TRANSACTION_POLICY_AND_LEGAL_HOLD",
       "fullSubjectResolverStatus": "RELATIONSHIPS_MAPPED_NOT_EXPORT_AUTHORIZATION"
+    },
+    {
+      "table": "member_points_suggestion",
+      "subjectPaths": [
+        [
+          "member_points_suggestion.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "reviewed_by"
+      ],
+      "specialHandling": "Owner-private improvement suggestions are encrypted at rest; only the owner and a currently authorized community moderator may read the decrypted text. Portable export decrypts only the owner body and review outcome, excluding operation keys, hashes, reviewer identity and ciphertext. Optional-profile erasure and account closure clear unheld body/reason without removing earned points or immutable ledger evidence. Row-specific and account legal holds delay erasure.",
+      "exportFields": [
+        "id",
+        "state",
+        "review_reason",
+        "created_at"
+      ],
+      "excludedFields": [
+        "member_id",
+        "operation_id",
+        "encrypted_body",
+        "body_sha256",
+        "key_version",
+        "version",
+        "reviewed_by",
+        "reviewed_at"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "ACCOUNT_CLOSURE_WITH_OPTIONAL_NOTE_ERASURE",
+      "retention": "OPTIONAL_PRIVATE_CONTENT_ERASURE_WITH_LEGAL_HOLD; EARNED_POINTS_LEDGER_RETAINED",
+      "fullSubjectResolverStatus": "TYPED_OWNER_PROJECTION_IMPLEMENTED"
     },
     {
       "table": "member_points_wallet_check",
@@ -8735,9 +8777,15 @@
           "ugc_post.published_revision -> ugc_post_revision.revision",
           "ugc_post_revision.created_by_member_id -> member.id",
           "member.id"
+        ],
+        [
+          "ugc_post.featured_by -> member.id",
+          "member.id"
         ]
       ],
-      "actorColumns": [],
+      "actorColumns": [
+        "featured_by"
+      ],
       "specialHandling": "Follow each distinct subject role; shared rows require field-specific projection.",
       "exportFields": [
         "id",
@@ -8753,7 +8801,10 @@
         "client_request_key",
         "version",
         "deleted_at",
-        "published_revision"
+        "published_revision",
+        "featured_revision",
+        "featured_at",
+        "featured_by"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -9094,7 +9145,10 @@
         "title",
         "body",
         "content_warning",
-        "created_at"
+        "created_at",
+        "reward_kind",
+        "experience_product_code",
+        "experience_days"
       ],
       "excludedFields": [
         "created_by_member_id",
@@ -9651,5 +9705,28 @@
     "migratedSchemaComparison": "pending isolated CI",
     "ownerExport": "allowlisted v1 and bounded v2 projectors include activityRewards",
     "operationalActivation": "requires real component counts and awarded member IDs; no entitlements seeded"
+  },
+  "communityCurationReview20261116": {
+    "fields": [
+      "ugc_post.featured_revision",
+      "ugc_post.featured_at",
+      "ugc_post.featured_by"
+    ],
+    "purpose": "Version-bound administrator placement of explicitly public member posts; source author and unpublished revisions preserved.",
+    "operatorIdentity": "Private staff evidence; not returned by public cards or generic subject export.",
+    "newThirdPartyRecipient": false,
+    "automaticErasureExpanded": false,
+    "retentionChanged": false
+  },
+  "memberUserCodeReview20261117": {
+    "newField": "member_card_number.user_code",
+    "ownerExport": true,
+    "newThirdPartyRecipient": false,
+    "noAuthorityFromCode": true
+  },
+  "pointsTasksV2Review": {
+    "reviewed": true,
+    "source": "2026-11-17 owner-adopted guide and confirmed task values",
+    "scope": "Prospective versioned point grants, private suggestions, immutable public-post reward metadata and shipping-scoped reward exports. No real member rows read for this mapping; actual migrated-schema validation remains a required CI check."
   }
 }

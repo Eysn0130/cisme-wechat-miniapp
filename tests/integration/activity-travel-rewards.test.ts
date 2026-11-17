@@ -11,13 +11,15 @@ import {CareOnboardingService,careQuestions} from '../../services/api/src/careOn
 import {settlePurchaseCoupon} from '../../services/api/src/rewardLedger';
 import {transaction} from '../../services/api/src/db';
 import {VerifiedPaymentInbox} from '../../services/api/src/verifiedPaymentInbox';
+import {fulfillmentWorkbook} from '../../services/api/src/fulfillmentWorkbook';
 import {collectRewardPortableData} from '../../services/api/src/rewardPrivacy';
 import {VerifiedRefundInbox} from '../../services/api/src/verifiedRefundInbox';
 import {MemberAdministration} from '../../services/api/src/memberAdministration';
 const pool=testPool(),config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'reward-integration-session',ADMIN_API_TOKEN:'legacy-test',UPLOAD_TOKEN_SECRET:'reward-test-upload',OBJECT_STORAGE_DRIVER:'api_gateway',CONTACT_ENCRYPTION_KEY:'11'.repeat(32),CONTACT_HASH_KEY:'22'.repeat(32),CONTACT_KEY_VERSION:'reward-test-v1',COMMERCE_ORDER_FLOW_ENABLED:'true'});
 let app:Awaited<ReturnType<typeof createApp>>,rewards:ActivityRewardService,operator:any,product:any,activity:any;
 const auth=(p:any)=>({authorization:`Bearer ${p.sessionToken}`}),key=()=>`reward-test-${randomUUID()}`;
-const person=async()=>{const r=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:key(),displayName:'隔离奖励会员',consents:[{documentType:'privacy',version:'v1'},{documentType:'terms',version:'v1'}]}});expect(r.statusCode,r.body).toBe(200);return r.json();};
+let actorAddress=0;
+const person=async()=>{const r=await app.inject({method:'POST',url:'/v1/identity/dev',remoteAddress:`192.0.2.${++actorAddress}`,payload:{externalUserId:key(),displayName:'隔离奖励会员',consents:[{documentType:'privacy',version:'v1'},{documentType:'terms',version:'v1'}]}});expect(r.statusCode,r.body).toBe(200);return r.json();};
 async function address(p:any){const r=await app.inject({method:'POST',url:'/v1/me/addresses',headers:{...auth(p),'idempotency-key':key()},payload:{recipientName:'隔离收件人',phone:'13800000001',province:'上海市',city:'上海市',district:'浦东新区',detail:'隔离测试路1号',postalCode:'200000',nationalCode:'310115',provinceCode:'310000',cityCode:'310100',districtCode:'310115',label:'home',isDefault:true}});expect(r.statusCode,r.body).toBe(200);return r.json();}
 async function survey(p:any){const service=new CareOnboardingService(pool,config),v=await service.get(p.memberId);const answers=Object.fromEntries(careQuestions.map(q=>[q.id,q.sensitive?{status:'not_authorized',values:[]}:{status:'answered',values:[q.options[0]!.value]}]));return (await service.save(p.memberId,key(),{questionnaireVersion:v.questionnaireVersion,expectedVersion:v.profile?.version??0,currentQuestion:10,answers,consentChoice:'declined',consentVersion:v.sensitiveConsent.version},true)).profile!;}
 async function issue(p:any,now?:Date){const r=await rewards.issue(operator.memberId,activity.id,key(),{batchId:'isolated-batch',awards:[{sourceRecordId:key(),memberId:p.memberId}]},now);return r.items[0]!.voucherId;}
@@ -47,6 +49,28 @@ describe('TRV-SHARE public invitations and two bundle stock',()=>{
   const p=await person();await expect(rewards.prepareShare(p.memberId,activity.id,key())).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   expect((await app.inject({method:'POST',url:`/v1/me/rewards/invitations/${a.token}/accept`,headers:{'idempotency-key':key()},payload:{}})).statusCode).toBe(401);
   const invalid=a.token.slice(0,-1)+(a.token.endsWith('0')?'1':'0');await expect(rewards.invitation(invalid)).rejects.toMatchObject({code:'REWARD_LINK_UNAVAILABLE'});
+ });
+ it('lets active sharing officers share gifts without stock counts and binds only a new linked member',async()=>{
+  const officer=await person(),existing=await person(),ordinary=await person();
+  await pool.query(`INSERT INTO catalog_product(code,name,source_kind,qualification_status,publication_status,created_by,updated_by,published_at)
+   VALUES('aigerong-scalp-repair-essence-100','合成资格商品','synthetic_test','eligible','published','fixture','fixture',now()) ON CONFLICT(code) DO NOTHING`);
+  await pool.query(`INSERT INTO sharing_officer(member_id,referral_code,state) SELECT member_id,user_code,'active' FROM member_card_number WHERE member_id=$1`,[officer.memberId]);
+  const offers=await app.inject({method:'GET',url:'/v1/me/sharing-officer/reward-activities',headers:auth(officer)});expect(offers.statusCode,offers.body).toBe(200);
+  expect(offers.json().activities[0].bundles.map((b:any)=>b.available)).toEqual([true,true]);expect(offers.body).not.toMatch(/availableQuantity|reserved|stock|components|confirmed|phone|address/);
+  expect((await app.inject({method:'GET',url:'/v1/me/sharing-officer/reward-activities',headers:auth(ordinary)})).statusCode).toBe(403);
+  const operation=key(),share=await rewards.prepareOfficerShare(officer.memberId,activity.id,operation);
+  expect(share.path).toBe(`/pages/home/index?gift=${share.token}&officer_share=${share.officerShareId}`);
+  expect((await rewards.prepareOfficerShare(officer.memberId,activity.id,key())).path).toBe(share.path);
+  expect((await rewards.mine(officer.memberId)).vouchers).toHaveLength(0);
+  const visit=await app.inject({method:'POST',url:`/v1/officer-shares/${share.officerShareId}/visits`,payload:{visitKey:key()}});expect(visit.statusCode,visit.body).toBe(200);
+  const joined=await person();const bind=async(p:any,token:string)=>app.inject({method:'POST',url:'/v1/me/sharing-officer/commands',headers:{...auth(p),'idempotency-key':key()},payload:{action:'bind_visit',input:{visitToken:token}}});
+  expect((await bind(joined,visit.json().visitToken)).statusCode).toBe(200);
+  expect((await pool.query('SELECT officer_id,expires_at FROM sharing_customer_relation WHERE buyer_id=$1',[joined.memberId])).rows[0]).toEqual({officer_id:officer.memberId,expires_at:null});
+  const oldVisit=await app.inject({method:'POST',url:`/v1/officer-shares/${share.officerShareId}/visits`,payload:{visitKey:key()}});expect((await bind(existing,oldVisit.json().visitToken)).statusCode).toBe(200);
+  expect((await pool.query('SELECT 1 FROM sharing_customer_relation WHERE buyer_id=$1',[existing.memberId])).rowCount).toBe(0);
+  await survey(joined);expect((await rewards.acceptInvitation(joined.memberId,share.token,key())).issued).toBe(true);expect((await rewards.acceptInvitation(joined.memberId,share.token,key())).issued).toBe(false);
+  await pool.query("UPDATE sharing_officer SET state='suspended',version=version+1 WHERE member_id=$1",[officer.memberId]);
+  await expect(rewards.prepareOfficerShare(officer.memberId,activity.id,operation)).rejects.toMatchObject({code:'SHARING_OFFICER_INACTIVE'});
  });
  it('waits for first onboarding and retains the received voucher without reserving a physical set',async()=>{
   const share=await rewards.prepareShare(operator.memberId,activity.id,key()),p=await person();
@@ -211,8 +235,38 @@ it('reconciles available coupons, consumed travel awards and owned source links 
  expect((await admin.section(operator.memberId,expired.memberId,'vouchers') as any).items[0].state).toBe('expired');
 });
 
+it('exports the exact filtered gift fulfillment with frozen recipient data, both user identifiers and cancelled history',async()=>{
+ const receiver=(await pool.query(`SELECT c.*,m.display_name FROM activity_reward_claim c JOIN member m ON m.id=c.member_id WHERE c.state='placed' ORDER BY c.created_at LIMIT 1`)).rows[0];expect(receiver).toBeTruthy();
+ const day=new Date(receiver.created_at.getTime()+8*3600000).toISOString().slice(0,10),fulfiller=await person();await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'commerce.fulfillment.manage','fixture','isolated shipping export','test','integration_fixture')`,[fulfiller.memberId]);
+ const address=(await rewards.detail(fulfiller.memberId,receiver.id,true)).address;
+ const result=await rewards.export(fulfiller.memberId,activity.id,'pending_dispatch',undefined,{from:day,through:day,state:'placed'});expect(result.count).toBeGreaterThan(0);const xml=result.workbook.toString('utf8');
+ for(const text of ['收件人','手机号','详细地址','用户编号','会员卡编号',receiver.claim_number,address.recipientName,address.phone,address.detail])expect(xml).toContain(text);
+ expect((await rewards.export(fulfiller.memberId,activity.id,'claimed',undefined,{state:'cancelled'})).count).toBeGreaterThan(0);
+ await expect(rewards.export(fulfiller.memberId,activity.id,'issued')).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+ await expect(rewards.management(fulfiller.memberId,{activityId:activity.id,from:'2026-02-30'})).rejects.toMatchObject({code:'MANAGEMENT_DATE_INVALID'});
+ const impossible=await rewards.management(fulfiller.memberId,{activityId:activity.id,from:'2000-01-01',through:'2000-01-01'});expect(impossible.claims).toHaveLength(0);
+});
+
 // Last in this disposable fixture: drive both real component ledgers to their
 // final units, without changing any live environment or other test file.
+it('previews real gift shipment rows and registers a confirmed workbook atomically with exact replay',async()=>{
+ const a=await ready(),b=await ready(),ca=await claim(a),cb=await claim(b),ra=await rewards.detail(operator.memberId,ca.id,true),rb=await rewards.detail(operator.memberId,cb.id,true);
+ const recent=await rewards.management(operator.memberId,{activityId:activity.id,claimCursor:'start'});expect(recent.claims.slice(0,2).map(c=>c.id)).toEqual([cb.id,ca.id]);await expect(rewards.management(operator.memberId,{activityId:activity.id,claimCursor:'invalid'})).rejects.toMatchObject({code:'PAGE_CURSOR_INVALID'});
+ const url=`/v1/management/rewards/activities/${activity.id}/shipments`,xlsx=fulfillmentWorkbook([['领取单号','承运商','物流单号'],[ra.claimNumber,'合成承运商','SYNBULK00001'],[rb.claimNumber,'合成承运商','SYNBULK00002']]);
+ const payload={filename:'合成礼品发货.xlsx',contentBase64:xlsx.toString('base64')};
+ expect((await app.inject({method:'POST',url:url+'/preview',headers:auth(a.p),payload})).statusCode).toBe(403);
+ const preview=await app.inject({method:'POST',url:url+'/preview',headers:auth(operator),payload});expect(preview.statusCode,preview.body).toBe(200);expect(preview.json()).toMatchObject({readyCount:2,errorCount:0,registeredCount:0});expect((await rewards.detail(a.p.memberId,ca.id)).state).toBe('placed');
+ const entries=preview.json().entries.map((x:any)=>({id:x.id,expectedVersion:x.expectedVersion,carrierName:x.carrierName,trackingNumber:x.trackingNumber}));
+ const changed=entries.map((x:any,i:number)=>i===1?{...x,expectedVersion:x.expectedVersion+1}:x);
+ const rejected=await app.inject({method:'POST',url:url+'/import',headers:{...auth(operator),'idempotency-key':key()},payload:{entries:changed}});expect(rejected.statusCode,rejected.body).toBe(409);expect((await rewards.detail(a.p.memberId,ca.id)).state).toBe('placed');
+ const operation=key(),submit=()=>app.inject({method:'POST',url:url+'/import',headers:{...auth(operator),'idempotency-key':operation},payload:{entries}});
+ const result=await submit();expect(result.statusCode,result.body).toBe(200);expect(result.json()).toMatchObject({state:'shipped',count:2});expect((await submit()).json()).toEqual(result.json());
+ expect(await rewards.detail(a.p.memberId,ca.id)).toMatchObject({state:'shipped',trackingNumber:'SYNBULK00001',version:2});
+ const again=await app.inject({method:'POST',url:url+'/preview',headers:auth(operator),payload});expect(again.json()).toMatchObject({readyCount:0,registeredCount:2,errorCount:0});
+ const raw=(await pool.query('SELECT details FROM reward_event WHERE actor_member_id=$1 AND operation_id=$2',[operator.memberId,operation])).rows[0];expect(JSON.stringify(raw)).not.toContain('SYNBULK00001');
+ const wrong=await rewards.previewShipments(operator.memberId,activity.id,ra.claimNumber+'\t合成承运商\tSYNBULKWRONG','synthetic-hash');expect(wrong.errorCount).toBe(1);
+});
+
 it('awards the last set once under contention and leaves only the other bundle selectable',async()=>{
  const a=await ready(),b=await ready(),share=await rewards.prepareShare(operator.memberId,activity.id,key());
  await pool.query("UPDATE reward_component_inventory SET stock_on_hand=CASE WHEN code='conditioner100' THEN 2 ELSE 1 END,reserved_quantity=0,confirmed=true,version=version+1");

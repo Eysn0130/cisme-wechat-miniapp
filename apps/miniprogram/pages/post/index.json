@@ -1,1 +1,10 @@
-{"navigationBarTitleText":"护理故事","enablePullDownRefresh":true,"backgroundColor":"#ffffff","backgroundTextStyle":"dark","onReachBottomDistance":96}
+{
+  "navigationBarTitleText": "护理故事",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#ffffff",
+  "backgroundTextStyle": "dark",
+  "onReachBottomDistance": 96,
+  "usingComponents": {
+    "points-celebration": "../../components/points-celebration/index"
+  }
+}

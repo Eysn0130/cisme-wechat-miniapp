@@ -4,7 +4,7 @@ vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,resumeAuth
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
 vi.mock("../../apps/miniprogram/services/commerce-command-store",()=>({commerceContextRevision:()=>m.revision}));
 vi.mock("../../apps/miniprogram/services/performance-metrics",()=>({measurementClock:()=>0,recordClientMetric:vi.fn()}));
-vi.mock("../../apps/miniprogram/services/editorial",()=>({editorialStoriesForRuntime:()=>[],editorialMediaSrc:()=>"",publishedEditorialArticles:vi.fn(async()=>({items:[],nextCursor:null})),expiredEditorialRead:()=>false}));
+vi.mock("../../apps/miniprogram/services/editorial",()=>({editorialStoriesForRuntime:()=>[],editorialMediaSrc:()=>"",publishedCommunityFeatured:vi.fn(async()=>({items:[],nextCursor:null})),expiredEditorialRead:()=>false}));
 let definition:any,page:any,wxMock:any,route:string,nonce:number,api:typeof import("../../apps/miniprogram/services/community-compose-intent");
 const deferred=()=>{let resolve!:(value:any)=>void,reject!:(value:any)=>void;return{promise:new Promise<any>((yes,no)=>{resolve=yes;reject=no;}),resolve,reject};};
 const event=(source:string)=>({currentTarget:{dataset:{source}}});

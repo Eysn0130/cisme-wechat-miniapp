@@ -3,7 +3,7 @@ import {request} from '../../services/api';
 import {cancelPageReads,pageRead} from '../../services/page-requests';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 export type UserScope={profile:boolean;contact:boolean;care:boolean;orders:boolean;points:boolean;rewards:boolean;issueRewards:boolean;administrators:boolean;sharing:boolean;commission:boolean;finance:boolean;support:boolean;privacy:boolean;moderate:boolean;manage:boolean;export:boolean};
-export type UserRow={id:string;displayName:string;cardNumber:string|null;avatar:string|null;avatarRevision?:string|null;administrator?:boolean;highestAdministrator?:boolean;accountStatus:string;onboarding:string;createdAt:string;phoneMasked:string|null;points:any;commerce:any;activity:any;rewards:any;sharing:any};
+export type UserRow={id:string;displayName:string;userCode?:string;cardNumber:string|null;avatar:string|null;avatarRevision?:string|null;administrator?:boolean;highestAdministrator?:boolean;accountStatus:string;onboarding:string;createdAt:string;phoneMasked:string|null;points:any;commerce:any;activity:any;rewards:any;sharing:any};
 export type UserQuery={q:string;view:string;account:string;onboarding:string;officer:string;sort:string;direction:string};
 export const initialQuery:UserQuery={q:'',view:'profile',account:'all',onboarding:'all',officer:'all',sort:'registered',direction:'desc'};
 export const views=[{id:'profile',label:'资料'},{id:'commerce',label:'消费'},{id:'activity',label:'活跃'},{id:'assets',label:'权益'},{id:'sharing',label:'分享官'}];

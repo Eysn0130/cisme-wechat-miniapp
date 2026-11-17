@@ -1,3 +1,4 @@
+import {captureValidContentShare} from './memberPointsTasks.js';
 import {saveMemberUsage,privateUsageDigest} from './memberPointsClub.js';
 import {lockPointWallet} from './pointsLedger.js';
 import {memberCardNumberProjection} from './memberCard.js';
@@ -469,7 +470,7 @@ export class PlatformService {
 
   async getMember(memberId: string | undefined) {
     const owner = requireMember(memberId);
-    const member = await this.pool.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.avatar_data_url,p.avatar_revision,COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.public_status,'private') AS public_status,c.phone_masked FROM member m LEFT JOIN member_points_profile bp ON bp.member_id=m.id LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
+    const member = await this.pool.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,mc.user_code,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.avatar_data_url,p.avatar_revision,COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.public_status,'private') AS public_status,c.phone_masked FROM member m LEFT JOIN member_points_profile bp ON bp.member_id=m.id LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
     if (!member.rows[0]) throw new DomainError("MEMBER_NOT_FOUND", "Member not found", 404);
     return member.rows[0];
   }
@@ -511,13 +512,14 @@ export class PlatformService {
         RETURNING share_id, target_type, target_ref, expires_at`, [shareId, owner, input.targetType, targetRef, expiresAt]);
       const row = link.rows[0]!;
       let officerShareId:string|null=null;
-      if(input.targetType==='product'){
+      {
+        const promotedProduct=input.targetType==='product'?targetRef:'aigerong-scalp-repair-essence-100';
         const officer=(await client.query(`SELECT o.member_id FROM sharing_officer o JOIN member m ON m.id=o.member_id
           JOIN catalog_product p ON p.code=$2 WHERE o.member_id=$1 AND o.state='active' AND m.status='active'
           AND p.publication_status='published' AND p.qualification_status='eligible'
-          AND COALESCE((SELECT enabled FROM sharing_policy ORDER BY version DESC LIMIT 1),false)`,[owner,targetRef])).rows[0];
+          AND COALESCE((SELECT enabled FROM sharing_policy ORDER BY version DESC LIMIT 1),false)`,[owner,promotedProduct])).rows[0];
         if(officer)officerShareId=(await client.query(`INSERT INTO sharing_link(share_id,officer_id,product_code) VALUES($1,$2,$3)
-          ON CONFLICT(officer_id,product_code) DO UPDATE SET officer_id=EXCLUDED.officer_id RETURNING share_id`,[randomUUID().replaceAll('-',''),owner,targetRef])).rows[0].share_id;
+          ON CONFLICT(officer_id,product_code) DO UPDATE SET officer_id=EXCLUDED.officer_id RETURNING share_id`,[randomUUID().replaceAll('-',''),owner,promotedProduct])).rows[0].share_id;
       }
       const response = { shareId: row.share_id, officerShareId, targetType: row.target_type, targetRef: row.target_ref, expiresAt: row.expires_at.toISOString() };
       await this.idempotencySave(client, { ...idem, response });
@@ -572,7 +574,7 @@ export class PlatformService {
   async attributeShareIdentity(memberId: string | undefined, shareId: string, visitKey: string, now: Date) {
     const owner = requireMember(memberId);
     return transaction(this.pool, async (client) => {
-      const visit = await client.query<{ target_type:string;visit_id: string; sharer_member_id: string; visitor_member_id: string | null; first_seen_at: Date; state: string }>(`SELECT sl.target_type,sv.id AS visit_id, sl.member_id AS sharer_member_id, sv.visitor_member_id, sv.first_seen_at, sl.state
+      const visit = await client.query<{ target_type:string;target_ref:string;visit_id: string; sharer_member_id: string; visitor_member_id: string | null; first_seen_at: Date; state: string }>(`SELECT sl.target_type,sl.target_ref,sv.id AS visit_id, sl.member_id AS sharer_member_id, sv.visitor_member_id, sv.first_seen_at, sl.state
         FROM share_visit sv JOIN share_link sl ON sl.id=sv.share_link_id
         WHERE sl.share_id=$1 AND sv.visit_key=$2 FOR UPDATE OF sv`, [shareId, visitKey]);
       const row = visit.rows[0];
@@ -581,6 +583,7 @@ export class PlatformService {
       if (row.state === "revoked" || now.getTime() < row.first_seen_at.getTime() || now.getTime() - row.first_seen_at.getTime() > 30 * 86400_000) return { shareId, credited: false, reason: "ATTRIBUTION_WINDOW_EXPIRED" };
       await client.query("UPDATE share_visit SET visitor_member_id=COALESCE(visitor_member_id,$1), last_seen_at=GREATEST(last_seen_at,$2) WHERE id=$3", [owner, now, row.visit_id]);
       if (row.sharer_member_id === owner) return { shareId, credited: false, reason: "SELF_ATTRIBUTION" };
+      await captureValidContentShare(client,row,owner,now);
       const attributionId = randomUUID();
       const created = await client.query<{ id: string }>(`INSERT INTO share_attribution(id, share_visit_id, sharer_member_id, converted_member_id, conversion_type, occurred_at)
         VALUES ($1,$2,$3,$4,'identity',$5)
@@ -595,7 +598,7 @@ export class PlatformService {
         businessKey: `share:${shareId}:identity:${owner}`, payload: { shareId, shareVisitId: row.visit_id, sharerMemberId: row.sharer_member_id, convertedMemberId: owner }, occurredAt: now
       });
       const registered=(await client.query<{created_at:Date}>('SELECT created_at FROM member WHERE id=$1',[owner])).rows[0];
-      if(row.target_type==='invite'&&registered&&registered.created_at>=row.first_seen_at&&registered.created_at<=now&&await activePointPolicy(client,registered.created_at))
+      if((row.target_type==='invite'||(await activePointPolicy(client,now))?.rules.taskVersion===2)&&registered&&registered.created_at>=row.first_seen_at&&registered.created_at<=now&&await activePointPolicy(client,registered.created_at))
         await client.query(`INSERT INTO member_points_referral(member_id,referrer_member_id,share_attribution_id,created_at)
           VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[owner,row.sharer_member_id,attributionId,now]);
       return { shareId, credited: true, attributionId };
@@ -970,7 +973,7 @@ export class PlatformService {
     const owner = requireMember(memberId);
     if(scope==='profile')await transaction(this.pool,c=>sweepMemberPoints(c,owner,now));
     return readSnapshot(this.pool, async (client, asOf) => {
-      const member = await client.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.wechat_handle,p.avatar_data_url,p.avatar_revision,
+      const member = await client.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,mc.user_code,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.wechat_handle,p.avatar_data_url,p.avatar_revision,
         COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.community_visible,false) AS community_visible,
         COALESCE(p.public_status,'private') AS public_status,p.public_review_note,c.phone_masked,c.bound_at,
         EXISTS(SELECT 1 FROM member_care_profile cp WHERE cp.member_id=m.id AND cp.required AND cp.completed_at IS NULL) AS care_onboarding_required

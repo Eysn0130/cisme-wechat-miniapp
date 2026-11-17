@@ -31,7 +31,7 @@ export class MemberAdministration{
  row(r:Row,s:UserScope){
   const unlock=userNumber(r.unlock_frozen),expired=userNumber(r.expired_available),expiredFrozen=userNumber(r.expired_frozen),base=userNumber(r.points_available)-expired+unlock,
    offset=unlock>0?Math.min(userNumber(r.points_debt),Math.max(0,base)):0;
-  return {id:r.id,displayName:r.display_name,cardNumber:r.card_number?`No. ${r.card_number.padStart(5,'0')}`:null,avatar:r.avatar_data_url??null,avatarRevision:r.avatar_revision??null,profileVersion:r.profile_revision??0,accountStatus:r.account_status,createdAt:r.created_at,administrator:Boolean(r.is_administrator),highestAdministrator:r.id===this.config.memberAdministrationRootId,
+  return {id:r.id,userCode:r.user_code,displayName:r.display_name,cardNumber:r.card_number?`No. ${r.card_number.padStart(5,'0')}`:null,avatar:r.avatar_data_url??null,avatarRevision:r.avatar_revision??null,profileVersion:r.profile_revision??0,accountStatus:r.account_status,createdAt:r.created_at,administrator:Boolean(r.is_administrator),highestAdministrator:r.id===this.config.memberAdministrationRootId,
    phoneMasked:r.phone_masked??null,onboarding:r.care_erased_at?'erased':r.onboarding_completed_at?'complete':'incomplete',
    points:s.points?{available:Math.max(0,base-offset),frozen:Math.max(0,userNumber(r.points_frozen)-expiredFrozen-unlock),reserved:userNumber(r.points_reserved),debt:Math.max(0,userNumber(r.points_debt)-offset),updatedAt:r.wallet_updated_at??null,projected:unlock+expired+expiredFrozen>0}:null,
    commerce:s.orders?{orderCount:userNumber(r.order_count),paidOrderCount:userNumber(r.paid_count),paidCents:userNumber(r.paid_cents),refundedCents:userNumber(r.refunded_cents),netCents:userNumber(r.paid_cents)-userNumber(r.refunded_cents),openAftersales:userNumber(r.aftersale_count)}:null,
@@ -48,6 +48,7 @@ export class MemberAdministration{
   if(query.q){const phone=userPhoneHash(query.q,this.config,scope),number=/^(?:No\.?\s*)?0*(\d{1,10})$/i.exec(query.q);
    if(phone)conds.push(`EXISTS(SELECT 1 FROM member_contact x WHERE x.member_id=u.id AND x.phone_hmac=${p(phone)})`);
    else if(number)conds.push(`u.card_number::bigint=${p(number[1])}::bigint`);
+   else if(/^[A-Z0-9]{12}$/i.test(query.q))conds.push(`u.user_code=${p(query.q.toUpperCase())}`);
    else if(/^[0-9a-f-]{36}$/i.test(query.q))conds.push(`u.id=${p(userId(query.q))}::uuid`);
    else conds.push(`strpos(lower(u.display_name),lower(${p(query.q)}))>0`);
   }return conds.length?conds.map(c=>'('+c+')').join(' AND '):'true';
@@ -106,8 +107,8 @@ export class MemberAdministration{
    const args:unknown[]=[new Date()],where=this.search(query,scope,args),selection=ids?`AND u.id=ANY($${args.push(ids)}::uuid[])`:'';
    const rows=(await c.query(`WITH u AS(${userProjectionSql(scope,this.canonicalOnly(),this.config.env)})SELECT * FROM u WHERE ${where} ${selection} ORDER BY ${this.sort(query)} ${query.direction==='asc'?'ASC':'DESC'},u.id LIMIT 10001`,args)).rows;
    if(rows.length>10000)userFail('USER_EXPORT_TOO_LARGE','结果较多，请缩小筛选后导出；没有导出部分结果');if(ids&&rows.length!==ids.length)userFail('USER_EXPORT_SELECTION_CHANGED','所选用户已变化，请刷新后重新选择',409);
-   const heads=['会员编号','昵称','账号状态','建档状态','注册时间',...(scope.orders?['已付订单','实付金额','退款金额']:[]),...(scope.points?['可用积分','冻结积分','订单预占']:[]),...(scope.care?['护理天数','当前连续天数']:[]),...(scope.rewards?['可用正装券','待领取活动奖励']:[]),...(scope.sharing?['分享官状态','分享官编号']:[])];
-   const data=rows.map(r=>{const m=this.row(r,scope);return [m.cardNumber??'',m.displayName,m.accountStatus,m.onboarding,new Date(m.createdAt).toISOString(),...(m.commerce?[m.commerce.paidOrderCount,(m.commerce.paidCents/100).toFixed(2),(m.commerce.refundedCents/100).toFixed(2)]:[]),...(m.points?[m.points.available,m.points.frozen,m.points.reserved]:[]),...(scope.care?[m.activity.careDays,m.activity.streak]:[]),...(m.rewards?[m.rewards.availableCoupons,m.rewards.unclaimedRewards]:[]),...(m.sharing?[m.sharing.state,m.sharing.code??'']:[])];});
+   const heads=['会员编号','用户编号','昵称','账号状态','建档状态','注册时间',...(scope.orders?['已付订单','实付金额','退款金额']:[]),...(scope.points?['可用积分','冻结积分','订单预占']:[]),...(scope.care?['护理天数','当前连续天数']:[]),...(scope.rewards?['可用正装券','待领取活动奖励']:[]),...(scope.sharing?['分享官状态','分享官用户编号']:[])];
+   const data=rows.map(r=>{const m=this.row(r,scope);return [m.cardNumber??'',m.userCode,m.displayName,m.accountStatus,m.onboarding,new Date(m.createdAt).toISOString(),...(m.commerce?[m.commerce.paidOrderCount,(m.commerce.paidCents/100).toFixed(2),(m.commerce.refundedCents/100).toFixed(2)]:[]),...(m.points?[m.points.available,m.points.frozen,m.points.reserved]:[]),...(scope.care?[m.activity.careDays,m.activity.streak]:[]),...(m.rewards?[m.rewards.availableCoupons,m.rewards.unclaimedRewards]:[]),...(m.sharing?[m.sharing.state,m.sharing.code??'']:[])];});
    const csv='\uFEFF'+[heads,...data].map(row=>row.map(csvCell).join(',')).join('\r\n');if(Buffer.byteLength(csv)>4*1024*1024)userFail('USER_EXPORT_TOO_LARGE','导出文件较大，请缩小筛选；没有导出部分结果');
    await this.audit(c,actor,null,'member.admin.export',{count:rows.length,selection:Boolean(ids),view:query.view,sha256:createHash('sha256').update(csv).digest('hex'),fields:heads});return {csv,count:rows.length,asOf:args[0]};
   },'REPEATABLE READ');

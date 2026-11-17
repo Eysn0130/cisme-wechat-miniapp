@@ -113,13 +113,19 @@ export class RefundCommandService{
 
   async decide(memberId:string|undefined,requestIdInput:string,idempotencyKey:string,input:Record<string,unknown>){
     await this.authority.require(memberId,"commerce.refund.approve");
+    return transaction(this.pool,client=>this.decideWithClient(client,memberId,requestIdInput,idempotencyKey,input),"SERIALIZABLE");
+  }
+
+  /** The caller owns the transaction. This reserves the existing refund intent;
+   * only the worker dispatches to WeChat and verified channel facts complete it. */
+  async decideWithClient(client:pg.PoolClient,memberId:string|undefined,requestIdInput:string,idempotencyKey:string,input:Record<string,unknown>){
+    await this.authority.requireWithClient(client,memberId,"commerce.refund.approve");
     const approver=memberId!,requestId=id(requestIdInput),decisionKey=key(idempotencyKey),
       decision=input.decision,why=reason(input.reason),expectedVersion=Number(input.expectedVersion);
     if(decision!=="approve"&&decision!=="reject")throw new DomainError("REFUND_DECISION_INVALID","退款决定无效",422);
     if(!Number.isSafeInteger(expectedVersion)||expectedVersion<1)
       throw new DomainError("VERSION_INVALID","退款申请版本无效",422);
     const fingerprint=hash({requestId,decision,why,expectedVersion});
-    return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,approver,"commerce.refund.approve");
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`refund-decision:${approver}:${decisionKey}`]);
       const used=(await client.query<RequestRow>(`SELECT * FROM commerce_refund_request
@@ -315,7 +321,6 @@ export class RefundCommandService{
           `credit-local-refund:${localCreditIntent.id}`]);
       }
       return this.decisionView(client,updated);
-    },"SERIALIZABLE");
   }
 
   private async decisionView(client:pg.PoolClient,row:RequestRow){

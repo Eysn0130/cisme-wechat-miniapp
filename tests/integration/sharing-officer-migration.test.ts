@@ -14,7 +14,7 @@ it('removes only the unused bootstrap and reapplies while preserving prior table
 it('refuses rollback as soon as an applicant or a company policy exists',async()=>{
  for(const mode of ['applicant','policy']){
   const c=await pool.connect();try{await c.query('BEGIN');const actor=(await c.query("INSERT INTO member(display_name) VALUES('synthetic sharing migration guard') RETURNING id")).rows[0].id;
-   if(mode==='applicant')await c.query("INSERT INTO sharing_officer(member_id,referral_code,state) VALUES($1,'SO1234567890','pending')",[actor]);
+   if(mode==='applicant')await c.query("INSERT INTO sharing_officer(member_id,referral_code,state) SELECT $1,user_code,'pending' FROM member_card_number WHERE member_id=$1",[actor]);
    else await c.query("INSERT INTO sharing_policy(enabled,attribution_days,priority,self_purchase,basis_points,release_days,reason,created_by,created_principal) VALUES(true,NULL,'first',false,1500,7,'synthetic reviewed policy',$1,'synthetic-policy-review')",[actor]);
    await expect(c.query(down)).rejects.toThrow('SHARING_ROLLBACK_REQUIRES_DATA_PRESERVATION');
   }finally{await c.query('ROLLBACK');c.release();}

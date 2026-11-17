@@ -1,3 +1,5 @@
+import {rewardV2Post,rewardV2Other,pointsTaskStatus} from './memberPointsTasks.js';
+import {featureCommunityPost} from './communityCuration.js';
 import {saveMemberBirthday} from './memberBirthday.js';
 import {careDayRewards} from './careUsageRewards.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID} from 'node:crypto';
@@ -5,8 +7,8 @@ import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
 import {DomainError} from '@cisme/domain';
 import {transaction,type DbClient} from './db.js';
-import {AuthorityService} from './authority.js';
-import {activePointPolicy,pointPolicyByVersion,clubRulesV1,validClubRules,pointDay,lockPointWallet,grantMemberPoints,reverseMemberGrant,sweepMemberPoints,returnOrderPoints,type PointsPolicy} from './pointsLedger.js';
+import {AuthorityService,requireActiveMemberWithClient} from './authority.js';
+import {activePointPolicy,pointPolicyByVersion,clubRulesV1,clubRulesV2,pointRulesV2,hanCount,validClubRules,pointDay,lockPointWallet,grantMemberPoints,reverseMemberGrant,sweepMemberPoints,returnOrderPoints,type PointsPolicy} from './pointsLedger.js';
 const digest=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 function fail(code:string,title:string,status=422):never{throw new DomainError(code,title,status);}
 const uuid=(v:unknown)=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)?v:fail('POINTS_ID_INVALID','记录编号无效');
@@ -45,7 +47,7 @@ async function attendance(client:DbClient,memberId:string,day:string,sourceId:st
   await lockPointWallet(client,memberId,true);
   await client.query(`INSERT INTO member_points_attendance(member_id,care_day,first_source,qualified_at) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[memberId,day,sourceId,now]);
   const count=await streakFor(client,memberId,day);
-  await grantMemberPoints(client,{owner:memberId,sourceType:'care_day',sourceId:day,component:'daily',amount:policy.rules.daily,policy,now});
+  await grantMemberPoints(client,{owner:memberId,sourceType:'care_day',sourceId:day,component:'daily',amount:policy.rules.daily,policy,now,bucket:day});
   // A late fact can close a gap or merge two already rewarded runs. Reconcile
   // the whole connected run under the wallet lock, preserving issued grants.
   const run=(await client.query<{day:string;qualified_at:Date}>(`WITH days AS (
@@ -64,7 +66,7 @@ async function attendance(client:DbClient,memberId:string,day:string,sourceId:st
       const earnedPolicy=await activePointPolicy(client,milestone.qualified_at);
       if(!earnedPolicy)continue;
       await grantMemberPoints(client,{owner:memberId,sourceType:'care_streak',sourceId:milestone.day,component:`streak${period}`,
-        amount:period===7?earnedPolicy.rules.streak7:earnedPolicy.rules.streak30,policy:earnedPolicy,now:milestone.qualified_at});
+        amount:period===7?earnedPolicy.rules.streak7:earnedPolicy.rules.streak30,policy:earnedPolicy,now:milestone.qualified_at,bucket:milestone.day});
       existing.add(milestone.day);missing--;
     }
     if(period===30&&affected>0)await client.query(`INSERT INTO member_points_badge(member_id,code,earned_at)
@@ -74,6 +76,20 @@ async function attendance(client:DbClient,memberId:string,day:string,sourceId:st
 }
 export class MemberPointsClub{
   constructor(private pool:pg.Pool,private config:AppConfig,private authority:AuthorityService){}
+  async contentReceipt(memberId:string|undefined,input:{kind?:string;id?:string}){
+    const target=uuid(input.id),kind=input.kind;
+    if(!['post','ugc_comment','editorial_comment'].includes(kind??''))fail('POINTS_SOURCE_INVALID','积分来源无效');
+    return transaction(this.pool,async c=>{
+      const member=await requireActiveMemberWithClient(c,memberId),table=kind==='post'?'ugc_post':kind!;
+      if(!(await c.query(`SELECT 1 FROM ${table} WHERE id=$1 AND author_member_id=$2`,[target,member])).rowCount)
+        fail('POINTS_SOURCE_NOT_FOUND','积分来源不存在',404);
+      const source=kind==='post'?target:`${kind}:${target}`,sourceType=kind==='post'?'post':'comment';
+      const event=(await c.query('SELECT state FROM member_points_source_event WHERE kind=$1 AND source_id=$2 AND member_id=$3',[sourceType,source,member])).rows[0];
+      const grants=(await c.query<{id:string;amount:number;reversed_total:number}>(`SELECT id,amount,reversed_total FROM points_grant
+        WHERE member_id=$1 AND source_type=$2 AND source_id=$3 ORDER BY id LIMIT 4`,[member,sourceType,source])).rows;
+      return {memberId:member,pending:event?.state!=='applied',grants:grants.map(g=>({id:g.id,points:Math.max(0,g.amount-g.reversed_total)}))};
+    },'REPEATABLE READ');
+  }
   async publicPolicy(now=new Date()) {
     // Managed pool queries await request-budget cleanup before returning.
     // A detached manual release can let response cancellation outlive a lease.
@@ -96,7 +112,7 @@ export class MemberPointsClub{
         serverDay:day,today:today?{id:today.id,operationId:today.operation_id,products:today.products,note:openPointsNote(this.config,today),version:today.version}:null,
         todayRewards:(await careDayRewards(c,id,[day])).get(day)!,
         checkedIn:attending,streak:await streakFor(c,id,streakDay),badges,pendingRewardSources:pending,questionnaireCompleted:Boolean(questionnaire?.completed_at),
-        birthday:profile?.birthday_month_day??null,birthdayChangeAfter:profile?.birthday_change_after??null,...await memberPointsExtras(c,id,now)};
+        tasks:p?await pointsTaskStatus(c,id,p,now):[],birthday:profile?.birthday_month_day??null,birthdayChangeAfter:profile?.birthday_change_after??null,...await memberPointsExtras(c,id,now)};
     });
   }
   async checkin(memberId:string|undefined,keyInput:string,input:unknown,now=new Date()){
@@ -140,7 +156,7 @@ export class MemberPointsClub{
   async proposePolicy(memberId:string|undefined,input:unknown,now=new Date()){
     const b=object(input,['version','rules','monthlyBudget','startsAt','endsAt']);
     if(typeof b.version!=='string'||!/^[A-Za-z0-9._-]{8,80}$/.test(b.version)||b.monthlyBudget!=null&&(!Number.isSafeInteger(b.monthlyBudget)||Number(b.monthlyBudget)<1||Number(b.monthlyBudget)>100000000))fail('POINTS_POLICY_INVALID','请核对规则版本与可选预算提醒值');
-    const rules=validClubRules(b.rules??clubRulesV1),starts=new Date(String(b.startsAt)),ends=b.endsAt==null?null:new Date(String(b.endsAt));
+    const rules=validClubRules(b.rules??clubRulesV2),starts=new Date(String(b.startsAt)),ends=b.endsAt==null?null:new Date(String(b.endsAt));
     if(!Number.isFinite(+starts)||ends!==null||starts<now)fail('POINTS_POLICY_WINDOW_INVALID','会员积分持续生效，请设置未来生效时间，结束日期留空');
     return transaction(this.pool,async c=>{const actor=await this.authority.requireWithClient(c,memberId,'commerce.money.reconcile');
       const row=(await c.query(`INSERT INTO member_points_policy(version,rules,monthly_budget,starts_at,ends_at,created_by)
@@ -165,12 +181,7 @@ export class MemberPointsClub{
   async selectFeatured(memberId:string|undefined,postId:string,input:unknown,at?:Date){
     const b=object(input,['reason']);if(typeof b.reason!=='string'||b.reason.trim().length<4||b.reason.trim().length>500)fail('POINTS_FEATURE_REASON_REQUIRED','请填写4至500字精选依据');
     const reason=b.reason.trim();return transaction(this.pool,async c=>{const actor=await this.authority.requireWithClient(c,memberId,'community.moderate');
-      const now=at??(await c.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
-      const post=(await c.query(`SELECT * FROM ugc_post WHERE id=$1 AND state='published' AND visibility='public' FOR SHARE`,[uuid(postId)])).rows[0];
-      if(!post)fail('POINTS_FEATURE_POST_UNAVAILABLE','只能精选当前公开的会员笔记',409);
-      const selected=(await c.query(`INSERT INTO member_points_featured(post_id,selected_by,selected_at,reason) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING post_id`,[postId,actor,now,reason])).rowCount;
-      if(selected)await c.query(`INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at) VALUES('featured',$1,$2,$3) ON CONFLICT DO NOTHING`,[postId,post.author_member_id,now]);
-      return {selected:true,replayed:!selected};
+      return featureCommunityPost(c,actor,uuid(postId),reason,undefined,at);
     });
   }
 }
@@ -179,16 +190,16 @@ async function contentReward(client:DbClient,event:any,policy:PointsPolicy){
   const {kind,source_id:sourceId,member_id:memberId,occurred_at:at}=event;
   let fingerprint:string,quota:number,bucket:string;
   if(kind==='post'||kind==='featured'){
-    const p=(await client.query(`SELECT p.*,r.body FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.published_revision WHERE p.id=$1`,[sourceId])).rows[0];
+    const p=(await client.query(`SELECT p.*,r.body,r.ai_usage,r.reward_kind,r.experience_product_code,r.experience_days FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.published_revision WHERE p.id=$1`,[sourceId])).rows[0];
     if(!p||p.author_member_id!==memberId||p.state!=='published'||p.visibility!=='public')return;
     if(kind==='featured'&&!(await client.query('SELECT 1 FROM member_points_featured WHERE post_id=$1',[sourceId])).rowCount)return;
     const media=(await client.query<{sha256:string|null}>(`SELECT a.sha256 FROM ugc_post_media m JOIN ugc_media_asset a ON a.id=m.media_asset_id WHERE m.post_id=$1 AND m.revision=$2 ORDER BY a.sha256`,[sourceId,p.published_revision])).rows;
     if(!p.body&&!p.title&&!media.length)return;
-    fingerprint=digest([(p.title??'').replace(/\s/g,''),(p.body??'').replace(/\s/g,''),media.map(m=>m.sha256)]);const d=new Date(pointDay(at)+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);bucket=d.toISOString().slice(0,10);quota=kind==='post'?policy.rules.postWeeklyLimit:Number.POSITIVE_INFINITY;
+    fingerprint=digest([(p.title??'').replace(/\s/g,''),(p.body??'').replace(/\s/g,''),media.map(m=>m.sha256)]);if(kind==='post'&&pointRulesV2(policy.rules)){await rewardV2Post(client,event,policy,p,fingerprint);return;}const d=new Date(pointDay(at)+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);bucket=d.toISOString().slice(0,10);quota=kind==='post'?policy.rules.postWeeklyLimit:Number.POSITIVE_INFINITY;
   }else{
     const table=event.payload.table;if(!['ugc_comment','editorial_comment'].includes(table))throw new Error('POINTS_COMMENT_SOURCE_INVALID');
     const row=(await client.query(`SELECT c.*,p.author_member_id AS parent_author,${table==='ugc_comment'?"p.state='published' AND p.visibility='public'":"p.status='published'"} AS parent_public FROM ${table} c JOIN ${table==='ugc_comment'?'ugc_post':'editorial_article'} p ON p.id=c.${table==='ugc_comment'?'post_id':'article_id'} WHERE c.id=$1`,[event.payload.id])).rows[0];
-    if(!row||row.author_member_id!==memberId||row.state!=='published'||!row.parent_public||row.parent_author===memberId||Array.from((row.body??'').replace(/\s/g,'')).length<5)return;
+    if(!row||row.author_member_id!==memberId||row.state!=='published'||!row.parent_public||row.parent_author===memberId||(pointRulesV2(policy.rules)?hanCount(row.body??'')<(policy.rules.commentMinHan??15):Array.from((row.body??'').replace(/\s/g,'')).length<5))return;
     fingerprint=digest(row.body.replace(/\s/g,''));quota=policy.rules.commentDailyLimit;bucket=pointDay(at);
   }
   await lockPointWallet(client,memberId,true);
@@ -219,14 +230,16 @@ async function orderRewards(client:DbClient,orderId:string,now:Date,refundKey?:s
     }
     return;
   }
-  if(!row.receipt_confirmed_at||net<1)return;
+  if((!pointRulesV2(policy.rules)&&!row.receipt_confirmed_at)||net<1)return;
   const memberId=row.member_id,rules=policy.rules;
   const grant=async(beneficiary:string,component:string,amount:number)=>grantMemberPoints(client,{owner:beneficiary,sourceType:'order',sourceId:orderId,component,amount,policy,now});
   await grant(memberId,'shopping',Math.floor(net/100)*row.shopping_points_multiplier);
   // First *verified paid* order, deterministic even if receipt events arrive out of order.
   const first=(await client.query<{id:string}>(`SELECT o.id FROM commerce_order o JOIN commission_payment_inbox p ON p.order_id=o.id AND p.state='applied'
     WHERE o.member_id=$1 AND o.status='paid' AND o.transaction_source_kind='verified_commerce' ORDER BY p.verified_paid_at,o.id LIMIT 1`,[memberId])).rows[0];
-  if(first?.id===orderId)await grant(memberId,'first_order',rules.firstOrder);
+  const referral=(await client.query(`SELECT * FROM member_points_referral WHERE member_id=$1 AND created_at<=$2`,[memberId,row.verified_paid_at])).rows[0];
+  const validReferrer=referral&&(await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active'",[referral.referrer_member_id])).rowCount;
+  if(first?.id===orderId&&(!pointRulesV2(rules)||!validReferrer))await grant(memberId,'first_order',rules.firstOrder);
   if(row.points_birthday_month===Number(pointDay(row.verified_paid_at).slice(5,7))){
     const month=pointDay(row.verified_paid_at).slice(0,7);
     const firstMonth=(await client.query<{id:string}>(`SELECT o.id FROM commerce_order o JOIN commission_payment_inbox p ON p.order_id=o.id AND p.state='applied'
@@ -234,9 +247,12 @@ async function orderRewards(client:DbClient,orderId:string,now:Date,refundKey?:s
     if(firstMonth?.id===orderId)await grant(memberId,'birthday',Math.floor(net/100)*row.shopping_points_multiplier*(rules.birthdayMultiplier-1));
   }
   if(first?.id===orderId){
-    const ref=(await client.query(`SELECT * FROM member_points_referral WHERE member_id=$1 AND created_at<=$2`,[memberId,row.verified_paid_at])).rows[0];
+    const ref=referral;
     if(ref){const active=(await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active'",[ref.referrer_member_id])).rowCount;
       if(active){await grant(ref.referrer_member_id,'invite_sponsor',rules.inviteSponsor);await grant(memberId,'invite_friend',rules.inviteFriend);}}
+  }
+  if(pointRulesV2(rules)&&row.points_share_referrer&&!(first?.id===orderId&&validReferrer)){
+    if((await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active'",[row.points_share_referrer])).rowCount)await grant(row.points_share_referrer,'share_order',rules.shareOrder??0);
   }
 }
 async function applySource(client:DbClient,event:any){
@@ -248,7 +264,7 @@ async function applySource(client:DbClient,event:any){
     for(const g of grants)await reverseMemberGrant(client,g.id,g.amount,`${kind}:${source}`,now,'计分内容已删除或下架');return;
   }
   const member=(await client.query("SELECT status FROM member WHERE id=$1",[id])).rows[0];if(member?.status!=='active')return;
-  if(kind==='receipt'){await orderRewards(client,source,now);return;}
+  if(kind==='receipt'||kind==='payment'){await orderRewards(client,source,now);return;}
   if(kind==='care_usage'){
     const b=event.payload;
     if(!validUsageDay(b?.careDay)||b.careDay!==pointDay(now)||typeof b.noteQualifies!=='boolean'||typeof b.policyVersion!=='string')throw new Error('CARE_USAGE_SOURCE_INVALID');
@@ -270,6 +286,7 @@ async function applySource(client:DbClient,event:any){
     const r=(await client.query('SELECT completed_at FROM member_care_profile WHERE member_id=$1',[id])).rows[0];
     if(r?.completed_at)await grantMemberPoints(client,{owner:id,sourceType:'questionnaire',sourceId:id,component:'base',amount:policy.rules.questionnaire,policy,now});
   }else if(['post','featured','comment'].includes(kind))await contentReward(client,event,policy);
+  else if(['profile','suggestion','share'].includes(kind))await rewardV2Other(client,event,policy);
 }
 export async function processMemberPointSources(pool:pg.Pool,now=new Date(),limit=30){
   const ids=(await pool.query<{id:string}>(`SELECT id FROM member_points_source_event WHERE state='pending' AND next_attempt_at<=$1 ORDER BY occurred_at,id LIMIT $2`,[now,limit])).rows;

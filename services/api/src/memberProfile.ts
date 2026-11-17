@@ -16,7 +16,7 @@ export class MemberProfile {
   constructor(private pool: pg.Pool,private environment:AppEnvironment='test',private config?:import('@cisme/config').AppConfig) {}
   async get(memberId: string | undefined) {
     if (!memberId) throw new DomainError('AUTH_REQUIRED', '请先登录会员账号', 401);
-    const row = await this.pool.query(`SELECT m.id, ${memberCardNumberProjection} AS card_number, bp.birthday_month_day,bp.birthday_change_after,m.display_name, p.wechat_handle, p.handle_source,
+    const row = await this.pool.query(`SELECT m.id, ${memberCardNumberProjection} AS card_number,mc.user_code, bp.birthday_month_day,bp.birthday_change_after,m.display_name, p.wechat_handle, p.handle_source,
       p.avatar_data_url, p.avatar_revision, COALESCE(p.profile_revision,0) AS profile_revision,
       p.completed_at, COALESCE(p.community_visible,false) AS community_visible,
       COALESCE(p.public_status,'private') AS public_status, p.public_review_note
