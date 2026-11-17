@@ -68,13 +68,8 @@ describe("empty and N-1 database lifecycle", () => {
     await migrate('up');
     let pool = migrationPool();
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationCount);
-    expect(await assertFinalSchemaContract(pool)).toEqual({tables:43,constraints:49,indexes:36,triggers:36});
-    const damaged=await pool.connect();
-    try{
-      await damaged.query("BEGIN");
-      await damaged.query("ALTER TABLE commission_rate_rule DROP CONSTRAINT commission_rate_request_pair_check");
-      await expect(assertFinalSchemaContract(damaged)).rejects.toThrow("FINAL_SCHEMA_CONSTRAINT_MISSING:commission_rate_rule.commission_rate_request_pair_check");
-    }finally{await damaged.query("ROLLBACK");damaged.release();}
+    // This is an exact historical prefix. The current final contract is
+    // asserted below only after all forward migrations have actually run.
     expect((await pool.query("SELECT to_regclass('public.community_comment') name")).rows[0].name).toBe("community_comment");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_target_type_check'")).rows[0].definition).toContain("invite");
     expect((await pool.query("SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='share_link_invite_target_check'")).rows[0].definition).toContain("home");
@@ -569,9 +564,18 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT count(*)::int count FROM schema_migration")).rows[0].count).toBe(migrationFiles.indexOf(migrationTip)+1);
     await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('MEMBER_PUBLIC_CODE_ROLLBACK_REQUIRES_IDENTIFIER_PRESERVATION')});
     expect((await pool.query('SELECT user_code,number::text FROM member_card_number WHERE member_id=$1',[legacyOfficer])).rows[0]).toEqual({user_code:'SO0987654321',number:originalNumber});
-    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await closePool(pool);migrationTip='202611170002_member_points_tasks_v2.sql';await migrate('up');pool=migrationPool();
     await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('POINTS_V2_ROLLBACK_REQUIRES_ASSET_PRESERVATION')});
+    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('WECHAT_TRADE_OBSERVATIONS_REQUIRE_FORWARD_RECOVERY')});
     expect((await pool.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(migrationFiles.length);
+    expect(await assertFinalSchemaContract(pool)).toEqual({tables:45,constraints:49,indexes:37,triggers:37});
+    const damaged=await pool.connect();
+    try{
+      await damaged.query('BEGIN');
+      await damaged.query('ALTER TABLE commission_rate_rule DROP CONSTRAINT commission_rate_request_pair_check');
+      await expect(assertFinalSchemaContract(damaged)).rejects.toThrow('FINAL_SCHEMA_CONSTRAINT_MISSING:commission_rate_rule.commission_rate_request_pair_check');
+    }finally{await damaged.query('ROLLBACK');damaged.release();}
     for(const table of ['editorial_article','editorial_article_revision'])
       expect((await pool.query('SELECT to_regclass($1) name',[`public.${table}`])).rows[0].name).toBe(table);
     expect(await capabilityNames()).toEqual([...CAPABILITIES].sort());
