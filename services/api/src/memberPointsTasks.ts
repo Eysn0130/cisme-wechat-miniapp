@@ -58,7 +58,7 @@ export async function rewardV2Other(c:DbClient,event:any,p:PointsPolicy){
 export function pointsTaskDefinitions(p:PointsPolicy,now:Date){const r=p.rules;if(!pointRulesV2(r))return [];const day=pointDay(now),month=day.slice(0,7);
  return [
   {id:'daily',title:'记录今日护理',amount:r.daily,limit:1,type:'care_day',component:'daily',bucket:day,condition:'每日首次有效记录',destination:'care'},
-  {id:'note',title:'记下护理感受',amount:r.note,limit:1,type:'care_day',component:'note',bucket:day,condition:'每日首次有效感受，至少5个字',destination:'care'},
+  {id:'note',title:'记下护理感受',amount:r.note,limit:1,type:'care_day',component:'note',bucket:day,condition:'每日首次有效感受，至少10个有效字',destination:'care'},
   {id:'streak7',title:'连续护理7天',amount:r.streak7,limit:1,type:'care_streak',component:'streak7',bucket:day,condition:'连续7天，每周期一次',destination:'care'},
   {id:'streak30',title:'连续护理30天',amount:r.streak30,limit:1,type:'care_streak',component:'streak30',bucket:day,condition:'连续30天，每周期一次',destination:'care'},
   {id:'questionnaire',title:'完成护理问卷',amount:r.questionnaire,limit:1,type:'questionnaire',component:'base',bucket:'',condition:'首次完整提交',destination:'questionnaire'},

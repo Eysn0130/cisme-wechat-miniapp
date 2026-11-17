@@ -1,3 +1,4 @@
+import {beijingDateParts} from '../../services/business-time';
 import {sectionTabValue} from '../../services/section-tabs';
 import { authorityProjection } from "../../services/authority";
 import { clearAuthenticationRedirectSuppression, requireMemberAccess, retainMemberSnapshot } from "../../services/api";
@@ -21,7 +22,7 @@ Page({
   onUnload(){this.onHide();this.data.pageAlive=false;},
   current(attempt:number,token:string){return this.data.pageAlive&&this.data.visible&&this.data.loadAttempt===attempt&&this.lastToken===token&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision();},
   canOpen(){return this.data.coreReady&&this.current(this.data.loadAttempt,this.lastToken)&&!this.data.navigating;},
-  normalize(items:CommerceOrderSummary[]){return items.map(item=>({...item,statusLabel:item.status==="paid"&&(item.refundedCents??0)>0?(item.refundedCents!>=item.totalCents?"已退款":"部分退款"):(item.status==='paid'?({unshipped:'待发货',shipped:'已发货',completed:'已完成'}[item.fulfillmentState??'unshipped']??'已付款'):(labels[item.status]??"状态待核对")),totalYuan:centsToYuan(item.totalCents),createdLabel:new Date(item.createdAt).toLocaleString("zh-CN",{hour12:false}),summary:item.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")}));},
+  normalize(items:CommerceOrderSummary[]){return items.map(item=>({...item,statusLabel:item.status==="paid"&&(item.refundedCents??0)>0?(item.refundedCents!>=item.totalCents?"已退款":"部分退款"):(item.status==='paid'?({unshipped:'待发货',shipped:'已发货',completed:'已完成'}[item.fulfillmentState??'unshipped']??'已付款'):(labels[item.status]??"状态待核对")),totalYuan:centsToYuan(item.totalCents),createdLabel:beijingDateParts(item.createdAt).date+' '+beijingDateParts(item.createdAt).time,summary:item.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")}));},
   async load(event?:WechatMiniprogram.TouchEvent){
     if(!this.data.visible||!this.data.pageAlive)return;
     if(event?.type)clearAuthenticationRedirectSuppression();this.syncSession();

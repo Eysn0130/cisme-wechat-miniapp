@@ -11,7 +11,7 @@
   <text wx:if="{{points.expiring.points > 0}}" class="points-expiry">{{points.expiring.withinDays}} 天内到期 {{points.expiring.points}} 分 · 最早 {{expiryDate}}</text>
   <text wx:if="{{points.projection.debt > 0}}" class="points-expiry">后续获得的积分会先冲抵欠分，清偿前不能使用积分。</text>
  </view>
- <view wx:if="{{club}}" class="page-section-tabs"><section-tabs id="page-tabs" items="{{sections}}" value="{{section}}" label="积分分类" bindchange="selectSection" disabled="{{busy}}"/></view>
+ <view wx:if="{{club && !guideMode}}" class="page-section-tabs"><section-tabs id="page-tabs" items="{{sections}}" value="{{section}}" label="积分分类" bindchange="selectSection" disabled="{{busy}}"/></view>
  <view wx:if="{{actionStatus}}" class="club-status" aria-live="polite">{{actionStatus}}</view><view wx:if="{{actionError && !giftSelected}}" class="club-error" aria-live="assertive">{{actionError}}</view>
  <block wx:if="{{section === 'earn'}}">
   <text wx:if="{{club && !club.enabled}}" class="club-copy">新积分活动尚未生效，历史余额和记录仍可查询。</text>

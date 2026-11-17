@@ -288,7 +288,7 @@ describe("R4-B isolated pending-payment order flow", () => {
       expect(management.statusCode).toBe(200);
       expect(management.json().items.length).toBeGreaterThan(0);
       expect(management.json().items.every((item: any) => item.address === null)).toBe(true);
-      expect(commerceReadQueries).toBe(2);
+      expect(commerceReadQueries).toBe(3); // fixed list, total count and batched lines; no per-row reads
       expect(addressReads).toBe(0);
     } finally {
       pool.off("acquire", onAcquire);

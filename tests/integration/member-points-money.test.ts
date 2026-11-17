@@ -224,7 +224,7 @@ it('v2 awards after signed payment with exclusive invited-first-purchase and ful
   buyer=registered.memberId;payerOpenid='v2-payer-'+suffix;
   if(invited)await service.attributeShareIdentity(buyer,share.shareId,`points-${suffix}-visitor`,new Date(+at+2));
   await pool.query("INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter) VALUES($1,'wechat_miniprogram',$2,$3,'wechat')",[buyer,appId,payerOpenid]);
-  addressId=(await pool.query("INSERT INTO member_delivery_address(member_id,encrypted_payload,payload_hmac,key_version,label,client_request_key) VALUES($1,'synthetic',$2,'synthetic','home',$3) RETURNING id",[buyer,'b'.repeat(64),'v2-address-'+suffix])).rows[0].id;
+  addressId=(await pool.query("INSERT INTO member_delivery_address(id,member_id,encrypted_payload,payload_hmac,key_version,label,client_request_key) VALUES($4,$1,'synthetic',$2,'synthetic','home',$3) RETURNING id",[buyer,'b'.repeat(64),'v2-address-'+suffix,randomUUID()])).rows[0].id;
   await transaction(pool,c=>grantMemberPoints(c,{owner:buyer,sourceType:'fixture',sourceId:randomUUID(),component:'base',amount:1000,policy,now:at}));
   const order=await seedOrder(suffix,null,new Date(+at+3),true);await transaction(pool,c=>reserveMemberPoints(c,buyer,order.id,500,at));
   const transactionId='42000000'+suffix,signed=notification(order.number,transactionId,'EV-'+suffix,new Date(+at+4).toISOString(),9500,9500);

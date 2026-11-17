@@ -323,7 +323,7 @@ describe('Care product-use entry and atomic cycle completion',()=>{
 });
 it('returns only the owner’s canonical community reward receipt and distinguishes pending from zero-award',async()=>{
  const a=await actor('合成奖励接收者'),foreign=await actor('合成其他会员'),post=randomUUID();
- await pool.query("INSERT INTO ugc_post(id,author_member_id,client_request_key) VALUES($1,$2,'synthetic-receipt-post')",[post,a.memberId]);
+ await transaction(pool,async c=>{await c.query("INSERT INTO ugc_post(id,author_member_id,client_request_key) VALUES($1,$2,'synthetic-receipt-post')",[post,a.memberId]);await c.query("INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body) VALUES($1,1,$2,'合成积分回执','合成未公开正文')",[post,a.memberId]);});
  const url=`/v1/me/points/content-receipt?kind=post&id=${post}`;
  expect((await get(a,url)).json()).toMatchObject({memberId:a.memberId,pending:true,grants:[]});expect((await get(foreign,url)).statusCode).toBe(404);
  await pool.query("INSERT INTO member_points_source_event(kind,source_id,member_id,occurred_at,payload,state,processed_at) VALUES('post',$1,$2,$3,'{}','applied',$3)",[post,a.memberId,base]);

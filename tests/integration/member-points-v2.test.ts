@@ -53,3 +53,11 @@ it('makes member-day cap, exclusions and promotion end boundaries authoritative'
  await pool.query('UPDATE catalog_product SET points_discount_enabled=false WHERE id=$1',[productId]);expect(await quote(day18)).toMatchObject({maximum:0});await pool.query('UPDATE catalog_product SET shopping_points_multiplier=3,points_promotion_starts_at=$2,points_promotion_ends_at=$3 WHERE id=$1',[productId,day18,day19]);
  expect((await pool.query('SELECT effective_shopping_points_multiplier($1,$2) AS n',[productId,day18])).rows[0].n).toBe(3);expect((await pool.query('SELECT effective_shopping_points_multiplier($1,$2) AS n',[productId,day19])).rows[0].n).toBe(2);
 });
+
+it('awards each actual care day and completed streak under the prospective rule, without duplicate worker grants',async()=>{
+ const a=await person(),base=(await pool.query<{now:Date}>('SELECT clock_timestamp() AS now')).rows[0]!.now;
+ for(let i=0;i<30;i++){const at=new Date(+base+i*86400000);await club.checkin(a.memberId,randomUUID(),{products:['net_run'],note:'今天洗护以后头皮感觉比较清爽，具体变化继续认真记录。',serverDay:pointDay(at)},at);}
+ const end=new Date(+base+30*86400000);await processMemberPointSources(pool,end,200);await processMemberPointSources(pool,end,200);
+ const days=await grants(a,'care_day'),streaks=await grants(a,'care_streak');expect(days.filter(g=>g.component==='daily')).toHaveLength(30);expect(days.filter(g=>g.component==='note')).toHaveLength(30);expect(streaks.filter(g=>g.component==='streak7').map(g=>g.amount)).toEqual([20,20,20,20]);expect(streaks.filter(g=>g.component==='streak30').map(g=>g.amount)).toEqual([50]);
+ const prior=JSON.stringify([days,streaks]);await processMemberPointSources(pool,end,200);expect(JSON.stringify([await grants(a,'care_day'),await grants(a,'care_streak')])).toBe(prior);
+});

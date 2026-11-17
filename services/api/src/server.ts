@@ -854,8 +854,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     reply.header("Cache-Control", "no-store");
     return discoverCommerceCommands(pool,request.memberId,request.principalId,config.env,request.params.kind,request.query);
   });
-  app.post("/v1/me/commerce/quotes", async request => orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>));
-  app.post("/v1/me/orders", async request => orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));
+  app.post("/v1/me/commerce/quotes", async request => orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,service.now(devClock(request))));
+  app.post("/v1/me/orders", async request => orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id,service.now(devClock(request))));
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query,request.authScope==='privacy_rights'));
   app.get<{Params:{orderId:string}}>("/v1/me/orders/:orderId", async request => orders.detailMine(request.memberId,request.params.orderId,request.authScope==='privacy_rights'));
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/cancel", async request => orders.cancel(request.memberId,request.principalId,request.params.orderId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id));

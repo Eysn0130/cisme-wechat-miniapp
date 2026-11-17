@@ -49,12 +49,12 @@ Page({
     try{const pending=pendingPointsGift(c.memberId);this.setData({recoveryPending:Boolean(pending),recoveryRetryable:Boolean(pending?.payload),recoveryKey:pending?.key??''});}
     catch{this.setData({recoveryPending:true,recoveryRetryable:false,actionError:'上次兑换恢复记录需核对，请联系客服后再提交。'});}
    }).catch(()=>{if(this.current(attempt))this.setData({club:null,clubError:'赚分活动暂时无法加载，历史账本仍可查看。'});}),
-   readPointsGifts().then(result=>{if(this.current(attempt))this.setData({gifts:result.items.map(g=>({...g,image:g.image?nativeCatalogImage(g.image):null,stockLabel:g.availableQuantity<1?'暂时兑完':'剩余 '+g.availableQuantity+' 份'}))});})
+   ...(this.data.guideMode?[]:[readPointsGifts().then(result=>{if(this.current(attempt))this.setData({gifts:result.items.map(g=>({...g,image:g.image?nativeCatalogImage(g.image):null,stockLabel:g.availableQuantity<1?'暂时兑完':'剩余 '+g.availableQuantity+' 份'}))});})
     .catch(()=>{if(this.current(attempt))this.setData({gifts:[],giftError:'兑换商品暂时无法加载，请重试。'});}),
    readMyRedemptions().then(result=>{if(this.current(attempt))this.setData({redemptionsCursor:result.nextCursor,redemptionsError:'',redemptions:result.items.map(r=>({...r,stateLabel:redemptionLabels[r.state]??'状态待核对'}))});})
     .catch(()=>{if(this.current(attempt))this.setData({redemptions:[],giftError:'兑换记录暂时无法加载，请重试。'});}),
    memberAddresses().then(result=>{if(this.current(attempt))this.setData({addresses:result.addresses,addressesState:'ready',addressError:''});})
-    .catch(()=>{if(this.current(attempt))this.setData({addresses:[],addressesState:'error',addressError:'收货地址暂时无法加载，请重新核对。'});})
+    .catch(()=>{if(this.current(attempt))this.setData({addresses:[],addressesState:'error',addressError:'收货地址暂时无法加载，请重新核对。'});})])
   ]);
   if(this.current(attempt))this.setData({loading:false});
  },
@@ -65,7 +65,7 @@ Page({
   }catch{if(this.current(attempt))this.setData({moreError:'更多记录加载失败，请重试。'});}finally{if(this.current(attempt))this.setData({loadingMore:false});}
  },
  async loadPublicGuide(){const attempt=++this.data.loadAttempt;this.setData({loading:true,error:'',taskRows:[]});try{const guide=await request<{policy:{rules:PointRules}|null;tasks:PointsTask[]}>({path:'/v1/points/guide',authMode:'public'});if(!this.current(attempt))return;this.setData({taskRows:guide.tasks,rulesRows:guide.policy?pointRuleRows(guide.policy.rules):[],loading:false});}catch{if(this.current(attempt))this.setData({loading:false,error:'积分攻略暂时无法打开，请重试'});}},
- openLedger(){this.setData({guideMode:false,section:'ledger'});},
+ openLedger(){this.setData({guideMode:false,section:'ledger'});void this.load();},
  async openTask(event:WechatMiniprogram.TouchEvent){const task=this.data.taskRows.find(x=>x.id===event.currentTarget.dataset.id);if(!task||this.data.navigating||this.data.busy)return;if(!requireMemberAccess('/pages/points/index?guide=1'))return;
   const destination=task.destination;if(destination==='suggestion'){this.setData({suggestionOpen:true,suggestionError:''});void this.loadSuggestions();return;}
   const urls:Record<string,string>={care:'/pages/home/index',questionnaire:'/pages/home/index',profile:'/pages/settings/index?section=profile',post:'/pages/community-compose/index?new=1&entry=text',experience:'/pages/community-compose/index?new=1&entry=text&task=experience',community:'/pages/community/index',shop:'/pages/shop/index',invite:'/pages/invite/index'};
