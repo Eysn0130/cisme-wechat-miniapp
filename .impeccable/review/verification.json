@@ -432,6 +432,8 @@
     "unitFiles": 231,
     "integrationFiles": 88,
     "v1Operations": 376,
-    "documentedOperations": 378
+    "documentedOperations": 378,
+    "unitPassed": 3599,
+    "integrationPassed": 1518
   }
 }
