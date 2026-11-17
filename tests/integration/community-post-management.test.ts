@@ -108,7 +108,7 @@ it('paginates mixed editorial and member sources without losing equal-time items
 it('prevents self-awards, stale deletion and writes after a moderation grant is revoked',async()=>{
  const own=await post(admin);expect((await place(own.id,own.version)).statusCode).toBe(403);
  const p=await post(reader);expect((await app.inject({method:'DELETE',url:`/v1/management/ugc/posts/${p.id}`,headers:auth(),payload:{expectedVersion:p.version+1}})).statusCode).toBe(409);
- await pool.query("UPDATE authority_grant SET revoked_at=now() WHERE member_id=$1 AND capability='community.moderate'",[otherAdmin.memberId]);
+ await pool.query("UPDATE authority_grant SET revoked_at=now(),revoked_by='fixture',revoke_reason='Synthetic current-capability revocation' WHERE member_id=$1 AND capability='community.moderate'",[otherAdmin.memberId]);
  expect((await place(p.id,p.version,'featured',otherAdmin)).statusCode).toBe(403);expect((await listing('recommend',otherAdmin)).statusCode).toBe(403);
  expect((await app.inject({url:`/v1/ugc/posts/${p.id}`})).statusCode).toBe(200);
 });

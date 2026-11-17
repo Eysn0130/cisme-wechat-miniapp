@@ -3177,6 +3177,8 @@ paths:
         - {in: query, name: orderId, schema: {$ref: '#/components/schemas/Uuid'}}
         - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 50}}
         - {in: query, name: cursor, schema: {type: string, maxLength: 600}}
+        - {in: query, name: attention, schema: {type: string, enum: [requested, instruction, old_route, receiving, inspection]}}
+        - {in: query, name: stage, schema: {type: string, enum: [review, returns, refunds, closed]}}
       responses:
         '200': {description: Local case facts; channel refund success is a separate verified fact}
         '401': {description: Session required}
@@ -3203,12 +3205,12 @@ paths:
   /v1/management/aftersales/{caseId}/actions:
     post:
       operationId: actManagedAftersale
-      summary: Separated review, receiving and inspection permissions; linked refund uses existing commerce gate
+      summary: Separated review, receiving and inspection permissions; unshipped refunds can atomically reserve approval under both review and refund capabilities; channel success remains separate
       security: [{session: []}]
       parameters:
         - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
         - {$ref: '#/components/parameters/IdempotencyKey'}
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, approve_refund_without_return, receive_return, inspect_return, request_refund, reopen_refund]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, approve_refund_without_return, receive_return, inspect_return, request_refund, reopen_refund, resolve_old_route]}, approveRefund: {type: boolean, description: "Only for an unshipped request_refund; requires commerce.refund.approve and formal refund approval authorization. Atomically records the existing buyer request and administrator approval without dispatching in the transaction."}, routeOutcome: {type: string, enum: [carrier_contacted, rerouted, received]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
       responses:
         '200': {description: Local case facts; channel refund success is a separate verified fact}
         '401': {description: Session required}

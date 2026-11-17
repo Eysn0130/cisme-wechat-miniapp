@@ -899,12 +899,13 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     aftersales.detail(request.memberId,request.params.caseId,false,request.authScope==='privacy_rights'));
   app.post<{Params:{caseId:string}}>("/v1/me/aftersales/:caseId/actions",async request=>
     aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,false,undefined,undefined,request.authScope==='privacy_rights'));
-  app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string;attention?:string}}>("/v1/management/aftersales",async request=>
+  app.get<{Querystring:{orderId?:string;limit?:string;cursor?:string;attention?:string;stage?:string}}>("/v1/management/aftersales",async request=>
     aftersales.list(request.memberId,request.query,true));
   app.get<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId",async request=>
     aftersales.detail(request.memberId,request.params.caseId,true));
   app.post<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId/actions",async request=>{
     const input=(request.body??{}) as Record<string,unknown>;
+    if(input.approveRefund===true)refundRequired('approve');
     return aftersales.act(request.memberId,request.params.caseId,idempotencyKey(request),input,true,
       input.action==='request_refund'?refundRequired():undefined);
   });

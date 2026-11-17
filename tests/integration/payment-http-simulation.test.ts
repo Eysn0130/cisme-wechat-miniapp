@@ -2281,3 +2281,39 @@ it('shows only current capability-scoped management attention and clears it afte
   expect(overdue.json().counts.privacyOverdue.count).toBe(before.json().counts.privacyOverdue.count+1);
   expect(overdue.json().counts).not.toHaveProperty('newAftersales');
 });
+it.each(['refund_only','return_refund'])('atomically approves an unshipped %s and waits for verified channel success',async kind=>{
+ const order=await aftersalePaidOrder(`direct-${kind}`);await aftersaleGrant(operator,'commerce.aftersale.review');await aftersaleGrant(operator,'commerce.refund.approve');
+ const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+ const claim=await service.request(buyer.memberId,order.id,`direct-claim-${kind}`,{kind,reason:'合成未发货退款'});
+ expect(claim.fulfillment).toEqual({state:'unshipped',canRefundWithoutReturn:true});
+ const url=`/v1/management/aftersales/${claim.id}/actions`,data={action:'request_refund',expectedVersion:1,note:'同意未发货订单退款',approveRefund:true};
+ const before=channelRequestCount;
+ const response=await aftersalePost(operator,url,data,`direct-approval-${kind}`);expect(response.statusCode,response.body).toBe(200);
+ const result=response.json();expect(result).toMatchObject({state:'refund_pending',version:2,resolved:false,refund:{reviewState:'approved',submissionState:'prepared'}});
+ expect(channelRequestCount).toBe(before);
+ const replay=await aftersalePost(operator,url,data,`direct-approval-${kind}`);expect(replay.statusCode,replay.body).toBe(200);
+ expect(replay.json().refundRequestId).toBe(result.refundRequestId);
+ expect((await pool.query('SELECT count(*)::int n FROM commission_refund_intent WHERE order_id=$1',[order.id])).rows[0].n).toBe(1);
+ expect((await pool.query('SELECT count(*)::int n FROM commerce_aftersale_return_instruction WHERE case_id=$1',[claim.id])).rows[0].n).toBe(0);
+ const reviewed=(await pool.query('SELECT out_refund_no FROM commission_refund_intent WHERE request_id=$1',[result.refundRequestId])).rows[0];
+ await refundCommands.processDue();expect((await service.detail(buyer.memberId,claim.id)).resolved).toBe(false);
+ const callback=refundCallback(reviewed.out_refund_no);
+ expect((await app.inject({method:'POST',url:'/v1/payments/wechat/refund-callback',headers:{...callback.headers,'Content-Type':'application/json'},payload:callback.raw})).statusCode).toBe(204);
+ await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);expect((await service.detail(buyer.memberId,claim.id)).resolved).toBe(true);
+ const closed=await service.list(operator.memberId,{stage:'closed'},true);expect(closed.items.some(row=>row.id===claim.id)).toBe(true);
+ const active=await service.list(operator.memberId,{stage:'refunds'},true);expect(active.items.some(row=>row.id===claim.id)).toBe(false);
+});
+it('rolls back the direct request if approval authority is absent and refuses already-dispatched refunds',async()=>{
+ const identity=await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'synthetic-aftersale-only-reviewer',displayName:'合成售后专员',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});
+ const only=identity.json() as TestActor;await aftersaleGrant(only,'commerce.aftersale.review');
+ const order=await aftersalePaidOrder('direct-no-authority'),service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+ const claim=await service.request(buyer.memberId,order.id,'direct-no-authority-claim',{kind:'return_refund',reason:'合成权限边界'});
+ const command={action:'request_refund',expectedVersion:1,note:'同意未发货订单退款',approveRefund:true};
+ const denied=await aftersalePost(only,`/v1/management/aftersales/${claim.id}/actions`,command,'direct-no-money-cap');expect(denied.statusCode,denied.body).toBe(403);
+ expect((await service.detail(buyer.memberId,claim.id))).toMatchObject({state:'requested',version:1,refundRequestId:null});
+ expect((await pool.query('SELECT 1 FROM commerce_refund_request WHERE order_id=$1',[order.id])).rowCount).toBe(0);
+ await pool.query(`INSERT INTO commerce_shipment(order_id,created_by_member_id,request_key,request_hmac,encrypted_parcel,key_version,evidence_reference)
+  VALUES($1,$2,'synthetic-shipping-race',$3,'synthetic-ciphertext','synthetic','synthetic-race-evidence')`,[order.id,operator.memberId,createHash('sha256').update('direct-shipping-race').digest('hex')]);
+ const shipped=await aftersalePost(operator,`/v1/management/aftersales/${claim.id}/actions`,command,'direct-shipping-block');expect(shipped.statusCode,shipped.body).toBe(409);expect(shipped.json().code).toBe('AFTERSALE_RETURN_REQUIRED');
+ expect((await service.detail(buyer.memberId,claim.id)).fulfillment).toEqual({state:'shipped',canRefundWithoutReturn:false});
+});

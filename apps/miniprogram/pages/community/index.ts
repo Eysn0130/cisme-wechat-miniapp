@@ -64,6 +64,7 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     this.readVisible=true;
+    if(this.data.mode==="review")this.setData({mode:"featured"});
     this.publisherAlive=true;
     const nativePublisherReturn=Boolean(this.publisherNative&&this.publisherOwner&&this.publisherCurrent(this.publisherOwner,false)&&this.data.publishEntryOpen);
     if(this.publisherTransferActive&&!this.publisherOwner)this.clearPublisherWork(false);
@@ -313,7 +314,7 @@ Page({
   },
   async selectMode(event: WechatMiniprogram.TouchEvent) {
     const mode = sectionTabValue(event,'mode');
-    if (!["featured", "recommend", "following", "review"].includes(mode) || (mode === "review" && !this.data.canReview)) return;
+    if (!["featured", "recommend", "following"].includes(mode)) return;
     if (mode === "recommend" && !this.data.ugcFeedEnabled && !this.data.socialPreviewEnabled) return;
     if (mode === this.data.mode || this.data.reviewBusy || this.data.publishEntryBusy || this.data.navigating) return;
     if ((mode === "following" || mode === "review") && !getApp<IAppOption>().globalData.sessionToken) {

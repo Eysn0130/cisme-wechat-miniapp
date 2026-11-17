@@ -123,7 +123,18 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='catalog_inventory_level' AND column_name='reserved_quantity'")).rowCount).toBe(1);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_product WHERE source_kind='legacy_preview' AND qualification_status='pending' AND publication_status='draft'")).rows[0].count).toBe(3);
     expect((await pool.query("SELECT count(*)::int count FROM catalog_sku s JOIN catalog_price p ON p.sku_id=s.id JOIN catalog_inventory_level i ON i.sku_id=s.id WHERE i.stock_on_hand=0")).rows[0].count).toBe(3);
-    //117 changes only scoped authority constraints and refuses to discard grant facts.
+    expect(migrationTip).toBe('202611160002_community_post_curation.sql');
+    const curationDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
+    const curationGuard=await pool.connect();
+    try{await curationGuard.query('BEGIN');
+      const actor=(await curationGuard.query("INSERT INTO member(display_name) VALUES('isolated curation rollback guard') RETURNING id")).rows[0].id;
+      const post=(await curationGuard.query("INSERT INTO ugc_post(author_member_id,client_request_key) VALUES($1,'isolated-curation-rollback') RETURNING id",[actor])).rows[0].id;
+      await curationGuard.query("INSERT INTO ugc_post_revision(post_id,revision,created_by_member_id,title,body) VALUES($1,1,$2,'isolated guard','isolated nonpublic fixture')",[post,actor]);
+      await curationGuard.query('UPDATE ugc_post SET featured_revision=1,featured_at=now(),featured_by=$2 WHERE id=$1',[post,actor]);
+      await expect(curationGuard.query(curationDown)).rejects.toThrow('COMMUNITY_CURATION_ROLLBACK_REQUIRES_DATA_PRESERVATION');
+    }finally{await curationGuard.query('ROLLBACK');curationGuard.release();}
+    await migrate('down');await migrate('up');await migrate('down');migrationTip='202611160001_reward_shared_invitations.sql';migrationCount-=1;extensionCount-=1;
+    //118 preserves invitation grant facts on a down migration.
     expect(migrationTip).toBe('202611160001_reward_shared_invitations.sql');
     const shareDown=(await readFile('db/migrations/'+migrationTip,'utf8')).split('-- migrate:down')[1]!;
     const shareGuard=await pool.connect();

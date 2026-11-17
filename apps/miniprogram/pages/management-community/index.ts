@@ -54,6 +54,7 @@ Page({
   refresh(){void this.load();},onReachBottom(){void this.load(true);},
   async onPullDownRefresh(){try{await this.load();}finally{wx.stopPullDownRefresh();}},
   openDetail(event:WechatMiniprogram.TouchEvent){if(this.readOwner!==owner()){this.discardChangedOwner(this.readOwner);return;}if(this.data.busyId||this.data.denied)return;const row=this.data.rows.find(r=>r.id===event.currentTarget.dataset.id);if(row)this.setData({detail:row});},
+  openGovernance(){if(!this.visible||this.data.busyId||this.data.denied||this.readOwner!==owner())return;wx.navigateTo({url:"/pages/community-review/index?source=moderation"});},
   closeDetail(){if(!this.data.busyId)this.setData({detail:null});},hold(){},
   openOriginal(){const row=this.data.detail;if(!row||row.state!=='published'||this.data.busyId||this.readOwner!==owner())return;
     wx.navigateTo({url:`/pages/post/index?id=${row.id}&source=formal`});},
