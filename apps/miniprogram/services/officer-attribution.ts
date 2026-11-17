@@ -27,6 +27,12 @@ export async function incomingOfficerShare(shareId:string|undefined,expectedProd
  wx.setStorageSync(storage,[...queue(),entry]);
  const product=await resolve(entry);if(getApp<IAppOption>().globalData.sessionToken)await flushOfficerVisits();return product;
 }
+/** Resolve the trusted visit before identity creation, including a retried weak-network launch. */
+export async function prepareOfficerLoginVisits():Promise<void>{
+ const from=origin();for(const saved of queue().filter(v=>v.origin===from&&!v.token)){
+  await resolve(saved);if(from!==origin())throw {title:'登录环境已更新，请重新登录'};
+ }
+}
 export function flushOfficerVisits():Promise<void>{
  const session=getApp<IAppOption>().globalData.sessionToken,from=origin();if(!session)return Promise.resolve();
  if(flushing&&flushingOwner===session+from)return flushing;

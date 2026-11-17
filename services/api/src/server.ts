@@ -816,6 +816,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/catalog", async request => catalog.publicList(request.query));
   app.get<{Params:{productCode:string}}>("/v1/catalog/:productCode", async request => catalog.publicDetail(request.params.productCode));
   app.get("/v1/commerce/orders/status", async () => orders.status());
+  app.get('/v1/me/sharing-officer/reward-activities',async(request,reply)=>{reply.header('Cache-Control','private, no-store');return activityRewards.officerOffers(request.memberId);});
+  app.post<{Params:{activityId:string}}>('/v1/me/sharing-officer/reward-activities/:activityId/share',request=>activityRewards.prepareOfficerShare(request.memberId,request.params.activityId,idempotencyKey(request)));
   app.get<{Params:{token:string}}>('/v1/rewards/invitations/:token',request=>activityRewards.invitation(request.params.token));
   app.post<{Params:{token:string}}>('/v1/me/rewards/invitations/:token/accept',request=>activityRewards.acceptInvitation(request.memberId,request.params.token,idempotencyKey(request)));
   app.get<{Querystring:{claimsCursor?:string}}>('/v1/me/rewards',async(request,reply)=>{reply.header('Cache-Control','private, no-store');return activityRewards.mine(request.memberId,undefined,request.query.claimsCursor);});

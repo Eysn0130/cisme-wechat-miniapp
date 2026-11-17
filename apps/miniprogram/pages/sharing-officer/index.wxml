@@ -1,11 +1,24 @@
-<view class="chrome-root officer-root" style="{{chromeStyle}}">
- <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">{{referrerOnly?'我的推荐人':'分享官'}}</text></view>
+<view class="chrome-root officer-root {{giftMode?'officer-root--gift':''}}" style="{{chromeStyle}}">
+ <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">{{giftMode?'体验装分享':referrerOnly?'我的推荐人':'分享官'}}</text></view>
  <view class="page page--stack officer-page">
   <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在加载"><view class="page-read-loading__indicator"/></view>
   <view wx:if="{{error&&!sheet}}" class="officer-error"><text>{{error}}</text><button class="action-text {{loading||busy ? 'control--disabled' : ''}}" bindtap="retry" disabled="{{loading||busy}}">重试</button></view>
   <view wx:if="{{pending}}" class="officer-recovery"><text>上次操作待确认</text><view class="officer-actions"><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="recover" disabled="{{busy}}">查询结果</button><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="recover" data-abandon="{{true}}" disabled="{{busy}}">结束这次请求</button></view></view>
   <block wx:if="{{wallet}}">
-   <block wx:if="{{referrerOnly}}">
+   <block wx:if="{{giftMode}}">
+    <block wx:if="{{wallet.canShare}}">
+     <picker wx:if="{{giftActivities.length>1}}" range="{{giftActivities}}" range-key="title" bindchange="chooseGiftActivity" disabled="{{loading||giftShareBusy}}"><view class="officer-gift-activity"><text>选择活动</text><image src="/assets/icons/caret-right-muted.svg"/></view></picker>
+     <view class="officer-gift-intro"><text class="officer-gift-heading">把这份洗护礼遇，<text>送给在意的人。</text></text><text class="officer-muted">净润与净屑 · 每人任选一套</text></view>
+     <view wx:for="{{giftBundles}}" wx:key="code" class="officer-gift-card {{item.available?'':'officer-gift-card--empty'}}">
+      <view class="officer-between"><text class="officer-strong">{{item.code==='moisture'?'净润洗护礼遇':'净屑洗护礼遇'}}</text><button class="action-text {{detailBusy?'control--disabled':''}}" data-code="{{item.code}}" bindtap="giftDetails" disabled="{{detailBusy}}" aria-label="{{item.name+'产品详情'}}">详情</button></view>
+      <view class="officer-gift-product"><view class="officer-gift-photo"><image src="{{item.photo}}" mode="aspectFit"/><view wx:if="{{!item.available}}" class="officer-gift-soldout"><text>已领完</text></view></view><view class="officer-gift-copy"><text class="officer-gift-benefit">{{item.benefit}}</text><text>{{item.shampoo}} {{item.shampooMl}}mL</text><text>{{item.conditioner}} {{item.conditionerMl}}mL</text></view></view>
+      <text class="officer-gift-state">{{item.available?'可领取':'已领完'}}</text>
+     </view>
+     <view wx:if="{{!giftActivities.length&&!loading}}" class="officer-empty">暂无开放的洗护礼遇</view>
+    </block>
+    <view wx:else class="officer-empty">当前分享官资格不可推广</view>
+   </block>
+   <block wx:elif="{{referrerOnly}}">
     <view class="officer-intro"><text class="officer-overline">CISME</text><text class="officer-heading">{{wallet.relation?wallet.relation.label:'尚未设置推荐人'}}</text><text wx:if="{{wallet.relation}}" class="officer-code">{{wallet.relation.code}}</text></view>
     <button class="primary {{busy||pending ? 'primary--disabled' : ''}}" data-sheet="referrer" bindtap="open" disabled="{{busy||pending}}">{{wallet.relation?'更换推荐人':'查找推荐人'}}</button>
     <text class="officer-note">更换只影响之后创建的订单。</text>
@@ -22,7 +35,7 @@
      <view class="officer-metrics"><view><text class="officer-money">{{metrics.pendingCents}}</text><text>待结算 · 税前</text></view><view><text class="officer-money">{{metrics.availableCents}}</text><text>可结算 · 税前</text></view><view><text class="officer-money">{{metrics.settledNetCents}}</text><text>已到账 · 税后</text></view></view>
      <view wx:if="{{wallet.metrics.outstandingRecoveryCents}}" class="officer-warning">退款待核对冲回 ¥{{metrics.outstandingRecoveryCents}}</view>
      <section-tabs items="{{tabs}}" value="{{tab}}" bindchange="changeTab" disabled="{{busy||pending}}" label="分享官分类"/>
-     <block wx:if="{{tab==='overview'}}"><view class="officer-between officer-section"><text>推广商品</text><text class="officer-muted">佣金 {{rate}}%</text></view>
+     <block wx:if="{{tab==='overview'}}"><button wx:if="{{wallet.canShare}}" class="officer-gift-entry {{busy||pending?'control--disabled':''}}" bindtap="openGiftSharing" disabled="{{busy||pending}}"><image src="/assets/cisme/travel-reward-share-v2.jpg" mode="aspectFill"/><view><text class="officer-strong">旅行洗护礼遇</text><text class="officer-muted">分享体验装</text></view><image class="officer-gift-chevron" src="/assets/icons/caret-right-muted.svg"/></button><view class="officer-between officer-section"><text>推广商品</text><text class="officer-muted">佣金 {{rate}}%</text></view>
       <button wx:for="{{products}}" wx:key="code" class="officer-product {{busy||pending||!wallet.canShare ? 'control--disabled' : ''}}" data-code="{{item.code}}" bindtap="promote" disabled="{{busy||pending||!wallet.canShare}}"><image src="{{item.displayImage}}" mode="aspectFill"/><view><text class="officer-strong">{{item.name}}</text><text class="officer-muted">{{item.price?'¥'+item.price:''}}</text></view><text class="officer-link">分享</text></button>
       <view wx:if="{{!products.length&&!loading}}" class="officer-empty">暂无可推广商品</view><button wx:if="{{moreProducts}}" class="action-text officer-more {{loading||busy ? 'control--disabled' : ''}}" bindtap="moreProducts" disabled="{{loading||busy}}">加载更多</button>
       <text class="officer-note">收货满 {{releaseDays}} 天、无进行中售后后可结算；按月由财务处理。</text>
@@ -35,6 +48,7 @@
    </block>
   </block>
  </view>
+ <view wx:if="{{giftMode&&wallet.canShare&&giftActivities.length}}" class="officer-gift-footer"><text wx:if="{{giftError}}" class="officer-error">{{giftError}}</text><button wx:if="{{giftShare}}" class="primary {{loading||!giftAvailable?'primary--disabled':''}}" open-type="share" disabled="{{loading||!giftAvailable}}">分享这份礼遇</button><button wx:else class="primary {{loading||giftShareBusy||!giftAvailable?'primary--disabled':''}}" bindtap="retryGiftShare" loading="{{giftShareBusy}}" disabled="{{loading||giftShareBusy||!giftAvailable}}">{{!giftAvailable?'礼遇已领完':giftError?'重试分享':'准备分享'}}</button></view>
  <view wx:if="{{sheet}}" class="officer-mask" bindtap="close"><view class="officer-sheet" catchtap="stop"><view class="officer-sheet-head"><text>{{sheet==='apply'?'申请分享官':sheet==='payee'?'收款资料':sheet==='referrer'?'查找推荐人':sheet==='share'?'专属分享':'明细'}}</text><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="close" disabled="{{busy}}">关闭</button></view><scroll-view scroll-y class="officer-sheet-scroll" enhanced show-scrollbar="{{false}}">
   <block wx:if="{{sheet==='apply'}}"><label class="officer-field"><text>申请说明 · 选填</text><textarea value="{{note}}" maxlength="500" placeholder="简单介绍你的分享计划" data-field="note" bindinput="edit" disabled="{{busy||pending}}"/></label><button class="primary {{busy||pending ? 'primary--disabled' : ''}}" data-action="apply" bindtap="operate" loading="{{busy}}" disabled="{{busy||pending}}">提交申请</button></block>
   <block wx:elif="{{sheet==='payee'}}"><label class="officer-field"><text>收款人姓名</text><input value="{{legalName}}" data-field="legalName" bindinput="edit" maxlength="80" disabled="{{busy||pending}}"/></label><label class="officer-field"><text>收款方式</text><input value="{{channel}}" placeholder="如：银行转账" data-field="channel" bindinput="edit" maxlength="60" disabled="{{busy||pending}}"/></label><label class="officer-field"><text>收款账号</text><input value="{{account}}" data-field="account" bindinput="edit" maxlength="160" disabled="{{busy||pending}}"/></label><text class="officer-note">仅用于公司财务结算；修改时请完整填写。</text><button class="primary {{busy||pending||!legalName||!channel||!account ? 'primary--disabled' : ''}}" data-action="payee" bindtap="operate" loading="{{busy}}" disabled="{{busy||pending||!legalName||!channel||!account}}">保存</button></block>

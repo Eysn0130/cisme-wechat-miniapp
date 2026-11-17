@@ -1,3 +1,4 @@
+import {currentSharingPolicySql,sharingQualificationProduct} from './sharingOfficer.js';
 import {pageScope,readPageCursor,finishPage} from './keysetPage.js';
 import {managementDates} from './managementDates.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
@@ -27,10 +28,10 @@ export class ActivityRewardService {
  constructor(private pool:pg.Pool,private config:AppConfig,private authority:AuthorityService,private addresses:DeliveryAddressService){}
  private fingerprint(value:unknown){const key=this.config.contacts.hashKey;if(!key||!(/^[a-f0-9]{64}$/i.test(key)))fail('REWARD_STORAGE_UNAVAILABLE','奖励资料暂不可用',503);return createHmac('sha256',Buffer.from(key,'hex')).update('reward-command\0').update(JSON.stringify(value)).digest('hex');}
  private async enabled(c:DbClient){if(!(await c.query("SELECT enabled FROM emergency_switch WHERE key='rewards' FOR SHARE")).rows[0]?.enabled)fail('SWITCH_REWARDS_OFF','奖励领取暂不可用，请联系客服',503);}
- private async command<T>(actor:string|undefined,keyInput:string,action:string,input:unknown,work:(c:DbClient,owner:string)=>Promise<T>,cap?:'commerce.product.manage'|'commerce.inventory.manage'|'commerce.fulfillment.manage'){
+ private async command<T>(actor:string|undefined,keyInput:string,action:string,input:unknown,work:(c:DbClient,owner:string)=>Promise<T>,cap?:'commerce.product.manage'|'commerce.inventory.manage'|'commerce.fulfillment.manage',guard?:(c:DbClient,owner:string)=>Promise<void>){
   const operation=rewardKey(keyInput),fingerprint=this.fingerprint({action,input});
   return transaction(this.pool,async c=>{
-   const owner=await requireActiveMemberWithClient(c,actor);if(cap)await this.authority.requireWithClient(c,owner,cap);
+   const owner=await requireActiveMemberWithClient(c,actor);if(cap)await this.authority.requireWithClient(c,owner,cap);if(guard)await guard(c,owner);
    await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`reward-command:${owner}:${operation}`]);
    const old=(await c.query('SELECT * FROM reward_event WHERE actor_member_id=$1 AND operation_id=$2',[owner,operation])).rows[0];
    if(old){if(old.action==='reward.command.abandoned')fail('REWARD_COMMAND_ABANDONED','本次待确认操作已取消，请重新核对',409);if(old.request_sha256!==fingerprint||old.action!==action)fail('IDEMPOTENCY_CONFLICT','操作编号已用于其他内容',409);return old.details.result as T;}
@@ -41,7 +42,7 @@ export class ActivityRewardService {
     action==='reward.bundle.stock.adjust'?{bundleCode:source.bundleCode,delta:source.delta,reason:'管理员调整旅行洗护套库存'}:
     ['reward.voucher.revoke','reward.resolve_return','reward.reject_return'].includes(action)?{reason:source.reason}:{};
    await c.query('INSERT INTO reward_event(actor_member_id,action,object_id,operation_id,request_sha256,details) VALUES($1,$2,$3,$4,$5,$6)',[owner,action,(result as any)?.id??owner,operation,fingerprint,{result,...evidence}]);
-   if(cap)await this.authority.requireWithClient(c,owner,cap);return result;
+   if(cap)await this.authority.requireWithClient(c,owner,cap);if(guard)await guard(c,owner);return result;
   },'SERIALIZABLE');
  }
  private voucherView(r:any,now:Date){return {id:r.id,activityId:r.activity_id,activityTitle:r.title,name:'旅行洗护套兑换券',state:visibleVoucherState(r,now),version:r.version,claimId:r.claim_id,issuedAt:r.issued_at.toISOString(),expiresAt:r.expires_at.toISOString(),terms:r.terms_snapshot};}
@@ -73,6 +74,37 @@ export class ActivityRewardService {
    if(!row.enabled)fail('REWARD_LINK_UNAVAILABLE','领取链接已停用',409);
    const token=this.shareToken(row);return {id:row.id,activityId:id,title:activity.title,token,path:`/pages/home/index?gift=${token}`};
   },'commerce.product.manage');
+ }
+ private async requireSharingOfficer(c:DbClient,owner:string){
+  const policy=(await c.query(currentSharingPolicySql+' FOR SHARE')).rows[0];
+  const officer=(await c.query("SELECT state FROM sharing_officer WHERE member_id=$1 FOR SHARE",[owner])).rows[0];
+  if(!policy?.enabled||officer?.state!=='active')fail('SHARING_OFFICER_INACTIVE','分享官资格当前不可推广',403);
+  await this.enabled(c);
+ }
+ /** Sharing officers see availability, never inventory counts or recipient data. */
+ async officerOffers(actor:string|undefined){
+  return transaction(this.pool,async c=>{
+   const owner=await requireActiveMemberWithClient(c,actor);await this.requireSharingOfficer(c,owner);
+   const activities=(await c.query("SELECT id,title FROM reward_activity WHERE state='published' ORDER BY created_at DESC,id DESC LIMIT 20")).rows;
+   const bundles=(await this.bundleViews(c)).map(({code,name,shampoo,shampooMl,conditioner,conditionerMl,image,availableQuantity,stockConfirmed})=>({code,name,shampoo,shampooMl,conditioner,conditionerMl,image,available:stockConfirmed&&availableQuantity>0}));
+   return {memberId:owner,activities:activities.map(a=>({id:a.id,title:a.title,bundles}))};
+  },'REPEATABLE READ');
+ }
+ async prepareOfficerShare(actor:string|undefined,activityId:string,keyInput:string){
+  const id=rewardId(activityId);
+  return this.command(actor,keyInput,'reward.officer.share.prepare',{activityId:id},async(c,owner)=>{
+   const activity=(await c.query("SELECT id,title FROM reward_activity WHERE id=$1 AND state='published' FOR SHARE",[id])).rows[0];
+   if(!activity)fail('REWARD_ACTIVITY_UNAVAILABLE','活动暂未开放，请稍后再来',409);
+   if(!(await this.bundleViews(c)).some(b=>b.stockConfirmed&&b.availableQuantity>0))fail('REWARD_ALL_SOLD_OUT','这次洗护礼遇已领完',409);
+   const product=(await c.query("SELECT code FROM catalog_product WHERE code=$1 AND publication_status='published' AND qualification_status='eligible' FOR SHARE",[sharingQualificationProduct])).rows[0];
+   if(!product)fail('SHARING_PRODUCT_UNAVAILABLE','分享暂未开放，请稍后重试',409);
+   const gift=(await c.query(`INSERT INTO reward_activity_share(activity_id,created_by) VALUES($1,$2)
+    ON CONFLICT(activity_id) DO UPDATE SET activity_id=EXCLUDED.activity_id RETURNING id,version,enabled`,[id,owner])).rows[0];
+   if(!gift.enabled)fail('REWARD_LINK_UNAVAILABLE','领取链接已停用',409);
+   const link=(await c.query(`INSERT INTO sharing_link(share_id,officer_id,product_code) VALUES($1,$2,$3)
+    ON CONFLICT(officer_id,product_code) DO UPDATE SET officer_id=EXCLUDED.officer_id RETURNING share_id`,[randomUUID().replaceAll('-',''),owner,sharingQualificationProduct])).rows[0];
+   const token=this.shareToken(gift);return {id:gift.id,activityId:id,title:activity.title,token,officerShareId:link.share_id,path:`/pages/home/index?gift=${token}&officer_share=${link.share_id}`};
+  },undefined,(c,owner)=>this.requireSharingOfficer(c,owner));
  }
  async invitation(token:string){
   return transaction(this.pool,async c=>{const row=await this.activeShare(c,token);return {activityId:row.activity_id,title:row.title,bundles:await this.bundleViews(c),terms:rewardTerms(row.terms)};},'REPEATABLE READ');

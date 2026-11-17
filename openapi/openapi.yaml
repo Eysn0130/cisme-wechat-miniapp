@@ -3917,6 +3917,33 @@ paths:
         '409':
           $ref: '#/components/responses/Problem'
 
+  /v1/me/sharing-officer/reward-activities:
+    get:
+      tags: [Rewards, Attribution]
+      operationId: officerRewardActivities
+      summary: Active officers see published gift products and boolean availability, without inventory counts or recipient data
+      security: [{session: []}]
+      responses:
+        '200': {description: Owner memberId and published activities with two bundle specifications and available booleans only}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
+  /v1/me/sharing-officer/reward-activities/{activityId}/share:
+    post:
+      tags: [Rewards, Attribution]
+      operationId: prepareOfficerRewardInvitation
+      summary: Prepare a stable gift invitation combined with the active officer's opaque attribution link; no voucher or stock reservation is created
+      security: [{session: []}]
+      parameters:
+        - {in: path, name: activityId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '200': {description: Stable gift token and path containing gift and officer_share; current officer authorization is checked even on replay}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+        '409': {$ref: '#/components/responses/Problem'}
+        '422': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
   /v1/me/sharing-officer:
     get: {"tags":["Attribution"],"operationId":"sharingOfficer1","summary":"本人资格、推广和税前税后汇总","security":[{"session":[]}],"responses":{"200":{"description":"Owner-only projection or exact idempotent command result; money is integer CNY cents. Manual payment results are finance attestations, not WeChat verified transfers."},"401":{"$ref":"#/components/responses/Problem"},"403":{"$ref":"#/components/responses/Problem"},"409":{"$ref":"#/components/responses/Problem"},"422":{"$ref":"#/components/responses/Problem"}}}
   /v1/me/sharing-officer/commands/{key}:

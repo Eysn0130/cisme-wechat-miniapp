@@ -16,7 +16,7 @@ beforeEach(async()=>{
  (globalThis as any).getApp=()=>({globalData:{get sessionToken(){return mocks.token;},cloudFunction:{name:'synthetic-api'}}});
  (globalThis as any).getCurrentPages=()=>[{route:'pages/account/index'}];
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(values:any,callback?:()=>void){Object.assign(this.data,values);callback?.();}};};
- wxMock={getAccountInfoSync:()=>({miniProgram:{envVersion:'develop'}}),getDeviceInfo:()=>({platform:'devtools'}),getStorageSync:()=>false,
+ wxMock={getAccountInfoSync:()=>({miniProgram:{envVersion:'develop'}}),getDeviceInfo:()=>({platform:'devtools'}),getStorageSync:(key:string)=>key==='cisme.officer-visits.v1'?'':false,
   login:vi.fn(async()=>({code:'synthetic-login-code'})),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),pageScrollTo:vi.fn(),showToast:vi.fn()};
  (globalThis as any).wx=wxMock;
  await import('../../apps/miniprogram/pages/account/index');

@@ -30,12 +30,12 @@ Page({
  onLoad(query:Record<string,string|undefined>={}){this.data.pageAlive=true;this.setData({guideMode:query.guide==='1'});},onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onShow(){this.visible=true;this.data.pageAlive=true;const token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();
   if(this.token!==token||this.context!==context||!retainMemberSnapshot(this)){
-   this.setData({suggestionOpen:false,suggestionBody:'',suggestionKey:'',suggestionPendingBody:'',suggestions:[],suggestionError:'',taskRows:[],points:null,club:null,gifts:[],redemptions:[],addresses:[],giftSelected:null,balanceClass:'',selectedAddressId:'',addressesState:'loading',addressError:'',recoveryPending:false,error:'',actionError:'',actionStatus:''});
+   this.setData({suggestionBusy:false,suggestionOpen:false,suggestionBody:'',suggestionKey:'',suggestionPendingBody:'',suggestions:[],suggestionError:'',taskRows:[],points:null,club:null,gifts:[],redemptions:[],addresses:[],giftSelected:null,balanceClass:'',selectedAddressId:'',addressesState:'loading',addressError:'',recoveryPending:false,error:'',actionError:'',actionStatus:''});
   }
   this.token=token;this.context=context;if(!token&&this.data.guideMode){void this.loadPublicGuide();return;}if(!requireMemberAccess()){this.setData({loading:false,error:'登录后即可查看积分。'});return;}
-  this.setData({navigating:false,busy:false,loadingMore:false,redemptionsLoading:false});void this.load();
+  this.setData({navigating:false,busy:false,suggestionBusy:false,loadingMore:false,redemptionsLoading:false});void this.load();
  },
- onHide(){this.visible=false;this.data.loadAttempt++;if(this.data.busy)this.setData({busy:false});},
+ onHide(){this.visible=false;this.data.loadAttempt++;this.setData({busy:false,suggestionBusy:false});},
  onUnload(){this.data.pageAlive=false;this.onHide();},
  current(attempt?:number){return this.data.pageAlive&&this.visible&&(attempt??this.data.loadAttempt)===this.data.loadAttempt&&this.token===getApp<IAppOption>().globalData.sessionToken&&this.context===commerceContextRevision();},
  async load(){
@@ -67,7 +67,7 @@ Page({
  async loadPublicGuide(){const attempt=++this.data.loadAttempt;this.setData({loading:true,error:'',taskRows:[]});try{const guide=await request<{policy:{rules:PointRules}|null;tasks:PointsTask[]}>({path:'/v1/points/guide',authMode:'public'});if(!this.current(attempt))return;this.setData({taskRows:guide.tasks,rulesRows:guide.policy?pointRuleRows(guide.policy.rules):[],loading:false});}catch{if(this.current(attempt))this.setData({loading:false,error:'积分攻略暂时无法打开，请重试'});}},
  openLedger(){this.setData({guideMode:false,section:'ledger'});void this.load();},
  async openTask(event:WechatMiniprogram.TouchEvent){const task=this.data.taskRows.find(x=>x.id===event.currentTarget.dataset.id);if(!task||this.data.navigating||this.data.busy)return;if(!requireMemberAccess('/pages/points/index?guide=1'))return;
-  const destination=task.destination;if(destination==='suggestion'){this.setData({suggestionOpen:true,suggestionError:''});void this.loadSuggestions();return;}
+  const destination=task.destination;if(task.state==='pending'&&destination!=='suggestion'){if(!this.data.loading)void this.load();return;}if(destination==='suggestion'){this.setData({suggestionOpen:true,suggestionError:''});void this.loadSuggestions();return;}
   const urls:Record<string,string>={care:'/pages/home/index',questionnaire:'/pages/home/index',profile:'/pages/settings/index?section=profile',post:'/pages/community-compose/index?new=1&entry=text',experience:'/pages/community-compose/index?new=1&entry=text&task=experience',community:'/pages/community/index',shop:'/pages/shop/index',invite:'/pages/invite/index'};
   const url=urls[destination];if(!url)return;this.setData({navigating:true});const fail=()=>{if(this.visible)this.setData({navigating:false});wx.showToast({title:'页面暂时无法打开，请重试',icon:'none'});};if(['care','questionnaire','community','shop'].includes(destination))wx.switchTab({url,fail});else wx.navigateTo({url,fail});
  },

@@ -19,6 +19,10 @@ export const previewRewardShipments=(activity:string,filename:string,contentBase
 export interface RewardInventory{code:string;stock_on_hand:number;reserved_quantity:number;confirmed:boolean;version:number}
 export interface RewardActivity{id:string;code:string;title:string;state:'draft'|'published'|'paused';version:number;terms:RewardTerms|null}
 export interface RewardShare{id:string;activityId:string;title:string;token:string;path:string}
+export interface OfficerRewardBundle{code:RewardBundleCode;name:string;shampoo:string;shampooMl:number;conditioner:string;conditionerMl:number;image:string;available:boolean}
+export interface OfficerRewardOffers{memberId:string;activities:Array<{id:string;title:string;bundles:OfficerRewardBundle[]}>}
+export const officerRewardOffers=(page:object)=>read<OfficerRewardOffers>(page,'/v1/me/sharing-officer/reward-activities');
+export const prepareOfficerRewardShare=(activityId:string,key:string)=>request<RewardShare&{officerShareId:string}>({path:`/v1/me/sharing-officer/reward-activities/${encodeURIComponent(activityId)}/share`,method:'POST',data:{},idempotencyKey:key});
 export interface RewardInvitation{activityId:string;title:string;bundles:RewardBundle[];terms:RewardTerms}
 export interface RewardBundleInventory extends RewardBundle{reservedQuantity:number;expectedVersions:Record<string,number>}
 export interface RewardManagement{memberId:string;selectedActivityId?:string|null;activities:RewardActivity[];inventory:RewardInventory[];bundles:RewardBundleInventory[];vouchers:Array<{id:string;member_id:string;display_name:string;state:string;version:number;expires_at:string;claim_id:string|null;batch_id:string;source_record_id:string}>;claims:RewardClaim[];voucherNext:string|null;claimNext:string|null;permissions:{configure:boolean;stock:boolean;issue:boolean;fulfill:boolean}}
