@@ -26,6 +26,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | @aws-sdk/types | 3.974.3 | Apache-2.0 |
 | @aws-sdk/xml-builder | 3.972.38 | Apache-2.0 |
 | @aws/lambda-invoke-store | 0.3.0 | Apache-2.0 |
+| @cisme/picomatch-hardened | 4.0.7 | MIT |
 | @csstools/color-helpers | 6.1.1 | MIT-0 |
 | @csstools/css-calc | 3.3.0 | MIT |
 | @csstools/css-color-parser | 4.2.2 | MIT |
@@ -64,8 +65,8 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | @esbuild/win32-ia32 | 0.28.2 | MIT |
 | @esbuild/win32-x64 | 0.28.2 | MIT |
 | @fastify/ajv-compiler | 4.0.6 | MIT |
-| @fastify/ajv-compiler/node_modules/fast-uri | 4.1.4 | BSD-3-Clause |
-| @fastify/busboy | 3.2.1 | MIT |
+| @fastify/ajv-compiler/node_modules/fast-uri | 4.2.3 | BSD-3-Clause |
+| @fastify/busboy | 3.2.3 | MIT |
 | @fastify/cors | 11.2.0 | MIT |
 | @fastify/deepmerge | 3.2.1 | MIT |
 | @fastify/error | 4.2.0 | MIT |
@@ -77,33 +78,33 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | @fastify/rate-limit | 11.2.0 | MIT |
 | @fastify/rate-limit/node_modules/fastify-plugin | 6.0.0 | MIT |
 | @img/colour | 1.1.0 | MIT |
-| @img/sharp-darwin-arm64 | 0.35.4 | Apache-2.0 |
-| @img/sharp-darwin-x64 | 0.35.4 | Apache-2.0 |
-| @img/sharp-freebsd-wasm32 | 0.35.4 | Apache-2.0 |
-| @img/sharp-libvips-darwin-arm64 | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-darwin-x64 | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-linux-arm | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-linux-arm64 | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-linux-ppc64 | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-linux-riscv64 | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-linux-s390x | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-linux-x64 | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-linuxmusl-arm64 | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-libvips-linuxmusl-x64 | 1.3.3 | LGPL-3.0-or-later |
-| @img/sharp-linux-arm | 0.35.4 | Apache-2.0 |
-| @img/sharp-linux-arm64 | 0.35.4 | Apache-2.0 |
-| @img/sharp-linux-ppc64 | 0.35.4 | Apache-2.0 |
-| @img/sharp-linux-riscv64 | 0.35.4 | Apache-2.0 |
-| @img/sharp-linux-s390x | 0.35.4 | Apache-2.0 |
-| @img/sharp-linux-x64 | 0.35.4 | Apache-2.0 |
-| @img/sharp-linuxmusl-arm64 | 0.35.4 | Apache-2.0 |
-| @img/sharp-linuxmusl-x64 | 0.35.4 | Apache-2.0 |
-| @img/sharp-wasm32 | 0.35.4 | Apache-2.0 AND LGPL-3.0-or-later AND MIT |
+| @img/sharp-darwin-arm64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-darwin-x64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-freebsd-wasm32 | 0.35.5 | Apache-2.0 |
+| @img/sharp-libvips-darwin-arm64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-darwin-x64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-arm | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-arm64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-ppc64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-riscv64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-s390x | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-x64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linuxmusl-arm64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linuxmusl-x64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-linux-arm | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-arm64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-ppc64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-riscv64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-s390x | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-x64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linuxmusl-arm64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linuxmusl-x64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-wasm32 | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later AND MIT |
 | @img/sharp-wasm32/node_modules/@emnapi/runtime | 1.11.3 | MIT |
-| @img/sharp-webcontainers-wasm32 | 0.35.4 | Apache-2.0 |
-| @img/sharp-win32-arm64 | 0.35.4 | Apache-2.0 AND LGPL-3.0-or-later |
-| @img/sharp-win32-ia32 | 0.35.4 | Apache-2.0 AND LGPL-3.0-or-later |
-| @img/sharp-win32-x64 | 0.35.4 | Apache-2.0 AND LGPL-3.0-or-later |
+| @img/sharp-webcontainers-wasm32 | 0.35.5 | Apache-2.0 |
+| @img/sharp-win32-arm64 | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
+| @img/sharp-win32-ia32 | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
+| @img/sharp-win32-x64 | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
 | @isaacs/cliui | 8.0.2 | ISC |
 | @isaacs/cliui/node_modules/ansi-regex | 6.3.0 | MIT |
 | @isaacs/cliui/node_modules/ansi-styles | 6.2.3 | MIT |
@@ -120,6 +121,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | @lukeed/ms | 2.0.2 | MIT |
 | @napi-rs/lzma-linux-x64-gnu | 1.5.1 | MIT |
 | @napi-rs/wasm-runtime | 1.2.3 | MIT |
+| @nodable/entities | 3.1.0 | MIT |
 | @npmcli/agent | 3.0.0 | ISC |
 | @npmcli/agent/node_modules/lru-cache | 10.4.3 | ISC |
 | @npmcli/fs | 4.0.0 | ISC |
@@ -211,13 +213,13 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | @typescript/typescript-sunos-x64 | 7.0.2 | Apache-2.0 |
 | @typescript/typescript-win32-arm64 | 7.0.2 | Apache-2.0 |
 | @typescript/typescript-win32-x64 | 7.0.2 | Apache-2.0 |
-| @vitest/expect | 4.1.11 | MIT |
-| @vitest/mocker | 4.1.11 | MIT |
-| @vitest/pretty-format | 4.1.11 | MIT |
-| @vitest/runner | 4.1.11 | MIT |
-| @vitest/snapshot | 4.1.11 | MIT |
-| @vitest/spy | 4.1.11 | MIT |
-| @vitest/utils | 4.1.11 | MIT |
+| @vitest/expect | 4.1.12 | MIT |
+| @vitest/mocker | 4.1.12 | MIT |
+| @vitest/pretty-format | 4.1.12 | MIT |
+| @vitest/runner | 4.1.12 | MIT |
+| @vitest/snapshot | 4.1.12 | MIT |
+| @vitest/spy | 4.1.12 | MIT |
+| @vitest/utils | 4.1.12 | MIT |
 | abbrev | 3.0.1 | ISC |
 | abstract-logging | 2.0.1 | MIT |
 | agent-base | 7.1.4 | MIT |
@@ -227,6 +229,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | ansi-regex | 5.0.1 | MIT |
 | ansi-styles | 4.3.0 | MIT |
 | any-promise | 1.3.0 | MIT |
+| anynum | 1.0.1 | MIT |
 | argparse | 2.0.1 | Python-2.0 |
 | asn1 | 0.2.6 | MIT |
 | assert-plus | 1.0.0 | MIT |
@@ -242,12 +245,12 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | bidi-js | 1.1.0 | MIT |
 | bindings | 1.5.0 | MIT |
 | bowser | 2.14.1 | MIT |
-| brace-expansion | 1.1.18 | MIT |
+| brace-expansion | 1.1.21 | MIT |
 | buffer | 5.7.1 | MIT |
 | bundle-require | 5.1.0 | MIT |
 | cac | 6.7.14 | MIT |
 | cacache | 19.0.1 | ISC |
-| cacache/node_modules/brace-expansion | 2.1.4 | MIT |
+| cacache/node_modules/brace-expansion | 2.1.7 | MIT |
 | cacache/node_modules/glob | 10.5.0 | ISC |
 | cacache/node_modules/lru-cache | 10.4.3 | ISC |
 | cacache/node_modules/minimatch | 9.0.9 | ISC |
@@ -317,10 +320,13 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | fast-decode-uri-component | 1.0.1 | MIT |
 | fast-deep-equal | 3.1.3 | MIT |
 | fast-json-stringify | 7.0.1 | MIT |
-| fast-json-stringify/node_modules/fast-uri | 4.1.4 | BSD-3-Clause |
+| fast-json-stringify/node_modules/fast-uri | 4.2.3 | BSD-3-Clause |
 | fast-querystring | 1.1.2 | MIT |
-| fast-uri | 3.1.7 | BSD-3-Clause |
-| fastify | 5.12.3 | MIT |
+| fast-uri | 3.1.9 | BSD-3-Clause |
+| fast-xml-builder | 1.3.1 | MIT |
+| fast-xml-parser | 5.12.0 | MIT |
+| fast-xml-parser/node_modules/strnum | 2.5.1 | MIT |
+| fastify | 5.12.6 | MIT |
 | fastify-plugin | 5.1.0 | MIT |
 | fastq | 1.20.1 | ISC |
 | file-uri-to-path | 1.0.0 | MIT |
@@ -348,6 +354,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | hasown | 2.0.4 | MIT |
 | hosted-git-info | 9.0.3 | ISC |
 | html-encoding-sniffer | 4.0.0 | MIT |
+| http-cache-semantics | 4.3.0 | BSD-2-Clause |
 | http-proxy-agent | 7.0.2 | MIT |
 | http-signature | 1.2.0 | MIT |
 | https-proxy-agent | 7.0.6 | MIT |
@@ -357,11 +364,12 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | inflight | 1.0.6 | ISC |
 | inherits | 2.0.4 | ISC |
 | ini | 1.3.8 | ISC |
-| ip-address | 10.5.0 | MIT |
+| ip-address | 10.7.4 | MIT |
 | ipaddr.js | 2.5.0 | MIT |
 | is-fullwidth-code-point | 3.0.0 | MIT |
 | is-potential-custom-element-name | 1.0.1 | MIT |
 | is-typedarray | 1.0.0 | MIT |
+| is-unsafe | 2.0.3 | MIT |
 | is-what | 4.1.16 | MIT |
 | isexe | 2.0.0 | ISC |
 | isstream | 0.1.2 | MIT |
@@ -406,7 +414,6 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | magic-string | 0.30.21 | MIT |
 | make-dir | 5.1.0 | MIT |
 | make-fetch-happen | 14.0.3 | ISC |
-| make-fetch-happen/node_modules/http-cache-semantics | 4.2.0 | BSD-2-Clause |
 | math-intrinsics | 1.1.0 | MIT |
 | mdn-data | 2.27.1 | CC0-1.0 |
 | mime | 1.6.0 | MIT |
@@ -462,6 +469,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | packageurl-js | 2.0.1 | MIT |
 | parse-node-version | 1.0.1 | MIT |
 | parse5 | 7.3.0 | MIT |
+| path-expression-matcher | 1.6.2 | MIT |
 | path-is-absolute | 1.0.1 | MIT |
 | path-key | 3.1.1 | MIT |
 | path-scurry | 1.11.1 | BlueOak-1.0.0 |
@@ -500,7 +508,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | psl | 1.15.0 | MIT |
 | pump | 3.0.4 | MIT |
 | punycode | 2.3.1 | MIT |
-| qs | 6.16.0 | BSD-3-Clause |
+| qs | 6.17.1 | BSD-3-Clause |
 | querystringify | 2.2.0 | MIT |
 | quick-format-unescaped | 4.0.4 | MIT |
 | railroad-diagrams | 1.0.0 | CC0-1.0 |
@@ -530,7 +538,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | secure-json-parse | 4.1.0 | BSD-3-Clause |
 | semver | 7.8.5 | ISC |
 | set-cookie-parser | 2.7.2 | MIT |
-| sharp | 0.35.4 | Apache-2.0 |
+| sharp | 0.35.5 | Apache-2.0 |
 | shebang-command | 2.0.0 | MIT |
 | shebang-regex | 3.0.0 | MIT |
 | side-channel | 1.1.1 | MIT |
@@ -548,7 +556,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | socks-proxy-agent | 8.0.5 | MIT |
 | sonic-boom | 4.2.1 | MIT |
 | source-map | 0.6.1 | BSD-3-Clause |
-| source-map-js | 1.2.1 | BSD-3-Clause |
+| source-map-js | 1.2.2 | BSD-3-Clause |
 | spdx-correct | 3.2.0 | Apache-2.0 |
 | spdx-correct/node_modules/spdx-expression-parse | 3.0.1 | MIT |
 | spdx-exceptions | 2.5.0 | CC-BY-3.0 |
@@ -587,7 +595,6 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | tinyexec | 0.3.2 | MIT |
 | tinyglobby | 0.2.17 | MIT |
 | tinyglobby/node_modules/fdir | 6.5.0 | MIT |
-| tinyglobby/node_modules/picomatch | 4.0.5 | MIT |
 | tinyrainbow | 3.1.1 | MIT |
 | tldts | 7.4.12 | MIT |
 | tldts-core | 7.4.12 | MIT |
@@ -647,10 +654,8 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | validate-npm-package-license | 3.0.4 | Apache-2.0 |
 | validate-npm-package-license/node_modules/spdx-expression-parse | 3.0.1 | MIT |
 | verror | 1.10.0 | MIT |
-| vite | 8.1.3 | MIT |
-| vite/node_modules/picomatch | 4.0.5 | MIT |
-| vitest | 4.1.11 | MIT |
-| vitest/node_modules/picomatch | 4.0.5 | MIT |
+| vite | 8.1.6 | MIT |
+| vitest | 4.1.12 | MIT |
 | vitest/node_modules/tinyexec | 1.3.0 | MIT |
 | w3c-xmlserializer | 5.0.0 | MIT |
 | webidl-conversions | 4.0.2 | BSD-2-Clause |
@@ -663,6 +668,7 @@ Generated from the exact npm lockfile. UNKNOWN rows require manual package metad
 | wrappy | 1.0.2 | ISC |
 | ws | 8.21.3 | MIT |
 | xml-name-validator | 5.0.0 | Apache-2.0 |
+| xml-naming | 0.3.0 | MIT |
 | xmlbuilder2 | 4.0.3 | MIT |
 | xmlchars | 2.2.0 | MIT |
 | xtend | 4.0.2 | MIT |

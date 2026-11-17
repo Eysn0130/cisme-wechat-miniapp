@@ -65,3 +65,8 @@ npx tsx scripts/wechat-trade-readiness.ts --configure-paths --published-version 
 - 手机号整改截止保持通知原文 **2026-11-24 14:27:09**，以后台时区和处理单为准。代码上传不等于正式发布，已提交整改不等于微信通过；支付、手机号与营销分别取得平台结果。
 
 官方依据（2026-11-17读取）：[手机号组件](https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/getPhoneNumber.html)、[隐私授权](https://developers.weixin.qq.com/miniprogram/dev/framework/user-privacy/PrivacyAuthorize.html)、[购物订单与路径](https://developers.weixin.qq.com/miniprogram/dev/platform-capabilities/business-capabilities/order_center/order_center.html)、[发货管理与事件](https://developers.weixin.qq.com/miniprogram/dev/platform-capabilities/business-capabilities/order-shipping/order-shipping)、[消息路径](https://developers.weixin.qq.com/miniprogram/dev/server/API/order_shipping/api_setmsgjumppath.html)、[结算确认](https://developers.weixin.qq.com/miniprogram/dev/server/API/order_shipping/api_istrademanagementconfirmationcompleted.html)。
+
+
+## 构建依赖安全补丁
+
+2026-11-17 的PR检查在开发依赖审计阶段命中 GHSA-fc5q-39xc-vjpf；官方最新 picomatch 4.0.7 尚无修复。保留原 npm 两项审计门禁，使用 `tools/vendor/picomatch-hardened` 的 MIT 来源、注册表完整性与逐文件哈希，保守地将复杂单分支重复 extglob 转为字面匹配。它是本项目本地补丁，不冒称官方修复或 npm 已审计私有分支；普通路径 glob 及简单字面重复仍兼容，复杂重复模式的扩展语义明确不支持。通过直接开发依赖和 `$picomatch` 覆盖统一消费者；新测试核对三个实际构建消费者的解析路径，并在可终止子进程中运行攻击样例。仅更新真实锁文件与许可证清单，不关审计、不降级构建工具，也不把补丁带入原生或生产API依赖。待官方发布修复后替换并保留回归。生产与完整依赖的高危审计及洁净安装结果以当前提交CI为准。

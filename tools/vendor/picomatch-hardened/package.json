@@ -1,0 +1,13 @@
+{
+  "name": "@cisme/picomatch-hardened",
+  "description": "CISME build-only MIT picomatch 4.0.7 fork with conservative literalization of complex repeated single-branch extglobs",
+  "version": "4.0.7",
+  "license": "MIT",
+  "main": "index.js",
+  "engines": {
+    "node": ">=12"
+  },
+  "sideEffects": false,
+  "private": true,
+  "cismePatch": "GHSA-fc5q-39xc-vjpf-single-branch-v1"
+}
