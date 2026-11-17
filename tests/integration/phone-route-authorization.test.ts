@@ -98,3 +98,13 @@ it('does not reuse a provider token whose supplied lifetime is zero',async()=>{
  await phone.bind(memberA.memberId,'synthetic-zero-token-second');
  expect(fetcher.mock.calls.filter(([input])=>String(input).includes('/stable_token'))).toHaveLength(2);
 });
+
+it('preserves a contact under an explicit active hold and allows unbind after release',async()=>{
+ const hold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
+   VALUES('LITIGATION','Synthetic contact preservation','test:privacy',now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0].id;
+ await pool.query("INSERT INTO legal_hold_binding(hold_id,object_type,object_id) VALUES($1,'member_contact',$2)",[hold,memberA.memberId]);
+ const response=await app.inject({method:'DELETE',url:'/v1/me/phone',headers:auth(memberA.sessionToken)});
+ expect(response.statusCode).toBe(409);expect(response.json().code).toBe('CONTACT_ERASURE_HOLD');expect((await pool.query('SELECT count(*)::int n FROM member_contact WHERE member_id=$1',[memberA.memberId])).rows[0].n).toBe(1);
+ await pool.query("UPDATE legal_hold SET status='released',released_at=now(),released_by='test:privacy' WHERE id=$1",[hold]);
+ expect((await app.inject({method:'DELETE',url:'/v1/me/phone',headers:auth(memberA.sessionToken)})).statusCode).toBe(200);
+});

@@ -28,6 +28,12 @@ export class PhoneBinding {
   if(!memberId)throw new DomainError('AUTH_REQUIRED','请先登录会员账号',401);
   await transaction(this.pool,async client=>{
    await this.lockActiveMember(client,memberId);
+   await client.query('LOCK TABLE legal_hold IN SHARE MODE');
+   await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
+   const held=await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id
+     WHERE h.status='active' AND h.expires_at>now() AND b.object_type IN ('member','member_contact')
+       AND b.object_id=$1::text AND EXISTS(SELECT 1 FROM member_contact WHERE member_id=$1::uuid) LIMIT 1`,[memberId]);
+   if(held.rowCount)throw new DomainError('CONTACT_ERASURE_HOLD','联系方式受有效保全约束，请通过隐私与数据权利申请处理',409);
    const removed=await client.query('DELETE FROM member_contact WHERE member_id=$1',[memberId]);
    // Stop old, still-downloadable snapshots from continuing to expose a
    // withdrawn contact. The member can request a fresh export without it.
