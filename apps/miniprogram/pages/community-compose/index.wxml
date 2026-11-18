@@ -1,4 +1,4 @@
-<view class="chrome-root" style="{{chromeStyle}}" bindtouchstart="guardMediaDragTouch">
+<view class="chrome-root {{reducedMotion ? 'composer--reduced' : ''}}" style="{{chromeStyle}}" bindtouchstart="guardMediaDragTouch">
   <view class="topbar">
     <button class="topbar__back {{busy || uploadBusy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="back" disabled="{{busy || uploadBusy || recoveryBusy}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button>
     <button wx:if="{{!listMode}}" class="composer-drafts-shortcut {{busy || uploadBusy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="showMyPosts" disabled="{{busy || uploadBusy || recoveryBusy}}">我的投稿</button>
@@ -73,8 +73,15 @@
               <view wx:else class="composer-media__placeholder">图片 {{index + 1}}</view>
               <text wx:if="{{index === 0}}" class="composer-media__cover">首图</text>
             </view>
-            <text wx:if="{{item.state === 'uploading' || item.state === 'failed' || item.error}}" class="composer-media__state" aria-live="polite">{{item.state === 'uploading' ? '上传中 ' + item.progress + '%' : item.error || '上传失败'}}</text>
-            <text wx:if="{{uploadBusy && imageEditingId === item.id}}" class="composer-media__state" aria-live="polite">正在处理编辑后的图片…</text>
+            <view wx:if="{{item.state === 'uploading'}}" class="composer-upload" aria-label="{{item.uploadPhase === 'preparing' ? '正在准备图片' : item.uploadPhase === 'assembling' ? '正在整理图片' : item.uploadPhase === 'confirming' ? '正在确认图片' : item.progressKnown ? '文件上传' + item.progress + '%' : '正在上传图片'}}">
+              <text class="composer-upload__label">{{item.uploadPhase === 'preparing' ? '正在准备' : item.uploadPhase === 'assembling' ? '正在整理' : item.uploadPhase === 'confirming' ? '正在确认' : item.progressKnown ? '上传 ' + item.progress + '%' : '正在上传'}}</text>
+              <view wx:if="{{item.progressKnown && item.uploadPhase === 'uploading'}}" class="composer-upload__track" aria-hidden="true"><view class="composer-upload__fill" style="transform:translateX({{item.progress - 100}}%)"/></view>
+            </view>
+            <text wx:if="{{item.state === 'failed' || item.error}}" class="composer-media__state" aria-live="polite">{{item.error || '上传失败'}}</text>
+            <view wx:if="{{uploadBusy && imageEditingId === item.id}}" class="composer-upload" aria-live="polite">
+              <text class="composer-upload__label">{{editingUploadPhase === 'uploading' ? (editingProgressKnown ? '上传 ' + editingUploadProgress + '%' : '正在上传') : editingUploadPhase === 'assembling' ? '正在整理' : editingUploadPhase === 'confirming' ? '正在确认' : '正在处理图片'}}</text>
+              <view wx:if="{{editingProgressKnown && editingUploadPhase === 'uploading'}}" class="composer-upload__track" aria-hidden="true"><view class="composer-upload__fill" style="transform:translateX({{editingUploadProgress - 100}}%)"/></view>
+            </view>
             <button wx:if="{{item.state === 'failed'}}" class="composer-media__retry {{uploadBusy || busy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="retryImage" disabled="{{uploadBusy || busy || recoveryBusy || writeRecovery}}">重试上传</button>
             <button wx:if="{{item.state === 'uploaded' && item.error}}" class="composer-media__retry {{busy || recoveryBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="retryPreview" disabled="{{busy || recoveryBusy}}">重试预览</button>
             <view class="composer-media__actions" catchtouchstart="holdMediaControl" catchlongpress="holdMediaControl"><button data-id="{{item.id}}" class="{{mediaDragging || uploadBusy || busy || recoveryBusy || writeRecovery ? 'control--disabled' : ''}}" catchtap="removeImage" disabled="{{mediaDragging || uploadBusy || busy || recoveryBusy || writeRecovery}}" hover-class="composer-media__remove--pressed" hover-start-time="0" hover-stay-time="80" aria-label="移除图片 {{index + 1}}"><image class="composer-media__remove-icon" src="/assets/icons/close-plum.svg" mode="aspectFit" aria-hidden="true"/></button></view>

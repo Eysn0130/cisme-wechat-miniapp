@@ -2,7 +2,7 @@ import {beforeEach,describe,expect,it,vi} from "vitest";
 
 // Keep the real API/coordinator/HTTP/page-read layers: synthetic native HTTP
 // callbacks below must actually revoke the captured token on a 401.
-vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
+vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>"",motionDuration:()=>0}));
 vi.mock("../../apps/miniprogram/services/member-avatar",()=>({defaultMemberAvatar:"local-default",clearMemberAvatarCache:vi.fn(),localMemberAvatar:async()=>"local-default",prepareFeedAuthors:async(items:unknown)=>items,prepareFeedPage:async()=>[]}));
 vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";

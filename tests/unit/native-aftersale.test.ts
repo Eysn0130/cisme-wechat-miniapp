@@ -3,7 +3,7 @@ const m=vi.hoisted(()=>({request:vi.fn(),authority:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,requireMemberAccess:()=>true,
  historicalCommerceToken:()=>token,historicalCommerceClosed:()=>false,requireHistoricalCommerceAccess:()=>Boolean(token)}));
 vi.mock('../../apps/miniprogram/services/authority',()=>({authorityProjection:m.authority}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>0}));
 let def:any,token:string;
 const record={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',orderId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',kind:'refund_only',state:'requested',version:1,amountCents:10000,reason:'合成原因',lines:[],resolved:false,refund:null};
@@ -82,4 +82,15 @@ it('does not return the entire case queue when refreshing a selected case',async
 it('clears the decision form and return contacts when leaving or changing identity',async()=>{
  const p=await page(true);p.data.actionId='send_return_instruction';p.data.returnPhone='13800000000';p.data.returnAddress='合成地址';p.data.recipientName='合成收件人';
  p.onHide();expect(p.data).toMatchObject({actionId:'',returnPhone:'',returnAddress:'',recipientName:'',selected:null});
+});
+
+it('returns unauthorized management entry to its usable workspace without an impossible retry panel',async()=>{
+ m.authority.mockResolvedValue({version:1,managementAvailable:true,capabilities:['commerce.order.read']});
+ const p=await page(true);expect(p.data).toMatchObject({items:[],selected:null,error:'',loading:false,coreReady:false});
+ expect((globalThis as any).wx.redirectTo).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/management/index'}));
+ expect(m.request).not.toHaveBeenCalled();
+});
+it('keeps a transient read failure recoverable without pretending it is a permission rejection',async()=>{
+ m.authority.mockRejectedValueOnce({status:503});const p=await page(true);
+ expect(p.data.error).toContain('重试');expect(p.data.coreReady).toBe(false);expect((globalThis as any).wx.redirectTo).not.toHaveBeenCalled();
 });

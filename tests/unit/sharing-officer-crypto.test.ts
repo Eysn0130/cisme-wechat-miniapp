@@ -8,7 +8,9 @@ it('binds encrypted settlement information to its canonical member and key versi
  expect(sealed).not.toContain(payload.account);expect(openSharingPayload(config,sealed,'sharing-payee:owner-a')).toEqual(payload);
  expect(()=>openSharingPayload(config,sealed,'sharing-payee:owner-b')).toThrow();
  expect(()=>openSharingPayload({...config,contacts:{...config.contacts,keyVersion:'sharing-key-v2'}},sealed,'sharing-payee:owner-a')).toThrow('资料加密版本');
- const broken=sealed.slice(0,-2)+'AA';expect(()=>openSharingPayload(config,broken,'sharing-payee:owner-a')).toThrow();
+ const parts=sealed.split('.'),body=Buffer.from(parts[3]!,'base64url');body[0]=body[0]!^1;
+ parts[3]=body.toString('base64url');const broken=parts.join('.');
+ expect(broken).not.toBe(sealed);expect(()=>openSharingPayload(config,broken,'sharing-payee:owner-a')).toThrow();
  expect(sealSharingPayload(config,payload,'sharing-payee:owner-a')).not.toBe(sealed);
 });
 it('rejects invalid WeChat code environment settings instead of silently selecting another release',()=>{

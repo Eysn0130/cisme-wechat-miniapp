@@ -2,7 +2,7 @@ import {afterEach,beforeEach,expect,it,vi} from "vitest";
 import {readFile} from "node:fs/promises";
 const m=vi.hoisted(()=>({request:vi.fn(),upload:vi.fn(),token:"member-a",revision:1}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,uploadAuthorized:m.upload,resumeAuthentication:vi.fn()}));
-vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
+vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>""}));
 vi.mock("../../apps/miniprogram/services/commerce-command-store",()=>({commerceContextRevision:()=>m.revision}));
 const owner="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",post="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",asset="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 let definition:any,wxMock:any,fs:any,pages:any[],storage:Map<string,unknown>;

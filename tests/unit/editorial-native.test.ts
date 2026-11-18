@@ -7,7 +7,7 @@ vi.mock("../../apps/miniprogram/services/api",async(importOriginal)=>({requireGu
 // media/article tests isolate that independent read with its valid empty DTO.
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:{path:string})=>
  /\/editorial\/articles\/[^/]+\/comments\?/.test(options.path)?Promise.resolve({comments:[],authors:{},commentCount:0,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:0,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-28T00:00:00Z"}):mocks.request(options),cancelPageReads:vi.fn()}));
-vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"",motionDuration:()=>0}));
+vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>"",motionDuration:()=>0}));
 vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:mocks.share,registerIncomingShare:mocks.incoming}));
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",secondId="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const mediaPath=`/v1/editorial/media/${articleId}/${"d".repeat(64)}`;

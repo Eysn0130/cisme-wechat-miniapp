@@ -172,13 +172,13 @@ describe("native tab return presentation while real read paths revalidate", () =
     } finally { pending.resolve({ items: [story], nextCursor: null }); await reading; }
   });
 
-  it("clears previously visible Featured cards immediately when its authoritative read fails, even while capabilities are pending", async () => {
+  it("clears retained Featured cards on an authoritative permission rejection, even while capabilities are pending", async () => {
     const { page, rendered } = await mount("community"); await page.load();
     const capabilities = later(), editorial = later();
     held.set("/v1/capabilities", capabilities); held.set("/v1/community/featured?limit=20", editorial);
     const reading = page.load();
     try {
-      editorial.reject({status:503}); await flush();
+      editorial.reject({status:403}); await flush();
       expect(page.data).toMatchObject({loading:false,feedReady:false,displayFeedCount:0,error:expect.stringContaining("无法加载")});
       expect(rendered.querySelector(".feed-card")).toBeFalsy();
       expect(rendered.querySelector(".state-error__action").dom.textContent).toContain("重新加载");

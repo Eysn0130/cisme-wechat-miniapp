@@ -407,15 +407,27 @@ function uploadProblem(response:{statusCode:number;data:unknown},url:string){
   return problem;
 }
 
+export interface UploadProgressState {
+  phase:"uploading"|"assembling"|"uploaded";
+  percent:number|null;
+  sentBytes:number|null;
+  totalBytes:number|null;
+}
 export async function uploadAuthorized(filePath: string, authorization: { url: string; method?: "POST" | "PUT"; fields: Record<string, string>; headers?: Record<string,string>; mediaId?: string }, options: {
   onProgress?: (percent: number) => void;
+  onState?: (state:UploadProgressState) => void;
   registerAbort?: (abort: () => void) => void;
 } = {}): Promise<void> {
   let cancelled = false;
   let abortTransport = () => {};
   options.registerAbort?.(() => { cancelled = true; abortTransport(); });
   const assertActive = () => { if (cancelled) throw { code: "UPLOAD_CANCELLED", errMsg: "upload:fail abort" }; };
+  const state=(phase:UploadProgressState["phase"],percent:number|null,sentBytes:number|null=null,totalBytes:number|null=null)=>{
+    if(!cancelled)options.onState?.({phase,percent,sentBytes,totalBytes});
+  };
+  assertActive();
   options.onProgress?.(0);
+  state("uploading",null);
   if (authorization.method === "PUT") {
     const data = await new Promise<ArrayBuffer>((resolve, reject) => wx.getFileSystemManager().readFile({ filePath, success: result => resolve(result.data as ArrayBuffer), fail: reject }));
     if (!data.byteLength || data.byteLength > 10 * 1024 * 1024) throw new Error("文件须在 10 MiB 以内");
@@ -429,6 +441,7 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
     });
     assertActive();
     options.onProgress?.(100);
+    state("uploaded",100,data.byteLength,data.byteLength);
     return;
   }
   if (app.globalData.cloudFunction && authorization.fields.token) {
@@ -439,30 +452,51 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
     if (!info.size || info.size > 10*1024*1024) throw new Error("文件须在 10 MiB 以内");
     const chunkSize = 512*1024;
     const chunkCount = Math.ceil(info.size/chunkSize);
+    let confirmedBytes=0;
     for (let index=0; index<chunkCount; index++) {
       assertActive();
       const base64 = await new Promise<string>((resolve,reject) => fs.readFile({ filePath, encoding:"base64", position:index*chunkSize, length:Math.min(chunkSize,info.size-index*chunkSize), success: result => resolve(String(result.data)), fail:reject }));
       await request({ path:`/v1/uploads/${mediaId}/chunks`, method:"POST", authMode:"public", data:{ token:authorization.fields.token, index, totalBytes:info.size, base64 } });
-      options.onProgress?.(Math.min(90, Math.round((index + 1) / chunkCount * 90)));
+      assertActive();
+      confirmedBytes+=Math.min(chunkSize,info.size-index*chunkSize);
+      const percent=Math.floor(confirmedBytes/info.size*100);
+      options.onProgress?.(percent);
+      state("uploading",percent,confirmedBytes,info.size);
     }
     assertActive();
+    state("assembling",null,confirmedBytes,info.size);
     await request({ path:`/v1/uploads/${mediaId}/assemble`, method:"POST", authMode:"public", data:{token:authorization.fields.token} });
     assertActive();
     options.onProgress?.(100);
+    state("uploaded",100,info.size,info.size);
     return;
   }
-  assertActive();
   return new Promise((resolve, reject) => {
-    const task = wx.uploadFile({
+    let task:WechatMiniprogram.UploadTask|undefined,settled=false;
+    const progress=(event:WechatMiniprogram.UploadTaskOnProgressUpdateListenerResult)=>{
+      if(settled||cancelled)return;
+      const measured=Number.isFinite(event.totalBytesExpectedToSend)&&event.totalBytesExpectedToSend>0&&Number.isFinite(event.totalBytesSent)&&event.totalBytesSent>=0;
+      const percent=measured?Math.floor(Math.min(event.totalBytesSent/event.totalBytesExpectedToSend,1)*100):
+        Number.isFinite(event.progress)?Math.floor(Math.max(0,Math.min(100,event.progress))):null;
+      if(percent!==null)options.onProgress?.(Math.min(99,percent));
+      state("uploading",percent,measured?event.totalBytesSent:null,measured?event.totalBytesExpectedToSend:null);
+    };
+    const finish=(error?:unknown)=>{
+      if(settled)return;settled=true;task?.offProgressUpdate?.(progress);
+      if(error){reject(error);return;}
+      if(cancelled){reject({code:"UPLOAD_CANCELLED",errMsg:"upload:fail abort"});return;}
+      options.onProgress?.(100);state("uploaded",100);resolve();
+    };
+    task = wx.uploadFile({
       url: authorization.url,
       filePath,
       name: "file",
       formData: authorization.fields,
-      success: (response) => response.statusCode >= 200 && response.statusCode < 300 ? (options.onProgress?.(100), resolve()) : reject(uploadProblem(response,authorization.url)),
-      fail: reject
+      success: (response) => finish(response.statusCode >= 200 && response.statusCode < 300 ? undefined : uploadProblem(response,authorization.url)),
+      fail: finish
     });
-    abortTransport = () => task.abort();
-    task.onProgressUpdate?.((event) => options.onProgress?.(Math.max(0, Math.min(99, event.progress))));
+    abortTransport = () => {task?.offProgressUpdate?.(progress);task?.abort();};
+    if(!settled)task.onProgressUpdate?.(progress);
   });
 }
 

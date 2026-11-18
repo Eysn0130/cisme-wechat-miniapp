@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "7f56d3f01f1b9852f176aabb56ae4f8d699d29b5c0ca9ea3fd741127c548f638",
+  "packageSourceSha256": "dc19ef10dd56da855cebaf710c2f0094d30b6d259c661a436b4b3bcd5f98a44c",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-17 current community-only guest, confirmed membership and management simplification source. Scoped DevTools checks are separate; full route/font/state and current physical-device matrix remains pending.",
+  "note": "2026-11-18 native loading state and aftersale navigation refinement. Scoped DevTools evidence will be bound separately; no full route/font/state or physical-device matrix pass inferred.",
   "previousSourceRecord": {
-    "packageSourceSha256": "e4fcf5d3350c18ad3324d4f9406c40f508cae961649bc34c26151418a24c0c2a",
-    "scope": "PR 115 compliance package 0.1.56 before the owner community-only guest/confirmed-membership correction. Historical screenshots and physical checks are not inherited."
+    "packageSourceSha256": "7f56d3f01f1b9852f176aabb56ae4f8d699d29b5c0ca9ea3fd741127c548f638",
+    "scope": "0.1.57 uploaded development candidate before loading-state tokens, upload stages and inaccessible aftersale routing; historical screenshots and phone evidence remain historical."
   },
   "pendingSourceRebind": false
 }

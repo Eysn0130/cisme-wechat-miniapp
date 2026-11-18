@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-11-18",
+  "platform": "native WeChat WXML/WXSS/TypeScript",
+  "basis": [
+    "PRD NATIVE-LOAD-01..06",
+    "loading-state-motion Skill and referenced chat 01a1dac6-6e75-7df0-aa39-9847a18a5960",
+    "mobile-ui-ux-designer interaction contract; existing CISME layout/tokens"
+  ],
+  "tokens": {
+    "source": "apps/miniprogram/styles/read-loading.wxss",
+    "bone": "--cisme-load-bone: #eee7f2",
+    "sweep": "--cisme-load-sweep: 1500ms linear",
+    "progress": "--cisme-load-progress: 600ms; --cisme-load-ease: cubic-bezier(.33,1,.68,1)",
+    "imageArrival": "--cisme-load-arrival: 200ms opacity",
+    "localSpinner": "--cisme-load-spin: 800ms"
+  },
+  "surfaces": [
+    {
+      "modules": [
+        "community"
+      ],
+      "cold": "two-column card structure skeleton, exited immediately by valid data/empty/error",
+      "refresh": "retain same-owner cards and images; stable hidden refresh indicator; 401/403 clears projection",
+      "images": "current resource/version key; load then one opacity arrival; image-only retry; ignore late hidden/old-account callbacks"
+    },
+    {
+      "modules": [
+        "profile"
+      ],
+      "cold": "existing member/card/list geometry, shared bone/sweep",
+      "refresh": "retain same-owner core snapshot; independent avatar, support, membership projections remain truthful"
+    },
+    {
+      "modules": [
+        "home",
+        "management-members",
+        "member-inspector"
+      ],
+      "cold": "conservative static placeholders with common bone color",
+      "refresh": "keep existing guarded progressive read strategy; no invented zero balances, member names or counts"
+    },
+    {
+      "modules": [
+        "management-rewards",
+        "aftersale"
+      ],
+      "cold": "existing context and list geometry, shared bone/sweep",
+      "refresh": "keep authorized context; filter changes own loading; no perpetual count skeleton after failure",
+      "access": "aftersale 401/403 clears private state and routes to existing usable workspace; transient failure keeps genuine retry, no permission grant"
+    },
+    {
+      "modules": [
+        "shop",
+        "product",
+        "records",
+        "points",
+        "orders",
+        "rewards"
+      ],
+      "cold": "existing local read feedback; short operations keep local spinner",
+      "refresh": "preserve existing context/geometry while guarded reads revalidate; visual snapshots never authorize price, inventory or financial writes"
+    },
+    {
+      "modules": [
+        "community-compose",
+        "support"
+      ],
+      "upload": "per-file measured bytes/SDK progress only; PUT remains indeterminate without byte events; chunk progress uses actual acknowledged bytes",
+      "completion": "upload/assembly -> server confirmation -> ready; only real server success unlocks sending/publishing",
+      "interruptions": "existing page/account/environment/draft/attempt fences and command identifiers preserved; cleanup listener on finish/cancel"
+    },
+    {
+      "modules": [
+        "management-fulfillment",
+        "management-rewards batch import/export"
+      ],
+      "progress": "existing confirmed rows/counts only; no time-generated percent; retry original batch and immutable results",
+      "financialFlows": "payment/refund/receipt status follows server receipts and reconciliation; no simulated completion animation"
+    }
+  ],
+  "motionPolicy": {
+    "noForcedMinimumDelay": true,
+    "noNewAnimationLibrary": true,
+    "noUniformFullPageSpinnerReplacement": true,
+    "noAggregatePercentWithoutKnownByteTotal": true,
+    "noUntestedBlurClaim": true,
+    "benchmarkFallbackIsNotSystemPreferenceDetection": true,
+    "newSkeletonsStopOnHide": true,
+    "dataWritesNotCompletedByAnimation": true
+  },
+  "verification": {
+    "typecheck": true,
+    "unitPassed": 3640,
+    "existingSkipped": 1,
+    "focusedStateAndNodeTestsPassed": 77,
+    "nativePreview": {
+      "success": true,
+      "packageSourceSha256": "dc19ef10dd56da855cebaf710c2f0094d30b6d259c661a436b4b3bcd5f98a44c",
+      "tool": "official WeChat DevTools create_preview_qrcode",
+      "version": "0.1.58"
+    },
+    "physicalDeviceMotion": "not yet verified",
+    "fullRouteFontStateMatrix": "pending; historical evidence not inherited",
+    "priorScopedMotionSource": "45885c85fafdc30c030c64e959ce6d6c6373cd7ee5229527650fe2582797f0ec",
+    "nativeScoped": {
+      "platform": "official WeChat DevTools simulator",
+      "width": 375,
+      "sweepIntermediateValues": true,
+      "realImageIntermediateOpacity": true,
+      "controlledVisualProgress": true,
+      "unauthorizedAftersaleReturn": "pages/management/index",
+      "businessDataCreated": false,
+      "physicalDeviceOrFpsVerified": false
+    }
+  },
+  "packageSourceSha256": "dc19ef10dd56da855cebaf710c2f0094d30b6d259c661a436b4b3bcd5f98a44c",
+  "copyPolicy": "Remove redundant community curation badge; points entry is 积分攻略. Keep real recovery, eligibility, money, expiry and action consequences."
+}

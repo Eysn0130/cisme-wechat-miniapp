@@ -1,7 +1,7 @@
 import {beforeEach,describe,expect,it,vi} from "vitest";
 const m=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),token:"member-a",revision:1}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,resumeAuthentication:m.resume}));
-vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
+vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>""}));
 vi.mock("../../apps/miniprogram/services/commerce-command-store",()=>({commerceContextRevision:()=>m.revision}));
 vi.mock("../../apps/miniprogram/services/performance-metrics",()=>({measurementClock:()=>0,recordClientMetric:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/editorial",()=>({editorialStoriesForRuntime:()=>[],editorialMediaSrc:()=>"",publishedCommunityFeatured:vi.fn(async()=>({items:[],nextCursor:null})),expiredEditorialRead:()=>false}));

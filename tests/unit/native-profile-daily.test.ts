@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({ token: "actor-a", request: vi.fn(), avatar: vi.fn(), resume:vi.fn() }));
 vi.mock("../../apps/miniprogram/services/api", () => ({ resumeAuthentication:m.resume, request: m.request, requireMemberAccess: () => Boolean(m.token), retainMemberSnapshot: () => true, clearAuthenticationRedirectSuppression: vi.fn() }));
 vi.mock("../../apps/miniprogram/services/member-avatar", () => ({ defaultMemberAvatar: "neutral-avatar", localMemberAvatar: m.avatar }));
-vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "" }));
+vi.mock("../../apps/miniprogram/services/layout", () => ({shouldReduceMotion:()=>false, currentChromeStyle: () => "" }));
 vi.mock("../../apps/miniprogram/services/authority", () => ({ authorityProjection: async () => ({ managementAvailable: false, capabilities: [] }), hasNativeManagementEntry: () => false }));
 const later = () => { let resolve!: (x: any) => void, reject!: (x: any) => void; const promise = new Promise<any>((a,b) => { resolve=a; reject=b; }); return {promise,resolve,reject}; };
 const flush = async () => { for(let i=0;i<45;i++) await Promise.resolve(); };

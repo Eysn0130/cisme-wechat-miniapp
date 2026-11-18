@@ -1,12 +1,12 @@
 import{sectionTabValue}from'../../services/section-tabs';
-import { projectFeedCards, feedColumnPatch } from "../../services/feed-projection";
+import { projectFeedCards, feedColumnPatch, type FeedCard } from "../../services/feed-projection";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors, prepareFeedPage } from "../../services/member-avatar";
 import { request, resumeAuthentication } from "../../services/api";
 import { editorialStoriesForRuntime, editorialMediaSrc, publishedCommunityFeatured, expiredEditorialRead, type PublishedEditorialCard } from "../../services/editorial";
 import { editorialPublisherAvatar } from "../../services/editorial-publisher";
-import { currentChromeStyle } from "../../services/layout";
+import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { memberIdentity } from "../../services/member-identity";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { readFollowingFeed } from "../../services/following-feed";
@@ -33,7 +33,9 @@ async function validatePublisherFiles(files:Array<{tempFilePath:string;size:numb
   return selected;
 }
 
-const feedModels = new WeakMap<object, { feed: any[]; following: any[]; editorial: PublishedEditorialCard[]; followingReady: boolean; followingOwner: string }>();
+type FeedImageState = {key:string;resource:string;phase:"loading"|"arriving"|"ready"|"error"};
+let feedImageSequence=0;
+const feedModels = new WeakMap<object, { feed: any[]; following: any[]; editorial: PublishedEditorialCard[]; followingReady: boolean; followingOwner: string; images:Map<string,FeedImageState> }>();
 const communityReadOwner = () => {
   const context = getApp<IAppOption>().globalData;
   return JSON.stringify([context.sessionToken, commerceContextRevision(), context.apiBaseUrl, context.cloudFunction?.env, context.cloudFunction?.name]);
@@ -41,7 +43,7 @@ const communityReadOwner = () => {
 const initialEditorialStories = editorialStoriesForRuntime();
 function feedModel(page: object) {
   let model = feedModels.get(page);
-  if (!model) { model = { feed: [], following: [], editorial: [], followingReady: false, followingOwner: "" }; feedModels.set(page, model); }
+  if (!model) { model = { feed: [], following: [], editorial: [], followingReady: false, followingOwner: "", images:new Map() }; feedModels.set(page, model); }
   return model;
 }
 const chromeHideTravel = 24;
@@ -60,11 +62,19 @@ Page({
   publisherAlive:true,publisherEpoch:0,publisherOwner:null as PublisherOwner|null,
   publisherNative:"" as ""|"privacy"|"picker"|"settings",publisherReturn:null as (()=>void)|null,
   publisherIntentId:"",publisherTransferActive:false,publisherNavigationEpoch:0,
-  data: { feedReady:false,publishEntryOpen:false,publishEntryBusy:false,publishEntryError:"",publishEntryRecovery:"" as ""|"privacy"|"settings",publishEntrySource:"" as ""|"album"|"camera", reportCategoryLabels:{spam:'垃圾信息',harassment:'骚扰',unsafe_advice:'不安全建议',illegal:'违法内容',intellectual_property:'知识产权',privacy:'隐私',other:'其他'},mode: "featured", ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], profileReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, feedAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
-  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
+  data: { reducedMotion:shouldReduceMotion(),motionActive:true,feedReady:false,publishEntryOpen:false,publishEntryBusy:false,publishEntryError:"",publishEntryRecovery:"" as ""|"privacy"|"settings",publishEntrySource:"" as ""|"album"|"camera", reportCategoryLabels:{spam:'垃圾信息',harassment:'骚扰',unsafe_advice:'不安全建议',illegal:'违法内容',intellectual_property:'知识产权',privacy:'隐私',other:'其他'},mode: "featured", ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], profileReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, feedAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion() }); },
   openPointsGuide(){if(this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:'/pages/points/index?guide=1',fail:()=>{this.setData({navigating:false});wx.showToast({title:'积分攻略暂时无法打开',icon:'none'});}});},
   onShow() {
     this.readVisible=true;
+    this.setData({motionActive:true,reducedMotion:shouldReduceMotion()});
+    if(this.readOwner===communityReadOwner()){
+      for(const state of feedModel(this).images.values()){
+        if(state.phase==="loading")state.key=`feed-image-${++feedImageSequence}`;
+        if(state.phase==="arriving")state.phase="ready";
+      }
+      this.renderFeed();
+    }
     if(this.data.mode==="review")this.setData({mode:"featured"});
     this.publisherAlive=true;
     const nativePublisherReturn=Boolean(this.publisherNative&&this.publisherOwner&&this.publisherCurrent(this.publisherOwner,false)&&this.data.publishEntryOpen);
@@ -86,6 +96,7 @@ Page({
   },
   onHide() {
     this.readVisible=false;
+    this.setData({motionActive:false});
     const nativeReturn=Boolean(this.publisherNative&&this.publisherOwner&&this.publisherCurrent(this.publisherOwner,false));
     if(!nativeReturn)this.clearPublisherWork(this.publisherTransferActive);
     cancelPageReads(this);
@@ -322,6 +333,7 @@ Page({
       this.followingRequested=mode==="following";resumeAuthentication("/pages/community/index");return;
     }
     const previousMode=this.data.mode,wasLoading=this.data.loading;
+    for(const state of feedModel(this).images.values())if(state.phase==="arriving")state.phase="ready";
     cancelPageReads(this);
     this.data.feedAttempt += 1; // A → B → A must not revive an older pagination result.
     this.setData({ mode, loading:false,feedReady:false,formalLoadingMore:false, moreError:"",error:"" });
@@ -342,7 +354,17 @@ Page({
       avatar:item.avatar||defaultMemberAvatar,engagementLabel:`${item.likeCount} 赞`}):({ ...item, kind:"editorial", author_id:item.authorId,
       image:editorialMediaSrc(item.coverUrl),avatar:editorialPublisherAvatar(item.author,defaultMemberAvatar,item.authorId),engagementLabel:`${item.likeCount} 赞` }));
     const items = this.data.mode === "featured" ? featured : reviewed;
-    const patch = { ...feedColumnPatch(this.data.feedColumns, projectFeedCards(items)), ...state };
+    const columns=projectFeedCards(items);
+    for(const column of columns)for(const card of column){
+      if(!card.image)continue;
+      const source=items.find(item=>item.id===card.id);
+      const resource=JSON.stringify([card.kind,card.id,card.image,source?.publishedRevision??source?.revision??source?.version??null]);
+      const identity=JSON.stringify([card.kind,card.id]);
+      let image=model.images.get(identity);
+      if(!image||image.resource!==resource){image={key:`feed-image-${++feedImageSequence}`,resource,phase:"loading"};model.images.set(identity,image);}
+      card.imageKey=image.key;card.imagePhase=image.phase;
+    }
+    const patch = { ...feedColumnPatch(this.data.feedColumns, columns), ...state };
     if (items.length !== this.data.displayFeedCount) patch.displayFeedCount = items.length;
     if (!this.data.loading && !this.data.error && !this.data.feedReady) patch.feedReady = true;
     recordClientMetric({ action: "feed", stage: "data_processing", durationMs: measurementClock() - processingStarted });
@@ -351,11 +373,29 @@ Page({
       this.setData(patch, () => { if (attempt === this.data.feedAttempt) recordClientMetric({ action: "feed", stage: "set_data", durationMs: measurementClock() - bridgeStarted }); });
     }
   },
+  updateFeedImage(event:WechatMiniprogram.BaseEvent,action:"load"|"error"|"settled"|"retry"){
+    if(!this.readVisible||this.readOwner!==communityReadOwner()||this.data.mode==="review")return;
+    const key=String(event.currentTarget.dataset.imageKey||"");
+    const card=this.data.feedColumns.flat().find((item:FeedCard)=>item.imageKey===key);
+    if(!card)return;
+    const state=Array.from(feedModel(this).images.values()).find(item=>item.key===key);
+    if(!state||state.key!==key)return;
+    if(action==="load"&&state.phase==="loading")state.phase=this.data.reducedMotion?"ready":"arriving";
+    else if(action==="error"&&state.phase!=="error")state.phase="error";
+    else if(action==="settled"&&state.phase==="arriving")state.phase="ready";
+    else if(action==="retry"&&state.phase==="error"){state.key=`feed-image-${++feedImageSequence}`;state.phase="loading";}
+    else return;
+    this.renderFeed();
+  },
+  feedImageLoaded(event:WechatMiniprogram.BaseEvent){this.updateFeedImage(event,"load");},
+  feedImageFailed(event:WechatMiniprogram.BaseEvent){this.updateFeedImage(event,"error");},
+  feedImageSettled(event:WechatMiniprogram.BaseEvent){this.updateFeedImage(event,"settled");},
+  retryFeedImage(event:WechatMiniprogram.BaseEvent){this.updateFeedImage(event,"retry");},
   async loadFollowing() {
     const attempt = ++this.data.feedAttempt;
     const token = getApp<IAppOption>().globalData.sessionToken;
     const owner=communityReadOwner(),model=feedModel(this);
-    if(this.readOwner!==owner){model.feed=[];model.editorial=[];}
+    if(this.readOwner!==owner){model.feed=[];model.editorial=[];model.images.clear();}
     if(model.followingOwner!==owner){model.following=[];model.followingReady=false;}
     this.readOwner=owner;model.followingOwner=owner;
     if(!token){model.following=[];model.followingReady=false;this.setData({mode:"featured",loading:false});this.renderFeed();return;}
@@ -514,7 +554,7 @@ Page({
     if(!this.readVisible||attempt!==this.data.feedAttempt||!expiredEditorialRead(error,token))return false;
     this.clearPublisherWork(false);
     this.data.feedAttempt+=1;
-    const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];model.followingReady=false;model.followingOwner="";
+    const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];model.followingReady=false;model.followingOwner="";model.images.clear();
     this.setData({signedIn:false,mode:"featured",loading:false,ugcFeedEnabled:false,ugcDraftsEnabled:false,socialPreviewEnabled:false,canReview:false,follows:[],
       profileReviewQueue:[],formalReportQueue:[],reportNextCursor:null,reportTotal:0,
       formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reportLoadingMore:false,appealLoadingMore:false,reviewActorId:"",reviewNotice:"",reviewBusy:false,
@@ -532,9 +572,11 @@ Page({
     const sameOwner = this.readOwner === owner;
     this.readOwner = owner;
     const model = feedModel(this);
-    if (!sameOwner) { model.feed = []; model.editorial = []; model.following=[];model.followingReady=false;model.followingOwner=""; }
+    if (!sameOwner) { model.feed = []; model.editorial = []; model.following=[];model.followingReady=false;model.followingOwner="";model.images.clear(); }
     const attempt = this.data.feedAttempt + 1;
     const privateMode=this.data.mode==="review"||(this.data.mode==="following"&&!model.followingReady);
+    const retainedFeed=sameOwner&&this.data.feedReady&&!privateMode;
+    const retainOnFailure=(error:unknown)=>retainedFeed&&![401,403].includes((error as {status?:number})?.status??0);
     const resetColumns=(!sameOwner||privateMode)&&this.data.feedColumns.some(column=>column.length>0);
     const current = () => this.readVisible && this.data.feedAttempt === attempt && owner === communityReadOwner();
     this.setData({ feedAttempt: attempt, loading: true, ugcDraftsEnabled:false, editorialNextCursor:null, formalNextCursor:null, followingNextCursor:null,
@@ -556,8 +598,8 @@ Page({
     }).catch(error=>{
       const outcome=failedRead(error);
       if(current()&&this.data.mode==="featured"){
-        model.editorial=[];
-        this.renderFeed({loading:false,feedReady:false,error:"精选内容暂时无法加载，请重试。"});
+        if(!retainOnFailure(error))model.editorial=[];
+        this.renderFeed({loading:false,feedReady:retainOnFailure(error),error:"精选内容暂时无法加载，请重试。"});
       }
       return outcome;
     });
@@ -615,8 +657,8 @@ Page({
       if (this.data.mode === "review") await this.loadReview();
     } catch (error) {
       if (current()) {
-        feedModel(this).feed = [];model.editorial=[];
-        this.renderFeed({feedReady:false,error:this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。"});
+        if(!retainOnFailure(error)){model.feed=[];model.editorial=[];model.images.clear();}
+        this.renderFeed({feedReady:retainOnFailure(error),error:this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。"});
       }
     } finally {
       if (current()&&this.data.loading) this.setData({ loading: false });

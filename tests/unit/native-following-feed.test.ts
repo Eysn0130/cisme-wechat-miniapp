@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 const m=vi.hoisted(()=>({token:'actor-a',revision:0,origin:'https://synthetic.invalid',request:vi.fn(),login:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,resumeAuthentication:m.login}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
 vi.mock('../../apps/miniprogram/services/member-identity',()=>({memberIdentity:()=>null}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'/avatar',localMemberAvatar:async()=>'/avatar',prepareFeedPage:async(p:any)=>p.items,prepareFeedAuthors:async(p:any)=>p}));
@@ -49,7 +49,7 @@ it('uses the authenticated timeline rather than appending un-followed curated co
  following={items:[card('a','editorial'),card('b','formal'),card('c','ugc')],nextCursor:null};await select('following');
  expect(ids().sort()).toEqual([uuid('a'),uuid('b'),uuid('c')]);expect(ids()).not.toContain(uuid('e'));
  expect(Object.fromEntries(page.data.feedColumns.flat().map((x:any)=>[x.id,x.kind]))).toEqual({[uuid('a')]:'editorial',[uuid('b')]:'formal',[uuid('c')]:'ugc'});
- expect(rendered.dom.textContent).toContain('关注动态');expect(rendered.dom.textContent).not.toContain('邀请活动');
+ expect(page.data.mode).toBe('following');expect(rendered.dom.textContent).toContain('关注');expect(rendered.dom.textContent).not.toContain('邀请活动');
 });
 it.each([['editorial','/pages/post/index?id=','&source=editorial'],['formal','/pages/post/index?id=','&source=formal'],['ugc','/pages/post/index?id=','']])('opens a %s card with its original source and detail route',async(kind,prefix,suffix)=>{
  following={items:[card('a',kind)],nextCursor:null};await select('following');page.openPost({currentTarget:{dataset:{id:uuid('a')}}});

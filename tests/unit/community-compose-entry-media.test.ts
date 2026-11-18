@@ -1,7 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 const m=vi.hoisted(()=>({request:vi.fn(),upload:vi.fn(),edit:vi.fn(),capabilities:vi.fn(),token:'member-a',revision:1}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,uploadAuthorized:m.upload,resumeAuthentication:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
 vi.mock('../../apps/miniprogram/services/ugc-image-edit',()=>({editUgcLocalImage:m.edit,ugcImageEditCapabilities:m.capabilities}));
 const owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',post='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';

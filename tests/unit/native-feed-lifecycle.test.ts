@@ -2,13 +2,34 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks=vi.hoisted(()=>({request:vi.fn(),token:"session-a"}));
 vi.mock("../../apps/miniprogram/services/api",()=>({request:mocks.request,resumeAuthentication:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:unknown)=>mocks.request(options),cancelPageReads:vi.fn()}));
-vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
+vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>""}));
 let page:any;
 const delayed=()=>{let resolve!:(value:any)=>void,reject!:(value:any)=>void;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 const entry=(id:string)=>({id,title:id,authorId:"synthetic",likeCount:0});
 function patch(target:any,key:string,value:any){const parts=key.replace(/\[(\d+)\]/g,".$1").split(".");let current=target;for(const [i,name] of parts.entries()){if(i===parts.length-1)current[name]=structuredClone(value);else current=current[name!]??=(/^\d+$/.test(parts[i+1]!)?[]:{});}}
 beforeEach(async()=>{vi.resetModules();mocks.request.mockReset();mocks.token="session-a";(globalThis as any).getApp=()=>({globalData:{sessionToken:mocks.token,apiBaseUrl:"https://synthetic.invalid"}});(globalThis as any).wx={};(globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(updates:any,callback?:()=>void){for(const [key,value]of Object.entries(updates))patch(this.data,key,value);callback?.();}};};await import("../../apps/miniprogram/pages/community/index");Object.assign(page.data,{loading:false,mode:"recommend",ugcFeedEnabled:true,formalNextCursor:"start",feedColumns:[[],[]],displayFeedCount:0});});
 describe("native community pagination response ownership",()=>{
+  it("reveals only the current cover after load and remounts only its image on retry",async()=>{
+    mocks.request.mockImplementation(async({path}:any)=>path==="/v1/capabilities"?{}:path==="/v1/ugc/status"?{publicEnabled:false,draftsEnabled:false}:
+      path.startsWith("/v1/community/featured")?{items:[{...entry("a"),coverUrl:`/v1/editorial/media/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/${"a".repeat(64)}`}],nextCursor:null}:{items:[],nextCursor:null});
+    page.setData({mode:"featured"});await page.load();
+    const first=structuredClone(page.data.feedColumns[0][0]),event=(key:string)=>({currentTarget:{dataset:{imageKey:key}}});
+    expect(first.imagePhase).toBe("loading");page.feedImageLoaded(event(first.imageKey));expect(page.data.feedColumns[0][0].imagePhase).toBe("arriving");
+    page.feedImageSettled(event(first.imageKey));expect(page.data.feedColumns[0][0].imagePhase).toBe("ready");
+    await page.load();expect(page.data.feedColumns[0][0]).toMatchObject({imageKey:first.imageKey,imagePhase:"ready"});
+    page.feedImageFailed(event(first.imageKey));page.retryFeedImage(event(first.imageKey));
+    const retry=page.data.feedColumns[0][0];expect(retry.imageKey).not.toBe(first.imageKey);expect(retry.imagePhase).toBe("loading");
+    page.feedImageLoaded(event(first.imageKey));expect(page.data.feedColumns[0][0].imagePhase).toBe("loading");
+    mocks.token="different-actor";page.feedImageLoaded(event(retry.imageKey));expect(page.data.feedColumns[0][0].imagePhase).toBe("loading");
+  });
+  it("clears the retained public projection on an explicit permission rejection",async()=>{
+    mocks.request.mockImplementation(async({path}:any)=>path==="/v1/capabilities"?{}:path==="/v1/ugc/status"?{publicEnabled:false,draftsEnabled:false}:
+      path.startsWith("/v1/community/featured")?{items:[entry("a")],nextCursor:null}:{items:[],nextCursor:null});
+    page.setData({mode:"featured"});await page.load();expect(page.data.displayFeedCount).toBe(1);
+    mocks.request.mockImplementation(async({path}:any)=>{if(path.startsWith("/v1/community/featured"))throw {status:403};return {items:[],nextCursor:null};});
+    await page.load();expect(page.data.displayFeedCount).toBe(0);expect(page.data.feedReady).toBe(false);expect(page.data.error).toContain("无法加载");
+  });
+
   it("does not revive A's response after A→B→A or clear the new request's busy state",async()=>{
     const old=delayed();mocks.request.mockReturnValueOnce(old.promise);const first=page.onReachBottom();
     await page.selectMode({currentTarget:{dataset:{mode:"featured"}}});await page.selectMode({currentTarget:{dataset:{mode:"recommend"}}});

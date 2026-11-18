@@ -1,7 +1,7 @@
 import {beforeEach,it,expect,vi} from 'vitest';
 const request=vi.hoisted(()=>vi.fn());
 vi.mock('../../apps/miniprogram/services/api',()=>({request,requireMemberAccess:vi.fn(()=>true)}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>''}));
 let definition:any,wx:any;
 beforeEach(async()=>{vi.resetModules();request.mockReset();wx={switchTab:vi.fn()};(globalThis as any).wx=wx;
  (globalThis as any).getApp=()=>({globalData:{sessionToken:'synthetic-member'}});
