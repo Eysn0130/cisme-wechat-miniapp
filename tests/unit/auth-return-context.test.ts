@@ -38,6 +38,14 @@ describe('Account return destinations belong to one live authentication flow',()
   }
   expect(wxMock.login).not.toHaveBeenCalled();expect(paths()).not.toContain('/v1/identity/wechat');
  });
+ it('returns a guest to the same public page after cancelling a member action',async()=>{
+  const {query}=await start('/pages/profile/index');
+  pages=[{route:'pages/community/index'}, {route:'pages/account/index',options:query}];
+  await mount(query);await page.back();
+  expect(wxMock.navigateBack).toHaveBeenCalledWith(expect.objectContaining({delta:1}));
+  expect(wxMock.switchTab).not.toHaveBeenCalled();
+  expect(wxMock.login).not.toHaveBeenCalled();
+ });
  it('backs out of a blocked guest target to community without suppressing the next explicit login',async()=>{
   storage.set('cisme.guestBrowsing',true);const {api,query}=await start('/pages/profile/index');await mount(query);await page.back();
   expect(wxMock.switchTab).toHaveBeenLastCalledWith(expect.objectContaining({url:'/pages/community/index'}));expect(wxMock.navigateBack).not.toHaveBeenCalled();
@@ -84,7 +92,7 @@ describe('Account return destinations belong to one live authentication flow',()
 
 
 describe('cold business-session recovery and explicit logout',()=>{
- it('keeps cold guests on welcome login until they explicitly browse',async()=>{
+ it('leaves a directly opened Account screen when guests choose to browse',async()=>{
   storage.set('cisme.guestBrowsing',true);await mount({});expect(wxMock.switchTab).not.toHaveBeenCalled();
   expect(paths()).toEqual([]);await page.browseCommunity();
   expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/community/index'}));
@@ -132,7 +140,7 @@ describe('cold business-session recovery and explicit logout',()=>{
   await import('../../apps/miniprogram/pages/settings/index');
   const settings={...definition,data:structuredClone(definition.data),setData(values:any,done?:()=>void){Object.assign(this.data,values);done?.();}};
   await settings.logout();expect(runtime.globalData.sessionToken).toBe('');expect(storage.has('cisme.guestBrowsing')).toBe(false);
-  expect(wxMock.reLaunch).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/account/index?intent=login'}));
+  expect(wxMock.reLaunch).toHaveBeenCalledWith(expect.objectContaining({url:'/pages/community/index'}));
  });
  it('does not let an earlier logout confirmation clear a different restored session',async()=>{
   runtime.globalData.sessionToken='synthetic-first-session';await import('../../apps/miniprogram/pages/settings/index');

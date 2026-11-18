@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {defaultEditorialPublisherName,defaultEditorialPublisherAvatar,officialEditorialPublisherId} from '../../apps/miniprogram/services/editorial-publisher';
 
 const mocks=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),renew:vi.fn(),token:"",share:vi.fn(),incoming:vi.fn()}));
-vi.mock("../../apps/miniprogram/services/api",async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,request:mocks.request,resumeAuthentication:mocks.resume,beginLegalRenewal:mocks.renew,clearAuthenticationRedirectSuppression:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/api",async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,request:mocks.request,resumeAuthentication:mocks.resume,requireMemberAccess:(url:string)=>{if(mocks.token)return true;mocks.resume(url);return false;},beginLegalRenewal:mocks.renew,clearAuthenticationRedirectSuppression:vi.fn()}));
 // Comment transport has its own actual-Page and real-HTTP suites. These
 // media/article tests isolate that independent read with its valid empty DTO.
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:{path:string})=>
@@ -179,7 +179,7 @@ describe("published editorial native contracts",()=>{
   expect(page.data.feedColumns.flat()).toEqual([expect.objectContaining({id:articleId,kind:"editorial",author:"公开作者名",avatar:'/assets/icons/user-circle-plum.svg',engagementLabel:"0 赞",image:"https://synthetic.invalid"+mediaPath})]);
   page.openPost({currentTarget:{dataset:{id:articleId}}});expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/post/index?id=${articleId}&source=editorial`}));
  });
- it.each([["member-session",true,false,true,"写仅自己可见的草稿"],["member-session",true,true,true,"创作护理故事"],["",true,false,false,"写仅自己可见的草稿"],["member-session",false,false,false,"写仅自己可见的草稿"]] as const)("uses the real private-draft capability and current identity for the community entry (%s/%s/%s)",async(token,draftsEnabled,publicEnabled,available,label)=>{
+ it.each([["member-session",true,false,true,"写仅自己可见的草稿"],["member-session",true,true,true,"创作护理故事"],["",true,false,true,"写仅自己可见的草稿"],["member-session",false,false,false,"写仅自己可见的草稿"]] as const)("uses the real private-draft capability and current identity for the community entry (%s/%s/%s)",async(token,draftsEnabled,publicEnabled,available,label)=>{
   mocks.token=token;
   mocks.request.mockImplementation(({path}:any)=>Promise.resolve(path==="/v1/ugc/status"?{publicEnabled,draftsEnabled}:path==="/v1/capabilities"?{communityPreviewEnabled:false}:path==="/v1/me/tasks"?[]:{items:[],nextCursor:null,canReview:false}));
   await mount("community");
@@ -188,7 +188,12 @@ describe("published editorial native contracts",()=>{
   expect(page.data).toMatchObject({ugcFeedEnabled:publicEnabled,ugcDraftsEnabled:draftsEnabled});
   expect(entry).toHaveBeenLastCalledWith(available,label);
   expect(mocks.request.mock.calls.every(([input])=>!input.method)).toBe(true);
-  if(available){page.openPublisher();expect(page.data.publishEntryOpen).toBe(true);expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();}
+  if(available){
+    page.openPublisher();
+    expect(page.data.publishEntryOpen).toBe(Boolean(token));
+    if(!token)expect(mocks.resume).toHaveBeenCalledWith("/pages/community/index");
+    expect((globalThis as any).wx.navigateTo).not.toHaveBeenCalled();
+  }
   page.setData({mode:"review"});page.syncPublisherEntry();expect(entry).toHaveBeenLastCalledWith(false,label);
  });
  it("keeps the creation entry closed when its current capability cannot be confirmed",async()=>{

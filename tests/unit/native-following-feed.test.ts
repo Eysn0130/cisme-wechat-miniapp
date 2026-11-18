@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 const m=vi.hoisted(()=>({token:'actor-a',revision:0,origin:'https://synthetic.invalid',request:vi.fn(),login:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,resumeAuthentication:m.login}));
+vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,requireMemberAccess:(url:string)=>{if(m.token)return true;m.login(url);return false;}}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
 vi.mock('../../apps/miniprogram/services/member-identity',()=>({memberIdentity:()=>null}));

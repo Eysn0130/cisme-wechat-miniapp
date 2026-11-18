@@ -3,7 +3,7 @@ import { projectFeedCards, feedColumnPatch, type FeedCard } from "../../services
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { defaultMemberAvatar, localMemberAvatar, prepareFeedAuthors, prepareFeedPage } from "../../services/member-avatar";
-import { request, resumeAuthentication } from "../../services/api";
+import { request, requireMemberAccess } from "../../services/api";
 import { editorialStoriesForRuntime, editorialMediaSrc, publishedCommunityFeatured, expiredEditorialRead, type PublishedEditorialCard } from "../../services/editorial";
 import { editorialPublisherAvatar } from "../../services/editorial-publisher";
 import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
@@ -173,8 +173,7 @@ Page({
   },
   openPublisher() {
     if (this.data.navigating||this.data.publishEntryBusy||!this.readVisible||!this.data.ugcDraftsEnabled||this.data.mode==="review") return;
-    if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication("/pages/community/index"); return; }
-    if(this.data.publishEntryOpen)return;
+    if (this.data.publishEntryOpen || !requireMemberAccess("/pages/community/index")) return;
     this.clearPublisherWork(false);
     this.publisherOwner={token:getApp<IAppOption>().globalData.sessionToken,revision:commerceContextRevision(),epoch:++this.publisherEpoch};
     this.setData({publishEntryOpen:true,publishEntryError:"",publishEntryRecovery:"",publishEntrySource:""});
@@ -183,13 +182,13 @@ Page({
   syncPublisherEntry() {
     if(this.publisherOwner&&(!getApp<IAppOption>().globalData.sessionToken||this.data.mode==="review"))this.clearPublisherWork(false);
     this.getTabBar?.()?.setCommunityPublisherAvailable?.(
-      this.readVisible && Boolean(getApp<IAppOption>().globalData.sessionToken) && this.data.ugcDraftsEnabled && this.data.mode !== "review",
+      this.readVisible && this.data.ugcDraftsEnabled && this.data.mode !== "review",
       this.data.ugcFeedEnabled ? "创作护理故事" : "写仅自己可见的草稿"
     );
   },
   openMyPosts() {
     if (this.data.navigating||this.data.publishEntryBusy) return;
-    if (!getApp<IAppOption>().globalData.sessionToken) { resumeAuthentication("/pages/community/index"); return; }
+    if (!requireMemberAccess("/pages/community/index")) return;
     this.clearPublisherWork(false);
     this.setData({ navigating: true });
     wx.navigateTo({ url: "/pages/community-compose/index", fail: () => { this.setData({ navigating: false }); wx.showToast({ title: "我的内容暂时无法打开", icon: "none" }); } });
@@ -329,8 +328,9 @@ Page({
     if (!["featured", "recommend", "following"].includes(mode)) return;
     if (mode === "recommend" && !this.data.ugcFeedEnabled && !this.data.socialPreviewEnabled) return;
     if (mode === this.data.mode || this.data.reviewBusy || this.data.publishEntryBusy || this.data.navigating) return;
-    if ((mode === "following" || mode === "review") && !getApp<IAppOption>().globalData.sessionToken) {
-      this.followingRequested=mode==="following";resumeAuthentication("/pages/community/index");return;
+    if (mode === "following" && !requireMemberAccess("/pages/community/index")) {
+      this.followingRequested = true;
+      return;
     }
     const previousMode=this.data.mode,wasLoading=this.data.loading;
     for(const state of feedModel(this).images.values())if(state.phase==="arriving")state.phase="ready";
@@ -629,7 +629,7 @@ Page({
         this.setData({ canReview: access.canReview === true, follows, mode: this.data.mode === "review" && !access.canReview ? "featured" : this.data.mode });
         this.syncPublisherEntry();
       } catch(error) { failedRead(error);if (current()) this.setData({ canReview: false, ...(this.data.mode==="review"?{mode:"featured"}:{}) }); }
-    } else this.setData({ mode: "featured" });
+    } else if (this.data.mode === "following" || this.data.mode === "review") this.setData({ mode: "featured" });
     try {
       const [outcome,formalOutcome,editorialOutcome] = await Promise.all([feedPromise,formalPromise,editorialPromise]);
       if(!current())return;

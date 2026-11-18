@@ -108,7 +108,7 @@ Page({
       this.renewalSessionToken=getApp<IAppOption>().globalData.sessionToken;
       this.setData({renewalMode:true,renewalComplete:false,loginStage:"login",agreementAccepted:false,crossBorderAccepted:false,pendingDestination:""});
     }
-    // The first route is a lightweight entry gate; explicit account visits stay here.
+    // An explicitly opened account page can restore an existing session.
     if (!query?.intent && getCurrentPages().length === 1) {
       const token = getApp<IAppOption>().globalData.sessionToken;
       if (token) void this.restoreRetainedSession();
@@ -514,8 +514,15 @@ Page({
         wx.redirectTo({ url: returnUrl, fail: () => wx.switchTab({ url: "/pages/home/index", fail }) });
       }
     };
-    if(!memberEntryReady()&&!guestCommunityRouteAllowed(returnUrl)){
-      wx.switchTab({url:"/pages/community/index",fail});return;
+    const pages = getCurrentPages();
+    const previous = pages[pages.length - 2];
+    if (!memberEntryReady() && !guestCommunityRouteAllowed(returnUrl)) {
+      if (previous?.route && guestCommunityRouteAllowed(previous.route)) {
+        wx.navigateBack({ delta: 1, fail: () => wx.switchTab({ url: "/pages/community/index", fail }) });
+      } else {
+        wx.switchTab({ url: "/pages/community/index", fail });
+      }
+      return;
     }
     wx.navigateBack({ delta: 1, fail: openSource });
   },

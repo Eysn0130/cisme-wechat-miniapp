@@ -8,7 +8,7 @@ describe("mini program user-perceived performance guardrails", () => {
     const app = JSON.parse(await source("apps/miniprogram/app.json")) as { pages: string[]; subPackages: Array<{ root:string;pages: string[] }>; tabBar: {list:Array<{pagePath:string}>} };
     const tabRoutes = app.tabBar.list.map(entry=>entry.pagePath);
     expect(tabRoutes).toEqual(["pages/home/index","pages/shop/index","pages/community/index","pages/profile/index"]);
-    expect(app.pages).toEqual(["pages/account/index","pages/home/index","pages/shop/index","pages/community/index","pages/profile/index"]);
+    expect(app.pages).toEqual(["pages/community/index","pages/home/index","pages/shop/index","pages/account/index","pages/profile/index"]);
     expect(app.subPackages.find(pack=>pack.root==="pages/records")?.pages).toEqual(["index"]);
     const preload=JSON.parse(await source("apps/miniprogram/app.json")).preloadRule["pages/home/index"];
     expect(preload.packages).toContain("pages/records");

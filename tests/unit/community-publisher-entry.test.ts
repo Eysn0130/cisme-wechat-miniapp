@@ -1,6 +1,6 @@
 import {beforeEach,describe,expect,it,vi} from "vitest";
 const m=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),token:"member-a",revision:1}));
-vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,resumeAuthentication:m.resume}));
+vi.mock("../../apps/miniprogram/services/api",()=>({request:m.request,requireMemberAccess:(url:string)=>{if(m.token)return true;m.resume(url);return false;}}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>""}));
 vi.mock("../../apps/miniprogram/services/commerce-command-store",()=>({commerceContextRevision:()=>m.revision}));
 vi.mock("../../apps/miniprogram/services/performance-metrics",()=>({measurementClock:()=>0,recordClientMetric:vi.fn()}));
@@ -23,6 +23,17 @@ beforeEach(async()=>{
     setData(patch:any,callback?:()=>void){Object.assign(this.data,patch);callback?.();}};
 });
 describe("community native creation entry",()=>{
+  it("lets a guest tap the creation entry without mounting the composer or requesting privacy",()=>{
+    m.token="";
+    page.syncPublisherEntry();
+    expect(page.getTabBar().setCommunityPublisherAvailable).toHaveBeenLastCalledWith(true,"写仅自己可见的草稿");
+    expect(m.resume).not.toHaveBeenCalled();
+    page.openPublisher();
+    expect(m.resume).toHaveBeenCalledWith("/pages/community/index");
+    expect(page.data.publishEntryOpen).toBe(false);
+    expect(wxMock.requirePrivacyAuthorize).not.toHaveBeenCalled();
+    expect(wxMock.chooseMedia).not.toHaveBeenCalled();
+  });
   it("opens and cancels the three-way chooser without creating a draft or opening native media",()=>{
     page.openPublisher();expect(page.data.publishEntryOpen).toBe(true);expect(m.request).not.toHaveBeenCalled();expect(wxMock.navigateTo).not.toHaveBeenCalled();expect(wxMock.chooseMedia).not.toHaveBeenCalled();
     page.closePublisherEntry();expect(page.data).toMatchObject({publishEntryOpen:false,publishEntryBusy:false});expect(page.publisherOwner).toBeNull();
