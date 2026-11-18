@@ -1,5 +1,5 @@
 <page-meta root-font-size="system" page-style="{{surveyOpen||rulesOpen||returnOpen||productsOpen?'overflow:hidden;':''}}"/>
-<view class="page page--stack rewards-page {{reducedMotion?'rewards-page--still':''}}" style="{{chromeStyle}}">
+<view class="page page--stack rewards-page {{mode==='claim'?'rewards-page--claim':''}} {{reducedMotion?'rewards-page--still':''}}" style="{{chromeStyle}}">
  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">{{mode==='wallet'?'我的奖励':'领取订单'}}</text></view>
  <view class="reward-body" aria-hidden="{{surveyOpen||rulesOpen||returnOpen||productsOpen}}">
  <view wx:if="{{loading}}" class="reward-loading" aria-live="polite"><view class="page-read-loading__indicator"></view></view>
@@ -22,7 +22,11 @@
   </block>
  </block>
  <block wx:if="{{mode==='claim'&&claim}}">
-  <view class="reward-order-status"><text>{{claim.claimNumber}}</text><text class="reward-strong">{{stateLabel}}</text><text class="reward-small">{{claim.state==='placed'?'72小时内为你发出':''}}</text></view>
+  <view class="reward-order-status">
+   <text class="reward-order-number">{{claim.claimNumber}}</text>
+   <text class="reward-order-state">{{stateLabel}}</text>
+   <text wx:if="{{claim.state==='placed'}}" class="reward-small">72小时内为你发出</text>
+  </view>
   <view class="reward-order-item"><image src="{{claim.item.image}}" mode="aspectFit"/><view><text class="reward-strong">{{claim.item.name}}</text><text>{{claim.item.shampoo}} {{claim.item.shampooMl}}mL</text><text>{{claim.item.conditioner}} {{claim.item.conditionerMl}}mL</text></view></view>
   <view wx:if="{{claim.trackingNumber}}" class="reward-order-info"><view class="reward-section-head"><text class="reward-strong">{{claim.carrierName}}</text><button class="action-text" bindtap="copyTracking">复制单号</button></view><text>{{claim.trackingNumber}}</text>
   <text wx:if="{{shippedDate}}" class="reward-small">发货 {{shippedDate}}</text>
@@ -31,10 +35,10 @@
   <view class="reward-order-info reward-order-info--row"><text>领取日期 {{claimDate}}</text><text class="reward-strong">实付 ¥0.00</text></view>
   <view wx:if="{{claim.couponId}}" class="purchase-ticket {{newCoupon?'purchase-ticket--arrive':''}}" data-foil-surface="coupon" bindtouchstart="beginFoil" bindtouchmove="moveFoil" bindtouchend="endFoil" bindtouchcancel="endFoil"><card-foil id="receipt-foil" intro="{{newCoupon}}" active="{{foilSurface==='coupon'}}" x="{{foilX}}" y="{{foilY}}" reduced="{{reducedMotion}}"/><view class="purchase-ticket__value"><text class="purchase-ticket__currency">¥</text><text class="purchase-ticket__amount">20</text></view><view class="purchase-ticket__copy"><text class="reward-strong">体验正装券已到账</text><text>满 ¥198 可用 · 30天有效</text></view><button class="action-text" bindtap="openCoupons">查看</button></view>
   <view class="reward-inline-actions"><button wx:if="{{claim.state==='placed'}}" class="action-text {{busy?'control--disabled':''}}" bindtap="cancelClaim" disabled="{{busy}}">取消领取</button><button wx:if="{{claim.state==='placed'||claim.state==='shipped'||claim.state==='received'}}" class="action-text {{busy?'control--disabled':''}}" bindtap="openReturn" disabled="{{busy}}">售后服务</button><button class="action-text" bindtap="support">联系客服</button></view>
+  <view wx:if="{{claim.state==='shipped'}}" class="reward-footer"><button class="primary {{busy?'primary--disabled':''}}" bindtap="receive" loading="{{busy}}" disabled="{{busy}}"><text class="action-label">确认收货</text></button></view>
  </block>
  </view>
 
- <view wx:if="{{mode==='claim'&&claim.state==='shipped'}}" class="reward-footer"><button class="primary {{busy?'primary--disabled':''}}" bindtap="receive" loading="{{busy}}" disabled="{{busy}}"><text class="action-label">确认收货</text></button></view>
  <view wx:if="{{rulesOpen}}" class="reward-mask" bindtap="closeRules"><view class="reward-sheet" catchtap="stop" aria-role="dialog" aria-label="领取说明"><view class="reward-section-head"><text class="reward-strong">领取说明</text><button class="action-text" bindtap="closeRules">关闭</button></view><text>通过活动链接领取，每位会员限兑一套。</text><text>净润：洗发水100mL＋护发乳100mL。</text><text>净屑：洗发水50mL＋同款护发乳100mL。</text><text>发券后30天可领，大陆包邮，72小时内发货。</text><text>缺货保留资格；取消时已过期的券恢复为已过期。</text><text>确认收货后获赠满198减20正装券，30天有效，不叠加其他优惠券。</text><button class="action-text" bindtap="support">联系客服</button></view></view>
  <view wx:if="{{returnOpen}}" class="reward-mask" bindtap="closeReturn"><view class="reward-sheet" catchtap="stop" aria-role="dialog" aria-label="申请售后"><view class="reward-section-head"><text class="reward-strong">需要什么帮助？</text><button class="action-text {{busy?'control--disabled':''}}" bindtap="closeReturn" disabled="{{busy}}">关闭</button></view><textarea value="{{returnReason}}" bindinput="editReturn" maxlength="500" placeholder="简单说说遇到的问题" aria-label="售后问题" disabled="{{busy}}"/><button class="primary {{busy||returnReason.length<3?'primary--disabled':''}}" bindtap="submitReturn" loading="{{busy}}" disabled="{{busy||returnReason.length<3}}">提交售后</button></view></view>
  <view wx:if="{{productsOpen}}" class="reward-mask" bindtap="closeProducts"><view class="reward-sheet" catchtap="stop" aria-role="dialog" aria-label="适用正装"><view class="reward-section-head"><text class="reward-strong">适用商品</text><button class="action-text" bindtap="closeProducts">关闭</button></view><button wx:for="{{couponProducts}}" wx:key="id" class="reward-record" data-code="{{item.code}}" bindtap="openCouponProduct"><image src="{{item.image}}" mode="aspectFill"/><view><text class="reward-strong">{{item.name}}</text><text>¥{{item.priceCents/100}}</text></view><text class="reward-record__caret">›</text></button><view wx:if="{{!couponProducts.length}}" class="reward-empty"><text>适用商品暂未上架</text><button class="action-text" bindtap="support">联系客服</button></view></view></view>

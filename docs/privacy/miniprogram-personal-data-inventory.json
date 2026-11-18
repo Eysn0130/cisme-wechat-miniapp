@@ -1506,7 +1506,7 @@
   },
   "loadingStateReview": {
     "reviewed": true,
-    "packageSourceSha256": "024e0ecf217c7da0cc3ca97496cbf2e0bcc590b0a6cda583e342e0670bba5a50",
+    "packageSourceSha256": "668bc113ab81001339d4a2dd5bba452e8403daf1c1eea3be4ecd7500c1485084",
     "scope": "Existing wx.uploadFile, PUT and chunk endpoints retain original recipients, authorization, purpose and payload. Added local measured byte/phase feedback, completion/cancellation listener cleanup and retained exact server problem sanitization. No new analytics, storage destination or member consent.",
     "accessBoundary": "Inaccessible aftersale routes clear private state and return to existing usable workspace; no new permission or role grant."
   }

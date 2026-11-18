@@ -59,5 +59,56 @@ it('awards each actual care day and completed streak under the prospective rule,
  for(let i=0;i<30;i++){const at=new Date(+base+i*86400000);await club.checkin(a.memberId,randomUUID(),{products:['net_run'],note:'今天洗护以后头皮感觉比较清爽，具体变化继续认真记录。',serverDay:pointDay(at)},at);}
  const end=new Date(+base+30*86400000);await processMemberPointSources(pool,end,200);await processMemberPointSources(pool,end,200);
  const days=await grants(a,'care_day'),streaks=await grants(a,'care_streak');expect(days.filter(g=>g.component==='daily')).toHaveLength(30);expect(days.filter(g=>g.component==='note')).toHaveLength(30);expect(streaks.filter(g=>g.component==='streak7').map(g=>g.amount)).toEqual([20,20,20,20]);expect(streaks.filter(g=>g.component==='streak30').map(g=>g.amount)).toEqual([50]);
+ const onMilestone=await club.overview(a.memberId,new Date(+base+29*86400000));
+ expect(onMilestone.tasks).toEqual(expect.arrayContaining([
+  expect.objectContaining({id:'daily',count:1,state:'limit'}),
+  expect.objectContaining({id:'note',count:1,state:'limit'}),
+  expect.objectContaining({id:'streak30',count:1,state:'completed'})
+ ]));
+ const tomorrow=await club.overview(a.memberId,end);
+ expect(tomorrow.tasks).toEqual(expect.arrayContaining([
+  expect.objectContaining({id:'note',count:0,state:'available'}),
+  expect.objectContaining({id:'streak30',count:1,state:'completed'})
+ ]));
  const prior=JSON.stringify([days,streaks]);await processMemberPointSources(pool,end,200);expect(JSON.stringify([await grants(a,'care_day'),await grants(a,'care_streak')])).toBe(prior);
+});
+
+it('only shows pending daily awards for the current day and an eligible note',async()=>{
+ const a=await person(),b=await person(),now=new Date();
+ const paused=await pool.query("UPDATE emergency_switch SET enabled=false WHERE key='rewards' AND enabled RETURNING key");
+ expect(paused.rowCount).toBe(1);
+ try{
+  await club.checkin(a.memberId,randomUUID(),{products:['net_run'],note:'今天清洗以后头皮清爽，发丝柔顺，之后继续记录。',serverDay:pointDay(now)},now);
+  await club.checkin(b.memberId,randomUUID(),{products:['net_run'],note:'简短感受',serverDay:pointDay(now)},now);
+  expect((await club.overview(a.memberId,now)).tasks).toEqual(expect.arrayContaining([
+   expect.objectContaining({id:'daily',count:0,state:'pending'}),
+   expect.objectContaining({id:'note',count:0,state:'pending'})
+  ]));
+  expect((await club.overview(b.memberId,now)).tasks.find(task=>task.id==='note')).toMatchObject({count:0,state:'available'});
+  expect((await club.overview(a.memberId,new Date(+now+86400000))).tasks.find(task=>task.id==='note')).toMatchObject({count:0,state:'available'});
+ }finally{
+  await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='rewards'");
+ }
+});
+
+it('projects confirmed ledger progress for all guide tasks, including repeat invitations and an invited first order',async()=>{
+ const a=await person(),now=new Date();
+ const before=await club.overview(a.memberId,now);
+ expect(before.tasks).toHaveLength(14);
+ await transaction(pool,async c=>{
+  const policy=(await activePointPolicy(c,now))!;
+  for(const task of before.tasks){
+   const goal=task.limit||2;
+   const care=task.type==='care_day'||task.type==='care_streak';
+   for(let i=0;i<goal;i++)await grantMemberPoints(c,{owner:a.memberId,sourceType:task.type,
+    sourceId:care?task.bucket:randomUUID(),component:task.id==='firstOrder'?'invite_friend':task.component,
+    amount:task.id==='firstOrder'?policy.rules.inviteFriend:task.amount!,policy,now,bucket:task.bucket});
+  }
+ });
+ const after=await club.overview(a.memberId,now);
+ for(const task of before.tasks){
+  const target=after.tasks.find(row=>row.id===task.id);
+  const recurring=task.bucket&&task.type!=='care_streak';
+  expect(target,task.id).toMatchObject({count:task.limit||2,state:!task.limit?'available':recurring?'limit':'completed'});
+ }
 });

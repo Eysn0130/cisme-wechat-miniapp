@@ -79,18 +79,33 @@ export function pointsTaskDefinitions(p:PointsPolicy,now:Date){const r=p.rules;i
   {id:'invite',title:'邀请朋友首购',amount:r.inviteSponsor,limit:0,type:'order',component:'invite_sponsor',bucket:'',condition:`朋友通过分享注册并首购，朋友得${r.inviteFriend}分`,destination:'invite'}
  ];
 }
-export async function pointsTaskStatus(c:DbClient,owner:string,p:PointsPolicy,now:Date){
+export async function pointsTaskStatus(c:DbClient,owner:string,p:PointsPolicy,now:Date,streakDay:string){
  const definitions=pointsTaskDefinitions(p,now);
 
- const counts=(await c.query<{source_type:string;component:string;bucket:string;n:number}>(`SELECT g.source_type,g.component,COALESCE(e.metadata->>'bucket','') AS bucket,count(*)::int AS n FROM points_grant g JOIN points_entry e ON e.grant_id=g.id AND e.entry_type='grant_available' WHERE g.member_id=$1 GROUP BY g.source_type,g.component,COALESCE(e.metadata->>'bucket','')`,[owner])).rows;
- const pending=(await c.query<{kind:string;n:number}>(`SELECT kind,count(*)::int AS n FROM member_points_source_event WHERE member_id=$1 AND state='pending' GROUP BY kind`,[owner])).rows;
+ const counts=(await c.query<{source_type:string;component:string;bucket:string;n:number}>(`SELECT g.source_type,g.component,
+   CASE WHEN g.source_type IN ('care_day','care_streak') THEN g.source_id ELSE COALESCE(e.metadata->>'bucket','') END AS bucket,
+   count(*)::int AS n FROM points_grant g JOIN points_entry e ON e.grant_id=g.id AND e.entry_type='grant_available'
+   WHERE g.member_id=$1 GROUP BY 1,2,3`,[owner])).rows;
+ const pending=(await c.query<{kind:string;day:string;note_qualifies:boolean|null}>(`SELECT DISTINCT kind,
+   (occurred_at AT TIME ZONE 'Asia/Shanghai')::date::text AS day,
+   payload->>'noteQualifies'='true' AS note_qualifies
+   FROM member_points_source_event WHERE member_id=$1 AND state='pending'`,[owner])).rows;
  const suggestionPending=(await c.query("SELECT 1 FROM member_points_suggestion WHERE member_id=$1 AND state='pending' LIMIT 1",[owner])).rowCount;
  const loginProfile=(await c.query(`SELECT 1 FROM member_points_source_event e JOIN member m ON m.id=e.member_id
    WHERE e.member_id=$1 AND e.kind='profile' AND e.occurred_at<m.registration_completed_at LIMIT 1`,[owner])).rowCount;
- return Promise.all(definitions.filter(d=>(d.amount??0)>0&&(d.id!=='profile'||!loginProfile||counts.some(x=>x.source_type==='profile'&&x.n>0))).map(async d=>{const count=counts.filter(x=>x.source_type===d.type&&(x.component===d.component||d.id==='firstOrder'&&x.component==='invite_friend')&&(!d.bucket||x.bucket===d.bucket)).reduce((n,x)=>n+x.n,0),atLimit=(d.limit??0)>0&&count>=(d.limit??0),
-  reviewing=(d.id==='suggestion'&&suggestionPending)||(pending.some(x=>x.kind===d.type&&x.n>0));
-  return {...d,count,state:atLimit?(d.bucket&&!d.id.startsWith('streak')?'limit':'completed'):reviewing?'pending':'available'};
- }));
+ return definitions.filter(d=>(d.amount??0)>0&&(d.id!=='profile'||!loginProfile||counts.some(x=>x.source_type==='profile'&&x.n>0))).map(d=>{
+  const bucket=d.type==='care_streak'?streakDay:d.bucket;
+  const count=counts.filter(x=>x.source_type===d.type&&(x.component===d.component||d.id==='firstOrder'&&x.component==='invite_friend')
+   &&(!bucket||x.bucket===bucket)).reduce((n,x)=>n+x.n,0);
+  const atLimit=(d.limit??0)>0&&count>=(d.limit??0);
+  const reviewing=(d.id==='suggestion'&&suggestionPending)||pending.some(event=>{
+   if(bucket&&!event.day.startsWith(bucket))return false;
+   if(d.type==='care_day')return ['care','care_cycle','care_usage'].includes(event.kind)&&(d.id==='daily'||event.note_qualifies);
+   if(d.id==='firstOrder')return event.kind==='payment'||event.kind==='receipt';
+   return event.kind===d.type;
+  });
+  return {...d,bucket,count,state:atLimit?(bucket&&d.type!=='care_streak'?'limit':'completed'):reviewing?'pending':'available'};
+ });
 }
 function suggestionKey(config:AppConfig){const key=config.contacts.encryptionKey;if(!key||!/^[a-f0-9]{64}$/i.test(key))fail('POINTS_PRIVATE_STORAGE_UNAVAILABLE','私人记录暂不可用',503);return Buffer.from(key!,'hex');}
 export function openPointsSuggestion(config:AppConfig,row:any){

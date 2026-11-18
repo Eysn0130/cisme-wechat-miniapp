@@ -7,6 +7,19 @@ import {clientOperationKey,memberAddresses,type CheckoutAddress} from '../../ser
 import {readMyPoints,readPointsClub,readPointsGifts,readMyRedemptions,redemptionLabels,type PointsTask,type PointRules,type PointsSnapshot,type PointsClub,type PointsGift,type PointsRedemption} from '../../services/points';
 import {pendingPointsGift,preparePointsGift,dispatchPointsGift,inspectPointsGift} from '../../services/points-gift-recovery';
 import {nativeCatalogImage} from '../../services/catalog';
+type GuideTaskRow=PointsTask&{complete:boolean;statusLabel:string;actionLabel:string};
+function guideTaskRow(task:PointsTask):GuideTaskRow{
+ const {state,bucket,count,limit,id}=task;
+ if(state==='completed'||state==='limit'){
+  const period=state==='completed'?'':bucket.length===7?'本月':'今日';
+  return {...task,complete:true,statusLabel:period+'任务完成',actionLabel:'查看明细'};
+ }
+ if(state==='login')return {...task,complete:false,statusLabel:'登录后查看进度',actionLabel:'去登录'};
+ if(state==='pending')return {...task,complete:false,statusLabel:id==='suggestion'?'处理中':'积分核对中',actionLabel:id==='suggestion'?'查看进度':'核对积分'};
+ if(count&&limit===0)return {...task,complete:true,statusLabel:`已完成 ${count} 次`,actionLabel:'继续邀请'};
+ if(limit>1)return {...task,complete:false,statusLabel:`${count?'已完成 ':''}${count??0} / ${limit}`,actionLabel:count?'继续完成':'前往完成'};
+ return {...task,complete:false,statusLabel:'未完成',actionLabel:'前往完成'};
+}
 function pointRuleRows(r:PointRules){if(r.taskVersion===2)return [
  {title:'每天记录，认真分享',copy:`每日护理${r.daily}分，满10个有效字的感受再得${r.note}分。连续7天${r.streak7}分、30天${r.streak30}分，可循环，中断重计。评论需至少${r.commentMinHan}个汉字，每日最多${r.commentDailyLimit}条。点赞和浏览不计分。`},
  {title:'真实体验同样值得',copy:`首次发帖${r.firstPost}分；原创护理心得每月${r.originalMonthlyLimit}篇，每篇${r.originalPost}分；产品体验需关联商品、使用天数和真实过程/感受，每月${r.experienceMonthlyLimit}篇，每篇${r.experiencePost}分。同篇心得与体验不叠加，首次奖励可叠加。正面、负面反馈一视同仁，重复内容不计分；下架或删除撤回对应奖励。`},
@@ -20,7 +33,7 @@ function pointRuleRows(r:PointRules){if(r.taskVersion===2)return [
    {title:'异常和权益',copy:'新规则仅处理生效后的新事实，每笔奖励有唯一来源。已使用奖励被撤回后形成欠分，后续所得优先冲抵，欠分未清不能使用积分。规则变更提前公示，已到账积分按原权益保留，未到账来源可在此核对，异常可联系客服。'}];}
 Page({
  token:'',context:0,visible:false,
- data:{guideMode:false,taskRows:[] as PointsTask[],suggestionOpen:false,suggestionBody:'',suggestionKey:'',suggestionPendingBody:'',suggestions:[] as Array<{id:string;body:string;state:string;reason:string|null}>,suggestionBusy:false,suggestionError:'',chromeStyle:currentChromeStyle(),points:null as PointsSnapshot|null,club:null as PointsClub|null,balanceClass:'',loading:true,loadingMore:false,
+ data:{guideMode:false,taskRows:[] as GuideTaskRow[],suggestionOpen:false,suggestionBody:'',suggestionKey:'',suggestionPendingBody:'',suggestions:[] as Array<{id:string;body:string;state:string;reason:string|null}>,suggestionBusy:false,suggestionError:'',chromeStyle:currentChromeStyle(),points:null as PointsSnapshot|null,club:null as PointsClub|null,balanceClass:'',loading:true,loadingMore:false,
   navigating:false,loadAttempt:0,pageAlive:true,error:'',clubError:'',giftError:'',moreError:'',actionError:'',actionStatus:'',busy:false,
   section:'earn',sections:[{id:'earn',label:'赚积分'},{id:'ledger',label:'积分明细'},{id:'gifts',label:'积分兑换'}],
   source:'all',sources:[{id:'all',label:'全部'},{id:'earn',label:'获得'},{id:'spend',label:'使用'},{id:'expiry',label:'失效'},{id:'adjustment',label:'其他变动'}],
@@ -45,7 +58,7 @@ Page({
     this.setData({points,balanceClass:String(points.projection.available).length>=8?'points-hero__balance--compact':'',expiryDate:points.expiring.earliestAt?new Date(Date.parse(points.expiring.earliestAt)+8*3600000).toISOString().slice(0,10):''});
    }).catch(()=>{if(this.current(attempt))this.setData({points:null,error:'积分账本暂时无法加载，请重新查询。'});}),
    readPointsClub().then(c=>{if(!this.current(attempt))return;
-    confirmCreditOwner(c.memberId);this.setData({club:c,taskRows:c.tasks??[]});this.projectRules();
+    confirmCreditOwner(c.memberId);this.setData({club:c,taskRows:(c.tasks??[]).map(guideTaskRow)});this.projectRules();
     try{const pending=pendingPointsGift(c.memberId);this.setData({recoveryPending:Boolean(pending),recoveryRetryable:Boolean(pending?.payload),recoveryKey:pending?.key??''});}
     catch{this.setData({recoveryPending:true,recoveryRetryable:false,actionError:'上次兑换恢复记录需核对，请联系客服后再提交。'});}
    }).catch(()=>{if(this.current(attempt))this.setData({club:null,clubError:'赚分活动暂时无法加载，历史账本仍可查看。'});}),
@@ -64,9 +77,13 @@ Page({
   try{const next=await readMyPoints(source,p.nextCursor);if(!this.current(attempt)||source!==this.data.source)return;const ids=new Set(p.entries.map(e=>e.id));this.setData({points:{...next,entries:p.entries.concat(next.entries.filter(e=>!ids.has(e.id)))}});
   }catch{if(this.current(attempt))this.setData({moreError:'更多记录加载失败，请重试。'});}finally{if(this.current(attempt))this.setData({loadingMore:false});}
  },
- async loadPublicGuide(){const attempt=++this.data.loadAttempt;this.setData({loading:true,error:'',taskRows:[]});try{const guide=await request<{policy:{rules:PointRules}|null;tasks:PointsTask[]}>({path:'/v1/points/guide',authMode:'public'});if(!this.current(attempt))return;this.setData({taskRows:guide.tasks,rulesRows:guide.policy?pointRuleRows(guide.policy.rules):[],loading:false});}catch{if(this.current(attempt))this.setData({loading:false,error:'积分攻略暂时无法打开，请重试'});}},
+ async loadPublicGuide(){const attempt=++this.data.loadAttempt;this.setData({loading:true,error:'',taskRows:[]});try{const guide=await request<{policy:{rules:PointRules}|null;tasks:PointsTask[]}>({path:'/v1/points/guide',authMode:'public'});if(!this.current(attempt))return;this.setData({taskRows:guide.tasks.map(guideTaskRow),rulesRows:guide.policy?pointRuleRows(guide.policy.rules):[],loading:false});}catch{if(this.current(attempt))this.setData({loading:false,error:'积分攻略暂时无法打开，请重试'});}},
  openLedger(){this.setData({guideMode:false,section:'ledger'});void this.load();},
+ refreshAfterCredit(event:WechatMiniprogram.CustomEvent<{owner:string;amount:number}>){
+  if(this.current()&&!this.data.busy&&!this.data.loading&&this.data.section==='earn'&&event.detail.owner===this.data.club?.memberId&&event.detail.amount>0)void this.load();
+ },
  async openTask(event:WechatMiniprogram.TouchEvent){const task=this.data.taskRows.find(x=>x.id===event.currentTarget.dataset.id);if(!task||this.data.navigating||this.data.busy)return;if(!requireMemberAccess('/pages/points/index?guide=1'))return;
+  if(task.state==='completed'||task.state==='limit'){this.openLedger();return;}
   const destination=task.destination;if(task.state==='pending'&&destination!=='suggestion'){if(!this.data.loading)void this.load();return;}if(destination==='suggestion'){this.setData({suggestionOpen:true,suggestionError:''});void this.loadSuggestions();return;}
   const urls:Record<string,string>={care:'/pages/home/index',questionnaire:'/pages/home/index',profile:'/pages/settings/index?section=profile',post:'/pages/community-compose/index?new=1&entry=text',experience:'/pages/community-compose/index?new=1&entry=text&task=experience',community:'/pages/community/index',shop:'/pages/shop/index',invite:'/pages/invite/index'};
   const url=urls[destination];if(!url)return;this.setData({navigating:true});const fail=()=>{if(this.visible)this.setData({navigating:false});wx.showToast({title:'页面暂时无法打开，请重试',icon:'none'});};if(['care','questionnaire','community','shop'].includes(destination))wx.switchTab({url,fail});else wx.navigateTo({url,fail});
@@ -76,7 +93,7 @@ Page({
  async loadSuggestions(){const attempt=this.data.loadAttempt;try{const result=await request<{items:Array<{id:string;body:string;state:string;reason:string|null}>}>({path:'/v1/me/points/suggestions'});if(this.current(attempt))this.setData({suggestions:result.items});}catch{if(this.current(attempt))this.setData({suggestionError:'建议记录暂未加载，可重试查看'});}},
  async submitSuggestion(){if(this.data.suggestionBusy||!this.data.club?.memberId)return;const body=this.data.suggestionPendingBody||this.data.suggestionBody.trim();if((body.match(/\p{Script=Han}/gu)??[]).length<15){this.setData({suggestionError:'请填写至少15个汉字的具体建议'});return;}
   const key=this.data.suggestionKey||clientOperationKey('points-suggestion'),attempt=this.data.loadAttempt;this.setData({suggestionBusy:true,suggestionKey:key,suggestionPendingBody:body,suggestionError:''});
-  try{await request({path:'/v1/me/points/suggestions',method:'POST',idempotencyKey:key,data:{body},cacheTags:['points']});if(!this.current(attempt))return;this.setData({suggestionKey:'',suggestionPendingBody:'',suggestionBody:'',suggestionBusy:false,actionStatus:'建议已提交，审核通过后积分到账'});await this.loadSuggestions();}
+  try{await request({path:'/v1/me/points/suggestions',method:'POST',idempotencyKey:key,data:{body},cacheTags:['points']});if(!this.current(attempt))return;this.setData({suggestionKey:'',suggestionPendingBody:'',suggestionBody:'',suggestionBusy:false,actionStatus:'建议已提交，审核通过后积分到账'});await this.loadSuggestions();if(this.current(attempt))await this.load();}
   catch(error){if(this.current(attempt)){const status=(error as {status?:number}).status,definite=!!status&&status<500;this.setData({suggestionBusy:false,suggestionError:(error as {title?:string}).title||'结果待确认，请重试原提交',...(definite?{suggestionKey:'',suggestionPendingBody:''}:{})});}}
  },
  openRules(){this.setData({rulesOpen:true});},closeRules(){this.setData({rulesOpen:false});},
