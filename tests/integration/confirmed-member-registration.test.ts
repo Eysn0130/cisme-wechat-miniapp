@@ -89,3 +89,15 @@ it('requires both confirmed fields and commits one immutable membership despite 
   expect(list.items.find((r:any)=>r.id===pending.memberId)).toMatchObject({displayName:'小雨',avatar:profile.avatar_data_url});
   await expect(pool.query('UPDATE member SET registration_completed_at=NULL WHERE id=$1',[pending.memberId])).rejects.toThrow('MEMBER_REGISTRATION_IMMUTABLE');
 });
+
+it('keeps member-edited nickname and avatar authoritative across later WeChat logins',async()=>{
+  const identity=await login('edited-profile'),h=headers(identity.sessionToken);
+  const first=await app.inject({method:'PUT',url:'/v1/me/profile',headers:h,payload:{displayName:'原昵称',avatarDataUrl:avatar,expectedVersion:0}});
+  expect(first.statusCode,first.body).toBe(200);
+  const changedAvatar='data:image/jpeg;base64,'+jpeg.encode({data:Buffer.alloc(16*16*4,90),width:16,height:16},80).data.toString('base64');
+  const update=await app.inject({method:'PUT',url:'/v1/me/profile',headers:h,payload:{displayName:'会员改后的昵称',avatarDataUrl:changedAvatar,expectedVersion:first.json().profile_revision}});
+  expect(update.statusCode,update.body).toBe(200);const edited=update.json();
+  const again=await login('edited-profile');expect(again.memberId).toBe(identity.memberId);
+  const current=(await app.inject({url:'/v1/me/profile',headers:headers(again.sessionToken)})).json();
+  expect(current).toMatchObject({display_name:'会员改后的昵称',avatar_data_url:edited.avatar_data_url,avatar_revision:edited.avatar_revision,profile_revision:edited.profile_revision,card_number:first.json().card_number,user_code:first.json().user_code,registration_completed_at:first.json().registration_completed_at});
+});
