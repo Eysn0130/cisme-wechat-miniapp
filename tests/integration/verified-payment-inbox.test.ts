@@ -1040,12 +1040,13 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   expect((await pool.query('SELECT count(*)::int n FROM commission_ledger_entry')).rows[0].n).toBe(ledgerBefore);
   await expect(pool.query('DELETE FROM commerce_shipment_line WHERE shipment_id=$1',[one.id])).rejects.toThrow();
   await expect(pool.query('UPDATE commerce_shipment SET receipt_confirmed_at=NULL,version=version+1 WHERE id=$1',[one.id])).rejects.toThrow();
+  const exportAuditsBeforeRevoke=(await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows[0].n;
   const revoke=await pool.connect();await revoke.query('BEGIN');
   await revoke.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture' WHERE member_id=$1 AND capability='commerce.fulfillment.manage' AND revoked_at IS NULL",[actor]);
   const racing=service.managementList(actor,{state:'all'},true);
   const denied=expect(racing).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   await revoke.query('COMMIT');revoke.release();await denied;
-  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows[0].n).toBe(1);
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows[0].n).toBe(exportAuditsBeforeRevoke);
 
 });
 
