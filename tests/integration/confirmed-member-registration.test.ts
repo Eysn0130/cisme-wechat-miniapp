@@ -4,6 +4,8 @@ import {loadConfig} from '@cisme/config';
 import {resetDatabase,testPool,TEST_DATABASE_URL} from '@cisme/testkit';
 import {createApp} from '../../services/api/src/server';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
+import {clubRulesV2} from '../../services/api/src/pointsLedger';
+import {processMemberPointSources} from '../../services/api/src/memberPointsClub';
 
 const pool=testPool();
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,ALLOW_DEV_ADAPTERS:'true',
@@ -24,6 +26,7 @@ async function state(){return (await pool.query(`SELECT
   (SELECT count(*)::int FROM points_grant) AS grants`)).rows[0];}
 beforeAll(async()=>{
   await resetDatabase(pool);
+  await pool.query(`INSERT INTO member_points_policy(version,rules,state,starts_at,approved_at,approval_source,approval_evidence) VALUES('synthetic-registration-v2',$1,'active',clock_timestamp(),clock_timestamp(),'owner_instruction_20261110','isolated registration points regression only')`,[clubRulesV2]);
   for(const type of ['terms','privacy'])await pool.query(`INSERT INTO legal_document(document_type,version,title,body,operator_name,contact,active)
     VALUES($1,'synthetic-registration-v1','Synthetic only','Never publish this fixture','Synthetic','synthetic@example.invalid',true)`,[type]);
   app=await createApp({config,pool,storage:createApiGatewayStorage(config),wechatIdentityFetcher:async input=>
@@ -77,6 +80,11 @@ it('requires both confirmed fields and commits one immutable membership despite 
   const again=await login('confirmed-registration');expect(again.memberId).toBe(pending.memberId);
   expect((await app.inject({url:'/v1/me',headers:headers(again.sessionToken)})).json()).toMatchObject({card_number:profile.card_number,user_code:profile.user_code,registration_completed_at:profile.registration_completed_at});
   expect((await app.inject({url:'/v1/bootstrap/home',headers:headers(again.sessionToken)})).statusCode).toBe(200);
+  await processMemberPointSources(pool,new Date(Date.now()+2000),200);
+  expect((await pool.query("SELECT 1 FROM points_grant WHERE member_id=$1 AND source_type='profile'",[pending.memberId])).rowCount).toBe(0);
+  const club=(await app.inject({url:'/v1/me/points/club',headers:headers(again.sessionToken)})).json();
+  expect(club.enabled).toBe(true);expect(club.tasks.length).toBeGreaterThan(5);
+  expect(club.tasks.map((task:any)=>task.id)).not.toContain('profile');
   const list=(await app.inject({url:'/v1/management/users',headers:headers(admin.sessionToken)})).json();
   expect(list.items.find((r:any)=>r.id===pending.memberId)).toMatchObject({displayName:'小雨',avatar:profile.avatar_data_url});
   await expect(pool.query('UPDATE member SET registration_completed_at=NULL WHERE id=$1',[pending.memberId])).rejects.toThrow('MEMBER_REGISTRATION_IMMUTABLE');

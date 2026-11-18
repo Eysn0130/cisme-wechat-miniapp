@@ -566,8 +566,12 @@ describe("empty and N-1 database lifecycle", () => {
     expect((await pool.query('SELECT user_code,number::text FROM member_card_number WHERE member_id=$1',[legacyOfficer])).rows[0]).toEqual({user_code:'SO0987654321',number:originalNumber});
     await closePool(pool);migrationTip='202611170002_member_points_tasks_v2.sql';await migrate('up');pool=migrationPool();
     await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('POINTS_V2_ROLLBACK_REQUIRES_ASSET_PRESERVATION')});
-    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await closePool(pool);migrationTip='202611170003_wechat_trade_compliance.sql';await migrate('up');pool=migrationPool();
     await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('WECHAT_TRADE_OBSERVATIONS_REQUIRE_FORWARD_RECOVERY')});
+    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('MEMBER_REGISTRATION_ROLLBACK_REQUIRES_PENDING_IDENTITY_PRESERVATION')});
+    expect((await pool.query('SELECT registration_completed_at=created_at AS preserved FROM member WHERE id=$1',[legacyOfficer])).rows[0].preserved).toBe(true);
+    expect((await pool.query('SELECT user_code,number::text FROM member_card_number WHERE member_id=$1',[legacyOfficer])).rows[0]).toEqual({user_code:'SO0987654321',number:originalNumber});
     expect((await pool.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(migrationFiles.length);
     expect(await assertFinalSchemaContract(pool)).toEqual({tables:45,constraints:49,indexes:37,triggers:37});
     const damaged=await pool.connect();

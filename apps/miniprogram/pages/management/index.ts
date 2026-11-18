@@ -54,7 +54,7 @@ Page({
   const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
   this.setData({navigating:true});wx.navigateTo({url:"/pages/community-review/index?source=editorial",fail:()=>{if(this.current(epoch,token))this.setData({navigating:false});}});
  },
- openCommunityPosts(){if(!this.can("community.moderate")||this.data.navigating)return;const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-community/index",fail:()=>{if(this.current(epoch,token))this.setData({navigating:false});}});},
+ openCommunityPosts(){if(!this.can("community.moderate")){this.openEditorialComments();return;}if(this.data.navigating)return;const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-community/index",fail:()=>{if(this.current(epoch,token))this.setData({navigating:false});}});},
  openSharing(){if(!this.canNavigate()||!this.data.canSharing||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-sharing/index",fail:()=>this.setData({navigating:false})});},
  openSupport(){if(!this.can("support.read")||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-support/index",fail:()=>this.setData({navigating:false})});},
   openCatalog(){if(!this.canNavigate()||!this.data.canCatalog||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-catalog/index",fail:()=>this.setData({navigating:false})});},
@@ -64,7 +64,7 @@ Page({
   const required=filter==='receiving'?'commerce.return.receive':filter==='inspection'?'commerce.return.inspect':'commerce.aftersale.review';
   if(filter&&!this.can(required as Capability))return;
   this.setData({navigating:true});wx.navigateTo({url:`/pages/aftersale/index?mode=management${filter?`&attention=${filter}`:''}`,fail:()=>this.setData({navigating:false})});},
- openOrders(){if(!this.canNavigate()||!this.data.canOrders||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-orders/index",fail:()=>this.setData({navigating:false})});},
+ openOrders(){if(!this.canNavigate()||(!this.data.canOrders&&!this.data.canFulfillment)||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:this.data.canOrders?"/pages/management-orders/index":"/pages/management-fulfillment/index",fail:()=>this.setData({navigating:false})});},
  openFulfillment(){if(!this.can("commerce.fulfillment.manage")||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-fulfillment/index",fail:()=>this.setData({navigating:false})});},
  openMembers(){if(!this.canNavigate()||!this.data.canMembers||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-members/index",fail:()=>this.setData({navigating:false})});},
  openPrivacy(){if(!this.can("privacy.request.manage")||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-privacy/index",fail:()=>this.setData({navigating:false})});},

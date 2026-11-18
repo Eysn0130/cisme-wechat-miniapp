@@ -104,14 +104,16 @@ describe("PERF-01/03: native Home progressive, session-bound facts", () => {
 });
 
 describe("PERF-02/09: native Profile consistent core, independent auxiliary states", () => {
-  it("keeps interaction history, personal posts and invitation activities as distinct My-page entries",()=>{
+  it("keeps one My Community entrance with contextual drafts rather than a duplicate profile shortcut",()=>{
     const community=readFileSync("apps/miniprogram/pages/community/index.wxml","utf8"),profile=readFileSync("apps/miniprogram/pages/profile/index.wxml","utf8");
     // K.10 adds one contextual draft shortcut inside the creation chooser.
     expect(community.match(/bindtap="openMyPosts"/g)).toHaveLength(1);expect(community).toContain('wx:if="{{publishEntryOpen}}"');expect(community).not.toContain("我的投稿与草稿");
-    for(const [handler,label]of [["openCommunityActivity","我的社区"],["openMyPosts","投稿与草稿"]]){
+    for(const [handler,label]of [["openCommunityActivity","我的社区"]]){
       expect(profile.match(new RegExp(`bindtap="${handler}"`,"g"))).toHaveLength(1);expect(profile).toContain(`<strong>${label}</strong>`);
     }
     expect(profile).not.toContain("<strong>投稿与活动</strong>");
+    expect(profile).not.toContain('bindtap="openMyPosts"');
+    expect(readFileSync("apps/miniprogram/pages/community-author/index.wxml","utf8")).toContain('草稿箱');
   });
   it("opens only the existing personal-post list without creating a draft or waiting for activities",async()=>{
     await loadPage("profile");page.data.tasksLoading=true;page.data.coreUnavailable=true;page.openMyPosts();page.openMyPosts();

@@ -1,8 +1,9 @@
 import { requireCapability } from "../../services/authority";
 import { centsToYuan } from "../../services/commerce";
-import { managementOrder, managementShipment, dispatchShipment, reconcileShipment, clientOperationKey, type CommerceOrder, type ManagementOrderAddress, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
+import { managementOrder, managementShipment, shipmentCarriers, type ShipmentCarrier, dispatchShipment, reconcileShipment, clientOperationKey, type CommerceOrder, type ManagementOrderAddress, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import { shanghaiShipmentInstant } from "../../services/shipment-time";
+import {cancelPageReads} from "../../services/page-requests";
 import { request } from "../../services/api";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"支付已核验"};
 const syncLabels:Record<string,string>={prepared:"等待微信同步",dispatching:"正在提交微信",verifying:"微信结果核对中",synced:"微信已确认",manual_review:"微信同步待人工核对"};
@@ -12,11 +13,11 @@ const emptyForm=()=>({carrierCode:"",carrierName:"",trackingNumber:"",evidenceRe
 Page({
  lastReadToken:"",
  pendingDispatch:null as {key:string;input:ShipmentDispatchInput}|null,
- data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",syncLabel:"",messageLabel:"",canDispatch:false,canReconcileRefund:false,refundBusy:false,refundMessage:"",shipmentLoading:false,shipmentError:"",dispatchBusy:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
+ data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",syncLabel:"",messageLabel:"",canDispatch:false,canReconcileRefund:false,refundBusy:false,refundMessage:"",shipmentLoading:false,shipmentError:"",carriers:[] as ShipmentCarrier[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",dispatchBusy:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onLoad(query:Record<string,string|undefined>){const id=query.id??"";this.setData({id,invalidId:!orderIdPattern.test(id)});},
  async onShow(){this.data.pageAlive=true;this.setData({navigating:false});await this.load();},
- onHide(){this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,canReconcileRefund:false,refundBusy:false,refundMessage:"",form:emptyForm(),dispatchBusy:false,dispatchMessage:"",shipmentError:""});},
+ onHide(){this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;cancelPageReads(this);this.setData({carriers:[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",order:null,shipment:null,canDispatch:false,canReconcileRefund:false,refundBusy:false,refundMessage:"",form:emptyForm(),dispatchBusy:false,dispatchMessage:"",shipmentError:""});},
  onUnload(){this.onHide();},
  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken;},
  normalize(order:CommerceOrder<ManagementOrderAddress>){return {...order,statusLabel:order.status==="paid"&&(order.refundedCents??0)>0?(order.refundedCents!>=order.totalCents?"已退款":"部分退款"):(labels[order.status]??order.status),totalYuan:centsToYuan(order.totalCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false,timeZone:"Asia/Shanghai"}),lines:order.lines.map(line=>({...line,totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district}`:""};},
@@ -33,7 +34,7 @@ Page({
    if(!this.current(epoch,token))return;
    const canDispatch=allowed.capabilities.includes("commerce.fulfillment.manage");
    this.setData({order:this.normalize(order),canDispatch,canReconcileRefund:allowed.capabilities.includes('commerce.money.reconcile'),loading:false});
-   if(canDispatch)await this.readShipment(epoch,token);
+   if(canDispatch){void this.loadCarriers();await this.readShipment(epoch,token);}
   }catch(error){if(this.current(epoch,token))this.setData({loading:false,error:(error as {title?:string}).title??"暂时无法查看订单详情，请重试或返回列表。"});}
  },
  async reconcileExternalRefund(){
@@ -68,6 +69,26 @@ Page({
    this.setData({shipment:null,shipmentError:(error as {title?:string}).title??"履约状态暂时无法核验，请刷新后重试。",...(status===401||status===403?{canDispatch:false,order:null,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"}:{})});}}
   finally{if(this.current(epoch,token))this.setData({shipmentLoading:false});}
  },
+ async loadCarriers(){
+  const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+  if(!this.current(epoch,token)||token!==this.lastReadToken||!this.data.canDispatch||this.data.carriersLoading)return;
+  this.setData({carriersLoading:true,carriersError:""});
+  try{const result=await shipmentCarriers(this);
+   if(!this.current(epoch,token)||!this.data.canDispatch)return;
+   if(!Array.isArray(result.carriers)||!result.carriers.length||result.carriers.some(r=>!r||!r.id||!r.name))throw Error('CARRIER_LIST_INVALID');
+   this.setData({carriers:result.carriers,carrierLabels:["请选择快递公司",...result.carriers.map(r=>r.name)],carrierIndex:result.carriers.findIndex(r=>r.id===this.data.form.carrierCode)+1});
+  }catch(error){if(this.current(epoch,token)){
+   const denied=[401,403].includes((error as {status?:number})?.status??0);
+   this.setData({carriers:[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersError:denied?"履约权限已变化，请重新打开订单":"快递列表暂未读取，可重试或手动填写",
+    ...(denied?{canDispatch:false,order:null,shipment:null,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"}:{})});
+  }}finally{if(this.current(epoch,token))this.setData({carriersLoading:false});}
+ },
+ selectCarrier(event:WechatMiniprogram.PickerChange){
+  if(this.data.dispatchBusy||this.pendingDispatch||!this.data.canDispatch||this.lastReadToken!==getApp<IAppOption>().globalData.sessionToken)return;
+  const index=Number(event.detail.value),row=this.data.carriers[index-1];if(!Number.isSafeInteger(index)||!row)return;
+  this.setData({carrierIndex:index,form:{...this.data.form,carrierCode:row.id,carrierName:row.name},dispatchMessage:""});
+ },
+ shipmentTime(event:WechatMiniprogram.PickerChange){if(!this.data.dispatchBusy&&!this.pendingDispatch)this.setData({form:{...this.data.form,time:String(event.detail.value)}});},
  shipmentInput(event:WechatMiniprogram.Input){if(this.data.dispatchBusy||this.pendingDispatch)return;const field=event.currentTarget.dataset.field as keyof ReturnType<typeof emptyForm>;
   if(!Object.prototype.hasOwnProperty.call(emptyForm(),field))return;this.setData({form:{...this.data.form,[field]:event.detail.value.trim()},dispatchMessage:""});},
  shipmentDate(event:WechatMiniprogram.PickerChange){if(!this.data.dispatchBusy&&!this.pendingDispatch)this.setData({form:{...this.data.form,date:String(event.detail.value)}});},
@@ -94,12 +115,12 @@ Page({
   if(this.data.dispatchBusy||!this.data.pageAlive||!this.data.canDispatch||!this.data.order||this.data.order.status!=="paid"||this.data.order.transactionSourceKind!=="verified_commerce"||this.data.shipment?.logisticsState!=="awaiting_dispatch")return;
   const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,form=this.data.form;
   const shippedAt=shanghaiShipmentInstant(form.date,form.time);
-  if(!/^[A-Z0-9_]{2,32}$/.test(form.carrierCode)||!form.carrierName||form.carrierName.length>80||! /^[A-Za-z0-9-]{6,64}$/.test(form.trackingNumber)||! /^[A-Za-z0-9._:-]{8,120}$/.test(form.evidenceReference)||!shippedAt){this.setData({dispatchMessage:"请完整填写快递公司、公司编码、真实运单、北京时间的实际交寄时间和凭证编号。"});return;}
+  if(!/^[A-Z0-9_]{2,32}$/.test(form.carrierCode)||!form.carrierName||form.carrierName.length>80||! /^[A-Za-z0-9-]{6,64}$/.test(form.trackingNumber)||!shippedAt){this.setData({dispatchMessage:"请选择快递公司，填写真实运单与北京时间的实际交寄时间。"});return;}
   this.setData({dispatchBusy:true,dispatchMessage:""});
   try{
    const decision=await new Promise<WechatMiniprogram.ShowModalSuccessCallbackResult>((resolve,reject)=>wx.showModal({title:"确认已交付快递",content:`订单 ${this.data.order.orderNumber}\n${form.carrierName} · ${form.trackingNumber}\n实际交寄：北京时间 ${form.date} ${form.time}\n仅登记已实际交寄的整单包裹。微信同步状态会单独显示。`,confirmText:"登记发货",success:resolve,fail:reject}));
    if(!this.current(epoch,token)||!decision.confirm)return;
-   this.pendingDispatch??={key:clientOperationKey("shipment"),input:{carrierCode:form.carrierCode,carrierName:form.carrierName,trackingNumber:form.trackingNumber,evidenceReference:form.evidenceReference,shippedAt,expectedOrderVersion:this.data.order.version}};
+   if(!this.pendingDispatch){const key=clientOperationKey("shipment");this.pendingDispatch={key,input:{carrierCode:form.carrierCode,carrierName:form.carrierName,trackingNumber:form.trackingNumber,evidenceReference:`dispatch:${key}`,shippedAt,expectedOrderVersion:this.data.order.version}};}
    await dispatchShipment(this.data.id,this.pendingDispatch.input,this.pendingDispatch.key);
    if(!this.current(epoch,token))return;
    this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchMessage:"交寄记录已保存，请另行核对微信同步和签收状态。"});

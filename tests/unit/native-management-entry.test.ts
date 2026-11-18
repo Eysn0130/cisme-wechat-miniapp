@@ -25,3 +25,6 @@ it.each(['member.manage','commission.read','commission.rate.manage'])('opens the
  expect(hasNativeManagementEntry({version:1,managementAvailable:true,capabilities:[capability] as any})).toBe(true);
  expect(hasNativeManagementEntry({version:1,managementAvailable:false,capabilities:[capability] as any})).toBe(false);
 });
+
+it.each([{grants:['commerce.order.read'],url:'/pages/management-orders/index'},{grants:['commerce.fulfillment.manage'],url:'/pages/management-fulfillment/index'}])('keeps the unified order entrance within its actual $grants permission',async({grants,url})=>{capabilities=grants;await import('../../apps/miniprogram/pages/management/index');await page.load();page.openOrders();expect(wxMock.navigateTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url}));expect(page.data.authority.capabilities).toEqual(grants);});
+it('routes editorial-only staff through the unified community entrance without inventing post permissions',async()=>{capabilities=['editorial.manage'];await import('../../apps/miniprogram/pages/management/index');await page.load();page.openCommunityPosts();expect(wxMock.navigateTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:'/pages/community-review/index?source=editorial'}));expect(page.data.canCommunityPosts).toBe(false);});

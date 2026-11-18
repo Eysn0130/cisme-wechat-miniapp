@@ -102,7 +102,7 @@ describe("Home canonical nickname continuity", () => {
   });
   it('does not force registration for a care gift link whose two sets are sold out',async()=>{
     const app={globalData:{sessionToken:'',apiBaseUrl:'https://staging-api.cisme.cn'}};(globalThis as any).getApp=()=>app;page.setData({pageAlive:true,pageVisible:true,lifecycleEpoch:0});
-    const invite=await import('../../apps/miniprogram/services/reward-invitation');invite.rememberRewardInvitation('a'.repeat(64));mocks.invitation.mockResolvedValueOnce({bundles:[{stockConfirmed:true,availableQuantity:0},{stockConfirmed:true,availableQuantity:0}]});
+    const invite=await import('../../apps/miniprogram/services/reward-invitation');invite.rememberRewardInvitation('a'.repeat(64));mocks.invitation.mockResolvedValueOnce({bundles:[{stockConfirmed:true,available:false},{stockConfirmed:true,available:false}]});
     await page.resumeOnboardingDestination();expect(mocks.resume).not.toHaveBeenCalled();expect(mocks.gift).not.toHaveBeenCalled();expect(page.data.giftError).toContain('已领完');expect(invite.pendingRewardInvitationToken()).toBe('');
   });
   it("keeps a cold-bootstrap nickname through the real minute-clock callback without a shared identity cache", async () => {

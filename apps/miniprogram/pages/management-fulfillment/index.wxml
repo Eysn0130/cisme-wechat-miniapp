@@ -1,7 +1,7 @@
 <view class="management-ui fulfillment-shell" style="{{chromeStyle}}">
- <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">发货与履约</text></view>
+ <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">批量发货</text></view>
  <view class="page page--stack">
-  <view class="page-title">待发货订单</view>
+  <view class="page-title">订单与拣货表</view>
   <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在核验权限与订单…"><view class="page-read-loading__indicator"/></view>
   <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button bindtap="retry" disabled="{{busy}}" class="text-button {{busy ? 'control--disabled' : ''}}">重新核验</button></view>
   <view wx:if="{{coreReady}}" class="section-card">
@@ -24,7 +24,7 @@
    <button class="primary {{busy || !confirmed ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || !confirmed}}" loading="{{busy}}">{{batchPending?'重试原批次':'确认登记物流'}}</button>
    <button wx:if="{{batchPending}}" class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="reconcileBatch" disabled="{{busy}}">核对后结束上批</button>
    <button class="secondary {{busy || batchPending ? 'control--disabled' : ''}}" bindtap="newBatch" disabled="{{busy || batchPending}}">开始另一批</button>
-   <view wx:for="{{results}}" wx:key="orderId" class="order"><text>{{item.orderNumber || item.orderId}}</text><text>{{item.resultLabel || (item.status==='accepted'?'已登记，请另行核对微信同步':'请打开订单核对后重试')}}</text><button class="text-button {{busy ? 'control--disabled' : ''}}" bindtap="openImportOrder" data-id="{{item.orderId}}" disabled="{{busy}}">查看订单</button></view>
+   <view wx:for="{{results}}" wx:key="orderId" class="order"><text>{{item.orderNumber || item.orderId}}</text><text>{{item.resultLabel || (item.status==='accepted'?'已登记，请另行核对微信同步':'请打开订单核对后重试')}}</text><button wx:if="{{canOrders}}" class="text-button {{busy ? 'control--disabled' : ''}}" bindtap="openImportOrder" data-id="{{item.orderId}}" disabled="{{busy}}">查看订单</button></view>
   </view>
   <view wx:if="{{notice}}" class="state" aria-live="polite">{{notice}}</view>
  </view>

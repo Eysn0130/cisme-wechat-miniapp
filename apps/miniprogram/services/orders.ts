@@ -27,6 +27,8 @@ export function queryMyWechatReceipt(id:string):Promise<WechatReceiptQuery>{
 export function myShipment(id:string,page:object):Promise<OrderShipment>{
   return pageRead<OrderShipment>(page,{path:`/v1/me/orders/${encodeURIComponent(id)}/shipment`,cacheTags:["orders"]});
 }
+export interface ShipmentCarrier {id:string;name:string}
+export function shipmentCarriers(page:object){return pageRead<{carriers:ShipmentCarrier[]}>(page,{path:"/v1/management/shipments/carriers"});}
 export interface OrderTracking {orderId:string;shipmentId:string;source:"wechat_logistics";observedAt:string;
   events:Array<{time:string;code:number;state:string;message:string}>}
 export function myTracking(id:string,page:object):Promise<OrderTracking>{

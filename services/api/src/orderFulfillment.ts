@@ -40,8 +40,16 @@ export class OrderFulfillmentService {
   constructor(private pool:pg.Pool,private authority:AuthorityService,private addresses:DeliveryAddressService,
     private sync:ShippingSyncService,private enabled:boolean,
     private logistics?:Pick<WechatLogisticsClient,'query'|'capabilities'>,
-    private messages?:{enqueue(client:DbClient,owner:string,orderId:string,shipmentId:string):Promise<void>}) {}
+    private messages?:{enqueue(client:DbClient,owner:string,orderId:string,shipmentId:string):Promise<void>},
+    private carrierList?:()=>Promise<Array<{id:string;name:string}>>) {}
   private gate(){if(!this.enabled)fail('FULFILLMENT_NOT_ENABLED',503);}
+  async carriers(actor:string|undefined){
+    this.gate();await this.authority.require(actor,'commerce.fulfillment.manage');
+    if(!this.carrierList)fail('LOGISTICS_QUERY_NOT_READY',503);
+    const carriers=await this.carrierList();
+    await this.authority.require(actor,'commerce.fulfillment.manage');
+    return {carriers};
+  }
   private async projection(client:DbClient,row:Shipment){
     const parcel=await this.sync.parcelWithClient(client,row.shipping_sync_id);
     const sync=(await client.query('SELECT state FROM commerce_shipping_sync WHERE id=$1',[row.shipping_sync_id])).rows[0];

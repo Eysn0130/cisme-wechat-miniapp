@@ -1,8 +1,8 @@
 import {beforeEach,it,expect,vi} from 'vitest';
 import {shanghaiShipmentInstant} from '../../apps/miniprogram/services/shipment-time';
-const calls=vi.hoisted(()=>({authority:vi.fn(),order:vi.fn(),shipment:vi.fn(),dispatch:vi.fn(),reconcile:vi.fn()}));
+const calls=vi.hoisted(()=>({authority:vi.fn(),order:vi.fn(),shipment:vi.fn(),carriers:vi.fn(),dispatch:vi.fn(),reconcile:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/authority',()=>({requireCapability:calls.authority}));
-vi.mock('../../apps/miniprogram/services/orders',()=>({managementOrder:calls.order,managementShipment:calls.shipment,dispatchShipment:calls.dispatch,reconcileShipment:calls.reconcile,clientOperationKey:()=> 'synthetic-shipment-key'}));
+vi.mock('../../apps/miniprogram/services/orders',()=>({managementOrder:calls.order,managementShipment:calls.shipment,shipmentCarriers:calls.carriers,dispatchShipment:calls.dispatch,reconcileShipment:calls.reconcile,clientOperationKey:()=> 'synthetic-shipment-key'}));
 vi.mock('../../apps/miniprogram/services/commerce',()=>({centsToYuan:(n:number)=>String(n/100)}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 let definition:any,session='operator-a';
@@ -12,7 +12,7 @@ function mount(){const page={...definition,data:{...definition.data,id:fixture.i
 beforeEach(async()=>{
  vi.resetModules();for(const call of Object.values(calls))call.mockReset();session='operator-a';
  calls.authority.mockResolvedValue({capabilities:['commerce.order.read','commerce.fulfillment.manage']});calls.order.mockResolvedValue(fixture);
- calls.shipment.mockResolvedValue({orderId:fixture.id,logisticsState:'awaiting_dispatch'});
+ calls.shipment.mockResolvedValue({orderId:fixture.id,logisticsState:'awaiting_dispatch'});calls.carriers.mockResolvedValue({carriers:[{id:'SF',name:'合成承运商'}]});
  (globalThis as any).Page=(p:unknown)=>{definition=p;};(globalThis as any).getApp=()=>({globalData:{sessionToken:session}});
  (globalThis as any).wx={showModal:vi.fn((options:any)=>options.success({confirm:true})),navigateBack:vi.fn()};
  await import('../../apps/miniprogram/pages/management-order-detail/index');
@@ -69,3 +69,6 @@ it('runs manual recovery as query-only and drops responses after operator revoca
  await page.reconcile();expect(calls.dispatch).not.toHaveBeenCalled();expect(calls.reconcile).toHaveBeenCalledTimes(1);expect(page.data.dispatchMessage).toContain('尚未确认同一包裹');
  calls.reconcile.mockRejectedValue({status:403});await page.reconcile();expect(page.data).toMatchObject({order:null,shipment:null,canDispatch:false});
 });
+
+it('selects a carrier without asking the operator for its code and generates an honest operation reference only after confirmation',async()=>{const page=mount();await page.onShow();await vi.waitFor(()=>expect(page.data.carriers).toHaveLength(1));expect(page.data.carrierLabels).toEqual(['请选择快递公司','合成承运商']);page.selectCarrier({detail:{value:'1'}});expect(page.data.form).toMatchObject({carrierCode:'SF',carrierName:'合成承运商'});page.data.form={...form,evidenceReference:''};await page.submitShipment();expect(calls.dispatch).toHaveBeenCalledWith(fixture.id,expect.objectContaining({evidenceReference:'dispatch:synthetic-shipment-key'}),'synthetic-shipment-key');});
+it('retains manual recovery for a failed carrier lookup and ignores a late list after switching accounts',async()=>{const page=mount();calls.carriers.mockRejectedValueOnce({status:503});await page.onShow();await vi.waitFor(()=>expect(page.data.carriersError).toContain('手动填写'));expect(page.data.canDispatch).toBe(true);let done!:(value:any)=>void;calls.carriers.mockImplementationOnce(()=>new Promise(resolve=>done=resolve));const read=page.loadCarriers();session='operator-b';done({carriers:[{id:'SF',name:'must not arrive'}]});await read;expect(page.data.carriers).toEqual([]);});

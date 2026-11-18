@@ -1411,7 +1411,7 @@
   },
   "logisticsQueryReview20261110": {
     "purpose": "Buyer-initiated view of the official WeChat logistics component for the mini program own verified paid shipment; no unrelated waybill queries, shipment purchases or new subscription request.",
-    "recipient": "WeChat official api.weixin.qq.com and approved logisticsPlugin provider wx9ad912bf20548d92 version 2.1.5.",
+    "recipient": "WeChat official api.weixin.qq.com and approved logisticsPlugin provider wx9ad912bf20548d92 version 2.3.0.",
     "payload": [
       "verified payer OpenID",
       "verified payment transaction ID",
@@ -1484,7 +1484,7 @@
   },
   "logisticsMessageReview20261116": {
     "purpose": "Actual paid shopping shipments trigger official WeChat logistics messages for the verified original payer; WeChat sends collection/delivery/signature notices only to eligible subscribed buyers. Registration is not proof of notification delivery.",
-    "recipient": "WeChat official api.weixin.qq.com open_msg/follow_waybill, using separately revocable logistics.message.register capability. Native query remains lazy-loaded provider wx9ad912bf20548d92 version 2.1.5.",
+    "recipient": "WeChat official api.weixin.qq.com open_msg/follow_waybill, using separately revocable logistics.message.register capability. Native query remains lazy-loaded provider wx9ad912bf20548d92 version 2.3.0.",
     "payload": "Verified payment transaction ID and payer OpenID, immutable order address phone, actual carrier and waybill, approved immutable product names/images, own order detail route. No third-party recipient or new payment.",
     "storage": "Existing idempotency_operation commerce.logistics.message contains owner/order/shipment IDs, source HMAC, state/backoff, numeric provider error and AES-256-GCM sealed waybill token with owner/shipment/key-version AAD. No clear token/contact/waybill/OpenID in journal, audit or logs.",
     "authority": "Queue only created with future real paid dispatch in the same local transaction. Fresh shared PaidParcelSource checks actual active owner, verified applied full-cash payment, app/merchant and sealed order parcel before network. No backfill or campaign gift/zero-cash registration.",

@@ -3068,6 +3068,30 @@ paths:
       summary: 按履约状态及精确订单号筛选已支付订单
       responses:
         '200': {description: Cursor page; fulfillment permission required}
+  /v1/management/shipments/carriers:
+    get:
+      security: [{session: []}]
+      operationId: listShipmentCarriers
+      summary: 获取微信查询组件快递公司；仅履约权限，不登记运单或发送消息
+      responses:
+        '200':
+          description: Fulfillment authority is rechecked after the official metadata read
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [carriers]
+                properties:
+                  carriers:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name]
+                      properties:
+                        id: {type: string, pattern: '^[A-Z0-9_]{2,32}$'}
+                        name: {type: string, maxLength: 80}
+        '403': {$ref: '#/components/responses/Problem'}
+        '503': {$ref: '#/components/responses/Problem'}
   /v1/management/shipments/export:
     get:
       security: [{session: []}]

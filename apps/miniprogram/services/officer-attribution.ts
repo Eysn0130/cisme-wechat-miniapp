@@ -34,7 +34,11 @@ export async function prepareOfficerLoginVisits():Promise<void>{
  }
 }
 export function flushOfficerVisits():Promise<void>{
- const session=getApp<IAppOption>().globalData.sessionToken,from=origin();if(!session)return Promise.resolve();
+ const data=getApp<IAppOption>()?.globalData;
+ // App.onShow may run before getApp exposes the newly registered instance.
+ // Leave durable visits untouched; account confirmation/next onShow retries.
+ if(!data?.sessionToken||!data.apiBaseUrl)return Promise.resolve();
+ const session=data.sessionToken,from=origin();
  if(flushing&&flushingOwner===session+from)return flushing;
  flushingOwner=session+from;
  const task=(async()=>{for(;;){

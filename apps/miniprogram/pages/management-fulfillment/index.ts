@@ -12,17 +12,17 @@ const resultCopy:Record<string,string>={ORDER_ALREADY_SHIPPED:"已登记发货�
 Page({
  visible:false,epoch:0,lastToken:"",lastRevision:-1,timer:null as ReturnType<typeof setInterval>|null,
  download:null as ReturnType<typeof downloadPrivateMedia>|null,batchKey:"",frozenRows:"",
- data:{chromeStyle:currentChromeStyle(),states:["待发货","已发货","快递已签收","物流异常","全部已支付"],stateIndex:0,orderNumber:"",items:[] as Row[],nextCursor:null as string|null,loadedFilter:"",rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,confirmed:false,results:[] as BatchResult[],loading:true,busy:false,coreReady:false,error:"",notice:"",batchLocked:false,batchPending:false},
+ data:{chromeStyle:currentChromeStyle(),states:["待发货","已发货","快递已签收","物流异常","全部已支付"],stateIndex:0,orderNumber:"",items:[] as Row[],nextCursor:null as string|null,loadedFilter:"",rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,confirmed:false,results:[] as BatchResult[],loading:true,busy:false,coreReady:false,error:"",notice:"",batchLocked:false,batchPending:false,canOrders:false},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onShow(){this.visible=true;return this.load();},
- onHide(){this.visible=false;this.epoch++;cancelPageReads(this);this.stopPolling();this.releaseDownload();this.batchKey="";this.frozenRows="";this.setData({items:[],rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,orderNumber:"",confirmed:false,results:[],nextCursor:null,coreReady:false,busy:false,batchLocked:false});},
+ onHide(){this.visible=false;this.epoch++;cancelPageReads(this);this.stopPolling();this.releaseDownload();this.batchKey="";this.frozenRows="";this.setData({items:[],rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,orderNumber:"",confirmed:false,results:[],nextCursor:null,coreReady:false,canOrders:false,busy:false,batchLocked:false});},
  onUnload(){this.onHide();},
  current(epoch?:number,token?:string){epoch ??= this.epoch;token ??= this.lastToken;return this.visible&&epoch===this.epoch&&token===this.lastToken&&token===getApp<IAppOption>().globalData.sessionToken&&this.lastRevision===commerceContextRevision();},
  canAct(){return this.current()&&this.data.coreReady&&!this.data.busy&&!this.data.loading;},
  releaseDownload(){this.download?.abort();this.download=null;},
  stopPolling(){if(this.timer!==null)clearInterval(this.timer);this.timer=null;},
  poll(){this.stopPolling();if(this.visible&&this.data.coreReady)this.timer=setInterval(()=>void this.recheck(),6000);},
- invalidate(message="登录状态或权限已变化，请重新确认。"){this.stopPolling();this.releaseDownload();this.batchKey="";this.frozenRows="";this.setData({items:[],rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,results:[],orderNumber:"",nextCursor:null,confirmed:false,batchLocked:false,coreReady:false,error:message});},
+ invalidate(message="登录状态或权限已变化，请重新确认。"){this.stopPolling();this.releaseDownload();this.batchKey="";this.frozenRows="";this.setData({items:[],rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,results:[],orderNumber:"",nextCursor:null,confirmed:false,batchLocked:false,coreReady:false,canOrders:false,error:message});},
  async recheck(){if(!this.visible||this.data.busy||this.data.loading)return;if(!this.current()){this.invalidate();return;}if(!this.data.coreReady)return;const epoch=this.epoch,token=this.lastToken;try{const a=await authorityProjection(this);if(!this.current(epoch,token)||a.version!==1||!a.managementAvailable||!hasCapability(a,"commerce.fulfillment.manage")){if(this.visible&&epoch===this.epoch)this.invalidate();}}catch{if(this.visible&&epoch===this.epoch)this.invalidate();}},
  filter(){return `state=${states[this.data.stateIndex]||states[0]}&orderNumber=${encodeURIComponent(this.data.orderNumber.trim())}`;},
  async load(next=false){if(!this.visible||this.data.busy)return;const cursor=next?this.data.nextCursor:null;if(next&&(!this.canAct()||!cursor||this.data.loadedFilter!==this.filter()))return;
@@ -30,7 +30,7 @@ Page({
   const filter=this.filter();this.setData({loading:true,coreReady:false,error:"",items:[],nextCursor:null});
   try{const a=await authorityProjection(this);if(!this.current(epoch,token))return;if(a.version!==1||!a.managementAvailable||!hasCapability(a,"commerce.fulfillment.manage"))throw {status:403};
    const result=await pageRead<{items:Row[];nextCursor:string|null}>(this,{path:`/v1/management/shipments?${filter}&limit=50${cursor?`&before=${encodeURIComponent(cursor)}`:""}`});if(!this.current(epoch,token))return;
-   this.setData({items:result.items.map(r=>({...r,stateLabel:labels[r.logisticsState]||"待核验"})),nextCursor:result.nextCursor,loadedFilter:filter,coreReady:true});
+   this.setData({items:result.items.map(r=>({...r,stateLabel:labels[r.logisticsState]||"待核验"})),nextCursor:result.nextCursor,loadedFilter:filter,coreReady:true,canOrders:hasCapability(a,"commerce.order.read")});
   }catch(e){if(this.visible&&epoch===this.epoch)this.invalidate([401,403].includes((e as {status?:number})?.status??0)?"当前账号没有履约权限，请返回管理中心。":"暂时无法更新订单，请重试或返回管理中心查看履约状态。");}finally{if(this.visible&&epoch===this.epoch){this.setData({loading:false});if(!this.current(epoch,token))this.invalidate();else this.poll();}}
  },
  onState(e:WechatMiniprogram.PickerChange){if(this.canAct()){this.setData({stateIndex:Number(e.detail.value),nextCursor:null});void this.load();}},
@@ -77,6 +77,6 @@ Page({
  },
  async reconcileBatch(){if(!this.canAct()||!this.data.batchPending||this.data.loadedFilter!==this.filter())return;const epoch=this.epoch,token=this.lastToken;this.setData({busy:true});try{const approved=await new Promise<boolean>(resolve=>wx.showModal({title:"结束未确认批次",content:"请先逐单核对发货记录。结束本批只会清除本页的重试记录，不会撤销已保存的发货信息，也不代表微信同步成功。核对完成后再开始下一批。",confirmText:"已核对",success:r=>resolve(r.confirm),fail:()=>resolve(false)}));if(approved&&this.current(epoch,token)){this.batchKey="";this.frozenRows="";this.setData({rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,confirmed:false,results:[],batchPending:false,batchLocked:false,notice:"上批重试记录已清除，已保存的订单信息不变。"});}}finally{if(this.current(epoch,token))this.setData({busy:false});}},
  newBatch(){if(!this.canAct())return;if(this.data.batchPending){this.setData({notice:"上批结果未确认，请先用原内容重试并核对逐行结果。"});return;}this.batchKey="";this.frozenRows="";this.setData({rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,confirmed:false,results:[],notice:"",batchLocked:false,batchPending:false});},
- openImportOrder(e:WechatMiniprogram.TouchEvent){if(!this.canAct())return;const id=String(e.currentTarget.dataset.id??'');if(!this.data.results.some(r=>r.orderId===id))return;wx.navigateTo({url:`/pages/management-order-detail/index?id=${encodeURIComponent(id)}`});},
+ openImportOrder(e:WechatMiniprogram.TouchEvent){if(!this.canAct()||!this.data.canOrders)return;const id=String(e.currentTarget.dataset.id??'');if(!this.data.results.some(r=>r.orderId===id))return;wx.navigateTo({url:`/pages/management-order-detail/index?id=${encodeURIComponent(id)}`});},
  retry(){void this.load();},next(){void this.load(true);},back(){wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/management/index"})});}
 });

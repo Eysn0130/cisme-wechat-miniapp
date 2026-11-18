@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "4913a4e269970b93cd98a94d5550e0bde38baa3cadda99cc4c58fd370c55a08f",
+  "packageSourceSha256": "295ecbc1f424079cf7450461584fe5c8417a90d8252b8d9ef205e98ee5126b7c",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-17 owner community-only guest and confirmed membership source rebind. Scoped native login/community verification is separate; the full 48-route/device state matrix remains honestly pending.",
+  "note": "2026-11-17 current community-only guest, confirmed membership and management simplification source. Scoped DevTools checks are separate; full route/font/state and current physical-device matrix remains pending.",
   "previousSourceRecord": {
     "packageSourceSha256": "e4fcf5d3350c18ad3324d4f9406c40f508cae961649bc34c26151418a24c0c2a",
     "scope": "PR 115 compliance package 0.1.56 before the owner community-only guest/confirmed-membership correction. Historical screenshots and physical checks are not inherited."

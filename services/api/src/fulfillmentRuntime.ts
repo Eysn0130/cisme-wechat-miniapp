@@ -43,10 +43,10 @@ export function shippingAuthorization(config:AppConfig,now=()=>Date.now()){
   };
   // Keep local fulfillment and independent workers available when the remote
   // shipping grant expires. Each remote operation still validates it below.
-  return (capability:ShippingCapability|LogisticsCapability|LogisticsQueryCapability|LogisticsMessageCapability,binding?:ShippingBinding&{appId?:string})=>{
+  return (capability:ShippingCapability|LogisticsCapability|LogisticsQueryCapability|LogisticsMessageCapability,binding?:Partial<ShippingBinding>&{merchantId:string;appId?:string})=>{
     const grant=read();
     if(!(grant.capabilities as string[]).includes(capability)||['logistics.tracking.read','logistics.query.register','logistics.message.register'].includes(capability)&&binding?.appId!==profile!.appId||binding&&binding.merchantId!==profile!.merchantId
-      || binding&&config.env==='staging'&&!ownerExperienceCommerceScope(config,grant)&&!(grant.orderNumbers as string[]).includes(binding.merchantOrderNumber))denied();
+      || binding&&config.env==='staging'&&!ownerExperienceCommerceScope(config,grant)&&(typeof binding.merchantOrderNumber!=='string'||!(grant.orderNumbers as string[]).includes(binding.merchantOrderNumber)))denied();
     return String(grant.approvalReference);
   };
 }
@@ -95,9 +95,11 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
     testMessageChannel??new WechatLogisticsMessageClient(token,authorize,fetch,()=>{cached=undefined;}),{
       encryptionKey:derive(config.contacts.encryptionKey!,'cisme-logistics-message-encryption-v1'),
       hashKey:derive(config.contacts.hashKey!,'cisme-logistics-message-binding-v1'),keyVersion:config.contacts.keyVersion});
-  const service=new OrderFulfillmentService(pool,authority,addresses,sync,true,new WechatLogisticsClient(token,authorize),messages);
+  const queryChannel=testQueryChannel??new WechatLogisticsQueryClient(token,authorize,fetch,'query',()=>{cached=undefined;});
+  const service=new OrderFulfillmentService(pool,authority,addresses,sync,true,new WechatLogisticsClient(token,authorize),messages,
+    queryChannel.carriers?()=>queryChannel.carriers!({appId:profile.appId,merchantId:profile.merchantId}):undefined);
   const logisticsView=new LogisticsViewService(pool,new DeliveryAddressService(pool,config),sync,
-    testQueryChannel??new WechatLogisticsQueryClient(token,authorize,fetch,'query',()=>{cached=undefined;}),{appId:profile.appId,merchantId:profile.merchantId,
+    queryChannel,{appId:profile.appId,merchantId:profile.merchantId,
       encryptionKey:derive(config.contacts.encryptionKey!,'cisme-logistics-query-encryption-v1'),
       hashKey:derive(config.contacts.hashKey!,'cisme-logistics-query-binding-v1'),keyVersion:config.contacts.keyVersion,
       imageUrl:code=>catalogPublicImageUrl(imageOrigin,code)});
