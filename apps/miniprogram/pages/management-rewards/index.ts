@@ -71,7 +71,7 @@ Page({
   if(this.data.busy||!this.data.manager?.permissions.fulfill)return;
   const epoch=this.epoch,attempt=++this.detailAttempt;
   const current=()=>this.current(epoch)&&attempt===this.detailAttempt&&this.data.sheet==='detail';
-  this.setData({sheet:'detail',detail:null,error:'',reasonInput:'',trackingInput:'',carrierInput:''});
+  this.setData({sheet:'detail',detail:null,detailState:'',detailShippedDate:'',detailReceivedDate:'',error:'',reasonInput:'',trackingInput:'',carrierInput:''});
   try{
    const detail=await rewardClaim(this,String(event.currentTarget.dataset.id),true);
    if(current())this.setData({detail,detailState:rewardState[detail.state]??'状态待更新',

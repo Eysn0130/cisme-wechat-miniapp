@@ -113,11 +113,13 @@ it('does not let a cancelled claim read replace the current shipment detail',asy
  await import('../../apps/miniprogram/pages/management-rewards/index');
  Object.assign(page,{alive:true,visible:true,token:app.globalData.sessionToken});
  page.data.manager={permissions:{fulfill:true}};
+ page.setData({detailState:'已收货',detailShippedDate:'2026.11.17',detailReceivedDate:'2026.11.18'});
  const stale=deferred<any>(),current=deferred<any>();
  services.rewardClaim.mockReturnValueOnce(stale.promise).mockReturnValueOnce(current.promise);
  const old=page.openDetail({currentTarget:{dataset:{id:claimId}}});
  page.closeSheet();
  const fresh=page.openDetail({currentTarget:{dataset:{id:quoteId}}});
+ expect(page.data).toMatchObject({detail:null,detailState:'',detailShippedDate:'',detailReceivedDate:''});
  current.resolve({id:quoteId,state:'placed'});await fresh;
  stale.resolve({id:claimId,state:'placed'});await old;
  expect(page.data.detail.id).toBe(quoteId);
