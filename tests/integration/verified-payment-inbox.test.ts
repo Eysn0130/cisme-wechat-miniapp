@@ -720,21 +720,25 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   const {AftersaleService}=await import('../../services/api/src/aftersale.js');
   const cases=new AftersaleService(pool,authority);
   const claim=await cases.request(buyer,order.id,'local-shipment-aftersale',{kind:'refund_only',reason:'合成发货竞争售后'});
+  expect(await service.managementList(actor,{state:'awaiting_dispatch',orderNumber:order.number})).toMatchObject({items:[]});
   await expect(service.dispatch(actor,order.id,'local-case-held-dispatch',input)).rejects.toMatchObject({code:'SHIPMENT_AFTERSALE_REVIEW_REQUIRED'});
   await expect(sync.prepare(actor,order.id,'local-case-held-sync',{carrierCode:'SF',trackingNumber:'SF123456789001',description:'合成包裹'},'synthetic-case-hold')).rejects.toMatchObject({code:'SHIPPING_AFTERSALE_REVIEW_REQUIRED'});
   await cases.act(buyer,claim.id,'local-shipment-case-cancel',{action:'cancel',expectedVersion:1,note:'合成案件撤回后允许重新核验'});
+  expect(await service.managementList(actor,{state:'awaiting_dispatch',orderNumber:order.number})).toMatchObject({items:[{id:order.id}]});
 
   const held=await seedOrder('LOCALHOLD01',null,await dbNow());
   const heldPaid=notification(held.number,'420000000000000LOCALHOLD01','EV-LOCAL-HOLD-01',(await dbNow()).toISOString());
   const heldEvent=await processor.receive(heldPaid.rawBody,heldPaid.headers);expect(await processor.processOne(heldEvent.inboxId)).toBe('applied');
   const heldVersion=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[held.id])).rows[0].version;
   const intent=await refundIntent({orderId:held.id,paymentId:heldEvent.inboxId,refundNumber:'LOCAL-HOLD-REFUND-01',refundCents:10000,eligibleCents:0});
+  expect(await service.managementList(actor,{state:'awaiting_dispatch',orderNumber:held.number})).toMatchObject({items:[]});
   await expect(service.dispatch(actor,held.id,'local-held-dispatch-01',{...input,expectedOrderVersion:heldVersion})).rejects.toMatchObject({code:'SHIPMENT_REFUND_REVIEW_REQUIRED'});
   const refundEvent=refundNotification({orderNumber:held.number,transactionId:'420000000000000LOCALHOLD01',refundNumber:'LOCAL-HOLD-REFUND-01',providerRefundId:'500000000000LOCALHOLD01',eventId:'EV-LOCAL-HOLD-REFUND-01',refundCents:10000,status:'SUCCESS',successTime:(await dbNow()).toISOString()});
   const receivedRefund=await refunds.receive(refundEvent.rawBody,refundEvent.headers);expect(await refunds.processOne(receivedRefund.inboxId)).toBe('applied');
   expect((await pool.query('SELECT state FROM commission_refund_intent WHERE id=$1',[intent])).rows[0].state).toBe('succeeded');
   const refundedVersion=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[held.id])).rows[0].version;
   await expect(service.dispatch(actor,held.id,'local-held-dispatch-02',{...input,expectedOrderVersion:refundedVersion})).rejects.toMatchObject({code:'SHIPMENT_REFUND_REVIEW_REQUIRED'});
+  expect(await service.managementList(actor,{state:'all',orderNumber:held.number})).toMatchObject({items:[]});
   const [one,two]=await Promise.all([service.dispatch(actor,order.id,'local-shipment-0001',input),service.dispatch(actor,order.id,'local-shipment-0001',input)]);
   expect(one).toEqual(two);expect(networkCalls).toBe(0);
   expect((await pool.query('SELECT count(*)::int n FROM commerce_shipment WHERE order_id=$1',[order.id])).rows[0].n).toBe(1);
@@ -834,6 +838,9 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   expect(parsedExport.rows).not.toContain('13800000000');
   const audit=(await pool.query("SELECT principal_id,after_state,created_at FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows;
   expect(audit).toHaveLength(1);expect(audit[0].after_state.count).toBe(1);expect(JSON.stringify(audit)).not.toContain('13800000000');
+  const heldExport=await service.managementList(actor,{state:'awaiting_dispatch',orderNumber:held.number},true);
+  expect(heldExport.workbook?.subarray(0,2).toString()).toBe('PK');
+  expect(heldExport.workbook?.toString('utf8')).not.toContain(held.number);
   async function readyParcel(suffix:string){
     const created=await seedOrder(suffix,null,await dbNow());
     const paidEvent=notification(created.number,`420000000000${suffix}`,`EV-${suffix}`,(await dbNow()).toISOString());
@@ -1033,12 +1040,13 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   expect((await pool.query('SELECT count(*)::int n FROM commission_ledger_entry')).rows[0].n).toBe(ledgerBefore);
   await expect(pool.query('DELETE FROM commerce_shipment_line WHERE shipment_id=$1',[one.id])).rejects.toThrow();
   await expect(pool.query('UPDATE commerce_shipment SET receipt_confirmed_at=NULL,version=version+1 WHERE id=$1',[one.id])).rejects.toThrow();
+  const exportAuditsBeforeRevoke=(await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows[0].n;
   const revoke=await pool.connect();await revoke.query('BEGIN');
   await revoke.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture' WHERE member_id=$1 AND capability='commerce.fulfillment.manage' AND revoked_at IS NULL",[actor]);
   const racing=service.managementList(actor,{state:'all'},true);
   const denied=expect(racing).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   await revoke.query('COMMIT');revoke.release();await denied;
-  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows[0].n).toBe(1);
+  expect((await pool.query("SELECT count(*)::int n FROM audit_log WHERE action='commerce.shipment.export' AND principal_id=$1",[`member:${actor}`])).rows[0].n).toBe(exportAuditsBeforeRevoke);
 
 });
 

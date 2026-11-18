@@ -203,6 +203,14 @@ export class OrderFulfillmentService {
         LEFT JOIN commerce_wechat_receipt_observation w ON w.order_id=o.id
         LEFT JOIN commerce_order_address a ON a.order_id=o.id
         WHERE o.status='paid' AND o.transaction_source_kind='verified_commerce'
+        -- A payment remains a paid fact after its refund. Only actionable
+        -- unshipped orders belong in picking lists; shipped history stays visible.
+        AND (s.id IS NOT NULL OR (
+          NOT EXISTS(SELECT 1 FROM commission_refund_intent i WHERE i.order_id=o.id AND i.state<>'closed')
+          AND NOT EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
+            WHERE r.order_id=o.id AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed'))))
+          AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case c WHERE c.order_id=o.id AND c.state NOT IN ('cancelled','rejected'))
+        ))
         AND ($1='all' OR ($1='awaiting_dispatch' AND s.id IS NULL) OR s.logistics_state=$1)
         AND ($2='' OR o.order_number=$2) AND ($3::uuid IS NULL OR o.id<$3::uuid)
         ORDER BY o.id DESC LIMIT $4`,[state,number,before,limit+1])).rows;
