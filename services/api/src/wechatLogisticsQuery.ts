@@ -35,7 +35,7 @@ export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
     catch(error){if(this.mode==='message')throw new DomainError('LOGISTICS_MESSAGE_NOT_DISPATCHED','物流消息尚未登记，将稍后重试',503);throw error;}
     let body:Record<string,unknown>;
     try{body=await boundedWechatJson<Record<string,unknown>>(await this.fetcher(`https://api.weixin.qq.com/cgi-bin/express/delivery/open_msg/${path}?access_token=${encodeURIComponent(token)}`,{
-      method:'POST',redirect:'error',signal:dependencySignal(15000),headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}));}
+      method:'POST',redirect:'error',signal:dependencySignal(15000),headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),path==='get_delivery_list'?262_144:65_536);}
     catch{throw new DomainError('LOGISTICS_QUERY_OUTCOME_UNKNOWN','物流详情请求尚未确认，请保留运单并联系客服核对',503);}
     if(body.errcode!==undefined&&body.errcode!==0){
       if(!Number.isSafeInteger(body.errcode))throw new DomainError('LOGISTICS_QUERY_OUTCOME_UNKNOWN','物流详情请求尚未确认，请稍后核对',503);
@@ -69,6 +69,9 @@ export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
         if(!name||Array.from(name).length>80||/[\u0000-\u001f\u007f]/.test(name))unavailable();
         return {id:row.delivery_id,name};
       });
+      const common=['SF','ZTO','YTO','YD','STO','EMS','JD','JT','DBL','YZPY'];
+      const rank=(id:string)=>{const index=common.indexOf(id);return index<0?common.length:index;};
+      this.carrierOptions.sort((a,b)=>rank(a.id)-rank(b.id));
       if(!this.carrierOptions.length)unavailable();
       this.readyUntil=Date.now()+60_000;return this.carrierOptions.map(row=>({...row}));}
     catch{unavailable();}

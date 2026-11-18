@@ -91,3 +91,7 @@ npx tsx scripts/wechat-trade-readiness.ts --configure-paths --published-version 
 
 
 上线前对照[官方 get_delivery_list 文档](https://developers.weixin.qq.com/miniprogram/dev/server/API/weixin-express/express-msg/api_get_delivery_list.html)确认 HTTP POST、delivery_list/count 与请求体；官方示例含 `(AU)` 国际编码。列表适配仅筛出当前大陆发货合同支持的编码并去重，不能因为存在不适用编码而拒绝整表；若没有可用编码或返回结构不正确仍明确不可用。实际交寄、查询和消息的买家/订单/编码校验不放宽。
+
+实际官方只读回执（2026-11-18 04:49 UTC）：get_delivery_list HTTP200 / errcode0，共1509项、其中1443项符合现有发货编码合同，含SF、YD，未登记任何运单或消息。完整列表超过普通小响应的可能性由定向回归覆盖：只有快递目录使用固定256KiB流式上限，其余身份、手机号、内容及运单注册响应继续64KiB。常用承运商按实际返回值前置，不伪造名称或开通状态。
+
+修复后的实际有界客户端于 2026-11-18 04:54 UTC 在正式微信应用的既有查询授权下只读验证成功：返回1443个受支持编码，SF/ZTO/YTO/YD/STO/EMS/JD等按实际名称前置；未传运单、未触发物流消息。该结果是目录/权限/实际解析能力，不替代首笔实寄轨迹或消息送达证据。
