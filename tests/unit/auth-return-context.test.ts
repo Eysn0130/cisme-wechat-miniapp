@@ -38,6 +38,18 @@ describe('Account return destinations belong to one live authentication flow',()
   }
   expect(wxMock.login).not.toHaveBeenCalled();expect(paths()).not.toContain('/v1/identity/wechat');
  });
+ it.each(['/pages/community/index','/pages/shop/index','/pages/profile/index'])('lands in Care after a fresh sign-in from %s',async(source)=>{
+  const {query}=await start(source);
+  await mount(query);await page.login();
+  expect(page.data.pendingDestination).toBe(home);
+  expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));
+ });
+ it('finishes new-member onboarding in Care without returning to a previously selected tab',async()=>{
+  newMember=true;const {query}=await start('/pages/shop/index');
+  await mount(query);await page.login();
+  expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:home}));
+  expect(runtime.globalData.onboardingReturnUrl).toBeUndefined();
+ });
  it('returns a guest to the same public page after cancelling a member action',async()=>{
   const {query}=await start('/pages/profile/index');
   pages=[{route:'pages/community/index'}, {route:'pages/account/index',options:query}];
