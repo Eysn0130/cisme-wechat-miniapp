@@ -70,6 +70,11 @@ export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAd
   cancelledAt: string | null; expiredAt: string | null; terminalReason: string | null; createdAt: string; updatedAt: string;
   paymentAvailable: boolean; transactionSourceKind:"synthetic_nonproduction"|"verified_commerce"; lines: OrderLine[]; address: TAddress | null;
 }
+export function orderLineSummary(line: {productName:string;skuLabel:string;quantity:number}): string {
+  const variant = line.skuLabel?.trim() || "";
+  const product = line.productName?.trim() || variant;
+  return `${product}${variant && variant !== product ? " · "+variant : ""} × ${line.quantity}`;
+}
 export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null;fulfillmentState?:string; wechatReceipt?:WechatReceiptState|null };
 export interface CommerceOrderPage {totalCount?:number|null;
   items: CommerceOrderSummary[]; nextCursor: string | null;

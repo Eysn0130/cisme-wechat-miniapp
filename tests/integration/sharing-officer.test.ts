@@ -105,6 +105,20 @@ it('requires a paid essence set before applications, isolates review authority a
   await expectOk(command(manager,'officer_state',{memberId:target.memberId,state:'active',expectedVersion:1,reason:'合成审核通过'},true));}
  expect((await service.mine(a.memberId)).canShare).toBe(true);expect((await pool.query('SELECT user_code FROM member_card_number WHERE member_id=$1',[a.memberId])).rows[0].user_code).toBe(codeA);const owned=await finance.management(manager.memberId,{memberId:a.memberId});expect('items'in owned&&owned.items.map((r:any)=>r.memberId)).toEqual([a.memberId]);expect((await pool.query('SELECT count(*)::int AS n FROM commercial_membership')).rows[0].n).toBe(0);
 });
+it('issues one non-product referral for community content and care while the qualifying product is offline',async()=>{
+ await pool.query("UPDATE catalog_product SET publication_status='unpublished' WHERE id=$1",[qualProduct]);
+ try{
+  const issue=(user:any,targetType:string,targetRef:string,sequence:string)=>expectOk(app.inject({
+   method:'POST',url:'/v1/shares',headers:{...auth(user),'idempotency-key':'sharing-entry-'+sequence},payload:{targetType,targetRef}
+  }));
+  const invite=await issue(a,'invite','home','officer');
+  const post=await issue(a,'post',randomUUID(),'article');
+  expect(invite.officerShareId).toMatch(/^[0-9a-f]{32}$/);
+  expect(post.officerShareId).toBe(invite.officerShareId);
+  expect((await issue(other,'invite','home','ordinary')).officerShareId).toBeNull();
+  expect(await service.visit(invite.officerShareId,'synthetic-public-entry-0001')).toMatchObject({productCode:null,visitToken:expect.any(String)});
+ }finally{await pool.query("UPDATE catalog_product SET publication_status='published' WHERE id=$1",[qualProduct]);}
+});
 it('creates native product attribution and keeps first permanent ownership until the buyer changes it',async()=>{
  shareA=(await expectOk(command(a,'share',{productCode:'sharing-test-product'}))).shareId;shareB=(await expectOk(command(b,'share',{productCode:'sharing-test-product'}))).shareId;
  const generic=await expectOk(app.inject({method:'POST',url:'/v1/shares',headers:{...auth(a),'idempotency-key':'sharing-generic-product'},payload:{targetType:'product',targetRef:'sharing-test-product'}}));expect(generic.officerShareId).toBe(shareA);

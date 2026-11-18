@@ -94,7 +94,8 @@ describe("native detail presentation preserves the authorized comments and sourc
     const buttons=[...body.matchAll(/<button\b(?:(?:"[^"]*")|(?:'[^']*')|[^'">])*?>[\s\S]*?<\/button>/g)].map(match=>match[0]);
     expect(buttons).toHaveLength(4);
     expect(buttons.map(button=>attribute(button,"bindtap")??`@${attribute(button,"open-type")}`))
-      .toEqual(["startComment","toggleLike","toggleSave","@share"]);
+      .toEqual(["startComment","toggleLike","toggleSave","retryShare"]);
+    expect(attribute(buttons[3]!,"open-type")).toBe("{{shareReady ? 'share' : ''}}");
     expect(body).not.toMatch(/<(?:input|textarea)\b|bind(?:input|confirm)=|sendComment|(?:view|read)Count|阅读量/);
     expect(buttons[0]).toContain("!commentAuthenticated ? '登录后评论'");expect(buttons[0]).toContain("commentsEnabled !== true ? '查看评论'");expect(buttons[0]).toContain("'说点什么…'");
     expect(body).not.toMatch(/post-comment-action|post-reference\/chat\.svg|commentCount/);

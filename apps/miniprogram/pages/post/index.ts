@@ -78,7 +78,7 @@ Page({
   commentDraftToken:null as string|null,
   commentDraftArticle:"",
   editorialSocialRefusal:null as string|null,
-  data: { rewardOwner:'',rewardRevision:0,officerShareId:'',blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", formalSource:false,ownerBusy:false,ownerWriteUnknown:false,ownerError:"",editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { rewardOwner:'',rewardRevision:0,shareReady:false,sharePreparing:false,officerShareId:'',blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", formalSource:false,ownerBusy:false,ownerWriteUnknown:false,ownerError:"",editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.cancelGallerySizing?.();this.readingRead=null;this.pendingReadingRestore=null;this.readingScrollRevision+=1;this.setData({ chromeStyle: currentChromeStyle() },()=>this.measureComposer()); },
   onReachBottom() {
     if(this.data.editorialSource&&!this.data.commentsError&&!this.data.composerOpen&&!this.data.blocksOpen)void this.loadMoreEditorialComments();
@@ -222,7 +222,7 @@ Page({
       : {};
     this.presentationKey=presentationKey;
     wx.hideShareMenu();
-    this.setData({viewerHasSession:Boolean(getApp<IAppOption>().globalData.sessionToken),composerEventId:++this.composerSequence,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null,commentCount:null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null,editorialCommentItems:[],aiLabel:"",ownerBusy:false,ownerWriteUnknown:false,ownerError:"", loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "", ...retained });
+    this.setData({shareReady:false,sharePreparing:false,viewerHasSession:Boolean(getApp<IAppOption>().globalData.sessionToken),composerEventId:++this.composerSequence,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null,commentCount:null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null,editorialCommentItems:[],aiLabel:"",ownerBusy:false,ownerWriteUnknown:false,ownerError:"", loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "", ...retained });
     try {
       const editorial = editorialStory(this.data.id);
       if (!editorial && isBundledEditorialId(this.data.id)) {
@@ -284,7 +284,7 @@ Page({
               });
               });
             });
-          wx.showShareMenu({menus:["shareAppMessage","shareTimeline"]});void this.prepareShare(attempt);
+          void this.prepareShare(attempt);
         }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;this.dropChangedArticleOwner(attempt);if(this.currentArticleLoad(attempt,token)){const missing=(error as {status?:number}).status===404;
           this.clearArticlePresentation();
           this.setData({loading:false,errorKind:missing?"missing":"load",errorTitle:missing?"这篇精选暂不可见":"暂时无法加载精选",error:missing?"内容已撤回或尚未发布，请返回社区。":"请检查网络后重试。"});}}
@@ -293,7 +293,6 @@ Page({
       if (editorial) {
         if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
         this.setData({ authorId: "brand:cisme", item: editorial, media: editorial.media ?? [editorial.image], mediaIndex: 0, loading: false, errorKind: "none", errorTitle: "", error: "" });
-        wx.showShareMenu({ menus: ["shareAppMessage","shareTimeline"] });
         void this.prepareShare(attempt);
         void this.loadSocial();
         return;
@@ -306,7 +305,6 @@ Page({
       this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, author: reviewed.author || "CISME 会员", publishedLabel: "用户投稿", provenanceLabel: "经作者授权并审核后展示" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、授权已失效，或链接无效。请返回社区查看其他内容。" });
       if (reviewed) {
         void this.loadSocial();
-        wx.showShareMenu({ menus: ["shareAppMessage","shareTimeline"] });
         void this.prepareShare(attempt);
       }
     }
@@ -846,11 +844,25 @@ Page({
     }
   },
   shareOwner:'',shareContext:-1,
-  async prepareShare(loadAttempt?: number) {
-    const attempt=loadAttempt??this.data.loadAttempt,token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();
-    this.shareOwner='';this.shareContext=-1;this.setData({shareId:'',officerShareId:''});
-    if(!token)return;const share=await prepareShareDetails('post',this.data.id);
-    if(this.readVisible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&this.data.item&&token===getApp<IAppOption>().globalData.sessionToken&&context===commerceContextRevision()){this.shareOwner=token;this.shareContext=context;this.setData({shareId:share?.shareId??'',officerShareId:share?.officerShareId??''});}
+  async prepareShare(loadAttempt?: number, fromTap = false) {
+    const attempt = loadAttempt ?? this.data.loadAttempt;
+    if (!this.data.item || this.data.sharePreparing) return;
+    const token = getApp<IAppOption>().globalData.sessionToken;
+    const context = commerceContextRevision();
+    const current = () => this.readVisible && this.data.pageAlive && this.data.loadAttempt === attempt
+      && token === getApp<IAppOption>().globalData.sessionToken && context === commerceContextRevision();
+    this.setData({shareReady:false,sharePreparing:Boolean(token),shareId:'',officerShareId:''});
+    const share = token ? await prepareShareDetails('post',this.data.id) : null;
+    if (!current()) return;
+    const ready = !token || Boolean(share?.shareId);
+    this.shareOwner = token;this.shareContext = context;
+    this.setData({shareReady:ready,sharePreparing:false,shareId:share?.shareId??'',officerShareId:share?.officerShareId??''}, () => {
+      if (ready && current()) wx.showShareMenu({menus:['shareAppMessage','shareTimeline']});
+      else if (fromTap && current()) wx.showToast({title:'分享卡暂未生成，请重试',icon:'none'});
+    });
+  },
+  retryShare(){
+    if (!this.data.shareReady) void this.prepareShare(this.data.loadAttempt,true);
   },
   async presentCommentCredit(kind:'ugc_comment'|'editorial_comment',id:string){
     const token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision(),article=this.data.id;

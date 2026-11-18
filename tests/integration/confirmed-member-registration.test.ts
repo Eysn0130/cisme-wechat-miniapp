@@ -9,6 +9,7 @@ import {processMemberPointSources} from '../../services/api/src/memberPointsClub
 const pool=testPool();
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,ALLOW_DEV_ADAPTERS:'true',
   APP_SESSION_SECRET:'synthetic-registration-session',UPLOAD_TOKEN_SECRET:'synthetic-registration-upload',
+  CONTACT_ENCRYPTION_KEY:'bc'.repeat(32),CONTACT_HASH_KEY:'de'.repeat(32),
   OBJECT_STORAGE_DRIVER:'api_gateway',WECHAT_APP_ID:'wx0000000000000001',WECHAT_APP_SECRET:'synthetic-registration-secret'});
 const consents=[{documentType:'privacy',version:'synthetic-registration-v1'},{documentType:'terms',version:'synthetic-registration-v1'}];
 const avatar='data:image/jpeg;base64,'+jpeg.encode({data:Buffer.alloc(16*16*4,180),width:16,height:16},80).data.toString('base64');
@@ -101,4 +102,28 @@ it('keeps member-edited nickname and avatar authoritative across later WeChat lo
   const again=await login('edited-profile');expect(again.memberId).toBe(identity.memberId);
   const current=(await app.inject({url:'/v1/me/profile',headers:headers(again.sessionToken)})).json();
   expect(current).toMatchObject({display_name:'会员改后的昵称',avatar_data_url:edited.avatar_data_url,avatar_revision:edited.avatar_revision,profile_revision:edited.profile_revision,card_number:first.json().card_number,user_code:first.json().user_code,registration_completed_at:first.json().registration_completed_at});
+});
+
+it('binds a signed-in visitor to the sharing officer only after confirmed WeChat registration',async()=>{
+  await pool.query(`INSERT INTO sharing_officer(member_id,referral_code,state)
+    SELECT member_id,user_code,'active' FROM member_card_number WHERE member_id=$1`,[admin.memberId]);
+  const share=await app.inject({method:'POST',url:'/v1/shares',headers:{...headers(admin.sessionToken),'idempotency-key':'confirmed-registration-share'},
+    payload:{targetType:'invite',targetRef:'home'}});
+  expect(share.statusCode,share.body).toBe(200);
+  const {officerShareId}=share.json();
+  const visit=await app.inject({method:'POST',url:`/v1/officer-shares/${officerShareId}/visits`,payload:{visitKey:'confirmed-registration-visit'}});
+  expect(visit.statusCode,visit.body).toBe(200);
+  const {visitToken}=visit.json();
+  const buyer=await login('officer-linked-registration');
+  const bind=()=>app.inject({method:'POST',url:'/v1/me/sharing-officer/commands',
+    headers:{...headers(buyer.sessionToken),'idempotency-key':'confirmed-registration-bind'},payload:{action:'bind_visit',input:{visitToken}}});
+  const blocked=await bind();
+  expect(blocked.statusCode,blocked.body).toBe(403);
+  expect(blocked.json().code).toBe('MEMBER_REGISTRATION_REQUIRED');
+  const saved=await app.inject({method:'PUT',url:'/v1/me/profile',headers:headers(buyer.sessionToken),
+    payload:{displayName:'合成推荐用户',avatarDataUrl:avatar,expectedVersion:0}});
+  expect(saved.statusCode,saved.body).toBe(200);
+  for(let i=0;i<2;i++){const bound=await bind();expect(bound.statusCode,bound.body).toBe(200);}
+  const relation=(await pool.query('SELECT officer_id,source FROM sharing_customer_relation WHERE buyer_id=$1',[buyer.memberId])).rows;
+  expect(relation).toEqual([{officer_id:admin.memberId,source:'first_touch'}]);
 });

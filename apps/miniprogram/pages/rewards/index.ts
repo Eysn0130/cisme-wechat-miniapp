@@ -17,7 +17,7 @@ const empty={wallet:null as RewardWallet|null,selection:null as RewardSelection|
 Page({
  ...foilEvents,
  alive:false,visible:false,epoch:0,token:'',context:0,forwardVoucher:'',fromCare:false,
- data:{...empty,...foilData,chromeStyle:currentChromeStyle(),reducedMotion:shouldReduceMotion(),mode:'wallet' as 'wallet'|'select'|'claim',tab:'rewards',inviteToken:'',invalidInvitation:false,voucherId:'',claimId:'',loading:true,busy:false,navigating:false,stateLabel:'',expiryLabel:'',claimDate:''},
+ data:{...empty,...foilData,chromeStyle:currentChromeStyle(),reducedMotion:shouldReduceMotion(),mode:'wallet' as 'wallet'|'select'|'claim',tab:'rewards',inviteToken:'',invalidInvitation:false,voucherId:'',claimId:'',loading:true,busy:false,navigating:false,stateLabel:'',expiryLabel:'',claimDate:'',shippedDate:'',receivedDate:''},
  onLoad(query:Record<string,string|undefined>){this.alive=true;this.fromCare=query.from==='care';this.forwardVoucher=uuid.test(query.voucher??'')?query.voucher!:'';const inviteToken=validRewardInvitation(query.invite)?query.invite:'';if(inviteToken)rememberRewardInvitation(inviteToken);this.setData({inviteToken,invalidInvitation:Boolean(query.invite&&!inviteToken),mode:query.claim?'claim':'wallet',selectionOpen:false,voucherId:query.voucher??'',claimId:query.claim??'',tab:query.tab==='coupons'?'coupons':'rewards'});},
  onShow(){this.visible=true;this.epoch++;const d=getApp<IAppOption>().globalData,next=d.sessionToken,revision=commerceContextRevision();
   if(this.token!==next||this.context!==revision){this.setData({...empty,selectionOpen:this.data.mode==='select'});}this.token=next;this.context=revision;
@@ -35,7 +35,8 @@ Page({
    }else{
     if(!uuid.test(this.data.claimId))throw {title:'领取订单链接无效'};
     const claim=await rewardClaim(this,this.data.claimId);if(!this.current(epoch))return;
-    this.setData({claim,memberId:claim.memberId,stateLabel:rewardState[claim.state]??'状态待更新',claimDate:rewardDate(claim.createdAt)});
+    this.setData({claim,memberId:claim.memberId,stateLabel:rewardState[claim.state]??'状态待更新',claimDate:rewardDate(claim.createdAt),
+      shippedDate:claim.shippedAt ? rewardExpiry(claim.shippedAt) : '', receivedDate:claim.receivedAt ? rewardExpiry(claim.receivedAt) : ''});
    }
    const pending=pendingReward(this.data.memberId);if(!this.current(epoch))return;this.setData({pending,unknown:Boolean(pending)});
    if(pending){const receipt=await rewardReceipt(this,pending.key);if(!this.current(epoch))return;

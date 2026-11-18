@@ -22,9 +22,11 @@
   </block>
  </block>
  <block wx:if="{{mode==='claim'&&claim}}">
-  <view class="reward-order-status"><text>{{claim.claimNumber}}</text><text class="reward-strong">{{stateLabel}}</text><text class="reward-small">{{claim.state==='placed'?'72小时内为你发出':claim.state==='shipped'?'洗护心意正在路上':claim.state==='received'?'谢谢你，认真照顾自己。':''}}</text></view>
+  <view class="reward-order-status"><text>{{claim.claimNumber}}</text><text class="reward-strong">{{stateLabel}}</text><text class="reward-small">{{claim.state==='placed'?'72小时内为你发出':''}}</text></view>
   <view class="reward-order-item"><image src="{{claim.item.image}}" mode="aspectFit"/><view><text class="reward-strong">{{claim.item.name}}</text><text>{{claim.item.shampoo}} {{claim.item.shampooMl}}mL</text><text>{{claim.item.conditioner}} {{claim.item.conditionerMl}}mL</text></view></view>
-  <view wx:if="{{claim.trackingNumber}}" class="reward-order-info"><view class="reward-section-head"><text class="reward-strong">{{claim.carrierName}}</text><button class="action-text" bindtap="copyTracking">复制单号</button></view><text>{{claim.trackingNumber}}</text></view>
+  <view wx:if="{{claim.trackingNumber}}" class="reward-order-info"><view class="reward-section-head"><text class="reward-strong">{{claim.carrierName}}</text><button class="action-text" bindtap="copyTracking">复制单号</button></view><text>{{claim.trackingNumber}}</text>
+  <text wx:if="{{shippedDate}}" class="reward-small">发货 {{shippedDate}}</text>
+  <text wx:if="{{receivedDate}}" class="reward-small">收货 {{receivedDate}}</text></view>
   <view wx:if="{{claim.address}}" class="reward-order-info"><text class="reward-strong">{{claim.address.recipientName}} · {{claim.address.phone}}</text><text>{{claim.address.province}}{{claim.address.city}}{{claim.address.district}} {{claim.address.detail}}</text></view>
   <view class="reward-order-info reward-order-info--row"><text>领取日期 {{claimDate}}</text><text class="reward-strong">实付 ¥0.00</text></view>
   <view wx:if="{{claim.couponId}}" class="purchase-ticket {{newCoupon?'purchase-ticket--arrive':''}}" data-foil-surface="coupon" bindtouchstart="beginFoil" bindtouchmove="moveFoil" bindtouchend="endFoil" bindtouchcancel="endFoil"><card-foil id="receipt-foil" intro="{{newCoupon}}" active="{{foilSurface==='coupon'}}" x="{{foilX}}" y="{{foilY}}" reduced="{{reducedMotion}}"/><view class="purchase-ticket__value"><text class="purchase-ticket__currency">¥</text><text class="purchase-ticket__amount">20</text></view><view class="purchase-ticket__copy"><text class="reward-strong">体验正装券已到账</text><text>满 ¥198 可用 · 30天有效</text></view><button class="action-text" bindtap="openCoupons">查看</button></view>

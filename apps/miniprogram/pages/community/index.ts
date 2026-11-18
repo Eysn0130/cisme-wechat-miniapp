@@ -10,6 +10,8 @@ import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { memberIdentity } from "../../services/member-identity";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { readFollowingFeed } from "../../services/following-feed";
+import { prepareShareDetails, registerIncomingShare } from "../../services/share";
+import { incomingOfficerShare } from "../../services/officer-attribution";
 import { createComposeMediaIntent,discardComposeMediaIntent,revokeComposeMediaIntents,type ComposeMediaIntentPayload } from "../../services/community-compose-intent";
 
 type PublisherOwner={token:string;revision:number;epoch:number};
@@ -59,6 +61,12 @@ Page({
   readOwner: "",
   readVisible:true,
   followingRequested:false,
+  shareAttempt:0,
+  shareCard:null as {token:string; context:number; link:NonNullable<Awaited<ReturnType<typeof prepareShareDetails>>>} | null,
+  onLoad(query: Record<string,string|undefined> = {}) {
+    void registerIncomingShare(query.share_id,"invite","home");
+    if (query.officer_share) void incomingOfficerShare(query.officer_share).catch(() => {});
+  },
   publisherAlive:true,publisherEpoch:0,publisherOwner:null as PublisherOwner|null,
   publisherNative:"" as ""|"privacy"|"picker"|"settings",publisherReturn:null as (()=>void)|null,
   publisherIntentId:"",publisherTransferActive:false,publisherNavigationEpoch:0,
@@ -78,6 +86,7 @@ Page({
     if(this.data.mode==="review")this.setData({mode:"featured"});
     this.publisherAlive=true;
     const nativePublisherReturn=Boolean(this.publisherNative&&this.publisherOwner&&this.publisherCurrent(this.publisherOwner,false)&&this.data.publishEntryOpen);
+    if (!nativePublisherReturn) void this.prepareCommunityShare();
     if(this.publisherTransferActive&&!this.publisherOwner)this.clearPublisherWork(false);
     if(this.publisherOwner&&!this.publisherCurrent(this.publisherOwner,false))this.clearPublisherWork(false);
     this.publisherReturn?.();this.publisherReturn=null;
@@ -108,6 +117,30 @@ Page({
     if(!nativeReturn)tab?.setCommunityPublisherAvailable?.(false);
     this.setData({ chromeHidden: false, canReview: false, profileReviewQueue: [], formalReportQueue:[],reportNextCursor:null,reportTotal:0,formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reviewActorId:"",reviewNotice:"" });
   },
+  async prepareCommunityShare() {
+    const attempt = ++this.shareAttempt;
+    const token = getApp<IAppOption>().globalData.sessionToken;
+    const context = commerceContextRevision();
+    this.shareCard = null;
+    wx.hideShareMenu?.();
+    const link = token ? await prepareShareDetails("invite","home") : null;
+    if (!this.readVisible || attempt !== this.shareAttempt || token !== getApp<IAppOption>().globalData.sessionToken ||
+        context !== commerceContextRevision()) return;
+    if (token && !link?.shareId) return;
+    if (link) this.shareCard = {token,context,link};
+    wx.showShareMenu?.({menus:["shareAppMessage","shareTimeline"]});
+  },
+  communityShareQuery() {
+    const card = this.shareCard;
+    if (!card || card.token !== getApp<IAppOption>().globalData.sessionToken || card.context !== commerceContextRevision()) return "";
+    const share = card.link;
+    return `share_id=${share.shareId}${share.officerShareId ? "&officer_share="+share.officerShareId : ""}`;
+  },
+  onShareAppMessage() {
+    const query = this.communityShareQuery();
+    return {title:"CISME 社区",path:`/pages/community/index${query ? "?"+query : ""}`};
+  },
+  onShareTimeline() {return {title:"CISME 社区",query:this.communityShareQuery()};},
   onUnload() {
     this.readVisible=false;
     this.publisherAlive=false;this.clearPublisherWork(false);

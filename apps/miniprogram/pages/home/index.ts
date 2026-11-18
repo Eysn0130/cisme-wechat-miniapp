@@ -137,7 +137,7 @@ function dailyHomeProjection(state: { usageReady: boolean; usageLoading: boolean
 }
 
 Page({
-  shareOwner:'',shareContext:-1,
+  shareOwner:'',shareContext:-1,shareAttempt:0,
   data: {
     shareId:'',officerShareId:'',onboardingRequired:false,onboardingOpen:false,memberId:'',giftOpen:false,giftLoading:false,giftError:'',giftInvite:'',giftVoucher:null as RewardVoucher|null,
     usageReady: false, usageLoading: false, usageToday: null as TodayUsage | null, usageAttempt: 0, usageDay: "",
@@ -220,8 +220,13 @@ Page({
   },
   onShow() {
     if(!requireGuestCommunityAccess("/pages/home/index"))return;
-    const sharingToken=getApp<IAppOption>().globalData.sessionToken;if(this.shareOwner!==sharingToken||this.shareContext!==commerceContextRevision()){this.shareOwner=sharingToken;this.shareContext=commerceContextRevision();this.setData({shareId:'',officerShareId:''});void this.prepareHomeShare();}
-    wx.showShareMenu({menus:['shareAppMessage','shareTimeline']});
+    const sharingToken = getApp<IAppOption>().globalData.sessionToken;
+    const sharingContext = commerceContextRevision();
+    wx.hideShareMenu?.();
+    this.shareOwner = sharingToken;
+    this.shareContext = sharingContext;
+    this.setData({shareId:'',officerShareId:''});
+    if (sharingToken) void this.prepareHomeShare();
     const giftOwner=homeGiftOwners.get(this),giftToken=getApp<IAppOption>().globalData.sessionToken;
     if(giftOwner&&(giftOwner.token!==giftToken||giftOwner.context!==commerceContextRevision())){homeGiftOwners.delete(this);this.setData({giftOpen:false,giftVoucher:null,giftLoading:false,giftError:''});}
     const pending = pendingCareCommands.get(this);
@@ -402,7 +407,16 @@ Page({
     this.setData({ accountOpening: true });
     wx.navigateTo({ url: "/pages/records/index", fail: () => { this.setData({ accountOpening: false }); wx.showToast({ title: "护理记录暂时无法打开，请重试", icon: "none" }); } });
   },
-  async prepareHomeShare(){const token=this.shareOwner,context=this.shareContext;if(!token)return;const link=await prepareShareDetails('invite','home');if(this.data.pageAlive&&token===getApp<IAppOption>().globalData.sessionToken&&context===commerceContextRevision())this.setData({shareId:link?.shareId??'',officerShareId:link?.officerShareId??''});},
+  async prepareHomeShare(){
+    const token = this.shareOwner, context = this.shareContext, attempt = ++this.shareAttempt;
+    const link = await prepareShareDetails('invite','home');
+    if (!link?.shareId || attempt !== this.shareAttempt || !this.data.pageAlive || !this.data.pageVisible ||
+        token !== getApp<IAppOption>().globalData.sessionToken || context !== commerceContextRevision()) return;
+    this.setData({shareId:link.shareId,officerShareId:link.officerShareId??''}, () => {
+      if (attempt === this.shareAttempt && this.data.pageVisible && token===getApp<IAppOption>().globalData.sessionToken && context===commerceContextRevision())
+        wx.showShareMenu({menus:['shareAppMessage','shareTimeline']});
+    });
+  },
   homeShareQuery(){const own=this.shareOwner===getApp<IAppOption>().globalData.sessionToken&&this.shareContext===commerceContextRevision();return [validRewardInvitation(this.data.giftInvite)?`gift=${this.data.giftInvite}`:'',own&&this.data.shareId?`share_id=${this.data.shareId}`:'',own&&this.data.officerShareId?`officer_share=${this.data.officerShareId}`:''].filter(Boolean).join('&');},
   onShareAppMessage(){const query=this.homeShareQuery();return {title:validRewardInvitation(this.data.giftInvite)?'领取你的旅行洗护礼遇':'CISME · 今日护理',path:`/pages/home/index${query?'?'+query:''}`,...(validRewardInvitation(this.data.giftInvite)?{imageUrl:'/assets/cisme/travel-reward-share-v2.jpg'}:{})};},
   onShareTimeline(){return {title:'CISME · 今日护理',query:this.homeShareQuery()};},

@@ -44,6 +44,15 @@ export function queueConfirmedReceipts(owner:string,receipts:ConfirmedPointRecei
 export function forgetOnboardingFeedback(owner:string,operation:string){const p=read(owner);write(owner,{...p,pending:p.pending.filter(x=>x.operation!==operation)});}
 export function pendingCredit(owner:string){const p=read(owner),now=Date.now();return p.pending.find(x=>now>=x.queuedAt&&now-x.queuedAt<lifetime)??null;}
 export function hasOnboardingFeedback(owner:string){return pendingCredit(owner)?.kind==='questionnaire';}
+/** Read the same receipt identity before starting the motion, without
+ * treating a partially played animation as seen. */
+export function hasUnseenCredit(owner:string,intent:CreditIntent,ids:string[]){
+ const p=read(owner);
+ if(!p.pending.some(x=>x.operation===intent.operation) || ids.some(id=>!commerceUuid.test(id))) return false;
+ if(intent.kind==='questionnaire') return !p.firstSeen && ids.length===1;
+ if(intent.kind==='care') return ids.some(id=>!p.careSeen[intent.day]?.includes(id));
+ return ids.some(id=>!p.contentSeen.includes(id));
+}
 export function consumeCredit(owner:string,intent:CreditIntent,ids:string[]){
  const p=read(owner);if(!p.pending.some(x=>x.operation===intent.operation)||ids.some(id=>!commerceUuid.test(id)))return false;
  if(intent.kind==='questionnaire'){if(p.firstSeen||ids.length!==1)return false;write(owner,{...p,pending:p.pending.filter(x=>x.operation!==intent.operation),firstSeen:ids[0]!});}

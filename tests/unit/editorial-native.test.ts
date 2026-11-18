@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {defaultEditorialPublisherName,defaultEditorialPublisherAvatar,officialEditorialPublisherId} from '../../apps/miniprogram/services/editorial-publisher';
 
-const mocks=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),renew:vi.fn(),token:"",share:vi.fn(),incoming:vi.fn()}));
+const mocks=vi.hoisted(()=>({request:vi.fn(),resume:vi.fn(),renew:vi.fn(),token:"",share:vi.fn(),incoming:vi.fn(),prepare:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/api",async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,request:mocks.request,resumeAuthentication:mocks.resume,requireMemberAccess:(url:string)=>{if(mocks.token)return true;mocks.resume(url);return false;},beginLegalRenewal:mocks.renew,clearAuthenticationRedirectSuppression:vi.fn()}));
 // Comment transport has its own actual-Page and real-HTTP suites. These
 // media/article tests isolate that independent read with its valid empty DTO.
 vi.mock("../../apps/miniprogram/services/page-requests",()=>({pageRead:(_page:unknown,options:{path:string})=>
  /\/editorial\/articles\/[^/]+\/comments\?/.test(options.path)?Promise.resolve({comments:[],authors:{},commentCount:0,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:0,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-28T00:00:00Z"}):mocks.request(options),cancelPageReads:vi.fn()}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>"",motionDuration:()=>0}));
-vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:mocks.share,registerIncomingShare:mocks.incoming}));
+vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:mocks.prepare,prepareShareLink:mocks.share,registerIncomingShare:mocks.incoming}));
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",secondId="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const mediaPath=`/v1/editorial/media/${articleId}/${"d".repeat(64)}`;
 const card=(id=articleId)=>({id,title:"经授权的精选标题",excerpt:"来源清楚的摘要",authorId,author:"公开作者名",avatar:"",coverUrl:mediaPath,publishedAt:"2026-10-26T09:00:00Z",likeCount:0,saveCount:0});
@@ -25,12 +25,26 @@ async function mount(name:"post"|"community"|"community-author",query:Record<str
  return page;
 }
 beforeEach(()=>{
- vi.resetModules();mocks.request.mockReset();mocks.resume.mockReset();mocks.renew.mockReset();mocks.share.mockReset();mocks.incoming.mockReset();mocks.token="";
+ vi.resetModules();mocks.request.mockReset();mocks.resume.mockReset();mocks.renew.mockReset();mocks.share.mockReset();mocks.incoming.mockReset();mocks.prepare.mockReset().mockResolvedValue(null);mocks.token="";
  (globalThis as any).getApp=()=>({globalData:{sessionToken:mocks.token,apiBaseUrl:"https://synthetic.invalid"}});
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(updates:any,callback?:()=>void){for(const [key,value]of Object.entries(updates))patch(this.data,key,value);callback?.();}};};
  (globalThis as any).wx={hideShareMenu:vi.fn(),showShareMenu:vi.fn(),showToast:vi.fn(),navigateTo:vi.fn(),navigateBack:vi.fn(),switchTab:vi.fn(),setClipboardData:vi.fn(),getStorageSync:vi.fn(),pageScrollTo:vi.fn()};
 });
 const imageEvent=(src=page.data.media[0],identity=page.data.imageEventId,index=0)=>({currentTarget:{dataset:{src,imageIdentity:identity,index}},detail:{width:750,height:1000}});
+
+it("keeps the community share menu hidden until the officer link is ready",async()=>{
+ const prepared=delayed();mocks.token="member-session";mocks.prepare.mockReturnValue(prepared.promise);
+ await mount("community");
+ const ready=page.prepareCommunityShare();
+ expect((globalThis as any).wx.hideShareMenu).toHaveBeenCalled();
+ expect((globalThis as any).wx.showShareMenu).not.toHaveBeenCalled();
+ prepared.resolve({shareId:"a".repeat(32),officerShareId:"b".repeat(32)});await ready;
+ expect((globalThis as any).wx.showShareMenu).toHaveBeenCalled();
+ expect(page.onShareAppMessage().path).toBe("/pages/community/index?share_id="+"a".repeat(32)+"&officer_share="+"b".repeat(32));
+ expect(page.onShareTimeline().query).toContain("officer_share="+"b".repeat(32));
+ mocks.token="replaced-session";
+ expect(page.onShareAppMessage().path).toBe("/pages/community/index");
+});
 
 describe("published editorial native contracts",()=>{
  it.each(['community','post','community-author'] as const)('shows the brand portrait on %s while preserving the real article and author relationships',async(name)=>{
