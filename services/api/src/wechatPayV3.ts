@@ -245,9 +245,10 @@ export class WechatPayV3Client{
   }
   async createJsapiPrepay(input:{appId:string;outTradeNo:string;payerOpenid:string;totalCents:number;
     description:string;notifyUrl:string;expiresAt:Date}){
+    const descriptionLength=Array.from(input.description).length;
     if(!/^[A-Za-z0-9_-]{6,32}$/.test(input.outTradeNo)||!Number.isSafeInteger(input.totalCents)||
       input.totalCents<1||input.totalCents>9_900_000_000||
-      !/^https:\/\/[^?#]+$/.test(input.notifyUrl)||input.description.length<1||input.description.length>127)
+      !/^https:\/\/[^?#]+$/.test(input.notifyUrl)||descriptionLength<1||descriptionLength>127)
       reject("预支付参数无效");
     const body=JSON.stringify({appid:input.appId,mchid:this.merchantId,description:input.description,
       out_trade_no:input.outTradeNo,time_expire:input.expiresAt.toISOString(),notify_url:input.notifyUrl,
