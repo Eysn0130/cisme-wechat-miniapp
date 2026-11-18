@@ -88,3 +88,6 @@ npx tsx scripts/wechat-trade-readiness.ts --configure-paths --published-version 
 
 
 2026-11-18 04:03 UTC：依据经营者再次明确的社区游客范围、必需确认头像昵称及用户修改资料优先规则，将隐私正文对齐为 `2026-11-18-v2-registration`，SHA-256 `497bc9a07f8f9955c471562b3a7a5f185c012df4667e16df6dd088766def2f29`，正式与体验均经版本化发布器持久化核验。仅修正资料确认、公开页面范围及普通社区已上线事实；条款 v6、历史 v1 正文和全部已有同意保留，没有代理创建会员同意。微信公众平台隐私表单仍需同步这份正文；客户端重新请求同意由会员本人完成。
+
+
+上线前对照[官方 get_delivery_list 文档](https://developers.weixin.qq.com/miniprogram/dev/server/API/weixin-express/express-msg/api_get_delivery_list.html)确认 HTTP POST、delivery_list/count 与请求体；官方示例含 `(AU)` 国际编码。列表适配仅筛出当前大陆发货合同支持的编码并去重，不能因为存在不适用编码而拒绝整表；若没有可用编码或返回结构不正确仍明确不可用。实际交寄、查询和消息的买家/订单/编码校验不放宽。

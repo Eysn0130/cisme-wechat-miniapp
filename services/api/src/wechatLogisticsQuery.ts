@@ -58,12 +58,18 @@ export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
         ||body.delivery_list.some(x=>!x||typeof x!=='object'||typeof x.delivery_id!=='string'||!x.delivery_id||x.delivery_id.length>80)
         ||body.count!==undefined&&body.count!==body.delivery_list.length)unavailable();
       const seen=new Set<string>();
-      this.carrierOptions=(body.delivery_list as Array<{delivery_id:string;delivery_name?:unknown}>).map(row=>{
-        if(!/^[A-Z0-9_]{2,32}$/.test(row.delivery_id)||seen.has(row.delivery_id))unavailable();seen.add(row.delivery_id);
+      // The official list includes international IDs such as "(AU)". Keep
+      // entries supported by our existing mainland dispatch contract; one
+      // unsupported ID must not disable SF/YD or query registration readiness.
+      this.carrierOptions=(body.delivery_list as Array<{delivery_id:string;delivery_name?:unknown}>)
+        .filter(row=>/^[A-Z0-9_]{2,32}$/.test(row.delivery_id)).filter(row=>{
+          if(seen.has(row.delivery_id))return false;seen.add(row.delivery_id);return true;
+        }).map(row=>{
         const name=typeof row.delivery_name==='string'?row.delivery_name.trim():row.delivery_id;
         if(!name||Array.from(name).length>80||/[\u0000-\u001f\u007f]/.test(name))unavailable();
         return {id:row.delivery_id,name};
       });
+      if(!this.carrierOptions.length)unavailable();
       this.readyUntil=Date.now()+60_000;return this.carrierOptions.map(row=>({...row}));}
     catch{unavailable();}
   }
