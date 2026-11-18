@@ -8,7 +8,7 @@ vi.mock('../../apps/miniprogram/services/page-requests', () => ({
   pageRead: (_page: unknown, input: unknown) => m.read(input), cancelPageReads: vi.fn()
 }));
 vi.mock('../../apps/miniprogram/services/authority', () => ({ authorityProjection: m.authority }));
-vi.mock('../../apps/miniprogram/services/layout', () => ({ currentChromeStyle: () => '' }));
+vi.mock('../../apps/miniprogram/services/layout', () => ({shouldReduceMotion:()=>false, currentChromeStyle: () => '' }));
 vi.mock('../../apps/miniprogram/services/orders', () => ({ clientOperationKey: m.operationKey }));
 vi.mock('../../apps/miniprogram/services/commerce-command-store', () => ({ commerceContextRevision: () => 0 }));
 vi.mock('../../apps/miniprogram/services/commerce', () => ({ centsToYuan: (cents: number) => (cents / 100).toFixed(2) }));

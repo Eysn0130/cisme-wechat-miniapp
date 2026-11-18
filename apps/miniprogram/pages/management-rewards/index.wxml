@@ -1,9 +1,9 @@
 <page-meta root-font-size="system" page-style="{{sheet?'overflow:hidden;':''}}"/>
 <view class="chrome-root" style="{{chromeStyle}}"><view class="topbar" aria-hidden="{{!!sheet}}"><button class="topbar__back" bindtap="back" aria-label="返回管理中心"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">活动奖励</text></view>
-<view class="page page--stack reward-admin" aria-hidden="{{!!sheet}}"><view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在更新活动"><view class="page-read-loading__indicator"/></view>
+<view class="page page--stack reward-admin {{reducedMotion || !motionActive ? 'loading--still' : ''}}" aria-hidden="{{!!sheet}}"><view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在更新活动"><view class="page-read-loading__indicator"/></view>
  <view wx:if="{{error}}" class="reward-admin-error" aria-live="assertive">{{error}}<button class="action-text {{busy||loading?'control--disabled':''}}" bindtap="retryLoad" disabled="{{busy||loading}}">重试</button></view>
  <view wx:if="{{pending}}" class="reward-admin-pending"><text class="reward-strong">上次操作待核对</text><button class="action-text {{busy?'control--disabled':''}}" bindtap="reconcile" loading="{{busy}}" disabled="{{busy}}">核对结果</button></view>
- <view wx:if="{{loading && !manager}}" class="reward-admin-cold" aria-label="正在获取活动"><view class="reward-admin-cold__heading"/><view class="reward-admin-cold__controls"/><view class="reward-claims-skeleton"><view/><view/></view></view>
+ <view wx:if="{{loading && !manager}}" class="reward-admin-cold" aria-label="正在获取活动"><view class="reward-admin-cold__heading loading-bone"/><view class="reward-admin-cold__controls loading-bone"/><view class="reward-claims-skeleton"><view class="loading-bone"/><view class="loading-bone"/></view></view>
  <block wx:if="{{manager}}">
   <view class="reward-workspace-heading">
    <picker class="reward-activity-picker" range="{{manager.activities}}" range-key="title" value="{{activityIndex}}" bindchange="activityChange" disabled="{{busy || pending || loading}}">

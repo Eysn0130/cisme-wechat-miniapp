@@ -2,9 +2,29 @@
   <view class="feed-grid">
     <view wx:for="{{[0, 1]}}" wx:for-item="columnIndex" wx:key="*this" class="feed-column">
       <button wx:for="{{feedColumns[columnIndex]}}" wx:for-item="card" wx:key="id" class="feed-card glass {{navigating ? 'control--disabled' : ''}}" data-id="{{card.id}}" bindtap="openPost" disabled="{{navigating}}" aria-label="阅读护理故事：{{card.title}}，作者{{card.author}}">
-        <image wx:if="{{card.image}}" class="feed-card__image" src="{{card.image}}" mode="widthFix" lazy-load="{{true}}"/>
+        <block wx:if="{{card.image}}">
+          <view wx:if="{{card.imageKey}}" class="feed-card__media feed-card__media--{{card.imagePhase}}">
+            <block wx:for="{{[card.imageKey]}}" wx:for-item="imageKey" wx:key="*this">
+              <image class="feed-card__image feed-card__image--{{card.imagePhase}}" src="{{card.image}}" mode="widthFix" lazy-load="{{true}}" data-image-key="{{imageKey}}" bindload="feedImageLoaded" binderror="feedImageFailed" bindanimationend="feedImageSettled"/>
+            </block>
+            <view wx:if="{{card.imagePhase === 'error'}}" class="feed-card__image-retry" data-image-key="{{card.imageKey}}" catchtap="retryFeedImage" aria-role="button" aria-label="图片未加载，点按重试">重试图片</view>
+          </view>
+          <image wx:else class="feed-card__image" src="{{card.image}}" mode="widthFix" lazy-load="{{true}}"/>
+        </block>
         <view class="feed-card__body"><view class="card-title feed-card__title">{{card.title}}</view><view class="feed-card__meta"><image wx:if="{{card.avatar}}" class="feed-card__avatar" src="{{card.avatar}}" mode="aspectFill" lazy-load="{{true}}"/><text class="feed-card__author">{{card.author}}</text></view></view>
       </button>
+    </view>
+  </view>
+</template>
+
+<template name="communitySkeleton">
+  <view class="feed-grid community-skeleton" aria-role="status" aria-label="正在加载护理故事">
+    <view wx:for="{{[0, 1]}}" wx:for-item="column" wx:key="*this" class="feed-column" aria-hidden="true">
+      <view wx:for="{{[0, 1]}}" wx:key="*this" class="community-skeleton__card">
+        <view class="community-skeleton__media {{column ? 'community-skeleton__media--short' : ''}}"/>
+        <view class="feed-card__body"><view class="community-skeleton__line"/><view class="community-skeleton__line community-skeleton__line--short"/><view class="feed-card__meta"><view class="community-skeleton__avatar"/><view class="community-skeleton__author"/></view></view>
+        <view class="community-skeleton__shine"/>
+      </view>
     </view>
   </view>
 </template>

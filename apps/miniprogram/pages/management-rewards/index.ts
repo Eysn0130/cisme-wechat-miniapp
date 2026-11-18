@@ -1,6 +1,6 @@
 import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess} from '../../services/api';
-import {currentChromeStyle} from '../../services/layout';
+import {currentChromeStyle,shouldReduceMotion} from '../../services/layout';
 import {cancelPageReads} from '../../services/page-requests';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 import {catalogList,type CatalogProduct} from '../../services/commerce';
@@ -14,11 +14,11 @@ const empty={...exportState,manager:null as RewardManagement|null,detail:null as
  importEntries:[] as RewardShipmentEntry[],importName:'',importReady:0,importErrors:0,importRegistered:0,sheet:'',titleInput:'',codeInput:'',reasonInput:'',issueInput:'',batchInput:'',stockInput:'',stockCode:'',stockDirection:1,stockVersion:0,stockVersions:{} as Record<string,number>,share:null as RewardShare|null,trackingInput:'',carrierInput:'',memberId:'',error:''};
 Page({
  alive:false,visible:false,epoch:0,token:'',context:0,target:{memberId:'',voucherId:'',claimId:'',tab:''},openedTarget:false,exportFiles:[] as string[],
- data:{...empty,from:'',through:'',fulfillTabs:[{id:'all',label:'全部'},{id:'placed',label:'待发货'},{id:'shipped',label:'已发货'},{id:'received',label:'已收货'},{id:'aftersale_requested',label:'售后中'},{id:'cancelled',label:'已取消'},{id:'closed',label:'已完成'}],exportKind:'',chromeStyle:currentChromeStyle(),loading:true,busy:false,activityId:'',activityIndex:0,activity:null as RewardActivity|null,tab:'activity',filter:'all',filterIndex:0,
+ data:{motionActive:true,reducedMotion:shouldReduceMotion(),...empty,from:'',through:'',fulfillTabs:[{id:'all',label:'全部'},{id:'placed',label:'待发货'},{id:'shipped',label:'已发货'},{id:'received',label:'已收货'},{id:'aftersale_requested',label:'售后中'},{id:'cancelled',label:'已取消'},{id:'closed',label:'已完成'}],exportKind:'',chromeStyle:currentChromeStyle(),loading:true,busy:false,activityId:'',activityIndex:0,activity:null as RewardActivity|null,tab:'activity',filter:'all',filterIndex:0,
   filters:[{code:'all',name:'全部'},{code:'unused',name:'待领取'},{code:'used',name:'已领取'},{code:'expired',name:'已过期'},{code:'revoked',name:'已撤销'}],exports:exportsList,exportIndex:0,exportAfter:'',nextCursor:null as string|null,hasMore:false,editingId:'',editingVersion:0,detailState:'',stockLabel:'',targetMemberId:''},
  onLoad(q:Record<string,string|undefined>={}){this.alive=true;this.target={memberId:q.memberId||'',voucherId:q.voucherId||'',claimId:q.claimId||'',tab:q.tab||''};this.setData({targetMemberId:this.target.memberId,tab:q.claimId||q.tab==='fulfill'?'fulfill':q.memberId?'issue':'activity',filter:'all'});},
- onShow(){this.visible=true;this.epoch++;this.cleanupExports();const token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();if(token!==this.token||context!==this.context)this.setData({...empty,activityId:'',activity:null});this.token=token;this.context=context;this.setData({busy:false});if(requireMemberAccess())void this.load();},
- onHide(){this.visible=false;this.epoch++;cancelPageReads(this);this.setData({sheet:'',detail:null,importEntries:[],importName:'',importReady:0,importErrors:0,importRegistered:0,issueInput:'',trackingInput:'',carrierInput:'',reasonInput:''});},
+ onShow(){this.visible=true;this.epoch++;this.cleanupExports();const token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();if(token!==this.token||context!==this.context)this.setData({...empty,activityId:'',activity:null});this.token=token;this.context=context;this.setData({busy:false,motionActive:true,reducedMotion:shouldReduceMotion()});if(requireMemberAccess())void this.load();},
+ onHide(){this.visible=false;this.setData({motionActive:false});this.epoch++;cancelPageReads(this);this.setData({sheet:'',detail:null,importEntries:[],importName:'',importReady:0,importErrors:0,importRegistered:0,issueInput:'',trackingInput:'',carrierInput:'',reasonInput:''});},
  onUnload(){this.alive=false;this.visible=false;this.epoch++;cancelPageReads(this);this.cleanupExports();this.setData({...empty});},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  current(epoch?:number){return this.alive&&this.visible&&(epoch===undefined||epoch===this.epoch)&&this.token===getApp<IAppOption>().globalData.sessionToken&&this.context===commerceContextRevision();},

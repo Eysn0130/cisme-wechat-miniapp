@@ -1,7 +1,7 @@
 import {beforeEach,it,expect,vi} from "vitest";
 import {PlatformService} from "../../services/api/src/platformService";
 import {FormalUgcService} from "../../services/api/src/formalUgc";
-vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
+vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>""}));
 
 const removed=["getTask","claimTask","authorizeMedia","completeMedia","deleteMedia","saveSubmissionDraft","submit","review","appeal","publishSubmission","updateCampaign"];
 it.each(removed)("permanently rejects retired task/proof %s before any database or object mutation",async name=>{

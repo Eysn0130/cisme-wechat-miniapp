@@ -3,7 +3,7 @@ const m=vi.hoisted(()=>({read:vi.fn(),request:vi.fn(),avatar:vi.fn(),token:'oper
 vi.mock('../../apps/miniprogram/services/api',()=>({requireMemberAccess:()=>true,request:m.request,registerPrivateExport:()=>vi.fn()}));
 vi.mock('../../apps/miniprogram/services/page-requests',()=>({pageRead:m.read,cancelPageReads:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({localMemberAvatar:m.avatar}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
 const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',other='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const scope={profile:true,contact:true,care:true,orders:true,points:true,rewards:true,issueRewards:true,administrators:false,sharing:true,commission:true,finance:true,support:true,privacy:true,manage:true,export:true};

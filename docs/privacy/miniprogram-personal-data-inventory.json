@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-11-17",
+  "inventoryDate": "2026-11-18",
   "wechatApis": [
     "wx.base64ToArrayBuffer",
     "wx.canIUse",
@@ -851,7 +851,7 @@
     }
   ],
   "migrationSetSha256": "a25f29043808d30fc562cd5d9f423b9b45dfc368c836cb60fcd2ff8954bdc231",
-  "egressSignatureSha256": "0a41c60115f1738f7d359d94342bc56770e95b9c6a939bbd5d3c08d75bea697e",
+  "egressSignatureSha256": "51385a8246d036be461cc5496918b981d47f9d77cb0361131ed2d02e0cbec0e7",
   "performanceRepairReview": {
     "date": "2026-09-20",
     "scope": "Reviewed changed direct/cloud request and server identity/phone/storage cancellation callsites. Destinations remain existing configured API, WeChat identity/phone endpoints and configured private storage; no new telemetry destination. No real personal data or credential used.",
@@ -1503,5 +1503,11 @@
     "storage": "The pending identity uses the existing canonical member/WeChat identity and consent records solely to recover an explicitly initiated login. It has no member_card_number row and is excluded from user-management listing/search/detail/export. Confirmed avatar/nickname and registration time commit atomically; existing private/public lookup numbers remain immutable.",
     "use": "Pending identities may only access own profile setup, legal acceptance and data rights. Member services, points and reward claims wait for registration; referral chronology uses formal registration time. No new recipient, phone collection or automatic point grant.",
     "rights": "Both identity creation and registration completion facts enter the existing owner-scoped portable copy. Existing account erasure, holds and suppression remain applicable; no new fixed-retention promise is made."
+  },
+  "loadingStateReview": {
+    "reviewed": true,
+    "packageSourceSha256": "113a2499c5bfdf7d97d6507346f2e594ad163386df699382aa469d17a2024c59",
+    "scope": "Existing wx.uploadFile, PUT and chunk endpoints retain original recipients, authorization, purpose and payload. Added local measured byte/phase feedback, completion/cancellation listener cleanup and retained exact server problem sanitization. No new analytics, storage destination or member consent.",
+    "accessBoundary": "Inaccessible aftersale routes clear private state and return to existing usable workspace; no new permission or role grant."
   }
 }

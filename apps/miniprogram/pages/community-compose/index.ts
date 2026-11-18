@@ -2,14 +2,19 @@ import {catalogList} from '../../services/commerce';
 import {confirmCreditOwner,queueContentFeedback} from '../../services/points-feedback';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
-import { request, resumeAuthentication, uploadAuthorized } from "../../services/api";
-import { currentChromeStyle } from "../../services/layout";
+import { request, resumeAuthentication, uploadAuthorized, type UploadProgressState } from "../../services/api";
+import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { clearUgcBackup, readUgcBackup, writeUgcBackup, type UgcLocalBackup } from "../../services/ugc-local-backup";
 import { consumeComposeMediaIntent, type ComposeMediaIntentPayload } from "../../services/community-compose-intent";
 import { editUgcLocalImage, ugcImageEditCapabilities } from "../../services/ugc-image-edit";
 import { hasTextCardContent, normalizeTextCardTemplate, normalizeTextCardText, textCardGraphemes, type TextCardTemplate } from "../../services/ugc-text-card-layout";
 
-type MediaItem = { id: string; localPath: string; previewUrl: string; size: number; state: "uploading" | "uploaded" | "failed"; progress: number; error: string };
+type MediaItem = { id: string; localPath: string; previewUrl: string; size: number; state: "uploading" | "uploaded" | "failed"; progress: number; error: string; progressKnown?:boolean; uploadPhase?:"preparing"|"uploading"|"assembling"|"confirming" };
+const uploadPresentation=(state:UploadProgressState):Partial<MediaItem>=>({
+  uploadPhase:state.phase==="uploaded"?"confirming":state.phase,
+  progressKnown:state.phase==="uploading"&&state.percent!==null,
+  progress:state.percent??0
+});
 type Draft = { directPublication?:boolean; id: string; ownerId:string; state: string; version: number; title: string; body: string;rewardKind?:'original'|'experience';experienceProductCode?:string|null;experienceDays?:number|null;
   revision?:number;publishedRevision?:number|null;moderationState?:string;revisionState?:string;
   publicVersionActive: boolean; media: Array<{ id: string; state: string }>;
@@ -83,7 +88,7 @@ Page({
   mediaPress:null as MediaPress|null,mediaDrag:null as MediaDrag|null,
   mediaDragTimer:null as ReturnType<typeof setTimeout>|null,mediaMoveTimer:null as ReturnType<typeof setTimeout>|null,mediaEdgeTimer:null as ReturnType<typeof setInterval>|null,
   mediaScrollPosition:0,mediaTapBlockedUntil:0,
-  data: { rewardKind:'original' as 'original'|'experience',experienceProductCode:'',experienceProductName:'',experienceDays:'',experienceLoading:false,directPublication:false,publicationComplete:false,chromeStyle: currentChromeStyle(), postId: "", ownerId:"", state: "draft", publicVersionActive: false, version: 0, title: "", body: "",
+  data: { reducedMotion:shouldReduceMotion(),editingUploadPhase:"preparing" as "preparing"|"uploading"|"assembling"|"confirming",editingProgressKnown:false,editingUploadProgress:0,rewardKind:'original' as 'original'|'experience',experienceProductCode:'',experienceProductName:'',experienceDays:'',experienceLoading:false,directPublication:false,publicationComplete:false,chromeStyle: currentChromeStyle(), postId: "", ownerId:"", state: "draft", publicVersionActive: false, version: 0, title: "", body: "",
     textCardVisible:false,textCardContext:"",textCardText:"",textCardHandoffPath:"",textCardTemplate:"plain" as TextCardTemplate,photoEditorVisible:false,photoEditorAdditional:false,photoEditorContext:"",photoEditorFiles:[] as Array<{path:string;size:number}>,
     files: [] as MediaItem[],mediaDragging:false,mediaDragId:"",mediaDragSource:"",mediaDragLeft:0,mediaDragTop:0,mediaDragSize:0,mediaDragDropping:false,mediaDragOffsets:[] as number[],mediaScrollLeft:0,
     drafts: [] as Array<{ id: string; title: string; status: string; state:string;version:number;imageCount: number;publicVersionActive?:boolean }>,
@@ -115,9 +120,10 @@ Page({
     else if (query.new === "1") void this.openNewIfAvailable();
     else void this.loadList();
   },
-  onResize() { this.cancelMediaDrag();this.setData({ chromeStyle: currentChromeStyle() }); },
+  onResize() { this.cancelMediaDrag();this.setData({ chromeStyle: currentChromeStyle(),reducedMotion:shouldReduceMotion() }); },
   onShow() {
     this.mediaVisible=true;
+    this.setData({reducedMotion:shouldReduceMotion()});
     const revision=commerceContextRevision();
     const token=getApp<IAppOption>().globalData.sessionToken;
     if(token===this.lastSessionToken&&revision===this.readRevision){
@@ -609,7 +615,7 @@ Page({
     const current=()=>this.pageAlive&&this.mediaVisible&&epoch===this.data.epoch&&postId===this.data.postId&&ownerId===this.data.ownerId&&baseVersion===this.data.version&&
       ["draft","rejected","published"].includes(this.data.state)&&mediaEpoch===this.mediaEpoch&&token===getApp<IAppOption>().globalData.sessionToken&&revision===commerceContextRevision()&&
       this.data.files.some(item=>item.id===id)&&(!candidate||this.imageEditCandidateIsCurrent(candidate));
-    this.setData({uploadBusy:true,imageEditingId:id,error:""});
+    this.setData({uploadBusy:true,imageEditingId:id,error:"",editingUploadPhase:"preparing",editingProgressKnown:false,editingUploadProgress:0});
     try{
       if(editedFile&&!candidate){candidate={key:operationKey(),postId,ownerId,epoch,token,revision,version:baseVersion,targetId:id,path:editedFile.path,size:editedFile.size,error:""};
         this.pendingImageEdit=candidate;this.setData({imageEditRecovery:true,imageEditRecoveryKey:candidate.key});this.syncUnloadWarning();}
@@ -632,8 +638,11 @@ Page({
       const mimeType=await mimeOf(result.tempFilePath);if(!current())return;
       const authorization=await request<{mediaId:string;url:string;method:"POST"|"PUT";fields:Record<string,string>}>({path:`/v1/me/ugc/posts/${postId}/media/authorize`,method:"POST",data:{mimeType,maxBytes:size}});
       if(!current())return;
-      await uploadAuthorized(result.tempFilePath,authorization,{registerAbort:abort=>{if(current())this.mediaAbort=abort;else abort();}});
+      await uploadAuthorized(result.tempFilePath,authorization,{registerAbort:abort=>{if(current())this.mediaAbort=abort;else abort();},onState:state=>{
+        if(current())this.setData({editingUploadPhase:state.phase==="uploaded"?"confirming":state.phase,editingProgressKnown:state.phase==="uploading"&&state.percent!==null,editingUploadProgress:state.percent??0});
+      }});
       if(!current())return;
+      this.setData({editingUploadPhase:"confirming",editingProgressKnown:false});
       await request({path:`/v1/me/ugc/posts/${postId}/media/${authorization.mediaId}/complete`,method:"POST",data:{}});
       if(!current())return;
       this.clearPendingImageEdit();
@@ -645,24 +654,30 @@ Page({
       if(this.pageAlive&&epoch===this.data.epoch&&postId===this.data.postId&&mediaEpoch===this.mediaEpoch&&token===getApp<IAppOption>().globalData.sessionToken){this.mediaAbort=null;this.setData({uploadBusy:false,imageEditingId:""});}}
   },
   updateMedia(id: string, patch: Partial<MediaItem>) {
+    const previous=this.data.files.find(file=>file.id===id);
+    if(!previous||Object.keys(patch).every(key=>previous[key as keyof MediaItem]===patch[key as keyof MediaItem]))return;
     this.setData({ files: this.data.files.map(file => file.id === id ? { ...file, ...patch } : file) });
   },
   async uploadImage(id: string, path: string, size: number, epoch: number, token: string, mediaEpoch: number) {
     const postId=this.data.postId;
+    let receivingProgress=true;
     const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&
       token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&postId===this.data.postId;
     try {
+      if(!current())return;
+      this.updateMedia(id,{uploadPhase:"preparing",progressKnown:false,progress:0});
       const mimeType = await mimeOf(path);
       if(!current())return;
       const authorization = await request<{ mediaId: string; url: string; method: "POST" | "PUT"; fields: Record<string, string> }>({
         path: `/v1/me/ugc/posts/${postId}/media/authorize`, method: "POST", data: { mimeType, maxBytes: size } });
       if (!current()) return;
       this.updateMedia(id, { id: authorization.mediaId }); id = authorization.mediaId;
-      await uploadAuthorized(path, authorization, { registerAbort: abort=>{if(current())this.mediaAbort=abort;else abort();},onProgress: progress => {
-        if(current())
-          this.updateMedia(id,{progress});
+      await uploadAuthorized(path, authorization, { registerAbort: abort=>{if(current())this.mediaAbort=abort;else abort();},onState: state => {
+        if(receivingProgress&&current())this.updateMedia(id,uploadPresentation(state));
       } });
+      receivingProgress=false;
       if(!current())return;
+      this.updateMedia(id,{uploadPhase:"confirming",progressKnown:false});
       await request({ path: `/v1/me/ugc/posts/${postId}/media/${id}/complete`, method: "POST", data: {} });
       if(current()){
         this.updateMedia(id, { state: "uploaded", progress: 100, error: "" });
@@ -672,7 +687,7 @@ Page({
     } catch (error) {
       if(current())
         this.updateMedia(id, { state: "failed", error: message(error, "上传失败，可点重试继续。") });
-    } finally {if(current())this.mediaAbort=null;}
+    } finally {receivingProgress=false;if(current())this.mediaAbort=null;}
   },
   async addContent(){
     if(this.mediaTapIsBlocked())return;

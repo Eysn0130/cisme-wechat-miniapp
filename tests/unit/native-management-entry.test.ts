@@ -1,5 +1,5 @@
 import {beforeEach,describe,expect,it,vi}from'vitest';
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'local-avatar',clearMemberAvatarCache:vi.fn(),localMemberAvatar:async()=> 'local-avatar'}));
 let runtime:any,storage:Map<string,unknown>,wxMock:any,page:any,capabilities:string[],holdAuthority:any;
 beforeEach(()=>{vi.resetModules();vi.clearAllMocks();capabilities=[];holdAuthority=null;storage=new Map();runtime={globalData:{sessionToken:'synthetic-member',apiBaseUrl:'https://synthetic.invalid'}};(globalThis as any).getApp=()=>runtime;(globalThis as any).getCurrentPages=()=>[{route:'pages/profile/index'}];(globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(values:any,callback?:()=>void){Object.assign(this.data,values);callback?.();}};};

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 const m=vi.hoisted(()=>({token:'actor-a',revision:0,origin:'https://synthetic.invalid',request:vi.fn(),login:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,resumeAuthentication:m.login}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.revision}));
 vi.mock('../../apps/miniprogram/services/member-identity',()=>({memberIdentity:()=>null}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'/avatar',localMemberAvatar:async()=>'/avatar',prepareFeedPage:async(p:any)=>p.items,prepareFeedAuthors:async(p:any)=>p}));

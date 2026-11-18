@@ -1,7 +1,7 @@
 import {beforeEach,describe,expect,it,vi} from 'vitest';
 const m=vi.hoisted(()=>({request:vi.fn(),token:'member-a'}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,resumeAuthentication:vi.fn(),beginLegalRenewal:vi.fn(),clearAuthenticationRedirectSuppression:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',motionDuration:()=>0}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>'',motionDuration:()=>0}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'/default.svg',localMemberAvatar:async(value:string)=>value||'/default.svg',prepareFeedAuthors:async(value:unknown)=>value}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>1}));
 const postId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',authorId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',mediaId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';

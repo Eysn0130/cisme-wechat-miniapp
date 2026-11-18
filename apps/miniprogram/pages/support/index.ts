@@ -34,7 +34,7 @@ type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "a
 type Message = PresentedSupportMessage<RawMessage>;
 type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human_active" | "resolved"; version: number; memberReadSequence?: number; teamReadSequence?: number };
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
-type SelectedImage = { localPath: string; size: number; mimeType: string; status: "uploading" | "ready" | "failed"; progress: number; mediaId: string; error: string };
+type SelectedImage = { localPath: string; size: number; mimeType: string; status: "uploading" | "ready" | "failed"; progress: number; progressKnown?:boolean; uploadPhase?:"uploading"|"assembling"|"confirming"; mediaId: string; error: string };
 type OrderChoice = { id: string; orderNumberTail: string; status: string; statusLabel: string; totalYuan: string; totalCents: number; currency: "CNY"; productName: string; productImage: string | null; itemSummary: string };
 type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null; expectedConversationId: string | null; contextVersion: number };
 type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string };
@@ -703,7 +703,7 @@ Page({
     const ownerToken = sessionToken();
     const current = () => this.owns(epoch, ownerToken) && attempt === this.uploadAttempt;
     if (selected.mediaId) void request({ path: `/v1/me/support/media/${selected.mediaId}`, method: "DELETE", data: {}, cacheTags: ["support"] }).catch(() => {});
-    this.setComposerState({ uploadBusy: true, selectedImage: { ...selected, status: "uploading", progress: 0, mediaId: "", error: "" }, composerSendEnabled: false, error: "", errorAction: "" });
+    this.setComposerState({ uploadBusy: true, selectedImage: { ...selected, status: "uploading", progress: 0,progressKnown:false,uploadPhase:"uploading", mediaId: "", error: "" }, composerSendEnabled: false, error: "", errorAction: "" });
     try {
       const authorization = await request<any>({ path: "/v1/me/support/media/authorize", method: "POST", data: { mimeType: selected.mimeType, maxBytes: selected.size }, cacheTags: ["support"] });
       if (!current()) return;
@@ -712,7 +712,10 @@ Page({
       if (this.data.selectedImage) this.data.selectedImage.mediaId = mediaId;
       await uploadAuthorized(selected.localPath, authorization, {
         registerAbort: (abort) => { this.uploadAbort = abort; },
-        onProgress: (progress) => { if (current()) { this.setData({ "selectedImage.progress": progress }); if (this.data.selectedImage) this.data.selectedImage.progress = progress; } }
+        onState: (state) => { if (current() && this.data.selectedImage) {
+          const view={progress:state.percent??0,progressKnown:state.phase==="uploading"&&state.percent!==null,uploadPhase:state.phase==="uploaded"?"confirming" as const:state.phase};
+          if(this.data.selectedImage.progress!==view.progress||this.data.selectedImage.progressKnown!==view.progressKnown||this.data.selectedImage.uploadPhase!==view.uploadPhase){Object.assign(this.data.selectedImage,view);this.setData({selectedImage:{...this.data.selectedImage}});}
+        } }
       });
       if (!current()) return;
       await request({ path: `/v1/me/support/media/${mediaId}/complete`, method: "POST", data: {}, cacheTags: ["support"] });

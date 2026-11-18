@@ -1,6 +1,6 @@
 <page-meta root-font-size="system"/>
-<view class="page profile-page" style="{{chromeStyle}}">
-  <view wx:if="{{loading && !member}}" class="profile-skeleton" aria-live="polite"><view class="skeleton-line skeleton-line--short"></view><view class="skeleton-block"></view><view class="skeleton-block skeleton-block--list"></view></view>
+<view class="page profile-page {{reducedMotion || !motionActive ? 'loading--still' : ''}}" style="{{chromeStyle}}">
+  <view wx:if="{{loading && !member}}" class="profile-skeleton" aria-live="polite"><view class="skeleton-line skeleton-line--short loading-bone"></view><view class="skeleton-block loading-bone"></view><view class="skeleton-block skeleton-block--list loading-bone"></view></view>
   <block wx:if="{{member && points}}">
     <view class="profile-identity">
       <view class="profile-avatar-wrap"><button class="profile-avatar-button {{navigating ? 'control--disabled' : ''}}" bindtap="openAccount" aria-label="前往设置修改头像与昵称{{commercialEligible ? '，CISME 商业会员' : ''}}" disabled="{{navigating}}"><image class="profile-avatar" src="{{memberAvatar}}" mode="aspectFill"/></button><image wx:if="{{commercialEligible}}" class="profile-member-seal" src="/assets/icons/member-seal-plum.svg" mode="aspectFit" aria-hidden="true"/></view>

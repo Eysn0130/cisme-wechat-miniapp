@@ -13,8 +13,14 @@ export function nativePageTemplate(path:string):string {
   source=source.replace(/<include src="([^"]+)"\s*\/>/g,(_tag,src:string)=>nativePageTemplate(src.startsWith('/')?resolve('apps/miniprogram','.'+src):resolve(dirname(path),src)));
   const imported=source.match(/<import src="([^"]*community-feed\.wxml)"\s*\/>/);
   if(!imported)return source;
-  const template=readFileSync(resolve(dirname(path),imported[1]!),'utf8').replace(/^<template[^>]*>\s*/,'').replace(/\s*<\/template>\s*$/,'');
-  return source.replace(imported[0],'').replace(/<template is="communityFeed"[^>]*\/>/,template);
+  const templates=new Map<string,string>();
+  const definition=readFileSync(resolve(dirname(path),imported[1]!),'utf8');
+  for(const match of definition.matchAll(/<template name="([^"]+)"\s*>([\s\S]*?)<\/template>/g))templates.set(match[1]!,match[2]!);
+  return source.replace(imported[0],'').replace(/<template\b([^>]*?)\bis="([^"]+)"([^>]*?)\/>/g,(tag,before:string,name:string,after:string)=>{
+    const template=templates.get(name);if(template===undefined)return tag;
+    const condition=(before+after).match(/wx:if="([^"]+)"/);
+    return condition?`<block wx:if="${condition[1]}">${template}</block>`:template;
+  });
 }
 
 // Inline page fixtures must explicitly register real native custom components.

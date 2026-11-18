@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>"--cisme-safe-bottom:34px"}));
+vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>"--cisme-safe-bottom:34px"}));
 let revision=0;
 vi.mock("../../apps/miniprogram/services/commerce-command-store",()=>({commerceContextRevision:()=>revision}));
 let definition:any,component:any,wxMock:any,token:string,currentRoute:string,files:Map<string,{size:number;bytes:number[]}>,canvas:any,context:any,loadedPaths:string[];
