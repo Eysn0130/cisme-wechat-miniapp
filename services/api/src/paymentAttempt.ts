@@ -9,8 +9,8 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 type Attempt={id:string;order_id:string;out_trade_no:string;member_id:string;payer_openid:string;
   app_id:string;merchant_id:string;amount_cents:string;currency:string;expires_at:Date;
   state:"prepared"|"prepay_ready"|"unknown"|"closed"|"paid";prepay_id:string|null;
-  request_lease_until:Date|null;request_lease_token:string|null;first_dispatch_started_at:Date|null;
-  order_status:string;order_version:number;product_name:string|null};
+  request_lease_until:Date|null;request_lease_token:string|null;first_dispatch_started_at:Date|null};
+type OrderAttempt=Attempt & {order_status:string;order_version:number;product_name:string|null};
 
 /** Test-environment orchestration over the same signed WeChat APIv3 wire
  * contract. No route can instantiate this without an isolated loopback channel. */
@@ -19,9 +19,9 @@ export class PaymentAttemptService{
     private readonly inbox:VerifiedPaymentInbox,private readonly channel:WechatPayV3Client,
     private readonly options:{appId:string;merchantId:string;notifyUrl:string;simulation?:boolean}){}
 
-  private async attempt(orderId:string,memberId:string):Promise<Attempt>{
+  private async attempt(orderId:string,memberId:string):Promise<OrderAttempt>{
     if(!UUID.test(orderId))throw new DomainError("ORDER_ID_INVALID","订单编号无效",422);
-    const row=(await this.pool.query<Attempt>(`SELECT a.*,o.status AS order_status,o.version AS order_version,
+    const row=(await this.pool.query<OrderAttempt>(`SELECT a.*,o.status AS order_status,o.version AS order_version,
       l.product_name FROM commerce_payment_attempt a JOIN commerce_order o ON o.id=a.order_id
       LEFT JOIN LATERAL (SELECT product_name FROM commerce_order_line WHERE order_id=o.id ORDER BY line_number LIMIT 1) l ON true
       WHERE a.order_id=$1 AND a.member_id=$2 AND o.transaction_source_kind='verified_commerce'`,
@@ -30,7 +30,7 @@ export class PaymentAttemptService{
     return row;
   }
 
-  private ready(row:Attempt){
+  private ready(row:Attempt & Pick<OrderAttempt,"order_version">){
     if(!row.prepay_id)throw new DomainError("PAYMENT_PREPAY_MISSING","预支付标识暂不可用",409);
     return {orderId:row.order_id,orderVersion:row.order_version,state:"prepay_ready" as const,
       simulation:this.options.simulation??true,expiresAt:row.expires_at.toISOString(),
@@ -104,6 +104,8 @@ export class PaymentAttemptService{
         if(claimed.first_dispatch_started_at)
           throw new DomainError("PAYMENT_ORIGINAL_QUERY_REQUIRED","原支付单可能已发送，须沿原号核对",409);
       }
+      const description=current.product_name?.trim();
+      if(!description)throw new DomainError("PAYMENT_PRODUCT_DESCRIPTION_MISSING","订单商品信息不完整，请联系客服核对",409);
       const marked=await transaction(this.pool,async client=>{
         const active=await client.query("SELECT 1 FROM member WHERE id=$1 AND status='active' FOR SHARE",[memberId]);
         if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可发起支付',403);
@@ -122,7 +124,7 @@ export class PaymentAttemptService{
       // cannot make a later caller infer that prepay was never sent.
       const prepay=await this.channel.createJsapiPrepay({appId:claimed.app_id,outTradeNo:claimed.out_trade_no,
         payerOpenid:claimed.payer_openid,totalCents:Number(claimed.amount_cents),
-        description:(claimed.product_name??"CISME 商品").slice(0,127),notifyUrl:this.options.notifyUrl,
+        description,notifyUrl:this.options.notifyUrl,
         expiresAt:claimed.expires_at});
       const saved=await transaction(this.pool,async client=>{
         const next=(await client.query<Attempt>(`UPDATE commerce_payment_attempt SET state='prepay_ready',

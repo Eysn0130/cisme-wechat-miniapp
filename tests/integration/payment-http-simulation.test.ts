@@ -32,7 +32,7 @@ const platformPublic=platform.publicKey.export({type:"spki",format:"pem"}).toStr
 const appId="wx4eac2d4fb11d299b",merchantId="1234567890",apiV3Key="0123456789abcdef0123456789abcdef";
 const serial="PUB_KEY_ID_3000000001";
 const channelOrders=new Map<string,{appid:string;mchid:string;openid:string;amount:number;
-  state:"NOTPAY"|"SUCCESS"|"CLOSED";prepayId:string;transactionId:string;paidAt:string}>();
+  state:"NOTPAY"|"SUCCESS"|"CLOSED";description:string;prepayId:string;transactionId:string;paidAt:string}>();
 const channelRefunds=new Map<string,{outTradeNo:string;transactionId:string;amount:number;total:number;
   status:"PROCESSING"|"SUCCESS"|"CLOSED"|"ABNORMAL";refundId:string;succeededAt:string;acceptedAt:string}>();
 const channelTransfers=new Map<string,{openid:string;amount:number;state:"WAIT_USER_CONFIRM"|"SUCCESS"|"FAIL";
@@ -96,12 +96,12 @@ async function channelHandler(request:IncomingMessage,response:ServerResponse){
     response.end(bytes);return;
   }
   if(method==="POST"&&path==="/v3/pay/transactions/jsapi"){
-    const requestBody=JSON.parse(raw.toString("utf8")) as {appid:string;mchid:string;out_trade_no:string;
+    const requestBody=JSON.parse(raw.toString("utf8")) as {appid:string;mchid:string;out_trade_no:string;description:string;
       payer:{openid:string};amount:{total:number}};
     if(requestBody.appid!==appId||requestBody.mchid!==merchantId){sendSigned(response,400,{code:"PARAM_ERROR"});return;}
     let order=channelOrders.get(requestBody.out_trade_no);
     if(!order){order={appid:requestBody.appid,mchid:requestBody.mchid,openid:requestBody.payer.openid,
-      amount:requestBody.amount.total,state:"NOTPAY",prepayId:`wxfixture${randomBytes(16).toString("hex")}`,
+      amount:requestBody.amount.total,state:"NOTPAY",description:requestBody.description,prepayId:`wxfixture${randomBytes(16).toString("hex")}`,
       transactionId:`4200${randomBytes(12).toString("hex")}`,paidAt:""};channelOrders.set(requestBody.out_trade_no,order);}
     if(order.amount!==requestBody.amount.total||order.openid!==requestBody.payer.openid){sendSigned(response,409,{code:"OUT_TRADE_NO_USED"});return;}
     sendSigned(response,200,{prepay_id:order.prepayId});return;
@@ -632,6 +632,7 @@ it("runs quote, order, signed HTTP prepay, raw callback, and durable worker appl
     payload:{memberId:referrer.memberId,principalId:"forged",role:"review_lead",state:"paid"}});
   expect(prepay.statusCode,JSON.stringify(prepay.json())).toBe(200);
   expect(prepay.json()).toMatchObject({state:"prepay_ready",simulation:true,requestPayment:{signType:"RSA"}});
+  expect(channelOrders.get(order.orderNumber)?.description).toBe("HTTP fixture");
   const again=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/payment-intent`,headers:auth(buyer.sessionToken),payload:{}});
   expect(again.statusCode).toBe(200);expect(channelOrders.size).toBe(1);
   const intentAudit=(await pool.query(`SELECT action,principal_id,before_state,after_state,trace_id FROM audit_log
