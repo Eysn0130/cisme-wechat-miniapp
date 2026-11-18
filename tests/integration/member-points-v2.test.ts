@@ -111,4 +111,5 @@ it('projects confirmed ledger progress for all guide tasks, including repeat inv
   const recurring=task.bucket&&task.type!=='care_streak';
   expect(target,task.id).toMatchObject({count:task.limit||2,state:!task.limit?'available':recurring?'limit':'completed'});
  }
+ expect(after.tasks.find(task=>task.id==='firstOrder')).toMatchObject({amount:200,state:'completed'});
 });
