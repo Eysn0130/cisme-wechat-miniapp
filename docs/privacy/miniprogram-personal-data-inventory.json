@@ -495,8 +495,14 @@
     {
       "surface": "wx.openDocument",
       "purpose": "Authorized native fulfillment administrator explicitly previews an audited XLSX containing recipient name, phone and shipping address. No external provider added.",
-      "boundary": "Server capability on export; native identity and capability recheck before opening; temporary file removed on hide, cancellation or identity change. Copies explicitly saved or shared through WeChat remain under operator retention duties; production retention policy pending.",
+      "boundary": "Server capability on export; native identity and capability recheck before opening; temporary file released when returning from the document viewer, on cancellation, unload or identity change. Copies explicitly saved or shared through WeChat remain under operator retention duties; production retention policy pending.",
       "source": "apps/miniprogram/pages/management-fulfillment/index.ts"
+    },
+    {
+      "surface": "/v1/management/shipments/import-xlsx/preview",
+      "purpose": "Match an authorized operator's worksheet or pasted logistics columns to actual commerce orders. Return current membership nickname, member card number, worksheet row and parcel registration status.",
+      "boundary": "Only current fulfillment authority can review. The workbook is processed in memory, recipient columns are discarded, and review makes no shipment or logistics-provider writes. Page memory for reviewed logistics is scoped to the current session/environment and cleared on unload or identity change. Nothing is persisted to local storage.",
+      "source": "services/api/src/orderFulfillment.ts"
     },
     {
       "surface": "commerce_aftersale_case",
@@ -1506,7 +1512,7 @@
   },
   "loadingStateReview": {
     "reviewed": true,
-    "packageSourceSha256": "668bc113ab81001339d4a2dd5bba452e8403daf1c1eea3be4ecd7500c1485084",
+    "packageSourceSha256": "d2768df6b03fdf792d2ce3c83bb2c5c5cf649ca8e4e679572a8d657c5050a5be",
     "scope": "Existing wx.uploadFile, PUT and chunk endpoints retain original recipients, authorization, purpose and payload. Added local measured byte/phase feedback, completion/cancellation listener cleanup and retained exact server problem sanitization. No new analytics, storage destination or member consent.",
     "accessBoundary": "Inaccessible aftersale routes clear private state and return to existing usable workspace; no new permission or role grant."
   }

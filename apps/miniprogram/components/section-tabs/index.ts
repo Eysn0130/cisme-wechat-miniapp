@@ -2,7 +2,7 @@ import{sectionTabs,type SectionTab}from'../../services/section-tabs';
 import{shouldReduceMotion}from'../../services/layout';
 Component({
  options:{virtualHost:true},
- properties:{items:{type:Array,value:[] as unknown[]},value:{type:String,value:''},itemKey:{type:String,value:'id'},label:{type:String,value:'页面分类'},disabled:{type:Boolean,value:false},reselect:{type:Boolean,value:false}},
+ properties:{items:{type:Array,value:[] as unknown[]},value:{type:String,value:''},itemKey:{type:String,value:'id'},label:{type:String,value:'页面分类'},disabled:{type:Boolean,value:false},reselect:{type:Boolean,value:false},spread:{type:Boolean,value:false}},
  data:{tabs:[] as SectionTab[],scrollTarget:'',reducedMotion:false},
  observers:{'items,value,itemKey':function(){this.refreshTabs();}},
  lifetimes:{attached(){this.setData({reducedMotion:shouldReduceMotion()});this.refreshTabs();}},

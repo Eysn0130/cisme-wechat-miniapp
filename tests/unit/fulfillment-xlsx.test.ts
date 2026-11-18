@@ -1,6 +1,6 @@
 import {readFileSync} from 'node:fs';
 import {describe,it,expect} from 'vitest';
-import {parseFulfillmentWorkbook} from '../../services/api/src/fulfillmentImport';
+import {parseFulfillmentWorkbook,parseShipmentPaste} from '../../services/api/src/fulfillmentImport';
 import {fulfillmentWorkbook} from '../../services/api/src/fulfillmentWorkbook';
 const fixture=(name:string)=>readFileSync(new URL(`../fixtures/commerce-fulfillment/${name}`,import.meta.url));
 const headers=['订单号','快递代码','快递名称','运单号','实际交寄时间'];
@@ -37,5 +37,18 @@ describe('XLSX shipping roundtrip',()=>{
     const rows=Array.from({length:500},(_,i)=>[`TEST${i}`,row[1]!,row[2]!,row[3]!,row[4]!]);
     expect(parseFulfillmentWorkbook(fulfillmentWorkbook([headers,...rows])).rowCount).toBe(500);
     expect(()=>parseFulfillmentWorkbook(Buffer.alloc(2*1024*1024+1))).toThrow();
+  });
+  it('identifies both copies of a duplicate and keeps the original line number for mixed results',()=>{
+    const incomplete=['CMTESTBAD','SF','','',''];
+    const good=['CMTESTGOOD',...row.slice(1)];
+    const bytes=fulfillmentWorkbook([headers,row,['CMTESTEMPTY','','','',''],row,incomplete,good]);
+    const result=parseFulfillmentWorkbook(bytes,'commerce',true);
+    expect(result.skippedRows).toBe(1);
+    expect(result.candidates).toMatchObject([
+      {line:2,issue:{code:'SHIPMENT_XLSX_ORDER'}},{line:4,issue:{code:'SHIPMENT_XLSX_ORDER'}},
+      {line:5,issue:{code:'SHIPMENT_XLSX_ROW'}},{line:6,parcel:{trackingNumber:row[3],shippedAt:'2026-11-10T02:00:00.000Z'}}
+    ]);
+    const pasted=parseShipmentPaste([headers,good,incomplete].map(cells=>cells.join('\t')).join('\n'));
+    expect(pasted.rows).toMatchObject([{line:2,parcel:{shippedAt:'2026-11-10T02:00:00.000Z'}},{line:3,issue:{code:'SHIPMENT_XLSX_ROW'}}]);
   });
 });

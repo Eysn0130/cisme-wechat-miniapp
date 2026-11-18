@@ -3,7 +3,7 @@ import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { AuthorityService } from './authority.js';
 import { transaction, type DbClient } from './db.js';
-import { shippingSyncAction, unifiedShippingPayload, type ShippingBinding, type ShippingSyncState,
+import { shippingSyncAction, unifiedShippingPayload, validateShippingBinding, type ShippingBinding, type ShippingSyncState,
   type UnifiedParcel, type WechatOrderShippingClient } from './wechatOrderShipping.js';
 
 type Row = { id: string; order_id: string; created_by_member_id: string; request_key: string;
@@ -11,6 +11,8 @@ type Row = { id: string; order_id: string; created_by_member_id: string; request
   state: ShippingSyncState; query_attempts: number; claim_token: string | null };
 type Options = { enabled: boolean; appId: string; merchantId: string;
   encryptionKey: string; hashKey: string; keyVersion: string };
+type PaidPayment = {order_id:string;app_id:string;merchant_id:string;out_trade_no:string;
+  provider_transaction_id:string;payer_openid:string;payer_total_cents:number|string};
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function fail(code: string, status = 409): never { throw new DomainError(code, '发货操作需核对，请保留原记录联系运营处理', status); }
 function view(row: Row) { return { id: row.id, orderId: row.order_id, state: row.state, queryAttempts: row.query_attempts }; }
@@ -45,24 +47,45 @@ export class ShippingSyncService {
     } catch { fail('SHIPPING_PARCEL_AUTHENTICATION_FAILED', 503); }
   }
 
+  private async paidPayments(client:DbClient,orderIds:string[]){
+    return (await client.query<PaidPayment>(`SELECT p.order_id,p.app_id,p.merchant_id,p.payer_openid,p.out_trade_no,
+      i.provider_transaction_id,i.payer_total_cents FROM commerce_payment_attempt p
+      JOIN commission_payment_inbox i ON i.order_id=p.order_id AND i.app_id=p.app_id AND i.merchant_id=p.merchant_id
+      WHERE p.order_id=ANY($1::uuid[]) AND p.state='paid' AND i.state='applied' AND i.composition_status='full_cash'`,[orderIds])).rows;
+  }
+  private configuredBinding(orderNumber:string,rows:PaidPayment[]):ShippingBinding {
+    const [row]=rows;
+    if(!row||rows.length!==1||row.app_id!==this.options.appId||row.merchant_id!==this.options.merchantId||row.out_trade_no!==orderNumber)
+      fail('SHIPPING_PAYMENT_BINDING_REQUIRED');
+    return {merchantId:row.merchant_id,merchantOrderNumber:row.out_trade_no,transactionId:row.provider_transaction_id,
+      payerOpenid:row.payer_openid,payerTotalCents:Number(row.payer_total_cents)};
+  }
   private async binding(client: DbClient, orderId: string): Promise<ShippingBinding> {
     const order = (await client.query(`SELECT id,status,transaction_source_kind,order_number FROM commerce_order
       WHERE id=$1 FOR UPDATE`, [orderId])).rows[0];
     if (!order || order.status !== 'paid' || order.transaction_source_kind !== 'verified_commerce') fail('SHIPPING_SETTLED_ORDER_REQUIRED');
-    const row = (await client.query(`SELECT p.app_id,p.merchant_id,p.payer_openid,p.out_trade_no,
-      i.provider_transaction_id,i.payer_total_cents FROM commerce_payment_attempt p
-      JOIN commission_payment_inbox i ON i.order_id=p.order_id AND i.app_id=p.app_id AND i.merchant_id=p.merchant_id
-      WHERE p.order_id=$1 AND p.state='paid' AND i.state='applied' AND i.composition_status='full_cash'`, [orderId])).rows;
-    if (row.length !== 1 || row[0].app_id !== this.options.appId || row[0].merchant_id !== this.options.merchantId
-      || row[0].out_trade_no !== order.order_number) fail('SHIPPING_PAYMENT_BINDING_REQUIRED');
+    const binding=this.configuredBinding(order.order_number,await this.paidPayments(client,[orderId]));
     // Any unresolved/approved refund or composition conflict requires manual review.
     const blocked = (await client.query(`SELECT
       EXISTS(SELECT 1 FROM commerce_refund_request WHERE order_id=$1 AND state IN ('requested','approved')) OR
       EXISTS(SELECT 1 FROM commission_payment_composition_observation WHERE order_id=$1) AS blocked`, [orderId])).rows[0].blocked;
     if (blocked) fail('SHIPPING_FINANCIAL_REVIEW_REQUIRED');
-    return { merchantId: row[0].merchant_id, merchantOrderNumber: row[0].out_trade_no,
-      transactionId: row[0].provider_transaction_id, payerOpenid: row[0].payer_openid,
-      payerTotalCents: Number(row[0].payer_total_cents) };
+    return binding;
+  }
+
+  /** Caller has already checked fulfillment authority. Preview does not reserve orders or enqueue sync. */
+  async invalidDispatchBindingsWithClient(client:DbClient,orders:Array<{id:string;orderNumber:string}>){
+    this.gate();
+    const invalid=new Map<string,string>();
+    if(!orders.length)return invalid;
+    const grouped=new Map<string,PaidPayment[]>();
+    for(const row of await this.paidPayments(client,orders.map(order=>order.id))){
+      const group=grouped.get(row.order_id)??[];
+      group.push(row);grouped.set(row.order_id,group);
+    }
+    for(const order of orders)try{validateShippingBinding(this.configuredBinding(order.orderNumber,grouped.get(order.id)??[]));}
+    catch(error){if(!(error instanceof DomainError))throw error;invalid.set(order.id,error.code);}
+    return invalid;
   }
 
   async prepare(actor: string | undefined, orderId: string, requestKey: string, parcel: UnifiedParcel, evidenceReference: string) {

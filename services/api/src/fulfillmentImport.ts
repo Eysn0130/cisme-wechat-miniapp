@@ -6,6 +6,13 @@ import {DomainError} from '@cisme/domain';
 const maximumFile=2*1024*1024,maximumExpanded=8*1024*1024;
 const commerceHeaders=['订单号','快递代码','快递名称','运单号','实际交寄时间'];
 const rewardHeaders=['领取单号','承运商','物流单号'];
+export type ShipmentImportRow = {
+  line: number;
+  orderNumber: string;
+  parcel?: {carrierCode:string;carrierName:string;trackingNumber:string;shippedAt:string};
+  issue?: {code:string;detail:string};
+};
+const orderNumberPattern=/^[A-Za-z0-9_*-]{1,32}$/;
 function invalid(code:string,detail:string):never{throw new DomainError(code,`表格无法导入：${detail}`,422);}
 
 /** Bounded in-memory ZIP reader. No extraction paths, ZIP64, encryption,
@@ -81,9 +88,46 @@ function dateValue(cell:Cell,dateStyles:Set<number>,date1904:boolean,row:number)
   invalid('SHIPMENT_XLSX_DATE',`第${row}行请填写北京时间“年-月-日 时:分:秒”或带时区时间`);
 }
 
+function commerceRow(values:string[],line:number,instant:()=>string,trackingAsNumber=false):ShipmentImportRow{
+  const [number,carrierCode,carrierName,trackingNumber]=values as [string,string,string,string];
+  const orderNumber=number&&orderNumberPattern.test(number)?number:'';
+  const issue=(code:string,detail:string)=>({line,orderNumber,issue:{code,detail}});
+  if(values.length!==5||values.some(value=>!value||/[\u0000-\u001f\u007f]/.test(value)))
+    return issue('SHIPMENT_XLSX_ROW','请填写完整的订单号、快递代码、快递名称、运单号和交寄时间');
+  if(!orderNumber)return issue('SHIPMENT_XLSX_ORDER','请核对订单号');
+  if(trackingAsNumber)return issue('SHIPMENT_XLSX_TRACKING_TEXT','运单号须设为文本，请核对并补回原号码');
+  if(!/^[A-Z0-9_]{2,32}$/.test(carrierCode)||Array.from(carrierName).length>80||!/^[A-Za-z0-9-]{6,64}$/.test(trackingNumber))
+    return issue('SHIPMENT_XLSX_ROW','请核对快递代码、名称和运单号');
+  try{return {line,orderNumber,parcel:{carrierCode,carrierName,trackingNumber,shippedAt:instant()}};}
+  catch(error){if(!(error instanceof DomainError))throw error;return issue(error.code,error.message.replace(/^表格无法导入：第\d+行/,''));}
+}
+
+function flagDuplicateRows(rows:ShipmentImportRow[]){
+  const counts=new Map<string,number>();
+  for(const row of rows)if(row.orderNumber)counts.set(row.orderNumber,(counts.get(row.orderNumber)??0)+1);
+  return rows.map(row=>(counts.get(row.orderNumber)??0)>1
+    ?{line:row.line,orderNumber:row.orderNumber,issue:{code:'SHIPMENT_XLSX_ORDER',detail:'订单号重复，请只保留一行'}}:row);
+}
+
+export function parseShipmentPaste(raw:unknown){
+  if(typeof raw!=='string'||Buffer.byteLength(raw)>320000||raw.includes('\0'))invalid('SHIPMENT_IMPORT_INVALID','请粘贴5列物流信息，每批最多500行');
+  const lines=raw.replace(/^\uFEFF/,'').split(/\r?\n/);
+  if(lines.at(-1)==='')lines.pop();
+  const hasHeader=lines[0]?.split('\t').map(v=>v.trim()).join('\t')===commerceHeaders.join('\t');
+  const rows:ShipmentImportRow[]=[];let skippedRows=0;
+  if(lines.length-(hasHeader?1:0)>500)invalid('SHIPMENT_IMPORT_INVALID','每批最多500行');
+  for(let i=hasHeader?1:0;i<lines.length;i++){
+    const cells=lines[i]!.split('\t').map(v=>v.trim());
+    if(cells.every(value=>!value)||cells.length===5&&cells.slice(1).every(value=>!value)){skippedRows++;continue;}
+    rows.push(commerceRow(cells,i+1,()=>dateValue({value:cells[4]!,type:'inlineStr',style:0},new Set(),false,i+1)));
+  }
+  if(!rows.length)invalid('SHIPMENT_XLSX_EMPTY','请填写至少一行物流信息');
+  return {rows:flagDuplicateRows(rows),skippedRows};
+}
+
 /** Parses the exported template or a five-column logistics workbook. All
  * recipient/address columns are discarded; source files are never persisted. */
-export function parseFulfillmentWorkbook(bytes:Buffer,kind:'commerce'|'reward'='commerce'){
+export function parseFulfillmentWorkbook(bytes:Buffer,kind:'commerce'|'reward'='commerce',review=false){
   const headers=kind==='reward'?rewardHeaders:commerceHeaders;
   const files=unzip(bytes);
   const content=xml(files,'[Content_Types].xml');
@@ -119,25 +163,33 @@ export function parseFulfillmentWorkbook(bytes:Buffer,kind:'commerce'|'reward'='
   };
   const title=decode(rows[0]),columns=headers.map(name=>[...title].filter(([,c])=>c.value.trim()===name).map(([index])=>index));
   if(columns.some(indices=>indices.length!==1))invalid('SHIPMENT_XLSX_HEADERS',`须包含且仅包含一列：${headers.join('、')}`);
-  const indices=columns.map(a=>a[0]!),seen=new Set<string>(),logistics:string[]=[];let skipped=0;
+  const indices=columns.map(a=>a[0]!),seen=new Set<string>(),logistics:string[]=[],candidates:ShipmentImportRow[]=[];let skipped=0;
+  let previousLine=Number(rows[0]['@_r']??1);
   for(let i=1;i<rows.length;i++){
+    const line=Number(rows[i]['@_r']??previousLine+1);
+    if(!Number.isSafeInteger(line)||line<=previousLine||line>1048576)invalid('SHIPMENT_XLSX_CELL','工作表行号无效');
+    previousLine=line;
     const row=decode(rows[i]),cells=indices.map(at=>row.get(at)??{value:'',type:'inlineStr',style:0}),values=cells.map(c=>c.value.trim());
     if(values.slice(1).every(v=>!v)){skipped++;continue;}
-    if(['1','true'].includes(String(rows[i]['@_hidden'])))invalid('SHIPMENT_XLSX_ROW',`第${i+1}行已隐藏，请取消隐藏后核对`);
-    if(values.some(v=>!v||/[\t\r\n\u0000-\u001f]/.test(v)))invalid('SHIPMENT_XLSX_ROW',`第${i+1}行物流信息不完整或含换行`);
+    if(['1','true'].includes(String(rows[i]['@_hidden'])))invalid('SHIPMENT_XLSX_ROW',`第${line}行已隐藏，请取消隐藏后核对`);
     if(kind==='reward'){
+      if(values.some(v=>!v||/[\t\r\n\u0000-\u001f]/.test(v)))invalid('SHIPMENT_XLSX_ROW',`第${line}行物流信息不完整或含换行`);
       const [number,name,tracking]=values as [string,string,string];
-      if(!/^[A-Za-z0-9-]{8,40}$/.test(number)||seen.has(number))invalid('SHIPMENT_XLSX_ORDER',`第${i+1}行领取单号重复或无效`);
-      if(Array.from(name).length>50||!/^[A-Za-z0-9-]{6,80}$/.test(tracking))invalid('SHIPMENT_XLSX_ROW',`第${i+1}行承运商或物流单号无效`);
-      if(cells[2]!.type==='n')invalid('SHIPMENT_XLSX_TRACKING_TEXT',`第${i+1}行物流单号须设为文本，避免丢失前导零或长号码`);
+      if(!/^[A-Za-z0-9-]{8,40}$/.test(number)||seen.has(number))invalid('SHIPMENT_XLSX_ORDER',`第${line}行领取单号重复或无效`);
+      if(Array.from(name).length>50||!/^[A-Za-z0-9-]{6,80}$/.test(tracking))invalid('SHIPMENT_XLSX_ROW',`第${line}行承运商或物流单号无效`);
+      if(cells[2]!.type==='n')invalid('SHIPMENT_XLSX_TRACKING_TEXT',`第${line}行物流单号须设为文本，避免丢失前导零或长号码`);
       seen.add(number);logistics.push([number,name,tracking].join('\t'));continue;
     }
-    const [number,carrier,name,tracking]=values as [string,string,string,string,string];
-    if(!/^[A-Za-z0-9_*-]{1,32}$/.test(number)||seen.has(number))invalid('SHIPMENT_XLSX_ORDER',`第${i+1}行订单号重复或无效`);
-    if(!/^[A-Z0-9_]{2,32}$/.test(carrier)||Array.from(name).length>80||!/^[A-Za-z0-9-]{6,64}$/.test(tracking))invalid('SHIPMENT_XLSX_ROW',`第${i+1}行快递信息无效`);
-    if(cells[3]!.type==='n')invalid('SHIPMENT_XLSX_TRACKING_TEXT',`第${i+1}行运单号须设为文本，避免丢失前导零或长号码`);
-    seen.add(number);logistics.push([number,carrier,name,tracking,dateValue(cells[4]!,dateStyles,date1904,i+1)].join('\t'));
+    const candidate=commerceRow(values,line,()=>dateValue(cells[4]!,dateStyles,date1904,line),cells[3]!.type==='n');
+    if(review){candidates.push(candidate);continue;}
+    if(candidate.issue)invalid(candidate.issue.code,`第${line}行${candidate.issue.detail}`);
+    if(seen.has(candidate.orderNumber))invalid('SHIPMENT_XLSX_ORDER',`第${line}行订单号重复或无效`);
+    seen.add(candidate.orderNumber);
+    const parcel=candidate.parcel!;
+    logistics.push([candidate.orderNumber,parcel.carrierCode,parcel.carrierName,parcel.trackingNumber,parcel.shippedAt].join('\t'));
   }
-  if(!logistics.length)invalid('SHIPMENT_XLSX_EMPTY','请填写至少一行物流信息');
-  return {version:1,sheetName:String(sheets[0]['@_name']??''),sha256:createHash('sha256').update(bytes).digest('hex'),rowCount:logistics.length,skippedRows:skipped,rows:logistics.join('\n')};
+  if(!logistics.length&&!candidates.length)invalid('SHIPMENT_XLSX_EMPTY','请填写至少一行物流信息');
+  return {version:1,sheetName:String(sheets[0]['@_name']??''),sha256:createHash('sha256').update(bytes).digest('hex'),
+    rowCount:review?candidates.length:logistics.length,skippedRows:skipped,rows:logistics.join('\n'),
+    ...(review?{candidates:flagDuplicateRows(candidates)}:{})};
 }

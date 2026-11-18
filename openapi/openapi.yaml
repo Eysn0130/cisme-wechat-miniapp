@@ -3065,9 +3065,14 @@ paths:
     get:
       security: [{session: []}]
       operationId: listManagementShipments
-      summary: 按履约状态及精确订单号筛选已支付订单
+      summary: 按履约状态、日期及完整订单号筛选已支付订单
+      parameters:
+        - {name: state, in: query, schema: {type: string, enum: [awaiting_dispatch, dispatched, shipped, delivered, exception, all]}}
+        - {name: orderNumber, in: query, schema: {type: string, maxLength: 32}}
+        - {name: from, in: query, schema: {type: string, format: date}, description: 北京时间起始日期（含）。dispatched 按发货时间，其余按付款时间。}
+        - {name: through, in: query, schema: {type: string, format: date}, description: 北京时间结束日期（含）}
       responses:
-        '200': {description: Cursor page; fulfillment permission required}
+        '200': {description: 'Cursor page with filtered count, current member nickname and member card number. Restricted to fulfillment authority.'}
   /v1/management/shipments/carriers:
     get:
       security: [{session: []}]
@@ -3097,12 +3102,15 @@ paths:
       security: [{session: []}]
       operationId: exportFulfillmentWorkbook
       summary: 授权履约个人信息 Excel 导出，提交审计后返回且不落盘
+      parameters:
+        - {name: expectedCount, in: query, schema: {type: integer, minimum: 1, maximum: 500}, description: 已确认的清单笔数。如果当前笔数不同则要求刷新。}
       responses:
         '200':
           description: At most 500 orders; narrow filters when exceeded
           content:
             application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
               schema: {type: string, format: binary}
+        '409': {description: Expected count changed before export}
   /v1/management/shipments/import:
     post:
       security: [{session: []}]
@@ -3126,34 +3134,74 @@ paths:
     post:
       security: [{session: []}]
       operationId: previewShipmentWorkbook
-      summary: 上传XLSX并预览1–500单物流；不保存原表，不修改订单或发货状态
+      summary: 核对最多500行物流资料并返回订单匹配结果
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required: [filename, contentBase64]
-              properties:
-                filename: {type: string, maxLength: 160, pattern: '[.]xlsx$'}
-                contentBase64: {type: string, format: byte, maxLength: 2800000, description: 'At most 2MiB XLSX; formulas, macros, external links and lossy numeric tracking IDs are rejected.'}
+              oneOf:
+                - type: object
+                  additionalProperties: false
+                  required: [filename, contentBase64]
+                  properties:
+                    filename: {type: string, maxLength: 160, pattern: '[.]xlsx$'}
+                    contentBase64: {type: string, format: byte, maxLength: 2800000, description: 'At most 2MiB XLSX. Formulas, macros and external links are unsupported.'}
+                    review: {type: boolean, enum: [true], description: 'Opt in to canonical order matching and per-row outcomes. Omitting review uses the existing parse-only format.'}
+                - type: object
+                  additionalProperties: false
+                  required: [rows]
+                  properties:
+                    rows: {type: string, maxLength: 320000, description: 'Five tab-separated logistics columns, optional matching header, using business local time or ISO format with timezone.'}
       responses:
         '200':
-          description: Only logistics columns are returned; source recipient and address fields are discarded. Confirmed rows are submitted through importShipmentRows in stable 25-row chunks.
+          description: Read-only. Discards workbook recipient and address columns. Reviewed rows include canonical identifiers and eligible order versions for explicit dispatchShipmentBatch confirmation.
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: false
-                required: [version, sheetName, sha256, rowCount, skippedRows, rows]
-                properties:
-                  version: {type: integer, enum: [1]}
-                  sheetName: {type: string}
-                  sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
-                  rowCount: {type: integer, minimum: 1, maximum: 500}
-                  skippedRows: {type: integer, minimum: 0, maximum: 500}
-                  rows: {type: string, maxLength: 320000}
+                oneOf:
+                  - type: object
+                    additionalProperties: false
+                    required: [version, sheetName, sha256, rowCount, skippedRows, rows]
+                    properties:
+                      version: {type: integer, enum: [1]}
+                      sheetName: {type: string}
+                      sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+                      rowCount: {type: integer, minimum: 1, maximum: 500}
+                      skippedRows: {type: integer, minimum: 0, maximum: 500}
+                      rows: {type: string, maxLength: 320000}
+                  - type: object
+                    additionalProperties: false
+                    required: [rowCount, skippedRows, entries]
+                    properties:
+                      rowCount: {type: integer, minimum: 1, maximum: 500}
+                      skippedRows: {type: integer, minimum: 0, maximum: 500}
+                      entries:
+                        type: array
+                        maxItems: 500
+                        items:
+                          type: object
+                          required: [line, orderNumber, orderId, memberNickname, memberCardNumber, state]
+                          properties:
+                            line: {type: integer, minimum: 1, description: Original worksheet or pasted line}
+                            orderNumber: {type: string}
+                            orderId: {type: [string, 'null'], format: uuid}
+                            memberNickname: {type: [string, 'null']}
+                            memberCardNumber: {type: [string, 'null']}
+                            state: {type: string, enum: [ready, issue, registered]}
+                            expectedOrderVersion: {type: integer, minimum: 1}
+                            code: {type: string}
+                            detail: {type: string}
+                            parcel:
+                              type: object
+                              required: [carrierCode, carrierName, trackingNumber, shippedAt]
+                              properties:
+                                carrierCode: {type: string}
+                                carrierName: {type: string}
+                                trackingNumber: {type: string}
+                                shippedAt: {type: string, format: date-time}
+                            wechatSyncState: {type: [string, 'null']}
+                            logisticsMessageState: {type: [string, 'null']}
         '403': {description: Server-verified fulfillment capability required before parsing}
         '422': {description: Invalid workbook; no dispatch is performed}
   /v1/management/shipments/batch:
