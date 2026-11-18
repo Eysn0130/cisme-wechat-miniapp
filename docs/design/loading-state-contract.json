@@ -96,11 +96,11 @@
     "focusedStateAndNodeTestsPassed": 77,
     "nativePreview": {
       "success": true,
-      "packageSourceSha256": "113a2499c5bfdf7d97d6507346f2e594ad163386df699382aa469d17a2024c59",
-      "scope": "official full native preview compilation; scoped motion sampling and physical device acceptance are distinct"
+      "packageSourceSha256": "45885c85fafdc30c030c64e959ce6d6c6373cd7ee5229527650fe2582797f0ec",
+      "scope": "official full native preview compilation; motion samples are separately scoped"
     },
     "physicalDeviceMotion": "not yet verified",
     "fullRouteFontStateMatrix": "pending; historical evidence not inherited"
   },
-  "packageSourceSha256": "113a2499c5bfdf7d97d6507346f2e594ad163386df699382aa469d17a2024c59"
+  "packageSourceSha256": "45885c85fafdc30c030c64e959ce6d6c6373cd7ee5229527650fe2582797f0ec"
 }

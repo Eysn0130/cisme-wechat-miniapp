@@ -6,6 +6,6 @@ page{--cisme-load-bone:#eee7f2;--cisme-load-sweep:1500ms;--cisme-load-progress:6
 
 .loading-bone{position:relative;overflow:hidden;background:var(--cisme-load-bone,#eee7f2)}
 .loading-bone::after{position:absolute;inset:0;content:"";pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:translateX(-100%);animation:cisme-loading-sweep var(--cisme-load-sweep,1500ms) linear infinite}
-@keyframes cisme-loading-sweep{to{transform:translateX(100%)}}
+@keyframes cisme-loading-sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .loading--still .loading-bone::after{display:none}.loading--still .page-read-loading__indicator{animation:none}
 @media(prefers-reduced-motion:reduce){.loading-bone::after{display:none}}
