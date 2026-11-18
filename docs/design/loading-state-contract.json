@@ -96,11 +96,24 @@
     "focusedStateAndNodeTestsPassed": 77,
     "nativePreview": {
       "success": true,
-      "packageSourceSha256": "45885c85fafdc30c030c64e959ce6d6c6373cd7ee5229527650fe2582797f0ec",
-      "scope": "official full native preview compilation; motion samples are separately scoped"
+      "packageSourceSha256": "dc19ef10dd56da855cebaf710c2f0094d30b6d259c661a436b4b3bcd5f98a44c",
+      "tool": "official WeChat DevTools create_preview_qrcode",
+      "version": "0.1.58"
     },
     "physicalDeviceMotion": "not yet verified",
-    "fullRouteFontStateMatrix": "pending; historical evidence not inherited"
+    "fullRouteFontStateMatrix": "pending; historical evidence not inherited",
+    "priorScopedMotionSource": "45885c85fafdc30c030c64e959ce6d6c6373cd7ee5229527650fe2582797f0ec",
+    "nativeScoped": {
+      "platform": "official WeChat DevTools simulator",
+      "width": 375,
+      "sweepIntermediateValues": true,
+      "realImageIntermediateOpacity": true,
+      "controlledVisualProgress": true,
+      "unauthorizedAftersaleReturn": "pages/management/index",
+      "businessDataCreated": false,
+      "physicalDeviceOrFpsVerified": false
+    }
   },
-  "packageSourceSha256": "45885c85fafdc30c030c64e959ce6d6c6373cd7ee5229527650fe2582797f0ec"
+  "packageSourceSha256": "dc19ef10dd56da855cebaf710c2f0094d30b6d259c661a436b4b3bcd5f98a44c",
+  "copyPolicy": "Remove redundant community curation badge; points entry is 积分攻略. Keep real recovery, eligibility, money, expiry and action consequences."
 }

@@ -17,7 +17,7 @@ async function run(source,total){
   const mocks={
     '../../services/api':{request},'../../services/page-requests':{pageRead:(_,o)=>request(o),cancelPageReads(){}},
     '../../services/member-avatar':{defaultMemberAvatar:'/neutral.svg'},'../../services/editorial':{editorialStories:[],editorialStoriesForRuntime:()=>[]},
-    '../../services/layout':{currentChromeStyle:()=>''},'../../services/member-identity':{memberIdentity:()=>null},'../../services/task-entry':{},
+    '../../services/layout':{currentChromeStyle:()=>'',shouldReduceMotion:()=>false},'../../services/member-identity':{memberIdentity:()=>null},'../../services/task-entry':{},
     '../../services/performance-metrics':{measurementClock:()=>performance.now(),recordClientMetric(){}}
   };
   function evaluate(text,file){const module={exports:{}};const require=name=>{if(mocks[name])return mocks[name];const p=path.resolve(path.dirname(file),name+'.ts');return evaluate(fs.readFileSync(p,'utf8'),p);};vm.runInNewContext(transformSync(text,{loader:'ts',format:'cjs'}).code,{module,exports:module.exports,require,Page:d=>definition=d,getApp:()=>({globalData:{sessionToken:'synthetic',apiBaseUrl:'https://synthetic.invalid'}}),wx:{},setTimeout,clearTimeout,console},{filename:file});return module.exports;}

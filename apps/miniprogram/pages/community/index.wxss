@@ -3,7 +3,6 @@
 .community-page { padding:0 18rpx calc(var(--cisme-safe-bottom,env(safe-area-inset-bottom)) + 166rpx); background:#f7f4f8; }
 .community-head { position:sticky; z-index:20; top:0; margin:0 -18rpx; padding:calc(var(--cisme-status-bar,20px) + 24rpx) 38rpx 0; border-radius:0 0 28rpx 28rpx; background:rgba(247,243,248,.94); -webkit-backdrop-filter:blur(20rpx); }
 .community-title-row { display:flex; align-items:center; justify-content:space-between; gap:14rpx; padding-right:var(--cisme-nav-side,112rpx); }.community-wordmark { flex:none; color:#2f2149; font:50rpx Georgia,serif; letter-spacing:7rpx; }.community-wordmark__section { margin-left:7rpx; font-family:"Songti SC","STSong",serif; font-size:30rpx; letter-spacing:1rpx; }
-.community-curation { padding:10rpx 17rpx; border-radius:999rpx; color:#684878; background:#eee4f2; font-size:var(--cisme-text-small); line-height:1.5; }
 .community-mode { display:flex; align-items:center; gap:12rpx; min-height:44px; margin-top:8rpx; color:#716a77; }
 .community-loading { margin:18rpx 8rpx 0; color:#756b79; font-size:24rpx; line-height:1.5; text-align:center; }
 .community-sync-error { margin:18rpx 8rpx 0; }
