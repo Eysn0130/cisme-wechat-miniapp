@@ -11,7 +11,8 @@ vi.mock('../../apps/miniprogram/services/api', () => ({
   retainMemberSnapshot: () => true
 }));
 vi.mock('../../apps/miniprogram/services/layout', () => ({currentChromeStyle: () => ''}));
-vi.mock('../../apps/miniprogram/services/orders', () => ({
+vi.mock('../../apps/miniprogram/services/orders', async (original) => ({
+  orderLineSummary:(await original<typeof import('../../apps/miniprogram/services/orders')>()).orderLineSummary,
   clientOperationKey: (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2)}`,
   myOrders: vi.fn()
 }));
