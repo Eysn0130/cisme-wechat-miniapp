@@ -27,7 +27,7 @@ it('previews only logistics columns and creates no shipment, import plan or uplo
 it('returns the worksheet line and a scoped rejection without exposing address columns',async()=>{
   const response=await preview(admin.sessionToken,{filename:'发货回填.xlsx',contentBase64:fixture.toString('base64'),review:true});
   expect(response.statusCode,response.body).toBe(200);
-  expect(response.headers['cache-control']).toBe('no-store, private');
+  expect(String(response.headers['cache-control']).split(',').map(directive=>directive.trim())).toEqual(expect.arrayContaining(['no-store','private']));
   expect(response.json()).toMatchObject({rowCount:1,skippedRows:1,entries:[{line:2,orderNumber:'CMTEST202611100001',
     orderId:null,state:'issue',code:'SHIPMENT_IMPORT_ORDER_NOT_FOUND',parcel:{trackingNumber:'001234567890123456789012'}}]});
   expect(response.body).not.toContain('13800000000');
