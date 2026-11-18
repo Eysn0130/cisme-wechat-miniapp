@@ -4,7 +4,6 @@ import {loadConfig} from '@cisme/config';
 import {resetDatabase,testPool,TEST_DATABASE_URL} from '@cisme/testkit';
 import {createApp} from '../../services/api/src/server';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
-import {clubRulesV2} from '../../services/api/src/pointsLedger';
 import {processMemberPointSources} from '../../services/api/src/memberPointsClub';
 
 const pool=testPool();
@@ -26,7 +25,9 @@ async function state(){return (await pool.query(`SELECT
   (SELECT count(*)::int FROM points_grant) AS grants`)).rows[0];}
 beforeAll(async()=>{
   await resetDatabase(pool);
-  await pool.query(`INSERT INTO member_points_policy(version,rules,state,starts_at,approved_at,approval_source,approval_evidence) VALUES('synthetic-registration-v2',$1,'active',clock_timestamp(),clock_timestamp(),'owner_instruction_20261110','isolated registration points regression only')`,[clubRulesV2]);
+  // The exact migrated fixture already enables the owner-approved V2 policy.
+  const policy=(await pool.query("SELECT rules FROM member_points_policy WHERE state='active'")).rows[0];
+  expect(policy.rules.taskVersion).toBe(2);expect(policy.rules.profile).toBe(50);
   for(const type of ['terms','privacy'])await pool.query(`INSERT INTO legal_document(document_type,version,title,body,operator_name,contact,active)
     VALUES($1,'synthetic-registration-v1','Synthetic only','Never publish this fixture','Synthetic','synthetic@example.invalid',true)`,[type]);
   app=await createApp({config,pool,storage:createApiGatewayStorage(config),wechatIdentityFetcher:async input=>
@@ -35,7 +36,7 @@ beforeAll(async()=>{
   for(const capability of ['member.profile.read','member.export'])await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
     VALUES($1,$2,'synthetic-registration','Synthetic registration test','test','integration_fixture')`,[admin.memberId,capability]);
 });
-afterAll(async()=>{await app.close();await pool.end();});
+afterAll(async()=>{try{await app?.close();}finally{await pool.end();}});
 
 it('does not create a member, award points or consume a number while browsing anonymously',async()=>{
   const before=await state();

@@ -34,7 +34,7 @@ Page({
    if(!this.current(epoch,token))return;
    const canDispatch=allowed.capabilities.includes("commerce.fulfillment.manage");
    this.setData({order:this.normalize(order),canDispatch,canReconcileRefund:allowed.capabilities.includes('commerce.money.reconcile'),loading:false});
-   if(canDispatch){void this.loadCarriers();await this.readShipment(epoch,token);}
+   if(canDispatch)await this.readShipment(epoch,token);
   }catch(error){if(this.current(epoch,token))this.setData({loading:false,error:(error as {title?:string}).title??"暂时无法查看订单详情，请重试或返回列表。"});}
  },
  async reconcileExternalRefund(){
@@ -64,6 +64,7 @@ Page({
   this.setData({shipmentLoading:true,shipmentError:""});
   try{const shipment=await managementShipment(this.data.id);if(!this.current(epoch,token))return;
    this.setData({shipment,shipmentLabel:!shipment.id&&(this.data.order?.refundedCents??0)>0?"退款后暂停发货":deliveryLabels[shipment.logisticsState]??"状态待核对",syncLabel:syncLabels[shipment.wechatSyncState??""]??"微信同步尚未开始",messageLabel:({queued:"物流消息待登记",retry:"物流消息稍后重试",dispatching:"物流消息结果待核对",registered:"物流消息已登记",unknown:"物流消息结果待核对",review:"物流消息需人工核对",cancelled:"物流消息已停止"} as Record<string,string>)[shipment.logisticsMessageState??""]??""});
+   if(shipment.logisticsState==="awaiting_dispatch"&&!this.data.order?.refundedCents&&this.data.order?.status==="paid"&&this.data.order.transactionSourceKind==="verified_commerce")void this.loadCarriers();
    if(shipment.id&&this.pendingDispatch){this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchMessage:"订单已登记交寄。请核对微信同步结果，不要重复发货。"});}
   }catch(error){if(this.current(epoch,token)){const status=(error as {status?:number}).status;
    this.setData({shipment:null,shipmentError:(error as {title?:string}).title??"履约状态暂时无法核验，请刷新后重试。",...(status===401||status===403?{canDispatch:false,order:null,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"}:{})});}}
@@ -71,7 +72,7 @@ Page({
  },
  async loadCarriers(){
   const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-  if(!this.current(epoch,token)||token!==this.lastReadToken||!this.data.canDispatch||this.data.carriersLoading)return;
+  if(!this.current(epoch,token)||token!==this.lastReadToken||!this.data.canDispatch||this.data.shipment?.logisticsState!=="awaiting_dispatch"||this.data.carriersLoading)return;
   this.setData({carriersLoading:true,carriersError:""});
   try{const result=await shipmentCarriers(this);
    if(!this.current(epoch,token)||!this.data.canDispatch)return;
