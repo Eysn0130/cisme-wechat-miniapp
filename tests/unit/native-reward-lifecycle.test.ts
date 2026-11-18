@@ -109,6 +109,19 @@ it('does not open a prepared detail after the page has hidden',async()=>{
 });
 
 
+it('does not let a cancelled claim read replace the current shipment detail',async()=>{
+ await import('../../apps/miniprogram/pages/management-rewards/index');
+ Object.assign(page,{alive:true,visible:true,token:app.globalData.sessionToken});
+ page.data.manager={permissions:{fulfill:true}};
+ const stale=deferred<any>(),current=deferred<any>();
+ services.rewardClaim.mockReturnValueOnce(stale.promise).mockReturnValueOnce(current.promise);
+ const old=page.openDetail({currentTarget:{dataset:{id:claimId}}});
+ page.closeSheet();
+ const fresh=page.openDetail({currentTarget:{dataset:{id:quoteId}}});
+ current.resolve({id:quoteId,state:'placed'});await fresh;
+ stale.resolve({id:claimId,state:'placed'});await old;
+ expect(page.data.detail.id).toBe(quoteId);
+});
 it('exports subsequent fulfillment batches only after an explicit next action and clears progress with filters',async()=>{
  await import('../../apps/miniprogram/pages/management-rewards/index');page.onLoad({tab:'fulfill'});page.visible=true;page.token='member-A';page.setData({activityId:voucher,manager:{permissions:{fulfill:true}},loading:false});
  wx.base64ToArrayBuffer=()=>new ArrayBuffer(1);wx.getFileSystemManager=()=>({writeFile:({success}:any)=>success(),unlink:vi.fn()});wx.openDocument=({success}:any)=>success();services.rewardManagement.mockResolvedValue({memberId:owner,activities:[{id:voucher}],vouchers:[],claims:[],claimNext:null,voucherNext:null,permissions:{fulfill:true}});

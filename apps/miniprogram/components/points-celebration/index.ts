@@ -3,10 +3,11 @@ import {commerceContextRevision} from '../../services/commerce-command-store';
 import {shouldReduceMotion} from '../../services/layout';
 import {parsePointsSnapshot} from '../../services/points';
 import {readCareUsageHistory} from '../../services/care-usage';
-import {pendingCredit,consumeCredit,questionnaireCredit,careCredit,isCreditOwner,queueConfirmedReceipts,type ConfirmedPointReceipt} from '../../services/points-feedback';
+import {pendingCredit,consumeCredit,hasUnseenCredit,questionnaireCredit,careCredit,isCreditOwner,queueConfirmedReceipts,type ConfirmedPointReceipt} from '../../services/points-feedback';
 
 type Runtime={alive:boolean;visible:boolean;attempt:number;promise:Promise<void>|null;timer:ReturnType<typeof setTimeout>|null;wake:(()=>void)|null;owner:string;enabled:boolean;receiptVersion:number;autoReceipts:boolean};
 const runtimes=new WeakMap<object,Runtime>();
+const presentations=new Map<string,Runtime>();
 let materialWarmed=false;
 function warmMaterial(){if(materialWarmed||typeof wx.getImageInfo!=='function')return;materialWarmed=true;wx.getImageInfo({src:'/assets/cisme/onboarding-pearl-seal-v1.png',fail:()=>{materialWarmed=false;}});}
 function stop(component:any){const r=runtimes.get(component);if(!r)return;r.attempt++;if(r.timer!==null)clearTimeout(r.timer);r.timer=null;r.wake?.();r.wake=null;cancelPageReads(component);if(component.data.showing)component.setData({showing:false});}
@@ -60,24 +61,42 @@ Component({
       }catch{return;}
       if(!current())return;if(credit)break;
      }
-     if(!credit||!consumeCredit(owner,intent,credit.ids))return;if(credit.amount<=0)continue;
-     const reducedMotion=shouldReduceMotion();
-     this.setData({amount:credit.amount,digits:String(credit.amount).length,displayAmount:reducedMotion?credit.amount:0,phase:reducedMotion?'settled':'spinning',showing:true,reducedMotion});
-     if(reducedMotion){await pause(r,2000);}
-     else{
-      await pause(r,620);if(!current())return;this.setData({phase:'checked'});
-      if(typeof wx.vibrateShort==='function')wx.vibrateShort({type:'light',fail:()=>{}});
-      await pause(r,100);if(!current())return;
-      const steps=Math.min(12,credit.amount),duration=420;
-      for(let step=1;step<=steps;step++){
-       await pause(r,duration/steps);if(!current())return;
-       const value=step===steps?credit.amount:Math.round(credit.amount*(1-Math.pow(1-step/steps,3)));
-       if(value!==this.data.displayAmount)this.setData({displayAmount:value});
-      }
-      if(!current())return;this.setData({phase:'settled',displayAmount:credit.amount});
-      await pause(r,660);if(!current())return;this.setData({phase:'leaving'});await pause(r,200);
+     if(!credit)return;
+     const playing = presentations.get(owner);
+     if (playing && playing !== r) {
+      await playing.promise;
+      if (!current()) return;
+      continue;
      }
-     if(current()){this.setData({showing:false});this.triggerEvent('finished',{owner,kind:intent.kind,amount:credit.amount});}else return;
+     if (credit.amount <= 0 || !hasUnseenCredit(owner,intent,credit.ids)) {
+      consumeCredit(owner,intent,credit.ids);
+      continue;
+     }
+     presentations.set(owner,r);
+     try {
+      const reducedMotion=shouldReduceMotion();
+      if (reducedMotion && !consumeCredit(owner,intent,credit.ids)) continue;
+      this.setData({amount:credit.amount,digits:String(credit.amount).length,displayAmount:reducedMotion?credit.amount:0,phase:reducedMotion?'settled':'spinning',showing:true,reducedMotion});
+      if(reducedMotion){await pause(r,2000);}
+      else{
+       await pause(r,620);if(!current())return;this.setData({phase:'checked'});
+       if(typeof wx.vibrateShort==='function')wx.vibrateShort({type:'light',fail:()=>{}});
+       await pause(r,100);if(!current())return;
+       const steps=Math.min(12,credit.amount),duration=420;
+       for(let step=1;step<=steps;step++){
+        await pause(r,duration/steps);if(!current())return;
+        const value=step===steps?credit.amount:Math.round(credit.amount*(1-Math.pow(1-step/steps,3)));
+        if(value!==this.data.displayAmount)this.setData({displayAmount:value});
+       }
+       if(!current())return;
+       if(!consumeCredit(owner,intent,credit.ids)){this.setData({showing:false});continue;}
+       this.setData({phase:'settled',displayAmount:credit.amount});
+       await pause(r,660);if(!current())return;this.setData({phase:'leaving'});await pause(r,200);
+      }
+      if(current()){this.setData({showing:false});this.triggerEvent('finished',{owner,kind:intent.kind,amount:credit.amount});}else return;
+     } finally {
+      if (presentations.get(owner) === r) presentations.delete(owner);
+     }
     }
    })().finally(()=>{r.promise=null;});return r.promise;
   }

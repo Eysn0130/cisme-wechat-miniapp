@@ -54,8 +54,7 @@ describe('TRV-SHARE public invitations and two bundle stock',()=>{
  });
  it('lets active sharing officers share gifts without stock counts and binds only a new linked member',async()=>{
   const officer=await person(),existing=await person(),ordinary=await person();
-  await pool.query(`INSERT INTO catalog_product(code,name,source_kind,qualification_status,publication_status,created_by,updated_by,published_at)
-   VALUES('aigerong-scalp-repair-essence-100','合成资格商品','synthetic_test','eligible','published','fixture','fixture',now()) ON CONFLICT(code) DO NOTHING`);
+  expect((await pool.query("SELECT 1 FROM catalog_product WHERE code='aigerong-scalp-repair-essence-100' AND publication_status='published'")).rowCount).toBe(0);
   await pool.query(`INSERT INTO sharing_officer(member_id,referral_code,state) SELECT member_id,user_code,'active' FROM member_card_number WHERE member_id=$1`,[officer.memberId]);
   const offers=await app.inject({method:'GET',url:'/v1/me/sharing-officer/reward-activities',headers:auth(officer)});expect(offers.statusCode,offers.body).toBe(200);
   expect(offers.json().activities[0].bundles.map((b:any)=>b.available)).toEqual([true,true]);expect(offers.body).not.toMatch(/availableQuantity|reserved|stock|components|confirmed|phone|address/);
@@ -65,6 +64,7 @@ describe('TRV-SHARE public invitations and two bundle stock',()=>{
   expect((await rewards.prepareOfficerShare(officer.memberId,activity.id,key())).path).toBe(share.path);
   expect((await rewards.mine(officer.memberId)).vouchers).toHaveLength(0);
   const visit=await app.inject({method:'POST',url:`/v1/officer-shares/${share.officerShareId}/visits`,payload:{visitKey:key()}});expect(visit.statusCode,visit.body).toBe(200);
+  expect(visit.json()).toMatchObject({productCode:null,visitToken:expect.any(String)});
   const joined=await person();const bind=async(p:any,token:string)=>app.inject({method:'POST',url:'/v1/me/sharing-officer/commands',headers:{...auth(p),'idempotency-key':key()},payload:{action:'bind_visit',input:{visitToken:token}}});
   expect((await bind(joined,visit.json().visitToken)).statusCode).toBe(200);
   expect((await pool.query('SELECT officer_id,expires_at FROM sharing_customer_relation WHERE buyer_id=$1',[joined.memberId])).rows[0]).toEqual({officer_id:officer.memberId,expires_at:null});

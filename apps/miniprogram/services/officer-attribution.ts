@@ -11,12 +11,12 @@ async function resolve(entry:Visit):Promise<string|null>{
  const key=entry.origin+entry.visitKey;if(resolving.has(key))return resolving.get(key)!;
  const session=getApp<IAppOption>().globalData.sessionToken;
  const task=(async()=>{
-  const result=await request<{productCode:string;visitToken:string|null}>({path:`/v1/officer-shares/${entry.shareId}/visits`,method:'POST',authMode:'public',data:{visitKey:entry.visitKey}});
+  const result=await request<{productCode:string|null;visitToken:string|null}>({path:`/v1/officer-shares/${entry.shareId}/visits`,method:'POST',authMode:'public',data:{visitKey:entry.visitKey}});
   if(entry.origin!==origin()||session&&session!==getApp<IAppOption>().globalData.sessionToken)return null;
   if(entry.productCode&&result.productCode!==entry.productCode){discard(entry);throw {code:'SHARING_TARGET_MISMATCH',title:'分享商品与链接不一致'};}
   if(!result.visitToken){discard(entry);return result.productCode;}
   if(!/^[A-Za-z0-9_-]{43}$/.test(result.visitToken))throw {title:'推荐信息暂未确认，请重试'};
-  wx.setStorageSync(storage,queue().map(v=>same(v,entry)?{...v,productCode:result.productCode,token:result.visitToken}:v));
+  wx.setStorageSync(storage,queue().map(v=>same(v,entry)?{...v,...(result.productCode ? {productCode:result.productCode} : {}),token:result.visitToken}:v));
   return result.productCode;
  })();resolving.set(key,task);try{return await task;}catch(error){if(['SHARING_LINK_NOT_FOUND','SHARING_INPUT_INVALID'].includes(String((error as {code?:string})?.code))){discard(entry);return null;}throw error;}finally{if(resolving.get(key)===task)resolving.delete(key);}
 }

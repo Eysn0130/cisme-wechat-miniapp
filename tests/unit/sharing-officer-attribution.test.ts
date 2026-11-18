@@ -14,6 +14,16 @@ it('persists a failed anonymous visit and retries the same visit key before bind
  m.token='owner-a';m.request.mockImplementation(async(o:any)=>o.path.includes('/visits')?{productCode:'test-product',visitToken:tokenA}:{recorded:true});
  await api.flushOfficerVisits();expect(m.request.mock.calls[1]![0].data.visitKey).toBe(original);expect(m.request.mock.calls[2]![0]).toMatchObject({idempotencyKey:'touch-'+tokenA,data:{action:'bind_visit',input:{visitToken:tokenA}}});expect(storage.get(key)).toHaveLength(0);
 });
+it('keeps a gift or community referral that has no catalog product',async()=>{
+ const api=await import('../../apps/miniprogram/services/officer-attribution');
+ m.request.mockResolvedValueOnce({productCode:null,visitToken:tokenA});
+ await api.incomingOfficerShare(a);
+ expect(storage.get(key)).toEqual([expect.objectContaining({shareId:a,token:tokenA})]);
+ m.token='signed-in-member';m.request.mockResolvedValueOnce({recorded:true});
+ await api.flushOfficerVisits();
+ expect(m.request.mock.calls.at(-1)?.[0].data.input.visitToken).toBe(tokenA);
+ expect(storage.get(key)).toEqual([]);
+});
 it('drains visits arriving during a current flush without deadlocking or dropping a recommendation',async()=>{
  const api=await import('../../apps/miniprogram/services/officer-attribution'),first=deferred();m.token='owner-a';
  m.request.mockImplementation((o:any)=>o.path.includes(a)?first.promise:o.path.includes(b)?Promise.resolve({productCode:'test-product',visitToken:tokenB}):Promise.resolve({recorded:true}));

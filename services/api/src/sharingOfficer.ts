@@ -17,6 +17,15 @@ function commandCapability(action:string):Capability|null{
 export const sharingHash=(input:unknown)=>createHash('sha256').update(JSON.stringify(input)).digest('hex');
 export const currentSharingPolicySql=`SELECT p.* FROM sharing_policy p ORDER BY p.version DESC LIMIT 1`;
 export const sharingQualificationProduct='aigerong-scalp-repair-essence-100';
+/** A referral shared from published content or a gift has no catalog target.
+ * The empty product code keeps one canonical referral link per officer while
+ * preserving every existing product link and its visit history. */
+export async function officerShareLink(client: DbClient, owner: string, productCode = ""): Promise<string> {
+ const row = (await client.query<{share_id:string}>(`INSERT INTO sharing_link(share_id,officer_id,product_code) VALUES($1,$2,$3)
+  ON CONFLICT(officer_id,product_code) DO UPDATE SET officer_id=EXCLUDED.officer_id RETURNING share_id`,
+  [randomUUID().replaceAll('-',''),owner,productCode])).rows[0]!;
+ return row.share_id;
+}
 /** Paid canonical product units, excluding units reserved by an open return or
  * already refunded. Unallocated external refunds require reconciliation first. */
 export async function sharingQualification(client:DbClient,memberId:string){
@@ -148,9 +157,8 @@ export class SharingOfficerService {
    const code=text(input.productCode,'商品',3,64);
    const product=(await client.query("SELECT code FROM catalog_product WHERE code=$1 AND publication_status='published' AND qualification_status='eligible'",[code])).rows[0];
    if(!product)fail('SHARING_PRODUCT_UNAVAILABLE','该商品当前不可推广',404);
-   const link=(await client.query(`INSERT INTO sharing_link(share_id,officer_id,product_code) VALUES($1,$2,$3)
-    ON CONFLICT(officer_id,product_code) DO UPDATE SET officer_id=EXCLUDED.officer_id RETURNING *`,[randomUUID().replaceAll('-',''),actor,code])).rows[0];
-   return {shareId:link.share_id,productCode:code,path:`/pages/product/index?id=${encodeURIComponent(code)}&officer_share=${link.share_id}`};
+   const shareId=await officerShareLink(client,actor,code);
+   return {shareId,productCode:code,path:`/pages/product/index?id=${encodeURIComponent(code)}&officer_share=${shareId}`};
   });
  }
  async event(client:DbClient,actor:string,row:Row,from:string|null,reason:string){await client.query(`INSERT INTO sharing_officer_event(member_id,version,from_state,to_state,actor_id,reason)
@@ -161,15 +169,17 @@ export class SharingOfficerService {
   return transaction(this.pool,async client=>{
    const link=(await client.query(`SELECT l.product_code,o.state,p.publication_status,p.qualification_status,m.status AS member_status
     FROM sharing_link l JOIN sharing_officer o ON o.member_id=l.officer_id JOIN member m ON m.id=o.member_id
-    JOIN catalog_product p ON p.code=l.product_code WHERE l.share_id=$1`,[shareId])).rows[0];
-   if(!link||link.publication_status!=='published'||link.qualification_status!=='eligible')fail('SHARING_LINK_NOT_FOUND','商品当前不可查看',404);
+    LEFT JOIN catalog_product p ON p.code=l.product_code WHERE l.share_id=$1`,[shareId])).rows[0];
+   if(!link||link.product_code&&(link.publication_status!=='published'||link.qualification_status!=='eligible'))
+    fail('SHARING_LINK_NOT_FOUND','分享内容当前不可查看',404);
+   const productCode: string | null = link.product_code || null;
    const policy=(await client.query(currentSharingPolicySql)).rows[0];
-   if(link.state!=='active'||link.member_status!=='active'||!policy?.enabled)return {productCode:link.product_code,visitToken:null};
+   if(link.state!=='active'||link.member_status!=='active'||!policy?.enabled)return {productCode,visitToken:null};
    const token=randomBytes(32).toString('base64url');
    const visit=(await client.query(`INSERT INTO sharing_visit(share_id,visit_key,token_hash,token_ciphertext,visited_at)
     VALUES($1,$2,$3,$4,$5) ON CONFLICT(share_id,visit_key) DO UPDATE SET visit_key=EXCLUDED.visit_key RETURNING token_ciphertext`,
     [shareId,visitKey,sharingHash(token),this.seal({token},`sharing-visit:${shareId}:${visitKey}`),visitedAt])).rows[0];
-   return {productCode:link.product_code,visitToken:this.unseal(visit.token_ciphertext,`sharing-visit:${shareId}:${visitKey}`).token};
+   return {productCode,visitToken:this.unseal(visit.token_ciphertext,`sharing-visit:${shareId}:${visitKey}`).token};
   });
  }
  private async bindVisit(client:DbClient,actor:string,input:Row){

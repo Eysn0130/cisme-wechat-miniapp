@@ -1,4 +1,4 @@
-import {currentSharingPolicySql,sharingQualificationProduct} from './sharingOfficer.js';
+import {currentSharingPolicySql,officerShareLink} from './sharingOfficer.js';
 import {pageScope,readPageCursor,finishPage} from './keysetPage.js';
 import {managementDates} from './managementDates.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
@@ -96,14 +96,11 @@ export class ActivityRewardService {
    const activity=(await c.query("SELECT id,title FROM reward_activity WHERE id=$1 AND state='published' FOR SHARE",[id])).rows[0];
    if(!activity)fail('REWARD_ACTIVITY_UNAVAILABLE','活动暂未开放，请稍后再来',409);
    if(!(await this.bundleViews(c)).some(b=>b.stockConfirmed&&b.availableQuantity>0))fail('REWARD_ALL_SOLD_OUT','这次洗护礼遇已领完',409);
-   const product=(await c.query("SELECT code FROM catalog_product WHERE code=$1 AND publication_status='published' AND qualification_status='eligible' FOR SHARE",[sharingQualificationProduct])).rows[0];
-   if(!product)fail('SHARING_PRODUCT_UNAVAILABLE','分享暂未开放，请稍后重试',409);
    const gift=(await c.query(`INSERT INTO reward_activity_share(activity_id,created_by) VALUES($1,$2)
     ON CONFLICT(activity_id) DO UPDATE SET activity_id=EXCLUDED.activity_id RETURNING id,version,enabled`,[id,owner])).rows[0];
    if(!gift.enabled)fail('REWARD_LINK_UNAVAILABLE','领取链接已停用',409);
-   const link=(await c.query(`INSERT INTO sharing_link(share_id,officer_id,product_code) VALUES($1,$2,$3)
-    ON CONFLICT(officer_id,product_code) DO UPDATE SET officer_id=EXCLUDED.officer_id RETURNING share_id`,[randomUUID().replaceAll('-',''),owner,sharingQualificationProduct])).rows[0];
-   const token=this.shareToken(gift);return {id:gift.id,activityId:id,title:activity.title,token,officerShareId:link.share_id,path:`/pages/home/index?gift=${token}&officer_share=${link.share_id}`};
+   const officerShareId=await officerShareLink(c,owner);
+   const token=this.shareToken(gift);return {id:gift.id,activityId:id,title:activity.title,token,officerShareId,path:`/pages/home/index?gift=${token}&officer_share=${officerShareId}`};
   },undefined,(c,owner)=>this.requireSharingOfficer(c,owner));
  }
  async invitation(token:string){

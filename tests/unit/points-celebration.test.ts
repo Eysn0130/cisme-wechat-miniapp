@@ -78,6 +78,18 @@ it('ignores late credits after identity changes and never reads a stale owner pr
  definition.pageLifetimes.hide.call(c);m.token='session-b';m.context++;m.identity=other;resolve(snapshot());await flush();definition.pageLifetimes.show.call(c);await flush();
  expect(c.data.showing).toBe(false);expect(m.read).toHaveBeenCalledTimes(1);expect(feedback.hasOnboardingFeedback(owner)).toBe(true);
 });
+it('resumes a confirmed credit interrupted before the number settles',async()=>{
+ feedback.queueOnboardingFeedback(owner,'complete-first');
+ const c=await mount();await vi.advanceTimersByTimeAsync(200);
+ expect(c.data.phase).toBe('spinning');
+ definition.pageLifetimes.hide.call(c);await flush();
+ expect(c.data.showing).toBe(false);
+ expect(feedback.hasOnboardingFeedback(owner)).toBe(true);
+ definition.pageLifetimes.show.call(c);await flush();await vi.advanceTimersByTimeAsync(2100);
+ expect(c.triggerEvent).toHaveBeenCalledExactlyOnceWith('finished',{owner,kind:'questionnaire',amount:100});
+ expect(feedback.hasOnboardingFeedback(owner)).toBe(false);
+ await c.present();expect(c.data.showing).toBe(false);
+});
 it('supports reduced motion and cancels the visual immediately on backgrounding',async()=>{
  m.reduced=true;feedback.queueOnboardingFeedback(owner,'complete-first');const c=await mount();expect(c.data).toMatchObject({showing:true,reducedMotion:true});
  definition.pageLifetimes.hide.call(c);expect(c.data.showing).toBe(false);await vi.advanceTimersByTimeAsync(3000);expect(c.data.showing).toBe(false);expect(m.cancel).toHaveBeenCalled();

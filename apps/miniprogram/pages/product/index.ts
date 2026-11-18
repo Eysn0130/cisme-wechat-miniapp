@@ -44,8 +44,15 @@ Page({
       this.present(raw,materials,previousSku,previousQuantity);this.setData({loading:false});
       if(this.data.item){
         // Attribution links require a real server product, not just approved materials.
-        if(raw){const share=await prepareShareDetails("product",this.data.id);if(this.visible&&this.data.pageAlive&&this.data.loadAttempt===attempt&&token===getApp<IAppOption>().globalData.sessionToken&&context===commerceContextRevision()){this.shareOwner=token;this.shareContext=context;this.setData({shareId:share?.shareId??"",officerShareId:share?.officerShareId??""});wx.showShareMenu({menus:["shareAppMessage"]});}}
-        else wx.showShareMenu({menus:["shareAppMessage"]});
+        if(raw){
+          const share = await prepareShareDetails("product",this.data.id);
+          if(share?.shareId && this.visible && this.data.pageAlive && this.data.loadAttempt===attempt &&
+             token===getApp<IAppOption>().globalData.sessionToken && context===commerceContextRevision()){
+            this.shareOwner=token;this.shareContext=context;
+            this.setData({shareId:share.shareId,officerShareId:share.officerShareId??""});
+            wx.showShareMenu({menus:["shareAppMessage"]});
+          }
+        }
       }
     }catch(error){
       if(!this.data.pageAlive||this.data.loadAttempt!==attempt)return;
