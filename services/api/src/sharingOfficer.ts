@@ -187,7 +187,7 @@ export class SharingOfficerService {
    const now=(await client.query('SELECT clock_timestamp() AS at')).rows[0].at as Date;
    const inWindow=p.attribution_days===null||new Date(visit.visited_at).getTime()>now.getTime()-p.attribution_days*86400_000;
    const expired=current?.expires_at&&new Date(current.expires_at)<=now;
-   const registered=(await client.query<{created_at:Date}>('SELECT created_at FROM member WHERE id=$1',[actor])).rows[0];
+   const registered=(await client.query<{created_at:Date}>('SELECT registration_completed_at AS created_at FROM member WHERE id=$1',[actor])).rows[0];
    const newFromLink=Boolean(registered&&new Date(registered.created_at)>=new Date(visit.visited_at));
    const correctEarlier=current?.source==='first_touch'&&p.priority==='first'&&new Date(visit.visited_at)<new Date(current.effective_at);
    const later=current?.source!=='member_choice'&&p.priority==='last'&&new Date(visit.visited_at)>new Date(current?.effective_at??0);

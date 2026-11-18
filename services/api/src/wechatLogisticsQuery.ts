@@ -8,9 +8,12 @@ export type LogisticsQueryCapability='logistics.query.register';
 export type LogisticsMessageCapability='logistics.message.register';
 export type QueryGoods={goods_name:string;goods_img_url:string};
 export type QueryRegistration={binding:LogisticsBinding;carrierCode:string;trackingNumber:string;receiverPhone:string;goods:QueryGoods[];orderDetailPath:string};
+export type LogisticsAuthorityBinding=Pick<LogisticsBinding,'appId'|'merchantId'>&Partial<Pick<LogisticsBinding,'merchantOrderNumber'>>;
+export type LogisticsCarrier={id:string;name:string};
 export interface LogisticsQueryChannel {
   assertReady(binding:LogisticsBinding):Promise<void>;
   register(input:QueryRegistration):Promise<string>;
+  carriers?(binding:LogisticsAuthorityBinding):Promise<LogisticsCarrier[]>;
 }
 export class LogisticsRegistrationRejected extends DomainError {
   constructor(readonly providerCode:number){super('LOGISTICS_QUERY_REJECTED','微信暂时不能提供物流详情，请复制运单号查询或联系客服',503);}
@@ -22,9 +25,10 @@ function unavailable():never{throw new DomainError('LOGISTICS_QUERY_NOT_READY','
  * shipment purchase, notification subscription or payment is created here. */
 export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
   private readyUntil=0;
-  constructor(private token:()=>Promise<string>,private authorize:(cap:LogisticsQueryCapability|LogisticsMessageCapability,binding:LogisticsBinding)=>void,private fetcher:typeof fetch=fetch,private mode:'query'|'message'='query',private invalidateToken:()=>void=()=>{}){}
+  private carrierOptions:LogisticsCarrier[]=[];
+  constructor(private token:()=>Promise<string>,private authorize:(cap:LogisticsQueryCapability|LogisticsMessageCapability,binding:LogisticsAuthorityBinding)=>void,private fetcher:typeof fetch=fetch,private mode:'query'|'message'='query',private invalidateToken:()=>void=()=>{}){}
   private get capability():LogisticsQueryCapability|LogisticsMessageCapability{return this.mode==='query'?'logistics.query.register':'logistics.message.register';}
-  private async call(path:'get_delivery_list'|'trace_waybill'|'follow_waybill',binding:LogisticsBinding,payload:unknown){
+  private async call(path:'get_delivery_list'|'trace_waybill'|'follow_waybill',binding:LogisticsAuthorityBinding,payload:unknown){
     let token:string;
     try{this.authorize(this.capability,binding);token=await this.token();this.authorize(this.capability,binding);
       if(typeof token!=='string'||!token||token.length>4096)unavailable();}
@@ -42,12 +46,25 @@ export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
   }
   async assertReady(binding:LogisticsBinding){
     validateShippingBinding(binding);this.authorize(this.capability,binding);
-    if(this.readyUntil>Date.now())return;
+    await this.carriers(binding);
+  }
+  /** Official query/message carrier metadata; never an electronic-waybill
+   * account lookup, parcel registration or customer notification. */
+  async carriers(binding:LogisticsAuthorityBinding){
+    this.authorize(this.capability,binding);
+    if(this.readyUntil>Date.now()&&this.carrierOptions.length)return this.carrierOptions.map(row=>({...row}));
     try{const body=await this.call('get_delivery_list',binding,{});
       if(!Array.isArray(body.delivery_list)||!body.delivery_list.length||body.delivery_list.length>5000
         ||body.delivery_list.some(x=>!x||typeof x!=='object'||typeof x.delivery_id!=='string'||!x.delivery_id||x.delivery_id.length>80)
         ||body.count!==undefined&&body.count!==body.delivery_list.length)unavailable();
-      this.readyUntil=Date.now()+60_000;}
+      const seen=new Set<string>();
+      this.carrierOptions=(body.delivery_list as Array<{delivery_id:string;delivery_name?:unknown}>).map(row=>{
+        if(!/^[A-Z0-9_]{2,32}$/.test(row.delivery_id)||seen.has(row.delivery_id))unavailable();seen.add(row.delivery_id);
+        const name=typeof row.delivery_name==='string'?row.delivery_name.trim():row.delivery_id;
+        if(!name||Array.from(name).length>80||/[\u0000-\u001f\u007f]/.test(name))unavailable();
+        return {id:row.delivery_id,name};
+      });
+      this.readyUntil=Date.now()+60_000;return this.carrierOptions.map(row=>({...row}));}
     catch{unavailable();}
   }
   async register(input:QueryRegistration){
@@ -64,5 +81,5 @@ export class WechatLogisticsQueryClient implements LogisticsQueryChannel {
 /** Free official logistics messages for the actual buyer of an existing paid
  * order. Does not request a subscription or claim that a message was delivered. */
 export class WechatLogisticsMessageClient extends WechatLogisticsQueryClient {
-  constructor(token:()=>Promise<string>,authorize:(cap:LogisticsQueryCapability|LogisticsMessageCapability,binding:LogisticsBinding)=>void,fetcher:typeof fetch=fetch,invalidateToken:()=>void=()=>{}){super(token,authorize,fetcher,'message',invalidateToken);}
+  constructor(token:()=>Promise<string>,authorize:(cap:LogisticsQueryCapability|LogisticsMessageCapability,binding:LogisticsAuthorityBinding)=>void,fetcher:typeof fetch=fetch,invalidateToken:()=>void=()=>{}){super(token,authorize,fetcher,'message',invalidateToken);}
 }

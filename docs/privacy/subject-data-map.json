@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "8192d35d25da02d18ac47ca0cca7e32c6afc21438a42c0a7aade704dfa64fe2e",
+  "migrationSetSha256": "53b58e9c1e818c8ed1b4a9c8ef88a9036f638f6cc004948a628c5b209d4b7c73",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -4882,12 +4882,13 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "The monotonic privacy_erasure_revision fences in-flight portable copies after address-book erasure; it is not personal content for export.",
+      "specialHandling": "The monotonic privacy_erasure_revision fences in-flight portable copies after address-book erasure; it is not personal content for export. Registration completion distinguishes a pending explicit WeChat login from formal membership and is included only in the verified owner account copy. Existing identity creation and issued identifiers remain immutable; incomplete logins are excluded from administrative user projections.",
       "exportFields": [
         "id",
         "display_name",
         "created_at",
-        "status"
+        "status",
+        "registration_completed_at"
       ],
       "excludedFields": [
         "privacy_erasure_revision"

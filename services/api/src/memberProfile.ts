@@ -6,6 +6,7 @@ import { transaction } from './db.js';
 import { normalizeMemberAvatar } from './memberAvatar.js';
 import { createHash } from 'node:crypto';
 import type { AppEnvironment } from '@cisme/config';
+import {registrationProfileComplete} from './memberRegistration.js';
 
 export interface MemberProfileInput {
   displayName?: unknown; wechatHandle?: unknown; avatarDataUrl?: unknown;
@@ -16,7 +17,7 @@ export class MemberProfile {
   constructor(private pool: pg.Pool,private environment:AppEnvironment='test',private config?:import('@cisme/config').AppConfig) {}
   async get(memberId: string | undefined) {
     if (!memberId) throw new DomainError('AUTH_REQUIRED', '请先登录会员账号', 401);
-    const row = await this.pool.query(`SELECT m.id, ${memberCardNumberProjection} AS card_number,mc.user_code, bp.birthday_month_day,bp.birthday_change_after,m.display_name, p.wechat_handle, p.handle_source,
+    const row = await this.pool.query(`SELECT m.id,m.registration_completed_at, ${memberCardNumberProjection} AS card_number,mc.user_code, bp.birthday_month_day,bp.birthday_change_after,m.display_name, p.wechat_handle, p.handle_source,
       p.avatar_data_url, p.avatar_revision, COALESCE(p.profile_revision,0) AS profile_revision,
       p.completed_at, COALESCE(p.community_visible,false) AS community_visible,
       COALESCE(p.public_status,'private') AS public_status, p.public_review_note
@@ -35,14 +36,16 @@ export class MemberProfile {
     if (input.expectedVersion !== undefined && (!Number.isSafeInteger(input.expectedVersion) || Number(input.expectedVersion) < 0)) throw new DomainError('PROFILE_VERSION_INVALID', '请刷新资料后重试', 422);
     const avatar = input.avatarDataUrl === undefined ? undefined : normalizeMemberAvatar(input.avatarDataUrl);
     await transaction(this.pool, async client => {
-      const member = (await client.query("SELECT display_name FROM member WHERE id=$1 AND status='active' FOR UPDATE", [memberId])).rows[0];
+      const member = (await client.query("SELECT display_name,registration_completed_at FROM member WHERE id=$1 AND status='active' FOR UPDATE", [memberId])).rows[0];
       if (!member) throw new DomainError('AUTH_REVOKED', '会员账号不可用', 401);
-      if(input.birthdayMonthDay!==undefined)await saveMemberBirthday(client,memberId,input.birthdayMonthDay,new Date(),this.config);
       const previous = (await client.query('SELECT * FROM member_profile WHERE member_id=$1', [memberId])).rows[0];
       const version = previous?.profile_revision ?? 0;
       if (input.expectedVersion !== undefined && input.expectedVersion !== version) throw new DomainError('PROFILE_CHANGED', '资料已在其他页面更新，请重新加载后修改', 409);
       const avatarData = avatar === undefined ? previous?.avatar_data_url ?? null : avatar?.dataUrl ?? null;
       const avatarRevision = avatar === undefined ? previous?.avatar_revision ?? null : avatar?.revision ?? null;
+      if (member.registration_completed_at === null && !registrationProfileComplete(name, avatarData))
+        throw new DomainError('MEMBER_REGISTRATION_REQUIRED', '请确认头像和昵称后继续', 422);
+      if(input.birthdayMonthDay!==undefined)await saveMemberBirthday(client,memberId,input.birthdayMonthDay,new Date(),this.config);
       const visible = input.communityVisible ?? previous?.community_visible ?? false;
       const publicChanged = member.display_name !== name || avatarRevision !== (previous?.avatar_revision ?? null) || visible !== (previous?.community_visible ?? false);
       const publicStatus = !visible ? 'private' : publicChanged || !previous || previous.public_status === 'private' ? 'pending' : previous.public_status;
@@ -57,6 +60,10 @@ export class MemberProfile {
           public_reviewed_by=CASE WHEN $8 THEN NULL ELSE member_profile.public_reviewed_by END,
           public_reviewed_at=CASE WHEN $8 THEN NULL ELSE member_profile.public_reviewed_at END,updated_at=now()`,
         [memberId, handle || null, avatarData, avatarRevision, visible, publicStatus, input.wechatHandle !== undefined, publicChanged]);
+      // Row locking makes confirmation and identifier allocation atomic. A
+      // lost response or a second login cannot create another membership.
+      if (member.registration_completed_at === null)
+        await client.query('UPDATE member SET registration_completed_at=clock_timestamp() WHERE id=$1', [memberId]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,trace_id)
         VALUES($1,'member.profile_updated','member',$2,$3,gen_random_uuid()::text)`,
         [`member:${memberId}`, memberId, visible ? 'USER_PROFILE_COMMUNITY_REQUEST' : 'USER_PROFILE_PRIVATE']);

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 import { loadConfig } from '@cisme/config';
+import jpeg from 'jpeg-js';
 import { TEST_DATABASE_URL, resetDatabase, testPool } from '@cisme/testkit';
 import { PhoneBinding } from '../../services/api/src/phoneBinding';
 import { PlatformService } from '../../services/api/src/platformService';
@@ -52,7 +53,8 @@ it('rejects another app phone watermark without binding or leaking the number',a
 it('stores a self-reported contact handle without changing authentication or team permissions',async()=>{
  const {MemberProfile}=await import('../../services/api/src/memberProfile');
  const profiles=new MemberProfile(pool);
- await profiles.update(memberId,{displayName:'会员甲',wechatHandle:'member_alpha'});
+ const avatar='data:image/jpeg;base64,'+jpeg.encode({data:Buffer.alloc(16*16*4,180),width:16,height:16},80).data.toString('base64');
+ await profiles.update(memberId,{displayName:'会员甲',wechatHandle:'member_alpha',avatarDataUrl:avatar});
  expect(await profiles.get(memberId)).toMatchObject({display_name:'会员甲',wechat_handle:'member_alpha',handle_source:'self_reported'});
  expect((await profiles.get(otherId)).wechat_handle).toBeNull();
  expect((await pool.query('SELECT 1 FROM member_team_access')).rowCount).toBe(0);

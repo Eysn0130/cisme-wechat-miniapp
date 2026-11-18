@@ -26,7 +26,8 @@ it("records the repaired pages' hide/unload ownership without claiming native PA
   }
 });
 it("keeps public browsing and explicit role/unknown-state verification requirements",()=>{
-  expect(audit.routes.find(row=>row.route==="pages/home/index")!.rolesToVerify).toContain("visitor");
+  expect(audit.routes.find(row=>row.route==="pages/community/index")!.rolesToVerify).toContain("visitor");
+  expect(audit.routes.find(row=>row.route==="pages/home/index")!.rolesToVerify).not.toContain("visitor");
   expect(audit.routes.find(row=>row.route==="pages/management/index")!.rolesToVerify).toContain("revoked_capability");
   expect(audit.routes.every(row=>row.requirement.states.includes("error")&&row.requirement.states.includes("resume"))).toBe(true);
 });

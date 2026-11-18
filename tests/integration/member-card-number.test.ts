@@ -79,7 +79,7 @@ it('backfills existing accounts in a deterministic order without changing member
   try{
     await c.query('BEGIN');
     await c.query('ALTER TABLE sharing_officer DROP CONSTRAINT sharing_officer_member_user_code_fk');
-    await c.query('DROP TRIGGER member_card_number_on_registration ON member;DROP TABLE member_card_number;DROP FUNCTION assign_member_card_number();DROP FUNCTION preserve_member_card_number()');
+    await c.query('DROP TRIGGER member_card_number_on_confirmation ON member;DROP TRIGGER member_card_number_on_registration ON member;DROP TABLE member_card_number;DROP FUNCTION assign_member_card_number();DROP FUNCTION preserve_member_card_number()');
     const id=randomUUID();await c.query("INSERT INTO member(id,display_name,created_at) VALUES($1,'合成旧会员','2020-01-01T00:00:00Z')",[id]);
     const before=(await c.query('SELECT * FROM member ORDER BY created_at,id')).rows;
     await c.query(sql);

@@ -107,7 +107,7 @@ export class ActivityRewardService {
   },undefined,(c,owner)=>this.requireSharingOfficer(c,owner));
  }
  async invitation(token:string){
-  return transaction(this.pool,async c=>{const row=await this.activeShare(c,token);return {activityId:row.activity_id,title:row.title,bundles:await this.bundleViews(c),terms:rewardTerms(row.terms)};},'REPEATABLE READ');
+  return transaction(this.pool,async c=>{const row=await this.activeShare(c,token);return {activityId:row.activity_id,title:row.title,bundles:(await this.bundleViews(c)).map(({code,name,shampoo,shampooMl,conditioner,conditionerMl,image,stockConfirmed,availableQuantity})=>({code,name,shampoo,shampooMl,conditioner,conditionerMl,image,stockConfirmed,available:stockConfirmed&&availableQuantity>0})),terms:rewardTerms(row.terms)};},'REPEATABLE READ');
  }
  async acceptInvitation(actor:string|undefined,token:string,keyInput:string,now=new Date()){
   const tokenDigest=createHash('sha256').update(String(token)).digest('hex');

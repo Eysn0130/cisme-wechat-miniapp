@@ -911,6 +911,7 @@ describe("mini-program page behavior", () => {
 
   it("returns an authenticated member from Account to its source while keeping public browsing separate", async () => {
     Object.assign(globalThis,{getApp:()=>({globalData:{sessionToken:"valid-member"}})});
+    (await import("../../apps/miniprogram/services/member-entry")).confirmMemberEntry("valid-member");
     wxMock.getStorageSync!.mockReturnValue("/pages/home/index");
     await vi.importActual("../../apps/miniprogram/pages/account/index");
     const page = capturedPage!;
@@ -957,11 +958,9 @@ describe("mini-program page behavior", () => {
     await page.back.call(context);
 
     expect(wxMock.showModal).toHaveBeenCalledWith(expect.objectContaining({ confirmText: "仍然返回" }));
-    expect(wxMock.navigateBack).toHaveBeenCalledTimes(1);
-    expect(wxMock.switchTab).not.toHaveBeenCalled();
-    wxMock.navigateBack!.mock.calls[0]![0].fail();
+    expect(wxMock.navigateBack).not.toHaveBeenCalled();
     expect(wxMock.switchTab).toHaveBeenCalledTimes(1);
-    expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/home/index" }));
+    expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({ url: "/pages/community/index" }));
   });
 
   it("serializes simultaneous Account back and browse taps before the async leave check resumes", async () => {
@@ -969,8 +968,8 @@ describe("mini-program page behavior", () => {
     const page = capturedPage!;
     const context = mountedPage(page);
     await Promise.all([page.back.call(context), page.browseCommunity.call(context), page.back.call(context)]);
-    expect(wxMock.navigateBack).toHaveBeenCalledTimes(1);
-    expect(wxMock.switchTab).not.toHaveBeenCalled();
+    expect(wxMock.navigateBack).not.toHaveBeenCalled();
+    expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:"/pages/community/index"}));
     expect(cancelAuthenticationMock).toHaveBeenCalledTimes(1);
   });
 

@@ -1,7 +1,7 @@
 {
   "pages": [
-    "pages/home/index",
     "pages/account/index",
+    "pages/home/index",
     "pages/shop/index",
     "pages/community/index",
     "pages/profile/index"
@@ -12,7 +12,7 @@
       "pages": [],
       "plugins": {
         "logisticsPlugin": {
-          "version": "2.1.5",
+          "version": "2.3.0",
           "provider": "wx9ad912bf20548d92"
         }
       }

@@ -45,6 +45,8 @@ describe('TRV-SHARE public invitations and two bundle stock',()=>{
   expect(b.token).toBe(a.token);expect(a.token).toMatch(/^[a-f0-9]{64}$/);expect(a.path).toBe(`/pages/home/index?gift=${a.token}`);
   const publicRead=await app.inject({method:'GET',url:`/v1/rewards/invitations/${a.token}`});expect(publicRead.statusCode,publicRead.body).toBe(200);
   expect(publicRead.json().bundles.map((v:any)=>v.code)).toEqual(['moisture','dandruff']);
+  expect(publicRead.json().bundles.map((v:any)=>v.available)).toEqual([true,true]);
+  expect(publicRead.body).not.toMatch(/availableQuantity|reservedQuantity|components|expectedVersions|stock_on_hand/);
   expect(publicRead.body).not.toContain(operator.memberId);expect(publicRead.json()).not.toHaveProperty('created_by');
   const p=await person();await expect(rewards.prepareShare(p.memberId,activity.id,key())).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
   expect((await app.inject({method:'POST',url:`/v1/me/rewards/invitations/${a.token}/accept`,headers:{'idempotency-key':key()},payload:{}})).statusCode).toBe(401);

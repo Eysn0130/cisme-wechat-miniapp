@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 const m=vi.hoisted(()=>({token:'owner-a',request:vi.fn()}));
-vi.mock('../../apps/miniprogram/services/api',async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess,request:m.request,requireMemberAccess:()=>Boolean(m.token),retainMemberSnapshot:()=>true}));
+vi.mock('../../apps/miniprogram/services/api',async(importOriginal)=>({requireGuestCommunityAccess:()=>Boolean(m.token),request:m.request,requireMemberAccess:()=>Boolean(m.token),retainMemberSnapshot:()=>true}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',shouldReduceMotion:()=>true}));
 vi.mock('../../apps/miniprogram/services/member-identity',()=>({memberIdentity:()=>null}));
 vi.mock('../../apps/miniprogram/services/share',()=>({prepareShareDetails:async()=>null,registerIncomingShare:vi.fn()}));
@@ -11,7 +11,7 @@ const overview=()=>({serverDay:day,today:usage,enabled:true,streak:usage?1:0});
 function accepted(o:any){usage={id:'use-a',operationId:o.idempotencyKey,products:[...o.data.products],note:o.data.note.trim(),version:(usage?.version??0)+1};return{recordId:usage.id,operationId:o.idempotencyKey,replayed:false,careDay:o.data.serverDay};}
 const select=(id='essence')=>page.toggleCareProduct({currentTarget:{dataset:{id}}});
 async function open(){await import('../../apps/miniprogram/pages/home/index');await page.load();await flush();await page.primaryAction();}
-beforeEach(()=>{
+beforeEach(async()=>{
  vi.resetModules();vi.clearAllMocks();m.token='owner-a';usage=null;care=null;day='2026-11-10';posts=[];coreFails=false;write=accepted;
  m.request.mockImplementation(async(o:any)=>{
   if(o.method&&o.method!=='GET'){posts.push(structuredClone(o));return write(o);}

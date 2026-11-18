@@ -1,9 +1,13 @@
 import {pageRead} from './page-requests';
 import {commerceUuid} from './commerce-command-store';
-export interface SetupProfile{id:string;display_name:string;profile_revision:number;completed_at:string|null;avatar_data_url:string|null;avatar_revision:string|null;public_status?:string}
+export interface SetupProfile{id:string;display_name:string;profile_revision:number;completed_at:string|null;avatar_data_url:string|null;avatar_revision:string|null;public_status?:string;registration_completed_at?:string|null}
 export function needsLoginName(profile:{display_name?:string;completed_at?:string|null}){
   const name=profile.display_name?.trim();
   return !name||!profile.completed_at&&['CISME 会员','微信用户'].includes(name);
+}
+export function hasCompleteLoginProfile(profile:Partial<SetupProfile>){
+  return profile.registration_completed_at !== null && Number.isSafeInteger(profile.profile_revision) && typeof profile.avatar_data_url==='string'
+    && Boolean(profile.avatar_data_url) && !needsLoginName(profile);
 }
 /** Bootstrap snapshots carry saved facts; absent legacy fields are not a
  * reason to discard a valid session or invent a second member identity. */

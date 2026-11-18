@@ -33,8 +33,8 @@ export function openContact(config:AppConfig,memberId:string,row:{phone_encrypte
  * security logs and other people's identities are intentionally excluded. */
 export async function collectMemberPortableData(client:DbClient,config:AppConfig,
   addresses:DeliveryAddressService,memberId:string){
-  const member=(await client.query<{id:string;display_name:string;status:string;created_at:Date}>(
-    'SELECT id,display_name,status,created_at FROM member WHERE id=$1',[memberId])).rows[0];
+  const member=(await client.query<{id:string;display_name:string;status:string;created_at:Date;registration_completed_at:Date|null}>(
+    'SELECT id,display_name,status,created_at,registration_completed_at FROM member WHERE id=$1',[memberId])).rows[0];
   if(!member||!['active','deleted'].includes(member.status))
     throw new DomainError('PRIVACY_EXPORT_MEMBER_MISSING','申请账号不可用',409);
   const contact=(await client.query<{phone_encrypted:string;key_version:string}>(

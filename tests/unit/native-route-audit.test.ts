@@ -7,7 +7,7 @@ describe("native route source audit", () => {
     expect(audit.routes).toHaveLength(48);
     expect(audit.evidenceManifestMatchesSource).toBe(true);
     expect(audit.routes.every(row => !row.stateGate.matrixComplete && row.stateGate.result === "blocked")).toBe(true);
-    expect(audit.routes.find(row => row.route === "pages/home/index")?.access).toBe("public");
+    expect(audit.routes.find(row => row.route === "pages/home/index")?.access).toBe("member");
     expect(audit.routes.find(row => row.route === "pages/points/index")).toMatchObject({
       access: "member", sourceMarkers: { memberAccessCall: true, snapshotOwnerCall: true }
     });

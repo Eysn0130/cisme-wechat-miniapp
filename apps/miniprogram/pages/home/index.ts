@@ -441,7 +441,7 @@ Page({
     if(!invitation||token||this.data.giftLoading||!this.isCurrentUi(epoch,token))return;
     this.setData({giftLoading:true,giftError:''});
     try{const offer=await rewardInvitation(this,invitation);if(!this.isCurrentUi(epoch,token))return;
-      if(!offer.bundles.some(b=>b.stockConfirmed&&(b.availableQuantity??0)>0)){
+      if(!offer.bundles.some(b=>b.available)){
         clearRewardInvitation(invitation);this.giftFailure(offer.bundles.some(b=>!b.stockConfirmed)?'这份礼遇尚未开放，请稍后重试':'这次洗护礼遇已领完',epoch,token,false);return;
       }
       resumeAuthentication('/pages/home/index');

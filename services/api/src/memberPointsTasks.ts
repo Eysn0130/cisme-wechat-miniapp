@@ -39,8 +39,14 @@ export async function rewardV2Other(c:DbClient,event:any,p:PointsPolicy){
  const owner=event.member_id,source=event.source_id,now=event.occurred_at,r=p.rules;
  await lockPointWallet(c,owner,true);
  if(event.kind==='profile'){
-  const row=(await c.query(`SELECT m.display_name,p.completed_at,p.avatar_data_url FROM member m JOIN member_profile p ON p.member_id=m.id WHERE m.id=$1`,[owner])).rows[0];
-  if(row?.completed_at&&row.avatar_data_url&&!/^CISME\s*会员(?:\s*\d+)?$/i.test(row.display_name))await grantMemberPoints(c,{owner,sourceType:'profile',sourceId:owner,component:'base',amount:r.profile??0,policy:p,now});
+  const row=(await c.query(`SELECT m.display_name,p.completed_at,p.avatar_data_url,
+      m.registration_completed_at<=e.occurred_at AS reward_eligible
+    FROM member m JOIN member_profile p ON p.member_id=m.id
+    JOIN member_points_source_event e ON e.member_id=m.id AND e.id=$2 WHERE m.id=$1`,[owner,event.id])).rows[0];
+  // Initial login saves the required profile before registration completes.
+  // It is identity confirmation, not a rewarded optional member action.
+  // Earlier promised profile-completion tasks and earned points stay intact.
+  if(row?.reward_eligible&&row.completed_at&&row.avatar_data_url&&!/^CISME\s*会员(?:\s*\d+)?$/i.test(row.display_name))await grantMemberPoints(c,{owner,sourceType:'profile',sourceId:owner,component:'base',amount:r.profile??0,policy:p,now});
  }else if(event.kind==='suggestion'){
   const row=(await c.query("SELECT 1 FROM member_points_suggestion WHERE id=$1 AND member_id=$2 AND state='approved'",[source,owner])).rowCount;
   const bucket=pointDay(now).slice(0,7);if(row&&r.suggestionMonthlyLimit&&await taskGrantCount(c,owner,'suggestion','base',bucket)<r.suggestionMonthlyLimit)
@@ -62,7 +68,7 @@ export function pointsTaskDefinitions(p:PointsPolicy,now:Date){const r=p.rules;i
   {id:'streak7',title:'连续护理7天',amount:r.streak7,limit:1,type:'care_streak',component:'streak7',bucket:day,condition:'连续7天，每周期一次',destination:'care'},
   {id:'streak30',title:'连续护理30天',amount:r.streak30,limit:1,type:'care_streak',component:'streak30',bucket:day,condition:'连续30天，每周期一次',destination:'care'},
   {id:'questionnaire',title:'完成护理问卷',amount:r.questionnaire,limit:1,type:'questionnaire',component:'base',bucket:'',condition:'首次完整提交',destination:'questionnaire'},
-  {id:'profile',title:'完善头像与昵称',amount:r.profile,limit:1,type:'profile',component:'base',bucket:'',condition:'首次完善必要资料',destination:'profile'},
+  {id:'profile',title:'原会员资料补全',amount:r.profile,limit:1,type:'profile',component:'base',bucket:'',condition:'已建档会员首次补全，首次登录不计分',destination:'profile'},
   {id:'firstPost',title:'第一次分享',amount:r.firstPost,limit:1,type:'post',component:'first_post',bucket:'',condition:'首次发布，通过安全检查',destination:'post'},
   {id:'original',title:'原创护理心得',amount:r.originalPost,limit:r.originalMonthlyLimit,type:'post',component:'original',bucket:month,condition:`每月${r.originalMonthlyLimit}篇，至少${r.postMinHan}个汉字`,destination:'post'},
   {id:'experience',title:'产品使用体验',amount:r.experiencePost,limit:r.experienceMonthlyLimit,type:'post',component:'experience',bucket:month,condition:`每月${r.experienceMonthlyLimit}篇，关联产品、使用时长与真实感受`,destination:'experience'},
@@ -79,7 +85,9 @@ export async function pointsTaskStatus(c:DbClient,owner:string,p:PointsPolicy,no
  const counts=(await c.query<{source_type:string;component:string;bucket:string;n:number}>(`SELECT g.source_type,g.component,COALESCE(e.metadata->>'bucket','') AS bucket,count(*)::int AS n FROM points_grant g JOIN points_entry e ON e.grant_id=g.id AND e.entry_type='grant_available' WHERE g.member_id=$1 GROUP BY g.source_type,g.component,COALESCE(e.metadata->>'bucket','')`,[owner])).rows;
  const pending=(await c.query<{kind:string;n:number}>(`SELECT kind,count(*)::int AS n FROM member_points_source_event WHERE member_id=$1 AND state='pending' GROUP BY kind`,[owner])).rows;
  const suggestionPending=(await c.query("SELECT 1 FROM member_points_suggestion WHERE member_id=$1 AND state='pending' LIMIT 1",[owner])).rowCount;
- return Promise.all(definitions.filter(d=>(d.amount??0)>0).map(async d=>{const count=counts.filter(x=>x.source_type===d.type&&(x.component===d.component||d.id==='firstOrder'&&x.component==='invite_friend')&&(!d.bucket||x.bucket===d.bucket)).reduce((n,x)=>n+x.n,0),atLimit=(d.limit??0)>0&&count>=(d.limit??0),
+ const loginProfile=(await c.query(`SELECT 1 FROM member_points_source_event e JOIN member m ON m.id=e.member_id
+   WHERE e.member_id=$1 AND e.kind='profile' AND e.occurred_at<m.registration_completed_at LIMIT 1`,[owner])).rowCount;
+ return Promise.all(definitions.filter(d=>(d.amount??0)>0&&(d.id!=='profile'||!loginProfile||counts.some(x=>x.source_type==='profile'&&x.n>0))).map(async d=>{const count=counts.filter(x=>x.source_type===d.type&&(x.component===d.component||d.id==='firstOrder'&&x.component==='invite_friend')&&(!d.bucket||x.bucket===d.bucket)).reduce((n,x)=>n+x.n,0),atLimit=(d.limit??0)>0&&count>=(d.limit??0),
   reviewing=(d.id==='suggestion'&&suggestionPending)||(pending.some(x=>x.kind===d.type&&x.n>0));
   return {...d,count,state:atLimit?(d.bucket&&!d.id.startsWith('streak')?'limit':'completed'):reviewing?'pending':'available'};
  }));
