@@ -57,6 +57,8 @@ it('closes access while preserving a legally held profile until the hold is rele
     payload:{code:'hold-login',displayName:'Held name',consents}});
   expect(login.statusCode,login.body).toBe(200);
   const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  // Existing-member fixture; registration itself has separate HTTP coverage.
+  await pool.query('UPDATE member SET registration_completed_at=clock_timestamp() WHERE id=$1 AND registration_completed_at IS NULL',[memberId]);
   await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'HeldHandle','self_reported')",[memberId]);
   const hold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
     VALUES('DISPUTE_EVIDENCE','Open customer dispute requires scoped retention','fixture',now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0].id;
@@ -84,6 +86,8 @@ it('honors a legal hold committed while closure is waiting for the hold decision
     payload:{code:'concurrent-login',displayName:'Pending hold',consents}});
   expect(login.statusCode,login.body).toBe(200);
   const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  // Existing-member fixture; registration itself has separate HTTP coverage.
+  await pool.query('UPDATE member SET registration_completed_at=clock_timestamp() WHERE id=$1 AND registration_completed_at IS NULL',[memberId]);
   await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'HeldDuringClosure','self_reported')",[memberId]);
   const blocker=await pool.connect();
   let pending:Promise<{statusCode:number;body:string}>|undefined;
@@ -128,6 +132,8 @@ it('does not claim closure before the independent suppression marker is durable'
     payload:{code:'remote-login',displayName:'Remote failure case',consents}});
   expect(login.statusCode,login.body).toBe(200);
   const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  // Existing-member fixture; registration itself has separate HTTP coverage.
+  await pool.query('UPDATE member SET registration_completed_at=clock_timestamp() WHERE id=$1 AND registration_completed_at IS NULL',[memberId]);
   const headers={authorization:`Bearer ${sessionToken}`};
   remoteAvailable=false;
   try{
@@ -147,6 +153,8 @@ it('closes a self-verified account, retains transaction facts, and suppresses ol
   const login=await app.inject({method:'POST',url:'/v1/identity/wechat',payload:{code:'formal-shaped-code',displayName:'Private name',consents}});
   expect(login.statusCode,login.body).toBe(200);
   const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  // Existing-member fixture; registration itself has separate HTTP coverage.
+  await pool.query('UPDATE member SET registration_completed_at=clock_timestamp() WHERE id=$1 AND registration_completed_at IS NULL',[memberId]);
   const headers={authorization:`Bearer ${sessionToken}`};
   await pool.query(`INSERT INTO member_contact(member_id,phone_encrypted,phone_hmac,phone_masked,key_version)
     VALUES($1,'secret-phone',$2,'138****0000','test')`,[memberId,'f'.repeat(64)]);
@@ -279,6 +287,8 @@ it('deletes optional live data for a verified member and suppresses it after res
     payload:{code:'profile-login',displayName:'Original private name',consents}});
   expect(login.statusCode,login.body).toBe(200);
   const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  // Existing-member fixture; registration itself has separate HTTP coverage.
+  await pool.query('UPDATE member SET registration_completed_at=clock_timestamp() WHERE id=$1 AND registration_completed_at IS NULL',[memberId]);
   const headers={authorization:`Bearer ${sessionToken}`};
   await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'PrivateHandle','self_reported')",[memberId]);
   const copyRequest=await app.inject({method:'POST',url:'/v1/me/privacy-requests',headers,
@@ -328,6 +338,8 @@ it('keeps profile deletion pending during an active legal hold, then completes i
     payload:{code:'profile-held-login',displayName:'Held optional name',consents}});
   expect(login.statusCode,login.body).toBe(200);
   const {memberId,sessionToken}=login.json() as {memberId:string;sessionToken:string};
+  // Existing-member fixture; registration itself has separate HTTP coverage.
+  await pool.query('UPDATE member SET registration_completed_at=clock_timestamp() WHERE id=$1 AND registration_completed_at IS NULL',[memberId]);
   await pool.query("INSERT INTO member_profile(member_id,wechat_handle,handle_source) VALUES($1,'HeldOptional','self_reported')",[memberId]);
   const hold=(await pool.query(`INSERT INTO legal_hold(reason_code,legal_basis,approved_by,review_at,expires_at)
     VALUES('PROFILE_EVIDENCE','Scoped unresolved dispute','fixture',now()+interval '1 day',now()+interval '2 days') RETURNING id`)).rows[0].id;

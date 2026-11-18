@@ -1,6 +1,7 @@
 import { commerceContextRevision, invalidateCommerceRecoveryContext, redactCommerceCommandPayloads } from "./commerce-command-store";
 import { measurementClock, metricAction, recordClientMetric } from "./performance-metrics";
 import { clearMemberIdentity } from "./member-identity";
+import { clearMemberEntry, memberEntryReady } from "./member-entry";
 import { clearMemberAvatarCache } from "./member-avatar";
 import { clearAllUgcBackups } from "./ugc-local-backup";
 import { RequestCoordinator } from "./request-coordinator";
@@ -44,6 +45,7 @@ export function setSessionToken(token: string): void {
   if(!token){clearAllUgcBackups();try{redactCommerceCommandPayloads();}catch{/* Keep malformed recovery records fail-closed; never retain the auth session. */}}
   clearMemberAvatarCache();
   clearMemberIdentity();
+  clearMemberEntry();
   reads.invalidate();
   app.globalData.sessionToken = token;
   app.globalData.privacyRightsToken = "";
@@ -128,7 +130,7 @@ export function retainMemberSnapshot(page: object): boolean {
 }
 
 export function requireMemberAccess(returnUrl = currentRouteUrl()): boolean {
-  if (app.globalData.sessionToken) return true;
+  if (memberEntryReady()) return true;
   // A member may explicitly leave Account and return to the protected source
   // that opened it. Honour that one suppressed automatic redirect; an explicit
   // member action can call resumeAuthentication() to open Account again.
@@ -143,9 +145,9 @@ export function isGuestCommunityBrowsing():boolean {
 /** Public browsing is identical on cold, shared, direct and resumed entry.
  * Explicit guest choice does not grant access to member data or writes. */
 export function requireGuestCommunityAccess(returnUrl=currentRouteUrl()):boolean {
-  if(!isGuestCommunityBrowsing()||guestCommunityRouteAllowed(returnUrl))return true;
-  resumeAuthentication(returnUrl);
-  return false;
+  if(guestCommunityRouteAllowed(returnUrl))return true;
+  if(isGuestCommunityBrowsing()){resumeAuthentication(returnUrl);return false;}
+  return requireMemberAccess(returnUrl);
 }
 
 /** Fresh WeChat re-identification after closure reaches historical orders and

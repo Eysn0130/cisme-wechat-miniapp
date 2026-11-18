@@ -37,7 +37,7 @@ describe('cold retained-session verdict before public Account bootstrap',()=>{
  });
  it('does not dispatch a legal read under the unverified token or fetch it after verified Home navigation',async()=>{
   await cold();expect(reads('/v1/legal')).toHaveLength(0);expect(reads('/v1/identity/capabilities')).toHaveLength(0);
-  respond(reads('/v1/me')[0],200,{id:'synthetic-existing-member'});await settle();
+  respond(reads('/v1/me')[0],200,{id:'synthetic-existing-member',display_name:'已确认昵称',profile_revision:1,avatar_data_url:'saved-avatar',registration_completed_at:'2026-11-17T00:00:00Z'});await settle();
   expect(wxMock.switchTab).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({url:'/pages/home/index'}));
   expect(reads('/v1/legal')).toHaveLength(0);expect(wxMock.login).not.toHaveBeenCalled();
  });

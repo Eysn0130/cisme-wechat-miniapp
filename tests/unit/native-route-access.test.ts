@@ -6,18 +6,18 @@ import { CommunityAccess } from "../../services/api/src/communityAccess";
 
 const publicRoutes = [
   "/pages/account/index",
-  "/pages/home/index",
   "/pages/community/index",
   "/pages/community-post/index",
   "/pages/community-author/index",
   "/pages/post/index",
-  "/pages/shop/index",
-  "/pages/product/index",
   "/pages/legal/index",
   "/pages/privacy-rights/index"
 ];
 
 const memberRoutes = [
+  "/pages/home/index",
+  "/pages/shop/index",
+  "/pages/product/index",
   "/pages/records/index",
   "/pages/profile/index",
   "/pages/task/index",
@@ -80,19 +80,19 @@ describe("native route access policy", () => {
     for(const route of [...memberRoutes,"/pages/future/index"])expect(guestCommunityRouteAllowed(route)).toBe(false);
   });
 
-  it("does not reintroduce a client login gate on public catalog or community reads", async () => {
+  it("keeps community readable and gates shop and product entry before loading", async () => {
     for (const route of ["community", "post"]) {
       const logic = await source(`apps/miniprogram/pages/${route}/index.ts`);
       expect(logic).not.toContain("requireMemberAccess");
       expect(logic).not.toContain("allowPublicBrowsing");
     }
     const shop = await source("apps/miniprogram/pages/shop/index.ts");
-    expect(shop).not.toMatch(/onShow\(\)[^{]*\{[^}]*requireMemberAccess/);
+    expect(shop).toContain('requireGuestCommunityAccess("/pages/shop/index")');
     expect(shop).toContain('requireMemberAccess("/pages/orders/index")');
     const product = await source("apps/miniprogram/pages/product/index.ts");
     expect(product).toContain("catalogDetail(this.data.id,this)");
     expect(product).toContain("openCheckout()");
-    expect(product).not.toMatch(/onShow\(\)[^{]*\{[^}]*requireMemberAccess/);
+    expect(product).toContain('requireGuestCommunityAccess("/pages/product/index?id="');
 
     const tab = await source("apps/miniprogram/custom-tab-bar/index.ts");
     expect(tab).toContain("nativeRouteRequiresMember(item.path) && !requireMemberAccess(item.path)");

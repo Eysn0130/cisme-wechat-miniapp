@@ -1,5 +1,6 @@
 import {afterAll,afterEach,beforeAll,it,expect,vi} from 'vitest';
 import {createHash} from 'node:crypto';
+import jpeg from 'jpeg-js';
 import {loadConfig} from '@cisme/config';
 import {TEST_DATABASE_URL,testPool,resetDatabase} from '@cisme/testkit';
 import {createApp} from '../../services/api/src/server';
@@ -46,6 +47,9 @@ it('binds provider identity to the configured app and omits provider identifiers
  expect(transport.mock.calls[0]?.[0]).toContain('appid=wx0000000000000001');
  expect(login.body).not.toMatch(/synthetic-openid|synthetic-unionid|synthetic-provider-secret/);
  const headers={authorization:`Bearer ${login.json().sessionToken}`};
+ expect((await app.inject({url:'/v1/bootstrap/home',headers})).json()).toMatchObject({code:'MEMBER_REGISTRATION_REQUIRED'});
+ const avatar='data:image/jpeg;base64,'+jpeg.encode({data:Buffer.alloc(16*16*4,180),width:16,height:16},80).data.toString('base64');
+ const confirmed=await app.inject({method:'PUT',url:'/v1/me/profile',headers,payload:{displayName:'Synthetic',avatarDataUrl:avatar,expectedVersion:0}});expect(confirmed.statusCode,confirmed.body).toBe(200);
  for(const scope of ['home','profile','settings']){
   const response=await app.inject({url:`/v1/bootstrap/${scope}`,headers});expect(response.statusCode,response.body).toBe(200);
   expect(response.body).not.toMatch(/synthetic-openid|synthetic-unionid|synthetic-provider-secret/);

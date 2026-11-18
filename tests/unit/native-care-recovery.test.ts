@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { careCommandConfirmed } from "../../apps/miniprogram/services/care-command-state";
 const mocks = vi.hoisted(() => ({ token: "session-a", request: vi.fn() }));
-vi.mock("../../apps/miniprogram/services/api", async(importOriginal)=>({requireGuestCommunityAccess:(await importOriginal<any>()).requireGuestCommunityAccess, request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => true }));
+vi.mock("../../apps/miniprogram/services/api", async(importOriginal)=>({requireGuestCommunityAccess:()=>Boolean(mocks.token), request: mocks.request, requireMemberAccess: () => Boolean(mocks.token), retainMemberSnapshot: () => true }));
 vi.mock("../../apps/miniprogram/services/member-identity", () => ({ memberIdentity: () => null }));
 vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: () => "", shouldReduceMotion: () => true }));
 vi.mock("../../apps/miniprogram/services/share", () => ({ prepareShareDetails:async()=>null,registerIncomingShare: vi.fn() }));
@@ -13,7 +13,7 @@ let care: ReturnType<typeof initial>, page: any, wxMock: any, posts: any[], post
 async function mount() { await import("../../apps/miniprogram/pages/home/index"); await page.load(); }
 function steps() { page.openCareSession(); page.toggleCareProduct({currentTarget:{dataset:{id:"essence"}}}); void page.continueCareUsage(); for(let i=0;i<4;i++)page.advanceCareStep(); page.selectAssessment({currentTarget:{dataset:{value:"comfortable"}}}); }
 function saved() { care = {...care,version:3,due:null as any,next:"D7",completed:["D1"],records:[{milestone:"D1",completedAt:"2026-09-20T22:00:00Z",stepCodes:["00","01","02","03"],selfAssessment:"comfortable"}]}; version++; usage={id:"usage-a",operationId:"cycle-usage:cycle-a:D1:2",products:["essence"],note:"",version:1}; }
-beforeEach(()=>{
+beforeEach(async()=>{
   vi.resetModules(); mocks.request.mockReset();mocks.token="session-a"; care=initial();usage=null;version=100;posts=[];postResult=deferred();
   mocks.request.mockImplementation(async (options:any)=>{
     if(options.method==="POST"){posts.push(structuredClone(options));return postResult.promise;}

@@ -1,11 +1,11 @@
 import {beforeEach,expect,it,vi} from 'vitest';
 import {readFile} from 'node:fs/promises';
-const m=vi.hoisted(()=>({request:vi.fn(),navigate:vi.fn(),prepare:vi.fn(),local:vi.fn(),publish:vi.fn(),token:''}));
+const m=vi.hoisted(()=>({request:vi.fn(),navigate:vi.fn(),prepare:vi.fn(),local:vi.fn(),publish:vi.fn(),share:vi.fn(),token:''}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,navigateAfterAuthentication:m.navigate,setSessionToken:(v:string)=>{m.token=v;},consumeAuthReturnUrl:()=>'/pages/home/index',cancelAuthentication:vi.fn(),clearAuthenticationRedirectSuppression:vi.fn(),suppressAuthenticationRedirectOnce:vi.fn(),isGuestCommunityBrowsing:()=>false}));
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'neutral',localMemberAvatar:m.local,prepareAvatarUpload:m.prepare}));
 vi.mock('../../apps/miniprogram/services/member-identity',()=>({publishMemberIdentity:m.publish}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',motionDuration:()=>0,shouldReduceMotion:()=>false}));
-vi.mock('../../apps/miniprogram/services/share',()=>({attributePendingShare:vi.fn()}));
+vi.mock('../../apps/miniprogram/services/share',()=>({attributePendingShare:m.share}));
 vi.mock('../../apps/miniprogram/release-config',()=>({legalDocumentVersions:()=>({privacy:'v3',terms:'v3',localFixture:false}),shouldUseDevelopmentIdentity:()=>false}));
 let page:any,wxMock:any,profile:any,phone:any;
 const owner='11111111-1111-4111-8111-111111111111';
@@ -29,7 +29,7 @@ it('does not create an identity before an explicit login or accepted terms',asyn
  page.onLoad({});expect(m.request).not.toHaveBeenCalled();page.data.agreementAccepted=false;await page.loginTap();expect(wxMock.login).not.toHaveBeenCalled();
 });
 it('checks the canonical profile and asks only for missing profile fields without a phone dependency',async()=>{
- await page.loginTap();expect(wxMock.login).toHaveBeenCalledTimes(1);expect(page.data.loginStage).toBe('avatar');expect(m.navigate).not.toHaveBeenCalled();expect(writes()).toEqual([]);
+ await page.loginTap();expect(wxMock.login).toHaveBeenCalledTimes(1);expect(page.data.loginStage).toBe('avatar');expect(m.navigate).not.toHaveBeenCalled();expect(m.share).not.toHaveBeenCalled();expect(writes()).toEqual([]);
  await page.loginTap();expect(wxMock.login).toHaveBeenCalledTimes(1);
  expect(m.request.mock.calls.some(([v])=>v.path.includes('/phone'))).toBe(false);
 });
@@ -37,7 +37,7 @@ it('holds an explicitly chosen avatar privately then saves it with the confirmed
  phone.bound=true;await page.loginTap();await page.chooseLoginAvatar({detail:{avatarUrl:'wxfile://selected.jpg'}});
  expect(page.data).toMatchObject({loginStage:'nickname',avatarUrl:'wxfile://selected.jpg'});expect(writes()).toEqual([]);expect(JSON.stringify(page.data)).not.toContain('base64');
  page.editLoginName({detail:{value:'旧的输入事件值'}});await page.saveLoginNickname({detail:{value:{nickname:'小雨'}}});expect(writes()).toEqual([{path:'/v1/me/profile',method:'PUT',data:{displayName:'小雨',expectedVersion:0,avatarDataUrl:'data:image/jpeg;base64,fixture'}}]);
- expect(profile.id).toBe(owner);expect(m.publish).toHaveBeenCalledWith(expect.objectContaining({id:owner,display_name:'小雨',phone_masked:null}));expect(m.navigate).toHaveBeenCalledWith('/pages/home/index');
+ expect(profile.id).toBe(owner);expect(m.share).toHaveBeenCalledOnce();expect(m.publish).toHaveBeenCalledWith(expect.objectContaining({id:owner,display_name:'小雨',phone_masked:null}));expect(m.navigate).toHaveBeenCalledWith('/pages/home/index');
 });
 it('loads a complete returning member without repeating any phone, avatar or nickname question',async()=>{
  profile={...profile,display_name:'已有昵称',avatar_data_url:'saved',profile_revision:3,completed_at:'2026-11-12T00:00:00Z'};phone.bound=true;

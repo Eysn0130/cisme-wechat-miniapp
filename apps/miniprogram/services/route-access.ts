@@ -8,7 +8,7 @@ export type NativeRouteAccess = "public" | "member";
  */
 export const nativeRouteAccess: Readonly<Record<string, NativeRouteAccess>> = {
   "/pages/account/index": "public",
-  "/pages/home/index": "public",
+  "/pages/home/index": "member",
   "/pages/records/index": "member",
   "/pages/community/index": "public",
   "/pages/community-post/index": "public",
@@ -25,8 +25,8 @@ export const nativeRouteAccess: Readonly<Record<string, NativeRouteAccess>> = {
   "/pages/rewards/index": "member",
   "/pages/management-rewards/index": "member",
   "/pages/post/index": "public",
-  "/pages/shop/index": "public",
-  "/pages/product/index": "public",
+  "/pages/shop/index": "member",
+  "/pages/product/index": "member",
   "/pages/checkout/index": "member",
   "/pages/orders/index": "member",
   "/pages/order-detail/index": "member",
@@ -62,8 +62,8 @@ export function nativeRoutePath(url: string): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-/** Explicit guest browsing follows the same public read boundary as cold entry.
- * Member data and writes remain authenticated on both the page and server. */
+/** Guests can read community pages and reach login, agreements and data rights.
+ * Other areas require identity and confirmed avatar/nickname on Account. */
 export function guestCommunityRouteAllowed(url:string):boolean {
   return nativeRouteAccess[nativeRoutePath(url)] === "public";
 }

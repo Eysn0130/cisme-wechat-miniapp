@@ -182,7 +182,7 @@ export class PlatformService {
         identityId = randomUUID();
         // Registration, share visits and attribution use the same trusted
         // service clock; database-host clock skew must not invert that order.
-        await client.query("INSERT INTO member(id, display_name, created_at) VALUES ($1,$2,$3)", [memberId, displayName, now]);
+        await client.query("INSERT INTO member(id, display_name, created_at, registration_completed_at) VALUES ($1,$2,$3,$4)", [memberId, displayName, now, input.adapter === 'wechat' ? null : now]);
         await client.query(
           "INSERT INTO wechat_identity(id, member_id, provider, app_id, openid, unionid, adapter) VALUES ($1,$2,$3,$4,$5,$6,$7)",
           [identityId, memberId, input.provider, input.appId, input.openid, input.unionid ?? null, input.adapter]
@@ -470,17 +470,19 @@ export class PlatformService {
 
   async getMember(memberId: string | undefined) {
     const owner = requireMember(memberId);
-    const member = await this.pool.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,mc.user_code,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.avatar_data_url,p.avatar_revision,COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.public_status,'private') AS public_status,c.phone_masked FROM member m LEFT JOIN member_points_profile bp ON bp.member_id=m.id LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
+    const member = await this.pool.query(`SELECT m.id,m.registration_completed_at,${memberCardNumberProjection} AS card_number,mc.user_code,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.avatar_data_url,p.avatar_revision,COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.public_status,'private') AS public_status,c.phone_masked FROM member m LEFT JOIN member_points_profile bp ON bp.member_id=m.id LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id LEFT JOIN member_contact c ON c.member_id=m.id WHERE m.id=$1`, [owner]);
     if (!member.rows[0]) throw new DomainError("MEMBER_NOT_FOUND", "Member not found", 404);
     return member.rows[0];
   }
 
-  async assertActiveMember(memberId: string | undefined): Promise<void> {
+  async assertActiveMember(memberId: string | undefined, allowPendingRegistration = false): Promise<void> {
     const owner = requireMember(memberId);
-    const member = await this.pool.query<{ status: string }>("SELECT status FROM member WHERE id=$1", [owner]);
+    const member = await this.pool.query<{ status: string; registration_completed_at: Date | null }>("SELECT status,registration_completed_at FROM member WHERE id=$1", [owner]);
     if (member.rows[0]?.status !== "active") {
       throw new DomainError("AUTH_REVOKED", "Member session is no longer active", 401);
     }
+    if (!allowPendingRegistration && member.rows[0].registration_completed_at === null)
+      throw new DomainError('MEMBER_REGISTRATION_REQUIRED', '请先确认头像和昵称，完成登录', 403);
   }
 
   async createShare(memberId: string | undefined, idempotencyKey: string, input: { targetType: ShareTargetType; targetRef: string }, now: Date) {
@@ -597,7 +599,7 @@ export class PlatformService {
         eventType: "share.identity.attributed.v1", aggregateType: "share_attribution", aggregateId: attributionId, aggregateVersion: 1,
         businessKey: `share:${shareId}:identity:${owner}`, payload: { shareId, shareVisitId: row.visit_id, sharerMemberId: row.sharer_member_id, convertedMemberId: owner }, occurredAt: now
       });
-      const registered=(await client.query<{created_at:Date}>('SELECT created_at FROM member WHERE id=$1',[owner])).rows[0];
+      const registered=(await client.query<{created_at:Date}>('SELECT registration_completed_at AS created_at FROM member WHERE id=$1',[owner])).rows[0];
       if((row.target_type==='invite'||(await activePointPolicy(client,now))?.rules.taskVersion===2)&&registered&&registered.created_at>=row.first_seen_at&&registered.created_at<=now&&await activePointPolicy(client,registered.created_at))
         await client.query(`INSERT INTO member_points_referral(member_id,referrer_member_id,share_attribution_id,created_at)
           VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[owner,row.sharer_member_id,attributionId,now]);

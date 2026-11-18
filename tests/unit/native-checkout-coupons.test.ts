@@ -17,7 +17,7 @@ async function checkout(query:Record<string,string>={product:'serum',sku:'sku',q
 }
 function deferred(){let resolve!:(value:any)=>void,reject!:(error:any)=>void;const promise=new Promise<any>((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};}
 const product={variants:[{id:'sku',active:true,availableQuantity:5,priceCents:19800}]};
-beforeEach(()=>{
+beforeEach(async()=>{
  vi.resetModules();vi.clearAllMocks();storage=new Map();
  for(const fn of Object.values(m))fn.mockReset();
  app={globalData:{sessionToken:'member-a',privacyRightsToken:'',sessionStorageKey:'synthetic.session',apiBaseUrl:'https://synthetic.invalid'}};
@@ -31,6 +31,7 @@ beforeEach(()=>{
  m.runtime.mockResolvedValue({version:1,scope:'disabled',currency:'CNY',orderFlowEnabled:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',
   isolatedMoneyOperationsAvailable:false,isolatedTransferAvailable:false,isolatedCreditCheckoutAvailable:false});
  m.management.mockResolvedValue({items:[],nextCursor:null});m.coupons.mockResolvedValue({items:[coupon]});
+  (await import("../../apps/miniprogram/services/member-entry")).confirmMemberEntry(app.globalData.sessionToken);
 });
 afterEach(()=>vi.unstubAllGlobals());
 

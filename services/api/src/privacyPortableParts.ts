@@ -107,8 +107,8 @@ async function walkCursor<T extends pg.QueryResultRow>(client:DbClient,name:stri
 export async function buildPortableParts(client:DbClient,config:AppConfig,addresses:DeliveryAddressService,
   storage:ObjectStorage,jobId:string,memberId:string,key:Buffer){
   await client.query("SET LOCAL idle_in_transaction_session_timeout='60s'");
-  const member=(await client.query<{id:string;display_name:string;status:string;created_at:Date}>(
-    "SELECT id,display_name,status,created_at FROM member WHERE id=$1 AND status IN ('active','deleted')",[memberId])).rows[0];
+  const member=(await client.query<{id:string;display_name:string;status:string;created_at:Date;registration_completed_at:Date|null}>(
+    "SELECT id,display_name,status,created_at,registration_completed_at FROM member WHERE id=$1 AND status IN ('active','deleted')",[memberId])).rows[0];
   if(!member)throw new DomainError('PRIVACY_EXPORT_MEMBER_MISSING','申请账号不可用',409);
   const snapshot=(await client.query<{value:string}>('SELECT pg_current_snapshot()::text AS value')).rows[0]!.value;
   const contact=(await client.query<{phone_encrypted:string;key_version:string}>(

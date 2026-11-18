@@ -1,4 +1,5 @@
 import {MemberAdministrators} from './memberAdministrators.js';
+import {pendingRegistrationRoute} from './memberRegistration.js';
 import {userPhoneQuery,userFail} from './memberAdministrationPolicy.js';
 import {MemberAdministration} from './memberAdministration.js';
 import {SharingOfficerService} from "./sharingOfficer.js";
@@ -404,7 +405,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
         await accountClosure.replayMember(pool,principal.memberId);
         throw new DomainError('AUTH_REVOKED','账号已注销，请重新核验身份',401);
       }
-      if(!path.startsWith("/v1/bootstrap/"))await service.assertActiveMember(principal.memberId);
+      await service.assertActiveMember(principal.memberId, pendingRegistrationRoute(request.method,path));
     }
     if (principal.memberId) request.memberId = principal.memberId;
     request.principalId = principal.id;

@@ -31,7 +31,7 @@ describe("mini program submission flow safety", () => {
     expect(api).toContain("wx.navigateBack({");
     expect(api).toMatch(/if \(previous\?\.route === path\.slice\(1\)\)[\s\S]*?wx\.navigateBack\([\s\S]*?fail: \(\) => wx\.reLaunch/);
     expect(account).toContain("this.data.authAttempt += 1");
-    expect(account).toContain("this.stopAuthenticationWait(!guest)");
+    expect(account).toContain("this.stopAuthenticationWait(!guest&&memberEntryReady())");
     expect(account).toContain('return returnUrl.startsWith("/pages/") && !returnUrl.startsWith("/pages/account/") ? returnUrl : "/pages/home/index"');
     expect(account).toContain("wx.navigateBack({ delta: 1, fail: openSource })");
     expect(account).toContain("const legalDocuments = this.documents()");
@@ -154,7 +154,7 @@ describe("mini program submission flow safety", () => {
     expect(accountView).toContain('disabled="{{leavePromptOpen || leaving || avatarBusy}}"');
     expect(account).toContain('confirmIdentityLeave(destination: "source" | "community")');
     expect(account).toContain('wx.navigateBack({ delta: 1');
-    expect(accountView).toContain("停止等待，先逛逛");
+    expect(accountView).toContain("停止等待，浏览社区");
 
 
     expect(profile).toContain("设置与隐私暂时无法打开");

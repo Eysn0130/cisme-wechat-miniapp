@@ -13,6 +13,7 @@ beforeEach(async () => {
   wxMock = { nextTick: vi.fn((cb: () => void) => cb()), switchTab: vi.fn(), pageScrollTo: vi.fn(), showToast: vi.fn() };
   Object.assign(globalThis, { wx: wxMock, getApp: () => ({globalData:{sessionToken:"member-session"}}), getCurrentPages: () => [{ ...currentPage, route }], Component: (value: any) => { definition = value; } });
   await vi.importActual("../../apps/miniprogram/custom-tab-bar/index");
+  (await import("../../apps/miniprogram/services/member-entry")).confirmMemberEntry("member-session");
 });
 describe("native tab lens", () => {
   it("starts at the actual route and settles at the newly visible route", () => {

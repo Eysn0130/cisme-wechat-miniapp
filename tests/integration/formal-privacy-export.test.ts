@@ -30,7 +30,11 @@ async function login(code:string){
   const response=await app.inject({method:'POST',url:'/v1/identity/wechat',
     payload:{code,displayName:`Member ${code}`,consents}});
   expect(response.statusCode,response.body).toBe(200);
-  return response.json() as {memberId:string;sessionToken:string};
+  const member=response.json() as {memberId:string;sessionToken:string};
+  // These fixtures represent existing registered members, independently of
+  // the profile-erasure and export cases being exercised below.
+  await pool.query('UPDATE member SET registration_completed_at=clock_timestamp() WHERE id=$1 AND registration_completed_at IS NULL',[member.memberId]);
+  return member;
 }
 
 beforeAll(async()=>{

@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "e4fcf5d3350c18ad3324d4f9406c40f508cae961649bc34c26151418a24c0c2a",
+  "packageSourceSha256": "4913a4e269970b93cd98a94d5550e0bde38baa3cadda99cc4c58fd370c55a08f",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-17 compliance source rebind. Historical Android waiver does not create device evidence; current official privacy dialogs and new order entry still require scoped native/device checks.",
+  "note": "2026-11-17 owner community-only guest and confirmed membership source rebind. Scoped native login/community verification is separate; the full 48-route/device state matrix remains honestly pending.",
   "previousSourceRecord": {
-    "packageSourceSha256": "f418ee7cc6b748d8ab81798d00a3e4a8745bdd9b7c09a44661966c6a19daf5ad",
-    "scope": "Pre-compliance native source on merged main fbfc18917214; scoped preview acceptance is historical and no screenshot/device result is inherited."
+    "packageSourceSha256": "e4fcf5d3350c18ad3324d4f9406c40f508cae961649bc34c26151418a24c0c2a",
+    "scope": "PR 115 compliance package 0.1.56 before the owner community-only guest/confirmed-membership correction. Historical screenshots and physical checks are not inherited."
   },
   "pendingSourceRebind": false
 }

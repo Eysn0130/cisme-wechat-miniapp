@@ -850,7 +850,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "3f9ef7f13c4ca80b3fbf5706364fbd57400b0b293d66240f73e737400a32d5b2",
+  "migrationSetSha256": "a25f29043808d30fc562cd5d9f423b9b45dfc368c836cb60fcd2ff8954bdc231",
   "egressSignatureSha256": "0a41c60115f1738f7d359d94342bc56770e95b9c6a939bbd5d3c08d75bea697e",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1495,5 +1495,13 @@
     "reviewed": true,
     "source": "2026-11-17 owner-adopted guide and confirmed task values",
     "scope": "Prospective versioned point grants, private suggestions, immutable public-post reward metadata and shipping-scoped reward exports. No real member rows read for this mapping; actual migrated-schema validation remains a required CI check."
+  },
+  "confirmedRegistrationReview20261117": {
+    "reviewed": true,
+    "source": "Owner explicitly limited guests to public community and deferred membership identifiers until confirmed profile",
+    "fields": "member.registration_completed_at distinguishes a verified unfinished identity from formal membership. Existing members retain their original creation/issued facts; no identity, number or account is fabricated for an anonymous visitor.",
+    "storage": "The pending identity uses the existing canonical member/WeChat identity and consent records solely to recover an explicitly initiated login. It has no member_card_number row and is excluded from user-management listing/search/detail/export. Confirmed avatar/nickname and registration time commit atomically; existing private/public lookup numbers remain immutable.",
+    "use": "Pending identities may only access own profile setup, legal acceptance and data rights. Member services, points and reward claims wait for registration; referral chronology uses formal registration time. No new recipient, phone collection or automatic point grant.",
+    "rights": "Both identity creation and registration completion facts enter the existing owner-scoped portable copy. Existing account erasure, holds and suppression remain applicable; no new fixed-retention promise is made."
   }
 }

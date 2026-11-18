@@ -1,7 +1,8 @@
 import { ensureWechatPrivacy } from "../../services/wechat-privacy";
 import {prepareOfficerLoginVisits} from '../../services/officer-attribution';
 import { publishMemberIdentity } from "../../services/member-identity";
-import { needsLoginName, needsLoginProfile } from "../../services/member-setup";
+import { needsLoginName, hasCompleteLoginProfile } from "../../services/member-setup";
+import { confirmMemberEntry, memberEntryReady } from "../../services/member-entry";
 import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../../services/member-avatar";
 import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce, acceptCurrentLegalDocuments, isGuestCommunityBrowsing } from "../../services/api";
 import { guestCommunityRouteAllowed } from "../../services/route-access";
@@ -130,9 +131,11 @@ Page({
         return;
       }
       if(!me||typeof me.id!=="string"||!me.id)throw new Error("MEMBER_RESTORE_RESPONSE_INVALID");
-      if(needsLoginProfile(me)){
+      if(!hasCompleteLoginProfile(me)){
         this.loginFlowToken=token;this.loginOwnerId=me.id;await this.advanceLogin();return;
       }
+      if(!confirmMemberEntry(token))return;
+      void attributePendingShare();
       this.setData({leaving:true});
       const landed=await navigateAfterAuthentication(this.authenticationReturnUrl);
       if(landed!=='target'&&current())this.setData({leaving:false,sessionRestoreFailed:true,error:"原页面暂时无法打开，请重试。"});
@@ -295,6 +298,8 @@ Page({
       }
       if(draft){const saved=await request<any>({path:'/v1/me/profile',method:'PUT',data:{displayName:profile.display_name,expectedVersion:profile.profile_revision,avatarDataUrl:draft.dataUrl}});if(!current())return;if(saved.id!==profile.id)throw Error('LOGIN_PROFILE_OWNER_INVALID');profile=saved;loginAvatarDrafts.delete(this);}
       const finalAvatar=await localMemberAvatar(profile.avatar_data_url,profile.avatar_revision);if(!current())return;
+      if(!hasCompleteLoginProfile(profile)||!confirmMemberEntry(token))throw Error('LOGIN_PROFILE_NOT_CONFIRMED');
+      void attributePendingShare();
       publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl:finalAvatar,profile_revision:profile.profile_revision,completed_at:profile.completed_at,public_status:profile.public_status,phone_masked:profile.phone_masked??null});
       this.setData({loginStage:'login',avatarUrl:finalAvatar});
       const landed=await navigateAfterAuthentication(this.data.pendingDestination||'/pages/home/index');
@@ -398,7 +403,6 @@ Page({
       }
       if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
       setSessionToken(result.sessionToken);this.loginFlowToken=result.sessionToken;this.loginOwnerId="";
-      void attributePendingShare();
       if(result.onboardingRequired){runtime.onboardingReturnUrl=this.authenticationReturnUrl;runtime.onboardingReturnToken=result.sessionToken;}
       else {delete runtime.onboardingReturnUrl;delete runtime.onboardingReturnToken;}
       const pendingDestination = result.onboardingRequired ? '/pages/home/index' : this.authenticationReturnUrl;
@@ -498,7 +502,7 @@ Page({
     if (!await this.confirmIdentityLeave("source")) return;
     if (!this.data.pageAlive || this.data.leaving) return;
     const guest=isGuestCommunityBrowsing();
-    const returnUrl = this.stopAuthenticationWait(!guest);
+    const returnUrl = this.stopAuthenticationWait(!guest&&memberEntryReady());
     const fail = () => {
       if (this.data.pageAlive) this.setData({ leaving: false, error: "暂时无法返回，请重试或留在本页查看账号状态。" }, scrollToAccountError);
     };
@@ -510,7 +514,7 @@ Page({
         wx.redirectTo({ url: returnUrl, fail: () => wx.switchTab({ url: "/pages/home/index", fail }) });
       }
     };
-    if(guest&&!guestCommunityRouteAllowed(returnUrl)){
+    if(!memberEntryReady()&&!guestCommunityRouteAllowed(returnUrl)){
       wx.switchTab({url:"/pages/community/index",fail});return;
     }
     wx.navigateBack({ delta: 1, fail: openSource });
