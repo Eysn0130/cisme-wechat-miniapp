@@ -4,6 +4,9 @@ import { miniProgramApiOrigins, miniProgramCloudFunctions, remoteDebugApiOrigin,
 import { chromeStyle, readChromeMetrics } from "./services/layout";
 import { acceptWechatReceiptReferrer } from "./services/wechat-receipt-return";
 import {flushOfficerVisits} from './services/officer-attribution';
+import { request } from "./services/api";
+import { confirmMemberEntry, memberEntryReady } from "./services/member-entry";
+import { hasCompleteLoginProfile, type SetupProfile } from "./services/member-setup";
 
 function runtimeApiConfig(query: RemoteDebugQuery): { origin: string; remoteDebugMode: boolean; cloudFunction?: import("./release-config").CloudHttpTarget } {
   const { miniProgram } = wx.getAccountInfoSync();
@@ -49,6 +52,15 @@ App({
   onShow(options){
     pruneUgcBackups();
     acceptWechatReceiptReferrer(options?.referrerInfo);
-    if(this.globalData.sessionToken)void flushOfficerVisits().catch(()=>{});
+    const token = this.globalData.sessionToken;
+    if (!token) return;
+    void flushOfficerVisits().catch(() => {});
+    // The public entry replaces Account as the first route. Restore an existing
+    // member quietly; an absent, expired or incomplete session stays browsable.
+    void Promise.resolve().then(async () => {
+      if (token !== this.globalData.sessionToken || memberEntryReady()) return;
+      const member = await request<SetupProfile>({ path: "/v1/me", authMode: "optional" });
+      if (member?.id && hasCompleteLoginProfile(member)) confirmMemberEntry(token);
+    }).catch(() => {});
   }
 });

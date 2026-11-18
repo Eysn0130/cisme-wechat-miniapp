@@ -5,12 +5,20 @@ import { needsLoginName, hasCompleteLoginProfile } from "../../services/member-s
 import { confirmMemberEntry, memberEntryReady } from "../../services/member-entry";
 import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../../services/member-avatar";
 import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce, acceptCurrentLegalDocuments, isGuestCommunityBrowsing } from "../../services/api";
-import { guestCommunityRouteAllowed } from "../../services/route-access";
+import { guestCommunityRouteAllowed, nativeRoutePath } from "../../services/route-access";
 import { legalDocumentVersions, shouldUseDevelopmentIdentity } from "../../release-config";
 import type { LegalDocumentVersions } from "../../release-config";
 import { currentChromeStyle, motionDuration, shouldReduceMotion } from "../../services/layout";
 import { attributePendingShare } from "../../services/share";
 import { legalRequestFailure, parseLegalBootstrap, type LegalLoadError } from "../../services/legal-bootstrap";
+
+const careHome = "/pages/home/index";
+function memberLoginDestination(returnUrl: string): string {
+  const path = nativeRoutePath(returnUrl);
+  return ["/pages/community/index", "/pages/shop/index", "/pages/profile/index"].includes(path)
+    ? careHome
+    : returnUrl;
+}
 
 const loginAvatarDrafts=new WeakMap<object,{token:string;owner:string;dataUrl:string;local:string}>();
 function scrollToAccountError() {
@@ -108,7 +116,7 @@ Page({
       this.renewalSessionToken=getApp<IAppOption>().globalData.sessionToken;
       this.setData({renewalMode:true,renewalComplete:false,loginStage:"login",agreementAccepted:false,crossBorderAccepted:false,pendingDestination:""});
     }
-    // The first route is a lightweight entry gate; explicit account visits stay here.
+    // An explicitly opened account page can restore an existing session.
     if (!query?.intent && getCurrentPages().length === 1) {
       const token = getApp<IAppOption>().globalData.sessionToken;
       if (token) void this.restoreRetainedSession();
@@ -132,7 +140,11 @@ Page({
       }
       if(!me||typeof me.id!=="string"||!me.id)throw new Error("MEMBER_RESTORE_RESPONSE_INVALID");
       if(!hasCompleteLoginProfile(me)){
-        this.loginFlowToken=token;this.loginOwnerId=me.id;await this.advanceLogin();return;
+        this.loginFlowToken = token;
+        this.loginOwnerId = me.id;
+        this.setData({ pendingDestination: memberLoginDestination(this.authenticationReturnUrl) });
+        await this.advanceLogin();
+        return;
       }
       if(!confirmMemberEntry(token))return;
       void attributePendingShare();
@@ -403,9 +415,15 @@ Page({
       }
       if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
       setSessionToken(result.sessionToken);this.loginFlowToken=result.sessionToken;this.loginOwnerId="";
-      if(result.onboardingRequired){runtime.onboardingReturnUrl=this.authenticationReturnUrl;runtime.onboardingReturnToken=result.sessionToken;}
-      else {delete runtime.onboardingReturnUrl;delete runtime.onboardingReturnToken;}
-      const pendingDestination = result.onboardingRequired ? '/pages/home/index' : this.authenticationReturnUrl;
+      const destination = memberLoginDestination(this.authenticationReturnUrl);
+      if (result.onboardingRequired && destination !== careHome) {
+        runtime.onboardingReturnUrl = destination;
+        runtime.onboardingReturnToken = result.sessionToken;
+      } else {
+        delete runtime.onboardingReturnUrl;
+        delete runtime.onboardingReturnToken;
+      }
+      const pendingDestination = result.onboardingRequired ? careHome : destination;
       this.setData({ pendingDestination });
       wx.disableAlertBeforeUnload();
       if(!this.data.pageAlive || this.data.authAttempt !== attempt || result.sessionToken !== getApp<IAppOption>().globalData.sessionToken)return;
@@ -514,8 +532,15 @@ Page({
         wx.redirectTo({ url: returnUrl, fail: () => wx.switchTab({ url: "/pages/home/index", fail }) });
       }
     };
-    if(!memberEntryReady()&&!guestCommunityRouteAllowed(returnUrl)){
-      wx.switchTab({url:"/pages/community/index",fail});return;
+    const pages = getCurrentPages();
+    const previous = pages[pages.length - 2];
+    if (!memberEntryReady() && !guestCommunityRouteAllowed(returnUrl)) {
+      if (previous?.route && guestCommunityRouteAllowed(previous.route)) {
+        wx.navigateBack({ delta: 1, fail: () => wx.switchTab({ url: "/pages/community/index", fail }) });
+      } else {
+        wx.switchTab({ url: "/pages/community/index", fail });
+      }
+      return;
     }
     wx.navigateBack({ delta: 1, fail: openSource });
   },

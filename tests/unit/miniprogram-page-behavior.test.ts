@@ -262,7 +262,7 @@ describe("mini-program page behavior", () => {
     expect(settings.data.addressDraft).toMatchObject({recipientName:'手工收件人',phone:'13800000000'});
   });
 
-  it("leaves no settings PII visible if the login relaunch fails after logout", async () => {
+  it("leaves no settings PII visible if Community fails to open after logout", async () => {
     wxMock.showModal!.mockResolvedValue({ confirm: true });
     wxMock.reLaunch!.mockImplementation(({ fail }: { fail: () => void }) => fail());
     await vi.importActual("../../apps/miniprogram/pages/settings/index");
@@ -270,7 +270,7 @@ describe("mini-program page behavior", () => {
       phoneMasked: "138****0000", addresses: [{ id: "previous-address" }], consents: [{ purpose: "private" }] });
     await settings.logout();
     expect(settings.data).toMatchObject({ memberId: "", displayName: "", phoneMasked: "", addresses: [], consents: [], loggingOut: false });
-    expect(settings.data.error).toContain("已退出账号，但登录页面暂未打开。请点击下方按钮重新登录。");
+    expect(settings.data.error).toContain("已退出账号。若社区未打开，请返回社区继续浏览。");
   });
 
   it("scrubs member-only points, orders, and invitation data before a guest login overlay", async () => {

@@ -543,9 +543,9 @@ Page({
     this.clearMemberSnapshot();
     this.setData({ loggingOut: true, loading: false, consents: [], sessionStatus: "invalid", operationStatus: "正在安全退出当前账号…", error: "" });
     wx.reLaunch({
-      url: "/pages/account/index?intent=login",
+      url: "/pages/community/index",
       fail: () => {
-        if (this.data.pageAlive) this.setData({ loggingOut: false, operationStatus: "", errorAction: "auth", error: "已退出账号，但登录页面暂未打开。请点击下方按钮重新登录。" }, scrollToSettingsError);
+        if (this.data.pageAlive) this.setData({ loggingOut: false, operationStatus: "", errorAction: "auth", error: "已退出账号。若社区未打开，请返回社区继续浏览。" }, scrollToSettingsError);
       }
     });
   },

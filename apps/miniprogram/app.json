@@ -1,9 +1,9 @@
 {
   "pages": [
-    "pages/account/index",
+    "pages/community/index",
     "pages/home/index",
     "pages/shop/index",
-    "pages/community/index",
+    "pages/account/index",
     "pages/profile/index"
   ],
   "subPackages": [

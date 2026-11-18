@@ -81,11 +81,12 @@ describe("native route access policy", () => {
   });
 
   it("keeps community readable and gates shop and product entry before loading", async () => {
-    for (const route of ["community", "post"]) {
-      const logic = await source(`apps/miniprogram/pages/${route}/index.ts`);
-      expect(logic).not.toContain("requireMemberAccess");
-      expect(logic).not.toContain("allowPublicBrowsing");
-    }
+    const community = await source("apps/miniprogram/pages/community/index.ts");
+    expect(community).toContain("publishedCommunityFeatured(this)");
+    expect(community).not.toContain("requireGuestCommunityAccess");
+    expect(community).not.toMatch(/wx\.login\(/);
+    const post = await source("apps/miniprogram/pages/post/index.ts");
+    expect(post).not.toContain("requireMemberAccess");
     const shop = await source("apps/miniprogram/pages/shop/index.ts");
     expect(shop).toContain('requireGuestCommunityAccess("/pages/shop/index")');
     expect(shop).toContain('requireMemberAccess("/pages/orders/index")');

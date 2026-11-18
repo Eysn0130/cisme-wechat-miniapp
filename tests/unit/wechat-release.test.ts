@@ -28,11 +28,11 @@ const completeGates = {
 const exec = promisify(execFile);
 
 describe("WeChat release preflight", () => {
-  it("starts the published package at Account while preserving the four tab destinations",async()=>{
+  it("starts the published package in public Community while preserving the four tab destinations",async()=>{
     const app=JSON.parse(await readFile(resolve("apps/miniprogram/app.json"),"utf8")) as {
       pages:string[];subPackages:Array<{root:string;pages:string[]}>;tabBar:{list:Array<{pagePath:string}>}
     };
-    expect(app.pages[0]).toBe("pages/account/index");
+    expect(app.pages[0]).toBe("pages/community/index");
     const declared=[...app.pages,...app.subPackages.flatMap(pack=>pack.pages.map(page=>`${pack.root}/${page}`))];
     expect(declared.filter(route=>route==="pages/account/index")).toHaveLength(1);
     expect(app.tabBar.list.map(item=>item.pagePath)).toEqual([
