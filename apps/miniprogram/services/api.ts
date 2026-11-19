@@ -37,8 +37,8 @@ function normalizedAuthPath(url: string): string {
   return url.split("?")[0] ?? url;
 }
 
-export function setSessionToken(token: string): void {
-  if(app.globalData.sessionToken&&app.globalData.sessionToken!==token)wx.removeStorageSync("cisme.officer-visits.v1");
+export function setSessionToken(token:string,sameVerifiedMember=false):void {
+  if(app.globalData.sessionToken&&app.globalData.sessionToken!==token&&!sameVerifiedMember)wx.removeStorageSync("cisme.officer-visits.v1");
   rejectedSession = null;
   for (const release of privateDownloads) release();
   invalidateCommerceRecoveryContext();

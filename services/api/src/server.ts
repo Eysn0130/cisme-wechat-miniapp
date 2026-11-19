@@ -570,7 +570,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
 
   app.post("/v1/identity/wechat", async (request) => {
     if (!config.wechat.appId || !config.wechat.appSecret) throw new DomainError("WECHAT_NOT_CONFIGURED", "WeChat credentials are not configured", 503);
-    const body = (request.body ?? {}) as { code: unknown; displayName: string; consents: Array<{ documentType: string; version: string }> };
+    const body = (request.body ?? {}) as { code: unknown; displayName: string; consents: Array<{ documentType: string; version: string }>; completeAccount?: unknown };
+    if(body.completeAccount!==undefined&&body.completeAccount!==true)
+      throw new DomainError("IDENTITY_REGISTRATION_INVALID","请重新确认微信登录",422);
     const session = await exchangeWechatIdentity(config.wechat.appId,config.wechat.appSecret,body.code,
       config.env==='test'?dependencies.wechatIdentityFetcher:undefined);
     const now = service.now();
@@ -581,7 +583,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       ...(session.unionid ? { unionid: session.unionid } : {}),
       displayName: body.displayName,
       adapter: "wechat",
-      consents: body.consents
+      consents: body.consents,
+      completeAccount: body.completeAccount===true
     }, now);
     return { ...result, phoneBindingEnabled: phone.enabled(), sessionToken: issueSessionToken({ principalId: result.principalId, memberId: result.memberId, adapter: "wechat", provider: "wechat_miniprogram", appId: config.wechat.appId }, config.sessionSecret) };
   });

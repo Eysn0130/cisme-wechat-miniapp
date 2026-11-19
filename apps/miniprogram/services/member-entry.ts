@@ -10,7 +10,7 @@ export function clearMemberEntry() { confirmedContext = ''; }
 export function memberEntryReady(): boolean {
   return Boolean(getApp<IAppOption>().globalData.sessionToken && confirmedContext === context());
 }
-/** Account calls this only after reading a complete canonical profile. */
+/** Called after confirming the canonical account has completed registration. */
 export function confirmMemberEntry(token: string): boolean {
   if (!token || token !== getApp<IAppOption>().globalData.sessionToken) return false;
   confirmedContext = context();

@@ -1510,9 +1510,15 @@
     "use": "Pending identities may only access own profile setup, legal acceptance and data rights. Member services, points and reward claims wait for registration; referral chronology uses formal registration time. No new recipient, phone collection or automatic point grant.",
     "rights": "Both identity creation and registration completion facts enter the existing owner-scoped portable copy. Existing account erasure, holds and suppression remain applicable; no new fixed-retention promise is made."
   },
+  "guestShoppingReview20261118": {
+    "reviewed": true,
+    "scope": "0.1.62 public catalog, product detail, community and care instructions create no member identity or identifier. Verified WeChat login and current consent complete a member account without account phone, nickname or avatar collection.",
+    "storage": "Existing canonical identity, consent, member, and card-number tables. Unconfigured members have a neutral display name. Pending identities from older clients retain the same ID when the user explicitly completes login. No new storage destination or data recipient.",
+    "profile": "The member can choose a nickname and avatar in Settings. First public post submission prompts members who still have no nickname and retains a private draft. Delivery contact stays scoped to shipping."
+  },
   "loadingStateReview": {
     "reviewed": true,
-    "packageSourceSha256": "d2768df6b03fdf792d2ce3c83bb2c5c5cf649ca8e4e679572a8d657c5050a5be",
+    "packageSourceSha256": "d8771843dead49161544ae0c6d0f9fbeb4a7e0cd9dc3703f67a60ab49b0d6306",
     "scope": "Existing wx.uploadFile, PUT and chunk endpoints retain original recipients, authorization, purpose and payload. Added local measured byte/phase feedback, completion/cancellation listener cleanup and retained exact server problem sanitization. No new analytics, storage destination or member consent.",
     "accessBoundary": "Inaccessible aftersale routes clear private state and return to existing usable workspace; no new permission or role grant."
   }

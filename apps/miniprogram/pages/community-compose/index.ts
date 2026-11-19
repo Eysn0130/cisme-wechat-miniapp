@@ -1054,7 +1054,15 @@ Page({
     } catch (error) { if(!this.writeIsCurrent(pending))return;
       this.setData({busy:false,operation:"idle"});
       if(unknownWrite(error)){this.setData({writeRecovery:"submit",error:"提交结果暂未确认，正在核对发布状态。"});if(this.mediaVisible)await this.verifyWriteResult();}
-      else{this.pendingWrite=null;this.setData({writeRecovery:"",recoveryBusy:false,error:message(error,"提交未完成，草稿仍保留。")});}}
+      else{
+        this.pendingWrite=null;this.setData({writeRecovery:"",recoveryBusy:false,error:message(error,"提交未完成，草稿仍保留。")});
+        if(this.mediaVisible&&(error as {code?:string}).code==="UGC_PROFILE_REQUIRED"){
+          const choice=await wx.showModal({title:"设置社区昵称",content:"草稿已保存。设置昵称后可回来发布。",confirmText:"去设置",cancelText:"稍后"}).catch(()=>null);
+          if(choice?.confirm&&this.pageAlive&&this.mediaVisible&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken)
+            wx.navigateTo({url:"/pages/settings/index?section=profile",fail:()=>wx.showToast({title:"暂时无法打开个人资料",icon:"none"})});
+        }
+      }
+    }
   },
   async discardFreshDraft():Promise<boolean>{
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;

@@ -10,14 +10,14 @@ const publicRoutes = [
   "/pages/community-post/index",
   "/pages/community-author/index",
   "/pages/post/index",
+  "/pages/home/index",
+  "/pages/shop/index",
+  "/pages/product/index",
   "/pages/legal/index",
   "/pages/privacy-rights/index"
 ];
 
 const memberRoutes = [
-  "/pages/home/index",
-  "/pages/shop/index",
-  "/pages/product/index",
   "/pages/records/index",
   "/pages/profile/index",
   "/pages/task/index",
@@ -80,7 +80,7 @@ describe("native route access policy", () => {
     for(const route of [...memberRoutes,"/pages/future/index"])expect(guestCommunityRouteAllowed(route)).toBe(false);
   });
 
-  it("keeps community readable and gates shop and product entry before loading", async () => {
+  it("opens public content before authentication and keeps checkout and private order actions gated", async () => {
     const community = await source("apps/miniprogram/pages/community/index.ts");
     expect(community).toContain("publishedCommunityFeatured(this)");
     expect(community).not.toContain("requireGuestCommunityAccess");

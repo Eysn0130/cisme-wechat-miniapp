@@ -184,7 +184,8 @@ describe("Home canonical nickname continuity", () => {
   });
 });
 
-it('returns an authenticated but unfinished identity to Account before opening the questionnaire',async()=>{
+it('shows the public guide for an unfinished identity without triggering the questionnaire or login',async()=>{
  mocks.bootstrap.mockResolvedValue({member:{id:'a',display_name:'CISME 会员',profile_revision:0,completed_at:null,avatar_data_url:null},care:null,businessVersion:1,onboardingRequired:true});
- await page.load();expect(mocks.resume).toHaveBeenCalledWith('/pages/home/index');expect(page.data.onboardingOpen).toBe(false);expect(page.data.authorityAvailable).toBe(false);
+ await page.load();expect(mocks.resume).not.toHaveBeenCalled();expect(page.data.onboardingOpen).toBe(false);expect(page.data.authorityAvailable).toBe(false);
+ expect(page.data).toMatchObject({needsAuthentication:true,centerTitle:'四步护理'});
 });

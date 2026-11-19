@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "d2768df6b03fdf792d2ce3c83bb2c5c5cf649ca8e4e679572a8d657c5050a5be",
+  "packageSourceSha256": "d8771843dead49161544ae0c6d0f9fbeb4a7e0cd9dc3703f67a60ab49b0d6306",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-18 follows the selected bulk fulfillment list and introduces worksheet review and per-order results. Full route, font, state and physical-device coverage remains pending.",
+  "note": "0.1.62 allows public care instructions and full product browsing, with login initiated by member actions. Full route, font, state and physical-device coverage remains pending.",
   "previousSourceRecord": {
-    "packageSourceSha256": "668bc113ab81001339d4a2dd5bba452e8403daf1c1eea3be4ecd7500c1485084",
-    "scope": "Follow-up for points guide and gift receipt spacing. Historical screenshots and phone evidence remain bound to their observed source."
+    "packageSourceSha256": "d2768df6b03fdf792d2ce3c83bb2c5c5cf649ca8e4e679572a8d657c5050a5be",
+    "scope": "0.1.61 bulk fulfillment list, worksheet review and per-order results. Historical screenshots and phone evidence remain bound to their observed source."
   },
   "pendingSourceRebind": false
 }

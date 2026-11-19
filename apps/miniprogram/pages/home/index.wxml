@@ -11,7 +11,13 @@
       <view class="centered-date">{{centerDate}}</view>
       <view class="centered-title">{{centerTitle}}</view>
       <view wx:if="{{care && (care.phase === 'planned' || care.due)}}" class="centered-copy"><text wx:for="{{centerCopy}}" wx:key="*this">{{item}}</text></view>
-      <view class="centered-products" aria-label="{{usageToday ? '今天实际用过的产品' : '可记录的护理产品'}}">
+      <view wx:if="{{needsAuthentication}}" class="guest-care-steps">
+        <view wx:for="{{guestCareSteps}}" wx:key="code" class="guest-care-step">
+          <text class="guest-care-step__label">{{item.code}} {{item.label}}</text>
+          <text class="guest-care-step__instruction">{{item.instruction}}</text>
+        </view>
+      </view>
+      <view wx:else class="centered-products" aria-label="{{usageToday ? '今天实际用过的产品' : '可记录的护理产品'}}">
         <view wx:for="{{centerProducts}}" wx:key="id" class="centered-product {{index > 0 ? 'centered-product--divided' : ''}}"><image src="/assets/icons/drop-active.svg" mode="aspectFit" aria-hidden="true"/><text>{{item.label}}</text></view>
       </view>
       <button class="care-cta {{loading || working || activationConfirming || sessionMounted || onboardingOpen || giftOpen || (!authorityAvailable && !needsAuthentication) || !view.actionable ? 'control--disabled' : ''}}" loading="{{working}}" disabled="{{loading || working || activationConfirming || sessionMounted || onboardingOpen || giftOpen || (!authorityAvailable && !needsAuthentication) || !view.actionable}}" bindtap="primaryAction" hover-class="care-cta--pressed"><text class="care-cta__label">{{working ? '正在提交…' : mutationState === 'unknown' ? '重试操作' : centerAction}}</text></button>

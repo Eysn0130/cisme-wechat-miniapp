@@ -11,6 +11,7 @@ import { validateGatewayUpload, type ObjectStorage } from "./storage.js";
 import { pendingReviewRevisionSql, reviewableRevisionSql } from "./ugcVisibility.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 import {featuredPostSql,featureCommunityPost} from './communityCuration.js';
+import {unconfiguredDisplayName} from './memberRegistration.js';
 
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const keyPattern=/^[A-Za-z0-9._:-]{8,200}$/;
@@ -139,6 +140,9 @@ export class FormalUgcService{
       if(!post)throw new DomainError("UGC_POST_NOT_FOUND","草稿不存在或不属于当前账号",404);
       if(!["draft","published"].includes(post.state)||post.version!==expected||post.current_revision===post.published_revision)
         throw new DomainError("UGC_VERSION_CONFLICT","草稿或发布状态已变化，请刷新后重试",409);
+      const needsProfile=!post.published_revision&&(await client.query(`SELECT 1 FROM member m LEFT JOIN member_profile p ON p.member_id=m.id
+        WHERE m.id=$1 AND m.display_name=$2 AND p.completed_at IS NULL`,[owner,unconfiguredDisplayName])).rowCount;
+      if(needsProfile)throw new DomainError("UGC_PROFILE_REQUIRED","发布前请先设置社区昵称",422);
       const revision=(await client.query(`SELECT moderation_state,title,body,rights_confirmed,public_consent_confirmed
         FROM ugc_post_revision WHERE post_id=$1 AND revision=$2`,[id,post.current_revision])).rows[0];
       if(revision?.moderation_state!=="unreviewed")throw new DomainError("UGC_VERSION_CONFLICT","当前版本正在发布，请刷新后重试",409);

@@ -1,7 +1,7 @@
 import { ensureWechatPrivacy } from "../../services/wechat-privacy";
 import {prepareOfficerLoginVisits} from '../../services/officer-attribution';
 import { publishMemberIdentity } from "../../services/member-identity";
-import { needsLoginName, hasCompleteLoginProfile } from "../../services/member-setup";
+import { needsLoginName, hasCompleteLoginProfile, hasRegisteredAccount, type SetupProfile } from "../../services/member-setup";
 import { confirmMemberEntry, memberEntryReady } from "../../services/member-entry";
 import { defaultMemberAvatar, localMemberAvatar, prepareAvatarUpload } from "../../services/member-avatar";
 import { cancelAuthentication, consumeAuthReturnUrl, navigateAfterAuthentication, request, setPrivacyRightsToken, setSessionToken, suppressAuthenticationRedirectOnce, acceptCurrentLegalDocuments, isGuestCommunityBrowsing } from "../../services/api";
@@ -13,6 +13,18 @@ import { attributePendingShare } from "../../services/share";
 import { legalRequestFailure, parseLegalBootstrap, type LegalLoadError } from "../../services/legal-bootstrap";
 
 const careHome = "/pages/home/index";
+const shoppingHome = "/pages/shop/index";
+function checkoutProduct(returnUrl:string){
+  if(nativeRoutePath(returnUrl)!=="/pages/checkout/index")return "";
+  return /[?&]product=([a-z0-9][a-z0-9-]{2,63})(?:&|$)/.exec(returnUrl)?.[1]||"";
+}
+function shoppingSource(returnUrl:string){
+  const product=checkoutProduct(returnUrl);
+  if(product)return `/pages/product/index?id=${encodeURIComponent(product)}`;
+  const pages=getCurrentPages(),previous=pages[pages.length-2];
+  const path=nativeRoutePath(previous?.route||"");
+  return path===shoppingHome||path==="/pages/product/index"?shoppingHome:"";
+}
 function memberLoginDestination(returnUrl: string): string {
   const path = nativeRoutePath(returnUrl);
   return ["/pages/community/index", "/pages/shop/index", "/pages/profile/index"].includes(path)
@@ -43,9 +55,10 @@ Page({
   authenticationFlowId:"",
   loginFlowToken:"",loginOwnerId:"",
   authenticationReturnUrl:"/pages/home/index",
+  shoppingReturnUrl:"",
   renewalSessionToken:"",
   renewalDestination:"",
-  data: { restoringSession:false,sessionRestoreFailed:false,renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login",loginName:"",loginNameInvalid:false,loginProfileUncertain:false,profileAttempt:0, avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  data: { restoringSession:false,sessionRestoreFailed:false,accountNeedsCompletion:false,checkoutLogin:false,shoppingLogin:false,renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login",loginName:"",loginNameInvalid:false,loginProfileUncertain:false,profileAttempt:0, avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
   async openAccountHelp(){
     if(this.data.accountHelpBusy)return;
     const attempt=++this.data.authAttempt;
@@ -111,6 +124,8 @@ Page({
     this.data.pageAlive = true;
     this.authenticationFlowId = query?.authFlow || "";
     this.authenticationReturnUrl = consumeAuthReturnUrl(this.authenticationFlowId, query?.intent === "renew" ? "renew" : "login");
+    this.shoppingReturnUrl=shoppingSource(this.authenticationReturnUrl);
+    this.setData({shoppingLogin:!!this.shoppingReturnUrl,checkoutLogin:!!checkoutProduct(this.authenticationReturnUrl)});
     if(query?.intent==="renew"){
       this.renewalDestination = this.authenticationReturnUrl;
       this.renewalSessionToken=getApp<IAppOption>().globalData.sessionToken;
@@ -131,7 +146,7 @@ Page({
       &&token===getApp<IAppOption>().globalData.sessionToken;
     this.setData({loading:true,restoringSession:true,sessionRestoreFailed:false,pendingDestination:this.authenticationReturnUrl,error:""});
     try {
-      const me=await request<{id:string;profile_revision?:number;display_name?:string;avatar_data_url?:string|null;completed_at?:string|null}>({path:"/v1/me",authMode:"optional"});
+      const me=await request<Partial<SetupProfile>>({path:"/v1/me",authMode:"optional"});
       if(!current()){
         if(this.data.pageAlive&&this.data.pageVisible&&attempt===this.data.authAttempt&&!getApp<IAppOption>().globalData.sessionToken&&this.revealExpiredLogin()){
           void this.syncLegalDocuments();
@@ -139,7 +154,12 @@ Page({
         return;
       }
       if(!me||typeof me.id!=="string"||!me.id)throw new Error("MEMBER_RESTORE_RESPONSE_INVALID");
-      if(!hasCompleteLoginProfile(me)){
+      if(me.registration_completed_at===null){
+        this.loginFlowToken="";this.loginOwnerId=me.id;
+        this.setData({accountNeedsCompletion:true,pendingDestination:"",notice:"请继续确认微信登录。"});
+        return;
+      }
+      if(!hasRegisteredAccount(me)){
         this.loginFlowToken = token;
         this.loginOwnerId = me.id;
         this.setData({ pendingDestination: memberLoginDestination(this.authenticationReturnUrl) });
@@ -169,7 +189,7 @@ Page({
     if(!this.data.pageAlive||!this.data.pageVisible||this.data.loading||this.data.leaving||!this.data.sessionRestoreFailed||this.data.renewalMode)return;
     this.data.authAttempt+=1;
     setSessionToken("");
-    this.setData({sessionRestoreFailed:false,restoringSession:false,pendingDestination:"",loginStage:"login",agreementAccepted:false,crossBorderAccepted:false,error:"",notice:"请重新确认微信身份。"});
+    this.setData({sessionRestoreFailed:false,restoringSession:false,accountNeedsCompletion:false,pendingDestination:"",loginStage:"login",agreementAccepted:false,crossBorderAccepted:false,error:"",notice:"请重新确认微信身份。"});
     void this.syncLegalDocuments();
   },
   onShow() {
@@ -184,8 +204,8 @@ Page({
       else if(token!==this.renewalSessionToken){this.renewalSessionToken=token;this.renewalDestination="";this.authenticationReturnUrl="/pages/community/index";this.setData({renewalComplete:false,agreementAccepted:false,crossBorderAccepted:false});}
     }
     if(!token&&!this.data.renewalMode)this.revealExpiredLogin();
-    if(token&&!this.data.renewalMode)this.setData({pendingDestination:this.data.pendingDestination || this.authenticationReturnUrl});
-    if(token&&!this.data.renewalMode&&!this.loginFlowToken&&!this.data.restoringSession&&!this.data.sessionRestoreFailed){
+    if(token&&!this.data.renewalMode&&!this.data.accountNeedsCompletion)this.setData({pendingDestination:this.data.pendingDestination || this.authenticationReturnUrl});
+    if(token&&!this.data.renewalMode&&!this.loginFlowToken&&!this.data.restoringSession&&!this.data.sessionRestoreFailed&&!this.data.accountNeedsCompletion){
       void this.restoreRetainedSession();
     }
     // The retained-session verdict may change the request context. Start the
@@ -197,7 +217,7 @@ Page({
   revealExpiredLogin() {
     if(!this.data.pageAlive||this.data.leaving||this.data.renewalMode||getApp<IAppOption>().globalData.sessionToken||(!this.data.pendingDestination&&this.data.loginStage!=="avatar"))return false;
     this.data.authAttempt+=1;this.data.avatarAttempt+=1;loginAvatarDrafts.delete(this);this.loginFlowToken="";this.loginOwnerId="";this.data.profileAttempt+=1;
-    this.setData({pendingDestination:"",loginStage:"login",avatarBusy:false,loading:false,restoringSession:false,sessionRestoreFailed:false,identityCommitStarted:false,
+    this.setData({pendingDestination:"",loginStage:"login",avatarBusy:false,loading:false,restoringSession:false,sessionRestoreFailed:false,accountNeedsCompletion:false,identityCommitStarted:false,
       agreementAccepted:false,crossBorderAccepted:false,avatarUrl:defaultMemberAvatar,error:"",notice:""});
     return true;
   },
@@ -302,6 +322,10 @@ Page({
       if(profile.avatar_data_url){loginAvatarDrafts.delete(this);draft=undefined;}
       const avatarUrl=draft?.local??await localMemberAvatar(profile.avatar_data_url,profile.avatar_revision);if(!current())return;
       this.setData({avatarUrl});
+      if(hasRegisteredAccount(profile)){
+        await this.finishVerifiedLogin(token,profile,avatarUrl);
+        return;
+      }
       if(!profile.avatar_data_url&&!draft||needsLoginName(profile)){
         // The official privacy dialog records WeChat consent separately from our legal checkbox.
         // Nickname input alone cannot trigger it, so confirm before focusing the native field.
@@ -310,14 +334,20 @@ Page({
       }
       if(draft){const saved=await request<any>({path:'/v1/me/profile',method:'PUT',data:{displayName:profile.display_name,expectedVersion:profile.profile_revision,avatarDataUrl:draft.dataUrl}});if(!current())return;if(saved.id!==profile.id)throw Error('LOGIN_PROFILE_OWNER_INVALID');profile=saved;loginAvatarDrafts.delete(this);}
       const finalAvatar=await localMemberAvatar(profile.avatar_data_url,profile.avatar_revision);if(!current())return;
-      if(!hasCompleteLoginProfile(profile)||!confirmMemberEntry(token))throw Error('LOGIN_PROFILE_NOT_CONFIRMED');
-      void attributePendingShare();
-      publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl:finalAvatar,profile_revision:profile.profile_revision,completed_at:profile.completed_at,public_status:profile.public_status,phone_masked:profile.phone_masked??null});
-      this.setData({loginStage:'login',avatarUrl:finalAvatar});
-      const landed=await navigateAfterAuthentication(this.data.pendingDestination||'/pages/home/index');
-      if(landed==='target'&&token===getApp<IAppOption>().globalData.sessionToken&&this.loginFlowToken===token)this.loginFlowToken='';else if(current())this.setData({error:'页面暂时无法打开，请再次点击继续'});
+      if(!hasCompleteLoginProfile(profile))throw Error('LOGIN_PROFILE_NOT_CONFIRMED');
+      await this.finishVerifiedLogin(token,profile,finalAvatar);
     }catch(error){if(current())this.setData({loginProfileUncertain:true,error:(error as {title?:string}).title||'资料状态待确认，请重试'});}
     finally{if(current())this.setData({loading:false});}
+  },
+  async finishVerifiedLogin(token:string,profile:SetupProfile & {phone_masked?:string|null},avatarUrl:string){
+    if(!confirmMemberEntry(token))throw Error('LOGIN_PROFILE_NOT_CONFIRMED');
+    void attributePendingShare();
+    publishMemberIdentity({id:profile.id,display_name:profile.display_name,avatarUrl,profile_revision:profile.profile_revision,completed_at:profile.completed_at,public_status:profile.public_status??"private",phone_masked:profile.phone_masked??null});
+    this.setData({loginStage:'login',avatarUrl});
+    const landed=await navigateAfterAuthentication(this.data.pendingDestination||careHome);
+    if(token!==getApp<IAppOption>().globalData.sessionToken||this.loginFlowToken!==token||!this.data.pageAlive)return;
+    if(landed==='target')this.loginFlowToken='';
+    else if(this.data.pageVisible&&!this.data.leaving)this.setData({error:'页面暂时无法打开，请再次点击继续'});
   },
   async chooseLoginAvatar(event:WechatMiniprogram.CustomEvent){
     if(this.data.renewalMode||!this.data.pageAlive||!this.data.pageVisible||this.data.loading||this.data.leaving||this.data.avatarBusy||this.data.loginStage!=='avatar'||!event.detail.avatarUrl)return;
@@ -388,7 +418,7 @@ Page({
       // this default only for a new member; later logins retain saved profile.
       const base = { displayName: "CISME 会员", consents: [{ documentType: "privacy", version: legalDocuments.privacy }, { documentType: "terms", version: legalDocuments.terms }] };
       if (legalDocuments.crossBorder) base.consents.push({documentType:"cross_border",version:legalDocuments.crossBorder});
-      let result: { sessionToken: string; onboardingRequired?:boolean };
+      let result: { sessionToken: string; memberId?:string; onboardingRequired?:boolean };
       const runtime = getApp<IAppOption>().globalData;
       await prepareOfficerLoginVisits();
       if(!this.data.pageAlive||this.data.authAttempt!==attempt)return;
@@ -411,20 +441,23 @@ Page({
         }
         this.setData({ identityCommitStarted: true });
         wx.enableAlertBeforeUnload({ message: "登录正在处理中，离开后请先确认账号状态。" });
-        result = await request({ path: "/v1/identity/wechat", method: "POST", authMode: "public", data: { ...base, code: login.code } });
+        result = await request({ path: "/v1/identity/wechat", method: "POST", authMode: "public", data: { ...base, code: login.code, completeAccount:true } });
       }
       if (!this.data.pageAlive || this.data.authAttempt !== attempt) return;
-      setSessionToken(result.sessionToken);this.loginFlowToken=result.sessionToken;this.loginOwnerId="";
+      const samePendingMember=!!this.loginOwnerId&&this.loginOwnerId===result.memberId&&this.data.accountNeedsCompletion;
+      if(samePendingMember)setSessionToken(result.sessionToken,true);else setSessionToken(result.sessionToken);
+      this.loginFlowToken=result.sessionToken;this.loginOwnerId=result.memberId||"";
       const destination = memberLoginDestination(this.authenticationReturnUrl);
-      if (result.onboardingRequired && destination !== careHome) {
+      const needsCareOnboarding=result.onboardingRequired&&!checkoutProduct(destination)&&nativeRoutePath(destination)!=="/pages/orders/index";
+      if (needsCareOnboarding && destination !== careHome) {
         runtime.onboardingReturnUrl = destination;
         runtime.onboardingReturnToken = result.sessionToken;
       } else {
         delete runtime.onboardingReturnUrl;
         delete runtime.onboardingReturnToken;
       }
-      const pendingDestination = result.onboardingRequired ? careHome : destination;
-      this.setData({ pendingDestination });
+      const pendingDestination = needsCareOnboarding ? careHome : destination;
+      this.setData({ pendingDestination,accountNeedsCompletion:false });
       wx.disableAlertBeforeUnload();
       if(!this.data.pageAlive || this.data.authAttempt !== attempt || result.sessionToken !== getApp<IAppOption>().globalData.sessionToken)return;
       await this.advanceLogin();
@@ -505,7 +538,7 @@ Page({
     this.data.authAttempt += 1;
     cancelAuthentication(this.authenticationFlowId);
     if(!this.data.renewalMode&&getApp<IAppOption>().globalData.sessionToken&&
-      (this.loginFlowToken===getApp<IAppOption>().globalData.sessionToken||this.data.restoringSession||this.data.sessionRestoreFailed)){
+      (this.loginFlowToken===getApp<IAppOption>().globalData.sessionToken||this.data.restoringSession||this.data.sessionRestoreFailed||this.data.accountNeedsCompletion)){
       // Leaving an unfinished login permits public browsing, not an authenticated
       // shortcut into the questionnaire. The canonical member remains on server.
       setSessionToken("");loginAvatarDrafts.delete(this);this.loginFlowToken="";this.loginOwnerId="";
@@ -520,7 +553,8 @@ Page({
     if (!await this.confirmIdentityLeave("source")) return;
     if (!this.data.pageAlive || this.data.leaving) return;
     const guest=isGuestCommunityBrowsing();
-    const returnUrl = this.stopAuthenticationWait(!guest&&memberEntryReady());
+    const requestedUrl = this.stopAuthenticationWait(!guest&&memberEntryReady());
+    const returnUrl=this.shoppingReturnUrl||requestedUrl;
     const fail = () => {
       if (this.data.pageAlive) this.setData({ leaving: false, error: "暂时无法返回，请重试或留在本页查看账号状态。" }, scrollToAccountError);
     };
@@ -534,6 +568,12 @@ Page({
     };
     const pages = getCurrentPages();
     const previous = pages[pages.length - 2];
+    if(!previous&&!this.data.renewalMode&&!memberEntryReady()){
+      if(!this.shoppingReturnUrl&&(!this.authenticationFlowId||!guestCommunityRouteAllowed(returnUrl)))
+        wx.switchTab({url:"/pages/community/index",fail});
+      else openSource();
+      return;
+    }
     if (!memberEntryReady() && !guestCommunityRouteAllowed(returnUrl)) {
       if (previous?.route && guestCommunityRouteAllowed(previous.route)) {
         wx.navigateBack({ delta: 1, fail: () => wx.switchTab({ url: "/pages/community/index", fail }) });
@@ -545,7 +585,7 @@ Page({
     wx.navigateBack({ delta: 1, fail: openSource });
   },
   async browseCommunity() {
-    if(this.data.renewalMode){await this.back();return;}
+    if(this.data.renewalMode||this.shoppingReturnUrl){await this.back();return;}
     if (!await this.confirmIdentityLeave("community")) return;
     if (!this.data.pageAlive || this.data.leaving) return;
     wx.setStorageSync("cisme.guestBrowsing", true);

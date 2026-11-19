@@ -1832,6 +1832,7 @@ paths:
       tags: [Identity]
       operationId: wechatIdentity
       security: []
+      description: Set completeAccount on an explicit login to complete registration with the verified WeChat identity and current consents. Profile setup can be done separately.
       requestBody: {$ref: '#/components/requestBodies/Identity'}
       responses: {'200': {$ref: '#/components/responses/Identity'}, '502': {$ref: '#/components/responses/Problem'}}
   /v1/identity/wechat/privacy-rights:
@@ -4137,7 +4138,7 @@ components:
     AddressId: {name: addressId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
     OrderId: {name: orderId, in: path, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
   requestBodies:
-    Identity: {required: true, content: {application/json: {schema: {type: object, required: [displayName, consents], properties: {code: {type: string}, externalUserId: {type: string}, displayName: {type: string}, consents: {type: array, minItems: 2, items: {type: object, required: [documentType, version], properties: {documentType: {type: string}, version: {type: string}}}}}}}}}
+    Identity: {required: true, content: {application/json: {schema: {type: object, required: [displayName, consents], properties: {code: {type: string}, externalUserId: {type: string}, displayName: {type: string}, completeAccount: {type: boolean, enum: [true], description: 'Wechat identity only. Complete the account after explicit login and current consent.'}, consents: {type: array, minItems: 2, items: {type: object, required: [documentType, version], properties: {documentType: {type: string}, version: {type: string}}}}}}}}}
     UgcReaction: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [kind, active], properties: {kind: {type: string, enum: [like, save]}, active: {type: boolean}}}}}}
     UgcComment: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [body], properties: {body: {type: string, minLength: 1, maxLength: 1000}, parentId: {$ref: '#/components/schemas/Uuid'}, replyToId: {$ref: '#/components/schemas/Uuid'}}}}}}
     UgcExpectedVersion: {required: true, content: {application/json: {schema: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}

@@ -2,6 +2,7 @@ import {captureValidContentShare} from './memberPointsTasks.js';
 import {saveMemberUsage,privateUsageDigest} from './memberPointsClub.js';
 import {lockPointWallet} from './pointsLedger.js';
 import {memberCardNumberProjection} from './memberCard.js';
+import {unconfiguredDisplayName} from './memberRegistration.js';
 import { taskProofRetired } from "./taskProofRetired.js";
 import { requireActiveUploadOwner } from "./uploadAuthority.js";
 import { requireCareRecordDetails } from "./careRecordDetails.js";
@@ -154,9 +155,10 @@ export class PlatformService {
     if (!result.rows[0]?.enabled) throw new DomainError(`SWITCH_${key.toUpperCase()}_OFF`, `Operation disabled: ${result.rows[0]?.reason ?? "emergency switch"}`, 503);
   }
 
-  async identity(input: { provider: "wechat_miniprogram" | "dev_test"; appId: string; openid: string; unionid?: string; displayName: string; adapter: "wechat" | "dev"; consents: Array<{ documentType: string; version: string }> }, now: Date) {
+  async identity(input: { provider: "wechat_miniprogram" | "dev_test"; appId: string; openid: string; unionid?: string; displayName: string; adapter: "wechat" | "dev"; completeAccount?: boolean; consents: Array<{ documentType: string; version: string }> }, now: Date) {
     if (input.adapter === "dev" && !this.config.allowDevAdapters) throw new DomainError("DEV_ADAPTER_FORBIDDEN", "Development identity adapter is disabled", 503);
-    const displayName = input.displayName?.trim();
+    const completeAccount=input.adapter==='wechat'&&input.completeAccount===true;
+    const displayName = completeAccount ? unconfiguredDisplayName : input.displayName?.trim();
     if (!displayName || Array.from(displayName).length > 40) throw new DomainError("IDENTITY_DISPLAY_NAME_INVALID", "Display name is required and must not exceed 40 characters", 422);
     if (!Array.isArray(input.consents) || input.consents.some(c => !c || typeof c.documentType !== "string" || typeof c.version !== "string") || !input.consents.some((c) => c.documentType === "privacy") || !input.consents.some((c) => c.documentType === "terms")) {
       throw new DomainError("CONSENT_REQUIRED", "Privacy and terms acceptance are required", 422);
@@ -183,7 +185,7 @@ export class PlatformService {
         identityId = randomUUID();
         // Registration, share visits and attribution use the same trusted
         // service clock; database-host clock skew must not invert that order.
-        await client.query("INSERT INTO member(id, display_name, created_at, registration_completed_at) VALUES ($1,$2,$3,$4)", [memberId, displayName, now, input.adapter === 'wechat' ? null : now]);
+        await client.query("INSERT INTO member(id, display_name, created_at, registration_completed_at) VALUES ($1,$2,$3,$4)", [memberId, displayName, now, completeAccount||input.adapter==='dev'?now:null]);
         await client.query(
           "INSERT INTO wechat_identity(id, member_id, provider, app_id, openid, unionid, adapter) VALUES ($1,$2,$3,$4,$5,$6,$7)",
           [identityId, memberId, input.provider, input.appId, input.openid, input.unionid ?? null, input.adapter]
@@ -196,6 +198,9 @@ export class PlatformService {
           'SELECT status FROM member WHERE id=$1 FOR UPDATE',[memberId])).rows[0]?.status;
         if(state==='deleted')throw new DomainError('ACCOUNT_CLOSED','账号已注销；可从登录页核验微信身份后处理历史隐私请求',410);
         if(state!=='active')throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可登录',403);
+        // A fresh, explicitly initiated WeChat login may finish an older
+        // pending account. Keep the canonical identity and issue its number once.
+        if(completeAccount)await client.query('UPDATE member SET registration_completed_at=$2 WHERE id=$1 AND registration_completed_at IS NULL',[memberId,now]);
       }
       // Re-authentication never overwrites member-managed or reviewed profile data.
       const principalId = `${input.provider}:${identityId}`;
@@ -973,7 +978,7 @@ export class PlatformService {
     const owner = requireMember(memberId);
     if(scope==='profile')await transaction(this.pool,c=>sweepMemberPoints(c,owner,now));
     return readSnapshot(this.pool, async (client, asOf) => {
-      const member = await client.query(`SELECT m.id,${memberCardNumberProjection} AS card_number,mc.user_code,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.wechat_handle,p.avatar_data_url,p.avatar_revision,
+      const member = await client.query(`SELECT m.id,m.registration_completed_at,${memberCardNumberProjection} AS card_number,mc.user_code,bp.birthday_month_day,bp.birthday_change_after,m.display_name,m.status,m.created_at,p.wechat_handle,p.avatar_data_url,p.avatar_revision,
         COALESCE(p.profile_revision,0) AS profile_revision,p.completed_at,COALESCE(p.community_visible,false) AS community_visible,
         COALESCE(p.public_status,'private') AS public_status,p.public_review_note,c.phone_masked,c.bound_at,
         EXISTS(SELECT 1 FROM member_care_profile cp WHERE cp.member_id=m.id AND cp.required AND cp.completed_at IS NULL) AS care_onboarding_required

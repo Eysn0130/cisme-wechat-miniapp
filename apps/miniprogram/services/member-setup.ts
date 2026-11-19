@@ -9,9 +9,15 @@ export function hasCompleteLoginProfile(profile:Partial<SetupProfile>){
   return profile.registration_completed_at !== null && Number.isSafeInteger(profile.profile_revision) && typeof profile.avatar_data_url==='string'
     && Boolean(profile.avatar_data_url) && !needsLoginName(profile);
 }
+export function hasRegisteredAccount(profile:Partial<SetupProfile>){
+  const registered=profile.registration_completed_at;
+  return registered===undefined?hasCompleteLoginProfile(profile):
+    typeof registered==='string'&&Number.isFinite(Date.parse(registered));
+}
 /** Bootstrap snapshots carry saved facts; absent legacy fields are not a
  * reason to discard a valid session or invent a second member identity. */
 export function needsLoginProfile(profile:Partial<SetupProfile>){
+  if(profile.registration_completed_at!==undefined)return profile.registration_completed_at===null;
   return Number.isSafeInteger(profile.profile_revision)&&(profile.avatar_data_url===null||profile.completed_at===null&&needsLoginName(profile));
 }
 export function parseSetupProfile(value:SetupProfile):SetupProfile{
