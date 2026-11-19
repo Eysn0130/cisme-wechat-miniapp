@@ -1512,13 +1512,13 @@
   },
   "guestShoppingReview20261118": {
     "reviewed": true,
-    "scope": "0.1.62 public catalog, product detail, community and care instructions create no member identity or identifier. Verified WeChat login and current consent complete a member account without account phone, nickname or avatar collection.",
+    "scope": "0.1.62 public catalog, product detail, community and care welcome page create no member identity or identifier. Verified WeChat login and current consent complete a member account without account phone, nickname or avatar collection.",
     "storage": "Existing canonical identity, consent, member, and card-number tables. Unconfigured members have a neutral display name. Pending identities from older clients retain the same ID when the user explicitly completes login. No new storage destination or data recipient.",
     "profile": "The member can choose a nickname and avatar in Settings. First public post submission prompts members who still have no nickname and retains a private draft. Delivery contact stays scoped to shipping."
   },
   "loadingStateReview": {
     "reviewed": true,
-    "packageSourceSha256": "d8771843dead49161544ae0c6d0f9fbeb4a7e0cd9dc3703f67a60ab49b0d6306",
+    "packageSourceSha256": "ee8264edf576aeccd7549c3aeb277a71c4e2e0620b780f1e812823cc378a309a",
     "scope": "Existing wx.uploadFile, PUT and chunk endpoints retain original recipients, authorization, purpose and payload. Added local measured byte/phase feedback, completion/cancellation listener cleanup and retained exact server problem sanitization. No new analytics, storage destination or member consent.",
     "accessBoundary": "Inaccessible aftersale routes clear private state and return to existing usable workspace; no new permission or role grant."
   }

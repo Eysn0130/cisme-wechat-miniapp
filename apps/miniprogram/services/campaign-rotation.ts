@@ -1,4 +1,4 @@
-export const campaignDwellMs = 5_000;
+export const campaignDwellMs = 4_500;
 export const campaignManualDwellMs = 3_000;
 export const campaignTransitionMs = 420;
 

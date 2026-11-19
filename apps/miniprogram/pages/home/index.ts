@@ -144,7 +144,6 @@ Page({
     usageStreak: 0, usageRewards: null as CareDayRewards | null,
     centerDate: "护理状态同步中", centerTitle: "今日护理", centerAction: "记录今日护理",
     centerCopy: ["选择今天实际用过的产品", "留下一点护理感受"], centerProducts: careProducts.map(p=>({...p})), rewardLabel: "",
-    guestCareSteps:careProtocolSteps.map(({code,label,instruction})=>({code,label,instruction})),
     dailyReady: false, dailyLoading: false, dailyError: "", serverDay: "", dailyToday: null as DailyCareRecord | null, dailyAttempt: 0,
     chromeStyle: currentChromeStyle(), accountOpening: false, supportUnread: null as number | null, supportState: "unknown" as "unknown" | "loading" | "ready" | "error", care: null as CareView | null, view: homeView(null), selectedProtocolIndex: 0,
     loading: true, working: false, activationConfirming: false, authorityAvailable: false, needsAuthentication: false,
@@ -160,8 +159,8 @@ Page({
     if(needsAuthentication)date="欢迎来到 CISME";
     else if(usageDay){const d=new Date(usageDay+'T00:00:00Z');date=`${Number(usageDay.slice(5,7))} 月 ${Number(usageDay.slice(8,10))} 日 · 星期${['日','一','二','三','四','五','六'][d.getUTCDay()]}`;}
     const due=care?.phase==='active'&&care.due;
-    this.setData({centerDate:date,centerTitle:needsAuthentication?'四步护理':due?`${care!.due} 阶段护理`:'今日护理',
-      centerAction:needsAuthentication?'记录今日护理':care?.phase==='planned'?view.action:due?'开始本期护理':!usageReady?view.action:usageToday?'调整今日记录':'记录今日护理',
+    this.setData({centerDate:date,centerTitle:due?`${care!.due} 阶段护理`:'今日护理',
+      centerAction:needsAuthentication?'授权身份并开始':care?.phase==='planned'?view.action:due?'开始本期护理':!usageReady?view.action:usageToday?'调整今日记录':'记录今日护理',
       centerCopy:needsAuthentication?['记录真实使用，回看护理感受']:care?.phase==='planned'?['开始日由你决定','确认后，今天将作为 D1']:due?['完成本期护理步骤','留下这一阶段的真实感受']:usageToday?['今天用过的产品与感受','已为你保存']:['选择今天实际用过的产品','留下一点护理感受'],
       centerProducts:careProducts.filter(p=>!usageToday||usageToday.products.includes(p.id)).map(p=>({...p})),
       rewardLabel:usageToday?careRewardLabel(this.data.usageRewards):''});
