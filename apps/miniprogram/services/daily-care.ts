@@ -51,8 +51,8 @@ export async function changeDailyCareRecord(id: string, expectedVersion: number,
 export function dailyCareCommandConfirmed(key: string, input: DailyCareInput, records: readonly DailyCareRecord[], id?: string): boolean {
   return records.some(row => !row.deleted && row.operationId === key && (!id || row.id === id) && row.careDay === input.careDay && row.selfAssessment === input.selfAssessment && steps(row.stepCodes) && steps(input.stepCodes));
 }
-export async function readDailyCareRecords(page: object, cursor: string | null = null): Promise<DailyCarePage> {
-  const value = await pageRead<DailyCarePage>(page, { path: `${dailyCarePath}?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, cacheTags: ["care"] });
+export async function readDailyCareRecords(page: object, cursor: string | null = null, authMode:"required"|"optional"="required"): Promise<DailyCarePage> {
+  const value = await pageRead<DailyCarePage>(page, { path: `${dailyCarePath}?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, authMode, cacheTags: ["care"] });
   if (!value || !Array.isArray(value.items) || value.items.length > 20 || value.loadedCount !== value.items.length
     || typeof value.hasMore !== "boolean" || !(value.nextCursor === null || typeof value.nextCursor === "string" && value.nextCursor.length > 0 && value.nextCursor.length <= 4096)
     || value.hasMore !== (value.nextCursor !== null) || value.hasMore && (!value.items.length || value.nextCursor === cursor)

@@ -47,7 +47,7 @@ export function careRewardLabel(receipt: CareDayRewards | null | undefined): str
   return label+(receipt.pending?' · 部分处理中':receipt.pointsReversed?' · 已撤回 '+receipt.pointsReversed+' 分':receipt.debtOffset?' · 含冲抵 '+receipt.debtOffset+' 分':'');
 }
 export async function readCareUsage(page: object): Promise<CareUsageOverview> {
-  const value = await pageRead<CareUsageOverview>(page, { path: '/v1/me/points/club', cacheTags: ['care', 'points', 'member'] });
+  const value = await pageRead<CareUsageOverview>(page, { path: '/v1/me/points/club', authMode:"optional", cacheTags: ['care', 'points', 'member'] });
   if (!value || !validCareDay(value.serverDay) || typeof value.enabled !== 'boolean'
     || !Number.isSafeInteger(value.streak) || value.streak < 0 || value.today !== null && !validRecord(value.today)) invalid();
   // Keep only the care fields: birthdays and reward administration do not belong in home page state.

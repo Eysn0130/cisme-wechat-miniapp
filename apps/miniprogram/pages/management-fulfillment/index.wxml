@@ -1,31 +1,161 @@
-<view class="management-ui fulfillment-shell" style="{{chromeStyle}}">
- <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">批量发货</text></view>
- <view class="page page--stack">
-  <view class="page-title">订单与拣货表</view>
-  <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在核验权限与订单…"><view class="page-read-loading__indicator"/></view>
-  <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button bindtap="retry" disabled="{{busy}}" class="text-button {{busy ? 'control--disabled' : ''}}">重新核验</button></view>
-  <view wx:if="{{coreReady}}" class="section-card">
-   <picker range="{{states}}" value="{{stateIndex}}" bindchange="onState" disabled="{{busy}}"><view class="filter-choice">物流状态 · {{states[stateIndex]}}　⌄</view></picker>
-   <input aria-label="精确订单号" placeholder="输入精确订单号（可选）" value="{{orderNumber}}" maxlength="32" bindinput="onNumber" disabled="{{busy}}"/>
-   <button class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="retry" disabled="{{busy}}">查询订单</button>
-   <view wx:if="{{!items.length}}" class="state">当前筛选没有订单。</view>
-   <view wx:for="{{items}}" wx:key="id" class="order"><text class="order-number">{{item.orderNumber}}</text><text>{{item.items}}</text><text class="muted">{{item.stateLabel}} · {{item.carrierName || '尚未登记快递'}}{{item.receiptConfirmedAt?' · 用户已确认收货':''}}</text></view>
-   <button wx:if="{{nextCursor}}" bindtap="next" disabled="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">下一页</button>
-   <button bindtap="exportExcel" disabled="{{busy}}" loading="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">导出拣货表</button>
-   <text class="hint">每批最多500单</text>
+<view class="management-ui management-shell" style="{{chromeStyle}}">
+  <view class="topbar">
+    <button class="topbar__back {{busy?'control--disabled':''}}" bindtap="back" disabled="{{busy}}" aria-label="返回">
+      <image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/>
+    </button>
+    <text class="topbar__title">{{view==='review'?'核对发货清单':view==='sending'||view==='results'?'发货结果':view==='paste'?'粘贴运单':'批量发货'}}</text>
   </view>
-  <view wx:if="{{coreReady}}" class="section-card">
-   <view class="section-title">批量登记物流</view><text class="hint">按模板填写物流，运单号用文本格式。</text>
-   <button class="secondary {{busy || batchLocked ? 'control--disabled' : ''}}" bindtap="chooseXlsx" disabled="{{busy || batchLocked}}">上传 XLSX</button>
-   <view wx:if="{{fileName}}" class="import-file" aria-live="polite"><text>{{fileName}}</text><text>将登记 {{importCount}} 单{{skippedRows ? '，已跳过未填写物流的 ' + skippedRows + ' 行' : ''}}</text></view>
-   <text class="hint">订单号 · 快递代码 · 名称 · 运单号 · 交寄时间</text>
-   <textarea aria-label="五列物流信息" placeholder="上传XLSX后在此核对，或粘贴物流信息" value="{{rows}}" maxlength="320000" bindinput="onRows" disabled="{{busy || batchLocked}}"/>
-   <checkbox-group bindchange="onConfirm"><label class="confirmation"><checkbox value="confirmed" checked="{{confirmed}}" disabled="{{busy}}" color="#705278"/>已核对订单、运单与实际交寄时间</label></checkbox-group>
-   <button class="primary {{busy || !confirmed ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || !confirmed}}" loading="{{busy}}">{{batchPending?'重试原批次':'确认登记物流'}}</button>
-   <button wx:if="{{batchPending}}" class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="reconcileBatch" disabled="{{busy}}">核对后结束上批</button>
-   <button class="secondary {{busy || batchPending ? 'control--disabled' : ''}}" bindtap="newBatch" disabled="{{busy || batchPending}}">开始另一批</button>
-   <view wx:for="{{results}}" wx:key="orderId" class="order"><text>{{item.orderNumber || item.orderId}}</text><text>{{item.resultLabel || (item.status==='accepted'?'已登记，请另行核对微信同步':'请打开订单核对后重试')}}</text><button wx:if="{{canOrders}}" class="text-button {{busy ? 'control--disabled' : ''}}" bindtap="openImportOrder" data-id="{{item.orderId}}" disabled="{{busy}}">查看订单</button></view>
+  <view class="page page--stack fulfillment-page {{stage==='awaiting_dispatch'||view!=='list'?'fulfillment-page--dock':''}}">
+    <block wx:if="{{view==='list'}}">
+      <section-tabs items="{{stages}}" value="{{stage}}" label="发货状态" spread="{{true}}" disabled="{{busy||!coreReady}}" bindchange="selectStage"/>
+      <view class="fulfillment-summary">
+        <text class="fulfillment-count">{{totalCount===null?'订单':totalCount+' 笔'+(stage==='awaiting_dispatch'?'待发货':'已发货')}}</text>
+        <button class="text-button fulfillment-date-toggle {{from||through?'fulfillment-date-toggle--active':''}} {{!coreReady||busy?'control--disabled':''}}" bindtap="toggleDates" disabled="{{!coreReady||busy}}" aria-expanded="{{dateOpen}}">日期</button>
+        <view class="fulfillment-search">
+          <button class="fulfillment-search__icon {{!coreReady||busy?'control--disabled':''}}" bindtap="search" disabled="{{!coreReady||busy}}" aria-label="查找订单">
+            <image src="/assets/icons/magnifying-glass-ink.svg"/>
+          </button>
+          <input value="{{number}}" bindinput="changeNumber" bindconfirm="search" maxlength="32" confirm-type="search"
+            placeholder="按订单号查找" placeholder-class="fulfillment-placeholder" disabled="{{!coreReady||busy}}" aria-label="完整订单号"/>
+          <button wx:if="{{number}}" class="fulfillment-search__icon fulfillment-search__clear {{busy?'control--disabled':''}}" bindtap="clearNumber" disabled="{{busy}}" aria-label="清除订单号">
+            <image src="/assets/icons/close-plum.svg"/>
+          </button>
+        </view>
+      </view>
+      <view wx:if="{{dateOpen||from||through}}" class="fulfillment-dates">
+        <text>{{stage==='awaiting_dispatch'?'支付日期':'发货日期'}}</text>
+        <picker mode="date" value="{{from}}" end="{{through}}" data-field="from" bindchange="setDate" disabled="{{busy||loading}}"><view>{{from||'起始'}}</view></picker>
+        <text>—</text>
+        <picker mode="date" value="{{through}}" start="{{from}}" data-field="through" bindchange="setDate" disabled="{{busy||loading}}"><view>{{through||'结束'}}</view></picker>
+        <button class="text-button {{busy||!from&&!through?'control--disabled':''}}" bindtap="clearDates" disabled="{{busy||!from&&!through}}">清除</button>
+      </view>
+    </block>
+
+    <view wx:if="{{loading&&!coreReady}}" class="fulfillment-loading {{reducedMotion?'loading--still':''}}" aria-role="status" aria-label="正在加载">
+      <view class="fulfillment-card" wx:for="{{[1,2,3]}}" wx:key="*this" aria-hidden="true">
+        <view class="loading-bone fulfillment-bone fulfillment-bone--title"/>
+        <view class="loading-bone fulfillment-bone fulfillment-bone--subtitle"/>
+        <view class="loading-bone fulfillment-bone fulfillment-bone--body"/>
+      </view>
+    </view>
+    <view wx:if="{{error}}" class="fulfillment-state" aria-role="status">
+      <text>{{error}}</text><button class="text-button" bindtap="retry">重试</button>
+    </view>
+
+    <block wx:if="{{coreReady}}">
+      <view wx:if="{{checkingFile||notice}}" class="fulfillment-notice {{reducedMotion?'loading--still':''}}" aria-role="status">
+        <view wx:if="{{checkingFile}}" class="page-read-loading__indicator"/>
+        <text>{{checkingFile?'正在核对清单…':notice}}</text>
+      </view>
+
+      <block wx:if="{{view==='list'}}">
+        <view wx:for="{{items}}" wx:key="id" class="fulfillment-card">
+          <view class="fulfillment-card__head">
+            <view class="fulfillment-card__member">
+              <text class="fulfillment-card__name">{{item.memberLabel}}</text>
+              <text wx:if="{{item.memberCardNumber}}" class="fulfillment-card__member-id">{{item.memberCardNumber}}</text>
+            </view>
+            <text class="fulfillment-badge {{item.logisticsState==='exception'?'fulfillment-badge--issue':''}}">{{item.stateLabel}}</text>
+          </view>
+          <view class="fulfillment-card__ref"><text>{{item.orderNumber}}</text><text>{{item.dateLabel}}</text></view>
+          <view class="fulfillment-card__body">
+            <view class="fulfillment-card__summary">
+              <text>{{item.items||'商品明细待核对'}}</text>
+              <text wx:if="{{item.carrierName||item.syncLabel}}" class="fulfillment-card__sub">{{item.carrierName}}{{item.carrierName&&item.syncLabel?' · ':''}}{{item.syncLabel}}</text>
+            </view>
+            <button wx:if="{{canOrders}}" class="fulfillment-card__more {{busy?'control--disabled':''}}" aria-label="查看订单 {{item.orderNumber}}" data-id="{{item.id}}" bindtap="openOrder" disabled="{{busy}}">
+              <image src="/assets/icons/caret-right-muted.svg"/>
+            </button>
+          </view>
+        </view>
+        <view wx:if="{{!items.length}}" class="fulfillment-state">
+          <text>{{appliedNumber||from||through?'未找到符合条件的订单':stage==='awaiting_dispatch'?'暂无待发货订单':'暂无已发货订单'}}</text>
+        </view>
+        <button wx:if="{{nextCursor}}" class="text-button fulfillment-more {{busy||loadingMore?'control--disabled':''}}" bindtap="next" loading="{{loadingMore}}" disabled="{{busy||loadingMore}}">查看更多订单</button>
+      </block>
+
+      <view wx:elif="{{view==='paste'}}" class="fulfillment-card fulfillment-paste">
+        <view class="fulfillment-paste__title">粘贴表格中的五列</view>
+        <text class="fulfillment-card__sub">订单号、快递代码、快递名称、运单号、实际交寄时间</text>
+        <textarea value="{{pasteRows}}" bindinput="writePaste" maxlength="320000" disabled="{{busy}}" show-confirm-bar="{{false}}"
+          placeholder="交寄时间示例 2026-11-18 14:30（北京时间）" placeholder-class="fulfillment-placeholder" aria-label="运单信息"/>
+      </view>
+
+      <view wx:elif="{{view==='sending'}}" class="fulfillment-card fulfillment-progress" aria-role="status">
+        <text class="fulfillment-paste__title">正在登记物流</text>
+        <text class="fulfillment-card__sub">已收到 {{sentCount}} / {{sendTotal}} 笔结果</text>
+        <progress percent="{{progress}}" stroke-width="6" border-radius="4" color="#56306f" backgroundColor="#eee4f2" aria-label="已收到 {{sentCount}} 笔结果，共 {{sendTotal}} 笔"/>
+      </view>
+
+      <block wx:else>
+        <view class="fulfillment-review">
+          <view class="fulfillment-review__file">
+            <text class="fulfillment-paste__title">{{fileName}}</text><text class="fulfillment-card__sub">{{rowCount}} 行</text>
+          </view>
+          <view class="fulfillment-review__stats" aria-label="按核对结果筛选">
+            <button wx:if="{{view==='review'}}" class="{{reviewFilter==='ready'?'fulfillment-stat--active':''}}" data-filter="ready" bindtap="filterReview" aria-pressed="{{reviewFilter==='ready'}}"><strong>{{readyCount}}</strong><text>可登记</text></button>
+            <button class="{{reviewFilter==='registered'?'fulfillment-stat--active':''}}" data-filter="registered" bindtap="filterReview" aria-pressed="{{reviewFilter==='registered'}}"><strong>{{registeredCount}}</strong><text>已登记</text></button>
+            <button class="{{reviewFilter==='issue'?'fulfillment-stat--active':''}}" data-filter="issue" bindtap="filterReview" aria-pressed="{{reviewFilter==='issue'}}"><strong>{{issueCount}}</strong><text>待处理</text></button>
+            <button wx:if="{{pendingCount}}" class="{{reviewFilter==='pending'?'fulfillment-stat--active':''}}" data-filter="pending" bindtap="filterReview" aria-pressed="{{reviewFilter==='pending'}}"><strong>{{pendingCount}}</strong><text>未完成</text></button>
+          </view>
+          <text wx:if="{{skippedRows}}" class="fulfillment-card__sub">已跳过 {{skippedRows}} 行未填写物流的信息</text>
+        </view>
+        <view wx:for="{{entries}}" wx:key="line" class="fulfillment-card">
+          <view class="fulfillment-card__head">
+            <view class="fulfillment-card__member">
+              <text class="fulfillment-line">第 {{item.line}} 行</text>
+              <text wx:if="{{item.memberLabel}}" class="fulfillment-card__name">{{item.memberLabel}}</text>
+            </view>
+            <text class="fulfillment-badge fulfillment-badge--{{item.rowState}}">{{item.label}}</text>
+          </view>
+          <view class="fulfillment-card__ref" wx:if="{{item.orderNumber||item.memberCardNumber}}">
+            <text>{{item.orderNumber}}</text><text wx:if="{{item.memberCardNumber}}">{{item.memberCardNumber}}</text>
+          </view>
+          <view wx:if="{{item.parcel||item.note||item.syncLabel||item.messageLabel||canOrders&&item.orderId}}" class="fulfillment-card__body">
+            <view class="fulfillment-card__summary">
+              <text wx:if="{{item.parcel}}">{{item.parcel.carrierName}} · {{item.parcel.trackingNumber}}</text>
+              <text wx:if="{{item.dateLabel}}" class="fulfillment-card__sub">交寄 {{item.dateLabel}}</text>
+              <text wx:if="{{item.note}}" class="fulfillment-card__issue">{{item.note}}</text>
+              <text wx:if="{{item.syncLabel||item.messageLabel}}" class="fulfillment-card__sub">{{item.syncLabel}}{{item.syncLabel&&item.messageLabel?' · ':''}}{{item.messageLabel}}</text>
+            </view>
+            <button wx:if="{{canOrders&&item.orderId}}" class="fulfillment-card__more {{busy?'control--disabled':''}}" aria-label="查看订单 {{item.orderNumber}}" data-id="{{item.orderId}}" bindtap="openOrder" disabled="{{busy}}">
+              <image src="/assets/icons/caret-right-muted.svg"/>
+            </button>
+          </view>
+        </view>
+        <view wx:if="{{!entries.length}}" class="fulfillment-state">此分类暂无记录</view>
+        <button wx:if="{{moreRows}}" class="text-button fulfillment-more {{busy?'control--disabled':''}}" bindtap="moreReview" disabled="{{busy}}">查看更多记录</button>
+      </block>
+    </block>
   </view>
-  <view wx:if="{{notice}}" class="state" aria-live="polite">{{notice}}</view>
- </view>
+
+  <block wx:if="{{coreReady}}">
+    <view wx:if="{{view==='list'&&stage==='awaiting_dispatch'}}" class="fulfillment-dock">
+      <view class="fulfillment-dock__top">
+        <text>{{totalCount>500?'请选择日期，每份最多 500 笔':'上传后先核对'}}</text>
+        <button class="text-button {{busy?'control--disabled':''}}" bindtap="openPaste" disabled="{{busy}}">粘贴运单</button>
+      </view>
+      <view class="fulfillment-dock__actions">
+        <button class="fulfillment-action fulfillment-action--outline {{busy?'control--disabled':''}}" bindtap="chooseXlsx" disabled="{{busy}}">上传已填清单</button>
+        <button class="fulfillment-action {{busy||!totalCount||totalCount>500?'control--disabled':''}}" bindtap="exportExcel" disabled="{{busy||!totalCount||totalCount>500}}">{{totalCount&&totalCount<=500?'下载 '+totalCount+' 笔清单':'下载清单'}}</button>
+      </view>
+    </view>
+    <view wx:elif="{{view==='paste'}}" class="fulfillment-dock">
+      <button class="fulfillment-action {{busy||!pasteRows?'control--disabled':''}}" bindtap="previewPaste" disabled="{{busy||!pasteRows}}">核对运单</button>
+    </view>
+    <view wx:elif="{{view==='review'}}" class="fulfillment-dock">
+      <view class="fulfillment-dock__actions">
+        <button class="fulfillment-action fulfillment-action--outline {{busy?'control--disabled':''}}" bindtap="chooseXlsx" disabled="{{busy}}">更换清单</button>
+        <button class="fulfillment-action {{busy||!readyCount?'control--disabled':''}}" bindtap="submit" disabled="{{busy||!readyCount}}">{{readyCount?'登记 '+readyCount+' 笔发货':'登记发货'}}</button>
+      </view>
+    </view>
+    <view wx:elif="{{view==='results'}}" class="fulfillment-dock">
+      <view class="fulfillment-dock__actions">
+        <button class="fulfillment-action fulfillment-action--outline {{busy?'control--disabled':''}}" bindtap="reconcileBatch" loading="{{busy}}" disabled="{{busy}}">核对结果</button>
+        <button wx:if="{{retryBatch}}" class="fulfillment-action {{busy?'control--disabled':''}}" bindtap="sendBatch" disabled="{{busy}}">继续登记</button>
+        <button wx:elif="{{issueCount}}" class="fulfillment-action {{busy?'control--disabled':''}}" bindtap="chooseXlsx" disabled="{{busy}}">上传修正清单</button>
+        <button wx:else class="fulfillment-action {{busy?'control--disabled':''}}" bindtap="newBatch" disabled="{{busy}}">返回列表</button>
+      </view>
+    </view>
+  </block>
 </view>

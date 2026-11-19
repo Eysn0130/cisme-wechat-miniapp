@@ -14,7 +14,7 @@ import {MoneyOperationsService} from '../../services/api/src/moneyOperations';
 import {RefundCommandService} from '../../services/api/src/refundCommand';
 import {listMemberRefundRequests} from '../../services/api/src/commerceHistory';
 import {CommerceOrderService} from '../../services/api/src/commerceOrders';
-import {parseFulfillmentWorkbook} from '../../services/api/src/fulfillmentImport';
+import {parseFulfillmentWorkbook,parseShipmentPaste} from '../../services/api/src/fulfillmentImport';
 import {fulfillmentWorkbook} from '../../services/api/src/fulfillmentWorkbook';
 
 const pool=testPool();
@@ -855,6 +855,25 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   const rows=`${bulkA.number}\tSF\t顺丰速运\tSF123456789010\t${bulkTime}\n${bulkB.number}\tSF\t顺丰速运\tSF123456789011\t${bulkTime}`;
   const workbook=fulfillmentWorkbook([['订单号','快递代码','快递名称','运单号','实际交寄时间'],...rows.split('\n').map(row=>row.split('\t'))]);
   const preview=parseFulfillmentWorkbook(workbook);expect(preview.rowCount).toBe(2);
+  const pendingList=await service.managementList(actor,{state:'awaiting_dispatch',orderNumber:bulkA.number});
+  expect(pendingList).toMatchObject({totalCount:1,items:[{id:bulkA.id,orderNumber:bulkA.number,memberNickname:'Verified buyer'}]});
+  await expect(service.managementList(actor,{state:'awaiting_dispatch',orderNumber:bulkA.number,expectedCount:2},true))
+    .rejects.toMatchObject({code:'SHIPMENT_EXPORT_CHANGED'});
+  const compareReceipt=[order.number,'SF','顺丰速运','SF123456789001',input.shippedAt].join('\t');
+  const mixed=parseShipmentPaste([rows,compareReceipt,[held.number,'SF','顺丰','SF123456',bulkTime].join('\t'),
+    ['NOTFOUND12345','SF','顺丰','SF123456',bulkTime].join('\t')].join('\n'));
+  expect(await service.reviewImport(actor,mixed.rows)).toMatchObject([
+    {state:'ready',orderNumber:bulkA.number,expectedOrderVersion:bulkA.version,memberNickname:'Verified buyer'},
+    {state:'ready',orderNumber:bulkB.number,expectedOrderVersion:bulkB.version},
+    {state:'registered',orderNumber:order.number,logisticsMessageState:'registered'},
+    {state:'issue',orderNumber:held.number,code:'SHIPMENT_REFUND_REVIEW_REQUIRED'},
+    {state:'issue',orderId:null,code:'SHIPMENT_IMPORT_ORDER_NOT_FOUND'}
+  ]);
+  expect((await pool.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1',[bulkA.id])).rowCount).toBe(0);
+  const mismatch=parseShipmentPaste(compareReceipt.replace('SF123456789001','SF000000000000'));
+  expect(await service.reviewImport(actor,mismatch.rows)).toMatchObject([{state:'issue',code:'SHIPMENT_EXISTING_CONFLICT'}]);
+  expect(await service.managementList(actor,{state:'dispatched',orderNumber:order.number}))
+    .toMatchObject({totalCount:1,items:[{id:order.id,carrierName:input.carrierName,memberNickname:'Verified buyer'}]});
   const bulk=await service.importRows(actor,'import-success-0001',preview.rows);
   expect(bulk.results.map(r=>r.status)).toEqual(['accepted','accepted']);
   await pool.query('UPDATE commerce_order SET version=version+1 WHERE id=$1',[bulkA.id]); // Later independent order change.

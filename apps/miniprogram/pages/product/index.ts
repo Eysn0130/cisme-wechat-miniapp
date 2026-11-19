@@ -82,7 +82,14 @@ Page({
   increase(){const maximum=Math.min(99,this.data.draftSku?.availableQuantity??0);if(this.data.draftQuantity<maximum)this.setData({draftQuantity:this.data.draftQuantity+1});},
   confirmSku(){if(!this.data.draftSku?.active||!this.data.draftSku.inStock)return;this.setData({selectedSku:this.data.draftSku,quantity:this.data.draftQuantity,selected:true,sheetOpen:false});},
   buy(){if(this.data.selected)this.openCheckout();else this.openSku();},
-  openCheckout(){const sku=this.data.selectedSku;if(this.data.loading||this.data.navigating||!this.data.item?.catalogBound||!this.data.item.purchaseEnabled||!sku?.purchaseEnabled)return;if(!requireMemberAccess(`/pages/product/index?id=${encodeURIComponent(this.data.id)}`))return;this.setData({navigating:true});wx.navigateTo({url:`/pages/checkout/index?product=${encodeURIComponent(this.data.id)}&sku=${encodeURIComponent(sku.id)}&quantity=${this.data.quantity}${this.data.requestedCouponId?`&coupon=${encodeURIComponent(this.data.requestedCouponId)}`:""}`,fail:()=>{this.setData({navigating:false});wx.showToast({title:"结算页暂时无法打开",icon:"none"});}});},
+  openCheckout(){
+    const sku=this.data.selectedSku;
+    if(this.data.loading||this.data.navigating||!this.data.item?.catalogBound||!this.data.item.purchaseEnabled||!sku?.purchaseEnabled)return;
+    const url=`/pages/checkout/index?product=${encodeURIComponent(this.data.id)}&sku=${encodeURIComponent(sku.id)}&quantity=${this.data.quantity}${this.data.requestedCouponId?`&coupon=${encodeURIComponent(this.data.requestedCouponId)}`:""}`;
+    if(!requireMemberAccess(url))return;
+    this.setData({navigating:true});
+    wx.navigateTo({url,fail:()=>{this.setData({navigating:false});wx.showToast({title:"结算页暂时无法打开",icon:"none"});}});
+  },
   openSupport(){if(this.data.navigating||!requireMemberAccess("/pages/support/index"))return;this.setData({navigating:true});wx.navigateTo({url:"/pages/support/index",fail:()=>{this.setData({navigating:false});wx.showToast({title:"客服暂时无法打开",icon:"none"});}});},
   back(){if(!this.data.pageAlive||this.data.leaving)return;if(this.data.sheetOpen){this.closeSku();return;}this.setData({leaving:true});const failed=()=>{if(this.data.pageAlive)this.setData({leaving:false});wx.showToast({title:"暂时无法返回，请重试",icon:"none"});};wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/shop/index",fail:failed})});},
   onShareAppMessage(){const own=this.shareOwner===getApp<IAppOption>().globalData.sessionToken&&this.shareContext===commerceContextRevision();return {title:this.data.item?.name??"CISME 商城",path:`/pages/product/index?id=${encodeURIComponent(this.data.id)}${own&&this.data.shareId?`&share_id=${this.data.shareId}`:""}${own&&this.data.officerShareId?`&officer_share=${this.data.officerShareId}`:""}`};}

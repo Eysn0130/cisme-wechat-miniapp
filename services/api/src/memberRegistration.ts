@@ -1,3 +1,5 @@
+export const unconfiguredDisplayName = 'CISME 会员';
+
 /** A verified identity may resume profile setup without entering member
  * services. Legal information and personal data rights remain reachable. */
 export function pendingRegistrationRoute(method: string, path: string): boolean {
@@ -9,5 +11,5 @@ export function pendingRegistrationRoute(method: string, path: string): boolean 
 }
 
 export function registrationProfileComplete(name: string, avatar: string | null | undefined): boolean {
-  return Boolean(avatar && name.trim() && !['CISME 会员', '微信用户'].includes(name.trim()));
+  return Boolean(avatar && name.trim() && ![unconfiguredDisplayName, '微信用户'].includes(name.trim()));
 }

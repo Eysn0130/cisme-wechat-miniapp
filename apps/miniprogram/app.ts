@@ -6,7 +6,7 @@ import { acceptWechatReceiptReferrer } from "./services/wechat-receipt-return";
 import {flushOfficerVisits} from './services/officer-attribution';
 import { request } from "./services/api";
 import { confirmMemberEntry, memberEntryReady } from "./services/member-entry";
-import { hasCompleteLoginProfile, type SetupProfile } from "./services/member-setup";
+import { hasRegisteredAccount, type SetupProfile } from "./services/member-setup";
 
 function runtimeApiConfig(query: RemoteDebugQuery): { origin: string; remoteDebugMode: boolean; cloudFunction?: import("./release-config").CloudHttpTarget } {
   const { miniProgram } = wx.getAccountInfoSync();
@@ -60,7 +60,7 @@ App({
     void Promise.resolve().then(async () => {
       if (token !== this.globalData.sessionToken || memberEntryReady()) return;
       const member = await request<SetupProfile>({ path: "/v1/me", authMode: "optional" });
-      if (member?.id && hasCompleteLoginProfile(member)) confirmMemberEntry(token);
+      if (member?.id && hasRegisteredAccount(member)) confirmMemberEntry(token);
     }).catch(() => {});
   }
 });

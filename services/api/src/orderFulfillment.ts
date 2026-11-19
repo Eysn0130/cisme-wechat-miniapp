@@ -9,6 +9,8 @@ import { ShippingSyncService } from './shippingSync.js';
 import type { WechatLogisticsClient, LogisticsBinding } from './wechatLogistics.js';
 import { validateShippingBinding } from './wechatOrderShipping.js';
 import { receiptView } from './wechatReceipt.js';
+import { managementDates } from './managementDates.js';
+import type { ShipmentImportRow } from './fulfillmentImport.js';
 
 type Dispatch = { carrierCode: string; carrierName: string; trackingNumber: string;
   shippedAt: string; evidenceReference: string; expectedOrderVersion: number };
@@ -18,6 +20,11 @@ type Shipment = { id: string; order_id: string; shipping_sync_id: string; carrie
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const key=/^[A-Za-z0-9._:-]{8,100}$/;
 const digest=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const refundHold=`EXISTS(SELECT 1 FROM commission_refund_intent i WHERE i.order_id=o.id AND i.state<>'closed')
+  OR EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
+    WHERE r.order_id=o.id AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed'))))`;
+const aftersaleHold=`EXISTS(SELECT 1 FROM commerce_aftersale_case c WHERE c.order_id=o.id AND c.state NOT IN ('cancelled','rejected'))`;
+const cardNumber=`'No. '||lpad(n.number::text,GREATEST(5,length(n.number::text)),'0')`;
 function fail(code:string,status=409):never{throw new DomainError(code,'履约信息或状态需要核对，请刷新原订单后重试',status);}
 function dispatchInput(raw: Record<string,unknown>): Dispatch {
   const allowed=['carrierCode','carrierName','trackingNumber','shippedAt','evidenceReference','expectedOrderVersion'];
@@ -84,10 +91,7 @@ export class OrderFulfillmentService {
       if(order.version!==input.expectedOrderVersion)fail('VERSION_CONFLICT');
       // Refund commands lock this same order row. R0 cannot safely dispatch a
       // partly refunded or unresolved order; operator review must settle it first.
-      const hold=(await client.query(`SELECT
-        EXISTS(SELECT 1 FROM commission_refund_intent WHERE order_id=$1 AND state<>'closed') OR
-        EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-          WHERE r.order_id=$1 AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed')))) AS blocked`,[orderId])).rows[0].blocked;
+      const hold=(await client.query(`SELECT (${refundHold}) AS blocked FROM commerce_order o WHERE o.id=$1`,[orderId])).rows[0].blocked;
       if(hold)fail('SHIPMENT_REFUND_REVIEW_REQUIRED');
       if((await client.query("SELECT 1 FROM commerce_aftersale_case WHERE order_id=$1 AND state NOT IN ('cancelled','rejected')",[orderId])).rowCount)
         fail('SHIPMENT_AFTERSALE_REVIEW_REQUIRED');
@@ -185,42 +189,54 @@ export class OrderFulfillmentService {
   }
   async managementList(actor:string|undefined,raw:Record<string,unknown>,exportPersonal=false){
     this.gate();
-    const allowed=['state','orderNumber','limit','before'];
+    const allowed=['state','orderNumber','limit','before','from','through'];
+    if(exportPersonal)allowed.push('expectedCount');
     if(Object.keys(raw).some(k=>!allowed.includes(k)))fail('SHIPMENT_FILTER_INVALID',422);
     const state=raw.state??'awaiting_dispatch',number=raw.orderNumber??'',limit=Number(raw.limit??50),before=raw.before??null;
-    if(!['awaiting_dispatch','shipped','delivered','exception','all'].includes(String(state))
+    if(!['awaiting_dispatch','dispatched','shipped','delivered','exception','all'].includes(String(state))
       ||typeof number!=='string'||number&&!/^[A-Za-z0-9_*-]{1,32}$/.test(number)
       ||!Number.isSafeInteger(limit)||limit<1||limit>(exportPersonal?500:100)
       ||before!==null&&(typeof before!=='string'||!uuid.test(before)))fail('SHIPMENT_FILTER_INVALID',422);
+    const dates=managementDates(raw);
+    const expectedCount=raw.expectedCount===undefined?null:Number(raw.expectedCount);
+    if(expectedCount!==null&&(!Number.isSafeInteger(expectedCount)||expectedCount<1||expectedCount>limit))fail('SHIPMENT_FILTER_INVALID',422);
+    const listAt=state==='dispatched'?'s.shipped_at':'o.paid_at';
+    const cursorAt=state==='dispatched'?'cursor_shipment.shipped_at':'cursor_order.paid_at';
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
       const rows=(await client.query(`SELECT o.id,o.order_number,o.member_id,o.version,o.paid_at,
         s.id AS shipment_id,s.shipping_sync_id,s.shipped_at,s.logistics_state,s.carrier_name,s.receipt_confirmed_at,
-        w.platform_order_state,w.in_complaint,w.observed_at,
+        w.platform_order_state,w.in_complaint,w.observed_at,j.state AS sync_state,
+        m.display_name,${cardNumber} AS card_number,count(*) OVER()::int AS total_count,
         a.encrypted_payload,a.payload_hmac,a.key_version,
         (SELECT string_agg(l.product_name || ' × ' || l.quantity,'；' ORDER BY l.line_number) FROM commerce_order_line l WHERE l.order_id=o.id) AS items
         FROM commerce_order o LEFT JOIN commerce_shipment s ON s.order_id=o.id
+        LEFT JOIN commerce_shipping_sync j ON j.id=s.shipping_sync_id
         LEFT JOIN commerce_wechat_receipt_observation w ON w.order_id=o.id
         LEFT JOIN commerce_order_address a ON a.order_id=o.id
+        LEFT JOIN member m ON m.id=o.member_id AND m.status='active'
+        LEFT JOIN member_card_number n ON n.member_id=m.id
         WHERE o.status='paid' AND o.transaction_source_kind='verified_commerce'
         -- A payment remains a paid fact after its refund. Only actionable
         -- unshipped orders belong in picking lists; shipped history stays visible.
-        AND (s.id IS NOT NULL OR (
-          NOT EXISTS(SELECT 1 FROM commission_refund_intent i WHERE i.order_id=o.id AND i.state<>'closed')
-          AND NOT EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-            WHERE r.order_id=o.id AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed'))))
-          AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case c WHERE c.order_id=o.id AND c.state NOT IN ('cancelled','rejected'))
-        ))
-        AND ($1='all' OR ($1='awaiting_dispatch' AND s.id IS NULL) OR s.logistics_state=$1)
-        AND ($2='' OR o.order_number=$2) AND ($3::uuid IS NULL OR o.id<$3::uuid)
-        ORDER BY o.id DESC LIMIT $4`,[state,number,before,limit+1])).rows;
+        AND (s.id IS NOT NULL OR NOT ((${refundHold}) OR ${aftersaleHold}))
+        AND ($1='all' OR ($1='awaiting_dispatch' AND s.id IS NULL) OR ($1='dispatched' AND s.id IS NOT NULL) OR s.logistics_state=$1)
+        AND ($2='' OR o.order_number=$2)
+        AND ($3::uuid IS NULL OR (${listAt},o.id)<(SELECT ${cursorAt},cursor_order.id FROM commerce_order cursor_order
+          LEFT JOIN commerce_shipment cursor_shipment ON cursor_shipment.order_id=cursor_order.id WHERE cursor_order.id=$3))
+        AND ($5::date IS NULL OR ${listAt}>=($5::date::timestamp AT TIME ZONE 'Asia/Shanghai'))
+        AND ($6::date IS NULL OR ${listAt}<(($6::date+1)::timestamp AT TIME ZONE 'Asia/Shanghai'))
+        ORDER BY ${listAt} DESC,o.id DESC LIMIT $4`,[state,number,before,limit+1,dates.from,dates.through])).rows;
       const hasMore=rows.length>limit,selected=rows.slice(0,limit);
       if(exportPersonal&&hasMore)fail('SHIPMENT_EXPORT_TOO_LARGE',422);
+      if(expectedCount!==null&&selected.length!==expectedCount)fail('SHIPMENT_EXPORT_CHANGED');
       const items=selected.map(r=>({id:r.id,orderNumber:r.order_number,version:r.version,paidAt:r.paid_at.toISOString(),
-        items:r.items,logisticsState:r.logistics_state??'awaiting_dispatch',carrierName:r.carrier_name,
+        memberNickname:r.display_name,memberCardNumber:r.card_number,items:r.items,
+        logisticsState:r.logistics_state??'awaiting_dispatch',carrierName:r.carrier_name,
+        shippedAt:r.shipped_at?.toISOString()??null,wechatSyncState:r.sync_state,
         receiptConfirmedAt:r.receipt_confirmed_at?.toISOString()??null,
         wechatReceipt:r.observed_at?receiptView(r.platform_order_state,r.in_complaint,r.observed_at):null}));
-      if(!exportPersonal)return {items,nextCursor:hasMore?selected.at(-1)!.id:null};
+      if(!exportPersonal)return {items,totalCount:rows[0]?.total_count??0,nextCursor:hasMore?selected.at(-1)!.id:null};
       const cells=[['订单号','订单ID','订单版本','支付时间','商品','物流状态','收件人','手机号','省','市','区县','详细地址','快递代码','快递名称','运单号','实际交寄时间']];
       for(const r of selected){
         if(!r.encrypted_payload)fail('SHIPMENT_ADDRESS_REQUIRED');
@@ -232,8 +248,64 @@ export class OrderFulfillmentService {
       await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
         VALUES($1,'commerce.shipment.export','fulfillment_export',gen_random_uuid(),$2,$3)`,
-        [`member:${actor}`,{filters:{state,orderNumber:number,limit,before},count:selected.length,format:'xlsx',sha256:createHash('sha256').update(workbook).digest('hex')},`shipment-export:${actor}`]);
+        [`member:${actor}`,{filters:{state,orderNumber:number,limit,before,...dates},count:selected.length,format:'xlsx',sha256:createHash('sha256').update(workbook).digest('hex')},`shipment-export:${actor}`]);
       return {workbook}; // Memory only; response is sent only after audit COMMIT.
+    });
+  }
+  async reviewImport(actor:string|undefined,rows:ShipmentImportRow[]){
+    this.gate();
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
+      const orders=(await client.query(`SELECT o.id,o.order_number,o.status,o.transaction_source_kind,o.version,o.paid_at,
+        m.display_name,${cardNumber} AS card_number,s.id AS shipment_id,s.shipped_at,j.id AS sync_id,j.state AS sync_state,
+        (SELECT response_body->>'state' FROM idempotency_operation i WHERE i.operation='commerce.logistics.message'
+          AND i.principal_id='member:'||o.member_id::text AND i.idempotency_key=s.id::text AND i.business_key=o.id::text) AS message_state,
+        (${refundHold}) AS refund_hold,${aftersaleHold} AS aftersale_hold,
+        (EXISTS(SELECT 1 FROM commerce_refund_request r WHERE r.order_id=o.id AND r.state IN ('requested','approved'))
+          OR EXISTS(SELECT 1 FROM commission_payment_composition_observation c WHERE c.order_id=o.id)) AS financial_hold,
+        EXISTS(SELECT 1 FROM commerce_order_address a WHERE a.order_id=o.id) AS has_address,
+        EXISTS(SELECT 1 FROM commerce_order_line l WHERE l.order_id=o.id) AS has_lines
+        FROM commerce_order o LEFT JOIN commerce_shipment s ON s.order_id=o.id
+        LEFT JOIN commerce_shipping_sync j ON j.order_id=o.id
+        LEFT JOIN member m ON m.id=o.member_id AND m.status='active'
+        LEFT JOIN member_card_number n ON n.member_id=m.id
+        WHERE o.order_number=ANY($1::text[])`,[rows.filter(row=>row.orderNumber).map(row=>row.orderNumber)])).rows;
+      const byNumber=new Map(orders.map(order=>[order.order_number,order]));
+      const now=(await client.query('SELECT clock_timestamp() AS now')).rows[0].now.getTime();
+      const bindingErrors=await this.sync.invalidDispatchBindingsWithClient(client,orders.filter(order=>!order.sync_id&&order.status==='paid'
+        &&order.transaction_source_kind==='verified_commerce').map(order=>({id:order.id,orderNumber:order.order_number})));
+      const entries=[];
+      for(const row of rows){
+        const order=byNumber.get(row.orderNumber);
+        const match={line:row.line,orderNumber:row.orderNumber,parcel:row.parcel,orderId:order?.id??null,
+          memberNickname:order?.display_name??null,memberCardNumber:order?.card_number??null};
+        const rejected=(code:string,detail?:string)=>({...match,state:'issue',code,detail});
+        if(row.issue){entries.push(rejected(row.issue.code,row.issue.detail));continue;}
+        if(!order){entries.push(rejected('SHIPMENT_IMPORT_ORDER_NOT_FOUND'));continue;}
+        const parcel=row.parcel!;
+        if(order.shipment_id){
+          try{
+            const recorded=await this.sync.parcelWithClient(client,order.sync_id);
+            if(recorded.carrierCode===parcel.carrierCode&&recorded.trackingNumber===parcel.trackingNumber&&order.shipped_at.toISOString()===parcel.shippedAt){
+              entries.push({...match,state:'registered',wechatSyncState:order.sync_state,logisticsMessageState:order.message_state});
+            }else entries.push(rejected('SHIPMENT_EXISTING_CONFLICT'));
+          }catch(error){if(!(error instanceof DomainError))throw error;entries.push(rejected('ORDER_ALREADY_SHIPPED'));}
+          continue;
+        }
+        const time=Date.parse(parcel.shippedAt);
+        const code=order.status!=='paid'||order.transaction_source_kind!=='verified_commerce'?'SHIPMENT_PAID_ORDER_REQUIRED'
+          :order.refund_hold?'SHIPMENT_REFUND_REVIEW_REQUIRED'
+          :order.aftersale_hold?'SHIPMENT_AFTERSALE_REVIEW_REQUIRED'
+          :!order.has_address?'SHIPMENT_ADDRESS_REQUIRED'
+          :!order.has_lines?'SHIPMENT_LINES_REQUIRED'
+          :order.sync_id?'SHIPPING_PROPOSAL_CONFLICT'
+          :!order.paid_at||time<order.paid_at.getTime()||time>now?'SHIPMENT_TIME_INVALID'
+          :order.financial_hold?'SHIPPING_FINANCIAL_REVIEW_REQUIRED':bindingErrors.get(order.id);
+        if(code){entries.push(rejected(code));continue;}
+        entries.push({...match,state:'ready',expectedOrderVersion:order.version});
+      }
+      await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
+      return entries;
     });
   }
   async importRows(actor:string|undefined,batchKey:string,raw:unknown){

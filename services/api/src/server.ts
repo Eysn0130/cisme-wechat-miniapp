@@ -27,7 +27,7 @@ import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import {catalogPublicImageByName} from './catalogPublicMedia.js';
 import type {LogisticsQueryChannel} from './wechatLogisticsQuery.js';
-import {parseFulfillmentWorkbook} from './fulfillmentImport.js';
+import {parseFulfillmentWorkbook,parseShipmentPaste} from './fulfillmentImport.js';
 import rateLimit from "@fastify/rate-limit";
 import type pg from "pg";
 import { loadConfig, migrationReadOnly, type AppConfig } from "@cisme/config";
@@ -570,7 +570,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
 
   app.post("/v1/identity/wechat", async (request) => {
     if (!config.wechat.appId || !config.wechat.appSecret) throw new DomainError("WECHAT_NOT_CONFIGURED", "WeChat credentials are not configured", 503);
-    const body = (request.body ?? {}) as { code: unknown; displayName: string; consents: Array<{ documentType: string; version: string }> };
+    const body = (request.body ?? {}) as { code: unknown; displayName: string; consents: Array<{ documentType: string; version: string }>; completeAccount?: unknown };
+    if(body.completeAccount!==undefined&&body.completeAccount!==true)
+      throw new DomainError("IDENTITY_REGISTRATION_INVALID","请重新确认微信登录",422);
     const session = await exchangeWechatIdentity(config.wechat.appId,config.wechat.appSecret,body.code,
       config.env==='test'?dependencies.wechatIdentityFetcher:undefined);
     const now = service.now();
@@ -581,7 +583,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       ...(session.unionid ? { unionid: session.unionid } : {}),
       displayName: body.displayName,
       adapter: "wechat",
-      consents: body.consents
+      consents: body.consents,
+      completeAccount: body.completeAccount===true
     }, now);
     return { ...result, phoneBindingEnabled: phone.enabled(), sessionToken: issueSessionToken({ principalId: result.principalId, memberId: result.memberId, adapter: "wechat", provider: "wechat_miniprogram", appId: config.wechat.appId }, config.sessionSecret) };
   });
@@ -1009,14 +1012,20 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.post<{Body:{rows:unknown}}>("/v1/management/shipments/import",async request=>
     shipmentRequired().importRows(request.memberId,idempotencyKey(request),request.body?.rows));
-  app.post<{Body:{filename?:unknown;contentBase64?:unknown}}>("/v1/management/shipments/import-xlsx/preview",{bodyLimit:2_900_000},async request=>{
+  app.post<{Body:{filename?:unknown;contentBase64?:unknown;review?:unknown;rows?:unknown}}>("/v1/management/shipments/import-xlsx/preview",{bodyLimit:2_900_000},async(request,reply)=>{
     await authority.require(request.memberId,'commerce.fulfillment.manage');
-    shipmentRequired();
+    const shipments=shipmentRequired();
+    reply.header('Cache-Control','no-store, private');
     const input=request.body;
-    if(!input||Object.keys(input).some(k=>!['filename','contentBase64'].includes(k))||typeof input.filename!=='string'||input.filename.length>160||!input.filename.toLowerCase().endsWith('.xlsx')||typeof input.contentBase64!=='string'||input.contentBase64.length>2_800_000||!/^[A-Za-z0-9+/]+={0,2}$/.test(input.contentBase64))throw new DomainError('SHIPMENT_XLSX_INPUT','请选择2MB以内的XLSX文件',422);
+    if(input&&Object.keys(input).length===1&&Object.hasOwn(input,'rows')){
+      const paste=parseShipmentPaste(input.rows);
+      return {rowCount:paste.rows.length,skippedRows:paste.skippedRows,entries:await shipments.reviewImport(request.memberId,paste.rows)};
+    }
+    if(!input||Object.keys(input).some(k=>!['filename','contentBase64','review'].includes(k))||input.review!==undefined&&input.review!==true||typeof input.filename!=='string'||input.filename.length>160||!input.filename.toLowerCase().endsWith('.xlsx')||typeof input.contentBase64!=='string'||input.contentBase64.length>2_800_000||!/^[A-Za-z0-9+/]+={0,2}$/.test(input.contentBase64))throw new DomainError('SHIPMENT_XLSX_INPUT','请选择2MB以内的XLSX文件',422);
     const bytes=Buffer.from(input.contentBase64,'base64');
     if(bytes.toString('base64')!==input.contentBase64)throw new DomainError('SHIPMENT_XLSX_INPUT','表格数据不完整，请重新选择',422);
-    const preview=parseFulfillmentWorkbook(bytes);
+    const {candidates,...preview}=parseFulfillmentWorkbook(bytes,'commerce',input.review===true);
+    if(candidates)return {rowCount:preview.rowCount,skippedRows:preview.skippedRows,entries:await shipments.reviewImport(request.memberId,candidates)};
     await authority.require(request.memberId,'commerce.fulfillment.manage');
     return preview;
   });

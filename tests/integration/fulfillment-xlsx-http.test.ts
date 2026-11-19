@@ -24,6 +24,15 @@ it('previews only logistics columns and creates no shipment, import plan or uplo
   expect((await pool.query('SELECT count(*)::int AS n FROM commerce_shipment')).rows[0].n).toBe(before);
   expect((await pool.query("SELECT count(*)::int AS n FROM idempotency_operation WHERE operation='commerce.shipment.import_plan'")).rows[0].n).toBe(0);
 });
+it('returns the worksheet line and a scoped rejection without exposing address columns',async()=>{
+  const response=await preview(admin.sessionToken,{filename:'发货回填.xlsx',contentBase64:fixture.toString('base64'),review:true});
+  expect(response.statusCode,response.body).toBe(200);
+  expect(String(response.headers['cache-control']).split(',').map(directive=>directive.trim())).toEqual(expect.arrayContaining(['no-store','private']));
+  expect(response.json()).toMatchObject({rowCount:1,skippedRows:1,entries:[{line:2,orderNumber:'CMTEST202611100001',
+    orderId:null,state:'issue',code:'SHIPMENT_IMPORT_ORDER_NOT_FOUND',parcel:{trackingNumber:'001234567890123456789012'}}]});
+  expect(response.body).not.toContain('13800000000');
+  expect(response.body).not.toContain('合成地址');
+});
 it('rejects non-XLSX, formula workbooks and access revoked before a retry',async()=>{
   expect((await preview(admin.sessionToken,{filename:'bad.xlsm',contentBase64:fixture.toString('base64')})).statusCode).toBe(422);
   const formula=readFileSync(new URL('../fixtures/commerce-fulfillment/formula-rejected.xlsx',import.meta.url));

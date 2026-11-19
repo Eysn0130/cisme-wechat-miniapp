@@ -209,7 +209,7 @@ Page({
     const current = () => this.isCurrentLoad(loadAttempt, token) && this.data.dailyAttempt === dailyAttempt && commerceContextRevision() === revision;
     this.setData({ dailyLoading: true, dailyError: "" }); this.syncDailyHomeView();
     try {
-      const result = await readDailyCareRecords(this);
+      const result = await readDailyCareRecords(this,null,"optional");
       if (!current()) return null;
       this.setData({ dailyReady: true, dailyLoading: false, serverDay: result.serverDay, dailyToday: result.today }); this.syncDailyHomeView();
       return result;
@@ -239,7 +239,10 @@ Page({
     if (identity) this.setData({ view: homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
     this.syncDailyHomeView();
     this.startDaypartClock();
-    void Promise.resolve(this.load(retainMemberSnapshot(this))).then(ready=>{if(pendingRewardInvitationToken()&&(!getApp<IAppOption>().globalData.sessionToken||ready&&!this.data.onboardingRequired))void this.resumeOnboardingDestination();});
+    void Promise.resolve(this.load(retainMemberSnapshot(this))).then(ready=>{
+      const token=getApp<IAppOption>().globalData.sessionToken;
+      if(pendingRewardInvitationToken()&&(token?ready&&!this.data.onboardingRequired:!!this.data.giftInvite))void this.resumeOnboardingDestination();
+    });
   },
   onHide() {
     cancelPageReads(this);
@@ -274,10 +277,14 @@ Page({
   isCurrentLoad(attempt: number, token: string): boolean {
     return this.data.pageAlive && this.data.loadAttempt === attempt && this.data.loadContextRevision === commerceContextRevision() && getApp<IAppOption>().globalData.sessionToken === token;
   },
-  restoreGuestIfExpired(attempt: number) {
-    if (!this.data.pageAlive || this.data.loadAttempt !== attempt || getApp<IAppOption>().globalData.sessionToken) return;
+  restoreGuestIfExpired(attempt: number, pendingRegistration=false) {
+    if (!this.data.pageAlive || this.data.loadAttempt !== attempt || !pendingRegistration&&getApp<IAppOption>().globalData.sessionToken) return;
+    cancelPageReads(this);
     homeMemberNames.delete(this);homeGiftOwners.delete(this);this.setData({giftOpen:false,giftVoucher:null,giftLoading:false});
-    this.setData({ care: null, snapshotVersion: 0, supportUnread: null, supportState: "unknown", view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "",onboardingRequired:false,onboardingOpen:false });
+    this.setData({ care: null, snapshotVersion: 0, memberId:"", supportUnread: null, supportState: "unknown",
+      usageReady:false,usageLoading:false,usageToday:null,usageStreak:0,usageRewards:null,usageDay:"",
+      dailyReady:false,dailyLoading:false,dailyToday:null,serverDay:"",
+      view: visitorView(this.data.selectedProtocolIndex), loading: false, authorityAvailable: false, needsAuthentication: true, error: "",onboardingRequired:false,onboardingOpen:false });
     this.syncCenteredHome();
     this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
   },
@@ -328,9 +335,7 @@ Page({
       if (!Number.isSafeInteger(snapshot.businessVersion) || snapshot.businessVersion < 0 || !snapshot.member?.id
         || (snapshot.care && (!snapshot.care.id || !Number.isSafeInteger(snapshot.care.version)))) throw new Error("INVALID_CARE_SNAPSHOT");
       if(needsLoginProfile(snapshot.member)){
-        cancelPageReads(this);this.setData({loading:false,authorityAvailable:false,onboardingRequired:false,onboardingOpen:false});
-        this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
-        resumeAuthentication('/pages/home/index');return false;
+        this.restoreGuestIfExpired(attempt,true);return false;
       }
       if (snapshot.care && snapshot.care.id === this.data.care?.id && snapshot.businessVersion < this.data.snapshotVersion) return this.data.authorityAvailable;
       const processingStarted = measurementClock();
@@ -372,8 +377,9 @@ Page({
         if (!this.data.working) this.resetCareSession();
       }
       return true;
-    } catch {
-      if (this.isCurrentLoad(attempt, token)) this.setData({ care: null, view: homeView(null, homeDisplayName(this)), authorityAvailable: false, needsAuthentication: false, error: "护理状态暂时无法加载，请检查网络后重试。" });
+    } catch(error) {
+      if(this.isCurrentLoad(attempt,token)&&(error as {code?:string}).code==="MEMBER_REGISTRATION_REQUIRED")this.restoreGuestIfExpired(attempt,true);
+      else if (this.isCurrentLoad(attempt, token)) this.setData({ care: null, view: homeView(null, homeDisplayName(this)), authorityAvailable: false, needsAuthentication: false, error: "护理状态暂时无法加载，请检查网络后重试。" });
       else this.restoreGuestIfExpired(attempt);
       return false;
     } finally { if (this.isCurrentLoad(attempt, token)) this.setData({ loading: false }); }
@@ -396,7 +402,6 @@ Page({
     if (destination !== 'shop' && destination !== 'essence') return;
     const product = destination === 'essence' && event.detail.productCode === campaignEssenceCode;
     const url = product ? `/pages/product/index?id=${encodeURIComponent(campaignEssenceCode)}` : '/pages/shop/index';
-    if (!requireMemberAccess(url)) return;
     this.setData({ accountOpening: true });
     const fail = () => { if (this.data.pageAlive) this.setData({ accountOpening: false }); wx.showToast({ title: '暂时无法打开，请重试', icon: 'none' }); };
     if (product) wx.navigateTo({ url, fail }); else wx.switchTab({ url, fail });

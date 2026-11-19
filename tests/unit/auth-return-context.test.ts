@@ -5,7 +5,7 @@ vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''
 vi.mock('../../apps/miniprogram/services/member-avatar',()=>({defaultMemberAvatar:'local-avatar',clearMemberAvatarCache:vi.fn(),localMemberAvatar:async()=> 'local-avatar',prepareAvatarUpload:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/share',()=>({prepareShareDetails:async()=>null,attributePendingShare:vi.fn()}));
 vi.mock('../../apps/miniprogram/release-config',()=>({legalDocumentVersions:()=>({terms:'current-terms',privacy:'current-privacy',localFixture:false}),shouldUseDevelopmentIdentity:()=>false}));
-let storage:Map<string,unknown>,runtime:any,page:any,definition:any,pages:any[],wxMock:any,requests:any[],holdIdentity:boolean,heldIdentity:any,newMember:boolean,expireMe:boolean,meFailure:""|"network"|"unavailable",holdMe:boolean,heldMe:(()=>void)|null;
+let storage:Map<string,unknown>,runtime:any,page:any,definition:any,pages:any[],wxMock:any,requests:any[],holdIdentity:boolean,heldIdentity:any,newMember:boolean,bareAccount:boolean,expireMe:boolean,meFailure:""|"network"|"unavailable",holdMe:boolean,heldMe:(()=>void)|null;
 const home='/pages/home/index',old='/pages/management-fulfillment/index';
 const article='/pages/post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&source=editorial';
 function flowQuery(url:string){return Object.fromEntries(new URL('https://synthetic.invalid'+url).searchParams);}
@@ -14,6 +14,10 @@ function response(options:any){const path=new URL(options.url).pathname;
  if(path==='/v1/me'&&meFailure==='network'){options.fail({errMsg:'request:fail network unavailable'});return;}
  if(path==='/v1/me'&&meFailure==='unavailable'){options.success({statusCode:503,data:{code:'SERVICE_UNAVAILABLE'}});return;}
  if(path==='/v1/me'&&expireMe){options.success({statusCode:401,data:{code:'AUTH_EXPIRED'}});return;}
+ if(bareAccount&&['/v1/me','/v1/me/profile'].includes(path)){
+   options.success({statusCode:200,data:{id:'synthetic-member',display_name:'CISME 会员',profile_revision:0,avatar_data_url:null,
+     completed_at:null,registration_completed_at:'2026-11-18T00:00:00Z'}});return;
+ }
  const data=path==='/v1/me/profile'?{id:'synthetic-member',display_name:'已确认昵称',profile_revision:1,avatar_data_url:'saved-avatar'}:path==='/v1/me/phone'?{bound:true,enabled:false,masked:'***0001'}:path==='/v1/me'?{id:'synthetic-member',display_name:'已确认昵称',profile_revision:1,avatar_data_url:'saved-avatar',registration_completed_at:'2026-11-17T00:00:00Z'}:path==='/v1/identity/wechat'?{sessionToken:'synthetic-new-session',onboardingRequired:newMember}:path==='/v1/me/legal-acceptances'?{accepted:true,documents:options.data.consents}:path==='/v1/identity/capabilities'?{phoneBindingEnabled:false}:{};
  if(path==='/v1/identity/wechat'&&holdIdentity){heldIdentity=()=>options.success({statusCode:200,data});return;}
  options.success({statusCode:200,data});
@@ -21,7 +25,7 @@ function response(options:any){const path=new URL(options.url).pathname;
 async function mount(query:Record<string,string>={intent:'login'}){await import('../../apps/miniprogram/pages/account/index');page={...definition,data:structuredClone(definition.data),setData(values:any,callback?:()=>void){Object.assign(this.data,values);callback?.();}};page.onLoad(query);Object.assign(page.data,{legalLoading:false,legalTextsReady:true,agreementAccepted:true});return page;}
 async function start(source:string,intent:'login'|'renew'='login') {const api=await import('../../apps/miniprogram/services/api');if(intent==='renew')api.beginLegalRenewal(source);else api.beginAuthentication(source);return {api,query:flowQuery(wxMock.navigateTo.mock.calls.at(-1)[0].url)};}
 function paths(){return requests.map(x=>new URL(x.url).pathname);}
-beforeEach(()=>{vi.resetModules();vi.clearAllMocks();storage=new Map();runtime={globalData:{sessionToken:'',privacyRightsToken:'',sessionStorageKey:'synthetic.session',apiBaseUrl:'https://synthetic.invalid'}};pages=[{route:'pages/account/index',options:{intent:'login'}}];requests=[];holdIdentity=false;heldIdentity=null;newMember=false;expireMe=false;meFailure="";holdMe=false;heldMe=null;
+beforeEach(()=>{vi.resetModules();vi.clearAllMocks();storage=new Map();runtime={globalData:{sessionToken:'',privacyRightsToken:'',sessionStorageKey:'synthetic.session',apiBaseUrl:'https://synthetic.invalid'}};pages=[{route:'pages/account/index',options:{intent:'login'}}];requests=[];holdIdentity=false;heldIdentity=null;newMember=false;bareAccount=false;expireMe=false;meFailure="";holdMe=false;heldMe=null;
  (globalThis as any).getApp=()=>runtime;(globalThis as any).getCurrentPages=()=>pages;
  (globalThis as any).Page=(value:any)=>{definition=value;};
  wxMock={getAccountInfoSync:()=>({miniProgram:{envVersion:'trial'}}),getDeviceInfo:()=>({platform:'ios'}),getStorageSync:(key:string)=>storage.get(key)||'',getStorageInfoSync:()=>({keys:[...storage.keys()]}),setStorageSync:vi.fn((key:string,value:unknown)=>storage.set(key,value)),removeStorageSync:vi.fn((key:string)=>storage.delete(key)),login:vi.fn(async()=>({code:'synthetic-login-code'})),navigateTo:vi.fn(),reLaunch:vi.fn(),switchTab:vi.fn((o:any)=>o.success?.()),navigateBack:vi.fn((o:any)=>o.success?.()),redirectTo:vi.fn((o:any)=>o.success?.()),showModal:vi.fn(async()=>({confirm:true})),showToast:vi.fn(),pageScrollTo:vi.fn(),enableAlertBeforeUnload:vi.fn(),disableAlertBeforeUnload:vi.fn(),request:vi.fn((o:any)=>{requests.push(o);queueMicrotask(()=>response(o));return {abort:vi.fn()};})};(globalThis as any).wx=wxMock;
@@ -30,9 +34,9 @@ describe('Account return destinations belong to one live authentication flow',()
  it('allows every public read after the explicit guest choice and keeps member targets authenticated',async()=>{
   await mount();await page.browseCommunity();expect(storage.get('cisme.guestBrowsing')).toBe(true);
   const api=await import('../../apps/miniprogram/services/api');wxMock.navigateTo.mockClear();
-  for(const url of ['/pages/community/index',article,'/pages/post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&source=formal','/pages/community-post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','/pages/legal/index?type=privacy','/pages/privacy-rights/index','/pages/community-author/index?id=someone'])expect(api.requireGuestCommunityAccess(url)).toBe(true);
+  for(const url of ['/pages/home/index','/pages/shop/index','/pages/product/index?id=serum','/pages/community/index',article,'/pages/post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&source=formal','/pages/community-post/index?id=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','/pages/legal/index?type=privacy','/pages/privacy-rights/index','/pages/community-author/index?id=someone'])expect(api.requireGuestCommunityAccess(url)).toBe(true);
   expect(wxMock.navigateTo).not.toHaveBeenCalled();
-  for(const target of ['/pages/home/index','/pages/shop/index','/pages/product/index?id=serum','/pages/profile/index','/pages/settings/index','/pages/records/index','/pages/checkout/index?id=serum']){
+  for(const target of ['/pages/profile/index','/pages/settings/index','/pages/records/index','/pages/checkout/index?id=serum']){
    api.cancelAuthentication();wxMock.navigateTo.mockClear();expect(api.requireGuestCommunityAccess(target)).toBe(false);expect(wxMock.navigateTo).toHaveBeenCalledOnce();
    const query=flowQuery(wxMock.navigateTo.mock.calls[0][0].url);await mount(query);expect(page.authenticationReturnUrl).toBe(target);
   }
@@ -73,11 +77,33 @@ describe('Account return destinations belong to one live authentication flow',()
   expect(wxMock.switchTab).toHaveBeenLastCalledWith(expect.objectContaining({url:home}));expect(runtime.globalData.onboardingReturnUrl).toBe(article);
   expect(runtime.globalData.onboardingReturnToken).toBe('synthetic-new-session');expect(storage.has('cisme.guestBrowsing')).toBe(false);
  });
- it.each([0,1])('requires login for protected guest tab %s',async(index)=>{
+ it.each([{index:0,path:home},{index:1,path:'/pages/shop/index'}])('opens public guest tab $path without login',async({index,path})=>{
   storage.set('cisme.guestBrowsing',true);pages=[{route:'pages/community/index',data:{}}];let component:any;
   vi.stubGlobal('Component',(value:any)=>{component=value;});await import('../../apps/miniprogram/custom-tab-bar/index');
   const bar={...component.methods,data:{...structuredClone(component.data),active:2},setData(v:any){Object.assign(this.data,v);},leaveCommunityFab:vi.fn(),enterCommunityFab:vi.fn()};
-  bar.switchTab({currentTarget:{dataset:{index}}});expect(wxMock.navigateTo).toHaveBeenCalledOnce();expect(wxMock.switchTab).not.toHaveBeenCalled();
+  bar.switchTab({currentTarget:{dataset:{index}}});expect(wxMock.navigateTo).not.toHaveBeenCalled();expect(wxMock.switchTab).toHaveBeenCalledWith(expect.objectContaining({url:path}));
+ });
+ it('returns to the live product and selection on cancellation without exchanging identity',async()=>{
+  const target='/pages/checkout/index?product=serum&sku=synthetic-280&quantity=2';
+  const {query}=await start(target);
+  const product={route:'pages/product/index',data:{selectedSku:'synthetic-280',quantity:2}};
+  pages=[product,{route:'pages/account/index',options:query}];
+  await mount(query);await page.browseCommunity();
+  expect(page.data.checkoutLogin).toBe(true);expect(wxMock.navigateBack).toHaveBeenCalledWith(expect.objectContaining({delta:1}));
+  expect(wxMock.switchTab).not.toHaveBeenCalled();expect(product.data.quantity).toBe(2);expect(wxMock.login).not.toHaveBeenCalled();
+ });
+ it('continues the exact checkout after explicit WeChat login without avatar, nickname or care questionnaire',async()=>{
+  newMember=true;bareAccount=true;
+  const target='/pages/checkout/index?product=serum&sku=synthetic-280&quantity=2&coupon=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const {query}=await start(target);
+  pages=[{route:'pages/product/index'},{route:'pages/account/index',options:query}];
+  await mount(query);await page.login();
+  const exchange=requests.find(option=>new URL(option.url).pathname==='/v1/identity/wechat');
+  expect(exchange.data).toMatchObject({completeAccount:true,code:'synthetic-login-code'});
+  for(const field of ['avatarDataUrl','nickname','phone'])expect(exchange.data).not.toHaveProperty(field);
+  expect(page.data.loginStage).toBe('login');expect(runtime.globalData.onboardingReturnUrl).toBeUndefined();
+  expect(wxMock.redirectTo).toHaveBeenCalledWith(expect.objectContaining({url:target}));expect(wxMock.switchTab).not.toHaveBeenCalled();
+  expect(requests.some(option=>option.method==='PUT')).toBe(false);
  });
  it('still redirects the private member tab to authentication',async()=>{
   storage.set('cisme.guestBrowsing',true);pages=[{route:'pages/community/index',data:{}}];let component:any;
