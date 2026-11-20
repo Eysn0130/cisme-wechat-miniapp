@@ -248,7 +248,7 @@ describe("mini program submission flow safety", () => {
     expect(post).toContain('this.readVisible=false;cancelPageReads(this);if(this.data.loading)this.clearArticlePresentation();if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1;');
     expect(tab).toContain("wx.pageScrollTo({ scrollTop: 0, duration: 0 })");
     expect(tab).toContain("reducedMotion: shouldReduceMotion()");
-    expect(tabView).toContain("bar--reduced-motion");
+    expect(tabView).toContain("chrome--reduced-motion");
   });
 
   it("announces operation results and blocks mutation-time exits", async () => {

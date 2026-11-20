@@ -22,7 +22,13 @@
 - 小程序 UI/UX 决策严格按以下顺序裁决：PRD 与真实业务状态 → 微信小程序原生能力和平台约束 → `mobile-ui-ux-designer` → `design-taste-frontend` → 微信开发者工具与真机验证。后层不得改写前层已经确定的事实与约束。
 - `mobile-ui-ux-designer` 是移动端 UX / Interaction Design 的主 Skill，负责信息架构、页面状态、操作路径、Bottom Sheet、Tab Bar、FAB、滚动与手势、动画时序、中断恢复、可访问性及完整 interaction contract；其通用 iOS、Android 或 Web 建议必须翻译为微信小程序原生组件和行为。
 - `design-taste-frontend` 仅作辅助视觉审阅，负责版式、字体、间距、层级、动效质感、反模板化与避免 AI 味；其 Web 规则与微信原生规范冲突时，以微信原生规范为准。
+- 明确要求液态玻璃或玻璃拟态时，加载 `liquid-glass-ui`，核对背景、分层材质、可读性、兼容降级及目标设备性能。边缘高光的视觉近似应如实标注，真实折射以目标渲染器中的像素位移实测为准。
 - 不为了套用 Skill 增加依赖、复制组件体系或重构已有正确架构。`mobile-app-ux-auditor` 不作为常驻 Skill；仅在一个完整页面或流程完成后阶段性检查 loading、empty、error、interruption、resume、navigation 与 accessibility。
+
+## Modern Web Guidance 使用时机
+
+- 开始新增或修改 Web 界面、HTML/CSS 布局与动效或浏览器端 JavaScript 时，先读 `modern-web-guidance` Skill，用 `search` 查找对应能力并 `retrieve` 相关指南，再按项目目标浏览器核对兼容性及降级方案。纯后端、基础设施、测试或文案改动无需加载。
+- 原生小程序的 WXML/WXSS、客户端 TypeScript 和 `wx.*` 以微信原生能力为准。仅在比较可移植的 WebView CSS 或实现 Web 原型时参考指南，并用微信开发者工具核对 WXSS 和渲染行为。 [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance)
 
 ## 界面文案与组件一致性
 
