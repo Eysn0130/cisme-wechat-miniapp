@@ -21,27 +21,45 @@ describe("native tab lens", () => {
     source.switchTab(tap(2));
     source.switchTab(tap(3));
     expect(wxMock.switchTab).toHaveBeenCalledTimes(1);
+    expect(source.data).toMatchObject({ active: 0, lensOffset: 0, switching: true });
     route = "pages/community/index";
     const target = instance(); definition.lifetimes.attached.call(target);
-    expect(target.data.lensIndex).toBe(0);
+    expect(target.data).toMatchObject({ active: 2, lensOffset: -2, switching: false });
+    const render = vi.spyOn(target, "setData");
     definition.pageLifetimes.show.call(target);
-    expect(target.data).toMatchObject({ active: 2, lensIndex: 2, switching: false });
-    target.switchTab(tap(3));
-    expect(wxMock.switchTab).toHaveBeenLastCalledWith(expect.objectContaining({ url: "/pages/profile/index" }));
+    target.syncActive(2);
+    expect(render).not.toHaveBeenCalled();
+
+    wxMock.switchTab.mock.calls[0][0].success();
+    target.switchTab(tap(0));
+    expect(wxMock.switchTab).toHaveBeenLastCalledWith(expect.objectContaining({ url: "/pages/home/index" }));
+    definition.pageLifetimes.hide.call(target);
+    expect(target.data.lensOffset).toBe(0);
+    route = "pages/home/index";
+    definition.pageLifetimes.show.call(source);
+    expect(source.data).toMatchObject({ active: 0, lensOffset: 2, switching: false });
   });
   it("restores selection on navigation failure and makes only a repeat tap return to top", () => {
     const source = instance(); definition.lifetimes.attached.call(source);
     source.switchTab(tap(1));
     expect(wxMock.pageScrollTo).not.toHaveBeenCalled();
     wxMock.switchTab.mock.calls[0][0].fail();
-    expect(source.data).toMatchObject({ active: 0, lensIndex: 0, switching: false });
+    expect(source.data).toMatchObject({ active: 0, lensOffset: 0, switching: false });
+    route = "pages/shop/index";
+    const target = instance(); definition.lifetimes.attached.call(target);
+    expect(target.data).toMatchObject({ active: 1, lensOffset: 0 });
+    route = "pages/home/index";
     source.switchTab(tap(0));
     expect(wxMock.pageScrollTo).toHaveBeenCalledWith({ scrollTop: 0, duration: 0 });
   });
   it("uses the correct end state for reduced motion and a directly opened root route", () => {
+    route = "pages/shop/index";
+    const direct = instance(); definition.lifetimes.attached.call(direct);
+    expect(direct.data).toMatchObject({ active: 1, lensOffset: 0, reducedMotion: false });
+    direct.switchTab(tap(3));
     route = "pages/profile/index"; reduced.value = true;
     const target = instance(); definition.lifetimes.attached.call(target); definition.pageLifetimes.show.call(target);
-    expect(target.data).toMatchObject({ active: 3, lensIndex: 3, reducedMotion: true });
+    expect(target.data).toMatchObject({ active: 3, lensOffset: 0, reducedMotion: true });
   });
   it("lets the page's authoritative index correct early component lifecycle ordering", () => {
     const source = instance(); definition.lifetimes.attached.call(source);
@@ -51,7 +69,7 @@ describe("native tab lens", () => {
     expect(target.data.active).toBe(0);
     route = "pages/community/index";
     target.syncActive(2);
-    expect(target.data).toMatchObject({ active: 2, lensIndex: 2 });
+    expect(target.data).toMatchObject({ active: 2, lensOffset: -2 });
   });
 
   it("keeps navigation down until every presentation owner releases it", () => {
@@ -93,7 +111,7 @@ describe("native tab lens", () => {
     expect(target.data).toMatchObject({ communityFabMounted: true, communityFabVisible: true });
     target.switchTab(tap(3));
     frames.forEach(frame => frame());
-    expect(target.data).toMatchObject({ active: 3, communityFabMounted: false, communityFabVisible: false });
+    expect(target.data).toMatchObject({ active: 2, switching: true, communityFabMounted: false, communityFabVisible: false });
   });
 
   it("does not remount on repeat community taps or scroll recovery", () => {

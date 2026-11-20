@@ -20,8 +20,7 @@ function currentPageBusy(): boolean {
 Component({
   data: {
     active: 0,
-    lensIndex: 0,
-    lensSettling: false,
+    lensOffset: 0,
     switching: false,
     externalBusy: false,
     chromeHidden: false,
@@ -41,12 +40,7 @@ Component({
   },
   lifetimes: {
     attached() {
-      this.setData({
-        active: currentTabIndex(this.data.items),
-        lensIndex: pendingLens?.from ?? currentTabIndex(this.data.items),
-        reducedMotion: shouldReduceMotion(),
-        chromeStyle: currentChromeStyle()
-      });
+      this.syncActive(currentTabIndex(this.data.items));
     }
   },
   pageLifetimes: {
@@ -55,19 +49,28 @@ Component({
       this.syncActive(active);
       if (active === 2) this.enterCommunityFab();
       else this.leaveCommunityFab();
+    },
+    hide() {
+      if (this.data.lensOffset) this.setData({ lensOffset: 0 });
     }
   },
   methods: {
     syncActive(active: number) {
       if (!this.data.items[active]) return;
-      if (this.data.active === active && this.data.lensIndex === active && !pendingLens && !this.data.switching && this.data.externalBusy === currentPageBusy()) return;
+      // Each tab page has its own component. Consume the handoff only on the
+      // destination and keep duplicate onShow notifications from restarting it.
+      const motion = pendingLens?.to === active ? pendingLens : null;
+      if (motion) pendingLens = null;
       const reducedMotion = shouldReduceMotion();
-      const motion = pendingLens;
-      if (motion?.to === active) pendingLens = null;
-      const from = motion && motion.to === active && Date.now() - motion.at < 1000 && !reducedMotion ? motion.from : active;
-      this.setData({ active, lensIndex: from, lensSettling: false, reducedMotion, chromeStyle: currentChromeStyle(), switching: false, externalBusy: currentPageBusy() }, () => {
-        wx.nextTick(() => { if (this.data.active === active) this.setData({ lensIndex: active, lensSettling: !reducedMotion }); });
-      });
+      const chromeStyle = currentChromeStyle();
+      const externalBusy = currentPageBusy();
+      let lensOffset = this.data.active === active ? this.data.lensOffset : 0;
+      if (motion) lensOffset = Date.now() - motion.at < 1000 ? motion.from - active : 0;
+      if (reducedMotion || this.data.chromeHidden) lensOffset = 0;
+      if (this.data.active === active && this.data.lensOffset === lensOffset
+        && this.data.reducedMotion === reducedMotion && this.data.chromeStyle === chromeStyle
+        && this.data.externalBusy === externalBusy && !this.data.switching) return;
+      this.setData({ active, lensOffset, reducedMotion, chromeStyle, externalBusy, switching: false });
     },
     setPresentation(source: string, hidden: boolean) {
       const owner = String(source || "page");
@@ -77,7 +80,7 @@ Component({
         : current.filter((item) => item !== owner);
       const chromeHidden = hiddenSources.length > 0;
       if (chromeHidden === this.data.chromeHidden && hiddenSources.length === current.length) return;
-      this.setData({ hiddenSources, chromeHidden });
+      this.setData({ hiddenSources, chromeHidden, ...(chromeHidden ? { lensOffset: 0 } : {}) });
     },
     setCommunityPublisherAvailable(available: boolean, label = "创作护理故事") {
       if (this.data.communityPublisherAvailable === available && this.data.communityPublisherLabel === label) return;
@@ -118,16 +121,16 @@ Component({
         wx.pageScrollTo({ scrollTop: 0, duration: 0 });
         return;
       }
-      const previous = this.data.active;
+      const motion = { from: this.data.active, to: index, at: Date.now() };
       this.leaveCommunityFab();
-      pendingLens = { from: previous, to: index, at: Date.now() };
-      this.setData({ active: index, lensIndex: index, lensSettling: true, switching: true });
+      pendingLens = motion;
+      this.setData({ switching: true });
       wx.switchTab({
         url: item.path,
         success: () => this.setData({ switching: false }),
         fail: () => {
-          pendingLens = null;
-          this.setData({ active: previous, lensIndex: previous, switching: false }, () => {
+          if (pendingLens === motion) pendingLens = null;
+          this.setData({ switching: false }, () => {
             this.enterCommunityFab();
             wx.showToast({ title: "页面切换失败，请重试", icon: "none" });
           });
