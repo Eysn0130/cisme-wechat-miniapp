@@ -24,7 +24,7 @@ describe("native tab lens", () => {
     expect(source.data).toMatchObject({ active: 0, lensOffset: 0, switching: true });
     route = "pages/community/index";
     const target = instance(); definition.lifetimes.attached.call(target);
-    expect(target.data).toMatchObject({ active: 2, lensOffset: -2, switching: false });
+    expect(target.data).toMatchObject({ active: 2, lensOffset: -2, lensRevision: 1, switching: false });
     const render = vi.spyOn(target, "setData");
     definition.pageLifetimes.show.call(target);
     target.syncActive(2);
@@ -38,6 +38,10 @@ describe("native tab lens", () => {
     route = "pages/home/index";
     definition.pageLifetimes.show.call(source);
     expect(source.data).toMatchObject({ active: 0, lensOffset: 2, switching: false });
+    source.switchTab(tap(2));
+    route = "pages/community/index";
+    definition.pageLifetimes.show.call(target);
+    expect(target.data).toMatchObject({ active: 2, lensOffset: -2, lensRevision: 2 });
   });
   it("restores selection on navigation failure and makes only a repeat tap return to top", () => {
     const source = instance(); definition.lifetimes.attached.call(source);

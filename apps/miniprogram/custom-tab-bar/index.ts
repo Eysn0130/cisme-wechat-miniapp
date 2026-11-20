@@ -21,6 +21,7 @@ Component({
   data: {
     active: 0,
     lensOffset: 0,
+    lensRevision: 0,
     switching: false,
     externalBusy: false,
     chromeHidden: false,
@@ -67,10 +68,16 @@ Component({
       let lensOffset = this.data.active === active ? this.data.lensOffset : 0;
       if (motion) lensOffset = Date.now() - motion.at < 1000 ? motion.from - active : 0;
       if (reducedMotion || this.data.chromeHidden) lensOffset = 0;
-      if (this.data.active === active && this.data.lensOffset === lensOffset
+      // Cached pages can coalesce hidden updates, leaving the old animation
+      // class on the view. A new key restarts it on every visible handoff.
+      const restartLens = Boolean(motion && lensOffset);
+      if (!restartLens && this.data.active === active && this.data.lensOffset === lensOffset
         && this.data.reducedMotion === reducedMotion && this.data.chromeStyle === chromeStyle
         && this.data.externalBusy === externalBusy && !this.data.switching) return;
-      this.setData({ active, lensOffset, reducedMotion, chromeStyle, externalBusy, switching: false });
+      this.setData({
+        active, lensOffset, reducedMotion, chromeStyle, externalBusy, switching: false,
+        ...(restartLens ? { lensRevision: this.data.lensRevision + 1 } : {})
+      });
     },
     setPresentation(source: string, hidden: boolean) {
       const owner = String(source || "page");

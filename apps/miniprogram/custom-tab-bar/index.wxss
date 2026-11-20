@@ -117,11 +117,11 @@
 @keyframes bar-lens-glide {
   0% {
     transform: translate3d(calc(var(--lens-position) + var(--lens-offset)), 0, 0) scaleX(1);
-    animation-timing-function: cubic-bezier(.22,.55,.36,1);
+    animation-timing-function: cubic-bezier(.22,.49,.58,.8);
   }
   40% {
     transform: translate3d(calc(var(--lens-position) + var(--lens-offset) * .32), 0, 0) scaleX(1.22);
-    animation-timing-function: cubic-bezier(.32,0,.25,1);
+    animation-timing-function: cubic-bezier(.22,.17,.35,1);
   }
   71% {
     transform: translate3d(var(--lens-position), 0, 0) scaleX(.94);

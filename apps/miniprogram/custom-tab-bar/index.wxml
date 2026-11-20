@@ -4,7 +4,7 @@
     <image class="community-fab__icon" src="/assets/icons/plus-white.svg" mode="aspectFit" />
   </button>
   <view class="bar" aria-role="tablist">
-    <view class="bar__lens-track {{lensOffset ? 'bar__lens-track--moving' : ''}}"
+    <view wx:for="{{[lensRevision]}}" wx:key="*this" class="bar__lens-track {{lensOffset ? 'bar__lens-track--moving' : ''}}"
       style="--lens-position: {{active * 100}}%; --lens-offset: {{lensOffset * 100}}%; --lens-origin: {{lensOffset < 0 ? 'left' : 'right'}};"
       aria-hidden="true">
       <view class="bar__lens"></view>
