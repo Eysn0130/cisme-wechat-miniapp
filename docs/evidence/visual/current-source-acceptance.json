@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "9d5a22bdf3dda88d7307c91bd7de927a84f9b84f8ee264a3523fbcecc3e5a35c",
+  "packageSourceSha256": "c266436dc0f59bc8fb96cdba8f3fdd1d8f272613c9ba728bfed79546aeb8c602",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-20 updates the shared bottom navigation. Full route, font, state and physical-device coverage remains pending.",
+  "note": "2026-11-22 binds the source after scoped community loading, image retry geometry and upload recovery repairs. The 2026-11-20 bottom-navigation evidence belongs to its original package. Full route, font, state and physical-device coverage remains pending; current scoped results are in docs/evidence/community-loading-motion-20261122.",
   "previousSourceRecord": {
     "packageSourceSha256": "7f56d3f01f1b9852f176aabb56ae4f8d699d29b5c0ca9ea3fd741127c548f638",
     "scope": "0.1.57 uploaded development candidate before loading-state tokens, upload stages and inaccessible aftersale routing; historical screenshots and phone evidence remain historical."

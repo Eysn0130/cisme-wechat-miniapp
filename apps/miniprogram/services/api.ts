@@ -473,12 +473,22 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
   }
   return new Promise((resolve, reject) => {
     let task:WechatMiniprogram.UploadTask|undefined,settled=false;
+    let lastPercent=-1,lastBytes=-1,byteTotal:number|null=null,changedDenominator=false;
     const progress=(event:WechatMiniprogram.UploadTaskOnProgressUpdateListenerResult)=>{
       if(settled||cancelled)return;
-      const measured=Number.isFinite(event.totalBytesExpectedToSend)&&event.totalBytesExpectedToSend>0&&Number.isFinite(event.totalBytesSent)&&event.totalBytesSent>=0;
-      const percent=measured?Math.floor(Math.min(event.totalBytesSent/event.totalBytesExpectedToSend,1)*100):
-        Number.isFinite(event.progress)?Math.floor(Math.max(0,Math.min(100,event.progress))):null;
-      if(percent!==null)options.onProgress?.(Math.min(99,percent));
+      const hasBytes=event.totalBytesSent!==undefined||event.totalBytesExpectedToSend!==undefined;
+      const measured=Number.isFinite(event.totalBytesExpectedToSend)&&event.totalBytesExpectedToSend>0&&Number.isFinite(event.totalBytesSent)&&event.totalBytesSent>=0&&event.totalBytesSent<=event.totalBytesExpectedToSend;
+      if(changedDenominator||hasBytes&&!measured)return;
+      if(measured&&byteTotal!==null&&byteTotal!==event.totalBytesExpectedToSend){
+        // Conflicting totals cannot support an honest percentage for this attempt.
+        changedDenominator=true;state("uploading",null);return;
+      }
+      if(!measured&&(byteTotal!==null||!Number.isFinite(event.progress)||event.progress<0||event.progress>100))return;
+      const percent=Math.floor(measured?event.totalBytesSent/event.totalBytesExpectedToSend*100:event.progress);
+      if(percent<lastPercent||measured&&event.totalBytesSent<lastBytes)return;
+      lastPercent=percent;
+      if(measured){byteTotal=event.totalBytesExpectedToSend;lastBytes=event.totalBytesSent;}
+      options.onProgress?.(Math.min(99,percent));
       state("uploading",percent,measured?event.totalBytesSent:null,measured?event.totalBytesExpectedToSend:null);
     };
     const finish=(error?:unknown)=>{

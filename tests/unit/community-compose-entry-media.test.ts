@@ -255,6 +255,40 @@ it('retries the retained edited file with a fresh authorization and swaps the or
   expect(page.pendingImageEdit).toBeNull();expect(page.data).toMatchObject({imageEditRecovery:false,imageEditRecoveryKey:'',dirty:true,uploadBusy:false});
   expect(backups.readUgcBackup(owner,post,1)?.mediaIds).toEqual([first,retried,last]);
 });
+it.each([429,403])('retains the original replacement media after lost confirmation and an inconclusive %s read',async status=>{
+  const files=[image(first),image(middle),image(last)],page=editor({files});let previewReads=0;
+  m.request.mockImplementation((options:any)=>{
+    if(options.path.endsWith('/complete'))return Promise.reject({code:'NETWORK_TIMEOUT'});
+    if(options.path.endsWith('/preview-url'))return ++previewReads===1?Promise.reject({status,code:'RECHECK_UNAVAILABLE'}):Promise.resolve({url:'verified-preview'});
+    return defaultRequest(options);
+  });
+  await page.openPhotoEditorForImage(event(middle));
+  await page.photoEditorConfirmed({detail:{contextKey:page.data.photoEditorContext,files:[{path:'/synthetic/confirmed-replacement.jpg',size:120}]}});
+  expect(page.pendingImageEdit?.uploadedMediaId).toBe(replacement);
+  await page.retryPendingImageEdit(recoveryEvent(page));
+  expect(page.pendingImageEdit?.uploadedMediaId).toBe(replacement);expect(page.data.files).toEqual(files);
+  await page.retryPendingImageEdit(recoveryEvent(page));
+  expect(page.data.files.map((file:any)=>file.id)).toEqual([first,replacement,last]);
+  expect(m.upload).toHaveBeenCalledTimes(1);
+  expect(m.request.mock.calls.filter(([value])=>value.path.endsWith('/authorize'))).toHaveLength(1);
+  expect(m.request.mock.calls.filter(([value])=>value.path.endsWith('/complete'))).toHaveLength(1);
+});
+it('rechecks a replacement after leaving an explicit confirmation retry before its response',async()=>{
+  const page=editor({files:[image(first),image(middle),image(last)]});let completions=0,reads=0;const pending=deferred();
+  m.request.mockImplementation((options:any)=>{
+    if(options.path.endsWith('/complete'))return ++completions===1?Promise.reject({code:'NETWORK_TIMEOUT'}):pending.promise;
+    if(options.path.endsWith('/preview-url'))return ++reads===1?Promise.reject({status:404,code:'UGC_MEDIA_NOT_FOUND'}):Promise.resolve({url:'verified-preview'});
+    return defaultRequest(options);
+  });
+  await page.openPhotoEditorForImage(event(middle));
+  await page.photoEditorConfirmed({detail:{contextKey:page.data.photoEditorContext,files:[{path:'/synthetic/late-confirm.jpg',size:120}]}});
+  await page.retryPendingImageEdit(recoveryEvent(page));expect(page.pendingImageEdit.confirmationRetryReady).toBe(true);
+  const retrying=page.retryPendingImageEdit(recoveryEvent(page));await flush();expect(page.pendingImageEdit.confirmationRetryReady).toBe(false);
+  page.onHide();pending.resolve({id:replacement,state:'uploaded'});await retrying;
+  page.mediaVisible=true;m.request.mockClear();await page.retryPendingImageEdit(recoveryEvent(page));
+  expect(page.data.files.map((file:any)=>file.id)).toEqual([first,replacement,last]);
+  expect(m.request.mock.calls.every(([value])=>!value.method)).toBe(true);expect(m.upload).toHaveBeenCalledTimes(1);
+});
 it('requires handling the image candidate before saving, submitting, or navigating to its public version',async()=>{
   const files=[image(first),image(middle),image(last)],page=editor({files,publicGateEnabled:true,publicVersionActive:true});await failedSingleEdit(page);m.request.mockClear();
   await page.saveDraft();await page.submit();page.openPublishedPost();

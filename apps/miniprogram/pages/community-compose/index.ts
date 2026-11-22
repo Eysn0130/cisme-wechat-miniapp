@@ -9,7 +9,7 @@ import { consumeComposeMediaIntent, type ComposeMediaIntentPayload } from "../..
 import { editUgcLocalImage, ugcImageEditCapabilities } from "../../services/ugc-image-edit";
 import { hasTextCardContent, normalizeTextCardTemplate, normalizeTextCardText, textCardGraphemes, type TextCardTemplate } from "../../services/ugc-text-card-layout";
 
-type MediaItem = { id: string; localPath: string; previewUrl: string; size: number; state: "uploading" | "uploaded" | "failed"; progress: number; error: string; progressKnown?:boolean; uploadPhase?:"preparing"|"uploading"|"assembling"|"confirming" };
+type MediaItem = { id: string; localPath: string; previewUrl: string; size: number; state: "uploading" | "uploaded" | "failed"; progress: number; error: string; progressKnown?:boolean; confirmationPending?:boolean;confirmationRetryReady?:boolean; uploadPhase?:"preparing"|"uploading"|"assembling"|"confirming" };
 const uploadPresentation=(state:UploadProgressState):Partial<MediaItem>=>({
   uploadPhase:state.phase==="uploaded"?"confirming":state.phase,
   progressKnown:state.phase==="uploading"&&state.percent!==null,
@@ -33,12 +33,13 @@ type LocalTextEntry={nonce:string;epoch:number;token:string;revision:number;crea
 type LocalTextCandidate={scope:LocalTextEntry;kind:"card"|"body"|"save";text:string;template:TextCardTemplate;file:{path:string;size:number}|null;sent:boolean;draft:Draft|null};
 type TextCardImport={postId:string;ownerId:string;version:number;epoch:number;token:string;revision:number;file:{path:string;size:number}};
 type PhotoEditorContext={key:string;postId:string;ownerId:string;epoch:number;token:string;revision:number;origin:"entry"|"editor"|"single";targetId:string;basePath:string};
-type ImageEditCandidate={key:string;postId:string;ownerId:string;epoch:number;token:string;revision:number;version:number;targetId:string;path:string;size:number;error:string};
+type ImageEditCandidate={key:string;postId:string;ownerId:string;epoch:number;token:string;revision:number;version:number;targetId:string;path:string;size:number;error:string;uploadedMediaId?:string;confirmationRetryReady?:boolean};
 type MediaRect={left:number;top:number;width:number;height:number};
 type MediaPress={id:string;pointer:number;startX:number;startY:number;x:number;y:number;epoch:number;postId:string;ownerId:string;version:number;token:string;revision:number;signature:string;wantsDrag:boolean;rects:MediaRect[];viewport:MediaRect|null;scrollLeft:number;scrollWidth:number};
 type MediaDrag=MediaPress&{index:number;target:number;drawnTarget:number;offsetX:number;offsetY:number;originScroll:number;dropping:boolean};
 const mediaSignature=(files:MediaItem[])=>files.map(file=>`${file.id}:${file.localPath}:${file.previewUrl}:${file.state}`).join("|");
 const unknownWrite=(error:unknown)=>{const value=error as {status?:number;code?:string};return !value?.status||value.status>=500||value.code==="UGC_VERSION_CONFLICT"||value.code==="UGC_POST_LOCKED";};
+const rejectedMediaConfirmation=(error:unknown)=>(error as {mediaConfirmationRejected?:boolean})?.mediaConfirmationRejected===true;
 const sameDraft=(draft:Draft,snapshot:DraftSnapshot)=>draft.title.trim()===snapshot.title.trim()&&draft.body.trim()===snapshot.body.trim()&&
   draft.media.map(item=>item.id).join(',')===snapshot.mediaIds.join(',')&&(draft.rewardKind??'original')===(snapshot.rewardKind??'original')&&(draft.experienceProductCode??null)===(snapshot.experienceProductCode??null)&&(draft.experienceDays??null)===(snapshot.experienceDays??null);
 
@@ -215,7 +216,7 @@ Page({
     this.mediaAbort=null;
     if(this.pendingImageEdit)this.setData({imageEditingId:""});
     if(this.data.uploadBusy) this.setData({uploadBusy:false,
-      files:this.data.files.map(file=>file.state==="uploading"?{...file,state:"failed" as const,error:"页面离开时上传已中断，可点重试继续。"}:file),
+      files:this.data.files.map(file=>file.state==="uploading"?{...file,state:"failed" as const,error:file.confirmationPending?"图片确认结果待核对，请重新核对。":"页面离开时上传已中断，可点重试继续。"}:file),
       error:"图片操作已中断；文字草稿仍保留。返回后可重试图片。"});
     this.flushLocalBackup();
   },
@@ -241,7 +242,8 @@ Page({
     const backup:UgcLocalBackup={ownerId:this.data.ownerId,postId:this.data.postId,baseVersion:this.data.version,
       title:this.data.title,body:this.data.body,rewardKind:this.data.rewardKind,experienceProductCode:this.data.experienceProductCode,experienceDays:Number(this.data.experienceDays)||null,...(this.textCardInputInitialized?{textCardText:this.data.textCardText}:{}),textCardTemplate:this.data.textCardTemplate,
       mediaIds:this.data.files.filter(file=>file.state==="uploaded"&&!file.id.startsWith("local-")).map(file=>file.id),
-      mediaItems:this.data.files.map(file=>({id:file.id,localPath:file.localPath,size:file.size,state:file.state==="uploaded"?"uploaded":"failed",error:file.state==="uploaded"?"":file.error||"图片上传已中断，可重试或重新选择。"})),savedAt:Date.now()};
+      mediaItems:this.data.files.map(file=>({id:file.id,localPath:file.localPath,size:file.size,state:file.state==="uploaded"?"uploaded":"failed",error:file.state==="uploaded"?"":file.error||"图片上传已中断，可重试或重新选择。",
+        ...(file.confirmationPending===true&&/^[0-9a-f-]{36}$/i.test(file.id)?{confirmationPending:true}:{})})),savedAt:Date.now()};
     try{writeUgcBackup(backup);return true;}catch{this.setData({notice:"本次修改尚未保存，请点击“存草稿”。"});return false;}
   },
   clearLocalTextEntryScope(){
@@ -542,13 +544,15 @@ Page({
     if(!this.data.postId||!this.mediaVisible||this.lastSessionToken!==getApp<IAppOption>().globalData.sessionToken||this.readRevision!==commerceContextRevision()||this.data.busy||this.data.uploadBusy||this.data.writeRecovery)return;
     const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,mediaEpoch=++this.mediaEpoch;
     const current=()=>this.pageAlive&&this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();
-    this.setData({uploadBusy:true,error:""});
-    try{for(const source of files){if(!current())return;if(this.data.files.length>=9)break;
-      if(!source.path||source.size<1||source.size>10*1024*1024){this.setData({error:"单张图片需小于10MB，请重新选择。"});continue;}
-      try{await mimeOf(source.path);}catch{if(current())this.setData({error:"仅支持JPG、PNG或WEBP图片，请重新选择。"});continue;}
-      if(!current())return;const id=`local-${operationKey()}`;
-      this.setData({dirty:true,files:[...this.data.files,{id,localPath:source.path,previewUrl:"",size:source.size,state:"uploading",progress:0,error:""}]});this.queueLocalBackup();
-      await this.uploadImage(id,source.path,source.size,epoch,token,mediaEpoch);
+    // Retain the whole selection before any async work. Interruption must not
+    // drop the images that have not yet reached the serial transport.
+    const selected=files.slice(0,Math.max(0,9-this.data.files.length));
+    const queued:MediaItem[]=selected.filter(source=>source.path&&Number.isSafeInteger(source.size)&&source.size>0&&source.size<=10*1024*1024)
+      .map(source=>({id:`local-${operationKey()}`,localPath:source.path,previewUrl:"",size:source.size,state:"uploading",uploadPhase:"preparing",progressKnown:false,progress:0,error:""}));
+    this.setData({uploadBusy:true,error:queued.length===selected.length?"":"单张图片需小于10MB，请重新选择。",dirty:this.data.dirty||queued.length>0,files:[...this.data.files,...queued]});
+    this.queueLocalBackup();
+    try{for(const item of queued){if(!current())return;
+      await this.uploadImage(item.id,item.localPath,item.size,epoch,token,mediaEpoch);
     }}finally{if(current())this.setData({uploadBusy:false});}
   },
   async openImageActions(event:WechatMiniprogram.TouchEvent){
@@ -633,22 +637,31 @@ Page({
       if(result.status!=="success"){this.setData({error:result.message});return;}
       if(!candidate){candidate={key:operationKey(),postId,ownerId,epoch,token,revision,version:baseVersion,targetId:id,path:result.tempFilePath,size:0,error:""};
         this.pendingImageEdit=candidate;this.setData({imageEditRecovery:true,imageEditRecoveryKey:candidate.key});this.syncUnloadWarning();}
-      const size=await new Promise<number>((resolve,reject)=>wx.getFileSystemManager().getFileInfo({filePath:result.tempFilePath,success:info=>resolve(info.size),fail:reject}));
-      if(!current())return;if(size<1||size>10*1024*1024)throw {title:"编辑后的图片需小于10MB，原图仍保留。"};candidate.size=size;
-      const mimeType=await mimeOf(result.tempFilePath);if(!current())return;
-      const authorization=await request<{mediaId:string;url:string;method:"POST"|"PUT";fields:Record<string,string>}>({path:`/v1/me/ugc/posts/${postId}/media/authorize`,method:"POST",data:{mimeType,maxBytes:size}});
-      if(!current())return;
-      await uploadAuthorized(result.tempFilePath,authorization,{registerAbort:abort=>{if(current())this.mediaAbort=abort;else abort();},onState:state=>{
-        if(current())this.setData({editingUploadPhase:state.phase==="uploaded"?"confirming":state.phase,editingProgressKnown:state.phase==="uploading"&&state.percent!==null,editingUploadProgress:state.percent??0});
-      }});
+      const recheck=Boolean(candidate.uploadedMediaId)&&!candidate.confirmationRetryReady;
+      if(!candidate.uploadedMediaId){
+        const size=await new Promise<number>((resolve,reject)=>wx.getFileSystemManager().getFileInfo({filePath:result.tempFilePath,success:info=>resolve(info.size),fail:reject}));
+        if(!current())return;if(size<1||size>10*1024*1024)throw {title:"编辑后的图片需小于10MB，原图仍保留。"};candidate.size=size;
+        const mimeType=await mimeOf(result.tempFilePath);if(!current())return;
+        const authorization=await request<{mediaId:string;url:string;method:"POST"|"PUT";fields:Record<string,string>}>({path:`/v1/me/ugc/posts/${postId}/media/authorize`,method:"POST",data:{mimeType,maxBytes:size}});
+        if(!current())return;
+        await uploadAuthorized(result.tempFilePath,authorization,{registerAbort:abort=>{if(current())this.mediaAbort=abort;else abort();},onState:state=>{
+          if(current())this.setData({editingUploadPhase:state.phase==="uploaded"?"confirming":state.phase,editingProgressKnown:state.phase==="uploading"&&state.percent!==null,editingUploadProgress:state.percent??0});
+        }});
+        if(!current())return;
+        candidate.uploadedMediaId=authorization.mediaId;
+      }
       if(!current())return;
       this.setData({editingUploadPhase:"confirming",editingProgressKnown:false});
-      await request({path:`/v1/me/ugc/posts/${postId}/media/${authorization.mediaId}/complete`,method:"POST",data:{}});
-      if(!current())return;
+      const mediaId=candidate.uploadedMediaId;
+      candidate.confirmationRetryReady=false;
+      if(!await this.confirmMedia(postId,mediaId,current,recheck))return;
+      const size=candidate.size;
       this.clearPendingImageEdit();
-      this.setData({files:this.data.files.map(item=>item.id===id?{id:authorization.mediaId,localPath:result.tempFilePath,previewUrl:"",size,state:"uploaded" as const,progress:100,error:""}:item),dirty:true});
-      this.queueLocalBackup();void this.loadMediaPreviews([authorization.mediaId],epoch,token,postId);
-    }catch(error){if(current()){const detail=message(error,"图片编辑或上传未完成，原图仍保留，请重试。");if(candidate)candidate.error=detail;this.setData({error:detail});}}
+      this.setData({files:this.data.files.map(item=>item.id===id?{id:mediaId,localPath:result.tempFilePath,previewUrl:"",size,state:"uploaded" as const,progress:100,error:""}:item),dirty:true});
+      this.queueLocalBackup();void this.loadMediaPreviews([mediaId],epoch,token,postId);
+    }catch(error){if(current()){if(candidate?.uploadedMediaId&&rejectedMediaConfirmation(error))delete candidate.uploadedMediaId;
+      if(candidate)candidate.confirmationRetryReady=(error as {confirmationRetryReady?:boolean})?.confirmationRetryReady===true;
+      const detail=message(error,candidate?.uploadedMediaId?"图片确认结果待核对，原图仍保留，请重试核对。":"图片编辑或上传未完成，原图仍保留，请重试。");if(candidate)candidate.error=detail;this.setData({error:detail});}}
     finally{if(mediaEpoch===this.mediaEpoch)this.nativeMedia="";
       if(candidate&&this.pendingImageEdit===candidate&&!this.imageEditCandidateIsCurrent(candidate,false))this.clearPendingImageEdit();
       if(this.pageAlive&&epoch===this.data.epoch&&postId===this.data.postId&&mediaEpoch===this.mediaEpoch&&token===getApp<IAppOption>().globalData.sessionToken){this.mediaAbort=null;this.setData({uploadBusy:false,imageEditingId:""});}}
@@ -658,6 +671,32 @@ Page({
     if(!previous||Object.keys(patch).every(key=>previous[key as keyof MediaItem]===patch[key as keyof MediaItem]))return;
     this.setData({ files: this.data.files.map(file => file.id === id ? { ...file, ...patch } : file) });
   },
+  async confirmMedia(postId:string,id:string,current:()=>boolean,recheck=false):Promise<boolean>{
+    if(recheck){
+      try{
+        const preview=await pageRead<{url:string}>(this,{path:`/v1/me/ugc/posts/${postId}/media/${id}/preview-url`});
+        if(!current())return false;
+        if(!preview.url)throw {code:"UPLOAD_CONFIRMATION_UNKNOWN"};
+        return true;
+      }catch(error){
+        if(!current())return false;
+        // A missing preview is inconclusive. Offer a separate explicit retry
+        // of confirmation; this read-only action never chains another write.
+        if((error as {status?:number;code?:string})?.status!==404||(error as {code?:string})?.code!=="UGC_MEDIA_NOT_FOUND")throw error;
+        throw {code:"MEDIA_CONFIRMATION_UNVERIFIED",confirmationRetryReady:true,title:"暂未查到确认结果，可继续确认原图片。"};
+      }
+    }
+    if(!current())return false;
+    try{await request({path:`/v1/me/ugc/posts/${postId}/media/${id}/complete`,method:"POST",data:{}});}
+    catch(error){
+      // A failed read or a rate limit says nothing about an earlier commit.
+      // Only the original confirmation's explicit media rejection permits reupload.
+      if(["UGC_MEDIA_EXPIRED","UGC_MEDIA_MISMATCH"].includes((error as {code?:string})?.code??""))
+        throw {...error as object,mediaConfirmationRejected:true};
+      throw error;
+    }
+    return current();
+  },
   async uploadImage(id: string, path: string, size: number, epoch: number, token: string, mediaEpoch: number) {
     const postId=this.data.postId;
     let receivingProgress=true;
@@ -665,7 +704,7 @@ Page({
       token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&postId===this.data.postId;
     try {
       if(!current())return;
-      this.updateMedia(id,{uploadPhase:"preparing",progressKnown:false,progress:0});
+      this.updateMedia(id,{uploadPhase:"preparing",progressKnown:false,confirmationPending:false,confirmationRetryReady:false,progress:0});
       const mimeType = await mimeOf(path);
       if(!current())return;
       const authorization = await request<{ mediaId: string; url: string; method: "POST" | "PUT"; fields: Record<string, string> }>({
@@ -677,16 +716,18 @@ Page({
       } });
       receivingProgress=false;
       if(!current())return;
-      this.updateMedia(id,{uploadPhase:"confirming",progressKnown:false});
-      await request({ path: `/v1/me/ugc/posts/${postId}/media/${id}/complete`, method: "POST", data: {} });
-      if(current()){
-        this.updateMedia(id, { state: "uploaded", progress: 100, error: "" });
+      this.updateMedia(id,{uploadPhase:"confirming",progressKnown:false,confirmationPending:true});
+      if(await this.confirmMedia(postId,id,current)){
+        this.updateMedia(id, { state: "uploaded", progress: 100,confirmationPending:false, error: "" });
         this.setData({dirty:true});this.queueLocalBackup();
         void this.loadMediaPreviews([id],epoch,token,postId);
       }
     } catch (error) {
-      if(current())
-        this.updateMedia(id, { state: "failed", error: message(error, "上传失败，可点重试继续。") });
+      if(current()){
+        const file=this.data.files.find(item=>item.id===id),pending=file?.confirmationPending===true&&!rejectedMediaConfirmation(error);
+        this.updateMedia(id, { state: "failed",confirmationPending:pending,progressKnown:false,
+          error: message(error,pending?"图片确认结果待核对，请重新核对。":!file?.localPath?"本地图片已失效，请移除后重新选择。":"上传失败，可点重试继续。") });
+      }
     } finally {receivingProgress=false;if(current())this.mediaAbort=null;}
   },
   async addContent(){
@@ -750,10 +791,18 @@ Page({
     if(this.mediaTapIsBlocked())return;
     const id = String(event.currentTarget.dataset.id || "");
     const item = this.data.files.find(file => file.id === id);
-    if (!item || item.state !== "failed" || !item.localPath || this.data.uploadBusy || this.data.busy || this.data.writeRecovery) return;
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,mediaEpoch=++this.mediaEpoch;
-    const current=()=>this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();
+    if (!item || item.state !== "failed" || (!item.localPath&&!item.confirmationPending) || this.data.uploadBusy || this.data.busy || this.data.recoveryBusy || this.data.writeRecovery) return;
+    const epoch=this.data.epoch,postId=this.data.postId,ownerId=this.data.ownerId,version=this.data.version,token=getApp<IAppOption>().globalData.sessionToken,mediaEpoch=++this.mediaEpoch;
+    const current=()=>this.pageAlive&&this.mediaVisible&&mediaEpoch===this.mediaEpoch&&epoch===this.data.epoch&&postId===this.data.postId&&ownerId===this.data.ownerId&&version===this.data.version&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();
     this.setData({ uploadBusy:true,error:"" });
+    if(item.confirmationPending){
+      this.updateMedia(id,{state:"uploading",uploadPhase:"confirming",progressKnown:false,confirmationRetryReady:false,error:""});
+      try{if(await this.confirmMedia(postId,id,current,!item.confirmationRetryReady)){
+        this.updateMedia(id,{state:"uploaded",confirmationPending:false,progress:100,error:""});this.setData({dirty:true});this.queueLocalBackup();void this.loadMediaPreviews([id],epoch,token,postId);
+      }}catch(error){if(current())this.updateMedia(id,{state:"failed",confirmationPending:!rejectedMediaConfirmation(error),confirmationRetryReady:(error as {confirmationRetryReady?:boolean})?.confirmationRetryReady===true,error:message(error,"确认结果暂时无法核对，请稍后重试；无需重新上传。")});}
+      finally{if(current())this.setData({uploadBusy:false});}
+      return;
+    }
     try {
       await new Promise<void>((resolve,reject)=>wx.requirePrivacyAuthorize({success:()=>resolve(),fail:reject}));
       if(!current())return;

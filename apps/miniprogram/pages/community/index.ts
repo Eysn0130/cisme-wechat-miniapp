@@ -35,9 +35,9 @@ async function validatePublisherFiles(files:Array<{tempFilePath:string;size:numb
   return selected;
 }
 
-type FeedImageState = {key:string;resource:string;phase:"loading"|"arriving"|"ready"|"error"};
+type FeedImageState = {key:string;resource:string;phase:"loading"|"arriving"|"ready"|"error";ratio?:number};
 let feedImageSequence=0;
-const feedModels = new WeakMap<object, { feed: any[]; following: any[]; editorial: PublishedEditorialCard[]; followingReady: boolean; followingOwner: string; images:Map<string,FeedImageState> }>();
+const feedModels = new WeakMap<object, { feed: any[]; following: any[]; editorial: PublishedEditorialCard[]; recommendReady:boolean;featuredReady:boolean;followingReady: boolean; followingOwner: string; images:Map<string,FeedImageState> }>();
 const communityReadOwner = () => {
   const context = getApp<IAppOption>().globalData;
   return JSON.stringify([context.sessionToken, commerceContextRevision(), context.apiBaseUrl, context.cloudFunction?.env, context.cloudFunction?.name]);
@@ -45,7 +45,7 @@ const communityReadOwner = () => {
 const initialEditorialStories = editorialStoriesForRuntime();
 function feedModel(page: object) {
   let model = feedModels.get(page);
-  if (!model) { model = { feed: [], following: [], editorial: [], followingReady: false, followingOwner: "", images:new Map() }; feedModels.set(page, model); }
+  if (!model) { model = { feed: [], following: [], editorial: [],recommendReady:false,featuredReady:false,followingReady: false, followingOwner: "", images:new Map() }; feedModels.set(page, model); }
   return model;
 }
 const chromeHideTravel = 24;
@@ -60,6 +60,7 @@ let scrollTravel = 0;
 Page({
   readOwner: "",
   readVisible:true,
+  pendingFeedRead:0,
   followingRequested:false,
   shareAttempt:0,
   shareCard:null as {token:string; context:number; link:NonNullable<Awaited<ReturnType<typeof prepareShareDetails>>>} | null,
@@ -365,15 +366,19 @@ Page({
       this.followingRequested = true;
       return;
     }
-    const previousMode=this.data.mode,wasLoading=this.data.loading;
+    // Featured may paint before capability/recommendation reads finish.
+    // Leaving that paint must not cancel the unfinished channel and call it empty.
+    const previousMode=this.data.mode,wasLoading=this.data.loading||(this.pendingFeedRead>0&&this.pendingFeedRead===this.data.feedAttempt);
+    const reload=previousMode==="following"||wasLoading;
+    const model=feedModel(this),ready=mode==="featured"?model.featuredReady:mode==="recommend"?model.recommendReady:model.followingReady;
     for(const state of feedModel(this).images.values())if(state.phase==="arriving")state.phase="ready";
     cancelPageReads(this);
     this.data.feedAttempt += 1; // A → B → A must not revive an older pagination result.
-    this.setData({ mode, loading:false,feedReady:false,formalLoadingMore:false, moreError:"",error:"" });
+    this.setData({ mode, loading:reload,feedReady:ready,formalLoadingMore:false, moreError:"",error:"" });
     this.syncPublisherEntry();
     if (mode === "review") await this.loadReview();
     else if (mode === "following") await this.loadFollowing();
-    else { this.renderFeed();if(previousMode==="following"||wasLoading)await this.load(); }
+    else { this.renderFeed();if(reload)await this.load(); }
   },
   renderFeed(state: WechatMiniprogram.IAnyObject = {}) {
     const processingStarted = measurementClock();
@@ -396,6 +401,7 @@ Page({
       let image=model.images.get(identity);
       if(!image||image.resource!==resource){image={key:`feed-image-${++feedImageSequence}`,resource,phase:"loading"};model.images.set(identity,image);}
       card.imageKey=image.key;card.imagePhase=image.phase;
+      card.imageRatio=image.ratio??0;
     }
     const patch = { ...feedColumnPatch(this.data.feedColumns, columns), ...state };
     if (items.length !== this.data.displayFeedCount) patch.displayFeedCount = items.length;
@@ -413,7 +419,12 @@ Page({
     if(!card)return;
     const state=Array.from(feedModel(this).images.values()).find(item=>item.key===key);
     if(!state||state.key!==key)return;
-    if(action==="load"&&state.phase==="loading")state.phase=this.data.reducedMotion?"ready":"arriving";
+    if(action==="load"&&state.phase==="loading"){
+      const dimensions=(event as WechatMiniprogram.CustomEvent<{width?:number;height?:number}>).detail;
+      if(typeof dimensions?.width==="number"&&typeof dimensions.height==="number"&&Number.isFinite(dimensions.width)&&Number.isFinite(dimensions.height)&&dimensions.width>0&&dimensions.height>0)
+        state.ratio=dimensions.height/dimensions.width*100;
+      state.phase=this.data.reducedMotion?"ready":"arriving";
+    }
     else if(action==="error"&&state.phase!=="error")state.phase="error";
     else if(action==="settled"&&state.phase==="arriving")state.phase="ready";
     else if(action==="retry"&&state.phase==="error"){state.key=`feed-image-${++feedImageSequence}`;state.phase="loading";}
@@ -428,7 +439,7 @@ Page({
     const attempt = ++this.data.feedAttempt;
     const token = getApp<IAppOption>().globalData.sessionToken;
     const owner=communityReadOwner(),model=feedModel(this);
-    if(this.readOwner!==owner){model.feed=[];model.editorial=[];model.images.clear();}
+    if(this.readOwner!==owner){model.feed=[];model.editorial=[];model.recommendReady=false;model.featuredReady=false;model.images.clear();}
     if(model.followingOwner!==owner){model.following=[];model.followingReady=false;}
     this.readOwner=owner;model.followingOwner=owner;
     if(!token){model.following=[];model.followingReady=false;this.setData({mode:"featured",loading:false});this.renderFeed();return;}
@@ -587,7 +598,7 @@ Page({
     if(!this.readVisible||attempt!==this.data.feedAttempt||!expiredEditorialRead(error,token))return false;
     this.clearPublisherWork(false);
     this.data.feedAttempt+=1;
-    const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];model.followingReady=false;model.followingOwner="";model.images.clear();
+    const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];model.recommendReady=false;model.featuredReady=false;model.followingReady=false;model.followingOwner="";model.images.clear();
     this.setData({signedIn:false,mode:"featured",loading:false,ugcFeedEnabled:false,ugcDraftsEnabled:false,socialPreviewEnabled:false,canReview:false,follows:[],
       profileReviewQueue:[],formalReportQueue:[],reportNextCursor:null,reportTotal:0,
       formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reportLoadingMore:false,appealLoadingMore:false,reviewActorId:"",reviewNotice:"",reviewBusy:false,
@@ -605,10 +616,12 @@ Page({
     const sameOwner = this.readOwner === owner;
     this.readOwner = owner;
     const model = feedModel(this);
-    if (!sameOwner) { model.feed = []; model.editorial = []; model.following=[];model.followingReady=false;model.followingOwner="";model.images.clear(); }
+    if (!sameOwner) { model.feed = []; model.editorial = [];model.recommendReady=false;model.featuredReady=false;model.following=[];model.followingReady=false;model.followingOwner="";model.images.clear(); }
     const attempt = this.data.feedAttempt + 1;
+    this.pendingFeedRead=attempt;
     const privateMode=this.data.mode==="review"||(this.data.mode==="following"&&!model.followingReady);
-    const retainedFeed=sameOwner&&this.data.feedReady&&!privateMode;
+    const channelReady=this.data.mode==="featured"?model.featuredReady:this.data.mode==="following"?model.followingReady:model.recommendReady;
+    const retainedFeed=sameOwner&&channelReady&&!privateMode;
     const retainOnFailure=(error:unknown)=>retainedFeed&&![401,403].includes((error as {status?:number})?.status??0);
     const resetColumns=(!sameOwner||privateMode)&&this.data.feedColumns.some(column=>column.length>0);
     const current = () => this.readVisible && this.data.feedAttempt === attempt && owner === communityReadOwner();
@@ -624,14 +637,14 @@ Page({
     const editorialPromise=publishedCommunityFeatured(this).then(feed=>{
       if(!Array.isArray(feed?.items))throw new Error("EDITORIAL_PAGE_INVALID");
       if(current()&&this.data.mode==="featured"){
-        model.editorial=feed.items;
+        model.editorial=feed.items;model.featuredReady=true;
         this.renderFeed({feedReady:true,loading:false,editorialNextCursor:feed.nextCursor,error:""});
       }
       return {feed};
     }).catch(error=>{
       const outcome=failedRead(error);
       if(current()&&this.data.mode==="featured"){
-        if(!retainOnFailure(error))model.editorial=[];
+        if(!retainOnFailure(error)){model.editorial=[];model.featuredReady=false;}
         this.renderFeed({loading:false,feedReady:retainOnFailure(error),error:"精选内容暂时无法加载，请重试。"});
       }
       return outcome;
@@ -667,12 +680,13 @@ Page({
       const [outcome,formalOutcome,editorialOutcome] = await Promise.all([feedPromise,formalPromise,editorialPromise]);
       if(!current())return;
       if(this.data.mode==="following"){
-        if("feed" in editorialOutcome)model.editorial=editorialOutcome.feed.items;
+        if("feed" in editorialOutcome){model.editorial=editorialOutcome.feed.items;model.featuredReady=true;}
         await this.loadFollowing();return;
       }
       if(this.data.mode==="featured"&&"error" in editorialOutcome)throw editorialOutcome.error;
       if(this.data.mode==="featured"&&!capabilities.ugcFeedEnabled&&!capabilities.socialPreviewEnabled&&"feed" in editorialOutcome){
         feedModel(this).editorial=editorialOutcome.feed.items;
+        model.featuredReady=true;
         this.renderFeed({feedReady:true,loading:false,editorialNextCursor:editorialOutcome.feed.nextCursor,error:""});return;
       }
       if(this.data.mode!=="featured"&&"error" in outcome&&"error" in formalOutcome)throw outcome.error;
@@ -685,15 +699,17 @@ Page({
       // Post covers still require their own authorized media path; author
       // identities come only from the server public-profile allowlist.
       feedModel(this).feed = feed;
-      feedModel(this).editorial = "feed" in editorialOutcome?editorialOutcome.feed.items:[];
+      model.recommendReady="feed" in outcome||"feed" in formalOutcome;
+      if("feed" in editorialOutcome){model.editorial=editorialOutcome.feed.items;model.featuredReady=true;}
       this.renderFeed({ feedReady:true,loading:false,editorialNextCursor:"feed" in editorialOutcome?editorialOutcome.feed.nextCursor:null,formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: "" });
       if (this.data.mode === "review") await this.loadReview();
     } catch (error) {
       if (current()) {
-        if(!retainOnFailure(error)){model.feed=[];model.editorial=[];model.images.clear();}
+        if(!retainOnFailure(error)){model.feed=[];model.editorial=[];model.recommendReady=false;model.featuredReady=false;model.images.clear();}
         this.renderFeed({feedReady:retainOnFailure(error),error:this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。"});
       }
     } finally {
+      if(this.pendingFeedRead===attempt)this.pendingFeedRead=0;
       if (current()&&this.data.loading) this.setData({ loading: false });
     }
   },

@@ -21,6 +21,70 @@ beforeEach(async()=>{
 });
 afterEach(()=>{for(const page of pages){page.stopPublicationTracking();if(page.backupTimer)clearTimeout(page.backupTimer);}vi.useRealTimers();});
 describe("community composer command ownership",()=>{
+  it("retains every selected local image in order when the first serial upload is interrupted",async()=>{
+    const transfer=deferred();m.upload.mockReturnValue(transfer.promise);
+    m.request.mockResolvedValue({mediaId:image,url:"https://synthetic.invalid/upload",method:"POST",fields:{}});
+    const page=editor();page.mediaVisible=true;
+    const selected=[1,2,3].map(n=>({path:`/synthetic/${n}.jpg`,size:100}));
+    const importing=page.importLocalImages(selected);await flush();page.onHide();
+    transfer.reject({errMsg:"upload:fail abort"});await importing;
+    expect(page.data.files.map((file:any)=>file.localPath)).toEqual(selected.map(file=>file.path));
+    expect(page.data.files.every((file:any)=>file.state==="failed")).toBe(true);
+    expect(m.upload).toHaveBeenCalledTimes(1);
+  });
+  it("rechecks a lost media confirmation by its original ID without another authorization or upload",async()=>{
+    const page=editor({files:[{id:"local",localPath:"/synthetic/picture.jpg",previewUrl:"",size:100,state:"uploading",progress:0,error:""}]});page.mediaVisible=true;
+    m.request.mockImplementation(async({path}:any)=>{
+      if(path.endsWith("/authorize"))return {mediaId:image,url:"https://synthetic.invalid/upload",method:"POST",fields:{}};
+      if(path.endsWith("/complete"))throw {code:"NETWORK_TIMEOUT"};
+      if(path.endsWith("/preview-url"))return {url:"verified-preview"};
+      throw Error("Unexpected request "+path);
+    });
+    await page.uploadImage("local","/synthetic/picture.jpg",100,page.data.epoch,m.token,page.mediaEpoch);
+    expect(page.data.files[0]).toMatchObject({id:image,confirmationPending:true,state:"failed"});
+    await page.retryImage({currentTarget:{dataset:{id:image}}});
+    expect(page.data.files[0]).toMatchObject({id:image,state:"uploaded",confirmationPending:false});
+    expect(m.upload).toHaveBeenCalledTimes(1);
+    expect(m.request.mock.calls.filter(([value])=>value.path.endsWith("/authorize"))).toHaveLength(1);
+    expect(m.request.mock.calls.filter(([value])=>value.path.endsWith("/complete"))).toHaveLength(1);
+  });
+  it("restores the original confirmation intent with its exact draft backup, even without a local file",async()=>{
+    const first=editor({files:[{id:image,localPath:"",previewUrl:"",size:100,state:"failed",progress:100,error:"待核对",confirmationPending:true}]});
+    first.mediaVisible=true;first.flushLocalBackup();first.onUnload();
+    const restored=editor();restored.mediaVisible=true;restored.applyDraft(draft());
+    expect(restored.data.files[0]).toMatchObject({id:image,localPath:"",confirmationPending:true});
+    m.request.mockResolvedValue({url:"verified-preview"});
+    await restored.retryImage({currentTarget:{dataset:{id:image}}});
+    expect(restored.data.files[0]).toMatchObject({id:image,state:"uploaded",confirmationPending:false});
+    expect(m.request.mock.calls.every(([value])=>!value.method)).toBe(true);expect(m.upload).not.toHaveBeenCalled();
+    const differentVersion=editor();differentVersion.mediaVisible=true;differentVersion.applyDraft(draft({version:2}));
+    expect(differentVersion.data.files).toEqual([]);
+  });
+  it("offers a fresh upload only after the existing confirmation is explicitly rejected",async()=>{
+    const page=editor({files:[{id:image,localPath:"/synthetic/image.jpg",previewUrl:"",size:100,state:"failed",progress:100,error:"待核对",confirmationPending:true}]});page.mediaVisible=true;
+    m.request.mockImplementation(async({path}:any)=>{
+      if(path.endsWith("/preview-url"))throw {status:404,code:"UGC_MEDIA_NOT_FOUND"};
+      if(path.endsWith("/complete"))throw {status:409,code:"UGC_MEDIA_EXPIRED",title:"图片上传授权已过期，请重新选择"};
+      throw Error("Unexpected request "+path);
+    });
+    await page.retryImage({currentTarget:{dataset:{id:image}}});
+    expect(page.data.files[0]).toMatchObject({confirmationPending:true,confirmationRetryReady:true});
+    expect(m.request.mock.calls.every(([value])=>!value.method)).toBe(true);
+    await page.retryImage({currentTarget:{dataset:{id:image}}});
+    expect(page.data.files[0]).toMatchObject({id:image,state:"failed",confirmationPending:false});
+    expect(m.upload).not.toHaveBeenCalled();
+    expect(m.request.mock.calls.map(([value])=>value.path)).toEqual([`/v1/me/ugc/posts/${post}/media/${image}/preview-url`,`/v1/me/ugc/posts/${post}/media/${image}/complete`]);
+  });
+  it("rechecks the original media after leaving an explicitly retried confirmation before its response",async()=>{
+    const page=editor({files:[{id:image,localPath:"/synthetic/image.jpg",previewUrl:"",size:100,state:"failed",progress:100,error:"待核对",confirmationPending:true,confirmationRetryReady:true}]});page.mediaVisible=true;
+    const completion=deferred();m.request.mockImplementation(({path}:any)=>path.endsWith('/complete')?completion.promise:Promise.resolve({url:'verified-preview'}));
+    const retrying=page.retryImage({currentTarget:{dataset:{id:image}}});await flush();
+    expect(page.data.files[0].confirmationRetryReady).toBe(false);page.onHide();
+    completion.resolve({id:image,state:'uploaded'});await retrying;
+    page.mediaVisible=true;m.request.mockClear();await page.retryImage({currentTarget:{dataset:{id:image}}});
+    expect(page.data.files[0]).toMatchObject({id:image,state:'uploaded'});
+    expect(m.request.mock.calls.every(([value])=>!value.method)).toBe(true);expect(m.upload).not.toHaveBeenCalled();
+  });
   it("uses a distinct creation key per new page and creates only once across onLoad/onShow",async()=>{
     m.request.mockImplementation(async({path,method}:any)=>path==="/v1/ugc/status"?{publicEnabled:false,draftsEnabled:true}:method==="POST"?draft():{items:[],matchingTotal:0,nextCursor:null});
     const first=instance();first.onLoad({new:"1"});first.onShow();await flush();

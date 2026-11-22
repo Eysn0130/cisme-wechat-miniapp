@@ -9,16 +9,56 @@ const entry=(id:string)=>({id,title:id,authorId:"synthetic",likeCount:0});
 function patch(target:any,key:string,value:any){const parts=key.replace(/\[(\d+)\]/g,".$1").split(".");let current=target;for(const [i,name] of parts.entries()){if(i===parts.length-1)current[name]=structuredClone(value);else current=current[name!]??=(/^\d+$/.test(parts[i+1]!)?[]:{});}}
 beforeEach(async()=>{vi.resetModules();mocks.request.mockReset();mocks.token="session-a";(globalThis as any).getApp=()=>({globalData:{sessionToken:mocks.token,apiBaseUrl:"https://synthetic.invalid"}});(globalThis as any).wx={};(globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(updates:any,callback?:()=>void){for(const [key,value]of Object.entries(updates))patch(this.data,key,value);callback?.();}};};await import("../../apps/miniprogram/pages/community/index");Object.assign(page.data,{loading:false,mode:"recommend",ugcFeedEnabled:true,formalNextCursor:"start",feedColumns:[[],[]],displayFeedCount:0});});
 describe("native community pagination response ownership",()=>{
+  it("keeps the same owner's previously read recommendations if a switch during Featured refresh fails",async()=>{
+    let stage="ready";const held=delayed();
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities")return {};
+      if(path==="/v1/ugc/status")return {publicEnabled:true,draftsEnabled:true};
+      if(path.startsWith("/v1/community/featured"))return {items:[entry("featured")],nextCursor:null};
+      if(path.startsWith("/v1/ugc/posts?")||path.startsWith("/v1/feed/page?")){
+        if(stage==="hold")return held.promise;
+        if(stage==="fail")throw {status:503};
+        return {items:path.startsWith("/v1/ugc/posts?")?[entry("kept")]:[],nextCursor:null};
+      }
+      return {};
+    });
+    await page.load();expect(page.data.feedColumns.flat().map((item:any)=>item.id)).toEqual(["kept"]);
+    await page.selectMode({currentTarget:{dataset:{mode:"featured"}}});stage="hold";
+    const refresh=page.load();for(let i=0;i<30;i++)await Promise.resolve();
+    stage="fail";await page.selectMode({currentTarget:{dataset:{mode:"recommend"}}});
+    expect(page.data.feedColumns.flat().map((item:any)=>item.id)).toEqual(["kept"]);expect(page.data.error).toContain("无法加载");
+    held.resolve({items:[],nextCursor:null});await refresh;
+    expect(page.data.feedColumns.flat().map((item:any)=>item.id)).toEqual(["kept"]);
+  });
+  it("reads the selected recommendation channel when Featured painted before recommendation results",async()=>{
+    const old=delayed(),fresh=delayed();let recommendationReads=0;
+    mocks.request.mockImplementation(async({path}:any)=>path==="/v1/capabilities"?{}:path==="/v1/ugc/status"?{publicEnabled:true,draftsEnabled:true}:
+      path.startsWith("/v1/community/featured")?{items:[entry("featured")],nextCursor:null}:
+      path.startsWith("/v1/ugc/posts?")?(++recommendationReads===1?old.promise:fresh.promise):{items:[],nextCursor:null});
+    page.setData({mode:"featured",loading:true,feedReady:false});
+    const initial=page.load();for(let i=0;i<30;i++)await Promise.resolve();
+    expect(page.data).toMatchObject({loading:false,displayFeedCount:1,ugcFeedEnabled:true});
+    const selected=page.selectMode({currentTarget:{dataset:{mode:"recommend"}}});
+    for(let i=0;i<30;i++)await Promise.resolve();
+    expect(page.data).toMatchObject({mode:"recommend",loading:true,feedReady:false,displayFeedCount:0});
+    expect(recommendationReads).toBe(2);
+    old.resolve({items:[entry("stale")],nextCursor:null});await initial;
+    expect(page.data.loading).toBe(true);expect(page.data.displayFeedCount).toBe(0);
+    fresh.resolve({items:[entry("current")],nextCursor:null});await selected;
+    expect(page.data.loading).toBe(false);expect(page.data.feedColumns.flat().map((item:any)=>item.id)).toEqual(["current"]);
+  });
   it("reveals only the current cover after load and remounts only its image on retry",async()=>{
     mocks.request.mockImplementation(async({path}:any)=>path==="/v1/capabilities"?{}:path==="/v1/ugc/status"?{publicEnabled:false,draftsEnabled:false}:
       path.startsWith("/v1/community/featured")?{items:[{...entry("a"),coverUrl:`/v1/editorial/media/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/${"a".repeat(64)}`}],nextCursor:null}:{items:[],nextCursor:null});
     page.setData({mode:"featured"});await page.load();
     const first=structuredClone(page.data.feedColumns[0][0]),event=(key:string)=>({currentTarget:{dataset:{imageKey:key}}});
-    expect(first.imagePhase).toBe("loading");page.feedImageLoaded(event(first.imageKey));expect(page.data.feedColumns[0][0].imagePhase).toBe("arriving");
+    expect(first.imagePhase).toBe("loading");page.feedImageLoaded({...event(first.imageKey),detail:{width:400,height:600}});expect(page.data.feedColumns[0][0].imagePhase).toBe("arriving");
+    expect(page.data.feedColumns[0][0].imageRatio).toBe(150);
     page.feedImageSettled(event(first.imageKey));expect(page.data.feedColumns[0][0].imagePhase).toBe("ready");
     await page.load();expect(page.data.feedColumns[0][0]).toMatchObject({imageKey:first.imageKey,imagePhase:"ready"});
     page.feedImageFailed(event(first.imageKey));page.retryFeedImage(event(first.imageKey));
     const retry=page.data.feedColumns[0][0];expect(retry.imageKey).not.toBe(first.imageKey);expect(retry.imagePhase).toBe("loading");
+    expect(retry.imageRatio).toBe(150);
     page.feedImageLoaded(event(first.imageKey));expect(page.data.feedColumns[0][0].imagePhase).toBe("loading");
     mocks.token="different-actor";page.feedImageLoaded(event(retry.imageKey));expect(page.data.feedColumns[0][0].imagePhase).toBe("loading");
   });
