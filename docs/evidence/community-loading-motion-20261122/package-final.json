@@ -12,8 +12,8 @@
   "actual": {
     "files": 444,
     "routes": 48,
-    "totalBytes": 5660205,
-    "mainPackageBytes": 1750348,
+    "totalBytes": 5662033,
+    "mainPackageBytes": 1752176,
     "subpackageBytes": {
       "plugins/logistics": 161,
       "pages/records": 101472,
@@ -59,7 +59,7 @@
       "pages/management-community": 18347
     },
     "globalStyleBytes": 8176,
-    "sourceSha256": "c266436dc0f59bc8fb96cdba8f3fdd1d8f272613c9ba728bfed79546aeb8c602"
+    "sourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
   },
   "routes": [
     "pages/community/index",

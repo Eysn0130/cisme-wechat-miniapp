@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-22 binds the source after scoped community loading, image retry geometry and upload recovery repairs. The 2026-11-20 bottom-navigation evidence belongs to its original package. Full route, font, state and physical-device coverage remains pending; current scoped results are in docs/evidence/community-loading-motion-20261122.",
+  "note": "2026-11-22 binds the source after scoped community loading, image retry geometry, upload recovery and shared navigation glass repairs. The 2026-11-20 screenshots retain their original package. Full route, font, state, OS accessibility and physical-device coverage remains pending; current scoped results are in docs/evidence/community-loading-motion-20261122.",
   "previousSourceRecord": {
     "packageSourceSha256": "7f56d3f01f1b9852f176aabb56ae4f8d699d29b5c0ca9ea3fd741127c548f638",
     "scope": "0.1.57 uploaded development candidate before loading-state tokens, upload stages and inaccessible aftersale routing; historical screenshots and phone evidence remain historical."

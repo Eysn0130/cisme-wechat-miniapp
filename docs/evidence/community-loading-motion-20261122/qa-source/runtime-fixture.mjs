@@ -7,7 +7,7 @@ export async function setup(){return evaluate(function(){
   if(!source)throw Error('A real public image is required');
   const origin=app.globalData.apiBaseUrl.replace(/\/$/,''),cover=source.startsWith(origin)?source.slice(origin.length):source;
   const q={original:{globalData:{...app.globalData},request:wx.request,uploadFile:wx.uploadFile,getStorageSync:wx.getStorageSync,setStorageSync:wx.setStorageSync,removeStorageSync:wx.removeStorageSync,getDeviceInfo:wx.getDeviceInfo},
-    cover,origin,storage:{},requests:[],unexpected:[],pending:[],uploads:[],confirmed:[],completeMode:'hold',holdFeatured:true,holdRecommend:false,empty:false,fail:false,nextMedia:1,transport:'POST'};
+    cover,origin,storage:{},requests:[],unexpected:[],pending:[],uploads:[],confirmed:[],completeMode:'hold',holdFeatured:true,holdRecommend:false,empty:false,fail:false,failRecommend:true,nextMedia:1,transport:'POST'};
   app.__motionReview=q;
   const card=(id,title)=>({id,title,kind:'editorial',author:'CISME头皮实验室',authorId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',coverUrl:cover,avatar:'',likeCount:0,saveCount:0,publishedAt:'2026-11-22T12:00:00Z'});
   q.cards=[card('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','头皮护理，从了解自己开始'),card('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','记录每一次真实感受')];
@@ -22,8 +22,8 @@ export async function setup(){return evaluate(function(){
       else if(path==='/v1/me/community-access')data={canReview:false};
       else if(path==='/v1/shares'&&method==='POST')data={shareId:'77777777-7777-4777-8777-777777777777',path:'/pages/community/index'};
       else if(path.startsWith('/v1/community/featured?')){if(q.fail){statusCode=503;data={code:'SYNTHETIC_READ_FAILURE',title:'受控读取失败'};}else data={items:q.empty?[]:q.cards,nextCursor:null};}
-      else if(path.startsWith('/v1/feed/page?')){if(q.fail){statusCode=503;data={code:'SYNTHETIC_READ_FAILURE'};}else data={items:[],nextCursor:null};}
-      else if(path.startsWith('/v1/ugc/posts?')){if(q.fail){statusCode=503;data={code:'SYNTHETIC_READ_FAILURE'};}else data={items:q.empty?[]:[{id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',title:'推荐中的真实读取状态',authorId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',author:'合成会员',likeCount:0,coverId:null}],nextCursor:null};}
+      else if(path.startsWith('/v1/feed/page?')){if(q.denyLegacy){statusCode=403;data={code:'SYNTHETIC_READ_DENIED'};}else if(q.fail||q.failRecommend){statusCode=503;data={code:'SYNTHETIC_READ_FAILURE'};}else data={items:[],nextCursor:null};}
+      else if(path.startsWith('/v1/ugc/posts?')){if(q.fail||q.failRecommend||q.failFormal){statusCode=503;data={code:'SYNTHETIC_READ_FAILURE'};}else data={items:q.empty?[]:[{id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',title:'推荐中的真实读取状态',authorId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',author:'合成会员',likeCount:0,coverId:null}],nextCursor:null};}
       else if(path.startsWith('/v1/me/community/following?'))data={items:[],nextCursor:null};
       else if(path==='/v1/me/ugc/posts/11111111-1111-4111-8111-111111111111')data={id:'11111111-1111-4111-8111-111111111111',ownerId:'22222222-2222-4222-8222-222222222222',state:'draft',version:1,revision:1,title:'今天的护理记录',body:'本次素材仅用于隔离验收。',media:[],publicVersionActive:false};
       else if(path.endsWith('/media/authorize')&&method==='POST')data={mediaId:`33333333-3333-4333-8333-${String(q.nextMedia++).padStart(12,'0')}`,url:origin+'/synthetic-review-upload',method:q.transport,fields:{}};
@@ -41,7 +41,7 @@ export async function setup(){return evaluate(function(){
       else{q.unexpected.push({path,method});options.fail({errMsg:'SYNTHETIC_REQUEST_BLOCKED'});return;}
       options.success({statusCode,data});options.complete?.({statusCode,data});
     };
-    const held=q.holdFeatured&&path.startsWith('/v1/community/featured?')||q.holdRecommend&&(path.startsWith('/v1/feed/page?')||path.startsWith('/v1/ugc/posts?'))||q.completeMode==='hold'&&path.endsWith('/complete')||path==='/synthetic-review-upload'&&method==='PUT';
+    const held=q.holdFeatured&&path.startsWith('/v1/community/featured?')||q.holdRecommend&&(path.startsWith('/v1/feed/page?')||path.startsWith('/v1/ugc/posts?'))||q.holdFormal&&path.startsWith('/v1/ugc/posts?')||q.completeMode==='hold'&&path.endsWith('/complete')||path==='/synthetic-review-upload'&&method==='PUT';
     if(held)q.pending.push({path,deliver});else setTimeout(deliver,15);
     return {abort(){if(aborted)return;aborted=true;options.fail({errMsg:'request:fail abort'});}};
   };

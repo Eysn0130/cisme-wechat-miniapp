@@ -1,8 +1,8 @@
 {
   "date": "2026-11-22",
   "baseMainCommit": "7f7ca33f8c148d831f39094f93135cef7ec22d52",
-  "sourceCommit": "3521c54933482310000409d21c4cdce8563a2447",
-  "packageSourceSha256": "c266436dc0f59bc8fb96cdba8f3fdd1d8f272613c9ba728bfed79546aeb8c602",
+  "sourceCommit": "2911703f2b55324f203f945bfbf8ff05cdf923ff",
+  "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80",
   "skill": {
     "vaultRevision": "e5a1e32d56f92e6d0efb9d5389a3564c028f0e73",
     "path": "30-Skills/Library/loading-state-motion/SKILL.md",
@@ -25,16 +25,16 @@
       {
         "device": "Pixel 9",
         "width": 412,
-        "cases": 16
+        "cases": 19
       },
       {
         "device": "iPhone 12/13 mini",
         "width": 375,
-        "cases": 16,
+        "cases": 19,
         "safeBottom": 34
       }
     ],
-    "compilationChecks": 5,
+    "compilationChecks": 7,
     "publicFeedRead": "Real anonymous read, 20 cards at final cleanup",
     "uploads": "In-memory controlled transports through the actual page and upload adapter; no real member writes",
     "screenshots": "Original tool PNGs, 618x1386 at 412 and 564x1218 at 375; no image rescaling applied by the test. PNGs follow the existing repository ignore policy and remain local; their hashes and native measurements are versioned.",
@@ -44,13 +44,13 @@
     "success": true,
     "numPassedTestSuites": 426,
     "numFailedTestSuites": 0,
-    "numPassedTests": 3662,
+    "numPassedTests": 3669,
     "numFailedTests": 0,
     "numPendingTests": 1,
-    "numTotalTests": 3663,
+    "numTotalTests": 3670,
     "scope": "Full local unit suite; one platform-specific performance test skipped. Does not prove physical-device or real member upload/publication."
   },
-  "targetedTests": 214,
+  "targetedTests": 221,
   "typecheck": "passed",
   "packageGate": "passed",
   "routeAudit": "48 routes, source hash binding valid; full visual/state matrix remains blocked",
@@ -64,6 +64,8 @@
   "notValidated": [
     "Physical iOS/Android devices, screen readers and device frame-rate performance",
     "Real member upload, image replacement and public publication end-to-end on this package",
+    "OS reduced-motion/reduced-transparency/increased-contrast preference propagation in WeChat; genuinely unsupported backdrop engines",
+    "First never-measured image dimensions (existing widthFix remains)",
     "14px/700ms blur reveal; current product keeps the existing 200ms opacity adaptation",
     "All 48 routes, font sizes and state combinations",
     "Author-profile cover failure recovery (existing fallback path, outside this scoped repair)"
@@ -74,33 +76,72 @@
     "reason": "Docker CLI is installed but no local Docker daemon is available at /var/run/docker.sock. No disposable database was created. Candidate GitHub verify will run the integration suite in its isolated environment.",
     "realDataTouched": false
   },
-  "candidateCI": "pending remote candidate verification",
+  "candidateCI": {
+    "status": "refer_to_exact_pr_head_checks",
+    "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/126/checks",
+    "note": "Remote CI result is recorded on the PR and in the knowledge closeout after this evidence commit; do not infer it from an earlier head."
+  },
   "mainMerged": false,
   "baselineMeasurementScope": "baseline-image-retry.json is condensed output of the pre-image-fix native probe; its intermediate full package fingerprint was not captured. It is diagnostic history, not current package acceptance.",
   "artifacts": {
     "native-results.json": {
-      "sha256": "ef9e7ac763bc4c9972d1567150617fbd95f4857da8626d379cc07935472e8430",
-      "bytes": 28861,
+      "sha256": "32138f76941dd569fb469439cf2ca2a40f743d22e8ca90d13ddd2d8f85f791f7",
+      "bytes": 31563,
+      "storage": "version_controlled"
+    },
+    "glass-native-results.json": {
+      "sha256": "74e3c1b28c600181e821556fd8391b9571e944c3b41bd3b74ba89b76f27ef98e",
+      "bytes": 15636,
+      "storage": "version_controlled"
+    },
+    "glass-375-native.json.gz": {
+      "sha256": "31cc57a47b72ea9eb2de5653f1dc6c835f78b955fe2a64e8e4cb357dada79770",
+      "bytes": 7835,
+      "storage": "version_controlled"
+    },
+    "glass-412-native.json.gz": {
+      "sha256": "f18453a350cab4cacf6d74326aa0f5d10be9880087bee4ffb64289553ecedb75",
+      "bytes": 7756,
+      "storage": "version_controlled"
+    },
+    "glass-contrast.json": {
+      "sha256": "a2694511969a70eb8c7dfb84f7903a825e343e87ab238762df269c41ee5af36d",
+      "bytes": 21805,
+      "storage": "version_controlled"
+    },
+    "cua-375-taps.json": {
+      "sha256": "aff0748d9c84ccf195027ceea1fdbe3b169c380cee959cace37b50d90f3e9843",
+      "bytes": 873,
+      "storage": "version_controlled"
+    },
+    "cua-412-taps.json": {
+      "sha256": "a5ae77bbeacb397e6418b34bad2484df9d926695b2ae07d893f904fe3f86bb3a",
+      "bytes": 1024,
+      "storage": "version_controlled"
+    },
+    "session-cleanup.json": {
+      "sha256": "0ea67a332a9937d3c5800223cc8cb346d807b1f2527bb3650ce1eeb5c09413e5",
+      "bytes": 481,
       "storage": "version_controlled"
     },
     "native-compilation.json": {
-      "sha256": "da11686ae7409ae6b240a4c46bd8d8b9be667ca435187720f4ed8b5832c05648",
-      "bytes": 989,
+      "sha256": "35f1ac445822d1e5bbd218fc13d569206ca6d53b6fb04f0041f34fae2b1fde29",
+      "bytes": 1343,
       "storage": "version_controlled"
     },
     "package-final.json": {
-      "sha256": "af596b55cb9708b18aabe8ecba9309498cf3597f9db96f46873ab170b83bf14e",
+      "sha256": "27020f917547d0eb175b7f18cc2b0dd843fbc3a35f68db8860b704bea32df742",
       "bytes": 3620,
       "storage": "version_controlled"
     },
     "unit-summary.json": {
-      "sha256": "79c6686a3907794b0b15a33ec31cdf9ee844dab6be6828c4ecfd91d1935e4e85",
+      "sha256": "ccd68894833713d9f78be6b869ef434796147f88ccc76a15896d240ef4008625",
       "bytes": 329,
       "storage": "version_controlled"
     },
     "unit-results.json.gz": {
-      "sha256": "db686e63508a50201277b9ba7a0c885859c8a431debc3c1012c53c1131dd3717",
-      "bytes": 151198,
+      "sha256": "0bc77cee8bef515be05765206d48c9de08e66dcd72075c418fb332692aeb74c0",
+      "bytes": 151582,
       "storage": "version_controlled"
     },
     "local-integration-scope.json": {
@@ -114,49 +155,183 @@
       "storage": "version_controlled"
     },
     "final-live-anonymous-runtime.json": {
-      "sha256": "92bdaaa89068adc8d2cc8ab978e3087c94dff0a95336b82eaabda87b8d45c04b",
-      "bytes": 222,
+      "sha256": "c12b0d2d7470623d689446d6a88579b79f37cad07fdf5d23c5fbf8eb3b698af2",
+      "bytes": 221,
+      "storage": "version_controlled"
+    },
+    "qa-source/finalize-native.mjs": {
+      "sha256": "634a7bbb55fd7ac2c0aed7c09e72a5ac090465f82dba227678220bcbde44ceef",
+      "bytes": 1873,
+      "storage": "version_controlled"
+    },
+    "qa-source/native-client.mjs": {
+      "sha256": "f951eea5bb9ee57f515dfcd7775f74617db81913d2c8f4b49e6a48b4756ddf09",
+      "bytes": 3781,
+      "storage": "version_controlled"
+    },
+    "qa-source/resume-interruption.mjs": {
+      "sha256": "6bcbfdeb790b6b4065c149f64761790b1230e6512601374d1055c8440f690391",
+      "bytes": 1835,
+      "storage": "version_controlled"
+    },
+    "qa-source/runtime-fixture.mjs": {
+      "sha256": "1609e69fb328b0be82057e8c9bd17daf4f9810cbce122acc7fe5f9a3255c22c7",
+      "bytes": 8824,
+      "storage": "version_controlled"
+    },
+    "qa-source/session-baseline.mjs": {
+      "sha256": "437cf6b09ef8b6e74b29436aab0141f35e09e10b95489af3e5e0acc6a701580d",
+      "bytes": 1655,
+      "storage": "version_controlled"
+    },
+    "qa-source/measure-glass-contrast.py": {
+      "sha256": "6b5c6284a209044bd6e7388e2075520bd777152d3fb7fe1bc080255c786f6dfc",
+      "bytes": 4553,
+      "storage": "version_controlled"
+    },
+    "qa-source/run-native.mjs": {
+      "sha256": "638922aeee3b26a49a799a07cf19f792192ec41d2c9b58202a318c6cdbb182c8",
+      "bytes": 12957,
+      "storage": "version_controlled"
+    },
+    "qa-source/run-glass-native.mjs": {
+      "sha256": "86ead1bf0bec141db848c2c9d176b085428e7f210cc8eef53d7f1f85435ee57e",
+      "bytes": 10465,
       "storage": "version_controlled"
     },
     "final-live-anonymous-community.png": {
-      "sha256": "eb1130df732f53e23abc6f07ae5360d511385685c22ee2f4e5b12f95677eb5e5",
-      "bytes": 584478,
+      "sha256": "6a95b1698e9896b8e01eff0b810b29855e6fca8a21573af0193c184358acd08e",
+      "bytes": 746392,
       "storage": "local_only_gitignored"
     },
-    "375-final-cold.png": {
-      "sha256": "03d329ab5da818337349f38055a9f6596098cb01e619ea51edd0ff82abf3dc7b",
-      "bytes": 89864,
+    "bottom-navigation-before-20261122.png": {
+      "sha256": "d732f459a97891a5ad55a46928f6c4de4afafb7c7d99b3e7b33ceb43ab16e14b",
+      "bytes": 584279,
       "storage": "local_only_gitignored"
     },
-    "375-final-ready.png": {
-      "sha256": "bdfda0f5aa836a5843f7bffa117c9cd4a63ba3ad7dc303c7bbe2d94552f1f2fc",
-      "bytes": 362447,
+    "bottom-navigation-after-375.png": {
+      "sha256": "ed15d68042e9abb21580f7cf6f42327d5e1724720d306a4afb39a12d50433294",
+      "bytes": 582939,
       "storage": "local_only_gitignored"
     },
-    "375-final-recommend-pending.png": {
-      "sha256": "2230a8036ab8bdcc322f53536d53c303b0d68f19801092c1a9ed1ceff7086bd7",
-      "bytes": 97853,
+    "bottom-navigation-final-375.png": {
+      "sha256": "e4385bc47b46f453d1a9f47cc2eaf0d730ebb587fe02dee26566afcc04cc98f8",
+      "bytes": 582042,
       "storage": "local_only_gitignored"
     },
-    "375-final-upload-progress.png": {
-      "sha256": "0631e35936da445ce469679502f9f3c5d994dcf168e32cb09d1bd28a365f6a57",
-      "bytes": 78774,
+    "375-reverified-cold.png": {
+      "sha256": "b1e84f597a399be34f0d8b5b2d813e1b4d70cbf472cbbfbd92592d3ae160f05d",
+      "bytes": 107185,
       "storage": "local_only_gitignored"
     },
-    "412-final-cold.png": {
-      "sha256": "0cd3c00f2cb20146f00a34478a1ec7b107b21f6cc58adfa02dc4517f46c81b04",
-      "bytes": 108595,
+    "375-reverified-ready.png": {
+      "sha256": "7e8cd08245a9540c2fc40374cbe697b5cf9ce0e58cde6e98db5f85f5c67faee8",
+      "bytes": 358933,
       "storage": "local_only_gitignored"
     },
-    "412-final-ready.png": {
-      "sha256": "d613389f25b4cf13286ab163fae258d7db21a74b7bbef8eb553e9de7d67e8c6c",
-      "bytes": 414635,
+    "375-reverified-recommend-pending.png": {
+      "sha256": "8186d37f468af97a1e1a75c884513111ae6e074b2d8ae005a3197407907591b1",
+      "bytes": 95386,
       "storage": "local_only_gitignored"
     },
-    "412-final-upload-progress.png": {
-      "sha256": "2d70e5a5912da9dc5f91f09dff23189d368282421841e02bbbcbfe87fc078b8e",
-      "bytes": 77134,
+    "375-reverified-upload-progress.png": {
+      "sha256": "c5842b1fa05e7c9e3cc354aaa82951ea38f519ed4c7a6141a737b4ae37aa2e0e",
+      "bytes": 78828,
+      "storage": "local_only_gitignored"
+    },
+    "412-reverified-cold.png": {
+      "sha256": "8fb74fd8c089313d1177e505ba310657f1bf20d728e192e14bf3b87ca2925529",
+      "bytes": 92872,
+      "storage": "local_only_gitignored"
+    },
+    "412-reverified-ready.png": {
+      "sha256": "8862f70eadff77bba71680d6a9aa74bf2e3c581e156d386f521d93802a7cb63e",
+      "bytes": 413312,
+      "storage": "local_only_gitignored"
+    },
+    "412-reverified-recommend-pending.png": {
+      "sha256": "ffcbbc14a4e9670a1fa46fa32578151b8d989a128c8663390ae2710621efb988",
+      "bytes": 85284,
+      "storage": "local_only_gitignored"
+    },
+    "412-reverified-upload-progress.png": {
+      "sha256": "ac47ac5a67ea38ed86ba9922c8ee94418d80a60c66580e4288db3d325f7b2d3c",
+      "bytes": 77344,
+      "storage": "local_only_gitignored"
+    },
+    "glass-375-light.png": {
+      "sha256": "8d7c89c564f9cfbf6749f2821aec8eef5b314b498f5fdaecae37fe5084b63c1e",
+      "bytes": 94744,
+      "storage": "local_only_gitignored"
+    },
+    "glass-375-warm.png": {
+      "sha256": "3e694e6d82c71007de018fc2a8d80672cfb3dad39f0e43693e15f537e0424b68",
+      "bytes": 106827,
+      "storage": "local_only_gitignored"
+    },
+    "glass-375-dark.png": {
+      "sha256": "13d8cb680e58986bf182ab2a7e964a1690f9cc6e852d2e1a0943e4b5052d8eb7",
+      "bytes": 95720,
+      "storage": "local_only_gitignored"
+    },
+    "glass-375-busy.png": {
+      "sha256": "6af3f7947e596dd88004b21a766b71409aa46c5aea34b67127c49e83dfd91720",
+      "bytes": 79288,
+      "storage": "local_only_gitignored"
+    },
+    "glass-412-light.png": {
+      "sha256": "fd59709a9f3a18a37b9150d4959c34b7ad35a77eab8b5c1bc89fb3a678ac4480",
+      "bytes": 72482,
+      "storage": "local_only_gitignored"
+    },
+    "glass-412-warm.png": {
+      "sha256": "f183f689dd398cfe2b90a541e8eeb7a07c8eb95de8a15c73c6a11c69504a36ee",
+      "bytes": 76083,
+      "storage": "local_only_gitignored"
+    },
+    "glass-412-dark.png": {
+      "sha256": "117c9ae298e160615ab0d04e828c17d66262bf7620a4fb949b38418f9b2a6efd",
+      "bytes": 72547,
+      "storage": "local_only_gitignored"
+    },
+    "glass-412-busy.png": {
+      "sha256": "0aa8a9579eddcd8ffeed97e3e7e17089b41ede4ab725665f3e650ee2b48d0ac2",
+      "bytes": 73161,
       "storage": "local_only_gitignored"
     }
-  }
+  },
+  "glass": {
+    "skillPath": "30-Skills/Library/liquid-glass-ui/SKILL.md",
+    "skillSha256": "21b13e94d7ff1e457650ec7cc24061d9d9dc5695ab82897e77a4c0f6edd3365a",
+    "appleSources": [
+      "https://developer.apple.com/design/human-interface-guidelines/materials",
+      "https://developer.apple.com/design/human-interface-guidelines/tab-bars",
+      "https://developer.apple.com/videos/play/wwdc2025/219/"
+    ],
+    "backdrop": "One shared 20px blur / 135% saturation layer, .84 to .82 neutral white fill; moving selected lens has no nested blur. 280ms existing directional stretch/rebound retained.",
+    "directedTransitions": 24,
+    "controlledBackgrounds": 8,
+    "actualPointerTaps": 8,
+    "contrast": {
+      "scope": "Native simulator PNGs, four controlled backdrops per width; actual neighboring material pixels, intended ink colors, antialias edges excluded.",
+      "iconLimit": "Thin SVG strokes do not always contain opaque raster pixels. Icon values compare the intended source SVG fill with sampled adjacent material, not every antialiased pixel or physical-device perception.",
+      "labelTarget": 4.5,
+      "iconTarget": 3,
+      "minimumLabel": 4.9567761562973125,
+      "minimumIcon": 3.5474978724580493
+    },
+    "coordinateTool": "Official CLI coordinate tap blocked by App.CDPEnable unimplemented; actual pointer checks completed separately through CUA in the exact worktree IDE window."
+  },
+  "previousValidatedCandidate": {
+    "sourceCommit": "3521c54933482310000409d21c4cdce8563a2447",
+    "evidenceCommit": "1f80041ad7b84b8a6e2718bb2ceffd6e5d4a79e9",
+    "packageSourceSha256": "c266436dc0f59bc8fb96cdba8f3fdd1d8f272613c9ba728bfed79546aeb8c602",
+    "scope": "Earlier 16 cases per width; superseded by the new package and 19 cases per width. Historical images are not relabeled."
+  },
+  "diagnosticRuns": [
+    "Initial same-day community verifier forgot to reactivate motion after its own onHide; repaired the harness and reran both full 19-case suites.",
+    "One exploratory glass sample timed out waiting on per-frame callbacks during native page switches; replaced with bounded non-blocking samples. Both complete 12-direction runs passed.",
+    "CLI coordinate taps returned App.CDPEnable unimplemented; no success was inferred. CUA actual pointer fallback independently confirmed 8 targets."
+  ],
+  "navigationRegressionTests": 45
 }

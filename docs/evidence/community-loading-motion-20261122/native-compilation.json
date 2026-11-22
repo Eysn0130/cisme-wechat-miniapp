@@ -39,7 +39,24 @@
         "page"
       ],
       "totalCodeLength": 21943
+    },
+    {
+      "tool": "compile_wxml",
+      "path": "custom-tab-bar/index.wxml",
+      "success": true,
+      "codeLength": 52825
+    },
+    {
+      "tool": "compile_wxss",
+      "path": "custom-tab-bar/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 21943
     }
   ],
-  "scope": "Five local WXML/WXSS compilation checks, not all routes or physical-device acceptance."
+  "scope": "Seven local WXML/WXSS compilation checks, not all routes or physical-device acceptance."
 }
