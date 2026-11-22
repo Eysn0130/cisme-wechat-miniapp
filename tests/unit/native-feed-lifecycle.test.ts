@@ -9,6 +9,135 @@ const entry=(id:string)=>({id,title:id,authorId:"synthetic",likeCount:0});
 function patch(target:any,key:string,value:any){const parts=key.replace(/\[(\d+)\]/g,".$1").split(".");let current=target;for(const [i,name] of parts.entries()){if(i===parts.length-1)current[name]=structuredClone(value);else current=current[name!]??=(/^\d+$/.test(parts[i+1]!)?[]:{});}}
 beforeEach(async()=>{vi.resetModules();mocks.request.mockReset();mocks.token="session-a";(globalThis as any).getApp=()=>({globalData:{sessionToken:mocks.token,apiBaseUrl:"https://synthetic.invalid"}});(globalThis as any).wx={};(globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(updates:any,callback?:()=>void){for(const [key,value]of Object.entries(updates))patch(this.data,key,value);callback?.();}};};await import("../../apps/miniprogram/pages/community/index");Object.assign(page.data,{loading:false,mode:"recommend",ugcFeedEnabled:true,formalNextCursor:"start",feedColumns:[[],[]],displayFeedCount:0});});
 describe("native community pagination response ownership",()=>{
+  it.each([403,503])("handles an unselected Featured source's HTTP%s without reviving denied snapshots",async status=>{
+    let failed=false,featuredReads=0;
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities")return {};
+      if(path==="/v1/ugc/status")return {publicEnabled:true};
+      if(path.startsWith("/v1/community/featured")){featuredReads++;if(failed)throw {status};return {items:[entry("featured")],nextCursor:"featured-next"};}
+      return {items:[],nextCursor:null};
+    });
+    page.setData({mode:"featured"});await page.load();await page.selectMode({currentTarget:{dataset:{mode:"recommend"}}});failed=true;await page.load();
+    const before=featuredReads;await page.selectMode({currentTarget:{dataset:{mode:"featured"}}});
+    expect(page.data.displayFeedCount).toBe(status===403?0:1);expect(page.data.editorialNextCursor).toBe(status===403?null:"featured-next");
+    expect(featuredReads).toBe(status===403?before+1:before);
+  });
+  it.each(["/v1/capabilities","/v1/ugc/status"])("clears a capability denial from %s before another capability or access read finishes",async deniedPath=>{
+    let blocked=false;const other=delayed(),access=delayed();
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities"||path==="/v1/ugc/status"){
+        if(blocked){if(path===deniedPath)throw {status:403};return other.promise;}
+        return path==="/v1/capabilities"?{communityPreviewEnabled:false}:{publicEnabled:true,draftsEnabled:true};
+      }
+      if(path==="/v1/me/community-access")return blocked?access.promise:{canReview:false};
+      if(path.startsWith("/v1/feed/page?"))return {items:[],nextCursor:null};
+      return {items:[entry(path.startsWith("/v1/community/featured")?"featured":"recommend")],nextCursor:"next"};
+    });
+    await page.load();blocked=true;const refresh=page.load();for(let i=0;i<30;i++)await Promise.resolve();
+    expect(page.data).toMatchObject({displayFeedCount:0,loading:false,formalNextCursor:null,ugcFeedEnabled:false,ugcDraftsEnabled:false});
+    const count=mocks.request.mock.calls.length;await page.onReachBottom();expect(mocks.request).toHaveBeenCalledTimes(count);
+    other.resolve(deniedPath==="/v1/capabilities"?{publicEnabled:true}:{communityPreviewEnabled:true});for(let i=0;i<30;i++)await Promise.resolve();
+    expect(page.data.mode).toBe("featured");expect(page.data.feedColumns.flat().map((item:any)=>item.id)).toEqual(["featured"]);
+    access.resolve({canReview:false});await refresh;expect(page.data.feedColumns.flat().map((item:any)=>item.id)).toEqual(["featured"]);
+  });
+  it("does not overwrite an already appended Featured page when ancillary first-page reads finish",async()=>{
+    const pending=delayed();
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities")return {};
+      if(path==="/v1/ugc/status")return {publicEnabled:true};
+      if(path.startsWith("/v1/ugc/posts?"))return pending.promise;
+      if(path.startsWith("/v1/community/featured"))return {items:[entry(path.includes("cursor=")?"second":"first")],nextCursor:path.includes("cursor=")?null:"next"};
+      return {items:[],nextCursor:null};
+    });
+    page.setData({mode:"featured"});const reading=page.load();for(let i=0;i<30;i++)await Promise.resolve();
+    expect(page.data.loading).toBe(false);await page.onReachBottom();expect(page.data.displayFeedCount).toBe(2);
+    pending.resolve({items:[],nextCursor:null});await reading;
+    expect(page.data.feedColumns.flat().map((item:any)=>item.id).sort()).toEqual(["first","second"]);expect(page.data.editorialNextCursor).toBeNull();
+  });
+  it.each(["formal","preview"])("removes a confirmed closed %s source while other status/list reads are unavailable",async closed=>{
+    let closing=false;
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities"){if(closing&&closed==="formal")throw {status:503};return {communityPreviewEnabled:!closing,ugcGoLiveGate:!closing};}
+      if(path==="/v1/ugc/status"){if(closing&&closed==="preview")throw {status:503};return {publicEnabled:!closing};}
+      if(path.startsWith("/v1/community/featured"))return {items:[],nextCursor:null};
+      if(path.startsWith("/v1/ugc/posts?")){if(closing&&closed==="preview")throw {status:503};return {items:closing?[]:[entry("formal")],nextCursor:closing?null:"next"};}
+      if(path.startsWith("/v1/feed/page?")){if(closing&&closed==="formal")throw {status:503};return {items:closing?[]:[entry("preview")],authors:{},nextCursor:null};}
+      return {};
+    });
+    await page.load();expect(page.data.displayFeedCount).toBe(2);closing=true;await page.load();
+    expect(page.data.feedColumns.flat().map((item:any)=>item.id)).toEqual([closed==="formal"?"preview":"formal"]);
+    if(closed==="formal")expect(page.data.formalNextCursor).toBeNull();
+    expect(page.data.capabilityError).toContain("重试");
+  });
+  it.each(["refresh","pagination"])("clears Featured cards and cursor on %s permission denial",async stage=>{
+    let denied=false;
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities"||path==="/v1/ugc/status")return {};
+      if(path.startsWith("/v1/community/featured")){if(denied)throw {status:403};return {items:[entry("featured")],nextCursor:"next"};}
+      return {items:[],nextCursor:null};
+    });
+    page.setData({mode:"featured"});await page.load();denied=true;
+    if(stage==="refresh")await page.load();else await page.onReachBottom();
+    expect(page.data).toMatchObject({displayFeedCount:0,editorialNextCursor:null,formalLoadingMore:false,loading:false});
+  });
+  it("keeps each retained channel cursor when a later first-page refresh fails",async()=>{
+    let failed=false;
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities")return {};
+      if(path==="/v1/ugc/status")return {publicEnabled:true};
+      if(failed)throw {status:503};
+      if(path.startsWith("/v1/feed/page?"))return {items:[],nextCursor:null};
+      return {items:[entry(path.startsWith("/v1/community/featured")?"featured":"recommend")],nextCursor:path.startsWith("/v1/community/featured")?"featured-next":"recommend-next"};
+    });
+    page.setData({mode:"featured"});await page.load();
+    await page.selectMode({currentTarget:{dataset:{mode:"recommend"}}});
+    failed=true;await page.load();
+    expect(page.data).toMatchObject({editorialNextCursor:"featured-next",formalNextCursor:"recommend-next",displayFeedCount:1});
+    await page.selectMode({currentTarget:{dataset:{mode:"featured"}}});expect(page.data.editorialNextCursor).toBe("featured-next");
+  });
+  it.each(["/v1/capabilities","/v1/ugc/status"])("retains the current channel when %s is temporarily unavailable",async missing=>{
+    let failed=false;
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(failed&&path===missing)throw {status:503};
+      if(path==="/v1/capabilities")return {communityPreviewEnabled:false};
+      if(path==="/v1/ugc/status")return {publicEnabled:true,draftsEnabled:true};
+      if(path.startsWith("/v1/feed/page?"))return {items:[],nextCursor:null};
+      return {items:[entry("kept")],nextCursor:null};
+    });
+    await page.load();failed=true;await page.load();
+    expect(page.data).toMatchObject({mode:"recommend",loading:false,ugcFeedEnabled:true,displayFeedCount:1,
+      ugcDraftsEnabled:missing!=="/v1/ugc/status",capabilityError:expect.stringContaining("重试")});
+    failed=false;await page.load();expect(page.data.capabilityError).toBe("");
+  });
+  it("clears a recommendation page on pagination permission denial but ignores a different account's old denial",async()=>{
+    let failure:any=null;
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities")return {};
+      if(path==="/v1/ugc/status")return {publicEnabled:true};
+      if(path.startsWith("/v1/feed/page?"))return {items:[],nextCursor:null};
+      if(failure&&path.includes("cursor="))throw failure;
+      return {items:[entry("kept")],nextCursor:"next"};
+    });
+    await page.load();failure={status:403};await page.onReachBottom();
+    expect(page.data).toMatchObject({displayFeedCount:0,feedReady:false,formalNextCursor:null,formalLoadingMore:false,error:expect.stringContaining("无法加载")});
+    failure=null;await page.load();const pending=delayed();mocks.request.mockReturnValueOnce(pending.promise);
+    const reading=page.onReachBottom();mocks.token="member-b";const before=structuredClone(page.data);pending.reject({status:403});await reading;
+    expect(page.data).toEqual(before);
+  });
+  it("does not carry old capability flags across an account change or pretend an unknown first read was a closure",async()=>{
+    let failed=false;
+    mocks.request.mockImplementation(async({path}:any)=>{
+      if(path==="/v1/capabilities"||path==="/v1/ugc/status"){
+        if(failed)throw {status:503};return {publicEnabled:true,draftsEnabled:true};
+      }
+      return {items:[entry("current")],nextCursor:null};
+    });
+    await page.load();mocks.token="member-b";failed=true;await page.load();
+    expect(page.data).toMatchObject({mode:"recommend",ugcFeedEnabled:false,ugcDraftsEnabled:false,socialPreviewEnabled:false,
+      capabilityError:expect.stringContaining("重试")});
+    failed=false;mocks.request.mockImplementation(async({path}:any)=>path==="/v1/capabilities"||path==="/v1/ugc/status"?{}:{items:[],nextCursor:null});
+    await page.load();expect(page.data.mode).toBe("featured");expect(page.data.capabilityError).toBe("");
+  });
   it("clears a denied recommendation immediately while the other source is still pending",async()=>{
     const pending=delayed();let denied=false;
     mocks.request.mockImplementation(async({path}:any)=>{

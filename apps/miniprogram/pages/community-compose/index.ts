@@ -244,7 +244,9 @@ Page({
       mediaIds:this.data.files.filter(file=>file.state==="uploaded"&&!file.id.startsWith("local-")).map(file=>file.id),
       mediaItems:this.data.files.map(file=>({id:file.id,localPath:file.localPath,size:file.size,state:file.state==="uploaded"?"uploaded":"failed",error:file.state==="uploaded"?"":file.error||"图片上传已中断，可重试或重新选择。",
         ...(file.confirmationPending===true&&/^[0-9a-f-]{36}$/i.test(file.id)?{confirmationPending:true}:{})})),savedAt:Date.now()};
-    try{writeUgcBackup(backup);return true;}catch{this.setData({notice:"本次修改尚未保存，请点击“存草稿”。"});return false;}
+    const pendingNotice="本机保存失败，请清理存储空间后重新核对图片。",inputNotice="本次修改尚未保存，请点击“存草稿”。";
+    try{writeUgcBackup(backup);if([pendingNotice,inputNotice].includes(this.data.notice))this.setData({notice:""});return true;}
+    catch{this.setData({notice:this.data.files.some(file=>file.confirmationPending)?pendingNotice:inputNotice});return false;}
   },
   clearLocalTextEntryScope(){
     const hadLocalCommand=Boolean(this.localTextEntry||this.pendingLocalText||this.pendingTextImport);
@@ -373,7 +375,7 @@ Page({
     if(file.state==="uploaded"&&source===file.localPath&&file.previewUrl){this.updateMedia(id,{localPath:"",error:""});return;}
     if(file.state==="uploaded"&&readonly&&source===file.previewUrl&&file.localPath){this.updateMedia(id,{previewUrl:"",error:"图片预览已失效，可重试获取。"});return;}
     this.updateMedia(id,file.state==="uploaded"?{localPath:"",previewUrl:"",error:"图片预览已失效，点此重试。"}:
-      {localPath:"",previewUrl:"",error:"本地图片已失效，请移除后重新选择。"});
+      {localPath:"",previewUrl:"",error:file.confirmationPending?"本地预览已失效，请重新核对图片确认结果。":"本地图片已失效，请移除后重新选择。"});
     if(file.state!=="uploaded")this.queueLocalBackup();
   },
   previewImage(event:WechatMiniprogram.TouchEvent){const id=String(event.currentTarget.dataset.id||"");
@@ -717,6 +719,9 @@ Page({
       receivingProgress=false;
       if(!current())return;
       this.updateMedia(id,{uploadPhase:"confirming",progressKnown:false,confirmationPending:true});
+      // Persist the original ID before confirmation can commit. System
+      // termination need not deliver onHide or the debounced input backup.
+      if(!this.flushLocalBackup())throw {title:"图片尚未确认，本机保存失败，请清理存储空间后重新核对。"};
       if(await this.confirmMedia(postId,id,current)){
         this.updateMedia(id, { state: "uploaded", progress: 100,confirmationPending:false, error: "" });
         this.setData({dirty:true});this.queueLocalBackup();
@@ -727,6 +732,7 @@ Page({
         const file=this.data.files.find(item=>item.id===id),pending=file?.confirmationPending===true&&!rejectedMediaConfirmation(error);
         this.updateMedia(id, { state: "failed",confirmationPending:pending,progressKnown:false,
           error: message(error,pending?"图片确认结果待核对，请重新核对。":!file?.localPath?"本地图片已失效，请移除后重新选择。":"上传失败，可点重试继续。") });
+        this.flushLocalBackup();
       }
     } finally {receivingProgress=false;if(current())this.mediaAbort=null;}
   },
@@ -797,10 +803,12 @@ Page({
     this.setData({ uploadBusy:true,error:"" });
     if(item.confirmationPending){
       this.updateMedia(id,{state:"uploading",uploadPhase:"confirming",progressKnown:false,confirmationRetryReady:false,error:""});
-      try{if(await this.confirmMedia(postId,id,current,!item.confirmationRetryReady)){
+      try{
+        if(item.confirmationRetryReady&&!this.flushLocalBackup())throw {title:"本机保存失败，请清理存储空间后继续确认。"};
+        if(await this.confirmMedia(postId,id,current,!item.confirmationRetryReady)){
         this.updateMedia(id,{state:"uploaded",confirmationPending:false,progress:100,error:""});this.setData({dirty:true});this.queueLocalBackup();void this.loadMediaPreviews([id],epoch,token,postId);
       }}catch(error){if(current())this.updateMedia(id,{state:"failed",confirmationPending:!rejectedMediaConfirmation(error),confirmationRetryReady:(error as {confirmationRetryReady?:boolean})?.confirmationRetryReady===true,error:message(error,"确认结果暂时无法核对，请稍后重试；无需重新上传。")});}
-      finally{if(current())this.setData({uploadBusy:false});}
+      finally{if(current()){this.flushLocalBackup();this.setData({uploadBusy:false});}}
       return;
     }
     try {

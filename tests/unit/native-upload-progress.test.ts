@@ -13,6 +13,16 @@ beforeEach(()=>{
   Object.assign(globalThis,{wx:device,getApp:()=>({globalData:context}),getCurrentPages:()=>[]});
 });
 describe("native upload progress reports measured transport facts",()=>{
+  it("does not start a chunk write if cancelled while its local file is being read",async()=>{
+    const {uploadAuthorized}=await import("../../apps/miniprogram/services/api");const state=states();let cancel!:()=>void,reading:any;
+    context.cloudFunction={env:"synthetic",name:"synthetic"};
+    device.getFileSystemManager=()=>({getFileInfo:(o:any)=>o.success({size:600*1024}),readFile:(o:any)=>{reading=o;}});
+    m.send.mockImplementation(o=>{queueMicrotask(()=>o.success({statusCode:200,data:{}}));return {abort:vi.fn()};});
+    const pending=uploadAuthorized("/synthetic.jpg",{url:"https://synthetic.invalid/upload",fields:{token:"synthetic-upload"},mediaId:"media-id"},{...state,registerAbort:fn=>{cancel=fn;}});
+    const rejected=expect(pending).rejects.toMatchObject({code:"UPLOAD_CANCELLED"});await flush();expect(reading).toBeTruthy();cancel();
+    const count=state.values.length;reading.success({data:"AA=="});await rejected;
+    expect(m.send).not.toHaveBeenCalled();expect(state.values).toHaveLength(count);
+  });
   it("withdraws the percentage if the same transport reports conflicting byte totals",async()=>{
     const {uploadAuthorized}=await import("../../apps/miniprogram/services/api");const state=states();
     const pending=uploadAuthorized("/synthetic.jpg",{url:"https://synthetic.invalid/upload",fields:{}},state);

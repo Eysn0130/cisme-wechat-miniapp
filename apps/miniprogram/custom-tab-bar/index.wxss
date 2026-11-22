@@ -101,16 +101,17 @@
 .bar__lens {
   position: absolute;
   inset: 1px 3px;
-  border: 1px solid #806193;
-  border-top-color: #846199;
-  border-bottom-color: #725086;
+  border: 1px solid #755186;
+  border-top-color: #77538a;
+  border-bottom-color: #694579;
   border-radius: 35px;
   /* The bar supplies the filtered backdrop. The rim lighting simulates edge depth. */
-  background:
-    radial-gradient(ellipse at 28% 0%, rgba(255,255,255,.82), transparent 75%),
-    linear-gradient(164deg, rgba(255,255,255,.9), rgba(250,247,252,.88));
+  background: #d3bde3;
+  background-image:
+    radial-gradient(ellipse at 28% 0%, rgba(255,255,255,.26), transparent 75%),
+    linear-gradient(164deg, #d9c7e8, #c8aedc);
   background-clip: padding-box;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.94), inset 0 -1px 1px rgba(137,102,159,.1), 0 1px 2px rgba(40,25,53,.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.64), inset 0 -1px 1px rgba(112,74,138,.16), 0 1px 2px rgba(40,25,53,.1);
 }
 @media (prefers-reduced-motion: no-preference) {
   .bar__lens-track--moving { animation: bar-lens-glide 280ms; }
@@ -163,13 +164,14 @@
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
+.chrome--reduced-motion .bar__lens { background: #d3bde3; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .bar {
     background: var(--bar-solid-background);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .bar__lens { background: #faf7fc; }
+  .bar__lens { background: #d3bde3; }
 }
 @media (prefers-contrast: more) {
   .bar { border-color: #746979; box-shadow:none; }

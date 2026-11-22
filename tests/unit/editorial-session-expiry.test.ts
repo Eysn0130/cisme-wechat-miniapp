@@ -4,25 +4,28 @@ import {beforeEach,describe,expect,it,vi} from "vitest";
 // callbacks below must actually revoke the captured token on a 401.
 vi.mock("../../apps/miniprogram/services/layout",()=>({shouldReduceMotion:()=>false,currentChromeStyle:()=>"",motionDuration:()=>0}));
 vi.mock("../../apps/miniprogram/services/member-avatar",()=>({defaultMemberAvatar:"local-default",clearMemberAvatarCache:vi.fn(),localMemberAvatar:async()=>"local-default",prepareFeedAuthors:async(items:unknown)=>items,prepareFeedPage:async()=>[]}));
-vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:async()=>null,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
+const share=vi.hoisted(()=>({prepare:vi.fn()}));
+vi.mock("../../apps/miniprogram/services/share",()=>({prepareShareDetails:share.prepare,prepareShareLink:vi.fn(),registerIncomingShare:vi.fn()}));
 const articleId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",authorId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const card={id:articleId,title:"公开精选",excerpt:"公开摘要",authorId,author:"公开作者",avatar:"",coverUrl:null,publishedAt:"2026-10-26T00:00:00Z",likeCount:0,saveCount:0};
 const article={...card,version:1,body:"公开正文",media:[],liked:false,saved:false,following:false,isMine:false,interactionsEnabled:true,sourceUrl:null,provenanceLabel:"AI辅助配图"};
 const author={author:{id:authorId,name:"公开作者",avatar:"",avatarRevision:null,membershipLabel:"CISME会员",bio:"",bioRevision:null,postCount:1,following:false,isMine:false,canFollow:true,followArticleId:articleId},items:[{...card,kind:"editorial"}],nextCursor:"next"};
-let page:any,runtime:any,requests:any[],storage:Map<string,unknown>,expirePath:string|null,holdPath:string|null,held:any[],patches:any[];
+let page:any,runtime:any,requests:any[],storage:Map<string,unknown>,expirePath:string|null,holdPath:string|null,held:any[],patches:any[],ugcEnabled:boolean,expireCode:string;
 function payload(path:string):unknown {
  if(path===`/v1/editorial/articles/${articleId}`)return article;
  if(path.startsWith(`/v1/editorial/articles/${articleId}/comments?`))return {comments:[{id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",version:1,body:"只对登录会员展示的评论",status:"published",parentId:null,replyToId:null,replyRootId:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",createdAt:"2026-10-26T00:00:00Z",authorId,authorName:"会员昵称",replyToName:null,isMine:false,likeCount:0,liked:false}],authors:{[authorId]:{name:"会员昵称",avatar:"",avatarRevision:null}},commentCount:1,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,loadedCount:1,hasMore:false,nextCursor:null,truncated:false,preview:false,asOf:"2026-10-26T00:00:00Z"};
  if(path.startsWith("/v1/community/authors/"))return author;
  if(path.startsWith("/v1/community/featured?"))return {items:[card],nextCursor:"next"};
  if(path==="/v1/capabilities")return {communityPreviewEnabled:false};
- if(path==="/v1/ugc/status")return {publicEnabled:false};
+ if(path==="/v1/ugc/status")return {publicEnabled:ugcEnabled};
+ if(path.startsWith("/v1/me/community/following?"))return {items:[{...card,kind:"editorial"}],nextCursor:"next"};
+ if(path.startsWith("/v1/ugc/posts?"))return {items:[card],nextCursor:"next"};
  if(path==="/v1/me/community-access")return {canReview:false};
  if(path==="/v1/me/tasks")return [];
  return {items:[],nextCursor:null};
 }
 function pathOf(options:any){return options.url.replace("https://synthetic.invalid","");}
-function deliver(options:any){const path=pathOf(options);options.success({statusCode:expirePath&&path.startsWith(expirePath)?401:200,data:expirePath&&path.startsWith(expirePath)?{code:"AUTH_EXPIRED"}:payload(path)});}
+function deliver(options:any){const path=pathOf(options);options.success({statusCode:expirePath&&path.startsWith(expirePath)?401:200,data:expirePath&&path.startsWith(expirePath)?{code:expireCode}:payload(path)});}
 function releaseHeld(){for(const options of held.splice(0))deliver(options);}
 async function mount(route:"post"|"community"|"community-author"){
  (globalThis as any).getCurrentPages=()=>[{route:`pages/${route}/index`,options:{id:route==="community-author"?authorId:articleId,source:"editorial"}}];
@@ -32,7 +35,8 @@ async function mount(route:"post"|"community"|"community-author"){
  page.onLoad?.({id:route==="community-author"?authorId:articleId,source:"editorial"});return page;
 }
 beforeEach(()=>{
- vi.resetModules();vi.clearAllMocks();requests=[];held=[];patches=[];storage=new Map();expirePath=null;holdPath=null;
+ vi.resetModules();vi.clearAllMocks();requests=[];held=[];patches=[];storage=new Map();expirePath=null;holdPath=null;ugcEnabled=false;expireCode="AUTH_EXPIRED";
+ share.prepare.mockReset().mockResolvedValue(null);
  runtime={globalData:{sessionToken:"synthetic-expired-session",privacyRightsToken:"",apiBaseUrl:"https://synthetic.invalid",sessionStorageKey:"synthetic.session"}};
  (globalThis as any).getApp=()=>runtime;
  (globalThis as any).Page=(definition:any)=>{page={...definition,data:structuredClone(definition.data),setData(update:any,callback?:()=>void){patches.push(structuredClone(update));for(const [name,value]of Object.entries(update)){if(name.includes("["))continue;this.data[name]=structuredClone(value);}callback?.();}};};
@@ -41,6 +45,48 @@ beforeEach(()=>{
 });
 
 describe("editorial reads after a real transport session revocation",()=>{
+ it("does not let an old environment's session-change error reset the new view",async()=>{
+  await mount("community");page.setData({mode:"following"});await page.loadFollowing();holdPath="/v1/me/community/following?";
+  const reading=page.loadMoreFollowing();const api=await import("../../apps/miniprogram/services/api");
+  runtime.globalData.apiBaseUrl="https://other.invalid";api.setSessionToken("");page.setData({error:"new environment",displayFeedCount:7});const before=patches.length;
+  releaseHeld();await reading;expect(patches.slice(before)).toEqual([]);expect(page.data.error).toBe("new environment");
+ });
+ it.each(["before-pending-read","after-completed-read"])("clears a visible Following projection if share authentication is revoked %s",async stage=>{
+  await mount("community");page.setData({mode:"following"});await page.loadFollowing();expect(page.data.displayFeedCount).toBe(1);
+  const api=await import("../../apps/miniprogram/services/api");
+  share.prepare.mockImplementation(async()=>{await api.request({path:"/v1/shares",method:"POST",data:{}}).catch(()=>{});return null;});
+  if(stage==="before-pending-read")holdPath="/v1/me/community/following?";
+  const reading=stage==="before-pending-read"?page.loadFollowing():Promise.resolve();
+  expirePath="/v1/shares";expireCode="AUTH_REVOKED";await page.prepareCommunityShare();await reading;
+  expect(runtime.globalData.sessionToken).toBe("");expect(page.data).toMatchObject({loading:false,formalLoadingMore:false,displayFeedCount:0,error:expect.stringContaining("登录状态已失效")});
+ });
+ it("clears an in-flight public read when another real request revokes its session",async()=>{
+  await mount("community");holdPath="/v1/community/featured?";const reading=page.load();
+  const api=await import("../../apps/miniprogram/services/api");expirePath="/v1/shares";expireCode="AUTH_REVOKED";
+  await api.request({path:"/v1/shares",method:"POST",data:{}}).catch(()=>{});await reading;
+  await vi.waitFor(()=>expect(page.data.loading).toBe(false));
+  expect(page.data).toMatchObject({loading:false,formalLoadingMore:false,displayFeedCount:0,error:expect.stringContaining("登录状态已失效")});
+ });
+ it.each(["account","environment","hidden"])("does not let a late share result clear a different %s view",async change=>{
+  await mount("community");page.setData({mode:"following"});await page.loadFollowing();let finish!:(value:null)=>void;
+  share.prepare.mockReturnValue(new Promise(resolve=>{finish=resolve;}));const sharing=page.prepareCommunityShare();
+  if(change==="account")runtime.globalData.sessionToken="another-member";
+  else if(change==="environment"){runtime.globalData.sessionToken="";runtime.globalData.apiBaseUrl="https://other.invalid";}
+  else{page.onHide();runtime.globalData.sessionToken="";}
+  const before=patches.length;finish(null);await sharing;expect(patches.slice(before)).toEqual([]);
+ });
+ it.each(["AUTH_EXPIRED","AUTH_REVOKED"])("clears Following refresh/pagination and recommendation pagination after real %s",async code=>{
+  await mount("community");ugcEnabled=true;await page.load();page.setData({mode:"following"});await page.loadFollowing();
+  expect(page.data.displayFeedCount).toBe(1);expireCode=code;expirePath="/v1/me/community/following?";
+  await page.loadFollowing();
+  expect(runtime.globalData.sessionToken).toBe("");expect(page.data).toMatchObject({mode:"featured",loading:false,formalLoadingMore:false,displayFeedCount:0,error:expect.stringContaining("登录状态已失效")});
+  const api=await import("../../apps/miniprogram/services/api");api.setSessionToken("next-session");expirePath=null;page.setData({mode:"following"});await page.loadFollowing();
+  expirePath="/v1/me/community/following?";await page.loadMoreFollowing();
+  expect(page.data).toMatchObject({mode:"featured",loading:false,formalLoadingMore:false,displayFeedCount:0,error:expect.stringContaining("登录状态已失效")});
+  api.setSessionToken("third-session");expirePath=null;page.setData({mode:"recommend"});await page.load();expect(page.data.displayFeedCount).toBe(1);
+  expirePath="/v1/ugc/posts?";await page.onReachBottom();
+  expect(page.data).toMatchObject({mode:"featured",loading:false,formalLoadingMore:false,displayFeedCount:0,error:expect.stringContaining("登录状态已失效")});
+ });
  it.each(["like","follow"] as const)("clears private comments when an explicit article %s action detects session expiry",async(action)=>{
   await mount("post");await page.load();await vi.waitFor(()=>expect(page.data.commentsLoading).toBe(false));
   expect(page.data.threads).toHaveLength(1);

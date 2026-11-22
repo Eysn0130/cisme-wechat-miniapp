@@ -42,6 +42,10 @@ const communityReadOwner = () => {
   const context = getApp<IAppOption>().globalData;
   return JSON.stringify([context.sessionToken, commerceContextRevision(), context.apiBaseUrl, context.cloudFunction?.env, context.cloudFunction?.name]);
 };
+const communityReadEnvironment=()=>{
+  const context=getApp<IAppOption>().globalData;
+  return JSON.stringify([context.apiBaseUrl,context.cloudFunction?.env,context.cloudFunction?.name]);
+};
 const initialEditorialStories = editorialStoriesForRuntime();
 function feedModel(page: object) {
   let model = feedModels.get(page);
@@ -59,6 +63,7 @@ let scrollTravel = 0;
 
 Page({
   readOwner: "",
+  readEnvironment:"",
   readVisible:true,
   pendingFeedRead:0,
   followingRequested:false,
@@ -71,7 +76,7 @@ Page({
   publisherAlive:true,publisherEpoch:0,publisherOwner:null as PublisherOwner|null,
   publisherNative:"" as ""|"privacy"|"picker"|"settings",publisherReturn:null as (()=>void)|null,
   publisherIntentId:"",publisherTransferActive:false,publisherNavigationEpoch:0,
-  data: { reducedMotion:shouldReduceMotion(),motionActive:true,feedReady:false,publishEntryOpen:false,publishEntryBusy:false,publishEntryError:"",publishEntryRecovery:"" as ""|"privacy"|"settings",publishEntrySource:"" as ""|"album"|"camera", reportCategoryLabels:{spam:'垃圾信息',harassment:'骚扰',unsafe_advice:'不安全建议',illegal:'违法内容',intellectual_property:'知识产权',privacy:'隐私',other:'其他'},mode: "featured", ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], profileReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, feedAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
+  data: { legacyFeedEnabled:false,capabilityError:"",reducedMotion:shouldReduceMotion(),motionActive:true,feedReady:false,publishEntryOpen:false,publishEntryBusy:false,publishEntryError:"",publishEntryRecovery:"" as ""|"privacy"|"settings",publishEntrySource:"" as ""|"album"|"camera", reportCategoryLabels:{spam:'垃圾信息',harassment:'骚扰',unsafe_advice:'不安全建议',illegal:'违法内容',intellectual_property:'知识产权',privacy:'隐私',other:'其他'},mode: "featured", ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false, canReview: false, signedIn: false, follows: [] as string[], profileReviewQueue: [] as any[], formalReportQueue:[] as any[],reportNextCursor:null as string|null,reportTotal:0,reportLoadingMore:false,formalAppealQueue:[] as any[],appealNextCursor:null as string|null,appealTotal:0,appealLoadingMore:false,reviewActorId:"",reviewBusy: false, teamError: "", reviewNotice:"",editorialNextCursor:null as string|null,formalNextCursor: null as string|null, followingNextCursor:null as string|null, formalLoadingMore:false, moreError:"", displayFeedCount: initialEditorialStories.length, feedColumns: projectFeedCards(initialEditorialStories), hero: initialEditorialStories[0] ?? null, feedAttempt: 0, chromeStyle: currentChromeStyle(), chromeHidden: false, loading: true, navigating: false, error: "" },
   onResize() { this.setData({ chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion() }); },
   openPointsGuide(){if(this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:'/pages/points/index?guide=1',fail:()=>{this.setData({navigating:false});wx.showToast({title:'积分攻略暂时无法打开',icon:'none'});}});},
   onShow() {
@@ -122,9 +127,15 @@ Page({
     const attempt = ++this.shareAttempt;
     const token = getApp<IAppOption>().globalData.sessionToken;
     const context = commerceContextRevision();
+    const owner=communityReadOwner();
+    const environment=communityReadEnvironment();
     this.shareCard = null;
     wx.hideShareMenu?.();
     const link = token ? await prepareShareDetails("invite","home") : null;
+    if(this.readVisible&&attempt===this.shareAttempt&&token&&!getApp<IAppOption>().globalData.sessionToken&&
+      owner===this.readOwner&&environment===communityReadEnvironment()){
+      this.recoverExpiredEditorialRead(this.data.feedAttempt,token,{code:"REQUEST_SESSION_CHANGED"});return;
+    }
     if (!this.readVisible || attempt !== this.shareAttempt || token !== getApp<IAppOption>().globalData.sessionToken ||
         context !== commerceContextRevision()) return;
     if (token && !link?.shareId) return;
@@ -327,13 +338,14 @@ Page({
     const mode=this.data.mode,cursor=mode==="following"?this.data.followingNextCursor:this.data.formalNextCursor,
       attempt=this.data.feedAttempt;
     if(!cursor||this.data.formalLoadingMore||this.data.loading||!["recommend","following"].includes(mode)||!this.data.ugcFeedEnabled)return;
-    const token=getApp<IAppOption>().globalData.sessionToken;
+    const token=getApp<IAppOption>().globalData.sessionToken,owner=communityReadOwner();
+    const current=()=>this.readVisible&&attempt===this.data.feedAttempt&&owner===communityReadOwner()&&mode===this.data.mode;
     this.setData({formalLoadingMore:true,moreError:""});
     try{
       const following=mode==="following"?"&following=1":"&channel=recommend";
       const page=await pageRead<{items:any[];nextCursor:string|null}>(this, {path:`/v1/ugc/posts?limit=30&cursor=${encodeURIComponent(cursor)}${following}`,
         authMode:token?"optional":"public"});
-      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||mode!==this.data.mode)return;
+      if(!current())return;
       const origin=getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/,"");
       const more=page.items.map(item=>({...item,kind:"formal",author_id:item.authorId,
         image:item.coverId&&origin?`${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail`:""}));
@@ -342,25 +354,40 @@ Page({
       model[key] = [...model[key], ...more.filter(item => { if (seen.has(item.id)) return false; seen.add(item.id); return true; })];
       this.setData(mode === "following" ? {followingNextCursor:page.nextCursor} : {formalNextCursor:page.nextCursor});
       this.renderFeed();
-    }catch{if(attempt===this.data.feedAttempt && token===getApp<IAppOption>().globalData.sessionToken && mode===this.data.mode)this.setData({moreError:"更多内容暂时无法加载，已显示的故事保留。"});}
-    finally{if(attempt===this.data.feedAttempt && token===getApp<IAppOption>().globalData.sessionToken && mode===this.data.mode)this.setData({formalLoadingMore:false});}
+    }catch(error){
+      if(this.recoverExpiredEditorialRead(attempt,token,error))return;
+      if(current()){
+        if([401,403].includes((error as {status?:number})?.status??0)){
+          const model=feedModel(this);model.feed=[];model.recommendReady=false;
+          this.renderFeed({feedReady:false,formalNextCursor:null,moreError:"",error:"社区内容暂时无法加载，请重试。"});
+        }else this.setData({moreError:"更多内容暂时无法加载，已显示的故事保留。"});
+      }
+    }
+    finally{if(current())this.setData({formalLoadingMore:false});}
   },
   async loadMoreEditorial(){
-    const cursor=this.data.editorialNextCursor,attempt=this.data.feedAttempt,token=getApp<IAppOption>().globalData.sessionToken;
+    const cursor=this.data.editorialNextCursor,attempt=this.data.feedAttempt,token=getApp<IAppOption>().globalData.sessionToken,owner=communityReadOwner();
+    const current=()=>this.readVisible&&attempt===this.data.feedAttempt&&owner===communityReadOwner()&&this.data.mode==="featured";
     if(this.data.mode!=="featured"||!cursor||this.data.loading||this.data.formalLoadingMore)return;
     this.setData({formalLoadingMore:true,moreError:""});
     try{const page=await publishedCommunityFeatured(this,cursor);
-      if(attempt!==this.data.feedAttempt||token!==getApp<IAppOption>().globalData.sessionToken||this.data.mode!=="featured"||cursor!==this.data.editorialNextCursor)return;
+      if(!current()||cursor!==this.data.editorialNextCursor)return;
       const model=feedModel(this),seen=new Set(model.editorial.map(item=>item.id));
       model.editorial=[...model.editorial,...page.items.filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true;})];
       this.setData({editorialNextCursor:page.nextCursor});this.renderFeed();
-    }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.data.mode==="featured")this.setData({moreError:"更多精选暂时无法加载，请重试。"});}
-    finally{if(attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken&&this.data.mode==="featured")this.setData({formalLoadingMore:false});}
+    }catch(error){
+      if(this.recoverExpiredEditorialRead(attempt,token,error)||!current())return;
+      if([401,403].includes((error as {status?:number})?.status??0)){
+        const model=feedModel(this);model.editorial=[];model.featuredReady=false;
+        this.renderFeed({feedReady:false,editorialNextCursor:null,moreError:"",error:"精选内容暂时无法加载，请重试。"});
+      }else this.setData({moreError:"更多精选暂时无法加载，请重试。"});
+    }
+    finally{if(current())this.setData({formalLoadingMore:false});}
   },
   async selectMode(event: WechatMiniprogram.TouchEvent) {
     const mode = sectionTabValue(event,'mode');
     if (!["featured", "recommend", "following"].includes(mode)) return;
-    if (mode === "recommend" && !this.data.ugcFeedEnabled && !this.data.socialPreviewEnabled) return;
+    if (mode === "recommend" && !this.data.ugcFeedEnabled && !this.data.socialPreviewEnabled && !this.data.legacyFeedEnabled) return;
     if (mode === this.data.mode || this.data.reviewBusy || this.data.publishEntryBusy || this.data.navigating) return;
     if (mode === "following" && !requireMemberAccess("/pages/community/index")) {
       this.followingRequested = true;
@@ -441,7 +468,7 @@ Page({
     const owner=communityReadOwner(),model=feedModel(this);
     if(this.readOwner!==owner){model.feed=[];model.editorial=[];model.recommendReady=false;model.featuredReady=false;model.images.clear();}
     if(model.followingOwner!==owner){model.following=[];model.followingReady=false;}
-    this.readOwner=owner;model.followingOwner=owner;
+    this.readOwner=owner;this.readEnvironment=communityReadEnvironment();model.followingOwner=owner;
     if(!token){model.following=[];model.followingReady=false;this.setData({mode:"featured",loading:false});this.renderFeed();return;}
     const current=()=>this.readVisible&&attempt===this.data.feedAttempt&&token===getApp<IAppOption>().globalData.sessionToken&&owner===communityReadOwner()&&this.data.mode==="following";
     this.setData({feedAttempt:attempt,feedReady:model.followingReady,loading:true,error:"",moreError:""});
@@ -451,8 +478,8 @@ Page({
       model.following=page.items;model.followingReady=true;
       this.setData({feedReady:true,followingNextCursor:page.nextCursor});
       this.renderFeed();
-    } catch(error) { if(!current()||this.recoverExpiredEditorialRead(attempt,token,error))return;if(current()){
-      if([401,403].includes((error as {status?:number})?.status??0)){model.following=[];model.followingReady=false;}
+    } catch(error) { if(this.recoverExpiredEditorialRead(attempt,token,error)||!current())return;if(current()){
+      if([401,403].includes((error as {status?:number})?.status??0)){model.following=[];model.followingReady=false;this.setData({followingNextCursor:null});}
       this.setData({feedReady:model.followingReady,error:"关注内容暂时无法更新，请下拉刷新或重试。"});this.renderFeed();
     }} finally { if(current())this.setData({loading:false}); }
   },
@@ -465,7 +492,13 @@ Page({
       const seen=new Set(model.following.map(item=>`${item.kind}:${item.id}`));
       model.following=[...model.following,...page.items.filter(item=>{const key=`${item.kind}:${item.id}`;if(seen.has(key))return false;seen.add(key);return true;})];
       this.setData({followingNextCursor:page.nextCursor});this.renderFeed();
-    }catch(error){if(!current()||this.recoverExpiredEditorialRead(attempt,token,error))return;this.setData({moreError:"更多关注内容暂时无法加载，已显示的故事保留。"});}
+    }catch(error){
+      if(this.recoverExpiredEditorialRead(attempt,token,error)||!current())return;
+      if([401,403].includes((error as {status?:number})?.status??0)){
+        model.following=[];model.followingReady=false;
+        this.renderFeed({feedReady:false,followingNextCursor:null,moreError:"",error:"关注内容暂时无法更新，请下拉刷新或重试。"});
+      }else this.setData({moreError:"更多关注内容暂时无法加载，已显示的故事保留。"});
+    }
     finally{if(current())this.setData({formalLoadingMore:false});}
   },
   async onPullDownRefresh(){
@@ -595,15 +628,17 @@ Page({
     finally {if(token===getApp<IAppOption>().globalData.sessionToken && attempt===this.data.feedAttempt)this.setData({reviewBusy:false});}
   },
   recoverExpiredEditorialRead(attempt:number,token:string,error:unknown){
-    if(!this.readVisible||attempt!==this.data.feedAttempt||!expiredEditorialRead(error,token))return false;
+    const lostDuringRead=(error as {code?:string})?.code==="REQUEST_CONTEXT_CHANGED"&&Boolean(token)&&
+      !getApp<IAppOption>().globalData.sessionToken&&this.readEnvironment===communityReadEnvironment();
+    if(!this.readVisible||attempt!==this.data.feedAttempt||this.readEnvironment!==communityReadEnvironment()||!expiredEditorialRead(error,token)&&!lostDuringRead)return false;
     this.clearPublisherWork(false);
     this.data.feedAttempt+=1;
     const model=feedModel(this);model.feed=[];model.following=[];model.editorial=[];model.recommendReady=false;model.featuredReady=false;model.followingReady=false;model.followingOwner="";model.images.clear();
-    this.setData({signedIn:false,mode:"featured",loading:false,ugcFeedEnabled:false,ugcDraftsEnabled:false,socialPreviewEnabled:false,canReview:false,follows:[],
+    this.setData({signedIn:false,mode:"featured",loading:false,ugcFeedEnabled:false,ugcDraftsEnabled:false,socialPreviewEnabled:false,legacyFeedEnabled:false,canReview:false,follows:[],
       profileReviewQueue:[],formalReportQueue:[],reportNextCursor:null,reportTotal:0,
       formalAppealQueue:[],appealNextCursor:null,appealTotal:0,reportLoadingMore:false,appealLoadingMore:false,reviewActorId:"",reviewNotice:"",reviewBusy:false,
       feedReady:false,editorialNextCursor:null,formalNextCursor:null,followingNextCursor:null,formalLoadingMore:false,
-      moreError:"",teamError:"",error:"登录状态已失效，请重新加载社区内容。"});
+      moreError:"",teamError:"",capabilityError:"",error:"登录状态已失效，请重新加载社区内容。"});
     this.getTabBar?.()?.setCommunityPublisherAvailable?.(false);this.renderFeed();return true;
   },
   async load(preservePublisherMount?:unknown) {
@@ -614,7 +649,9 @@ Page({
     const session = context.sessionToken;
     const owner = JSON.stringify([session, commerceContextRevision(), context.apiBaseUrl, context.cloudFunction?.env, context.cloudFunction?.name]);
     const sameOwner = this.readOwner === owner;
+    const previousCapabilities={ugcFeedEnabled:sameOwner&&this.data.ugcFeedEnabled,socialPreviewEnabled:sameOwner&&this.data.socialPreviewEnabled,legacyFeedEnabled:sameOwner&&this.data.legacyFeedEnabled};
     this.readOwner = owner;
+    this.readEnvironment=communityReadEnvironment();
     const model = feedModel(this);
     if (!sameOwner) { model.feed = []; model.editorial = [];model.recommendReady=false;model.featuredReady=false;model.following=[];model.followingReady=false;model.followingOwner="";model.images.clear(); }
     const attempt = this.data.feedAttempt + 1;
@@ -625,17 +662,17 @@ Page({
     const retainOnFailure=(error:unknown)=>retainedChannels[this.data.mode]===true&&![401,403].includes((error as {status?:number})?.status??0);
     const resetColumns=(!sameOwner||privateMode)&&this.data.feedColumns.some(column=>column.length>0);
     const current = () => this.readVisible && this.data.feedAttempt === attempt && owner === communityReadOwner();
-    this.setData({ feedAttempt: attempt, loading: true, ugcDraftsEnabled:false, editorialNextCursor:null, formalNextCursor:null, followingNextCursor:null,
-      ...(!sameOwner ? { feedReady:false,ugcFeedEnabled:false, socialPreviewEnabled:false, displayFeedCount:0 } : {}),
+    this.setData({ feedAttempt: attempt, loading: true, ugcDraftsEnabled:false,
+      ...(!sameOwner ? { feedReady:false,ugcFeedEnabled:false, socialPreviewEnabled:false,legacyFeedEnabled:false, displayFeedCount:0,editorialNextCursor:null,formalNextCursor:null,followingNextCursor:null } : {}),
       follows:[],canReview:false,profileReviewQueue:[],
-      formalLoadingMore:false, moreError:"", reviewBusy: false, teamError: "", error: "",
+      formalLoadingMore:false, moreError:"", reviewBusy: false, teamError: "", error: "",capabilityError:"",
       ...(privateMode?{feedReady:false,displayFeedCount:0}:{}),
       ...(resetColumns?{feedColumns:[[],[]] as [any[],any[]]}:{}) });
     const failedRead=(error:unknown)=>{this.recoverExpiredEditorialRead(attempt,session,error);return {error};};
     const failedRecommendationRead=(error:unknown)=>{
       const outcome=failedRead(error);
       if(current()&&[401,403].includes((error as {status?:number})?.status??0)){
-        model.feed=[];model.recommendReady=false;
+        model.feed=[];model.recommendReady=false;this.setData({formalNextCursor:null});
         if(this.data.mode==="recommend")this.renderFeed({feedReady:false,loading:false,error:"社区内容暂时无法加载，请重试。"});
       }
       return outcome;
@@ -644,33 +681,66 @@ Page({
     // must not hold returned cards behind their network deadline.
     const editorialPromise=publishedCommunityFeatured(this).then(feed=>{
       if(!Array.isArray(feed?.items))throw new Error("EDITORIAL_PAGE_INVALID");
-      if(current()&&this.data.mode==="featured"){
+      if(current()){
         model.editorial=feed.items;model.featuredReady=true;
-        this.renderFeed({feedReady:true,loading:false,editorialNextCursor:feed.nextCursor,error:""});
+        this.setData({editorialNextCursor:feed.nextCursor});
+        if(this.data.mode==="featured")this.renderFeed({feedReady:true,loading:false,error:""});
       }
       return {feed};
     }).catch(error=>{
       const outcome=failedRead(error);
+      if(current()&&[401,403].includes((error as {status?:number})?.status??0)){
+        model.editorial=[];model.featuredReady=false;this.setData({editorialNextCursor:null});
+      }
       if(current()&&this.data.mode==="featured"){
-        if(!retainOnFailure(error)){model.editorial=[];model.featuredReady=false;}
+        if(!retainOnFailure(error)){model.editorial=[];model.featuredReady=false;this.setData({editorialNextCursor:null});}
         this.renderFeed({loading:false,feedReady:retainOnFailure(error),error:"精选内容暂时无法加载，请重试。"});
       }
       return outcome;
     });
-    const capabilityPromise = Promise.all([pageRead<{ communityPreviewEnabled?: boolean }>(this,{ path: "/v1/capabilities", authMode: "public" }),
-      pageRead<{ publicEnabled?: boolean; draftsEnabled?: boolean }>(this,{ path: "/v1/ugc/status", authMode: "public" })])
-      .then(([health,ugc]) => ({ ugcFeedEnabled: ugc.publicEnabled === true, ugcDraftsEnabled: ugc.draftsEnabled === true, socialPreviewEnabled: health.communityPreviewEnabled === true }))
-      .catch(error => {failedRead(error);return { ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false };});
+    let capabilityDenied=false;
+    const capabilityFailure=(error:unknown)=>{
+      failedRead(error);
+      if(current()&&[401,403].includes((error as {status?:number})?.status??0)){
+        capabilityDenied=true;model.feed=[];model.recommendReady=false;
+        this.setData({ugcFeedEnabled:false,ugcDraftsEnabled:false,socialPreviewEnabled:false,legacyFeedEnabled:false,formalNextCursor:null,capabilityError:"社区状态暂时无法更新，请重试。"});
+        if(this.data.mode==="recommend")this.renderFeed({feedReady:false,loading:false});
+        this.syncPublisherEntry();
+      }
+      throw error;
+    };
+    const closeSource=(formal:boolean)=>{
+      if(!current())return;
+      model.feed=model.feed.filter(item=>(item.kind==="formal")!==formal);model.recommendReady=false;
+      if(formal)this.setData({formalNextCursor:null});
+      if(this.data.mode==="recommend")this.renderFeed();
+    };
+    const capabilityPromise = Promise.allSettled([pageRead<{ communityPreviewEnabled?: boolean;ugcGoLiveGate?:boolean }>(this,{ path: "/v1/capabilities", authMode: "public" })
+      .then(health=>{if(health.ugcGoLiveGate===false)closeSource(false);return health;}).catch(capabilityFailure),
+      pageRead<{ publicEnabled?: boolean; draftsEnabled?: boolean }>(this,{ path: "/v1/ugc/status", authMode: "public" })
+        .then(ugc=>{if(ugc.publicEnabled===false)closeSource(true);return ugc;}).catch(capabilityFailure)]);
     const feedPromise = pageRead<{items:any[];authors?:Record<string,any>}>(this,{ path: "/v1/feed/page?limit=30", authMode: "public" }).then(feed => ({ feed }), failedRecommendationRead);
     const formalPromise = pageRead<{items:any[];nextCursor:string|null}>(this,{ path: "/v1/ugc/posts?limit=30&channel=recommend", authMode: getApp<IAppOption>().globalData.sessionToken ? "optional" : "public" })
       .then(feed => ({ feed }), failedRecommendationRead);
     this.setData({ canReview: false, follows: [], profileReviewQueue: [] });
-    const capabilities = await capabilityPromise;
+    const [health,ugc] = await capabilityPromise;
+    const capabilityFailures=[health,ugc].filter(result=>result.status==="rejected");
     if (!current()) return;
-    const availableMode = this.data.mode === "recommend" && !capabilities.ugcFeedEnabled && !capabilities.socialPreviewEnabled
+    // Public navigation may retain the same owner's last confirmed state on a
+    // transient read failure. Draft creation always requires a fresh UGC result.
+    const capabilities={
+      legacyFeedEnabled:!capabilityDenied&&(health.status==="fulfilled"?health.value.ugcGoLiveGate===true:previousCapabilities.legacyFeedEnabled),
+      ugcFeedEnabled:!capabilityDenied&&(ugc.status==="fulfilled"?ugc.value.publicEnabled===true:previousCapabilities.ugcFeedEnabled),
+      ugcDraftsEnabled:!capabilityDenied&&ugc.status==="fulfilled"&&ugc.value.draftsEnabled===true,
+      socialPreviewEnabled:!capabilityDenied&&(health.status==="fulfilled"?health.value.communityPreviewEnabled===true:previousCapabilities.socialPreviewEnabled)
+    };
+    if(capabilityDenied){model.feed=[];model.recommendReady=false;}
+    const availableMode = this.data.mode === "recommend" && (capabilityDenied||!capabilityFailures.length&&!capabilities.ugcFeedEnabled&&!capabilities.socialPreviewEnabled&&!capabilities.legacyFeedEnabled)
       ? "featured"
       : this.data.mode;
-    this.setData({ ...capabilities, mode: availableMode });
+    const modeChanged=availableMode!==this.data.mode;
+    this.setData({ ...capabilities,mode:availableMode,capabilityError:capabilityFailures.length?"社区状态暂时无法更新，请重试。":"" });
+    if(modeChanged)this.renderFeed({feedReady:model.featuredReady,loading:!model.featuredReady});
     this.syncPublisherEntry();
     const token = getApp<IAppOption>().globalData.sessionToken;
     if (token) {
@@ -687,30 +757,27 @@ Page({
     try {
       const [outcome,formalOutcome,editorialOutcome] = await Promise.all([feedPromise,formalPromise,editorialPromise]);
       if(!current())return;
-      if("feed" in editorialOutcome){model.editorial=editorialOutcome.feed.items;model.featuredReady=true;}
       if(this.data.mode==="following"){
-        if("feed" in editorialOutcome){model.editorial=editorialOutcome.feed.items;model.featuredReady=true;}
         await this.loadFollowing();return;
       }
       if(this.data.mode==="featured"&&"error" in editorialOutcome)throw editorialOutcome.error;
-      if(this.data.mode==="featured"&&!capabilities.ugcFeedEnabled&&!capabilities.socialPreviewEnabled&&"feed" in editorialOutcome){
-        feedModel(this).editorial=editorialOutcome.feed.items;
-        model.featuredReady=true;
-        this.renderFeed({feedReady:true,loading:false,editorialNextCursor:editorialOutcome.feed.nextCursor,error:""});return;
+      if(this.data.mode==="featured"&&!capabilities.ugcFeedEnabled&&!capabilities.socialPreviewEnabled&&!capabilities.legacyFeedEnabled&&"feed" in editorialOutcome){
+        this.renderFeed({feedReady:true,loading:false,error:""});return;
       }
-      const preview = "feed" in outcome ? await prepareFeedPage(outcome.feed) : [];
+      const preview = !(health.status==="fulfilled"&&health.value.ugcGoLiveGate===false)&&"feed" in outcome ? await prepareFeedPage(outcome.feed) : [];
       const origin = getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/, "");
-      const formal = "feed" in formalOutcome ? formalOutcome.feed.items.map(item => ({ ...item, kind: "formal", author_id: item.authorId,
+      const formal = !(ugc.status==="fulfilled"&&ugc.value.publicEnabled===false)&&"feed" in formalOutcome ? formalOutcome.feed.items.map(item => ({ ...item, kind: "formal", author_id: item.authorId,
         image: item.coverId && origin ? `${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail` : "" })) : [];
       const feed = [...formal, ...preview];
       if (!current()) return;
       const incomplete="error" in outcome||"error" in formalOutcome;
-      const denied=["error" in outcome?outcome.error:null,"error" in formalOutcome?formalOutcome.error:null]
+      const retainedRecommendation=incomplete&&model.feed.length>0;
+      const denied=capabilityDenied?{status:403}:["error" in outcome?outcome.error:null,"error" in formalOutcome?formalOutcome.error:null]
         .find(error=>[401,403].includes((error as {status?:number})?.status??0));
       // Both endpoints return a successful empty page when closed. An error
       // from either source cannot be converted into a successful empty list.
       if(denied){
-        model.feed=[];model.recommendReady=false;
+        model.feed=[];model.recommendReady=false;this.setData({formalNextCursor:null});
         if(this.data.mode!=="featured")throw denied;
       }else if(incomplete){
         model.recommendReady=false;
@@ -719,9 +786,10 @@ Page({
       }else{model.feed=feed;model.recommendReady=true;}
       // Post covers still require their own authorized media path; author
       // identities come only from the server public-profile allowlist.
-      if("feed" in editorialOutcome){model.editorial=editorialOutcome.feed.items;model.featuredReady=true;}
       const recoveryNotice="error" in outcome&&"error" in formalOutcome?"社区内容暂时无法加载，请重试。":"部分内容暂时无法更新，请重试。";
-      this.renderFeed({ feedReady:true,loading:false,editorialNextCursor:"feed" in editorialOutcome?editorialOutcome.feed.nextCursor:null,formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: this.data.mode!=="featured"&&incomplete?recoveryNotice:"" });
+      this.renderFeed({ feedReady:true,loading:false,
+        ...(!retainedRecommendation&&"feed" in formalOutcome&&!denied?{formalNextCursor:formalOutcome.feed.nextCursor}:{}),
+        error: this.data.mode!=="featured"&&incomplete?recoveryNotice:"" });
       if (this.data.mode === "review") await this.loadReview();
     } catch (error) {
       if (current()) {

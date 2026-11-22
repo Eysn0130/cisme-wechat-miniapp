@@ -456,6 +456,7 @@ export async function uploadAuthorized(filePath: string, authorization: { url: s
     for (let index=0; index<chunkCount; index++) {
       assertActive();
       const base64 = await new Promise<string>((resolve,reject) => fs.readFile({ filePath, encoding:"base64", position:index*chunkSize, length:Math.min(chunkSize,info.size-index*chunkSize), success: result => resolve(String(result.data)), fail:reject }));
+      assertActive();
       await request({ path:`/v1/uploads/${mediaId}/chunks`, method:"POST", authMode:"public", data:{ token:authorization.fields.token, index, totalBytes:info.size, base64 } });
       assertActive();
       confirmedBytes+=Math.min(chunkSize,info.size-index*chunkSize);

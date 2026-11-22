@@ -21,6 +21,46 @@ beforeEach(async()=>{
 });
 afterEach(()=>{for(const page of pages){page.stopPublicationTracking();if(page.backupTimer)clearTimeout(page.backupTimer);}vi.useRealTimers();});
 describe("community composer command ownership",()=>{
+  it("does not send confirmation if its recovery snapshot cannot be stored",async()=>{
+    m.request.mockImplementation(async({path}:any)=>{
+      if(path.endsWith("/preview-url"))throw {status:404,code:"UGC_MEDIA_NOT_FOUND"};
+      if(path.endsWith("/complete"))return {id:image,state:"uploaded"};
+      return {mediaId:image,url:"https://synthetic.invalid/upload",method:"POST",fields:{}};
+    });
+    wxMock.setStorageSync=()=>{throw Error("storage full");};
+    const page=editor({files:[{id:"local-source",localPath:"/synthetic/picture.jpg",previewUrl:"",size:100,state:"uploading",progress:0,error:""}]});page.mediaVisible=true;
+    await page.uploadImage("local-source","/synthetic/picture.jpg",100,page.data.epoch,m.token,page.mediaEpoch);
+    expect(m.request.mock.calls.some(([value])=>value.path.endsWith("/complete"))).toBe(false);
+    expect(page.data.files[0]).toMatchObject({id:image,state:"failed",confirmationPending:true,error:expect.stringContaining("本机保存失败")});
+    expect(page.data.notice).toContain("清理存储空间");
+    wxMock.setStorageSync=(key:string,value:unknown)=>storage.set(key,structuredClone(value));
+    await page.retryImage({currentTarget:{dataset:{id:image}}});expect(page.data.files[0].confirmationRetryReady).toBe(true);
+    await page.retryImage({currentTarget:{dataset:{id:image}}});expect(page.data.files[0].state).toBe("uploaded");
+    expect(page.data.notice).toBe("");expect(m.upload).toHaveBeenCalledTimes(1);
+    expect(m.request.mock.calls.filter(([value])=>value.path.endsWith("/complete"))).toHaveLength(1);
+  });
+  it("persists the original pending confirmation before the write, without relying on onHide",async()=>{
+    const completion=deferred();
+    m.request.mockImplementation(({path}:any)=>path.endsWith("/authorize")?Promise.resolve({mediaId:image,url:"https://synthetic.invalid/upload",method:"POST",fields:{}}):path.endsWith("/complete")?completion.promise:Promise.resolve({url:"verified-preview"}));
+    const first=editor({files:[{id:"local-source",localPath:"/synthetic/picture.jpg",previewUrl:"",size:100,state:"uploading",progress:0,error:""}]});first.mediaVisible=true;
+    first.flushLocalBackup();
+    const uploading=first.uploadImage("local-source","/synthetic/picture.jpg",100,first.data.epoch,m.token,first.mediaEpoch);await flush();
+    expect(m.request.mock.calls.some(([value])=>value.path.endsWith("/complete"))).toBe(true);
+    // Simulate termination without onHide/onUnload or another manual backup.
+    first.pageAlive=false;first.mediaVisible=false;
+    const restored=editor();restored.mediaVisible=true;restored.applyDraft(draft());
+    expect(restored.data.files[0]).toMatchObject({id:image,confirmationPending:true,state:"failed"});
+    completion.reject({code:"NETWORK_TIMEOUT"});await uploading;m.request.mockClear();
+    await restored.retryImage({currentTarget:{dataset:{id:image}}});
+    expect(restored.data.files[0]).toMatchObject({id:image,state:"uploaded",confirmationPending:false});
+    expect(m.request.mock.calls.every(([value])=>!value.method)).toBe(true);expect(m.upload).toHaveBeenCalledTimes(1);
+  });
+  it("keeps the read-only confirmation recovery when the local preview expires",()=>{
+    const page=editor({files:[{id:image,localPath:"/synthetic/expired.jpg",previewUrl:"",size:100,state:"failed",progress:100,error:"",confirmationPending:true}]});page.mediaVisible=true;
+    page.previewFailed({currentTarget:{dataset:{id:image,epoch:page.data.epoch,preview:"/synthetic/expired.jpg"}}});
+    expect(page.data.files[0]).toMatchObject({id:image,localPath:"",confirmationPending:true,error:expect.stringContaining("核对")});
+    expect(page.data.files[0].error).not.toContain("重新选择");expect(m.request).not.toHaveBeenCalled();
+  });
   it("retains every selected local image in order when the first serial upload is interrupted",async()=>{
     const transfer=deferred();m.upload.mockReturnValue(transfer.promise);
     m.request.mockResolvedValue({mediaId:image,url:"https://synthetic.invalid/upload",method:"POST",fields:{}});
