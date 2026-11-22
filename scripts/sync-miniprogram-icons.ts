@@ -49,7 +49,7 @@ const assets: Record<string, Array<keyof typeof colors>> = {
 // Keep project icons that are not generated from Phosphor: native pages still use them.
 await mkdir(destination, { recursive: true });
 let count = 0;
-for (const [icon, variants] of Object.entries(assets)) {
+for (const [icon, variants] of Object.entries(process.argv.includes("--navigation-selection-only") ? {} : assets)) {
   const svg = await readFile(resolve(source, `${icon}-thin.svg`), "utf8");
   for (const variant of variants) {
     const color = colors[variant];
@@ -61,6 +61,13 @@ for (const [icon, variants] of Object.entries(assets)) {
     await writeFile(resolve(destination, `${icon}-${variant}.svg`), sourceSvg.replaceAll("currentColor", color));
     count += 1;
   }
+}
+
+// Match the existing outline family with its filled weight for selected tabs.
+for (const icon of ["drop", "storefront", "users", "user"]) {
+  const svg = await readFile(resolve(source, `../fill/${icon}-fill.svg`), "utf8");
+  await writeFile(resolve(destination, `tab-${icon}-selected.svg`), svg.replaceAll("currentColor", colors.white));
+  count += 1;
 }
 
 console.log(`synced ${count} licensed Phosphor SVG variants`);
