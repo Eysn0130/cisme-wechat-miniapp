@@ -118,11 +118,16 @@
   /* Keep readable ordinary ink until the moving lens reaches its destination.
      The same revision restarts the ink on cached tabs; static defaults are white. */
   .bar__item--moving.is-active .bar__icon-selected { animation: bar-selected-icon 280ms linear; }
+  .bar__item--moving.is-active .bar__icon { animation: bar-selected-outline 280ms linear; }
   .bar__item--moving.is-active .bar__label { animation: bar-selected-ink 280ms steps(1, end); }
 }
 @keyframes bar-selected-icon {
   0%, 71% { opacity: 0; }
   92%, 100% { opacity: 1; }
+}
+@keyframes bar-selected-outline {
+  0%, 71% { opacity: 1; }
+  92%, 100% { opacity: 0; }
 }
 @keyframes bar-selected-ink {
   0% { color: #554b5b; }
@@ -154,6 +159,7 @@
 .bar__item::after { border:0; }
 .bar__icon { width:25px; height:25px; }
 .bar__item.is-active { color:#fff; font-weight:600; }
+.bar__item.is-active .bar__icon { opacity:0; }
 .bar__item.control--disabled { color:#746979; background:transparent; opacity:.58; }
 .bar__item.is-active.control--disabled { color:#fff; opacity:1; }
 .chrome--reduced-motion,

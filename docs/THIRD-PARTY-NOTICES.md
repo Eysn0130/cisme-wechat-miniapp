@@ -6,7 +6,7 @@
 - Source: <https://github.com/phosphor-icons/core>
 - Version used for the native mini-program asset set: `2.1.1`
 - License: MIT
-- Use: a curated, build-time-only set of thin SVG icons and four white filled variants for selected navigation tabs under `apps/miniprogram/assets/icons/`; no icon runtime is shipped. `scripts/sync-miniprogram-icons.ts --navigation-selection-only` regenerates only those four selected variants.
+- Use: a curated, build-time-only set of thin SVG icons and four white filled variants for selected navigation tabs under `apps/miniprogram/assets/icons/`; no icon runtime is shipped. `npx tsx scripts/sync-miniprogram-icons.ts --navigation-selection-only` regenerates only those four selected variants.
 - Local adaptation (2026-10-26): `arrow-left-ink.svg` retains its existing shape and ink color with an 8-unit rounded outline added for legibility at the native 18px size; the MIT notice continues to apply.
 
 Copyright (c) 2023 Phosphor Icons
