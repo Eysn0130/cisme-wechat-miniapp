@@ -369,8 +369,8 @@ Page({
     // Featured may paint before capability/recommendation reads finish.
     // Leaving that paint must not cancel the unfinished channel and call it empty.
     const previousMode=this.data.mode,wasLoading=this.data.loading||(this.pendingFeedRead>0&&this.pendingFeedRead===this.data.feedAttempt);
-    const reload=previousMode==="following"||wasLoading;
     const model=feedModel(this),ready=mode==="featured"?model.featuredReady:mode==="recommend"?model.recommendReady:model.followingReady;
+    const reload=previousMode==="following"||wasLoading||!ready;
     for(const state of feedModel(this).images.values())if(state.phase==="arriving")state.phase="ready";
     cancelPageReads(this);
     this.data.feedAttempt += 1; // A → B → A must not revive an older pagination result.
@@ -620,9 +620,9 @@ Page({
     const attempt = this.data.feedAttempt + 1;
     this.pendingFeedRead=attempt;
     const privateMode=this.data.mode==="review"||(this.data.mode==="following"&&!model.followingReady);
-    const channelReady=this.data.mode==="featured"?model.featuredReady:this.data.mode==="following"?model.followingReady:model.recommendReady;
-    const retainedFeed=sameOwner&&channelReady&&!privateMode;
-    const retainOnFailure=(error:unknown)=>retainedFeed&&![401,403].includes((error as {status?:number})?.status??0);
+    const retainedChannels:Record<string,boolean>={featured:sameOwner&&model.featuredReady,
+      recommend:sameOwner&&(model.recommendReady||model.feed.length>0),following:sameOwner&&model.followingReady};
+    const retainOnFailure=(error:unknown)=>retainedChannels[this.data.mode]===true&&![401,403].includes((error as {status?:number})?.status??0);
     const resetColumns=(!sameOwner||privateMode)&&this.data.feedColumns.some(column=>column.length>0);
     const current = () => this.readVisible && this.data.feedAttempt === attempt && owner === communityReadOwner();
     this.setData({ feedAttempt: attempt, loading: true, ugcDraftsEnabled:false, editorialNextCursor:null, formalNextCursor:null, followingNextCursor:null,
@@ -632,6 +632,14 @@ Page({
       ...(privateMode?{feedReady:false,displayFeedCount:0}:{}),
       ...(resetColumns?{feedColumns:[[],[]] as [any[],any[]]}:{}) });
     const failedRead=(error:unknown)=>{this.recoverExpiredEditorialRead(attempt,session,error);return {error};};
+    const failedRecommendationRead=(error:unknown)=>{
+      const outcome=failedRead(error);
+      if(current()&&[401,403].includes((error as {status?:number})?.status??0)){
+        model.feed=[];model.recommendReady=false;
+        if(this.data.mode==="recommend")this.renderFeed({feedReady:false,loading:false,error:"社区内容暂时无法加载，请重试。"});
+      }
+      return outcome;
+    };
     // Featured content owns first paint. Ancillary capability/access reads
     // must not hold returned cards behind their network deadline.
     const editorialPromise=publishedCommunityFeatured(this).then(feed=>{
@@ -653,9 +661,9 @@ Page({
       pageRead<{ publicEnabled?: boolean; draftsEnabled?: boolean }>(this,{ path: "/v1/ugc/status", authMode: "public" })])
       .then(([health,ugc]) => ({ ugcFeedEnabled: ugc.publicEnabled === true, ugcDraftsEnabled: ugc.draftsEnabled === true, socialPreviewEnabled: health.communityPreviewEnabled === true }))
       .catch(error => {failedRead(error);return { ugcFeedEnabled: false, ugcDraftsEnabled: false, socialPreviewEnabled: false };});
-    const feedPromise = pageRead<{items:any[];authors?:Record<string,any>}>(this,{ path: "/v1/feed/page?limit=30", authMode: "public" }).then(feed => ({ feed }), failedRead);
+    const feedPromise = pageRead<{items:any[];authors?:Record<string,any>}>(this,{ path: "/v1/feed/page?limit=30", authMode: "public" }).then(feed => ({ feed }), failedRecommendationRead);
     const formalPromise = pageRead<{items:any[];nextCursor:string|null}>(this,{ path: "/v1/ugc/posts?limit=30&channel=recommend", authMode: getApp<IAppOption>().globalData.sessionToken ? "optional" : "public" })
-      .then(feed => ({ feed }), failedRead);
+      .then(feed => ({ feed }), failedRecommendationRead);
     this.setData({ canReview: false, follows: [], profileReviewQueue: [] });
     const capabilities = await capabilityPromise;
     if (!current()) return;
@@ -679,6 +687,7 @@ Page({
     try {
       const [outcome,formalOutcome,editorialOutcome] = await Promise.all([feedPromise,formalPromise,editorialPromise]);
       if(!current())return;
+      if("feed" in editorialOutcome){model.editorial=editorialOutcome.feed.items;model.featuredReady=true;}
       if(this.data.mode==="following"){
         if("feed" in editorialOutcome){model.editorial=editorialOutcome.feed.items;model.featuredReady=true;}
         await this.loadFollowing();return;
@@ -689,23 +698,37 @@ Page({
         model.featuredReady=true;
         this.renderFeed({feedReady:true,loading:false,editorialNextCursor:editorialOutcome.feed.nextCursor,error:""});return;
       }
-      if(this.data.mode!=="featured"&&"error" in outcome&&"error" in formalOutcome)throw outcome.error;
       const preview = "feed" in outcome ? await prepareFeedPage(outcome.feed) : [];
       const origin = getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/, "");
       const formal = "feed" in formalOutcome ? formalOutcome.feed.items.map(item => ({ ...item, kind: "formal", author_id: item.authorId,
         image: item.coverId && origin ? `${origin}/v1/ugc/media/${item.coverId}?variant=thumbnail` : "" })) : [];
       const feed = [...formal, ...preview];
       if (!current()) return;
+      const incomplete="error" in outcome||"error" in formalOutcome;
+      const denied=["error" in outcome?outcome.error:null,"error" in formalOutcome?formalOutcome.error:null]
+        .find(error=>[401,403].includes((error as {status?:number})?.status??0));
+      // Both endpoints return a successful empty page when closed. An error
+      // from either source cannot be converted into a successful empty list.
+      if(denied){
+        model.feed=[];model.recommendReady=false;
+        if(this.data.mode!=="featured")throw denied;
+      }else if(incomplete){
+        model.recommendReady=false;
+        if(!model.feed.length)model.feed=feed;
+        if(this.data.mode!=="featured"&&!model.feed.length)throw ("error" in formalOutcome?formalOutcome.error:"error" in outcome?outcome.error:new Error("FEED_INCOMPLETE"));
+      }else{model.feed=feed;model.recommendReady=true;}
       // Post covers still require their own authorized media path; author
       // identities come only from the server public-profile allowlist.
-      feedModel(this).feed = feed;
-      model.recommendReady="feed" in outcome||"feed" in formalOutcome;
       if("feed" in editorialOutcome){model.editorial=editorialOutcome.feed.items;model.featuredReady=true;}
-      this.renderFeed({ feedReady:true,loading:false,editorialNextCursor:"feed" in editorialOutcome?editorialOutcome.feed.nextCursor:null,formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: "" });
+      const recoveryNotice="error" in outcome&&"error" in formalOutcome?"社区内容暂时无法加载，请重试。":"部分内容暂时无法更新，请重试。";
+      this.renderFeed({ feedReady:true,loading:false,editorialNextCursor:"feed" in editorialOutcome?editorialOutcome.feed.nextCursor:null,formalNextCursor:"feed" in formalOutcome?formalOutcome.feed.nextCursor:null, error: this.data.mode!=="featured"&&incomplete?recoveryNotice:"" });
       if (this.data.mode === "review") await this.loadReview();
     } catch (error) {
       if (current()) {
-        if(!retainOnFailure(error)){model.feed=[];model.editorial=[];model.recommendReady=false;model.featuredReady=false;model.images.clear();}
+        if(!retainOnFailure(error)){
+          if(this.data.mode==="featured"){model.editorial=[];model.featuredReady=false;}
+          else{model.feed=[];model.recommendReady=false;}
+        }
         this.renderFeed({feedReady:retainOnFailure(error),error:this.data.mode==="featured"?"精选内容暂时无法加载，请重试。":"社区内容暂时无法加载，请重试。"});
       }
     } finally {
