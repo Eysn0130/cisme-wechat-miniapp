@@ -1,0 +1,1096 @@
+{
+  "sourceCommit": "3521c54933482310000409d21c4cdce8563a2447",
+  "packageSourceSha256": "c266436dc0f59bc8fb96cdba8f3fdd1d8f272613c9ba728bfed79546aeb8c602",
+  "cases": {
+    "375:cold-shimmer": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": true,
+      "feedReady": false,
+      "count": 0,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 6,
+      "shimmer": [
+        {
+          "time": 1795353394563,
+          "transform": "matrix(1, 0, 0, 1, 149.204, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353394679,
+          "transform": "matrix(1, 0, 0, 1, -172.413, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353394796,
+          "transform": "matrix(1, 0, 0, 1, -148.881, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353394912,
+          "transform": "matrix(1, 0, 0, 1, -117.495, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353395028,
+          "transform": "matrix(1, 0, 0, 1, -93.9693, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353395142,
+          "transform": "matrix(1, 0, 0, 1, -62.5918, 0)",
+          "animation-duration": "1.5s"
+        }
+      ]
+    },
+    "375:ready": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 6
+    },
+    "375:refresh-keeps-geometry": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": true,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 12,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {
+            "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          },
+          "left": 9,
+          "right": 185.5,
+          "top": 181.5,
+          "bottom": 524.5703125,
+          "width": 176.5,
+          "height": 343.0703125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 19,
+          "right": 175.5,
+          "top": 493.5703125,
+          "bottom": 513.5703125,
+          "width": 156.5,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {
+            "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "left": 189.5,
+          "right": 366,
+          "top": 181.5,
+          "bottom": 504.2734375,
+          "width": 176.5,
+          "height": 322.7734375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 199.5,
+          "right": 356,
+          "top": 473.2734375,
+          "bottom": 493.2734375,
+          "width": 156.5,
+          "height": 20
+        }
+      ]
+    },
+    "375:failed-refresh-retained": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "精选内容暂时无法加载，请重试。",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 12
+    },
+    "375:recommend-pending-not-empty": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": true,
+      "feedReady": false,
+      "count": 0,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 24
+    },
+    "375:recommend-released": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 1,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 24
+    },
+    "375:image-retry-and-arrival": {
+      "before": {
+        "height": 254.4765625,
+        "authorTop": 493.5703125
+      },
+      "failed": {
+        "height": 254.4765625,
+        "authorTop": 493.5703125
+      },
+      "samples": [
+        {
+          "time": 1795353439182,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439245,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439308,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439371,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439420,
+          "phase": "arriving",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439484,
+          "phase": "arriving",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0.261002",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795353439547,
+          "phase": "arriving",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0.676855",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795353439608,
+          "phase": "arriving",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0.952125",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795353439671,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439734,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439797,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439861,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439923,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353439983,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353440048,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353440112,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353440177,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353440241,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        }
+      ],
+      "lateOldEventIgnored": true
+    },
+    "375:confirmed-empty": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 0,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 30
+    },
+    "375:reduced-skeleton": {
+      "reduced": true,
+      "display": "none"
+    },
+    "375:upload-unknown": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploading",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 39
+    },
+    "375:upload-real-target-interpolation": {
+      "trace": [
+        {
+          "time": 1795353468550,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -75.68, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353468625,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -57.5642, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353468692,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -49.135, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353468761,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -40.5767, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353468830,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -30.8614, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353468895,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -26.3867, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353468964,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -20.8137, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353469032,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -18.4339, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353469099,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -15.7635, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353469166,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -14.7996, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353469234,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -13.9719, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353469303,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -13.8003, 0)",
+          "transition-duration": "0.6s"
+        }
+      ]
+    },
+    "375:transport-complete-business-pending": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploading",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": true,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 40
+    },
+    "375:media-confirmed": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploaded",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 41
+    },
+    "375:lost-confirmation-read-only-recovery": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000002",
+          "state": "uploaded",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 45,
+      "counts": {
+        "uploads": 2,
+        "authorize": 2,
+        "complete": 2
+      },
+      "afterCounts": {
+        "uploads": 2,
+        "authorize": 2,
+        "complete": 2
+      }
+    },
+    "375:put-unknown": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000003",
+          "state": "uploading",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 47
+    },
+    "375:upload-interruption": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "图片操作已中断；文字草稿仍保留。返回后可重试图片。",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000004",
+          "state": "failed",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": "页面离开时上传已中断，可点重试继续。"
+        }
+      ],
+      "unexpected": [],
+      "requests": 50
+    },
+    "412:cold-shimmer": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": true,
+      "feedReady": false,
+      "count": 0,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 6,
+      "shimmer": [
+        {
+          "time": 1795353066947,
+          "transform": "matrix(1, 0, 0, 1, -134.331, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353067061,
+          "transform": "matrix(1, 0, 0, 1, -99.6551, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353067176,
+          "transform": "matrix(1, 0, 0, 1, -73.6635, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353067290,
+          "transform": "matrix(1, 0, 0, 1, -38.9971, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353067404,
+          "transform": "matrix(1, 0, 0, 1, -13.0055, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795353067517,
+          "transform": "matrix(1, 0, 0, 1, 21.6869, 0)",
+          "animation-duration": "1.5s"
+        }
+      ]
+    },
+    "412:ready": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 6
+    },
+    "412:refresh-keeps-geometry": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": true,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 12,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {
+            "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          },
+          "left": 9,
+          "right": 204,
+          "top": 158,
+          "bottom": 531.953125,
+          "width": 195,
+          "height": 373.953125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 19,
+          "right": 194,
+          "top": 499.953125,
+          "bottom": 520.953125,
+          "width": 175,
+          "height": 21
+        },
+        {
+          "id": "",
+          "dataset": {
+            "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "left": 208,
+          "right": 403,
+          "top": 158,
+          "bottom": 510.203125,
+          "width": 195,
+          "height": 352.203125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 218,
+          "right": 393,
+          "top": 478.203125,
+          "bottom": 499.203125,
+          "width": 175,
+          "height": 21
+        }
+      ]
+    },
+    "412:failed-refresh-retained": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "精选内容暂时无法加载，请重试。",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 12
+    },
+    "412:recommend-pending-not-empty": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": true,
+      "feedReady": false,
+      "count": 0,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 24
+    },
+    "412:recommend-released": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 1,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 24
+    },
+    "412:image-retry-and-arrival": {
+      "before": {
+        "height": 281.453125,
+        "authorTop": 499.953125
+      },
+      "failed": {
+        "height": 281.453125,
+        "authorTop": 499.953125
+      },
+      "samples": [
+        {
+          "time": 1795353095948,
+          "phase": "loading",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353095997,
+          "phase": "arriving",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096059,
+          "phase": "arriving",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0.253622",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795353096120,
+          "phase": "arriving",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0.679678",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795353096183,
+          "phase": "arriving",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0.955371",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795353096242,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096303,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096364,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096426,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096486,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096550,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096609,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096669,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096730,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096791,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096852,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096914,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795353096975,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        }
+      ],
+      "lateOldEventIgnored": true
+    },
+    "412:confirmed-empty": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 0,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 30
+    },
+    "412:reduced-skeleton": {
+      "reduced": true,
+      "display": "none"
+    },
+    "412:upload-unknown": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploading",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 39
+    },
+    "412:upload-real-target-interpolation": {
+      "trace": [
+        {
+          "time": 1795353116648,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -75.68, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353116719,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -57.6078, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353116786,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -49.2949, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353116855,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -40.6832, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353116924,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -30.9293, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353116991,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -26.4691, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353117058,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -20.8417, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353117125,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -18.4483, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353117192,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -15.7952, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353117258,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -14.8037, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353117324,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -13.9728, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795353117390,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -13.8003, 0)",
+          "transition-duration": "0.6s"
+        }
+      ]
+    },
+    "412:transport-complete-business-pending": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploading",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": true,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 40
+    },
+    "412:media-confirmed": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploaded",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 41
+    },
+    "412:lost-confirmation-read-only-recovery": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000002",
+          "state": "uploaded",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 45,
+      "counts": {
+        "uploads": 2,
+        "authorize": 2,
+        "complete": 2
+      },
+      "afterCounts": {
+        "uploads": 2,
+        "authorize": 2,
+        "complete": 2
+      }
+    },
+    "412:put-unknown": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000003",
+          "state": "uploading",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 47
+    },
+    "412:upload-interruption": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "图片操作已中断；文字草稿仍保留。返回后可重试图片。",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "failed",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": "页面离开时上传已中断，可点重试继续。"
+        }
+      ],
+      "unexpected": [],
+      "requests": 3
+    }
+  },
+  "cleanup": {
+    "375": {
+      "restored": true,
+      "realWrites": 0,
+      "unexpected": [],
+      "syntheticStorageDiscarded": true,
+      "signedIn": false
+    },
+    "412": {
+      "restored": true,
+      "realWrites": 0,
+      "unexpected": [],
+      "syntheticStorageDiscarded": true,
+      "signedIn": false
+    }
+  },
+  "toolLimitations": [
+    "412 run resumed its final interruption case after IDE error -80408 (60 calls/minute). Later calls were throttled to at most 40/minute.",
+    "An exploratory run was invalidated by a source-triggered runtime reload and is not final acceptance."
+  ]
+}

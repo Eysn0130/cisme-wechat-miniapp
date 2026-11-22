@@ -1,0 +1,162 @@
+{
+  "date": "2026-11-22",
+  "baseMainCommit": "7f7ca33f8c148d831f39094f93135cef7ec22d52",
+  "sourceCommit": "3521c54933482310000409d21c4cdce8563a2447",
+  "packageSourceSha256": "c266436dc0f59bc8fb96cdba8f3fdd1d8f272613c9ba728bfed79546aeb8c602",
+  "skill": {
+    "vaultRevision": "e5a1e32d56f92e6d0efb9d5389a3564c028f0e73",
+    "path": "30-Skills/Library/loading-state-motion/SKILL.md",
+    "sha256": "6c4ac3e258e5d115fb2cd35fe1fc56e40ff9182ff6a964fdd7eaa360e5f8e933"
+  },
+  "prdAcceptanceIds": [
+    "NATIVE-LOAD-02",
+    "NATIVE-LOAD-04",
+    "NATIVE-LOAD-05",
+    "COMPOSE-IMAGE-01",
+    "COMPOSE-ACTIONS-01",
+    "COMPOSE-PUBLISH-INTENT-01"
+  ],
+  "native": {
+    "status": "passed_for_scoped_cases",
+    "devtoolsVersion": "2.02.2611092",
+    "skillVersion": "0.3.15",
+    "baseLibrary": "3.15.2",
+    "viewports": [
+      {
+        "device": "Pixel 9",
+        "width": 412,
+        "cases": 16
+      },
+      {
+        "device": "iPhone 12/13 mini",
+        "width": 375,
+        "cases": 16,
+        "safeBottom": 34
+      }
+    ],
+    "compilationChecks": 5,
+    "publicFeedRead": "Real anonymous read, 20 cards at final cleanup",
+    "uploads": "In-memory controlled transports through the actual page and upload adapter; no real member writes",
+    "screenshots": "Original tool PNGs, 618x1386 at 412 and 564x1218 at 375; no image rescaling applied by the test. PNGs follow the existing repository ignore policy and remain local; their hashes and native measurements are versioned.",
+    "devtoolsVersionEvidence": "Installed signed app resources app.asar.unpacked/package.json (not Electron CFBundleVersion)"
+  },
+  "unit": {
+    "success": true,
+    "numPassedTestSuites": 426,
+    "numFailedTestSuites": 0,
+    "numPassedTests": 3662,
+    "numFailedTests": 0,
+    "numPendingTests": 1,
+    "numTotalTests": 3663,
+    "scope": "Full local unit suite; one platform-specific performance test skipped. Does not prove physical-device or real member upload/publication."
+  },
+  "targetedTests": 214,
+  "typecheck": "passed",
+  "packageGate": "passed",
+  "routeAudit": "48 routes, source hash binding valid; full visual/state matrix remains blocked",
+  "contractLint": "380 registered v1 methods and 32 typed events matched",
+  "subagentReview": {
+    "model": "gpt-6.1-terra",
+    "reasoningEffort": "max",
+    "mode": "read-only code/history audit; main agent reproduced and fixed findings",
+    "finalConfirmedCodeBlockers": []
+  },
+  "notValidated": [
+    "Physical iOS/Android devices, screen readers and device frame-rate performance",
+    "Real member upload, image replacement and public publication end-to-end on this package",
+    "14px/700ms blur reveal; current product keeps the existing 200ms opacity adaptation",
+    "All 48 routes, font sizes and state combinations",
+    "Author-profile cover failure recovery (existing fallback path, outside this scoped repair)"
+  ],
+  "localIntegration": {
+    "command": "npm run test:integration",
+    "status": "not_executed",
+    "reason": "Docker CLI is installed but no local Docker daemon is available at /var/run/docker.sock. No disposable database was created. Candidate GitHub verify will run the integration suite in its isolated environment.",
+    "realDataTouched": false
+  },
+  "candidateCI": "pending remote candidate verification",
+  "mainMerged": false,
+  "baselineMeasurementScope": "baseline-image-retry.json is condensed output of the pre-image-fix native probe; its intermediate full package fingerprint was not captured. It is diagnostic history, not current package acceptance.",
+  "artifacts": {
+    "native-results.json": {
+      "sha256": "ef9e7ac763bc4c9972d1567150617fbd95f4857da8626d379cc07935472e8430",
+      "bytes": 28861,
+      "storage": "version_controlled"
+    },
+    "native-compilation.json": {
+      "sha256": "da11686ae7409ae6b240a4c46bd8d8b9be667ca435187720f4ed8b5832c05648",
+      "bytes": 989,
+      "storage": "version_controlled"
+    },
+    "package-final.json": {
+      "sha256": "af596b55cb9708b18aabe8ecba9309498cf3597f9db96f46873ab170b83bf14e",
+      "bytes": 3620,
+      "storage": "version_controlled"
+    },
+    "unit-summary.json": {
+      "sha256": "79c6686a3907794b0b15a33ec31cdf9ee844dab6be6828c4ecfd91d1935e4e85",
+      "bytes": 329,
+      "storage": "version_controlled"
+    },
+    "unit-results.json.gz": {
+      "sha256": "db686e63508a50201277b9ba7a0c885859c8a431debc3c1012c53c1131dd3717",
+      "bytes": 151198,
+      "storage": "version_controlled"
+    },
+    "local-integration-scope.json": {
+      "sha256": "5cf6b2c955c722eb2d87e97f5dbf1775cf9ec697ed416dae86e2e0db5012171a",
+      "bytes": 324,
+      "storage": "version_controlled"
+    },
+    "baseline-image-retry.json": {
+      "sha256": "850cac401a4f03575299c57f9a2c8cedcf10272d39383711ae31a8378270516c",
+      "bytes": 464,
+      "storage": "version_controlled"
+    },
+    "final-live-anonymous-runtime.json": {
+      "sha256": "92bdaaa89068adc8d2cc8ab978e3087c94dff0a95336b82eaabda87b8d45c04b",
+      "bytes": 222,
+      "storage": "version_controlled"
+    },
+    "final-live-anonymous-community.png": {
+      "sha256": "eb1130df732f53e23abc6f07ae5360d511385685c22ee2f4e5b12f95677eb5e5",
+      "bytes": 584478,
+      "storage": "local_only_gitignored"
+    },
+    "375-final-cold.png": {
+      "sha256": "03d329ab5da818337349f38055a9f6596098cb01e619ea51edd0ff82abf3dc7b",
+      "bytes": 89864,
+      "storage": "local_only_gitignored"
+    },
+    "375-final-ready.png": {
+      "sha256": "bdfda0f5aa836a5843f7bffa117c9cd4a63ba3ad7dc303c7bbe2d94552f1f2fc",
+      "bytes": 362447,
+      "storage": "local_only_gitignored"
+    },
+    "375-final-recommend-pending.png": {
+      "sha256": "2230a8036ab8bdcc322f53536d53c303b0d68f19801092c1a9ed1ceff7086bd7",
+      "bytes": 97853,
+      "storage": "local_only_gitignored"
+    },
+    "375-final-upload-progress.png": {
+      "sha256": "0631e35936da445ce469679502f9f3c5d994dcf168e32cb09d1bd28a365f6a57",
+      "bytes": 78774,
+      "storage": "local_only_gitignored"
+    },
+    "412-final-cold.png": {
+      "sha256": "0cd3c00f2cb20146f00a34478a1ec7b107b21f6cc58adfa02dc4517f46c81b04",
+      "bytes": 108595,
+      "storage": "local_only_gitignored"
+    },
+    "412-final-ready.png": {
+      "sha256": "d613389f25b4cf13286ab163fae258d7db21a74b7bbef8eb553e9de7d67e8c6c",
+      "bytes": 414635,
+      "storage": "local_only_gitignored"
+    },
+    "412-final-upload-progress.png": {
+      "sha256": "2d70e5a5912da9dc5f91f09dff23189d368282421841e02bbbcbfe87fc078b8e",
+      "bytes": 77134,
+      "storage": "local_only_gitignored"
+    }
+  }
+}

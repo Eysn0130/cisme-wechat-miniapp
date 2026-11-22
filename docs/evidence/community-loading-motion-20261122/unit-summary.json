@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "numPassedTestSuites": 426,
+  "numFailedTestSuites": 0,
+  "numPassedTests": 3662,
+  "numFailedTests": 0,
+  "numPendingTests": 1,
+  "numTotalTests": 3663,
+  "scope": "Full local unit suite; one platform-specific performance test skipped. Does not prove physical-device or real member upload/publication."
+}

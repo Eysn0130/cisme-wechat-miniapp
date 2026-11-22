@@ -1,0 +1,12 @@
+{
+  "route": "pages/community/index",
+  "width": 375,
+  "height": 812,
+  "safeBottom": 34,
+  "sdkVersion": "3.15.2",
+  "guest": true,
+  "controlledFixturePresent": false,
+  "loading": false,
+  "count": 20,
+  "error": ""
+}
