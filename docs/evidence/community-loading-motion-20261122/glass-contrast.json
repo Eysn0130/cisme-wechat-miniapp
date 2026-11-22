@@ -1,5 +1,6 @@
 {
   "scope": "Native simulator PNGs, four controlled backdrops per width; actual neighboring material pixels, intended ink colors, antialias edges excluded.",
+  "samplingLimit": "For each located stroke pixel, the brightest pixel in a 5px neighborhood estimates the adjacent background. Reported minima are among these 32 sampled positions, not every background pixel or a formal whole-region worst case.",
   "iconLimit": "Thin SVG strokes do not always contain opaque raster pixels. Icon values compare the intended source SVG fill with sampled adjacent material, not every antialiased pixel or physical-device perception.",
   "labelTarget": 4.5,
   "iconTarget": 3,
@@ -28,7 +29,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 5.0705538652557305
+        "minimumContrast": 5.0705538652557305,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -55,7 +58,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 10.000756563196333
+        "minimumContrast": 10.000756563196333,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
       }
     },
     {
@@ -75,14 +80,16 @@
       },
       "icon": {
         "foreground": [
-          86,
-          48,
-          111
+          63,
+          35,
+          88
         ],
-        "opaqueCorePixels": 1,
+        "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.842451807679787
+        "minimumContrast": 12.679536364145399,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
       }
     },
     {
@@ -109,7 +116,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 5.073718163758437
+        "minimumContrast": 5.073718163758437,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -136,7 +145,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.838036445234288
+        "minimumContrast": 4.838036445234288,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -163,7 +174,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.553830956414926
+        "minimumContrast": 9.553830956414926,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
       }
     },
     {
@@ -183,14 +196,16 @@
       },
       "icon": {
         "foreground": [
-          86,
-          48,
-          111
+          63,
+          35,
+          88
         ],
-        "opaqueCorePixels": 1,
+        "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.697070798805765
+        "minimumContrast": 12.546756160753699,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
       }
     },
     {
@@ -217,7 +232,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.916555450542409
+        "minimumContrast": 4.916555450542409,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -244,7 +261,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 3.617649285493194
+        "minimumContrast": 3.617649285493194,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -271,7 +290,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 7.149902639177326
+        "minimumContrast": 7.149902639177326,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
       }
     },
     {
@@ -291,14 +312,16 @@
       },
       "icon": {
         "foreground": [
-          86,
-          48,
-          111
+          63,
+          35,
+          88
         ],
-        "opaqueCorePixels": 1,
+        "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 8.71937408223851
+        "minimumContrast": 11.416045021636497,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
       }
     },
     {
@@ -325,7 +348,9 @@
         "opaqueCorePixels": 1,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 3.635272976832425
+        "minimumContrast": 3.635272976832425,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -352,7 +377,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.327166901076637
+        "minimumContrast": 4.327166901076637,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -379,7 +406,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 8.473448146796702
+        "minimumContrast": 8.473448146796702,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
       }
     },
     {
@@ -399,14 +428,16 @@
       },
       "icon": {
         "foreground": [
-          86,
-          48,
-          111
+          63,
+          35,
+          88
         ],
-        "opaqueCorePixels": 1,
+        "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.217856543512806
+        "minimumContrast": 12.0337011448339,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
       }
     },
     {
@@ -433,7 +464,9 @@
         "opaqueCorePixels": 1,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.287825305169531
+        "minimumContrast": 4.287825305169531,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -460,7 +493,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.987142907044968
+        "minimumContrast": 4.987142907044968,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -487,7 +522,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.982571348681121
+        "minimumContrast": 9.982571348681121,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
       }
     },
     {
@@ -507,14 +544,16 @@
       },
       "icon": {
         "foreground": [
-          86,
-          48,
-          111
+          63,
+          35,
+          88
         ],
         "opaqueCorePixels": 1,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.86054121164142
+        "minimumContrast": 12.578438054910013,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
       }
     },
     {
@@ -541,7 +580,9 @@
         "opaqueCorePixels": 2,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 5.073718163758437
+        "minimumContrast": 5.073718163758437,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -568,7 +609,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.756887495930732
+        "minimumContrast": 4.756887495930732,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -595,7 +638,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.535741552453292
+        "minimumContrast": 9.535741552453292,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
       }
     },
     {
@@ -615,14 +660,16 @@
       },
       "icon": {
         "foreground": [
-          86,
-          48,
-          111
+          63,
+          35,
+          88
         ],
         "opaqueCorePixels": 1,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.721270964274813
+        "minimumContrast": 12.392320363522131,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
       }
     },
     {
@@ -649,7 +696,9 @@
         "opaqueCorePixels": 2,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.947083325319783
+        "minimumContrast": 4.947083325319783,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -676,7 +725,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 3.5474978724580493
+        "minimumContrast": 3.5474978724580493,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -703,7 +754,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 7.135163297079757
+        "minimumContrast": 7.135163297079757,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
       }
     },
     {
@@ -723,14 +776,16 @@
       },
       "icon": {
         "foreground": [
-          86,
-          48,
-          111
+          63,
+          35,
+          88
         ],
         "opaqueCorePixels": 1,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 8.872104662366425
+        "minimumContrast": 11.212125011739218,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
       }
     },
     {
@@ -757,7 +812,9 @@
         "opaqueCorePixels": 2,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 3.635272976832425
+        "minimumContrast": 3.635272976832425,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -784,7 +841,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.259870078902686
+        "minimumContrast": 4.259870078902686,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
       }
     },
     {
@@ -811,7 +870,9 @@
         "opaqueCorePixels": 0,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 8.456965097313052
+        "minimumContrast": 8.456965097313052,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
       }
     },
     {
@@ -831,14 +892,16 @@
       },
       "icon": {
         "foreground": [
-          86,
-          48,
-          111
+          63,
+          35,
+          88
         ],
         "opaqueCorePixels": 1,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 9.352278593181502
+        "minimumContrast": 11.823021836321837,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
       }
     },
     {
@@ -865,7 +928,9 @@
         "opaqueCorePixels": 2,
         "method": "intended foreground against adjacent raster material",
         "rasterStrokeHasOpaqueCore": false,
-        "minimumContrast": 4.287825305169531
+        "minimumContrast": 4.287825305169531,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
       }
     }
   ],

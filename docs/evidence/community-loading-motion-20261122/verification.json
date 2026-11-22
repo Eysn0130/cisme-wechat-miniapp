@@ -105,8 +105,8 @@
       "storage": "version_controlled"
     },
     "glass-contrast.json": {
-      "sha256": "a2694511969a70eb8c7dfb84f7903a825e343e87ab238762df269c41ee5af36d",
-      "bytes": 21805,
+      "sha256": "e4c9611eb09edc948b42da2b9ee74b4ad796818f0738e8783bad43af04066d4f",
+      "bytes": 24733,
       "storage": "version_controlled"
     },
     "cua-375-taps.json": {
@@ -185,8 +185,8 @@
       "storage": "version_controlled"
     },
     "qa-source/measure-glass-contrast.py": {
-      "sha256": "6b5c6284a209044bd6e7388e2075520bd777152d3fb7fe1bc080255c786f6dfc",
-      "bytes": 4553,
+      "sha256": "48e22163acccb131aef5050ca4cf280e8b64f127dc6f8ffceec59c9a8eb912f6",
+      "bytes": 5466,
       "storage": "version_controlled"
     },
     "qa-source/run-native.mjs": {
@@ -202,102 +202,144 @@
     "final-live-anonymous-community.png": {
       "sha256": "6a95b1698e9896b8e01eff0b810b29855e6fca8a21573af0193c184358acd08e",
       "bytes": 746392,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "bottom-navigation-before-20261122.png": {
       "sha256": "d732f459a97891a5ad55a46928f6c4de4afafb7c7d99b3e7b33ceb43ab16e14b",
       "bytes": 584279,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "comparison_only",
+      "packageSourceSha256": null,
+      "scope": "Work-in-progress visual comparison. Full package fingerprint was not captured at image capture; excluded from current package acceptance."
     },
     "bottom-navigation-after-375.png": {
       "sha256": "ed15d68042e9abb21580f7cf6f42327d5e1724720d306a4afb39a12d50433294",
       "bytes": 582939,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "comparison_only",
+      "packageSourceSha256": null,
+      "scope": "Work-in-progress visual comparison. Full package fingerprint was not captured at image capture; excluded from current package acceptance."
     },
     "bottom-navigation-final-375.png": {
       "sha256": "e4385bc47b46f453d1a9f47cc2eaf0d730ebb587fe02dee26566afcc04cc98f8",
       "bytes": 582042,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "375-reverified-cold.png": {
       "sha256": "b1e84f597a399be34f0d8b5b2d813e1b4d70cbf472cbbfbd92592d3ae160f05d",
       "bytes": 107185,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "375-reverified-ready.png": {
       "sha256": "7e8cd08245a9540c2fc40374cbe697b5cf9ce0e58cde6e98db5f85f5c67faee8",
       "bytes": 358933,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "375-reverified-recommend-pending.png": {
       "sha256": "8186d37f468af97a1e1a75c884513111ae6e074b2d8ae005a3197407907591b1",
       "bytes": 95386,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "375-reverified-upload-progress.png": {
       "sha256": "c5842b1fa05e7c9e3cc354aaa82951ea38f519ed4c7a6141a737b4ae37aa2e0e",
       "bytes": 78828,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "412-reverified-cold.png": {
       "sha256": "8fb74fd8c089313d1177e505ba310657f1bf20d728e192e14bf3b87ca2925529",
       "bytes": 92872,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "412-reverified-ready.png": {
       "sha256": "8862f70eadff77bba71680d6a9aa74bf2e3c581e156d386f521d93802a7cb63e",
       "bytes": 413312,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "412-reverified-recommend-pending.png": {
       "sha256": "ffcbbc14a4e9670a1fa46fa32578151b8d989a128c8663390ae2710621efb988",
       "bytes": 85284,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "412-reverified-upload-progress.png": {
       "sha256": "ac47ac5a67ea38ed86ba9922c8ee94418d80a60c66580e4288db3d325f7b2d3c",
       "bytes": 77344,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "glass-375-light.png": {
       "sha256": "8d7c89c564f9cfbf6749f2821aec8eef5b314b498f5fdaecae37fe5084b63c1e",
       "bytes": 94744,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "glass-375-warm.png": {
       "sha256": "3e694e6d82c71007de018fc2a8d80672cfb3dad39f0e43693e15f537e0424b68",
       "bytes": 106827,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "glass-375-dark.png": {
       "sha256": "13d8cb680e58986bf182ab2a7e964a1690f9cc6e852d2e1a0943e4b5052d8eb7",
       "bytes": 95720,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "glass-375-busy.png": {
       "sha256": "6af3f7947e596dd88004b21a766b71409aa46c5aea34b67127c49e83dfd91720",
       "bytes": 79288,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "glass-412-light.png": {
       "sha256": "fd59709a9f3a18a37b9150d4959c34b7ad35a77eab8b5c1bc89fb3a678ac4480",
       "bytes": 72482,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "glass-412-warm.png": {
       "sha256": "f183f689dd398cfe2b90a541e8eeb7a07c8eb95de8a15c73c6a11c69504a36ee",
       "bytes": 76083,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "glass-412-dark.png": {
       "sha256": "117c9ae298e160615ab0d04e828c17d66262bf7620a4fb949b38418f9b2a6efd",
       "bytes": 72547,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     },
     "glass-412-busy.png": {
       "sha256": "0aa8a9579eddcd8ffeed97e3e7e17089b41ede4ab725665f3e650ee2b48d0ac2",
       "bytes": 73161,
-      "storage": "local_only_gitignored"
+      "storage": "local_only_gitignored",
+      "role": "scoped_current_package",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80"
     }
   },
   "glass": {
@@ -314,6 +356,7 @@
     "actualPointerTaps": 8,
     "contrast": {
       "scope": "Native simulator PNGs, four controlled backdrops per width; actual neighboring material pixels, intended ink colors, antialias edges excluded.",
+      "samplingLimit": "For each located stroke pixel, the brightest pixel in a 5px neighborhood estimates the adjacent background. Reported minima are among these 32 sampled positions, not every background pixel or a formal whole-region worst case.",
       "iconLimit": "Thin SVG strokes do not always contain opaque raster pixels. Icon values compare the intended source SVG fill with sampled adjacent material, not every antialiased pixel or physical-device perception.",
       "labelTarget": 4.5,
       "iconTarget": 3,
