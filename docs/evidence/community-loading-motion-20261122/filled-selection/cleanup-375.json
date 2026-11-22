@@ -1,0 +1,27 @@
+{
+  "pointers": {
+    "route": "pages/community/index",
+    "active": 2,
+    "publisherCalls": 1
+  },
+  "controlled": {
+    "restored": true,
+    "realWrites": 0,
+    "allNetworkIntercepted": true,
+    "blockedWriteRequests": 10,
+    "syntheticStorageDiscarded": true
+  },
+  "anonymous": {
+    "route": "pages/community/index",
+    "width": 375,
+    "guest": true,
+    "count": 20,
+    "fixture": false
+  },
+  "session": {
+    "restored": true,
+    "originalGlobalDataRestored": true,
+    "persistentStorageChanged": false,
+    "controlledFixturePresent": false
+  }
+}

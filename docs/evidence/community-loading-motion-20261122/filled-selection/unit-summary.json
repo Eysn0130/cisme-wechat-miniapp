@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "numPassedTestSuites": 426,
+  "numFailedTestSuites": 0,
+  "numPassedTests": 3697,
+  "numFailedTests": 0,
+  "numPendingTests": 1,
+  "numTotalTests": 3698,
+  "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+  "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+}

@@ -1,0 +1,1398 @@
+{
+  "helperSha256": "48e22163acccb131aef5050ca4cf280e8b64f127dc6f8ffceec59c9a8eb912f6",
+  "scope": "Current filled-selection native simulator PNGs; no old screenshots or resizing.",
+  "samplingLimit": "Selected white ink uses fixed neighboring clear material points; other ink uses the earlier 5px-neighborhood estimator. Reported minima cover these sampled positions, not every background/antialias pixel or physical-device perception.",
+  "minimumLabel": 4.9567761562973125,
+  "minimumIcon": 3.5474978724580493,
+  "minimumSelectedLabel": 6.889259805764464,
+  "minimumSelectedIcon": 5.675884862786427,
+  "minimumRimOutside": 4.362801612930762,
+  "results": [
+    {
+      "width": 375,
+      "scene": "light",
+      "item": 0,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 21,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.515523184727519
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 5.0705538652557305,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "light",
+      "item": 1,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 18,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.914300247157257
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 10.000756563196333,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "light",
+      "item": 2,
+      "selected": true,
+      "label": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            106,
+            79,
+            128
+          ],
+          [
+            99,
+            72,
+            121
+          ]
+        ],
+        "minimumContrast": 6.901243886078941,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "opaqueCorePixels": 145
+      },
+      "icon": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            119,
+            92,
+            140
+          ],
+          [
+            112,
+            85,
+            134
+          ]
+        ],
+        "minimumContrast": 5.6849927779351335,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "asset": "/assets/icons/tab-users-selected.svg",
+        "sourceFill": "#ffffff"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "light",
+      "item": 3,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 24,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.919272444779862
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 5.073718163758437,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "item": 0,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 23,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.166117511697331
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.838036445234288,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "item": 1,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 18,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.558301659437165
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 9.553830956414926,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "item": 2,
+      "selected": true,
+      "label": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            106,
+            79,
+            128
+          ],
+          [
+            99,
+            72,
+            121
+          ]
+        ],
+        "minimumContrast": 6.901243886078941,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "opaqueCorePixels": 145
+      },
+      "icon": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            119,
+            92,
+            140
+          ],
+          [
+            112,
+            85,
+            134
+          ]
+        ],
+        "minimumContrast": 5.6849927779351335,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "asset": "/assets/icons/tab-users-selected.svg",
+        "sourceFill": "#ffffff"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "item": 3,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 27,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.624646975023478
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.916555450542409,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "item": 0,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 42,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.307185576307935
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 3.617649285493194,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "item": 1,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 21,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.538830772089782
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 7.149902639177326,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "item": 2,
+      "selected": true,
+      "label": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            106,
+            79,
+            128
+          ],
+          [
+            99,
+            72,
+            121
+          ]
+        ],
+        "minimumContrast": 6.901243886078941,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "opaqueCorePixels": 145
+      },
+      "icon": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            119,
+            92,
+            140
+          ],
+          [
+            112,
+            85,
+            134
+          ]
+        ],
+        "minimumContrast": 5.6849927779351335,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "asset": "/assets/icons/tab-users-selected.svg",
+        "sourceFill": "#ffffff"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "item": 3,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 36,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.550480062799251
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 1,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 3.635272976832425,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "item": 0,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 32,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.381343256717353
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.327166901076637,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "item": 1,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 19,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.636544485465709
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 8.473448146796702,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "item": 2,
+      "selected": true,
+      "label": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            106,
+            79,
+            128
+          ],
+          [
+            99,
+            72,
+            121
+          ]
+        ],
+        "minimumContrast": 6.901243886078941,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "opaqueCorePixels": 145
+      },
+      "icon": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            119,
+            92,
+            140
+          ],
+          [
+            112,
+            85,
+            134
+          ]
+        ],
+        "minimumContrast": 5.6849927779351335,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "asset": "/assets/icons/tab-users-selected.svg",
+        "sourceFill": "#ffffff"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "item": 3,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 29,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.641025807711178
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 1,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.287825305169531,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "item": 0,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 24,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.938706142737387
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.987142907044968,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "item": 1,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 21,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.720694460683796
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 9.982571348681121,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "item": 2,
+      "selected": true,
+      "label": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            106,
+            79,
+            129
+          ],
+          [
+            100,
+            72,
+            122
+          ]
+        ],
+        "minimumContrast": 6.889259805764464,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "opaqueCorePixels": 131
+      },
+      "icon": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            119,
+            92,
+            141
+          ],
+          [
+            112,
+            85,
+            134
+          ]
+        ],
+        "minimumContrast": 5.675884862786427,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "asset": "/assets/icons/tab-users-selected.svg",
+        "sourceFill": "#ffffff"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "item": 3,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 19,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.968266627626448
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 2,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 5.073718163758437,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "item": 0,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 24,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.606139580603316
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.756887495930732,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "item": 1,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 22,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.369843676570402
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 9.535741552453292,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "item": 2,
+      "selected": true,
+      "label": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            106,
+            79,
+            129
+          ],
+          [
+            100,
+            72,
+            122
+          ]
+        ],
+        "minimumContrast": 6.889259805764464,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "opaqueCorePixels": 131
+      },
+      "icon": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            119,
+            92,
+            141
+          ],
+          [
+            112,
+            85,
+            134
+          ]
+        ],
+        "minimumContrast": 5.675884862786427,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "asset": "/assets/icons/tab-users-selected.svg",
+        "sourceFill": "#ffffff"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "item": 3,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 20,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.691626190124214
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 2,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.947083325319783,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "item": 0,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 32,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 4.9567761562973125
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 3.5474978724580493,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "item": 1,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 39,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.4340201496674805
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 7.135163297079757,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "item": 2,
+      "selected": true,
+      "label": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            106,
+            79,
+            129
+          ],
+          [
+            100,
+            72,
+            122
+          ]
+        ],
+        "minimumContrast": 6.889259805764464,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "opaqueCorePixels": 131
+      },
+      "icon": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            119,
+            92,
+            141
+          ],
+          [
+            112,
+            85,
+            134
+          ]
+        ],
+        "minimumContrast": 5.675884862786427,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "asset": "/assets/icons/tab-users-selected.svg",
+        "sourceFill": "#ffffff"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "item": 3,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 30,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.566306021884483
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 2,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 3.635272976832425,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "item": 0,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 26,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.917917639620068
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.259870078902686,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "item": 1,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 28,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.523504208092152
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 8.456965097313052,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "item": 2,
+      "selected": true,
+      "label": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            106,
+            79,
+            129
+          ],
+          [
+            100,
+            72,
+            122
+          ]
+        ],
+        "minimumContrast": 6.889259805764464,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "opaqueCorePixels": 131
+      },
+      "icon": {
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "materialSamples": [
+          [
+            119,
+            92,
+            141
+          ],
+          [
+            112,
+            85,
+            134
+          ]
+        ],
+        "minimumContrast": 5.675884862786427,
+        "method": "white source ink versus fixed clear material points outside glyph bounds",
+        "asset": "/assets/icons/tab-users-selected.svg",
+        "sourceFill": "#ffffff"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "item": 3,
+      "selected": false,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 24,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.641025807711178
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 2,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.287825305169531,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    }
+  ],
+  "rims": [
+    {
+      "width": 375,
+      "scene": "light",
+      "side": "left",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        251,
+        251,
+        253
+      ],
+      "contrast": 6.199380952121017
+    },
+    {
+      "width": 375,
+      "scene": "light",
+      "side": "right",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        252,
+        251,
+        253
+      ],
+      "contrast": 6.210743978295231
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "side": "left",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        250,
+        246,
+        243
+      ],
+      "contrast": 5.962082496987223
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "side": "right",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        251,
+        247,
+        245
+      ],
+      "contrast": 6.018022089926457
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "side": "left",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        214,
+        213,
+        219
+      ],
+      "contrast": 4.393405269280479
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "side": "right",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        215,
+        213,
+        220
+      ],
+      "contrast": 4.405839084412831
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "side": "left",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        233,
+        232,
+        235
+      ],
+      "contrast": 5.249880134571227
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "side": "right",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        233,
+        232,
+        235
+      ],
+      "contrast": 5.249880134571227
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "side": "left",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        251,
+        250,
+        252
+      ],
+      "contrast": 6.157477101142496
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "side": "right",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        251,
+        251,
+        253
+      ],
+      "contrast": 6.199380952121017
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "side": "left",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        249,
+        245,
+        242
+      ],
+      "contrast": 5.910139901304361
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "side": "right",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        250,
+        246,
+        245
+      ],
+      "contrast": 5.969496919351794
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "side": "left",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        214,
+        212,
+        219
+      ],
+      "contrast": 4.362801612930762
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "side": "right",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        215,
+        213,
+        220
+      ],
+      "contrast": 4.405839084412831
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "side": "left",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        232,
+        231,
+        234
+      ],
+      "contrast": 5.201864741576341
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "side": "right",
+      "borderInk": [
+        117,
+        81,
+        134
+      ],
+      "outsideMaterial": [
+        232,
+        231,
+        235
+      ],
+      "contrast": 5.205382277129475
+    }
+  ]
+}

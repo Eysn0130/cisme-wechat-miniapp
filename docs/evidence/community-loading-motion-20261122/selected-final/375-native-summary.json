@@ -1,0 +1,82 @@
+{
+  "status": "passed",
+  "scope": "DevTools with controlled JSON/upload callbacks and real native images; no real member writes",
+  "results": [
+    {
+      "name": "cold-shimmer",
+      "passed": true
+    },
+    {
+      "name": "ready",
+      "passed": true
+    },
+    {
+      "name": "refresh-keeps-geometry",
+      "passed": true
+    },
+    {
+      "name": "failed-refresh-retained",
+      "passed": true
+    },
+    {
+      "name": "unconfirmed-channel-retry",
+      "passed": true
+    },
+    {
+      "name": "source-error-not-empty",
+      "passed": true
+    },
+    {
+      "name": "permission-denial-immediate",
+      "passed": true
+    },
+    {
+      "name": "recommend-pending-not-empty",
+      "passed": true
+    },
+    {
+      "name": "recommend-released",
+      "passed": true
+    },
+    {
+      "name": "image-retry-and-arrival",
+      "passed": true
+    },
+    {
+      "name": "confirmed-empty",
+      "passed": true
+    },
+    {
+      "name": "reduced-skeleton",
+      "passed": true
+    },
+    {
+      "name": "upload-unknown",
+      "passed": true
+    },
+    {
+      "name": "upload-real-target-interpolation",
+      "passed": true
+    },
+    {
+      "name": "transport-complete-business-pending",
+      "passed": true
+    },
+    {
+      "name": "media-confirmed",
+      "passed": true
+    },
+    {
+      "name": "lost-confirmation-read-only-recovery",
+      "passed": true
+    },
+    {
+      "name": "put-unknown",
+      "passed": true
+    },
+    {
+      "name": "upload-interruption",
+      "passed": true
+    }
+  ]
+}

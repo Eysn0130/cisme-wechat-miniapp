@@ -1,0 +1,241 @@
+{
+  "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+  "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf",
+  "status": "passed",
+  "width": 375,
+  "directedTransitions": 12,
+  "geometry": {
+    "width": 375,
+    "height": 812,
+    "safeBottom": 34,
+    "bar": {
+      "left": 11,
+      "right": 364,
+      "top": 707,
+      "bottom": 777,
+      "width": 353,
+      "height": 70,
+      "backdropFilter": "blur(20px) saturate(1.35)"
+    },
+    "lens": {
+      "left": 190.5,
+      "right": 269.75,
+      "top": 714,
+      "bottom": 770,
+      "width": 79.25,
+      "height": 56,
+      "backgroundColor": "rgb(109, 71, 130)",
+      "borderTopColor": "rgb(119, 83, 138)",
+      "borderBottomColor": "rgb(105, 69, 121)",
+      "borderLeftColor": "rgb(117, 81, 134)",
+      "borderRightColor": "rgb(117, 81, 134)",
+      "borderTopWidth": "1px",
+      "backgroundImage": "radial-gradient(at 28% 0%, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0) 75%), linear-gradient(164deg, rgb(121, 85, 143), rgb(98, 64, 118))",
+      "boxShadow": "rgba(255, 255, 255, 0.3) 0px 1px 0px 0px inset, rgba(41, 19, 57, 0.18) 0px -1px 1px 0px inset, rgba(40, 25, 53, 0.12) 0px 1px 2px 0px"
+    },
+    "items": [
+      {
+        "left": 17,
+        "right": 102.25,
+        "top": 712,
+        "bottom": 772,
+        "width": 85.25,
+        "height": 60,
+        "color": "rgb(85, 75, 91)",
+        "fontSize": "13px",
+        "fontWeight": "400"
+      },
+      {
+        "left": 102.25,
+        "right": 187.5,
+        "top": 712,
+        "bottom": 772,
+        "width": 85.25,
+        "height": 60,
+        "color": "rgb(85, 75, 91)",
+        "fontSize": "13px",
+        "fontWeight": "400"
+      },
+      {
+        "left": 187.5,
+        "right": 272.75,
+        "top": 712,
+        "bottom": 772,
+        "width": 85.25,
+        "height": 60,
+        "color": "rgb(255, 255, 255)",
+        "fontSize": "13px",
+        "fontWeight": "600"
+      },
+      {
+        "left": 272.75,
+        "right": 358,
+        "top": 712,
+        "bottom": 772,
+        "width": 85.25,
+        "height": 60,
+        "color": "rgb(85, 75, 91)",
+        "fontSize": "13px",
+        "fontWeight": "400"
+      }
+    ]
+  },
+  "edges": {
+    "repeatTap": [
+      {
+        "scrollTop": 0,
+        "duration": 0
+      }
+    ],
+    "hiddenBlocked": true,
+    "failureRecovered": true,
+    "publisherCalls": 1,
+    "reduced": {
+      "enabled": true,
+      "bar": {
+        "backdropFilter": "none",
+        "backgroundColor": "rgb(246, 244, 248)"
+      },
+      "lens": {
+        "animationName": "none",
+        "transform": "matrix(1, 0, 0, 1, 170.5, 0)"
+      }
+    }
+  },
+  "disabledSelected": {
+    "busy": true,
+    "item": {
+      "color": "rgb(255, 255, 255)",
+      "opacity": "1"
+    },
+    "label": {
+      "color": "rgb(255, 255, 255)"
+    },
+    "icon": {
+      "opacity": "1"
+    }
+  },
+  "reduced": {
+    "bar": {
+      "backdropFilter": "none",
+      "backgroundColor": "rgb(246, 244, 248)"
+    },
+    "track": {
+      "animationName": "none",
+      "transform": "matrix(1, 0, 0, 1, 170.5, 0)"
+    },
+    "lens": {
+      "borderLeftColor": "rgb(117, 81, 134)",
+      "borderTopWidth": "1px"
+    },
+    "outline": {
+      "opacity": "0"
+    },
+    "active": 2
+  },
+  "backgrounds": [
+    {
+      "name": "light",
+      "background": "linear-gradient(120deg,#eef2f7,#ffffff)",
+      "active": 2,
+      "screenshot": "375-light.png"
+    },
+    {
+      "name": "warm",
+      "background": "linear-gradient(120deg,#e8c8a5,#f5ebe0)",
+      "active": 2,
+      "screenshot": "375-warm.png"
+    },
+    {
+      "name": "dark",
+      "background": "linear-gradient(120deg,#0d1728,#2a203a)",
+      "active": 2,
+      "screenshot": "375-dark.png"
+    },
+    {
+      "name": "busy",
+      "background": "repeating-linear-gradient(45deg,#171320 0px,#171320 3px,#ffffff 3px,#ffffff 6px)",
+      "active": 2,
+      "screenshot": "375-busy.png"
+    }
+  ],
+  "actualPointerTargets": [
+    {
+      "target": "publisher",
+      "method": "Actual native app CUA pointer click, followed by independent runtime read",
+      "route": "pages/community/index",
+      "active": 2,
+      "publisherCalls": 1,
+      "controlled": true,
+      "width": 375
+    },
+    {
+      "target": "shop",
+      "method": "Actual native app CUA pointer click, followed by independent runtime read",
+      "route": "pages/shop/index",
+      "active": 1,
+      "publisherCalls": 1,
+      "controlled": true,
+      "width": 375
+    },
+    {
+      "target": "home",
+      "method": "Actual native app CUA pointer click, followed by independent runtime read",
+      "route": "pages/home/index",
+      "active": 0,
+      "publisherCalls": 1,
+      "controlled": true,
+      "width": 375
+    },
+    {
+      "target": "profile",
+      "method": "Actual native app CUA pointer click, followed by independent runtime read",
+      "route": "pages/profile/index",
+      "active": 3,
+      "publisherCalls": 1,
+      "controlled": true,
+      "width": 375
+    },
+    {
+      "target": "community",
+      "method": "Actual native app CUA pointer click, followed by independent runtime read",
+      "route": "pages/community/index",
+      "active": 2,
+      "publisherCalls": 1,
+      "controlled": true,
+      "width": 375
+    }
+  ],
+  "cleanup": {
+    "pointers": {
+      "route": "pages/community/index",
+      "active": 2,
+      "publisherCalls": 1
+    },
+    "controlled": {
+      "restored": true,
+      "realWrites": 0,
+      "allNetworkIntercepted": true,
+      "blockedWriteRequests": 10,
+      "syntheticStorageDiscarded": true
+    },
+    "anonymous": {
+      "route": "pages/community/index",
+      "width": 375,
+      "guest": true,
+      "count": 20,
+      "fixture": false
+    },
+    "session": {
+      "restored": true,
+      "originalGlobalDataRestored": true,
+      "persistentStorageChanged": false,
+      "controlledFixturePresent": false
+    }
+  },
+  "rawFrames": {
+    "path": "review-375.json.gz",
+    "sha256": "2b3252783e271c6eb51ef75a9712005b998e20b990743f191f71939bf9e6f758"
+  },
+  "foregroundChecks": "Every transition: white label/icon final; selected outline ends at zero opacity and is visible before lens arrival; white ink is revealed only after lens covers glyph center; stretch/rebound/end and bar bounds measured."
+}

@@ -1,0 +1,62 @@
+{
+  "compiles": [
+    {
+      "tool": "compile_wxml",
+      "path": "pages/community/index.wxml",
+      "success": true,
+      "codeLength": 52825
+    },
+    {
+      "tool": "compile_wxss",
+      "path": "pages/community/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 21943
+    },
+    {
+      "tool": "compile_wxml",
+      "path": "templates/community-feed.wxml",
+      "success": true,
+      "codeLength": 52825
+    },
+    {
+      "tool": "compile_wxml",
+      "path": "pages/community-compose/index.wxml",
+      "success": true,
+      "codeLength": 52825
+    },
+    {
+      "tool": "compile_wxss",
+      "path": "pages/community-compose/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 21943
+    },
+    {
+      "tool": "compile_wxml",
+      "path": "custom-tab-bar/index.wxml",
+      "success": true,
+      "codeLength": 52825
+    },
+    {
+      "tool": "compile_wxss",
+      "path": "custom-tab-bar/index.wxss",
+      "success": true,
+      "files": 2,
+      "fileList": [
+        "comm",
+        "page"
+      ],
+      "totalCodeLength": 21943
+    }
+  ],
+  "scope": "Seven local WXML/WXSS compilation checks, not all routes or physical-device acceptance."
+}
