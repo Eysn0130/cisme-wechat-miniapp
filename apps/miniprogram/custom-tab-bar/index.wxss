@@ -101,15 +101,16 @@
 .bar__lens {
   position: absolute;
   inset: 1px 3px;
-  border: 1rpx solid rgba(255,255,255,.8);
-  border-bottom-color: rgba(255,255,255,.46);
+  border: 1px solid #806193;
+  border-top-color: #846199;
+  border-bottom-color: #725086;
   border-radius: 35px;
   /* The bar supplies the filtered backdrop. The rim lighting simulates edge depth. */
   background:
-    radial-gradient(ellipse at 28% 0%, rgba(255,255,255,.64), transparent 75%),
-    linear-gradient(164deg, rgba(255,255,255,.46), rgba(221,211,234,.46));
+    radial-gradient(ellipse at 28% 0%, rgba(255,255,255,.82), transparent 75%),
+    linear-gradient(164deg, rgba(255,255,255,.9), rgba(250,247,252,.88));
   background-clip: padding-box;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.56), inset 0 -1px 0 rgba(82,53,108,.1), 0 1px 2px rgba(40,25,53,.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.94), inset 0 -1px 1px rgba(137,102,159,.1), 0 1px 2px rgba(40,25,53,.1);
 }
 @media (prefers-reduced-motion: no-preference) {
   .bar__lens-track--moving { animation: bar-lens-glide 280ms; }
@@ -138,7 +139,7 @@
 .bar__item { position:relative; z-index:1; flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; height:60px; min-height:60px; margin:0; padding:0; border:0; border-radius:35px; color:#554b5b; background:transparent; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif; font-size:13px; font-weight:400; line-height:1; }
 .bar__item::after { border:0; }
 .bar__icon { width:25px; height:25px; }
-.bar__item.is-active { color:#3f2358; font-weight:500; }
+.bar__item.is-active { color:#3f2358; font-weight:600; }
 .bar__item.control--disabled { color:#746979; background:transparent; opacity:.58; }
 .chrome--reduced-motion,
 .chrome--reduced-motion .community-fab,
@@ -168,7 +169,7 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .bar__lens { background: #e7e0ee; }
+  .bar__lens { background: #faf7fc; }
 }
 @media (prefers-contrast: more) {
   .bar { border-color: #746979; box-shadow:none; }
