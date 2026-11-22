@@ -106,15 +106,27 @@
   border-bottom-color: #694579;
   border-radius: 35px;
   /* The bar supplies the filtered backdrop. The rim lighting simulates edge depth. */
-  background: #d3bde3;
+  background: #6d4782;
   background-image:
-    radial-gradient(ellipse at 28% 0%, rgba(255,255,255,.26), transparent 75%),
-    linear-gradient(164deg, #d9c7e8, #c8aedc);
+    radial-gradient(ellipse at 28% 0%, rgba(255,255,255,.1), transparent 75%),
+    linear-gradient(164deg, #79558f, #624076);
   background-clip: padding-box;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.64), inset 0 -1px 1px rgba(112,74,138,.16), 0 1px 2px rgba(40,25,53,.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -1px 1px rgba(41,19,57,.18), 0 1px 2px rgba(40,25,53,.12);
 }
 @media (prefers-reduced-motion: no-preference) {
   .bar__lens-track--moving { animation: bar-lens-glide 280ms; }
+  /* Keep readable ordinary ink until the moving lens reaches its destination.
+     The same revision restarts the ink on cached tabs; static defaults are white. */
+  .bar__item--moving.is-active .bar__icon-selected { animation: bar-selected-icon 280ms linear; }
+  .bar__item--moving.is-active .bar__label { animation: bar-selected-ink 280ms steps(1, end); }
+}
+@keyframes bar-selected-icon {
+  0%, 71% { opacity: 0; }
+  92%, 100% { opacity: 1; }
+}
+@keyframes bar-selected-ink {
+  0% { color: #554b5b; }
+  71%, 100% { color: #fff; }
 }
 @keyframes bar-lens-glide {
   0% {
@@ -135,17 +147,19 @@
   }
   100% { transform: translate3d(var(--lens-position), 0, 0) scaleX(1); }
 }
-.bar__item--pressed .bar__icon { transform:scale(.9); }
-.bar__icon { transition:transform 120ms ease-out; }
+.bar__item--pressed .bar__icon-frame { transform:scale(.9); }
+.bar__icon-frame { position:relative; width:25px; height:25px; flex:none; transition:transform 120ms ease-out; }
+.bar__icon-selected { position:absolute; inset:0; width:25px; height:25px; opacity:1; pointer-events:none; }
 .bar__item { position:relative; z-index:1; flex:1; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; height:60px; min-height:60px; margin:0; padding:0; border:0; border-radius:35px; color:#554b5b; background:transparent; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",sans-serif; font-size:13px; font-weight:400; line-height:1; }
 .bar__item::after { border:0; }
 .bar__icon { width:25px; height:25px; }
-.bar__item.is-active { color:#24102f; font-weight:600; }
+.bar__item.is-active { color:#fff; font-weight:600; }
 .bar__item.control--disabled { color:#746979; background:transparent; opacity:.58; }
+.bar__item.is-active.control--disabled { color:#fff; opacity:1; }
 .chrome--reduced-motion,
 .chrome--reduced-motion .community-fab,
-.chrome--reduced-motion .bar__icon { transition:none; }
-.chrome--reduced-motion .bar__item--pressed .bar__icon { transform:none; }
+.chrome--reduced-motion .bar__icon-frame { transition:none; }
+.chrome--reduced-motion .bar__item--pressed .bar__icon-frame { transform:none; }
 .chrome--reduced-motion .community-fab,
 .chrome--reduced-motion .community-fab__icon,
 .chrome--reduced-motion .bar__lens-track { animation:none; }
@@ -153,8 +167,8 @@
 @media (prefers-reduced-motion: reduce) {
   .chrome,
   .community-fab,
-  .bar__icon { transition:none; }
-  .bar__item--pressed .bar__icon { transform:none; }
+  .bar__icon-frame { transition:none; }
+  .bar__item--pressed .bar__icon-frame { transform:none; }
   .community-fab,
   .community-fab--visible .community-fab__icon { animation:none; }
 }
@@ -164,14 +178,14 @@
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
-.chrome--reduced-motion .bar__lens { background: #d3bde3; }
+.chrome--reduced-motion .bar__lens { background: #6d4782; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .bar {
     background: var(--bar-solid-background);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .bar__lens { background: #d3bde3; }
+  .bar__lens { background: #6d4782; }
 }
 @media (prefers-contrast: more) {
   .bar { border-color: #746979; box-shadow:none; }

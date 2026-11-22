@@ -9,9 +9,14 @@
       aria-hidden="true">
       <view class="bar__lens"></view>
     </view>
-    <button wx:for="{{items}}" wx:key="path" data-index="{{index}}" bindtap="switchTab" hover-class="bar__item--pressed" hover-stay-time="80" class="bar__item {{active === index ? 'is-active' : ''}} {{switching || externalBusy || chromeHidden ? 'control--disabled' : ''}}" disabled="{{switching || externalBusy || chromeHidden}}" aria-label="{{item.text}}，{{chromeHidden ? '主导航暂时收起' : externalBusy ? '当前操作确认中，暂不能切换' : active === index ? '当前页面' : switching ? '正在切换' : '未选中'}}" aria-selected="{{active === index}}" aria-role="tab">
-      <image class="bar__icon" src="{{active === index ? item.activeIcon : item.icon}}" mode="aspectFit" />
-      <text>{{item.text}}</text>
+    <button wx:for="{{items}}" wx:key="path" data-index="{{index}}" bindtap="switchTab" hover-class="bar__item--pressed" hover-stay-time="80" class="bar__item {{active === index ? 'is-active' : ''}} {{lensOffset && !reducedMotion ? 'bar__item--moving' : ''}} {{switching || externalBusy || chromeHidden ? 'control--disabled' : ''}}" disabled="{{switching || externalBusy || chromeHidden}}" aria-label="{{item.text}}，{{chromeHidden ? '主导航暂时收起' : externalBusy ? '当前操作确认中，暂不能切换' : active === index ? '当前页面' : switching ? '正在切换' : '未选中'}}" aria-selected="{{active === index}}" aria-role="tab">
+      <block wx:for="{{[lensRevision]}}" wx:for-item="inkRevision" wx:for-index="inkIndex" wx:key="*this">
+        <view class="bar__icon-frame">
+          <image class="bar__icon" src="{{item.icon}}" mode="aspectFit" aria-hidden="true" />
+          <image wx:if="{{active === index}}" class="bar__icon-selected" src="{{item.activeIcon}}" mode="aspectFit" aria-hidden="true" />
+        </view>
+        <text class="bar__label">{{item.text}}</text>
+      </block>
     </button>
   </view>
 </view>
