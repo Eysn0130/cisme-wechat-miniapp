@@ -79,6 +79,7 @@ export interface CommunityFollowingCard {
 }
 export interface CommunityFollowingPage { items: CommunityFollowingCard[]; nextCursor: string | null }
 export interface CommunityAuthorPage extends CommunityFollowingPage {
+  items: Array<CommunityFollowingCard & {hidden?: true; hiddenCoverId?: string | null}>;
   author:{id:string;accountType:'member'|'official';name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;
     postCount:number;following:boolean;isMine:boolean;canManage:boolean;canFollow:boolean;followArticleId:string|null};
 }

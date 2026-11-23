@@ -325,17 +325,10 @@ export class FormalUgcService{
     if(typeof state!=="string"||!["all","draft","pending_review","awaiting_publication","rejected","published","hidden"].includes(state))
       throw new DomainError("UGC_POST_STATE_INVALID","请选择有效的投稿状态",422);
     const limit=pageLimit(input.limit,30,50),scope=pageScope(["my-ugc",owner,state]),cursor=readPageCursor(input.cursor,scope);
-    const result=await this.pool.query(`SELECT p.id,p.state,p.published_revision,p.current_revision,p.version,p.updated_at,p.updated_at::text AS cursor_at,
-      CASE WHEN p.state='hidden' THEN hidden.title ELSE r.title END AS title,
-      CASE WHEN p.state='hidden' THEN hidden.body ELSE r.body END AS body,
-      r.moderation_state,appeal.state AS appeal_state,
+    const result=await this.pool.query(`SELECT p.id,p.state,p.published_revision,p.current_revision,p.version,p.updated_at,p.updated_at::text AS cursor_at,r.title,r.body,r.moderation_state,
       ${directPublicationIntentSql} AS direct_publication,
-      (SELECT count(*)::int FROM ugc_post_media b WHERE b.post_id=p.id
-        AND b.revision=CASE WHEN p.state='hidden' THEN p.published_revision ELSE p.current_revision END) AS image_count
+      (SELECT count(*)::int FROM ugc_post_media b WHERE b.post_id=p.id AND b.revision=p.current_revision) AS image_count
       FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
-      LEFT JOIN ugc_post_revision hidden ON p.state='hidden' AND hidden.post_id=p.id AND hidden.revision=p.published_revision
-      LEFT JOIN ugc_post_appeal appeal ON p.state='hidden' AND appeal.post_id=p.id
-        AND appeal.post_version=p.version AND appeal.published_revision=p.published_revision
       WHERE p.author_member_id=$1 AND p.state<>'deleted'
         AND ($5='all' OR (${ownWorkflowStateSql})=$5)
         AND ($2::timestamptz IS NULL OR (p.updated_at,p.id)<($2::timestamptz,$3::uuid))
@@ -343,8 +336,7 @@ export class FormalUgcService{
     const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,state:ownWorkflowState(row),
       revision:row.current_revision,publishedRevision:row.published_revision,moderationState:row.moderation_state,revisionState:row.moderation_state,
       publicVersionActive:row.state==="published"&&Boolean(row.published_revision),version:row.version,updatedAt:row.updated_at,
-      title:row.title||row.body?.slice(0,30)||"图片护理故事",imageCount:row.image_count,
-      ...(row.state==="hidden"?{appealState:row.appeal_state}: {})})),limit,scope);
+      title:row.title||row.body?.slice(0,30)||"图片护理故事",imageCount:row.image_count})),limit,scope);
     const total=(await this.pool.query(`SELECT count(*)::int AS total FROM ugc_post p
       JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.current_revision
       WHERE p.author_member_id=$1 AND p.state<>'deleted' AND ($2='all' OR (${ownWorkflowStateSql})=$2)`,[owner,state])).rows[0]?.total??0;

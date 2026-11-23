@@ -59,9 +59,8 @@
         <view wx:if="{{hiddenReason}}" class="composer-takedown__reason"><text class="composer-help">下架原因</text><text>{{hiddenReason}}</text></view>
         <view wx:if="{{appeal}}" class="composer-takedown__reason" aria-live="polite"><text class="composer-takedown__title">{{appeal.state === 'received' ? '申诉处理中' : appeal.state === 'resolved' ? '已恢复展示' : '维持下架'}}</text><text wx:if="{{appeal.decisionReason}}">{{appeal.decisionReason}}</text></view>
         <text wx:if="{{dirty}}" class="composer-help">请先保留修改的文字或图片，重新打开后再申诉。</text>
-        <button wx:if="{{appealCheckNeeded}}" class="secondary composer-takedown__action {{busy || recoveryBusy ? 'secondary--disabled' : ''}}" bindtap="retryLoad" disabled="{{busy || recoveryBusy}}">刷新作品状态</button>
-        <button wx:elif="{{!appeal && hiddenPublished}}" class="secondary composer-takedown__action {{busy || recoveryBusy || dirty ? 'secondary--disabled' : ''}} {{busy || recoveryBusy || dirty ? 'control--disabled' : ''}}" bindtap="submitAppeal" disabled="{{busy || recoveryBusy || dirty}}" loading="{{operation === 'appealing'}}">申诉</button>
-        <text wx:if="{{hiddenPublished.body}}" class="composer-hidden-summary" user-select="true">{{hiddenPublished.body}}</text>
+        <button wx:if="{{appealCheckNeeded}}" class="text-button composer-takedown__action {{busy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="retryLoad" disabled="{{busy || recoveryBusy}}">刷新作品状态</button>
+        <button wx:elif="{{!appeal && hiddenPublished}}" class="primary composer-takedown__action {{busy || recoveryBusy || dirty ? 'primary--disabled' : ''}} {{busy || recoveryBusy || dirty ? 'control--disabled' : ''}}" bindtap="submitAppeal" disabled="{{busy || recoveryBusy || dirty}}" loading="{{operation === 'appealing'}}">申诉</button>
       </view>
       <view wx:if="{{state === 'rejected'}}" class="composer-status"><text>需要修改后重新提交</text><text class="composer-help">{{reviewNote || '请核对内容说明并修改后，再发布。'}}{{reviewedLabel ? ' · ' + reviewedLabel : ''}}</text></view>
       <view wx:if="{{state === 'pending_review' || state === 'awaiting_publication' || ((state === 'deleted' || state === 'hidden') && dirty)}}" class="composer-readonly">

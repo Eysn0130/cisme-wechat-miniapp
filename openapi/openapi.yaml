@@ -1746,8 +1746,8 @@ paths:
     get:
       operationId: myCommunityProfile
       security: [{session: []}]
-      description: Same profile contract for the current session owner, including zero-story members. Ignores caller-supplied member IDs.
-      parameters: [{name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 30}}, {name: cursor, in: query, schema: {type: string, maxLength: 1000}}]
+      description: Same profile contract for the authenticated owner, including zero-story members. With includeHidden=1, hidden formal posts appear at their recorded publication time and use their last published titles. A hidden card signals hidden=true, null coverUrl and an optional hiddenCoverId for the existing owner preview. Public counts exclude hidden content. The opt-in cursor is scoped separately.
+      parameters: [{name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 30}}, {name: cursor, in: query, schema: {type: string, maxLength: 1000}}, {name: includeHidden, in: query, schema: {type: string, enum: ['1']}}]
       responses: {'200': {description: CommunityAuthorPage for the authenticated owner}, '401': {description: Active member session required}}
     put:
       operationId: updateCommunityBiography
@@ -2891,7 +2891,7 @@ paths:
           schema: {type: string, default: all, enum: [all, draft, pending_review, awaiting_publication, rejected, published, hidden]}
       responses:
         '200':
-          description: Owner-only keyset page and exact total. Hidden rows show the last published revision's title and image count, plus the appealState for the hidden post version or null if no appeal exists.
+          description: Owner-only keyset page and exact total for the selected workflow state.
         '422': {$ref: '#/components/responses/Problem'}
     post: {operationId: createFormalUgcDraft, security: [{session: []}], parameters: [{$ref: '#/components/parameters/IdempotencyKey'}], responses: {'200': {description: Stable private draft; exact request-key replay returns the same draft}, '409': {$ref: '#/components/responses/Problem'}}}
   /v1/me/ugc/activity/{section}:

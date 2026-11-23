@@ -68,7 +68,7 @@ Page({
     this.setData({busyId:row.id,error:''});
     try{
       if(action==='hide'){
-        const answer=await wx.showModal({title:'下架这篇帖子？',editable:true,
+        const answer=await wx.showModal({title:'下架并撤回相关奖励？',editable:true,
           placeholderText:'填写下架原因，作者可见',confirmText:'下架',confirmColor:'#a8324a'});
         if(!answer.confirm||!current())return;
         const reason = (answer.content ?? '').trim();

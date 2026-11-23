@@ -378,7 +378,7 @@ describe("native tab return presentation while real read paths revalidate", () =
     page.onHide(); page.onShow(); await flush();
     expect(page.data).toMatchObject({ loading: true, author: { postCount: 0 }, feedColumns:[[],[]] });
     expect(rendered.querySelector(".author-empty").dom).toBe(empty);
-    expect(rendered.querySelector(".author-count").dom.textContent).toBe("公开作品");
+    expect(rendered.querySelector(".author-count").dom.textContent).toBe("作品");
     expect(empty.textContent).toContain("去发帖");
     pending.resolve(replies.get(path)); await flush();
   });

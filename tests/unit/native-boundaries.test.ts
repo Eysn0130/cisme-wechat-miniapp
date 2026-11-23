@@ -132,7 +132,7 @@ describe("native mini program boundary", () => {
     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, tags]) => [path, tags.length]))).toEqual({
       "account/index.wxml": 1,
       "aftersale/index.wxml": 1,
-      "community-compose/index.wxml": 1,
+      "community-compose/index.wxml": 2,
       "commission/index.wxml": 2,
       "checkout/index.wxml": 3,
       "checkout/components/reward-checkout/index.wxml": 2,
@@ -214,7 +214,7 @@ describe("native mini program boundary", () => {
       account: ["back", "openTerms", "openPrivacy", "openCrossBorder", "syncLegalDocuments", "openAccountHelp", "@contact", "restartLogin", "loginTap", "browseCommunity"],
       "community-activity": ["back", "retry", "openPost", "deleteComment", "openPost", "removeSaved", "openAppealedPost", "unblock", "loadMore"],
       commission: ["back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "showCreditForm", "closeCreditForm", "submitCredit", "cancelCredit", "retryCredits", "moreCredits", "showForm", "closeForm", "submit", "confirmReceipt", "retryList", "more"],
-      "community-author": ["back", "back", "load", "openSettings", "toggleFollow", "openBio", "openHiddenPost", "loadHiddenPosts", "openDrafts", "openActivity", "openPost", "openDrafts", "onReachBottom", "closeBio", "saveBio", "reloadBio"],
+      "community-author": ["back", "back", "load", "openSettings", "toggleFollow", "openBio", "openDrafts", "openActivity", "openPost", "openDrafts", "onReachBottom", "closeBio", "saveBio", "reloadBio"],
       "community-compose": ["back","showMyPosts","retryPendingImageEdit","discardPendingImageEdit","openComposerMediaSettings","retryChoosingMedia","retryLoad","verifyWriteResult","reloadRemoteDraft","startNew","selectDraftFilter","openDraft","deleteListDraft","loadMoreList","openPublicationResult","returnToCommunity","refreshPublication","editPendingPublication","showMyPosts","returnToCommunity","retryLoad","submitAppeal","retryPreview","retryImage","retryPreview","removeImage","addContent","selectRewardKind","selectRewardKind","chooseExperienceProduct","showMyPosts","returnToCommunity","refreshPublicGate","saveDraft","submit"],
       "community-post": ["back", "open"],
       "community-review": ["back", "back", "load", "back", "openEditorialArticle", "reviewEditorial", "reviewEditorial", "reviewEditorial", "deleteEditorial", "loadMoreEditorialQueue", "back", "loadGovernance", "loadGovernance", "openGovernanceTarget", "decideGovernance", "decideGovernance", "decideGovernance", "decideGovernance", "moreGovernance"],

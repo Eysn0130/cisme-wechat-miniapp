@@ -429,8 +429,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get("/v1/ugc/status", async () => ({ publicEnabled: await formalUgc.publicEnabled(), draftsEnabled: true }));
   app.get<{Params:{id:string};Querystring:{limit?:string;cursor?:string}}>("/v1/community/authors/:id",
     request=>communityProfile.page(request.memberId,request.params.id,request.query));
-  app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/community-profile",
-    request=>communityProfile.page(request.memberId,request.memberId,request.query));
+  app.get<{Querystring:{limit?:string;cursor?:string;includeHidden?:string}}>("/v1/me/community-profile",
+    request=>communityProfile.page(request.memberId,request.memberId,request.query,request.query.includeHidden==="1"));
   app.put("/v1/me/community-profile",request=>communityProfile.updateBio(request.memberId,request.principalId,(request.body??{}) as never));
   app.put("/v1/management/community/official-profile",request=>communityProfile.updateOfficialBio(request.memberId,request.principalId,(request.body??{}) as never));
   app.post("/v1/me/legal-acceptances",request=>editorial.acceptCurrentLegal(request.memberId,request.principalId,(request.body??{}) as {consents?:unknown}));

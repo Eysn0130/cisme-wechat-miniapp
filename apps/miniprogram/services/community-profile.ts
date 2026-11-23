@@ -10,23 +10,6 @@ export interface CommunityAuthor {
   postCount:number;following:boolean;isMine:boolean;canFollow:boolean;followArticleId:string|null;
 }
 export interface CommunityProfilePage {author:CommunityAuthor;items:FeedCard[];nextCursor:string|null}
-type HiddenPost = {id:string;title:string;state:"hidden";appealState?:"received"|"resolved"|"rejected"|null};
-export type HiddenCommunityPost = Pick<HiddenPost,"id"|"title"> & {actionLabel:string};
-
-export async function readHiddenCommunityPosts(page:object, cursor:string|null) {
-  const path = "/v1/me/ugc/posts?limit=5&state=hidden" + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : "");
-  const result = await pageRead<{items:HiddenPost[];nextCursor:string|null}>(page, {path,authMode:"required"});
-  if (!Array.isArray(result?.items) || result.items.some(item => item?.state !== "hidden" ||
-    !editorialIdentifier(item.id) || typeof item.title !== "string") ||
-    !(result.nextCursor === null || typeof result.nextCursor === "string" && result.nextCursor !== cursor)) {
-    throw new Error("HIDDEN_COMMUNITY_POSTS_INVALID");
-  }
-  const items:HiddenCommunityPost[] = result.items.map(({id,title,appealState}) => ({
-    id, title: title.trim() || "图片作品",
-    actionLabel: appealState === null ? "申诉" : appealState === "received" ? "申诉处理中" : appealState === "rejected" ? "维持下架" : "查看"
-  }));
-  return { items, nextCursor: result.nextCursor };
-}
 
 export function canEditCommunityBio(author:CommunityAuthor|null):boolean{
   return Boolean(author&&(author.isMine&&author.id!==officialEditorialPublisherId||
@@ -37,7 +20,7 @@ export async function readCommunityProfile(page:object,authorId:string,mine:bool
   if(!mine&&!editorialIdentifier(authorId))throw new Error("COMMUNITY_AUTHOR_INVALID");
   const path=mine?"/v1/me/community-profile":`/v1/community/authors/${encodeURIComponent(authorId)}`;
   const result=await pageRead<{author:CommunityAuthor;items:any[];nextCursor:string|null}>(page,{
-    path:`${path}?limit=20${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`,authMode:mine?"required":"optional"
+    path:`${path}?limit=20${mine?"&includeHidden=1":""}${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`,authMode:mine?"required":"optional"
   });
   const author=result?.author;
   if(!author||!editorialIdentifier(author.id)||(!mine&&author.id!==authorId)||(mine&&!author.isMine)||
@@ -58,12 +41,23 @@ export async function readCommunityProfile(page:object,authorId:string,mine:bool
   const items=await Promise.all(result.items.map(async item=>{
     if(!editorialIdentifier(item?.id)||item.authorId!==author.id||!["editorial","formal","ugc"].includes(item.kind))
       throw new Error("COMMUNITY_PROFILE_INVALID");
+    if(item.hidden===true&&(!mine||!author.isMine||item.kind!=="formal"))throw new Error("COMMUNITY_PROFILE_INVALID");
     return {id:item.id,kind:item.kind,title:item.title,author:item.author,
-      image:item.kind==="editorial"?editorialMediaSrc(item.coverUrl)
+      image:item.hidden===true?"":item.kind==="editorial"?editorialMediaSrc(item.coverUrl)
         :/^\/v1\/ugc\/media\/[0-9a-f-]{36}\?variant=thumbnail$/i.test(item.coverUrl??"")?origin+item.coverUrl:"",
       avatar:item.kind==="editorial"?editorialPublisherAvatar(item.author,await localMemberAvatar(item.avatar,item.avatarRevision),item.authorId)
         :await localMemberAvatar(item.avatar,item.avatarRevision),
-      engagementLabel:"",compactImage:false};
+      engagementLabel:"",compactImage:false,
+      ...(item.hidden===true?{hidden:true as const,hiddenCoverId:editorialIdentifier(item.hiddenCoverId)?item.hiddenCoverId:undefined}:{})};
   }));
   return {author:{...author,avatar},items,nextCursor:result.nextCursor};
+}
+
+export async function readHiddenCover(page:object,ownerId:string,postId:string,mediaId:string):Promise<string>{
+  const origin=getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/,"");
+  const prefix=`${origin}/v1/ugc/own-preview/${ownerId}/${mediaId}?token=`;
+  const result=await pageRead<{url:string}>(page,{path:`/v1/me/ugc/posts/${postId}/media/${mediaId}/preview-url`,authMode:"required"});
+  if(typeof result?.url!=="string"||!result.url.startsWith(prefix))return "";
+  const [expires,sourcePost,signature,extra]=result.url.slice(prefix.length).split(".");
+  return /^\d{13}$/.test(expires??"")&&sourcePost===postId&&/^[\w-]{43}$/.test(signature??"")&&extra===undefined?result.url:"";
 }

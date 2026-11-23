@@ -2,7 +2,7 @@ import {afterAll,beforeAll,expect,it} from 'vitest';
 import {randomUUID} from 'node:crypto';
 import pg from 'pg';
 import {CANONICAL_WECHAT_MINIPROGRAM_APP_ID,loadConfig} from '@cisme/config';
-import {CISME_OFFICIAL_PUBLISHER} from '@cisme/contracts';
+import {CISME_OFFICIAL_PUBLISHER,type CommunityAuthorPage} from '@cisme/contracts';
 import {resetDatabase,testPool,TEST_DATABASE_URL} from '@cisme/testkit';
 import {createApp} from '../../services/api/src/server';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
@@ -79,6 +79,25 @@ it('shows only this author’s public stories across both sources, preserves pag
  expect((await read(undefined,author.id,'?cursor='+encodeURIComponent(page1.nextCursor))).statusCode).toBe(422);
  expect((await read(other,other.id,'?cursor='+encodeURIComponent(page1.nextCursor))).statusCode).toBe(422);
  const gated=await closed.inject({method:'GET',url:`/v1/community/authors/${author.id}`});expect(gated.statusCode).toBe(200);expect(gated.json().items.map((x:any)=>x.kind)).toEqual(['editorial']);expect(gated.json().author.postCount).toBe(1);
+ await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'community.moderate','fixture','profile takedown','test','integration_fixture')",[other.id]);
+ const postVersion=(await pool.query('SELECT version FROM ugc_post WHERE id=$1',[first])).rows[0].version;
+ const hidden=await app.inject({method:'POST',url:`/v1/management/ugc/posts/${first}/hide`,headers:headers(other),payload:{reason:'合成下架原因',expectedVersion:postVersion}});
+ expect(hidden.statusCode,hidden.body).toBe(200);
+ const ownerPages:CommunityAuthorPage['items']=[];
+ let ownCursor:string|null=null;
+ for(let i=0;i<3;i++){
+  const cursorQuery:string=ownCursor?'&cursor='+encodeURIComponent(ownCursor):'';
+  const result=await app.inject({url:'/v1/me/community-profile?includeHidden=1&limit=1'+cursorQuery,headers:headers(author)});
+  expect(result.statusCode,result.body).toBe(200);
+  const page:CommunityAuthorPage=result.json();expect(page.author.postCount).toBe(2);
+  expect(page.items).toHaveLength(1);
+  ownerPages.push(page.items[0]!);ownCursor=page.nextCursor;
+  if(i===0)expect((await read(author,author.id,'?cursor='+encodeURIComponent(ownCursor!))).statusCode).toBe(422);
+ }
+ expect(ownCursor).toBeNull();
+ expect(new Set(ownerPages.map(item=>item.id))).toEqual(new Set([first,second,curated.id]));
+ expect(ownerPages.find(item=>item.id===first)).toMatchObject({hidden:true,coverUrl:null,hiddenCoverId:null});
+ expect((await read(other)).json().items).not.toContainEqual(expect.objectContaining({id:first}));
  await pool.query('INSERT INTO ugc_block_relation(blocker_member_id,blocked_member_id) VALUES($1,$2)',[other.id,author.id]);expect((await read(other)).statusCode).toBe(404);expect((await read()).statusCode).toBe(200);
  await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[author.id]);expect((await read()).statusCode).toBe(404);
 });

@@ -8,9 +8,16 @@ vi.mock('../../apps/miniprogram/services/member-avatar',()=>({localMemberAvatar:
 const authorId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',postId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const officialId='fe841ebb-1db1-57de-988b-4ff1534f23e6';
 const response=(mine=true,kind='formal')=>({author:{id:authorId,name:'合成会员',avatar:'',avatarRevision:null,membershipLabel:'CISME会员',bio:'已保存的合成简介',bioRevision:mine?2:null,postCount:1,following:false,isMine:mine,canFollow:true,followArticleId:kind==='editorial'?postId:null},items:[{id:postId,authorId,kind,title:'自己的合成故事',author:'合成会员',avatar:'',coverUrl:null}],nextCursor:null});
-const hiddenPath='/v1/me/ugc/posts?limit=5&state=hidden';
+const ownerPath='/v1/me/community-profile?limit=20&includeHidden=1';
 const hiddenId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
-const hiddenList=(appealState:null|'received'|'rejected'=null,nextCursor:string|null=null)=>({items:[{id:hiddenId,title:'原公开作品',state:'hidden',appealState}],nextCursor});
+const coverId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const coverPath=`/v1/me/ugc/posts/${hiddenId}/media/${coverId}/preview-url`;
+const mixedProfile=(nextCursor:string|null=null)=>{
+ const profile=response();
+ return {...profile,nextCursor,items:[...profile.items,{
+  ...profile.items[0]!,id:hiddenId,title:'原公开作品',hidden:true,hiddenCoverId:coverId
+ }]};
+};
 const pending=()=>{let resolve!:(v:any)=>void,reject!:(v:any)=>void;const promise=new Promise<any>((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 let page:any,wx:any;
 beforeEach(async()=>{
@@ -21,39 +28,44 @@ beforeEach(async()=>{
 });
 it('uses the authenticated owner route and supports zero stories without creating any content',async()=>{
  m.read.mockResolvedValue({...response(),author:{...response().author,postCount:0},items:[]});await page.load();
- expect(m.read).toHaveBeenNthCalledWith(1,{path:'/v1/me/community-profile?limit=20',authMode:'required'});expect(page.data.author.id).toBe(authorId);expect(page.data.feedColumns).toEqual([[],[]]);expect(m.write).not.toHaveBeenCalled();
+ expect(m.read).toHaveBeenNthCalledWith(1,{path:ownerPath,authMode:'required'});expect(page.data.author.id).toBe(authorId);expect(page.data.feedColumns).toEqual([[],[]]);expect(m.write).not.toHaveBeenCalled();
  m.access.mockReturnValue(false);m.read.mockClear();page.onShow();expect(m.read).not.toHaveBeenCalled();
 });
-it('opens the existing author-only appeal detail from the hidden works list, separately from published stories',async()=>{
- m.read.mockImplementation(({path})=>Promise.resolve(path===hiddenPath?hiddenList():response()));
- await page.load();await vi.waitFor(()=>expect(page.data.hiddenPosts).toEqual([{id:hiddenId,title:'原公开作品',actionLabel:'申诉'}]));
- expect(m.read).toHaveBeenCalledWith({path:hiddenPath,authMode:'required'});
- expect(page.data.feedColumns.flat().map((r:any)=>r.id)).toEqual([postId]);
- page.openHiddenPost({currentTarget:{dataset:{id:postId}}});expect(wx.navigateTo).not.toHaveBeenCalled();
- page.openHiddenPost({currentTarget:{dataset:{id:hiddenId}}});
+it('places a hidden work in the owner’s normal grid and signs its cover using the own-post endpoint',async()=>{
+ const hiddenCover=`https://synthetic.invalid/v1/ugc/own-preview/${authorId}/${coverId}?token=1795449600000.${hiddenId}.${'a'.repeat(43)}`;
+ m.read.mockImplementation(({path})=>Promise.resolve(path===coverPath?{url:hiddenCover}:mixedProfile()));
+ await page.load();
+ await vi.waitFor(()=>expect(page.data.feedColumns[1][0]).toMatchObject({id:hiddenId,title:'原公开作品',hidden:true,image:hiddenCover}));
+ expect(m.read).toHaveBeenCalledWith({path:ownerPath,authMode:'required'});
+ expect(m.read).toHaveBeenCalledWith({path:coverPath,authMode:'required'});
+ expect(page.data.feedColumns[0][0]).toMatchObject({id:postId});expect(page.data.author.postCount).toBe(1);
+ page.openPost({currentTarget:{dataset:{id:hiddenId}}});
  expect(wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/community-compose/index?id=${hiddenId}`}));
 });
-it('never requests the hidden list on another member’s public page',async()=>{
- page.onLoad({id:authorId});m.read.mockResolvedValue(response(false));await page.load();
- expect(m.read).not.toHaveBeenCalledWith({path:hiddenPath,authMode:'required'});
- expect(page.data.hiddenPosts).toEqual([]);
+it('rejects a private card returned on another member’s public page',async()=>{
+ const mixed=mixedProfile();page.onLoad({id:authorId});m.read.mockResolvedValue({...mixed,author:response(false).author});
+ await page.load();
+ expect(m.read).toHaveBeenCalledExactlyOnceWith({path:`/v1/community/authors/${authorId}?limit=20`,authMode:'optional'});
+ expect(page.data.feedColumns).toEqual([[],[]]);
 });
-it('drops hidden works read for the previous account when returning to the same page',async()=>{
- const oldRead=pending();m.read.mockImplementation(({path})=>path===hiddenPath?oldRead.promise:Promise.resolve(response()));
- await page.load();page.onHide();m.token='other-member';
- m.read.mockImplementation(({path})=>Promise.resolve(path===hiddenPath?{items:[],nextCursor:null}:response()));
- page.onShow();oldRead.resolve(hiddenList());
- await vi.waitFor(()=>expect(page.data.hiddenLoading).toBe(false));
- expect(page.data.hiddenPosts).toEqual([]);expect(page.data.hiddenError).toBe('');
+it('clears hidden cards and ignores a cover response from the previous account',async()=>{
+ const oldCover=pending();
+ m.read.mockImplementation(({path})=>path===coverPath?oldCover.promise:Promise.resolve(mixedProfile()));
+ await page.load();expect(page.data.feedColumns[1][0].hidden).toBe(true);page.onHide();m.token='other-member';
+ m.read.mockResolvedValue(response());
+ page.onShow();
+ oldCover.resolve({url:`https://synthetic.invalid/v1/ugc/own-preview/${authorId}/${coverId}?token=1795449600000.${hiddenId}.${'a'.repeat(43)}`});
+ await vi.waitFor(()=>expect(page.data.loading).toBe(false));
+ expect(page.data.feedColumns[1]).toEqual([]);
 });
-it('keeps confirmed hidden works on a temporary pagination error and applies the reported appeal status on retry',async()=>{
- m.read.mockImplementation(({path})=>Promise.resolve(path===hiddenPath?hiddenList(null,'more'):response()));
- await page.load();await vi.waitFor(()=>expect(page.data.hiddenNextCursor).toBe('more'));
- m.read.mockRejectedValueOnce({status:503});await page.loadHiddenPosts();
- expect(page.data.hiddenError).toContain('重试');expect(page.data.hiddenPosts[0].actionLabel).toBe('申诉');
- m.read.mockResolvedValueOnce(hiddenList('received'));await page.loadHiddenPosts();
- expect(m.read).toHaveBeenLastCalledWith({path:hiddenPath+'&cursor=more',authMode:'required'});
- expect(page.data.hiddenPosts).toEqual([{id:hiddenId,title:'原公开作品',actionLabel:'申诉处理中'}]);
+it('keeps the masked work when its cover is unavailable and on a transient page error',async()=>{
+ m.read.mockImplementation(({path})=>path===coverPath?Promise.reject({status:404}):Promise.resolve(mixedProfile('more')));
+ await page.load();
+ await vi.waitFor(()=>expect(m.read).toHaveBeenCalledWith({path:coverPath,authMode:'required'}));
+ m.read.mockRejectedValueOnce({status:503});await page.onReachBottom();
+ expect(page.data.moreError).toContain('重试');
+ expect(page.data.feedColumns[1][0]).toMatchObject({id:hiddenId,hidden:true,image:''});
+ expect(m.read).toHaveBeenLastCalledWith({path:ownerPath+'&cursor=more',authMode:'required'});
 });
 it.each(['editorial','formal','ugc'])('keeps the correct detail route for %s while using one author page',async(kind)=>{
  page.onLoad({id:authorId,source:'editorial'});m.read.mockResolvedValue(response(false,kind));await page.load();

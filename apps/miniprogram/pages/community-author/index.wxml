@@ -9,28 +9,16 @@
         <view class="author-identity">
           <image class="author-avatar" src="{{author.avatar}}" mode="aspectFill" aria-label="{{author.name}}的头像"/>
           <view class="author-info"><text class="author-name">{{author.name}}</text><text class="author-membership">{{author.membershipLabel}}</text></view>
-          <button wx:if="{{author.isMine}}" class="author-action  {{loading || !!error || navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{loading || !!error || navigating}}">编辑资料</button>
+          <button wx:if="{{author.isMine}}" class="text-button author-edit {{loading || !!error || navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{loading || !!error || navigating}}">编辑资料</button>
           <button wx:elif="{{author.canFollow}}" class="author-action author-follow  {{loading || !!error || busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{loading || !!error || busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>
         </view>
         <button wx:if="{{author.isMine || author.canManage}}" class="author-bio author-bio--editable {{!author.bio ? 'author-bio--empty' : ''}} {{loading || !!error ? 'control--disabled' : ''}}" bindtap="openBio" disabled="{{loading || !!error}}" aria-label="{{author.accountType === 'official' ? '编辑官方简介' : author.bio ? '编辑简介：' + author.bio : '添加简介'}}"><text>{{author.bio || '添加简介'}}</text><image src="/assets/icons/note-pencil-plum.svg" mode="aspectFit" aria-hidden="true"/></button>
         <text wx:elif="{{author.bio}}" class="author-bio">{{author.bio}}</text>
       </view>
-      <view>
-        <view wx:if="{{author.isMine && (hiddenPosts.length || hiddenNextCursor || hiddenError)}}" class="author-hidden">
-          <text class="author-hidden__heading">已下架作品</text>
-          <button wx:for="{{hiddenPosts}}" wx:key="id" class="author-hidden__row {{hiddenLoading || navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openHiddenPost" disabled="{{hiddenLoading || navigating}}" aria-label="{{item.title}}，{{item.actionLabel}}">
-            <text class="author-hidden__title">{{item.title}}</text>
-            <text class="author-hidden__action">{{item.actionLabel}}</text>
-            <image src="/assets/icons/caret-right-muted.svg" mode="aspectFit" aria-hidden="true"/>
-          </button>
-          <view wx:if="{{hiddenError}}" class="author-hidden__error" aria-live="polite">{{hiddenError}}</view>
-          <button wx:if="{{hiddenNextCursor || hiddenError}}" class="text-button author-hidden__more {{hiddenLoading || navigating ? 'control--disabled' : ''}}" bindtap="loadHiddenPosts" disabled="{{hiddenLoading || navigating}}" loading="{{hiddenLoading}}">{{hiddenError ? '重试' : '查看更多下架作品'}}</button>
-        </view>
-      </view>
       <view class="author-stories">
-        <view class="author-stories-head"><text class="author-count">{{author.isMine && !author.postCount ? '公开作品' : author.postCount + (author.isMine ? ' 篇公开作品' : ' 篇故事')}}</text><view wx:if="{{author.isMine}}" class="author-tools"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">草稿箱</button><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openActivity" disabled="{{navigating}}">互动记录</button></view></view>
+        <view class="author-stories-head"><text class="author-count">{{author.isMine ? '作品' : author.postCount + ' 篇故事'}}</text><view wx:if="{{author.isMine}}" class="author-tools"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">草稿箱</button><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openActivity" disabled="{{navigating}}">互动记录</button></view></view>
         <template is="communityFeed" data="{{feedColumns, navigating}}"/>
-        <view wx:if="{{!author.postCount && !error}}" class="author-empty"><text wx:if="{{!author.isMine}}">还没有故事</text><button wx:if="{{author.isMine}}" class="text-button {{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">去发帖</button></view>
+        <view wx:if="{{!feedColumns[0].length && !error}}" class="author-empty"><text wx:if="{{!author.isMine}}">还没有故事</text><button wx:if="{{author.isMine}}" class="text-button {{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">去发帖</button></view>
         <view wx:if="{{moreError}}" class="state state--error" aria-live="polite"><text>{{moreError}}</text><button class="text-button {{loadingMore ? 'control--disabled' : ''}}" bindtap="onReachBottom" disabled="{{loadingMore}}">重试</button></view>
         <view wx:if="{{loadingMore}}" class="author-more" aria-role="status" aria-label="正在加载更多故事"><view class="page-read-loading__indicator"/></view>
       </view>
