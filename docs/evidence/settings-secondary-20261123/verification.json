@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-11-23T12:02:05.894Z",
+  "baseMainSha": "c2a504f09387d1b4b6efbf39ee3e6463716e82a8",
+  "validatedImplementationSha": "a4324aec82d1702a2f075e341e7ef6bfc6e2ca66",
+  "packageSourceSha256": "a004bf1cb7f67bca169e9a73b407b883e516188314a9f2d978aeee18cdbeee69",
+  "sourceFiles": {
+    "apps/miniprogram/components/care-onboarding/index.wxml": "43b2acc7363a69a26a692ade1a1710dbe65f561315d1f96b4380d68702e5635b",
+    "apps/miniprogram/pages/legal/index.json": "e019b777973b19f0300bcb53dc45500acd59b742aef129c0c85ad4c1f57bc78f",
+    "apps/miniprogram/pages/legal/index.ts": "3418ab812638d9566996cd3298d681f83a98a84445beadfcc30d82bda9e4d83c",
+    "apps/miniprogram/pages/legal/index.wxml": "9dcf5324afc545ae1fa757d5c23ef583dd39285585d93a9ae12753aee3ed5bc7",
+    "apps/miniprogram/pages/legal/index.wxss": "d6039b3517216977afb04d54b4bee735fefb65027a13634340d5fd3a8875b6ef",
+    "apps/miniprogram/pages/management-members/index.ts": "edae94f3e9486465046ba20b2923efbff0b3d88d008f16d1a3a57644a5d58785",
+    "apps/miniprogram/pages/management-members/index.wxml": "40a09bdede3980230786ee7e73a7a0057ee6f70440ddd125040b9d7fbae50e99",
+    "apps/miniprogram/pages/privacy-rights/index.ts": "213a1ae76ac8516d02616331d36432d26167bfb05e615a202fd2df7375307a3c",
+    "apps/miniprogram/pages/privacy-rights/index.wxml": "2c692482dccafdf5fed9d5eb33e662ea15183dc2cda90177c28515e383055940",
+    "apps/miniprogram/pages/privacy-rights/index.wxss": "9d50384879ce844ff9dbf34cfdab23b8610619e753d497174564ca710844d5dd",
+    "apps/miniprogram/pages/settings/index.ts": "93f0aeb63b6fe439cde9ca9915db0a705574e1c654182707e179011f3bf24eb8",
+    "apps/miniprogram/pages/settings/index.wxml": "93a34e78de5456fea3903989c17d6b93e2d6a26593726e1aaa6343e00929eb62",
+    "apps/miniprogram/pages/settings/index.wxss": "5d0f852d4a14fa7fb607c18fcf831f08d54966cf940019e100dababca38b112b"
+  },
+  "localChecks": {
+    "typecheck": "passed",
+    "unit": {
+      "passed": 3712,
+      "skipped": 1,
+      "files": 238
+    },
+    "contracts": {
+      "registeredV1Methods": 380,
+      "documentedMethodsIncludingHealth": 382,
+      "typedEvents": 32
+    },
+    "package": "passed",
+    "globalStyleBytes": 8176,
+    "routeAudit": "passed",
+    "designQaStatus": "valid blocked manifest",
+    "designQaRequiredGate": "blocked"
+  },
+  "native": {
+    "tool": "WeChat DevTools official CLI Skill 0.3.15",
+    "application": "installed official WeChat DevTools",
+    "mode": "isolated synthetic member state; public legal documents read without credentials",
+    "runs": [
+      {
+        "path": "final-native.json",
+        "viewportWidth": 375,
+        "captures": 20
+      },
+      {
+        "path": "management-native.json",
+        "viewportWidth": 375,
+        "captures": 7
+      },
+      {
+        "path": "cross-size-native.json",
+        "viewportWidth": 412,
+        "captures": 6
+      }
+    ],
+    "totalCaptures": 33,
+    "managementChecks": [
+      {
+        "name": "inspector-tab",
+        "available": true
+      },
+      {
+        "name": "revoked-read-clears-member-data-and-stops-tabs",
+        "passed": true
+      }
+    ],
+    "representativeFormGeometry": {
+      "headerAvoidance": true,
+      "minimumTargets": true,
+      "actionFont16px": true,
+      "horizontalFit": true
+    },
+    "publicLegal": {
+      "publicReadSucceeded": true,
+      "documents": [
+        {
+          "type": "privacy",
+          "version": "2026-11-18-v3-guest-store"
+        },
+        {
+          "type": "terms",
+          "version": "2026-11-18-v3-guest-store"
+        }
+      ]
+    },
+    "cleanup": {
+      "settings": {
+        "restored": true,
+        "originalSessionRestored": true,
+        "signedInAfterRestore": false,
+        "storageRestored": true,
+        "transportRestored": true,
+        "blockedWrites": 0,
+        "unexpected": [],
+        "syntheticReadCount": 25
+      },
+      "management": {
+        "restored": true,
+        "originalSessionRestored": true,
+        "signedInAfterRestore": false,
+        "storageRestored": true,
+        "transportRestored": true,
+        "blockedWrites": 0,
+        "unexpected": [],
+        "syntheticReadCount": 15
+      },
+      "crossSize": {
+        "restored": true,
+        "originalSessionRestored": true,
+        "signedInAfterRestore": false,
+        "storageRestored": true,
+        "transportRestored": true,
+        "blockedWrites": 0,
+        "unexpected": [],
+        "syntheticReadCount": 21
+      }
+    },
+    "selectedFrames": [
+      {
+        "name": "profile",
+        "viewportWidth": 375,
+        "path": "selected-final/profile-375.png",
+        "sha256": "a7efab1dd036775df5662673f6472454c20f6d1b77db661c2e777e5653185812",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "address-editor",
+        "viewportWidth": 375,
+        "path": "selected-final/address-editor-375.png",
+        "sha256": "ce410cede0a3098155b13de7e29ece3fd63df196f8b495c624a4a959051a8107",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "legal-terms",
+        "viewportWidth": 375,
+        "path": "selected-final/legal-terms-375.png",
+        "sha256": "1bcf260249cf377118b89dcb4957d28dcbc01dcd8acba04c22fbaa7b6d4cebfb",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "rights-empty",
+        "viewportWidth": 375,
+        "path": "selected-final/rights-empty-375.png",
+        "sha256": "7536270226042c0833bdefd85329b87b2ad415396ca7c08617fd93f8cba0c701",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "rights-required-error",
+        "viewportWidth": 375,
+        "path": "selected-final/rights-required-error-375.png",
+        "sha256": "9f76b1690456a5e907e47370c26823acf0095d996146c6a7dd59d5f8adf49600",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "rights-withdraw-error",
+        "viewportWidth": 375,
+        "path": "selected-final/rights-withdraw-error-375.png",
+        "sha256": "a537fca0dffb2edb09cd74648f1a989face18a110092ffa7ec875172307e3189",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "rights-reply",
+        "viewportWidth": 375,
+        "path": "selected-final/rights-reply-375.png",
+        "sha256": "8848871cb3ef30ce2d77bda03729fd9b3fc24db01ee4ac72e09504919e799dbc",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "management-filter",
+        "viewportWidth": 375,
+        "path": "selected-final/management-filter-375.png",
+        "sha256": "5f6c6cf047635e40908a8ee40961def7b8567e48b8c71525334f371406391cbf",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "management-no-permission",
+        "viewportWidth": 375,
+        "path": "selected-final/management-no-permission-375.png",
+        "sha256": "eeb55474d981251a12129927577bab14553da01993b86f3f5ad1111df4a2f634",
+        "imagePixels": {
+          "width": 564,
+          "height": 1218
+        }
+      },
+      {
+        "name": "rights-empty",
+        "viewportWidth": 412,
+        "path": "selected-final/rights-empty-412.png",
+        "sha256": "d663f4db70a5bf1703047411fb437e7821b624ed810b36fd097257cf41afec0c",
+        "imagePixels": {
+          "width": 618,
+          "height": 1386
+        }
+      }
+    ],
+    "measurementScope": "Page class selectors in the final 375 run; isolated child components and the 412 screenshot-only run are not included in control-geometry claims."
+  },
+  "reviewedEntries": [
+    {
+      "entry": "头像与昵称",
+      "owner": "settings",
+      "scope": "saved profile, birthday affordance, native fields and busy navigation; existing write/identity tests"
+    },
+    {
+      "entry": "护理档案",
+      "owner": "care-onboarding",
+      "scope": "native first-question layout; existing questionnaire/consent/receipt tests; existing-profile final action caption reviewed in source"
+    },
+    {
+      "entry": "收货地址",
+      "owner": "address-editor + settings",
+      "scope": "native empty/editor/actions; existing parser, validation, conflict and owner tests; shared component retained"
+    },
+    {
+      "entry": "投稿使用授权",
+      "owner": "settings",
+      "scope": "existing active/revoked/loading/error presentation and controller tests; no real withdrawal"
+    },
+    {
+      "entry": "隐私政策与用户协议",
+      "owner": "legal + section-tabs",
+      "scope": "published public documents, native document switching and missing/stale response tests; original document text preserved"
+    },
+    {
+      "entry": "数据与账号权利",
+      "owner": "privacy-rights",
+      "scope": "request kinds, deletion scopes, field error, consent empty/failure/retry/active, records/reply/export-control presentation; no real submission/export/deletion"
+    },
+    {
+      "entry": "关于 CISME",
+      "owner": "settings",
+      "scope": "native member number and actual runtime label; accepted structure retained"
+    },
+    {
+      "entry": "会员管理",
+      "owner": "management-members + member-inspector",
+      "scope": "native list/filter/fields/inspector/commercial navigation and simulated 403 clearing/stopping categories; server authority unchanged"
+    }
+  ],
+  "pending": [
+    "Final-source authenticated member reads and writes: profile/avatar/phone, address changes, consent withdrawal, data request/export/share/delete/closure.",
+    "Physical iOS/Android WeChat: keyboard, pickers/permission handoff, screen reader, system text sizing and touch/performance.",
+    "Final-source full 48-route and physical-device matrix; current-source-acceptance remains blocked.",
+    "Shared care/address components in other native consumer flows, including checkout; existing unit coverage is not native end-to-end acceptance."
+  ],
+  "delivery": {
+    "merge": false,
+    "deployment": false,
+    "experienceUpload": false,
+    "realMemberMutations": false
+  }
+}

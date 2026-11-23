@@ -1,0 +1,54 @@
+{
+  "packageSourceSha256": "a004bf1cb7f67bca169e9a73b407b883e516188314a9f2d978aeee18cdbeee69",
+  "mode": "isolated read-only management capability/transport fixtures; no real permissions or writes",
+  "captures": [
+    {
+      "name": "management-list",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-list-375.png"
+    },
+    {
+      "name": "management-filter",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-filter-375.png"
+    },
+    {
+      "name": "management-fields",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-fields-375.png"
+    },
+    {
+      "name": "management-inspector",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-inspector-375.png"
+    },
+    {
+      "name": "management-profile",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-profile-375.png"
+    },
+    {
+      "name": "management-no-permission",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-no-permission-375.png"
+    },
+    {
+      "name": "management-commercial",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-commercial-375.png"
+    }
+  ],
+  "checks": [
+    {
+      "name": "inspector-tab",
+      "available": true
+    },
+    {
+      "name": "revoked-read-clears-member-data-and-stops-tabs",
+      "passed": true
+    }
+  ],
+  "cleanup": {
+    "restored": true,
+    "originalSessionRestored": true,
+    "signedInAfterRestore": false,
+    "storageRestored": true,
+    "transportRestored": true,
+    "blockedWrites": 0,
+    "unexpected": [],
+    "syntheticReadCount": 15
+  }
+}
