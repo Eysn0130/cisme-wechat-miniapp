@@ -1,3 +1,5 @@
+import type { CommunityIdentityBadge } from "./display-identity";
+
 export interface EditorialStory {
   id: string;
   kind: "brand";
@@ -34,7 +36,7 @@ import { pageRead } from "./page-requests";
 export interface PublishedEditorialCard {
   id:string; title:string; excerpt:string; authorId:string; author:string; avatar:string;
   coverUrl:string|null; publishedAt:string; likeCount:number; saveCount:number;
-  kind?:'editorial'|'formal';coverId?:string|null;avatarRevision?:string|null;
+  kind?:'editorial'|'formal';coverId?:string|null;avatarRevision?:string|null;identityBadge?:CommunityIdentityBadge;
 }
 export interface PublishedEditorialArticle extends PublishedEditorialCard {
   version:number; body:string; media:PublishedEditorialMedia[]; liked:boolean; saved:boolean;

@@ -1,6 +1,7 @@
 import{stripTypeScriptTypes}from'node:module';
 import{runInNewContext}from'node:vm';
 import{sectionTabs}from'../../apps/miniprogram/services/section-tabs';
+import{identityLabel}from'../../apps/miniprogram/services/display-identity';
 import{nativeCampaignComponent}from'./native-campaign';
 import {readFileSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
@@ -32,9 +33,13 @@ export function nativePageComponents(simulate:{load:(definition:any)=>string}):R
  const section=simulate.load({...definition,template:readFileSync('apps/miniprogram/components/section-tabs/index.wxml','utf8')});
  const foil=readFileSync('apps/miniprogram/components/card-foil/index.ts','utf8').replace(/^import[^\n]*\n/gm,'');
  runInNewContext(stripTypeScriptTypes(foil),{Component:(value:any)=>{definition=value;},shouldReduceMotion:()=>true});
+ const cardFoil=simulate.load({...definition,template:readFileSync('apps/miniprogram/components/card-foil/index.wxml','utf8')});
+ const badge=readFileSync('apps/miniprogram/components/identity-badge/index.ts','utf8').replace(/^import[^\n]*\n/gm,'');
+ runInNewContext(stripTypeScriptTypes(badge),{Component:(value:any)=>{definition=value;},identityLabel});
+ const identityBadge=simulate.load({...definition,template:readFileSync('apps/miniprogram/components/identity-badge/index.wxml','utf8')});
  // The independent reward lifecycle is exercised by onboarding-feedback.test.ts;
  // tab snapshot fixtures have no first-completion intent or points receipt.
- return {'care-campaign':nativeCampaignComponent(simulate),'section-tabs':section,'card-foil':simulate.load({...definition,template:readFileSync('apps/miniprogram/components/card-foil/index.wxml','utf8')}),
+ return {'care-campaign':nativeCampaignComponent(simulate),'section-tabs':section,'card-foil':cardFoil,'identity-badge':identityBadge,
   'reward-checkout':simulate.load({properties:{voucher:String,active:Boolean},template:'<view></view>'}),
   'reward-moment':simulate.load({properties:{owner:String,open:Boolean},template:'<view></view>'}),
   'points-celebration':simulate.load({properties:{owner:String,enabled:Boolean},template:'<view></view>'})};

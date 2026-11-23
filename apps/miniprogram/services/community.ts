@@ -1,11 +1,12 @@
 import { defaultMemberAvatar, localMemberAvatar } from "./member-avatar";
+import { communityIdentityBadge, type CommunityIdentityBadge } from "./display-identity";
 export interface CommunityComment {
-  authorId?:string; avatar?:string; id: string; body: string; status: "pending" | "published" | "rejected" | "hidden" | "deleted"; parentId: string | null;
+  authorId?:string; avatar?:string; identityBadge?:CommunityIdentityBadge | ""; id: string; body: string; status: "pending" | "published" | "rejected" | "hidden" | "deleted"; parentId: string | null;
   version?:number;replyRootId?:string;
   replyToId: string | null; replyToName: string | null; authorName: string; isMine: boolean; createdAt: string; likeCount: number; liked: boolean;
 }
 export interface CommunityView {
-  authors?: Record<string,{name:string;avatar:string;avatarRevision:string|null}>;
+  authors?: Record<string,{name:string;avatar:string;avatarRevision:string|null;identityBadge?:CommunityIdentityBadge | undefined}>;
   preview: boolean; liked: boolean; saved: boolean; likeCount: number; saveCount: number; commentCount: number; aggregateVersion: number; truncated: boolean; comments: CommunityComment[];
 }
 export const emptyCommunity: CommunityView = { preview: true, liked: false, saved: false, likeCount: 0, saveCount: 0, commentCount: 0, aggregateVersion: 0, truncated: false, comments: [] };
@@ -23,5 +24,6 @@ export async function prepareCommentAuthors(input:CommunityView):Promise<Communi
   const {authors,...social}=input;
   const entries=await Promise.all(Object.entries(authors || {}).map(async([id,author])=>[id,await localMemberAvatar(author.avatar,author.avatarRevision)] as const));
   const avatars=Object.fromEntries(entries);
-  return {...social,comments:social.comments.map(comment=>({...comment,avatar:comment.status==="deleted" ? defaultMemberAvatar : avatars[comment.authorId || ""] || defaultMemberAvatar}))};
+  return {...social,comments:social.comments.map(comment=>({...comment,avatar:comment.status==="deleted" ? defaultMemberAvatar : avatars[comment.authorId || ""] || defaultMemberAvatar,
+    identityBadge:comment.status==="published" ? communityIdentityBadge(authors?.[comment.authorId || ""]?.identityBadge) : ""}))};
 }

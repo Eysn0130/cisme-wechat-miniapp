@@ -3,9 +3,10 @@ import { retainReadPresentation } from "../../services/read-presentation";
 import { cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, beginLegalRenewal, requireMemberAccess } from "../../services/api";
-import { currentChromeStyle } from "../../services/layout";
+import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
+import { claimIdentityBadgeIntro } from "../../services/display-identity";
 import { editorialIdentifier, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
-import { readCommunityProfile, canEditCommunityBio, type CommunityAuthor } from "../../services/community-profile";
+import { readCommunityProfile, readHiddenCover, canEditCommunityBio, type CommunityAuthor } from "../../services/community-profile";
 import { projectFeedCards, feedColumnPatch, type FeedCard } from "../../services/feed-projection";
 
 const message=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
@@ -13,7 +14,7 @@ const stories=new WeakMap<object,FeedCard[]>();
 
 Page({
   readRevision:commerceContextRevision(),readVisible:true,lastSessionToken:"",bioAttempt:0,
-  data:{chromeStyle:currentChromeStyle(),mine:false,authorId:"",author:null as CommunityAuthor|null,
+  data:{chromeStyle:currentChromeStyle(),mine:false,authorId:"",author:null as CommunityAuthor|null,badgeIntro:false,
     feedColumns:projectFeedCards([]),nextCursor:null as string|null,
     loading:true,loadingMore:false,busy:false,navigating:false,error:"",moreError:"",invalidId:false,epoch:0,
     bioOpen:false,bioDraft:"",bioBusy:false,bioError:"",bioVersion:0,bioConflict:false},
@@ -30,11 +31,18 @@ Page({
     this.setData({loadingMore:false,busy:false,navigating:false});
     void this.load();
   },
-  onHide(){this.readVisible=false;this.data.epoch+=1;this.bioAttempt+=1;cancelPageReads(this);this.setData({bioBusy:false});},
+  onHide(){this.readVisible=false;this.data.epoch+=1;this.bioAttempt+=1;cancelPageReads(this);this.setData({bioBusy:false,badgeIntro:false});},
   onUnload(){this.onHide();stories.delete(this);},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
+  onAuthorAvatarLoad(event: WechatMiniprogram.BaseEvent) {
+    const author = this.data.author;
+    const { authorId, avatar } = event.currentTarget.dataset;
+    if (!author?.identityBadge || author.id !== authorId || author.avatar !== avatar || this.data.loading
+        || !this.current(this.data.epoch,this.lastSessionToken) || shouldReduceMotion()) return;
+    if (claimIdentityBadgeIntro(author.id, author.identityBadge)) this.setData({badgeIntro:true});
+  },
   current(epoch:number,token:string){return this.readVisible&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();},
-  clearProfile(){stories.delete(this);this.data.epoch+=1;this.setData({author:null,feedColumns:projectFeedCards([]),nextCursor:null,bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false,loadingMore:false,busy:false,bioBusy:false});},
+  clearProfile(){stories.delete(this);this.data.epoch+=1;this.setData({author:null,badgeIntro:false,feedColumns:projectFeedCards([]),nextCursor:null,bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false,loadingMore:false,busy:false,bioBusy:false});},
   returnUrl(){return this.data.mine?"/pages/community-author/index?mine=1":`/pages/community-author/index?id=${encodeURIComponent(this.data.authorId)}`;},
   recoverExpiredRead(epoch:number,token:string,error:unknown){
     if(!this.readVisible||epoch!==this.data.epoch||!expiredEditorialRead(error,token))return false;
@@ -57,6 +65,7 @@ Page({
       stories.set(this,result.items);
       this.setData({...feedColumnPatch(this.data.feedColumns,projectFeedCards(result.items)),author:result.author,nextCursor:result.nextCursor,loading:false,
         ...(!canEditCommunityBio(result.author)&&this.data.bioOpen?{bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false}:{})});
+      void this.loadHiddenCovers(result.items,epoch,token);
     }catch(error){
       if(this.recoverExpiredRead(epoch,token,error)||!this.current(epoch,token))return;
       // Revocation clears the projection. A temporary read failure can retain
@@ -65,6 +74,20 @@ Page({
       if(status===401||status===403||status===404||!preserve)this.clearProfile();
       this.setData({loading:false,error:message(error,"作者资料暂时无法加载，请重试。")});
     }
+  },
+  async loadHiddenCovers(items:readonly FeedCard[],epoch:number,token:string){
+    const author=this.data.author;
+    if(!this.data.mine||!author?.isMine||!token)return;
+    const covers=await Promise.all(items.filter(item=>item.hidden&&item.hiddenCoverId).map(async item=>{
+      const image=await readHiddenCover(this,author.id,item.id,item.hiddenCoverId!).catch(()=>"");
+      return [item.id,image] as const;
+    }));
+    if(!this.current(epoch,token)||this.data.author?.id!==author.id)return;
+    const images=new Map(covers.filter(([,image])=>image));
+    if(!images.size)return;
+    const next=(stories.get(this)??[]).map(item=>item.hidden&&images.has(item.id)?{...item,image:images.get(item.id)!}:item);
+    stories.set(this,next);
+    this.setData(feedColumnPatch(this.data.feedColumns,projectFeedCards(next)));
   },
   async onReachBottom(){
     const cursor=this.data.nextCursor;if(!cursor||this.data.loading||this.data.loadingMore||this.data.error)return;
@@ -76,6 +99,7 @@ Page({
       const items=stories.get(this)||[],seen=new Set(items.map(item=>`${item.kind}:${item.id}`));
       const next=[...items,...result.items.filter(item=>{const key=`${item.kind}:${item.id}`;if(seen.has(key))return false;seen.add(key);return true;})];
       stories.set(this,next);this.setData({...feedColumnPatch(this.data.feedColumns,projectFeedCards(next)),nextCursor:result.nextCursor});
+      void this.loadHiddenCovers(result.items,epoch,token);
     }catch(error){if(this.recoverExpiredRead(epoch,token,error)||!this.current(epoch,token))return;
       if([401,403,404].includes((error as {status:number}).status)){this.clearProfile();this.setData({loading:false,error:message(error,"作者暂不可见。")});}
       else this.setData({moreError:message(error,"更多故事暂时无法加载，请重试。")});
@@ -138,6 +162,11 @@ Page({
     const id=String(event.currentTarget.dataset.id||"");
     const item=this.data.feedColumns.flat().find(card=>card.id===id);
     if(!item||!editorialIdentifier(id))return;
+    if(item.hidden){
+      if(this.data.mine&&this.data.author?.isMine&&this.lastSessionToken&&this.current(this.data.epoch,this.lastSessionToken))
+        this.navigate(`/pages/community-compose/index?id=${encodeURIComponent(id)}`);
+      return;
+    }
     this.navigate(`/pages/post/index?id=${encodeURIComponent(id)}${item.kind==="editorial"?"&source=editorial":item.kind==="formal"?"&source=formal":""}`);
   },
   back(){if(this.data.bioOpen){this.closeBio();return;}wx.navigateBack({fail:()=>wx.switchTab({url:"/pages/community/index"})});}

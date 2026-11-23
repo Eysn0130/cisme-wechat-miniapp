@@ -375,9 +375,9 @@ export class FormalUgcService{
         AND (NOT $8::boolean OR NOT COALESCE(${featuredPostSql},false))
       ORDER BY p.published_at DESC,p.id DESC LIMIT $4`,[q,authorId,memberId??null,limit+1,cursorAt,cursorId,followingOnly,input.channel==='recommend']);
     const page=result.rows.slice(0,limit),last=page[page.length-1],hasMore=result.rows.length>limit;
-    const authors=await publishedPostAuthors(this.pool,page.map(row=>row.author_member_id));
+    const authors=await publishedPostAuthors(this.pool,page.map(row=>row.author_member_id),this.config.env);
     return {items:page.map(row=>({id:row.id,authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",
-      avatar:authors[row.author_member_id]?.avatar??"",avatarRevision:authors[row.author_member_id]?.avatarRevision??null,title:row.title||row.body?.slice(0,40)||"图片护理故事",
+      avatar:authors[row.author_member_id]?.avatar??"",avatarRevision:authors[row.author_member_id]?.avatarRevision??null,identityBadge:authors[row.author_member_id]?.identityBadge,title:row.title||row.body?.slice(0,40)||"图片护理故事",
       excerpt:row.body?.slice(0,100)||"",aiUsage:row.ai_usage,coverId:row.cover_id,likeCount:row.like_count,publishedAt:row.published_at})),
       total:page.length,nextCursor:hasMore&&last?Buffer.from(JSON.stringify({at:new Date(last.published_at).toISOString(),id:last.id})).toString("base64url"):null,
       publicEnabled:true};
@@ -418,14 +418,14 @@ export class FormalUgcService{
         WHERE b.post_id=$1 AND b.revision=$2 AND a.state='approved' ORDER BY b.position`,[id,post.published_revision]),
       this.pool.query(`SELECT kind,count(*)::int AS count,bool_or(member_id=$2) AS mine FROM ugc_post_reaction WHERE post_id=$1 GROUP BY kind`,[id,memberId??null]),
       memberId?this.publicComments(memberId,id,{limit:30}):Promise.resolve({items:[],matchingTotal:0,nextCursor:null}),
-      publishedPostAuthors(this.pool,[post.author_member_id]),
+      publishedPostAuthors(this.pool,[post.author_member_id],this.config.env),
       memberId?this.pool.query(`SELECT (EXISTS(SELECT 1 FROM ugc_author_follow
         WHERE follower_member_id=$1 AND followed_member_id=$2)
         OR EXISTS(SELECT 1 FROM community_follow WHERE member_id=$1 AND author_id=$2::text)) AS following`,[memberId,post.author_member_id])
         :Promise.resolve({rows:[{following:false}]})
     ]);
     return {id,version:post.version,authorId:post.author_member_id,author:authors[post.author_member_id]?.name??"CISME 会员",
-      avatar:authors[post.author_member_id]?.avatar??"",avatarRevision:authors[post.author_member_id]?.avatarRevision??null,title:post.title??"",body:post.body??"",rewardKind:post.reward_kind,experienceProductCode:post.experience_product_code,experienceDays:post.experience_days,aiUsage:post.ai_usage,
+      avatar:authors[post.author_member_id]?.avatar??"",avatarRevision:authors[post.author_member_id]?.avatarRevision??null,identityBadge:authors[post.author_member_id]?.identityBadge,title:post.title??"",body:post.body??"",rewardKind:post.reward_kind,experienceProductCode:post.experience_product_code,experienceDays:post.experience_days,aiUsage:post.ai_usage,
       publishedAt:post.published_at,isMine:memberId===post.author_member_id,following:follow.rows[0]?.following===true,media:media.rows,
       likeCount:reactions.rows.find(row=>row.kind==="like")?.count??0,saveCount:reactions.rows.find(row=>row.kind==="save")?.count??0,
       liked:reactions.rows.find(row=>row.kind==="like")?.mine??false,saved:reactions.rows.find(row=>row.kind==="save")?.mine??false,
@@ -455,10 +455,10 @@ export class FormalUgcService{
       ORDER BY c.created_at,c.id LIMIT $5`,[id,memberId??null,cursor?.at??null,cursor?.id??null,limit+1]);
     const total=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_comment c JOIN member commenter ON commenter.id=c.author_member_id
       WHERE ${condition}`,[id,memberId??null])).rows[0]?.n??0;
-    const authors=await publishedPostAuthors(this.pool,result.rows.map(row=>row.author_member_id));
+    const authors=await publishedPostAuthors(this.pool,result.rows.map(row=>row.author_member_id),this.config.env);
     const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,body:row.body,state:row.state,version:row.version,createdAt:row.created_at,
       authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",avatar:authors[row.author_member_id]?.avatar??"",
-      avatarRevision:authors[row.author_member_id]?.avatarRevision??null,isMine:memberId===row.author_member_id,
+      avatarRevision:authors[row.author_member_id]?.avatarRevision??null,identityBadge:authors[row.author_member_id]?.identityBadge,isMine:memberId===row.author_member_id,
       likeCount:row.like_count,liked:row.liked===true,parentId:row.parent_id,replyToId:row.reply_to_id})),limit,scope);
     return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};
   }
@@ -513,13 +513,14 @@ export class FormalUgcService{
       matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_report WHERE reporter_member_id=$1`,
         [owner])).rows[0]?.n??0;
     }else if(section==="appeals"){
-      const result=await this.pool.query(`SELECT id,post_id,reason,state,decision_code,decision_reason,created_at,
-        decided_at,created_at::text AS cursor_at FROM ugc_post_appeal WHERE author_member_id=$1
-          AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
-        ORDER BY created_at DESC,id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
+      const result=await this.pool.query(`SELECT a.id,a.post_id,a.reason,a.state,a.decision_code,a.decision_reason,a.created_at,
+        a.decided_at,a.created_at::text AS cursor_at,p.state='deleted' AS post_deleted
+        FROM ugc_post_appeal a JOIN ugc_post p ON p.id=a.post_id WHERE a.author_member_id=$1
+          AND ($2::timestamptz IS NULL OR (a.created_at,a.id)<($2::timestamptz,$3::uuid))
+        ORDER BY a.created_at DESC,a.id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
       rows=result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,postId:row.post_id,reason:row.reason,
         state:row.state,decisionCode:row.decision_code,decisionReason:row.decision_reason,
-        createdAt:row.created_at,decidedAt:row.decided_at}));
+        createdAt:row.created_at,decidedAt:row.decided_at,postDeleted:row.post_deleted}));
       matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_post_appeal WHERE author_member_id=$1`,
         [owner])).rows[0]?.n??0;
     }else{
@@ -1101,7 +1102,8 @@ export class FormalUgcService{
       LEFT JOIN LATERAL(SELECT reason,reviewer_member_id,evidence FROM ugc_post_review_action
         WHERE post_id=a.post_id AND decision='hide' ORDER BY created_at DESC LIMIT 1) hidden ON true
       LEFT JOIN ugc_report hide_report ON hide_report.id=(hidden.evidence->>'reportId')::uuid
-      WHERE a.state='received' AND a.author_member_id<>$4::uuid
+      WHERE a.state='received' AND p.state='hidden' AND p.version=a.post_version AND p.published_revision=a.published_revision
+        AND a.author_member_id<>$4::uuid
         AND hidden.reviewer_member_id IS DISTINCT FROM $4::uuid
         AND hide_report.reporter_member_id IS DISTINCT FROM $4::uuid
         AND ($1::timestamptz IS NULL OR (a.created_at,a.id)<($1::timestamptz,$2::uuid))
@@ -1112,11 +1114,12 @@ export class FormalUgcService{
       postState:row.post_state,currentPostVersion:row.current_post_version,title:row.title,body:row.body,
       hiddenReason:row.hidden_reason,hiddenByMemberId:row.hidden_by_member_id,
       hideReporterMemberId:row.hide_reporter_member_id})),limit,scope);
-    const total=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM ugc_post_appeal a
+    const total=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM ugc_post_appeal a JOIN ugc_post p ON p.id=a.post_id
       LEFT JOIN LATERAL(SELECT reviewer_member_id,evidence FROM ugc_post_review_action
         WHERE post_id=a.post_id AND decision='hide' ORDER BY created_at DESC LIMIT 1) hidden ON true
       LEFT JOIN ugc_report hide_report ON hide_report.id=(hidden.evidence->>'reportId')::uuid
-      WHERE a.state='received' AND a.author_member_id<>$1::uuid
+      WHERE a.state='received' AND p.state='hidden' AND p.version=a.post_version AND p.published_revision=a.published_revision
+        AND a.author_member_id<>$1::uuid
         AND hidden.reviewer_member_id IS DISTINCT FROM $1::uuid
         AND hide_report.reporter_member_id IS DISTINCT FROM $1::uuid`,[memberId])).rows[0]?.n??0;
     return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};

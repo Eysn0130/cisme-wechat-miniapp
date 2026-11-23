@@ -36,7 +36,7 @@
     </scroll-view>
     <view wx:if="{{ready && (!consentMode || unknown)}}" class="care-onboarding-footer">
       <button wx:if="{{questionNumber > 1 && !unknown}}" class="care-onboarding-previous" bindtap="previous" disabled="{{busy}}">上一题</button>
-      <button class="care-onboarding-main {{busy || (!canAdvance && !unknown) ? 'care-onboarding-main--disabled' : ''}}" hover-class="care-onboarding-pressed" bindtap="next" loading="{{busy}}" disabled="{{busy || (!canAdvance && !unknown)}}">{{busy ? '正在保存…' : unknown ? '重试保存' : questionNumber === 10 ? '完成建档' : '下一题'}}</button>
+      <button class="care-onboarding-main {{busy || (!canAdvance && !unknown) ? 'care-onboarding-main--disabled' : ''}}" hover-class="care-onboarding-pressed" bindtap="next" loading="{{busy}}" disabled="{{busy || (!canAdvance && !unknown)}}">{{busy ? '正在保存…' : unknown ? '重试保存' : questionNumber === 10 ? (completed && !required ? '保存档案' : '完成建档') : '下一题'}}</button>
     </view>
   </view>
 </view>

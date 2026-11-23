@@ -96,7 +96,7 @@ Page({
     listMode: false, busy: false,operation:"idle", uploadBusy: false, loading: true, error: "", notice: "", dirty: false, epoch: 0, createKey: "",
     writeRecovery:"" as ""|"save"|"submit"|"conflict",recoveryBusy:false,draftsEnabled:false,keyboardVisible:false,bodyFocused:false,imageEditingId:"",imageEditRecovery:false,imageEditRecoveryKey:"",mediaRecovery:"",lastMediaSource:"album" as "album"|"camera",
     reviewNote:"",reviewedLabel:"",hiddenReason:"",hiddenPublished:null as {title:string;body:string}|null,
-    appeal:null as Draft["appeal"],publicGateEnabled:false,publicGateLoaded:false,publicGateUnknown:false,
+    appeal:null as Draft["appeal"],appealCheckNeeded:false,publicGateEnabled:false,publicGateLoaded:false,publicGateUnknown:false,
     listTotal:0,listCursor:null as string|null,listLoadingMore:false,listMoreError:"",
     draftFilter:"all",draftFilters:[{value:"all",label:"全部"},{value:"draft",label:"草稿"},{value:"pending_review",label:"发布中"},{value:"awaiting_publication",label:"待重新发布"},{value:"rejected",label:"待修改"},{value:"published",label:"已发布"},{value:"hidden",label:"已下架"}],
     requestedDraftId: "", requestedNew: false },
@@ -141,7 +141,7 @@ Page({
       if(this.pendingTextImport)void this.importPendingTextCard();
       if(this.resumeTextCard&&!this.data.busy&&!this.data.uploadBusy&&!this.pendingLocalText){const origin=this.resumeTextCard;this.resumeTextCard=null;this.openTextCard(origin);}
       if(this.resumeReads){this.resumeReads=false;if(this.data.listMode)void this.loadList();else if((this.data.postId||this.data.requestedDraftId)&&!this.data.dirty)void this.loadDraft(this.data.postId||this.data.requestedDraftId);}
-      if(this.shown&&this.data.state==="hidden"&&this.data.postId&&!this.data.dirty)void this.loadDraft(this.data.postId);
+      else if(this.shown&&this.data.state==="hidden"&&this.data.postId&&!this.data.dirty)void this.loadDraft(this.data.postId);
       const readonly=["pending_review","awaiting_publication"].includes(this.data.state);
       const previews=this.data.files.filter(item=>item.state==="uploaded"&&!item.previewUrl&&(readonly||!item.localPath)).map(item=>item.id);
       if(previews.length&&this.data.postId)void this.loadMediaPreviews(previews,this.data.epoch,token,this.data.postId);
@@ -162,6 +162,7 @@ Page({
     this.data.epoch+=1;
     this.setData({postId:"",ownerId:"",version:0,files:[],drafts:[],listTotal:0,listCursor:null,listLoadingMore:false,listMoreError:"",
       title:"",body:"",rewardKind:"original",experienceProductCode:"",experienceProductName:"",experienceDays:"",experienceLoading:false,notice:"",error:"",busy:false,uploadBusy:false,dirty:false,loading:true,writeRecovery:"",recoveryBusy:false,publicationComplete:false,
+      state:"draft",publicVersionActive:false,hiddenReason:"",hiddenPublished:null,appeal:null,appealCheckNeeded:false,operation:"idle",
       createKey:operationKey(),textCardVisible:false,textCardContext:"",textCardText:"",textCardHandoffPath:"",textCardTemplate:"plain",photoEditorVisible:false,photoEditorContext:"",photoEditorFiles:[],mediaRecovery:"",imageEditingId:"",bodyFocused:false});
     if(!token){this.setData({loading:false,error:"登录后可写自己的护理故事。"});return;}
     if(resumeInitialText){this.initialTextEntry=true;this.localTextEntry={nonce:operationKey(),epoch:this.data.epoch,token,revision,createKey:this.data.createKey};}
@@ -321,7 +322,7 @@ Page({
     this.textCardInputInitialized=typeof backup?.textCardText==="string";
     this.setData({ postId: draft.id,ownerId:draft.ownerId, state: draft.state,directPublication:draft.directPublication===true, publicVersionActive: draft.publicVersionActive, version: draft.version,publicationComplete:false,
       reviewNote:draft.reviewNote??"",reviewedLabel:draft.reviewedAt?new Date(draft.reviewedAt).toLocaleDateString("zh-CN"):"",
-      hiddenReason:draft.hiddenReason??"",hiddenPublished:draft.hiddenPublished??null,appeal:draft.appeal??null,
+      hiddenReason:draft.hiddenReason??"",hiddenPublished:draft.hiddenPublished??null,appeal:draft.appeal??null,appealCheckNeeded:false,
       title: backup?.title??draft.title, body: backup?.body??draft.body,rewardKind:backup?.rewardKind??(this.data.requestedNew?this.data.rewardKind:draft.rewardKind??'original'),experienceProductCode:backup?.experienceProductCode??draft.experienceProductCode??'',experienceProductName:backup?.experienceProductCode??draft.experienceProductCode??'',experienceDays:String(backup?.experienceDays??draft.experienceDays??''),
       requestedNew:false,requestedDraftId:draft.id,textCardHandoffPath:"",textCardText:typeof backup?.textCardText==="string"?backup.textCardText:"",textCardTemplate:normalizeTextCardTemplate(backup?.textCardTemplate),
       files: restored?restored.map(item=>({...item,previewUrl:"",progress:item.state==="uploaded"?100:0})):mediaIds.map(id => ({ id, localPath: "", previewUrl: "", size: 0, state: "uploaded" as const, progress: 100, error: "" })),
@@ -332,24 +333,49 @@ Page({
     if(draft.state==="pending_review"&&draft.directPublication&&!this.data.dirty)this.followPublication(draft);
   },
   async submitAppeal(){
-    if(this.data.state!=="hidden"||this.data.appeal||this.data.busy||!this.data.postId)return;
-    if(this.data.dirty){this.setData({error:"申诉与本页修改独立。请先复制需要的文字或查看图片，重新打开后再申请申诉。"});return;}
-    const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken,
-      postId=this.data.postId,version=this.data.version;
-    const current=()=>epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision()&&
-      this.data.postId===postId&&this.data.version===version&&this.data.state==="hidden"&&!this.data.appeal;
-    const answer=await wx.showModal({title:"申请复核下架内容",editable:true,
-      placeholderText:"说明你希望复核的事实（至少4字）",confirmText:"提交申诉"});
-    if(!answer.confirm||!current())return;
-    const appealReason=(answer.content||"").trim();
-    if(appealReason.length<4){this.setData({error:"请填写至少4字的申诉理由。"});return;}
+    const {postId,version,epoch} = this.data;
+    const token = getApp<IAppOption>().globalData.sessionToken, context = this.readRevision;
+    if (!this.pageAlive || !this.mediaVisible || !token || !postId || this.data.state !== "hidden" ||
+      this.data.appeal || this.data.appealCheckNeeded || this.data.loading || this.data.busy || this.data.recoveryBusy) return;
+    if (this.data.dirty) {
+      this.setData({error:"请先保留修改的文字或图片，重新打开后再申请申诉。"});
+      return;
+    }
+    if (!this.data.hiddenPublished) return;
+    const current = () => this.pageAlive && this.mediaVisible && this.data.epoch === epoch &&
+      token === getApp<IAppOption>().globalData.sessionToken && context === commerceContextRevision() &&
+      this.data.postId === postId && this.data.version === version && this.data.state === "hidden" && this.data.operation === "appealing";
     this.setData({busy:true,operation:"appealing",error:""});
-    try{if(!current())return;
-      await request({path:`/v1/me/ugc/posts/${postId}/appeals`,method:"POST",
-        data:{reason:appealReason,expectedVersion:version}});
-      if(current()){this.setData({busy:false,operation:"idle",notice:"申诉已提交，等待复核。"});void this.loadDraft(postId);}
-    }catch(error){if(current())this.setData({error:message(error,"申诉结果暂未确认，请刷新内容核对。")});}
-    finally{if(current())this.setData({busy:false,operation:"idle"});}
+    try {
+      const answer = await wx.showModal({title:"下架申诉",editable:true,placeholderText:"填写申诉理由",confirmText:"提交"}).catch(() => null);
+      if (!current()) return;
+      if (!answer) {
+        this.setData({error:"暂时无法打开申诉，请重试。"});
+        return;
+      }
+      if (!answer.confirm) return;
+      const reason = (answer.content || "").trim();
+      const length = Array.from(reason).length;
+      if (length < 4 || length > 1000) {
+        this.setData({error:"请填写 4–1000 字的申诉理由。"});
+        return;
+      }
+      const receipt = await request<{id:string;state:string}>({
+        path:`/v1/me/ugc/posts/${postId}/appeals`,method:"POST",data:{reason,expectedVersion:version}
+      });
+      if (!current()) return;
+      if (typeof receipt?.id === "string" && receipt.id && receipt.state === "received") {
+        this.setData({appeal:{id:receipt.id,state:receipt.state,reason,decisionReason:null}});
+      } else {
+        this.setData({appealCheckNeeded:true,error:"请刷新作品状态，查看申诉结果。"});
+      }
+    } catch (error) {
+      if (!current()) return;
+      const needsRead = unknownWrite(error) || (error as {status?:number})?.status === 409;
+      this.setData({appealCheckNeeded:needsRead,error:needsRead ? "申诉结果暂未确认，请刷新作品状态。" : message(error,"申诉暂时无法提交，请重试。")});
+    } finally {
+      if (current()) this.setData({busy:false,operation:"idle"});
+    }
   },
   async loadMediaPreviews(ids: string[], epoch: number, token: string,postId:string) {
     await Promise.all(ids.map(async id => {

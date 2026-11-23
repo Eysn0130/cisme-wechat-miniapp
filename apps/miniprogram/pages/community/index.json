@@ -1,1 +1,1 @@
-{"navigationBarTitleText":"社区","enablePullDownRefresh":true,"usingComponents":{"section-tabs":"/components/section-tabs/index"}}
+{"navigationBarTitleText":"社区","enablePullDownRefresh":true,"usingComponents":{"section-tabs":"/components/section-tabs/index","identity-badge":"/components/identity-badge/index"}}

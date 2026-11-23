@@ -1,0 +1,2199 @@
+{
+  "packageSourceSha256": "a004bf1cb7f67bca169e9a73b407b883e516188314a9f2d978aeee18cdbeee69",
+  "mode": "isolated synthetic member native rendering; no member writes",
+  "legal": {
+    "publicReadSucceeded": true,
+    "documents": [
+      {
+        "type": "privacy",
+        "version": "2026-11-18-v3-guest-store"
+      },
+      {
+        "type": "terms",
+        "version": "2026-11-18-v3-guest-store"
+      }
+    ]
+  },
+  "captures": [
+    {
+      "name": "settings",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-settings-375.png",
+      "geometry": {
+        "route": "pages/settings/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 138,
+            "bottom": 196.3984375,
+            "width": 345,
+            "height": 58.3984375,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 196.3984375,
+            "bottom": 254.1953125,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 254.1953125,
+            "bottom": 310.1953125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 310.1953125,
+            "bottom": 367.9921875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 419.9921875,
+            "bottom": 477.7890625,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 477.7890625,
+            "bottom": 533.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 533.7890625,
+            "bottom": 589.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 589.7890625,
+            "bottom": 645.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 716,
+            "bottom": 766,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "profile",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-profile-375.png",
+      "geometry": {
+        "route": "pages/settings/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -142,
+            "bottom": -83.6015625,
+            "width": 345,
+            "height": 58.3984375,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -83.6015625,
+            "bottom": -25.8046875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -25.8046875,
+            "bottom": 30.1953125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 30.1953125,
+            "bottom": 87.9921875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 639.1875,
+            "bottom": 696.984375,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 696.984375,
+            "bottom": 752.984375,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 752.984375,
+            "bottom": 808.984375,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 808.984375,
+            "bottom": 864.984375,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".field-input",
+            "left": 29,
+            "right": 346,
+            "top": 302.1875,
+            "bottom": 346.1875,
+            "width": 317,
+            "height": 44,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".field-input",
+            "left": 29,
+            "right": 346,
+            "top": 384.1875,
+            "bottom": 428.1875,
+            "width": 317,
+            "height": 44,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".field-input",
+            "left": 29,
+            "right": 346,
+            "top": 466.1875,
+            "bottom": 510.1875,
+            "width": 317,
+            "height": 44,
+            "fontSize": "16px",
+            "color": "rgb(117, 105, 122)"
+          },
+          {
+            "selector": ".primary",
+            "left": 29,
+            "right": 346,
+            "top": 523.1875,
+            "bottom": 573.1875,
+            "width": 317,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 889.984375,
+            "bottom": 939.984375,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "care-profile",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-care-profile-375.png",
+      "geometry": {
+        "route": "pages/settings/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 138,
+            "bottom": 196.3984375,
+            "width": 345,
+            "height": 58.3984375,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 196.3984375,
+            "bottom": 254.1953125,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 254.1953125,
+            "bottom": 310.1953125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 310.1953125,
+            "bottom": 367.9921875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 419.9921875,
+            "bottom": 477.7890625,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 477.7890625,
+            "bottom": 533.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 533.7890625,
+            "bottom": 589.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 589.7890625,
+            "bottom": 645.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 716,
+            "bottom": 766,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "addresses-empty",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-addresses-empty-375.png",
+      "geometry": {
+        "route": "pages/settings/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -45,
+            "bottom": 13.3984375,
+            "width": 345,
+            "height": 58.3984375,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 13.3984375,
+            "bottom": 71.1953125,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 71.1953125,
+            "bottom": 127.1953125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 127.1953125,
+            "bottom": 184.9921875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 465.2890625,
+            "bottom": 523.0859375,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 523.0859375,
+            "bottom": 579.0859375,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 579.0859375,
+            "bottom": 635.0859375,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 635.0859375,
+            "bottom": 691.0859375,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 35,
+            "right": 340,
+            "top": 333.2890625,
+            "bottom": 383.2890625,
+            "width": 305,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 716.0859375,
+            "bottom": 766.0859375,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".inline-action",
+            "left": 298,
+            "right": 346,
+            "top": 207.9921875,
+            "bottom": 251.9921875,
+            "width": 48,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "address-editor",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-address-editor-375.png",
+      "geometry": {
+        "route": "pages/settings/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -222,
+            "bottom": -163.6015625,
+            "width": 345,
+            "height": 58.3984375,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -163.6015625,
+            "bottom": -105.8046875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -105.8046875,
+            "bottom": -49.8046875,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -49.8046875,
+            "bottom": 7.9921875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 1049.5859375,
+            "bottom": 1107.3828125,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 1107.3828125,
+            "bottom": 1163.3828125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 1163.3828125,
+            "bottom": 1219.3828125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 1219.3828125,
+            "bottom": 1275.3828125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 1300.3828125,
+            "bottom": 1350.3828125,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "address-editor-actions",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-address-editor-actions-375.png",
+      "geometry": {
+        "route": "pages/settings/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -806,
+            "bottom": -747.6015625,
+            "width": 345,
+            "height": 58.3984375,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -747.6015625,
+            "bottom": -689.8046875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -689.8046875,
+            "bottom": -633.8046875,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": -633.8046875,
+            "bottom": -576.0078125,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 465.5859375,
+            "bottom": 523.3828125,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 523.3828125,
+            "bottom": 579.3828125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 579.3828125,
+            "bottom": 635.3828125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 635.3828125,
+            "bottom": 691.3828125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 716.3828125,
+            "bottom": 766.3828125,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "legal-privacy",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-legal-privacy-375.png",
+      "geometry": {
+        "route": "pages/legal/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 12331.1328125,
+            "bottom": 12381.1328125,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "legal-terms",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-legal-terms-375.png",
+      "geometry": {
+        "route": "pages/legal/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 5163.2265625,
+            "bottom": 5213.2265625,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-empty",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-empty-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 471.1953125,
+            "bottom": 521.1953125,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 31,
+            "right": 344,
+            "top": 292,
+            "bottom": 420,
+            "width": 313,
+            "height": 128,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 550.1953125,
+            "bottom": 594.1953125,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-required-error",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-required-error-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 505.59375,
+            "bottom": 555.59375,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 31,
+            "right": 344,
+            "top": 292,
+            "bottom": 420,
+            "width": 313,
+            "height": 128,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 584.59375,
+            "bottom": 628.59375,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-correct",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-correct-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 471.1953125,
+            "bottom": 521.1953125,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 31,
+            "right": 344,
+            "top": 292,
+            "bottom": 420,
+            "width": 313,
+            "height": 128,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 550.1953125,
+            "bottom": 594.1953125,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-delete",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-delete-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 379.390625,
+            "bottom": 429.390625,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 259,
+            "bottom": 309,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 458.390625,
+            "bottom": 502.390625,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-delete-other",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-delete-other-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 533.1953125,
+            "bottom": 583.1953125,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 259,
+            "bottom": 309,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 31,
+            "right": 344,
+            "top": 354,
+            "bottom": 482,
+            "width": 313,
+            "height": 128,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 612.1953125,
+            "bottom": 656.1953125,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-close",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-close-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 267,
+            "bottom": 317,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 346,
+            "bottom": 390,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-withdraw-empty",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-withdraw-empty-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 502.390625,
+            "bottom": 552.390625,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 31,
+            "right": 344,
+            "top": 323.1953125,
+            "bottom": 451.1953125,
+            "width": 313,
+            "height": 128,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 581.390625,
+            "bottom": 625.390625,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-withdraw-error",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-withdraw-error-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 549.59375,
+            "bottom": 599.59375,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 31,
+            "right": 344,
+            "top": 370.3984375,
+            "bottom": 498.3984375,
+            "width": 313,
+            "height": 128,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 31,
+            "right": 112,
+            "top": 281.3984375,
+            "bottom": 325.3984375,
+            "width": 81,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 628.59375,
+            "bottom": 672.59375,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-withdraw-active",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-withdraw-active-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": 379.390625,
+            "bottom": 429.390625,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 197,
+            "bottom": 247,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": 259,
+            "bottom": 309,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": 103,
+            "bottom": 147,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 458.390625,
+            "bottom": 502.390625,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-records",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-records-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": -26.8046875,
+            "bottom": 23.1953125,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 31,
+            "right": 344,
+            "top": 283.671875,
+            "bottom": 333.671875,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 31,
+            "right": 344,
+            "top": 575.0546875,
+            "bottom": 625.0546875,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": -301,
+            "bottom": -251,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 31,
+            "right": 344,
+            "top": -206,
+            "bottom": -78,
+            "width": 313,
+            "height": 128,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": -395,
+            "bottom": -351,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": 52.1953125,
+            "bottom": 96.1953125,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 31,
+            "right": 147.1484375,
+            "top": 345.671875,
+            "bottom": 389.671875,
+            "width": 116.1484375,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 31,
+            "right": 344,
+            "top": 637.0546875,
+            "bottom": 681.0546875,
+            "width": 313,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 31,
+            "right": 150.8046875,
+            "top": 693.0546875,
+            "bottom": 737.0546875,
+            "width": 119.8046875,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rights-reply",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-reply-375.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".primary",
+            "left": 31,
+            "right": 344,
+            "top": -96.8046875,
+            "bottom": -46.8046875,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 187.5,
+            "right": 332,
+            "top": 277.671875,
+            "bottom": 321.671875,
+            "width": 144.5,
+            "height": 44,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 31,
+            "right": 344,
+            "top": 575.0546875,
+            "bottom": 625.0546875,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".rights-picker",
+            "left": 31,
+            "right": 344,
+            "top": -371,
+            "bottom": -321,
+            "width": 313,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 31,
+            "right": 344,
+            "top": -276,
+            "bottom": -148,
+            "width": 313,
+            "height": 128,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".rights-input",
+            "left": 43,
+            "right": 332,
+            "top": 213.671875,
+            "bottom": 257.671875,
+            "width": 289,
+            "height": 44,
+            "fontSize": "16px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 297,
+            "right": 361,
+            "top": -465,
+            "bottom": -421,
+            "width": 64,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 309,
+            "right": 361,
+            "top": -17.8046875,
+            "bottom": 26.1953125,
+            "width": 52,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 43,
+            "right": 179.5,
+            "top": 271.671875,
+            "bottom": 315.671875,
+            "width": 136.5,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 31,
+            "right": 147.1484375,
+            "top": 345.671875,
+            "bottom": 389.671875,
+            "width": 116.1484375,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 31,
+            "right": 344,
+            "top": 637.0546875,
+            "bottom": 681.0546875,
+            "width": 313,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 31,
+            "right": 150.8046875,
+            "top": 693.0546875,
+            "bottom": 737.0546875,
+            "width": 119.8046875,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "about",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-about-375.png",
+      "geometry": {
+        "route": "pages/settings/index",
+        "width": 375,
+        "controls": [
+          {
+            "selector": ".topbar",
+            "left": 0,
+            "right": 375,
+            "top": 0,
+            "bottom": 91,
+            "width": 375,
+            "height": 91,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".topbar__back",
+            "left": 12,
+            "right": 56,
+            "top": 47,
+            "bottom": 91,
+            "width": 44,
+            "height": 44,
+            "fontSize": "14px",
+            "color": "rgba(0, 0, 0, 0)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 14,
+            "bottom": 72.3984375,
+            "width": 345,
+            "height": 58.3984375,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 72.3984375,
+            "bottom": 130.1953125,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 130.1953125,
+            "bottom": 186.1953125,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 186.1953125,
+            "bottom": 243.9921875,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 295.9921875,
+            "bottom": 353.7890625,
+            "width": 345,
+            "height": 57.796875,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 413.7890625,
+            "bottom": 469.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 469.7890625,
+            "bottom": 525.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".settings-row",
+            "left": 15,
+            "right": 360,
+            "top": 525.7890625,
+            "bottom": 581.7890625,
+            "width": 345,
+            "height": 56,
+            "fontSize": "14px",
+            "color": "rgb(53, 42, 58)"
+          },
+          {
+            "selector": ".secondary",
+            "left": 14,
+            "right": 361,
+            "top": 715.7890625,
+            "bottom": 765.7890625,
+            "width": 347,
+            "height": 50,
+            "fontSize": "16px",
+            "color": "rgb(86, 48, 111)"
+          },
+          {
+            "selector": ".text-button",
+            "left": 304,
+            "right": 348,
+            "top": 361.7890625,
+            "bottom": 405.7890625,
+            "width": 44,
+            "height": 44,
+            "fontSize": "12px",
+            "color": "rgb(86, 48, 111)"
+          }
+        ]
+      }
+    }
+  ]
+}

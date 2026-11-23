@@ -4,6 +4,7 @@ import { pageRead, cancelPageReads } from "../../services/page-requests";
 import { measurementClock, recordClientMetric } from "../../services/performance-metrics";
 import { defaultMemberAvatar, localMemberAvatar } from "../../services/member-avatar";
 import { memberIdentity, publishMemberIdentity } from "../../services/member-identity";
+import { claimIdentityBadgeIntro, identityLabel, memberIdentityBadge } from "../../services/display-identity";
 import { requireMemberAccess, retainMemberSnapshot, resumeAuthentication } from "../../services/api";
 import { needsLoginProfile } from "../../services/member-setup";
 import { clearAuthenticationRedirectSuppression } from "../../services/api";
@@ -79,11 +80,12 @@ Page({
     }
   },
   retryDailyStatus() { const token = getApp<IAppOption>().globalData.sessionToken; if (token && this.data.member) void this.loadDailyStatus(this.data.loadAttempt, token); },
-  data: { motionActive:true,reducedMotion:shouldReduceMotion(),...foilData,cardSparkActive:false, retainingSnapshot: false, dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
+  profileAvatarPaint: null as { memberId: string; src: string } | null,
+  data: { profileIdentityLabel:"",profileIdentityBadge:"" as ReturnType<typeof memberIdentityBadge>,profileBadgeIntro:false,motionActive:true,reducedMotion:shouldReduceMotion(),...foilData,cardSparkActive:false, retainingSnapshot: false, dailyStatusLoading: false, dailyStatusError: "", memberAvatar: defaultMemberAvatar, chromeStyle: currentChromeStyle(), member: null as any, points: null as any, care: null as any, coreUnavailable:false, authority:null as AuthorityProjection|null,managementEntryAvailable:false, commercialEligible:false,commercialAccessible:false, supportUnread:null as number | null, authorityState:"unknown" as AuxiliaryState, commercialState:"unknown" as AuxiliaryState, supportState:"unknown" as AuxiliaryState, avatarState:"unknown" as AuxiliaryState, progressPercent: 0, pointsBalanceClass: "", careTitle: "", careCopy: "", careStatus: "", hasCareCycle:false, careUnavailable:false, loading: true, navigating: false, loadAttempt: 0, snapshotVersion: 0, auxiliaryAttempt: 0, pageAlive: true, error: "" },
   onLoad() { this.data.pageAlive = true; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() { this.setData({motionActive:true,reducedMotion:shouldReduceMotion()});this.clearCardSpark(); if (!requireMemberAccess()) { this.dailySnapshot=null; this.dailyStatusAttempt++; this.setData({retainingSnapshot:false,dailyStatusError:"",dailyStatusLoading:false,hasCareCycle:false,careUnavailable:false,member:null,points:null,care:null,coreUnavailable:false,authority:null,managementEntryAvailable:false,commercialEligible:false,commercialAccessible:false,supportUnread:null,authorityState:"unknown",commercialState:"unknown",supportState:"unknown",avatarState:"unknown",loading:false}); return; } this.data.pageAlive = true; this.setData({ navigating: false }); const tab = this.getTabBar?.(); if (tab) tab.setData({ active: 3, externalBusy: false }); tab?.syncActive?.(3); const identity=memberIdentity(); if(identity && this.data.member?.id===identity.id)this.setData({member:{...this.data.member,...identity},memberAvatar:identity.avatarUrl}); void this.load(undefined, retainMemberSnapshot(this)); },
-  onHide() { this.setData({motionActive:false});clearFoil(this);this.clearCardSpark(); cancelPageReads(this); this.data.loadAttempt += 1;  },
+  onHide() { this.setData({motionActive:false,profileBadgeIntro:false});clearFoil(this);this.clearCardSpark(); cancelPageReads(this); this.data.loadAttempt += 1;  },
   onUnload() { clearFoil(this);this.clearCardSpark(); cancelPageReads(this); this.data.pageAlive = false; this.data.loadAttempt += 1;  },
   isCurrentLoad(attempt: number, token: string): boolean {
     return this.data.pageAlive && this.data.loadAttempt === attempt && getApp<IAppOption>().globalData.sessionToken === token;
@@ -121,6 +123,19 @@ Page({
     const token = getApp<IAppOption>().globalData.sessionToken;
     if (token && (this.data.member || this.data.coreUnavailable) && !this.data.loading) this.loadAuxiliary(this.data.loadAttempt, token);
   },
+  onProfileAvatarLoad(event: WechatMiniprogram.BaseEvent) {
+    const { memberId, avatarSrc } = event.currentTarget.dataset;
+    if (!this.data.member || this.data.member.id !== memberId || this.data.memberAvatar !== avatarSrc) return;
+    this.profileAvatarPaint = { memberId, src: avatarSrc };
+    this.playProfileBadgeIntro();
+  },
+  playProfileBadgeIntro() {
+    const { member, memberAvatar, profileIdentityBadge, avatarState, motionActive, reducedMotion, loadAttempt } = this.data;
+    const paint = this.profileAvatarPaint, token = snapshotOwners.get(this);
+    if (!member || !profileIdentityBadge || avatarState !== "ready" || !motionActive || reducedMotion
+        || !paint || paint.memberId !== member.id || paint.src !== memberAvatar || !token || !this.isCurrentLoad(loadAttempt, token)) return;
+    if (claimIdentityBadgeIntro(member.id, profileIdentityBadge)) this.setData({ profileBadgeIntro: true });
+  },
   async loadAvatar(member: any, attempt: number, token: string, businessVersion: number) {
     try {
       const avatarUrl = await localMemberAvatar(member.avatar_data_url, member.avatar_revision);
@@ -130,7 +145,7 @@ Page({
       const currentAvatar = normalizedMember === member ? avatarUrl : known!.avatarUrl;
       const { avatar_data_url: _rawAvatar, ...visibleMember } = normalizedMember;
       publishMemberIdentity({ id:member.id, display_name:normalizedMember.display_name, avatarUrl:currentAvatar, profile_revision:normalizedMember.profile_revision });
-      this.setData({ member:visibleMember, memberAvatar:currentAvatar, avatarState:"ready" });
+      this.setData({ member:visibleMember, memberAvatar:currentAvatar, avatarState:"ready" }, () => this.playProfileBadgeIntro());
     } catch { if (this.isCurrentLoad(attempt, token)) this.setData({ avatarState:"error" }); }
   },
   async load(event?: WechatMiniprogram.TouchEvent, preserveSnapshot = false) {
@@ -142,10 +157,14 @@ Page({
     const token = getApp<IAppOption>().globalData.sessionToken;
     const sameSession = snapshotOwners.get(this) === token;
     snapshotOwners.set(this, token);
-    if (!sameSession || !preserveSnapshot) { this.dailySnapshot = null; this.setData({ snapshotVersion:0, dailyStatusError: "" }); }
+    if (!sameSession || !preserveSnapshot) {
+      this.dailySnapshot = null;
+      this.profileAvatarPaint = null;
+      this.setData({ snapshotVersion:0, dailyStatusError:"" });
+    }
     this.setData(preserveSnapshot && sameSession && this.data.member && this.data.points
-      ? { loadAttempt:attempt, retainingSnapshot:true, coreUnavailable:false, loading:true, error:"" }
-      : { hasCareCycle:false, careUnavailable:false, loadAttempt:attempt, retainingSnapshot:false, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:false, authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null, loading:true, error:"" });
+      ? { loadAttempt:attempt, retainingSnapshot:true, coreUnavailable:false, loading:true, error:"", profileBadgeIntro:false }
+      : { hasCareCycle:false, careUnavailable:false, loadAttempt:attempt, retainingSnapshot:false, profileBadgeIntro:false, memberAvatar:defaultMemberAvatar, member:null, points:null, care:null, coreUnavailable:false, authority:null,managementEntryAvailable:false, commercialEligible:false, commercialAccessible:false, supportUnread:null, loading:true, error:"" });
     this.loadAuxiliary(attempt, token);
     void this.loadDailyStatus(attempt, token);
     try {
@@ -168,7 +187,7 @@ Page({
       publishMemberIdentity({ id: member.id, display_name: normalizedMember.display_name, profile_revision: normalizedMember.profile_revision, avatarUrl: currentAvatar });
       const careView = profileCareView(care);
       // One authoritative core snapshot; local file work is never on this path.
-      const core = { member:visibleMember, memberAvatar:currentAvatar, avatarState:"loading" as AuxiliaryState, points, care:care??null, hasCareCycle:careView.hasCycle, careUnavailable:careView.unavailable, coreUnavailable:false, snapshotVersion:snapshot.businessVersion, progressPercent:careView.hasCycle?Math.min(100, care.completed.length * 25):0, pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, ...(!careView.hasCycle && !careView.unavailable ? dailyCareView(this.dailySnapshot, this.data.dailyStatusError) : {}), loading:false };
+      const core = { member:visibleMember, profileIdentityLabel:identityLabel(member.displayIdentity), profileIdentityBadge:memberIdentityBadge(member.displayIdentity), memberAvatar:currentAvatar, avatarState:"loading" as AuxiliaryState, points, care:care??null, hasCareCycle:careView.hasCycle, careUnavailable:careView.unavailable, coreUnavailable:false, snapshotVersion:snapshot.businessVersion, progressPercent:careView.hasCycle?Math.min(100, care.completed.length * 25):0, pointsBalanceClass:String(points.projection.available).length >= 8 ? "pass-stat__value--compact" : "", careTitle:careView.title, careCopy:careView.copy, careStatus:careView.status, ...(!careView.hasCycle && !careView.unavailable ? dailyCareView(this.dailySnapshot, this.data.dailyStatusError) : {}), loading:false };
       recordClientMetric({ action: "profile", stage: "data_processing", durationMs: measurementClock() - processingStarted });
       const bridgeStarted = measurementClock();
       this.setData(core, () => {

@@ -40,16 +40,34 @@ Baseline: `b39f3de35647f4cae872723be58667d6b337b010` (main, PR #126). This is a 
 ### Information and state contract
 
 - Group common items into “个人资料” and “隐私与账号”; show “管理工具” only when the existing server capability allows it. Repetition can be merged only for the same task and permission scope.
-- Keep `user_code` (copyable technical identifier), nickname and `card_number` (`No.` membership identity) distinct. About retains the membership number. `envVersion` is labelled “运行环境”, not an invented application version.
-- Consent-read pending/failure/expired states must not say “尚无投稿使用授权”. A successful empty response can. Counts include historical records; only currently active records expose withdrawal. Existing confirmation, busy guards and request identifiers remain intact.
+- Keep `user_code` (copyable technical identifier), nickname and `card_number` (`No.` membership identity) distinct. The membership number is displayed on My’s member card. Following the user’s 2026-11-23 correction, Settings does not repeat it or expose the developer/runtime environment. Remove the empty About entry rather than inventing replacement content.
+- A successful empty consent read hides the authorization group. Pending/failure/expired states show the actual read or account state. Existing records show the purpose, status and grant date. Only active records expose withdrawal with the existing confirmation and request guards.
 - Address reads distinguish pending, updating, failure and confirmed empty. Address/profile editors, native pickers, dirty-leave protection, stale-response rejection and member ownership remain owned by their existing implementation.
 - Settings uses a minimum-viewport flex column. Its footer consumes free space, keeps at least the shared large spacing above logout, and sits above the measured bottom inset plus the small content gap. Expanded forms make the document grow; logout never overlays a field. Existing error-summary scrolling and recovery stay in the footer.
-- Address editing uses the shared component’s own task heading, without a second address-book heading above it. Unbind/delete actions use the existing danger role and retain their confirmations and busy guards; logout remains a secondary action. About keeps its factual fields with no redundant final divider.
+- Address editing uses the shared component’s own task heading, without a second address-book heading above it. Unbind/delete actions use the existing danger role and retain their confirmations and busy guards; logout remains a secondary action. The final settings row has no trailing divider.
 - Following the user’s copy cleanup, remove the generic privacy footer and helper copy that repeats labels or adjacent controls. Keep consequential facts at the relevant edit, confirmation, privacy/legal or rights entry; keep recoverable errors and truthful states. The existing withdrawal confirmation still states purpose cessation and retained audit/points records. A copy change does not create a new authorization or legal-consent operation.
 
 ### Remaining consistency review candidates
 
 The read-only `inventory-tokens.py` scans all 71 native WXSS files, including 57 that already reference semantic tokens. It separates fallbacks from outside literal colors. Different literals are candidates for a role/contrast/native review, not automatic defects or permission for a bulk replacement.
+
+### Settings subpages and action recovery (2026-11-23)
+
+The next refinement starts from main `c2a504f09387d1b4b6efbf39ee3e6463716e82a8`. Review all direct settings destinations and inline editors: avatar/name, care profile, address book/editor, consent records, legal reader, data/account rights, and the capability-gated member-management entry. The previously reviewed About section was subsequently removed at the user’s request because it contained only a duplicate member number and runtime information. Existing management inspectors and commercial-member navigation remain owned by that flow; inspecting them does not authorize a management redesign or new permissions.
+
+| Confirmed problem | Required behavior / owner |
+| --- | --- |
+| The combined legal entry opens privacy only, with no terms switch | Reuse `section-tabs` in `pages/legal`; expose privacy and terms, and optional published cross-border text. Read the selected document, reject older responses, reset reading position on selection. Preserve the server document body, version and operator. |
+| Data-rights consent read errors silently resemble an empty list | Distinguish loading, successful empty and failure; expose a read retry while retaining the existing free-text request fallback. Bind replies to page, identity, context and read attempt. |
+| Request errors appear away from the field/action and survive a changed request kind | Show required-field/submission feedback beside the submit control, retain input on failure, focus the missing description, and clear obsolete feedback on an explicit kind change. Identity changes clear the new feedback too. |
+| Rights-page introduction repeats its form/record layout; field and picker styling drifts | Remove redundant introduction, keep meaningful retention/security consequences in context. Use opaque content surfaces and existing ink/muted/plum/danger, body/action type, spacing and control/card radius roles. Use the existing SVG caret, persistent field labels and 44 px controls. |
+| Busy navigation can look available while its handler rejects the action | Keep native disabled visuals and controller guards in lockstep for settings destinations. Prevent opening another editor during profile/phone/address/consent work or a leave confirmation. |
+| Existing care-profile completion is labelled as new setup | Last step says “保存档案” for an existing optional profile and “完成建档” for first/required setup. Reuse the same component, versioned writes and points receipts. |
+| A management read revocation clears member rows but leaves stale category tabs active | Hide category tabs until a current server scope exists, disable them during reads/exports, and reject category changes after scope loss. Preserve the current table/inspector design and backend capability checks. |
+
+Preserve `services/layout` and `.page--stack` top padding. Local page spacing must not replace measured status-bar/capsule avoidance. Long forms and records scroll in normal flow; logout stays at the approved safe-bottom location. No new global styles, component system, fake progress, legal acceptance, role grant or private-data mutation is introduced for visual QA.
+
+Current source-specific evidence and limits are indexed in `docs/evidence/settings-secondary-20261123/verification.json`. Native rendering fixtures, public legal reads, unit/contract checks and real-account/physical-device acceptance are separate evidence layers. Keep the full route and physical-device matrix blocked until its actual required checks pass; a successful status-file validator does not pass that matrix.
 
 - Profile/member-card CSS still has local muted/ink shades and rpx type sizes. Preserve approved member-card display numerals and holographic material; compare ordinary labels against shared small/body/action roles separately.
 - The shared address editor now uses existing ink/muted/plum/danger/type/control roles, explicit readable placeholders and the existing SVG chevron. Its selected address label and primary action keep their established surface/interaction roles. Do not copy its classes into each consuming page.

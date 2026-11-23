@@ -22,9 +22,9 @@
       <text wx:if="{{item.description}}" class="activity-row__body">{{item.description}}</text><text wx:if="{{item.decisionLabel}}" class="activity-row__body">{{item.decisionLabel}}</text><text wx:if="{{item.decisionReason}}" class="activity-row__time">{{item.decisionReason}}</text><text class="activity-row__time">{{item.createdLabel}}</text>
     </view></block>
     <block wx:if="{{section==='appeals'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row">
-      <view class="activity-row__top"><text class="activity-row__title">下架内容复核</text><text class="activity-status">{{item.stateLabel}}</text></view>
+      <view class="activity-row__top"><text class="activity-row__title">下架申诉</text><text class="activity-status">{{item.stateLabel}}</text></view>
       <text class="activity-row__body">我的说明：{{item.reason}}</text><text wx:if="{{item.decisionLabel}}" class="activity-row__body">处理结果：{{item.decisionLabel}}</text><text wx:if="{{item.decisionReason}}" class="activity-row__time">处理依据：{{item.decisionReason}}</text>
-      <text class="activity-row__time">{{item.createdLabel}}</text><view class="activity-row__actions"><button data-id="{{item.postId}}" bindtap="openAppealedPost">查看内容记录</button></view>
+      <text class="activity-row__time">{{item.createdLabel}}</text><view wx:if="{{!item.postDeleted}}" class="activity-row__actions"><button data-id="{{item.postId}}" bindtap="openAppealedPost">查看作品</button></view>
     </view></block>
     <block wx:if="{{section==='blocks'}}"><view wx:for="{{items}}" wx:key="id" class="activity-row activity-row--inline">
       <text class="activity-row__title">{{item.displayName}}</text><button data-id="{{item.memberId}}" data-source="{{source}}" bindtap="unblock" class="{{loading||busy?'control--disabled':''}}" disabled="{{loading||busy}}">解除屏蔽</button>

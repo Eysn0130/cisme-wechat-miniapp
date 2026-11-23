@@ -1,11 +1,12 @@
 import {request} from './api';
+import type {CommunityIdentityBadge} from './display-identity';
 import {pageRead} from './page-requests';
 import {editorialIdentifier,type PublishedEditorialArticle,type PublishedEditorialMedia,type EditorialReaction} from './editorial';
 import type {EditorialCommentsPage,EditorialCommentStatus} from './editorial-comments';
 
 const id=(value:string)=>{if(!editorialIdentifier(value))throw new Error('FORMAL_POST_ID_INVALID');return encodeURIComponent(value);};
 function read<T>(page:object|undefined,path:string):Promise<T>{return page?pageRead<T>(page,{path,authMode:'optional'}):request<T>({path,authMode:'optional'});}
-type FormalPost={id:string;version:number;authorId:string;author:string;avatar:string;avatarRevision?:string|null;title:string;body:string;
+type FormalPost={id:string;version:number;authorId:string;author:string;avatar:string;avatarRevision?:string|null;identityBadge?:CommunityIdentityBadge;title:string;body:string;
  publishedAt:string;isMine:boolean;following:boolean;liked:boolean;saved:boolean;likeCount:number;saveCount:number;aiUsage:string;
  media:Array<{id:string;position:number}>;commentsTotal:number};
 export async function publishedFormalStory(postId:string,page?:object):Promise<PublishedEditorialArticle&{avatarRevision:string|null}>{
@@ -23,13 +24,13 @@ export function formalStoryMedia(media:PublishedEditorialMedia[]):{images:string
  if(!/^https:\/\/[^/?#]+$/.test(origin))throw new Error('FORMAL_MEDIA_ORIGIN_INVALID');
  return {images:media.map(item=>{if(!/^\/v1\/ugc\/media\/[0-9a-f-]{36}$/i.test(item.url)||item.type==='video')throw new Error('FORMAL_MEDIA_INVALID');return origin+item.url;}),video:null};
 }
-type FormalComment={id:string;version:number;state:string;body:string;createdAt:string;authorId:string;author:string;avatar:string;avatarRevision:string|null;
+type FormalComment={id:string;version:number;state:string;body:string;createdAt:string;authorId:string;author:string;avatar:string;avatarRevision:string|null;identityBadge?:CommunityIdentityBadge;
  isMine:boolean;parentId:string|null;replyToId:string|null;likeCount:number;liked:boolean};
 const status=(state:string):EditorialCommentStatus=>state==='pending_review'?'pending':state==='published'?'published':state==='rejected'?'rejected':'hidden';
 export async function readFormalComments(postId:string,page?:object,cursor?:string|null):Promise<EditorialCommentsPage>{
  const result=await read<{items:FormalComment[];nextCursor:string|null;matchingTotal:number}>(page,`/v1/ugc/posts/${id(postId)}/comments?reader=1&limit=30${cursor?`&cursor=${encodeURIComponent(cursor)}`:''}`);
  if(!Array.isArray(result?.items)||!result.items.every(c=>editorialIdentifier(c.id)&&editorialIdentifier(c.authorId)&&typeof c.body==='string'&&typeof c.isMine==='boolean'&&Number.isSafeInteger(c.likeCount)&&c.likeCount>=0))throw new Error('FORMAL_COMMENTS_RESPONSE_INVALID');
- const authors=Object.fromEntries(result.items.map(c=>[c.authorId,{name:c.author,avatar:c.avatar||'',avatarRevision:c.avatarRevision??null}]));
+ const authors=Object.fromEntries(result.items.map(c=>[c.authorId,{name:c.author,avatar:c.avatar||'',avatarRevision:c.avatarRevision??null,identityBadge:c.identityBadge}]));
  const comments=result.items.map(c=>({id:c.id,version:c.version,body:c.body,status:status(c.state),authorId:c.authorId,authorName:c.author,isMine:c.isMine,
   parentId:c.parentId,replyToId:c.replyToId,replyRootId:c.parentId||c.id,replyToName:result.items.find(other=>other.id===c.replyToId)?.author??null,
   createdAt:c.createdAt,likeCount:c.likeCount,liked:c.liked}));

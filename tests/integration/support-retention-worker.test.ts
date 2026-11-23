@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import { TEST_DATABASE_URL, resetDatabase, testPool } from '@cisme/testkit';
 import { purgeDueOrdinarySupport, purgeDueLinkedSupport, purgeDueMixedOrdinarySupport } from '../../services/api/src/supportRetention.js';
 import {AccountClosure} from '../../services/api/src/accountClosure.js';
+import {AuthorityService} from '../../services/api/src/authority.js';
 import {SupportService} from '../../services/api/src/supportService.js';
 
 const pool=testPool();
@@ -298,7 +299,7 @@ describe('linked transaction support retention worker',()=>{
       [linked.conversationId])).rows[0]).toMatchObject({team_unread_count:1,next_sequence:'3'});
     expect((await pool.query('SELECT 1 FROM media_cleanup_queue WHERE media_id=$1',[sharedId])).rowCount).toBe(0);
     expect((await pool.query('SELECT 1 FROM media_cleanup_queue WHERE media_id=$1',[orphanId])).rowCount).toBe(1);
-    const support=new SupportService(pool,null as never,null as never,
+    const support=new SupportService(pool,new AuthorityService(pool,'test'),null as never,
       {read:async()=>({bytes:Uint8Array.of(0xff,0xd8,0xff),mimeType:'image/jpeg'})} as never);
     const page=await support.messagesForMember(linked.memberId,{limit:20});
     expect(page.messages).toHaveLength(1);

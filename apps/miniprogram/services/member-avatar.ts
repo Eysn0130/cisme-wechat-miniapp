@@ -54,10 +54,10 @@ export async function prepareFeedAuthors(rows: any[]): Promise<any[]> {
   }));
 }
 
-export async function prepareFeedPage(page: { items: any[]; authors?: Record<string,{name:string;avatar:string;avatarRevision:string|null}> }): Promise<any[]> {
+export async function prepareFeedPage(page: { items: any[]; authors?: Record<string,{name:string;avatar:string;avatarRevision:string|null;identityBadge?:import("./display-identity").CommunityIdentityBadge}> }): Promise<any[]> {
   return Promise.all(page.items.map(async row => {
     const author = page.authors?.[row.author_id];
-    return { ...row, avatar: await localMemberAvatar(author?.avatar, author?.avatarRevision), author: author?.name || "CISME 会员" };
+    return { ...row, avatar: await localMemberAvatar(author?.avatar, author?.avatarRevision), author: author?.name || "CISME 会员", identityBadge:author?.identityBadge };
   }));
 }
 

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "ea96b0ded9a58a7aa4b0f2b5d7cc5c345d50f0b39d38fcf84f4149165df40c01",
+  "mode": "isolated synthetic native presentation; no real account writes",
+  "captures": [
+    {
+      "name": "settings-top",
+      "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/about-cleanup-ea96b0ded9a5-settings-top-375.png",
+      "storage": "local-only; repository PNG ignore policy",
+      "sha256": "d806d964f4f3466f0ca0ef25e433180d991faf3e96fd16dc487b28b9b375f004"
+    },
+    {
+      "name": "settings-bottom",
+      "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/about-cleanup-ea96b0ded9a5-settings-bottom-375.png",
+      "storage": "local-only; repository PNG ignore policy",
+      "sha256": "d806d964f4f3466f0ca0ef25e433180d991faf3e96fd16dc487b28b9b375f004"
+    },
+    {
+      "name": "my-member-card",
+      "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/about-cleanup-ea96b0ded9a5-my-member-card-375.png",
+      "storage": "local-only; repository PNG ignore policy",
+      "sha256": "224f536a5307453e37019af3d51dfd47826616280e06003da3c9fc99f7831ce9"
+    }
+  ],
+  "checks": [
+    {
+      "name": "settings-no-duplicate-number-or-runtime-and-no-empty-about-entry",
+      "passed": true
+    },
+    {
+      "name": "logout-retains-safe-bottom-position",
+      "passed": true,
+      "rect": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 361,
+        "top": 716,
+        "bottom": 766,
+        "width": 347,
+        "height": 50
+      },
+      "viewport": {
+        "width": 375,
+        "height": 812
+      }
+    },
+    {
+      "name": "my-member-card-keeps-own-membership-number",
+      "passed": true
+    }
+  ],
+  "cleanup": {
+    "restored": true,
+    "originalSessionRestored": true,
+    "signedInAfterRestore": false,
+    "storageRestored": true,
+    "transportRestored": true,
+    "blockedWrites": 0,
+    "unexpected": [],
+    "syntheticReadCount": 13
+  },
+  "scope": "Settings de-duplication and My number retention at 375 only; earlier 33 frames belong to package a004bf1c and are not reclassified as current acceptance.",
+  "localChecks": {
+    "typecheck": "passed",
+    "unitPassed": 3712,
+    "unitSkipped": 1,
+    "package": "passed",
+    "routeAudit": "passed",
+    "designQaStatus": "valid blocked manifest"
+  },
+  "sourceFiles": {
+    "apps/miniprogram/pages/settings/index.ts": "492965a290e26a6ed13bffccc66c4ef1393d6fd85d205c92bf1ba93563ca920a",
+    "apps/miniprogram/pages/settings/index.wxml": "96998362d765d53ec41489336795f6c45c8283d980eb30683ff6e0349c2634fd",
+    "apps/miniprogram/pages/settings/index.wxss": "e57602c51a9d4383a847c04f922b7f73f3c6b24f36611235128867c70149787a"
+  }
+}

@@ -5,5 +5,6 @@
 .feed-card__body { padding:18rpx 18rpx 20rpx; }
 .feed-card__title { display:-webkit-box; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; font-size:28rpx; font-weight:600; line-height:1.45; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
 .feed-card__meta { display:flex; align-items:center; gap:7rpx; margin-top:14rpx; color:#665c6a; font-size:var(--cisme-text-small); line-height:1.5; }
-.feed-card__avatar { flex:none; width:40rpx; height:40rpx; border-radius:50%; }
+.feed-card__avatar-wrap { position:relative; flex:none; width:40rpx; height:40rpx; }
+.feed-card__avatar { display:block; width:100%; height:100%; border-radius:50%; }
 .feed-card__author { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

@@ -850,7 +850,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "a25f29043808d30fc562cd5d9f423b9b45dfc368c836cb60fcd2ff8954bdc231",
+  "migrationSetSha256": "e10b0c19a08f639812219f5aa50fd7b76928013d8fbcf38ae16e16618a91de8b",
   "egressSignatureSha256": "51385a8246d036be461cc5496918b981d47f9d77cb0361131ed2d02e0cbec0e7",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1509,5 +1509,11 @@
     "packageSourceSha256": "024e0ecf217c7da0cc3ca97496cbf2e0bcc590b0a6cda583e342e0670bba5a50",
     "scope": "Existing wx.uploadFile, PUT and chunk endpoints retain original recipients, authorization, purpose and payload. Added local measured byte/phase feedback, completion/cancellation listener cleanup and retained exact server problem sanitization. No new analytics, storage destination or member consent.",
     "accessBoundary": "Inaccessible aftersale routes clear private state and return to existing usable workspace; no new permission or role grant."
+  },
+  "identityBadgeReview20261123": {
+    "scope": "Identity presentation on the member's private profile and visible community or human-support avatar.",
+    "source": "Active sharing officer qualification and environment-scoped authority grants. The official publisher stays an independent identity.",
+    "projection": "The community receives a badge kind for visible authors. The administrator mark requires a current administrative grant and an explicit public designation from the administrator settings. Human support is scoped to the verified conversation sender. Internal capability rows are excluded from public author responses.",
+    "storage": "The public designation uses the existing audited authority_grant record. It confers no operational access. Native badge animation state lives in memory for the current mini-program run."
   }
 }

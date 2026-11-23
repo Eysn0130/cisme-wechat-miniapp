@@ -11,7 +11,7 @@ type Section="comments"|"saves"|"reports"|"appeals"|"blocks";
 type ActivityRow={id:string;postId?:string;postTitle?:string|null;body?:string|null;state?:string;
   title?:string|null;available?:boolean;targetType?:string;category?:string;decisionCode?:string|null;
   decisionReason?:string|null;description?:string|null;reason?:string;memberId?:string;displayName?:string;createdAt:string;
-  source?:"editorial"|"shared";stateLabel?:string;categoryLabel?:string;decisionLabel?:string;createdLabel?:string};
+  source?:"editorial"|"shared";stateLabel?:string;categoryLabel?:string;decisionLabel?:string;createdLabel?:string;postDeleted?:boolean};
 type PageResult={items:ActivityRow[];nextCursor:string|null;matchingTotal:number;loadedCount?:number;hasMore?:boolean};
 const sources:Array<{key:Source;label:string}>=[{key:"editorial",label:"精选"},{key:"ugc",label:"投稿"}];
 const ugcTabs:Array<{key:Section;label:string}>=[
@@ -118,7 +118,7 @@ Page({
         ||(page.nextCursor!==null&&typeof page.nextCursor!=="string")))throw new Error("EDITORIAL_ACTIVITY_RESPONSE_INVALID");
       const seen=new Set(reset?[]:this.data.items.map(item=>item.id));
       const rows=page.items.filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true;}).map(item=>({...item,
-        stateLabel:stateLabels[item.state??""]??item.state??"",
+        stateLabel:section==="appeals"&&item.postDeleted&&item.state==="received"?"作品已删除":stateLabels[item.state??""]??item.state??"",
         categoryLabel:categoryLabels[item.category??""]??"",
         decisionLabel:decisionLabels[item.decisionCode??""]??"",createdLabel:timeLabel(item.createdAt)}));
       this.setData({items:reset?rows:[...this.data.items,...rows],nextCursor:page.nextCursor,

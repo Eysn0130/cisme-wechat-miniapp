@@ -13,7 +13,7 @@ for(const [label,entries]of [
  ['商城',[['commerce.product.manage','商品管理'],['commerce.qualification.manage','商品资格'],['commerce.inventory.manage','库存管理'],['commerce.order.read','订单查看'],['commerce.fulfillment.manage','发货履约']]],
  ['售后',[['commerce.aftersale.review','售后审核'],['commerce.return.receive','退货签收'],['commerce.return.inspect','退货检验']]],
  ['财务与推广',[['commerce.refund.approve','退款复核'],['commerce.money.reconcile','交易与积分核对'],['commission.read','推广佣金查看'],['commission.rate.manage','推广规则申请'],['commission.rate.approve','推广规则复核'],['commission.settlement.approve','月结财务']]],
- ['内容与隐私',[['community.moderate','社区管理'],['editorial.manage','官方内容'],['privacy.request.manage','隐私请求']]]
+ ['内容与隐私',[['community.moderate','社区管理'],['editorial.manage','官方内容'],['privacy.request.manage','隐私请求'],['community.admin_badge','对外显示管理员徽章']]]
 ] as Array<[string,Array<[Capability,string]>]>)groups.push({label,items:entries.map(([capability,label])=>({capability,label,requires:dependencies[capability]??[]}))});
 
 export const administratorCapabilityGroups=groups;

@@ -3,7 +3,7 @@ import { memberIdentity, publishMemberIdentity } from './member-identity';
 import { request } from './api';
 
 export type SupportSender = { key: string; displayName: string; profileRevision: number; operatorUpdatedAt: string | null;
-  avatarRevision: string | null; avatarDataUrl?: string | null; redacted?: boolean };
+  avatarRevision: string | null; avatarDataUrl?: string | null; redacted?: boolean; identityBadge?: "support" | undefined };
 type Entry = { identity: SupportSender; avatarPath: string; failed: boolean; loading: boolean };
 
 /** Private per-page cache. Raw image bytes never enter the rendering bridge. */
@@ -20,9 +20,9 @@ export class SupportIdentityCache {
     if (scope !== this.scope) { this.reset(); this.scope = scope; }
     this.memberKey = page.memberIdentityKey ?? this.memberKey;
     this.agentKey = page.agentIdentityKey === null ? '' : page.agentIdentityKey ?? this.agentKey;
-    for (const identity of Object.values(page.identities ?? {})) this.accept(identity, changed);
+    for (const identity of Object.values(page.identities ?? {})) this.accept(identity, changed, true);
   }
-  accept(value: SupportSender | undefined, changed: () => void) {
+  accept(value: SupportSender | undefined, changed: () => void, fromSnapshot = false) {
     if (!value || !/^[a-f0-9]{64}$/.test(value.key) || typeof value.displayName !== 'string'
       || !Number.isSafeInteger(value.profileRevision) || value.profileRevision < 0
       || value.avatarRevision !== null && !/^[a-f0-9]{64}$/.test(value.avatarRevision ?? '')) return;
@@ -30,6 +30,10 @@ export class SupportIdentityCache {
     if (previous && !value.redacted && (previous.identity.redacted || value.profileRevision < previous.identity.profileRevision
       || Date.parse(value.operatorUpdatedAt ?? '') < Date.parse(previous.identity.operatorUpdatedAt ?? ''))) return;
     const { avatarDataUrl, ...identity } = value;
+    // Cached message senders must not restore a badge removed in a
+    // later conversation snapshot.
+    const verifiedBadge = fromSnapshot || !previous ? value.identityBadge : previous.identity.identityBadge;
+    identity.identityBadge = !identity.redacted && verifiedBadge === "support" ? "support" : undefined;
     const sameAvatar = previous && previous.identity.avatarRevision === identity.avatarRevision && !identity.redacted;
     const entry: Entry = sameAvatar ? previous : { identity, avatarPath: defaultMemberAvatar, failed: false, loading: false };
     entry.identity = identity;

@@ -6,7 +6,8 @@ import { readSnapshot } from "./db.js";
 import type { EditorialService } from "./editorial.js";
 import type { FormalUgcService } from "./formalUgc.js";
 import { communityAuthors, publishedPostAuthors } from "./memberProfile.js";
-import {editorialPublicAuthorIdSql} from './editorialPublisher.js';
+import {editorialPublicAuthorIdSql,officialPublisher} from './editorialPublisher.js';
+import {memberDisplayIdentities} from "./displayIdentity.js";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const kinds = ["editorial", "formal", "ugc"] as const;
@@ -70,12 +71,16 @@ export class CommunityFollowingService {
         this.config.wechat.appId === CANONICAL_WECHAT_MINIPROGRAM_APP_ID ? this.config.wechat.appId : null,
         cursor?.at ?? null, cursor?.kind ?? null, cursor?.id ?? null, limit + 1]);
       const rows = result.rows.slice(0, limit), last = rows[rows.length - 1];
-      const authors = await communityAuthors(client, rows.filter(row => row.kind !== "editorial").map(row => row.author_id));
-      const publishedAuthors = await publishedPostAuthors(client, rows.filter(row => row.kind === "formal").map(row => row.author_id));
+      const authors = await communityAuthors(client, rows.filter(row => row.kind === "ugc").map(row => row.author_id), this.config.env);
+      const publishedAuthors = await publishedPostAuthors(client, rows.filter(row => row.kind === "formal").map(row => row.author_id), this.config.env);
+      const editorialMembers=[...new Set<string>(rows.filter(row=>row.kind==="editorial"&&row.author_id!==officialPublisher.id).map(row=>row.author_id))];
+      const editorialIdentities=await memberDisplayIdentities(client,this.config.env,editorialMembers);
       return { items: rows.map(row => ({ kind: row.kind, id: row.id, authorId: row.author_id,
         author: row.kind === "editorial" ? row.editorial_author : (row.kind === "formal" ? publishedAuthors : authors)[row.author_id]?.name ?? "CISME 会员",
         avatar: row.kind === "editorial" ? "" : (row.kind === "formal" ? publishedAuthors : authors)[row.author_id]?.avatar ?? "",
         avatarRevision: row.kind === "editorial" ? null : (row.kind === "formal" ? publishedAuthors : authors)[row.author_id]?.avatarRevision ?? null,
+        identityBadge: row.author_id===officialPublisher.id?"official":row.kind==="editorial"?editorialIdentities.get(row.author_id)?.publicBadge
+          :(row.kind === "formal" ? publishedAuthors : authors)[row.author_id]?.identityBadge,
         title: row.title, excerpt: row.excerpt, coverUrl: row.cover_url,
         publishedAt: row.published_at.toISOString(), likeCount: row.like_count })),
         nextCursor: result.rows.length > limit && last

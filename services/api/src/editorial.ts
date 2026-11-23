@@ -9,6 +9,7 @@ import {inspectEditorialMp4,type ObjectStorage} from './storage.js';
 import {editorialCommentSummary} from './editorialComments.js';
 import {officialPublisher,editorialPublicAuthorId,editorialPublicAuthorIdSql} from './editorialPublisher.js';
 import {publishedPostAuthors} from './memberProfile.js';
+import {memberDisplayIdentities} from './displayIdentity.js';
 import {featuredPostSql} from './communityCuration.js';
 import {cursorTimestamp,pageLimit,pageScope} from './keysetPage.js';
 
@@ -196,12 +197,17 @@ export class EditorialService{
       return {accepted:true,documents:documents.map(d=>({documentType:d.document_type,version:d.version}))};
     });
   }
+  private async publicCards(client:DbClient, rows:Article[]):Promise<EditorialCard[]> {
+    const memberIds=[...new Set(rows.filter(a=>a.publisher_id===null).map(a=>a.author_member_id))];
+    const identities=await memberDisplayIdentities(client,this.config.env,memberIds);
+    return rows.map(a=>({...card(a),identityBadge:a.publisher_id===officialPublisher.key?'official':identities.get(a.author_member_id)?.publicBadge}));
+  }
   async list(input:{limit?:unknown;cursor?:unknown}={}):Promise<EditorialPage>{
     const p=page(input,'editorial');return readSnapshot(this.pool,async client=>{
       const rows=(await client.query<Article>(`SELECT ${columns} FROM ${relations} WHERE ${visible}
         AND ($2::timestamptz IS NULL OR (a.published_at,a.id)<($2::timestamptz,$3::uuid))
         ORDER BY a.published_at DESC,a.id DESC LIMIT $4`,[this.canonicalApp(),p.cursor?.at??null,p.cursor?.id??null,p.limit+1])).rows;
-      return {items:rows.slice(0,p.limit).map(card),nextCursor:next(rows,p.limit,p.scope)};
+      return {items:await this.publicCards(client,rows.slice(0,p.limit)),nextCursor:next(rows,p.limit,p.scope)};
     });
   }
   async communityFeatured(memberId:string|undefined,input:{limit?:unknown;cursor?:unknown}={}){
@@ -236,12 +242,12 @@ export class EditorialService{
         (SELECT count(*)::int FROM ugc_post_reaction x WHERE x.post_id=p.id AND x.kind='like') AS like_count,
         (SELECT count(*)::int FROM ugc_post_reaction x WHERE x.post_id=p.id AND x.kind='save') AS save_count
         FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.published_revision WHERE p.id=ANY($1::uuid[])`,[memberIds])).rows:[];
-      const authors=await publishedPostAuthors(client,posts.map(p=>p.author_member_id));
+      const authors=await publishedPostAuthors(client,posts.map(p=>p.author_member_id),this.config.env);
       type FeaturedCard=EditorialCard&{kind:'editorial'|'formal';avatarRevision?:string|null;coverId?:string|null};
-      const cards=new Map<string,FeaturedCard>(official.map(a=>['editorial:'+a.id,{...card(a),kind:'editorial'}]));
+      const cards=new Map<string,FeaturedCard>((await this.publicCards(client,official)).map(a=>['editorial:'+a.id,{...a,kind:'editorial'}]));
       for(const p of posts){const author=authors[p.author_member_id];cards.set('formal:'+p.id,{id:p.id,kind:'formal',
         title:p.title||p.body?.slice(0,40)||'图片护理故事',excerpt:p.body?.slice(0,100)||'',authorId:p.author_member_id,
-        author:author?.name??'CISME 会员',avatar:author?.avatar??'',avatarRevision:author?.avatarRevision??null,coverId:p.cover_id,
+        author:author?.name??'CISME 会员',avatar:author?.avatar??'',avatarRevision:author?.avatarRevision??null,identityBadge:author?.identityBadge,coverId:p.cover_id,
         coverUrl:p.cover_id?`/v1/ugc/media/${p.cover_id}?variant=thumbnail`:null,publishedAt:p.published_at.toISOString(),likeCount:p.like_count,saveCount:p.save_count});}
       const last=ids.at(-1);
       return {items:ids.map(r=>cards.get(r.kind+':'+r.id)!),nextCursor:rows.length>limit&&last?
@@ -249,7 +255,8 @@ export class EditorialService{
     });
   }
   async detail(memberId:string|undefined,id:string):Promise<EditorialDetail>{return readSnapshot(this.pool,async client=>{
-    const a=await this.article(client,id);return {...card(a),version:a.version,body:a.body,
+    const a=await this.article(client,id), [projected]=await this.publicCards(client,[a]);
+    return {...projected!,version:a.version,body:a.body,
       media:a.media.map(x=>({id:x.sha256,url:mediaUrl(a.id,x.sha256),aiUsage:x.aiUsage,...(videoMedia(x)?{type:'video' as const,mimeType:x.mimeType,
         posterUrl:mediaUrl(a.id,x.poster.sha256),width:x.width,height:x.height,durationMs:x.durationMs}:{})})),...await this.state(client,a,memberId),
       ...await editorialCommentSummary(client,this.config.env,a.id,a.author_member_id,memberId),
@@ -270,7 +277,7 @@ export class EditorialService{
       const following=Boolean((await client.query(`SELECT 1 WHERE EXISTS(SELECT 1 FROM community_follow WHERE member_id=$1 AND author_id=$2)
         OR ($3::boolean AND EXISTS(SELECT 1 FROM ugc_author_follow WHERE follower_member_id=$1 AND followed_member_id=$2::uuid))`,[memberId??null,author,!official])).rowCount);
       return {author:{id:author,name:official?officialPublisher.name:summary.name,avatar:official?officialPublisher.avatar:'',postCount:summary.post_count,following,isMine:!official&&memberId===author},
-        items:rows.slice(0,p.limit).map(card),nextCursor:next(rows,p.limit,p.scope)};
+        items:await this.publicCards(client,rows.slice(0,p.limit)),nextCursor:next(rows,p.limit,p.scope)};
     });
   }
   async media(articleId:string,sha:string,range?:string){

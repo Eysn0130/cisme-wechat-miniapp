@@ -6,6 +6,7 @@ import { taskProofRetired } from "./taskProofRetired.js";
 import { requireActiveUploadOwner } from "./uploadAuthority.js";
 import { requireCareRecordDetails } from "./careRecordDetails.js";
 import { communityAuthors } from './memberProfile.js';
+import { memberDisplayIdentities } from './displayIdentity.js';
 import { officerShareLink } from "./sharingOfficer.js";
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
@@ -982,10 +983,12 @@ export class PlatformService {
       if (!memberRow || memberRow.status !== "active") throw new DomainError("AUTH_REVOKED", "Member session is no longer active", 401);
       const care = scope === "settings" ? null : await this.careSnapshot(client, owner, now, { limit: scope === "home" ? 5 : 10 });
       const points = scope === "profile" ? await this.pointsSnapshot(client, owner, now, { limit: 10 }) : null;
-      const consents = scope === "settings" ? await client.query(`SELECT cg.id,cg.submission_id,cg.purpose,cg.granted_at,cg.granted_at::text AS cursor_at,rr.requested_at AS revoked_at,rr.reason AS revocation_reason
+      const consents = scope === "settings" ? await client.query(`SELECT cg.id,cg.submission_id,cg.purpose,cg.active,cg.granted_at,cg.granted_at::text AS cursor_at,rr.requested_at AS revoked_at,rr.reason AS revocation_reason
         FROM consent_grant cg LEFT JOIN revocation_request rr ON rr.consent_grant_id=cg.id WHERE cg.member_id=$1 ORDER BY cg.granted_at DESC,id DESC LIMIT 21`, [owner]) : null;
       const businessVersion = Math.max(Number(memberRow.profile_revision ?? 0), Number(care?.version ?? 0), Number(points?.projection?.version ?? 0));
-      return { scope, asOf: asOf.toISOString(), businessVersion, member: memberRow, care, points, onboardingRequired:memberRow.care_onboarding_required,
+      const displayIdentity = scope === "profile" ? (await memberDisplayIdentities(client, this.config.env, [owner])).get(owner)?.privateIdentity : undefined;
+      const memberView = displayIdentity ? { ...memberRow, displayIdentity } : memberRow;
+      return { scope, asOf: asOf.toISOString(), businessVersion, member: memberView, care, points, onboardingRequired:memberRow.care_onboarding_required,
         settings: scope === "settings" ? { profile: memberRow, phone: { enabled: Boolean(this.config.wechat.phoneBindingEnabled), bound: Boolean(memberRow.bound_at), masked: memberRow.phone_masked ?? null }, consents: consents!.rows.slice(0, 20).map(({cursor_at: _cursorAt,...grant})=>grant), consentsNextCursor: consents!.rows.length > 20 ? pageCursor({ at: consents!.rows[19].cursor_at, id: consents!.rows[19].id }) : null } : null };
     });
   }
@@ -1027,7 +1030,7 @@ export class PlatformService {
           AND ($2::timestamptz IS NULL OR (f.published_at,f.id) < ($2::timestamptz,$3::uuid))
         ORDER BY f.published_at DESC,f.id DESC LIMIT $4`, [followingMemberId ?? null, cursor?.at ?? null, cursor?.id ?? null, limit + 1]);
       const items = result.rows.slice(0, limit);
-      const authors = await communityAuthors(client, items.map(row => row.author_id));
+      const authors = await communityAuthors(client, items.map(row => row.author_id), this.config.env);
       const last = result.rows.length > limit ? items[items.length - 1] : null;
       return { items:items.map(({cursor_at: _cursorAt,...item})=>item), authors, nextCursor: last ? pageCursor({ at: last.cursor_at, id: last.id }) : null, asOf: asOf.toISOString() };
     });
@@ -1042,9 +1045,9 @@ export class PlatformService {
         WHERE f.id=$1 AND f.visible=true`, [postId]);
       const item = result.rows[0];
       if (!item) throw new DomainError("FEED_ITEM_NOT_FOUND", "Feed item not found", 404);
-      const authors = await communityAuthors(client, [item.author_id]);
+      const authors = await communityAuthors(client, [item.author_id], this.config.env);
       const author = authors[item.author_id];
-      return { ...item, author_name: author?.name || "CISME 会员", author_avatar: author?.avatar || "", author_avatar_revision: author?.avatarRevision || null, asOf: asOf.toISOString() };
+      return { ...item, author_name: author?.name || "CISME 会员", author_avatar: author?.avatar || "", author_avatar_revision: author?.avatarRevision || null, identityBadge:author?.identityBadge, asOf: asOf.toISOString() };
     });
   }
 
