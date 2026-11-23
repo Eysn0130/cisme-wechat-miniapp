@@ -28,9 +28,9 @@
         </view>
       </view>
       <view class="author-stories">
-        <view class="author-stories-head"><text class="author-count">{{author.postCount}} 篇故事</text><view wx:if="{{author.isMine}}" class="author-tools"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">草稿箱</button><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openActivity" disabled="{{navigating}}">互动记录</button></view></view>
+        <view class="author-stories-head"><text class="author-count">{{author.isMine && !author.postCount ? '公开作品' : author.postCount + (author.isMine ? ' 篇公开作品' : ' 篇故事')}}</text><view wx:if="{{author.isMine}}" class="author-tools"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">草稿箱</button><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openActivity" disabled="{{navigating}}">互动记录</button></view></view>
         <template is="communityFeed" data="{{feedColumns, navigating}}"/>
-        <view wx:if="{{!author.postCount && !error}}" class="author-empty"><text>还没有故事</text><button wx:if="{{author.isMine}}" class="text-button {{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">去发帖</button></view>
+        <view wx:if="{{!author.postCount && !error}}" class="author-empty"><text wx:if="{{!author.isMine}}">还没有故事</text><button wx:if="{{author.isMine}}" class="text-button {{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">去发帖</button></view>
         <view wx:if="{{moreError}}" class="state state--error" aria-live="polite"><text>{{moreError}}</text><button class="text-button {{loadingMore ? 'control--disabled' : ''}}" bindtap="onReachBottom" disabled="{{loadingMore}}">重试</button></view>
         <view wx:if="{{loadingMore}}" class="author-more" aria-role="status" aria-label="正在加载更多故事"><view class="page-read-loading__indicator"/></view>
       </view>

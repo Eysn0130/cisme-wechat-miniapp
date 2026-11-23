@@ -49,7 +49,7 @@
       </view>
       <view wx:if="{{consents.length}}" class="consent-list">
         <view wx:for="{{consents}}" wx:key="id" class="consent-item">
-          <view class="consent-item__copy"><text class="settings-strong">{{item.purposeLabel}}</text><text class="settings-caption">{{item.statusLabel}}{{item.grantedDate ? ' · 授权于 ' + item.grantedDate : ''}}</text></view>
+          <view class="consent-item__copy"><text class="settings-strong">{{item.purposeLabel}}</text><text class="settings-caption">{{item.statusLabel}}{{item.grantedDate ? (item.canRevoke ? ' · ' : ' · 授权于 ') + item.grantedDate : ''}}</text></view>
           <button wx:if="{{item.canRevoke && sessionStatus === 'valid'}}" class="text-button {{loading || !!workingConsentId || addressBusy ? 'text-button--disabled' : ''}}" data-id="{{item.id}}" bindtap="revoke" loading="{{workingConsentId === item.id}}" disabled="{{loading || !!workingConsentId || addressBusy}}" aria-label="撤回{{item.purposeLabel}}授权">撤回</button>
         </view>
       </view>
