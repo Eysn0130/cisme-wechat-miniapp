@@ -19,7 +19,7 @@
         <view class="member-card__points"><text class="member-card__label">可用积分</text><text class="member-card__balance {{pointsBalanceClass}}">{{points.projection.available}}</text></view>
         <view class="member-card__entry"><text>积分明细与兑换</text><image src="/assets/icons/caret-right-white.svg" mode="aspectFit" aria-hidden="true"/></view>
       </view>
-      <view class="member-card__footer"><text>会员卡</text><text wx:if="{{member.card_number}}" class="member-card__number">No. {{member.card_number}}</text></view>
+      <view wx:if="{{member.card_number}}" class="member-card__footer"><text class="member-card__number">No. {{member.card_number}}</text></view>
     </button>
   </block>
 

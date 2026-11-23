@@ -7,7 +7,7 @@ export async function install(){return evaluate(async function(){
   if(!['pages/settings/index','pages/account/index'].includes(page.route)||page.data.loading||page.data.addressesLoading)throw Error('Settled settings or guest account baseline required');
   if(app.__settingsReview)throw Error('Fixture already installed');
   const methods=['request','uploadFile','getStorageSync','setStorageSync','removeStorageSync'];
-  const q={globalData:app.globalData,original:Object.fromEntries(methods.map(key=>[key,wx[key]])),storage:{},requests:[],blockedWrites:0,unexpected:[],admin:false,failConsents:false,failAddresses:false};
+  const q={globalData:app.globalData,original:Object.fromEntries(methods.map(key=>[key,wx[key]])),storage:{},extra:{},requests:[],blockedWrites:0,unexpected:[],admin:false,failConsents:false,failAddresses:false};
   app.__settingsReview=q;
   q.profile={id:'synthetic-settings-member',user_code:'TESTCODE0001',card_number:'00042',display_name:'合成会员',wechat_handle:'',profile_revision:1,completed_at:'2026-11-22T00:00:00Z',registration_completed_at:'2026-11-22T00:00:00Z',avatar_data_url:null,avatar_revision:null,public_status:'private',birthday_month_day:null};
   q.consents=[];
@@ -20,6 +20,7 @@ export async function install(){return evaluate(async function(){
     q.requests.push({method,path});
     let data,error=false;
     if(method!=='GET'){q.blockedWrites++;error=true;}
+    else if(Object.prototype.hasOwnProperty.call(q.extra,path))data=q.extra[path];
     else if(path==='/v1/bootstrap/settings')data={settings:{profile:q.profile,phone:{enabled:true,bound:false},consents:q.consents}};
     else if(path==='/v1/me/profile')data=q.profile;
     else if(path==='/v1/me')data={...q.profile,avatar_data_url:'synthetic-retained-entry-shape-only'};

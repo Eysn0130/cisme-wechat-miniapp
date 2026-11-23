@@ -509,7 +509,7 @@ Page({
       await request({ path: `/v1/consents/${id}/revoke`, method: "POST", idempotencyKey: `consent-revoke-${id}`, data: { reason: "MEMBER_REQUEST" } });
       if (!this.data.pageAlive || this.data.revokeAttempt !== attempt) return;
       await this.load();
-      if (this.data.pageAlive && this.data.revokeAttempt === attempt) this.setData({ operationStatus: "撤回申请已受理，内容不再用于这项用途。" });
+      if (this.data.pageAlive && this.data.revokeAttempt === attempt) this.setData({ operationStatus: "撤回申请已受理。" });
     } catch (error) {
       if (this.data.pageAlive && this.data.revokeAttempt === attempt) this.setData({ operationStatus: "", errorAction: "revoke", error: `“${purpose}”撤回请求尚未确认。请刷新许可状态后再决定是否重试。` }, scrollToSettingsError);
     } finally {

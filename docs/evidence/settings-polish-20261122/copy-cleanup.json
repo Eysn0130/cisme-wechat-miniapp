@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "clientDate": "2026-11-22",
+  "recordedAtUtc": "2026-11-23T03:31:33.808191+00:00",
+  "baseCommit": "9eb562519f8be05870a9be74d84e7ef814a0588e",
+  "packageSourceSha256": "b68a8e5ea81ee534de8aa300b3b13315523dc048d1610521e5761ffd1ac9af34",
+  "sourceFiles": {
+    "pages/settings/index.ts": "0e87c524c1b1aae8b474c98036df007c4555562f2925e4d9be3df9da737ae01f",
+    "pages/settings/index.wxml": "a4ae9e5255dee2b7ddaff8afe9e7a1f046631b7543cea1cbf0fd8a94b12e6156",
+    "pages/settings/index.wxss": "e55aa8c40f00ef6676388d27489e34c6d22998ce6c2a3dec3668884b3ec6fa3e",
+    "pages/profile/index.wxml": "93cb0cf3de82a2aad16bf40e5ab996b0cf2a6d225d05b9a5477d562014eed9b6",
+    "pages/profile/index.wxss": "f9d22f09dd49ac8acc2b88cf2306a81e0adfab7d0c3af7cf668d6f46b0dd15c9",
+    "components/address-editor/index.wxml": "cac02780a37a3d6a427e38e64020d2fcbd521a9c87e75cd3a95cafb1968cd6cb",
+    "components/address-editor/index.wxss": "11f436bf16358d3f4dcebf759281edae6814e371405d0528076b4d214e7db3c9"
+  },
+  "change": "Remove generic explanatory copy from My/settings and the shared address editor; keep persistent labels, actionable errors, real status and operation-specific consequences. Preserve No. membership number at bottom right.",
+  "removed": [
+    "Settings generic privacy/audit footer and its icon",
+    "Avatar picker instruction duplicating the native action",
+    "Redundant nickname, WeChat handle, recipient and phone placeholders",
+    "Address input-method and quick-fill introductions",
+    "Default-address explanatory sentence",
+    "Consent revoked-status and accepted-receipt repeated purpose clauses",
+    "Draft storage/ownership explanation; keep its timestamp",
+    "Duplicate membership-card footer label"
+  ],
+  "unit": {
+    "passed": 3703,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Linux-only loopback performance case on macOS"
+  },
+  "checks": {
+    "typecheck": true,
+    "packageGate": true,
+    "contracts": true,
+    "diffHygiene": true
+  },
+  "native": {
+    "mode": "isolated synthetic native render",
+    "width": 375,
+    "cases": 5,
+    "record": "copy-native-results.json",
+    "cleanup": "copy-runtime-restored.json",
+    "numberRightAligned": true,
+    "layoutFix": "The first native run caught left alignment after the duplicate card label was removed. The footer was aligned right and the final five cases were rerun."
+  },
+  "pending": [
+    "Real authenticated final-source verification after the existing signed-out session.",
+    "Physical-device keyboard, screen reader and OS font propagation.",
+    "Other native consumers of the shared address editor, including checkout.",
+    "Current-source full visual matrix remains blocked; old 30-case evidence belongs to package 93fca6eb and is not relabelled as this package.",
+    "Latest PR head CI before any merge."
+  ],
+  "releaseActions": {
+    "merged": false,
+    "deployed": false,
+    "experienceVersionUploaded": false
+  }
+}

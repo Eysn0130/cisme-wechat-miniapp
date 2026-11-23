@@ -43,7 +43,7 @@ Baseline: `b39f3de35647f4cae872723be58667d6b337b010` (main, PR #126). This is a 
 - Keep `user_code` (copyable technical identifier), nickname and `card_number` (`No.` membership identity) distinct. About retains the membership number. `envVersion` is labelled “运行环境”, not an invented application version.
 - Consent-read pending/failure/expired states must not say “尚无投稿使用授权”. A successful empty response can. Counts include historical records; only currently active records expose withdrawal. Existing confirmation, busy guards and request identifiers remain intact.
 - Address reads distinguish pending, updating, failure and confirmed empty. Address/profile editors, native pickers, dirty-leave protection, stale-response rejection and member ownership remain owned by their existing implementation.
-- Do not remove phone/address privacy, withdrawal consequences or audit retention facts to shorten the page. Give actual failure a recoverable action; do not turn a display refactor into a new authorization or legal-consent operation.
+- Following the user’s copy cleanup, remove the generic privacy footer and helper copy that repeats labels or adjacent controls. Keep consequential facts at the relevant edit, confirmation, privacy/legal or rights entry; keep recoverable errors and truthful states. The existing withdrawal confirmation still states purpose cessation and retained audit/points records. A copy change does not create a new authorization or legal-consent operation.
 
 ### Remaining consistency review candidates
 
