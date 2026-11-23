@@ -35,6 +35,12 @@ afterEach(()=>{page.onUnload();rendered.detach();rendered=null;});
 const select=(mode:string)=>page.selectMode({currentTarget:{dataset:{mode}}});
 const ids=()=>page.data.feedColumns.flat().map((x:any)=>x.id);
 
+it('clears the Following page and cursor when pagination loses permission',async()=>{
+ following={items:[card('a')],nextCursor:'next'};await select('following');
+ const next=deferred();queue.push(next);const more=page.loadMoreFollowing();next.reject({status:403});await more;
+ expect(ids()).toEqual([]);expect(page.data).toMatchObject({followingNextCursor:null,formalLoadingMore:false,feedReady:false,error:expect.stringContaining('暂时无法更新')});
+});
+
 it('always places Following next to Featured even while public UGC and development previews are closed',()=>{
  expect(Array.from(rendered.dom.querySelectorAll('.section-tabs__tab')).slice(0,2).map((x:any)=>x.textContent.trim())).toEqual(['精选','关注']);
  expect(page.data.mode).toBe('featured');expect(requests.some(p=>p.startsWith('/v1/me/community/following'))).toBe(false);

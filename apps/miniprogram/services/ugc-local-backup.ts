@@ -10,7 +10,7 @@ export type UgcLocalBackup={ownerId:string;postId:string;baseVersion:number;titl
   // Legacy snapshots may contain these facts; the composer no longer writes or restores them.
   rightsConfirmed?:boolean;publicConsentConfirmed?:boolean;mediaIds:string[];savedAt:number;
   textCardText?:string;textCardTemplate?:TextCardTemplate;
-  mediaItems?:Array<{id:string;localPath:string;size:number;state:"uploaded"|"failed";error:string}>};
+  mediaItems?:Array<{id:string;localPath:string;size:number;state:"uploaded"|"failed";error:string;confirmationPending?:boolean}>};
 const keyFor=(ownerId:string,postId:string,version:number)=>{
   if(!id.test(ownerId)||!id.test(postId)||!Number.isSafeInteger(version)||version<1)throw new Error("UGC_BACKUP_SCOPE_INVALID");
   return `${prefix}${ownerId}.${postId}.${version}`;

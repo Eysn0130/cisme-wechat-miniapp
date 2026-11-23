@@ -1,0 +1,104 @@
+{
+  "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+  "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384",
+  "environment": "Existing authenticated isolated experience API",
+  "uploaded": true,
+  "confirmed": true,
+  "phase": "confirming",
+  "bytes": 92465,
+  "nativeUploadTasks": 1,
+  "byteEvents": [
+    {
+      "time": 1795364651078,
+      "progress": 70,
+      "sentBytes": 65536,
+      "totalBytes": 92465
+    },
+    {
+      "time": 1795364651199,
+      "progress": 100,
+      "sentBytes": 92465,
+      "totalBytes": 92465
+    }
+  ],
+  "presentation": [
+    {
+      "time": 1795364650809,
+      "phase": "preparing",
+      "known": false,
+      "percent": 0
+    },
+    {
+      "time": 1795364651041,
+      "phase": "uploading",
+      "known": false,
+      "percent": 0
+    },
+    {
+      "time": 1795364651078,
+      "phase": "uploading",
+      "known": true,
+      "percent": 70
+    },
+    {
+      "time": 1795364651199,
+      "phase": "uploading",
+      "known": true,
+      "percent": 100
+    },
+    {
+      "time": 1795364651372,
+      "phase": "confirming",
+      "known": false,
+      "percent": 100
+    },
+    {
+      "time": 1795364651374,
+      "phase": "confirming",
+      "known": false
+    },
+    {
+      "time": 1795364651426,
+      "state": "uploaded",
+      "percent": 100
+    }
+  ],
+  "publicVersionActive": false,
+  "failure": "",
+  "draftVersion": 1,
+  "cleanup": {
+    "cleaned": true,
+    "postIsolated": true,
+    "mediaIsolated": true,
+    "originalPostsUnchanged": true,
+    "testAbsent": true,
+    "baselineCount": 5,
+    "unrelatedNewPosts": 0,
+    "publicWriteCount": 0,
+    "assets": [
+      {
+        "method": "GET",
+        "path": "/v1/me/ugc/media/:mediaId",
+        "before": 200,
+        "deletion": {
+          "status": 200,
+          "state": "deleted"
+        },
+        "after": 404,
+        "afterCode": "UGC_MEDIA_NOT_FOUND"
+      }
+    ],
+    "afterPostCount": 5,
+    "additionalCleanupWrites": 1,
+    "finalCheckedAt": "2026-11-22T17:13:13.374Z",
+    "verification": "../filled-selection/real-upload-cleanup-recheck.json",
+    "scope": "Recoverable test post/media isolation via own API; original five list IDs/versions/states compared. No physical erasure or all-field content comparison claim."
+  },
+  "testPostDigest": "bb54c7c30f19e87b5f8624f78dcb1ba6dd2d43c3d0434b176c78815a8a3cceb8",
+  "privateRecoveryReceipt": "/var/folders/cq/l2vmg6f12fv_8xc7zrcm270c0000gn/T/cisme-real-upload-UjEvgl/recovery.json",
+  "scope": "One private draft and bundled brand avatar image; original page and adapter with actual native HTTP/upload callbacks. No save/submit/publication, replacement, or physical-device claim.",
+  "cleanupTransportCorrection": "The first cleanup did not match the verifier expected media response. Initial preview 404 checks were insufficient to prove independent media isolation. A later exact GET /v1/me/ugc/media/:mediaId returned 200. One additional recoverable DELETE of that exact test media returned 200/state=deleted; independent GET then returned 404/UGC_MEDIA_NOT_FOUND. The test post remained deleted, absent from the five-post list. No second upload, public publication or object-store erasure occurred. The initial DELETE response was not retained, so its cause is not inferred.",
+  "testMediaIdSha256": [
+    "0ab8f905a8f1744d5a36667474851ece6022286c1202f833688a65c90f83086b"
+  ]
+}

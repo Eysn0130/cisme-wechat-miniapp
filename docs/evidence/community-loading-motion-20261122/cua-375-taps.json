@@ -1,0 +1,43 @@
+{
+  "method": "CUA pointer clicks in the observed worktree IDE window; native route/selection read after navigation; publisher handler stubbed",
+  "viewport": 375,
+  "results": [
+    {
+      "label": "商城",
+      "point": [
+        394,
+        1312
+      ],
+      "route": "pages/shop/index",
+      "active": 1,
+      "width": 375,
+      "controlled": true,
+      "publisherCalls": 0
+    },
+    {
+      "label": "社区",
+      "point": [
+        523,
+        1312
+      ],
+      "route": "pages/community/index",
+      "active": 2,
+      "width": 375,
+      "controlled": true,
+      "publisherCalls": 0
+    },
+    {
+      "label": "独立发布按钮",
+      "point": [
+        458,
+        1224
+      ],
+      "route": "pages/community/index",
+      "active": 2,
+      "width": 375,
+      "controlled": true,
+      "publisherCalls": 1
+    }
+  ],
+  "realWrites": 0
+}

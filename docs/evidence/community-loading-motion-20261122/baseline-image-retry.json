@@ -1,0 +1,20 @@
+{
+  "source": "Original 2026-11-22 native tool output before image-ratio/overlay fix; condensed measurements, not a retained raw trace",
+  "width": 412,
+  "before": {
+    "mediaHeight": 281.453125,
+    "authorTop": 499.953125
+  },
+  "failed": {
+    "mediaHeight": 301.046875,
+    "authorTop": 519.546875
+  },
+  "retryLoading": {
+    "mediaHeight": 240,
+    "authorTop": 458.5
+  },
+  "retryReady": {
+    "mediaHeight": 281.453125,
+    "authorTop": 499.953125
+  }
+}

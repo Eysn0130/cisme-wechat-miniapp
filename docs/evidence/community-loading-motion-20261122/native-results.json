@@ -1,0 +1,1197 @@
+{
+  "sourceCommit": "2911703f2b55324f203f945bfbf8ff05cdf923ff",
+  "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80",
+  "cases": {
+    "375:cold-shimmer": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": true,
+      "feedReady": false,
+      "count": 0,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 6,
+      "shimmer": [
+        {
+          "time": 1795355925286,
+          "transform": "matrix(1, 0, 0, 1, -160.732, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795355925400,
+          "transform": "matrix(1, 0, 0, 1, -129.332, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795355925513,
+          "transform": "matrix(1, 0, 0, 1, -105.9, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795355925627,
+          "transform": "matrix(1, 0, 0, 1, -78.4458, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795355925742,
+          "transform": "matrix(1, 0, 0, 1, -54.8094, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795355925856,
+          "transform": "matrix(1, 0, 0, 1, -23.4319, 0)",
+          "animation-duration": "1.5s"
+        }
+      ]
+    },
+    "375:ready": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 6
+    },
+    "375:refresh-keeps-geometry": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": true,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 12,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {
+            "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          },
+          "left": 9,
+          "right": 185.5,
+          "top": 181.5,
+          "bottom": 524.5703125,
+          "width": 176.5,
+          "height": 343.0703125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 19,
+          "right": 175.5,
+          "top": 493.5703125,
+          "bottom": 513.5703125,
+          "width": 156.5,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {
+            "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "left": 189.5,
+          "right": 366,
+          "top": 181.5,
+          "bottom": 504.2734375,
+          "width": 176.5,
+          "height": 322.7734375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 199.5,
+          "right": 356,
+          "top": 473.2734375,
+          "bottom": 493.2734375,
+          "width": 156.5,
+          "height": 20
+        }
+      ]
+    },
+    "375:failed-refresh-retained": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "精选内容暂时无法加载，请重试。",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 12
+    },
+    "375:unconfirmed-channel-retry": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 1,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 18
+    },
+    "375:source-error-not-empty": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": false,
+      "count": 0,
+      "mode": "recommend",
+      "error": "社区内容暂时无法加载，请重试。",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 30
+    },
+    "375:permission-denial-immediate": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": false,
+      "count": 0,
+      "mode": "recommend",
+      "error": "社区内容暂时无法加载，请重试。",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 42,
+      "denialPending": {
+        "pendingFormal": 1,
+        "pendingFeedRead": 13
+      },
+      "settled": {
+        "route": "pages/community/index",
+        "width": 375,
+        "loading": false,
+        "feedReady": false,
+        "count": 0,
+        "mode": "recommend",
+        "error": "社区内容暂时无法加载，请重试。",
+        "reducedMotion": false,
+        "unexpected": [],
+        "requests": 42
+      }
+    },
+    "375:recommend-pending-not-empty": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": true,
+      "feedReady": false,
+      "count": 0,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 54
+    },
+    "375:recommend-released": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 1,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 54
+    },
+    "375:image-retry-and-arrival": {
+      "before": {
+        "height": 254.4765625,
+        "authorTop": 493.5703125
+      },
+      "failed": {
+        "height": 254.4765625,
+        "authorTop": 493.5703125
+      },
+      "samples": [
+        {
+          "time": 1795356016575,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356016638,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356016702,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356016765,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356016828,
+          "phase": "loading",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356016881,
+          "phase": "arriving",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356016943,
+          "phase": "arriving",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0.259849",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795356017005,
+          "phase": "arriving",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0.684267",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795356017069,
+          "phase": "arriving",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "0.9555",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795356017130,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356017193,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356017254,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356017318,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356017382,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356017443,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356017505,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356017570,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356017634,
+          "phase": "ready",
+          "height": 254.4765625,
+          "authorTop": 493.5703125,
+          "opacity": "1",
+          "animation-name": "none"
+        }
+      ],
+      "lateOldEventIgnored": true
+    },
+    "375:confirmed-empty": {
+      "route": "pages/community/index",
+      "width": 375,
+      "loading": false,
+      "feedReady": true,
+      "count": 0,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 60
+    },
+    "375:reduced-skeleton": {
+      "reduced": true,
+      "display": "none"
+    },
+    "375:upload-unknown": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploading",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 69
+    },
+    "375:upload-real-target-interpolation": {
+      "trace": [
+        {
+          "time": 1795356046071,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -75.68, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046142,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -60.5945, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046212,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -49.1396, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046284,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -40.6751, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046354,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -30.9738, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046423,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -26.4168, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046490,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -20.7906, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046556,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -18.4097, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046622,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -15.752, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046687,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -14.7896, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046755,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -13.9679, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356046824,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -13.7989, 0)",
+          "transition-duration": "0.6s"
+        }
+      ]
+    },
+    "375:transport-complete-business-pending": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploading",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": true,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 70
+    },
+    "375:media-confirmed": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploaded",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 71
+    },
+    "375:lost-confirmation-read-only-recovery": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000002",
+          "state": "uploaded",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 75,
+      "counts": {
+        "uploads": 2,
+        "authorize": 2,
+        "complete": 2
+      },
+      "afterCounts": {
+        "uploads": 2,
+        "authorize": 2,
+        "complete": 2
+      }
+    },
+    "375:put-unknown": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000003",
+          "state": "uploading",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 77
+    },
+    "375:upload-interruption": {
+      "route": "pages/community-compose/index",
+      "width": 375,
+      "loading": false,
+      "error": "图片操作已中断；文字草稿仍保留。返回后可重试图片。",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000004",
+          "state": "failed",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": "页面离开时上传已中断，可点重试继续。"
+        }
+      ],
+      "unexpected": [],
+      "requests": 80
+    },
+    "412:cold-shimmer": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": true,
+      "feedReady": false,
+      "count": 0,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 6,
+      "shimmer": [
+        {
+          "time": 1795356371802,
+          "transform": "matrix(1, 0, 0, 1, -186.324, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795356371916,
+          "transform": "matrix(1, 0, 0, 1, -151.659, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795356372029,
+          "transform": "matrix(1, 0, 0, 1, -125.841, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795356372142,
+          "transform": "matrix(1, 0, 0, 1, -91.2522, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795356372257,
+          "transform": "matrix(1, 0, 0, 1, -65.0005, 0)",
+          "animation-duration": "1.5s"
+        },
+        {
+          "time": 1795356372374,
+          "transform": "matrix(1, 0, 0, 1, -30.3342, 0)",
+          "animation-duration": "1.5s"
+        }
+      ]
+    },
+    "412:ready": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 6
+    },
+    "412:refresh-keeps-geometry": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": true,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 12,
+      "geometry": [
+        {
+          "id": "",
+          "dataset": {
+            "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+          },
+          "left": 9,
+          "right": 204,
+          "top": 158,
+          "bottom": 531.953125,
+          "width": 195,
+          "height": 373.953125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 19,
+          "right": 194,
+          "top": 499.953125,
+          "bottom": 520.953125,
+          "width": 175,
+          "height": 21
+        },
+        {
+          "id": "",
+          "dataset": {
+            "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+          },
+          "left": 208,
+          "right": 403,
+          "top": 158,
+          "bottom": 510.203125,
+          "width": 195,
+          "height": 352.203125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 218,
+          "right": 393,
+          "top": 478.203125,
+          "bottom": 499.203125,
+          "width": 175,
+          "height": 21
+        }
+      ]
+    },
+    "412:failed-refresh-retained": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 2,
+      "mode": "featured",
+      "error": "精选内容暂时无法加载，请重试。",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 12
+    },
+    "412:unconfirmed-channel-retry": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 1,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 18
+    },
+    "412:source-error-not-empty": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": false,
+      "count": 0,
+      "mode": "recommend",
+      "error": "社区内容暂时无法加载，请重试。",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 30
+    },
+    "412:permission-denial-immediate": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": false,
+      "count": 0,
+      "mode": "recommend",
+      "error": "社区内容暂时无法加载，请重试。",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 42,
+      "denialPending": {
+        "pendingFormal": 1,
+        "pendingFeedRead": 13
+      },
+      "settled": {
+        "route": "pages/community/index",
+        "width": 412,
+        "loading": false,
+        "feedReady": false,
+        "count": 0,
+        "mode": "recommend",
+        "error": "社区内容暂时无法加载，请重试。",
+        "reducedMotion": false,
+        "unexpected": [],
+        "requests": 42
+      }
+    },
+    "412:recommend-pending-not-empty": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": true,
+      "feedReady": false,
+      "count": 0,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 54
+    },
+    "412:recommend-released": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 1,
+      "mode": "recommend",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 54
+    },
+    "412:image-retry-and-arrival": {
+      "before": {
+        "height": 281.453125,
+        "authorTop": 499.953125
+      },
+      "failed": {
+        "height": 281.453125,
+        "authorTop": 499.953125
+      },
+      "samples": [
+        {
+          "time": 1795356463630,
+          "phase": "loading",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356463690,
+          "phase": "loading",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356463749,
+          "phase": "loading",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356463813,
+          "phase": "loading",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356463871,
+          "phase": "arriving",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356463933,
+          "phase": "arriving",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0.259827",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795356463997,
+          "phase": "arriving",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0.684616",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795356464058,
+          "phase": "arriving",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "0.952733",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795356464124,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "community-image-arrive"
+        },
+        {
+          "time": 1795356464183,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356464246,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356464309,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356464370,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356464434,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356464498,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356464561,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356464624,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        },
+        {
+          "time": 1795356464687,
+          "phase": "ready",
+          "height": 281.453125,
+          "authorTop": 499.953125,
+          "opacity": "1",
+          "animation-name": "none"
+        }
+      ],
+      "lateOldEventIgnored": true
+    },
+    "412:confirmed-empty": {
+      "route": "pages/community/index",
+      "width": 412,
+      "loading": false,
+      "feedReady": true,
+      "count": 0,
+      "mode": "featured",
+      "error": "",
+      "reducedMotion": false,
+      "unexpected": [],
+      "requests": 60
+    },
+    "412:reduced-skeleton": {
+      "reduced": true,
+      "display": "none"
+    },
+    "412:upload-unknown": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploading",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 69
+    },
+    "412:upload-real-target-interpolation": {
+      "trace": [
+        {
+          "time": 1795356492618,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -75.68, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356492691,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -57.3514, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356492759,
+          "target": 70,
+          "transform": "matrix(1, 0, 0, 1, -49.2206, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356492827,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -40.5302, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356492897,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -30.8317, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356492965,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -25.0746, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356493035,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -19.9346, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356493102,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -17.8195, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356493169,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -15.3933, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356493236,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -14.5632, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356493302,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -13.8939, 0)",
+          "transition-duration": "0.6s"
+        },
+        {
+          "time": 1795356493369,
+          "target": 84,
+          "transform": "matrix(1, 0, 0, 1, -13.7788, 0)",
+          "transition-duration": "0.6s"
+        }
+      ]
+    },
+    "412:transport-complete-business-pending": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploading",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": true,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 70
+    },
+    "412:media-confirmed": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000001",
+          "state": "uploaded",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 71
+    },
+    "412:lost-confirmation-read-only-recovery": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000002",
+          "state": "uploaded",
+          "phase": "confirming",
+          "progress": 100,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 75,
+      "counts": {
+        "uploads": 2,
+        "authorize": 2,
+        "complete": 2
+      },
+      "afterCounts": {
+        "uploads": 2,
+        "authorize": 2,
+        "complete": 2
+      }
+    },
+    "412:put-unknown": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000003",
+          "state": "uploading",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": ""
+        }
+      ],
+      "unexpected": [],
+      "requests": 77
+    },
+    "412:upload-interruption": {
+      "route": "pages/community-compose/index",
+      "width": 412,
+      "loading": false,
+      "error": "图片操作已中断；文字草稿仍保留。返回后可重试图片。",
+      "reducedMotion": false,
+      "files": [
+        {
+          "id": "33333333-3333-4333-8333-000000000004",
+          "state": "failed",
+          "phase": "uploading",
+          "progress": 0,
+          "known": false,
+          "confirmationPending": false,
+          "retryReady": false,
+          "error": "页面离开时上传已中断，可点重试继续。"
+        }
+      ],
+      "unexpected": [],
+      "requests": 80
+    }
+  },
+  "cleanup": {
+    "375": {
+      "restored": true,
+      "realWrites": 0,
+      "unexpected": [],
+      "syntheticStorageDiscarded": true,
+      "signedIn": false
+    },
+    "412": {
+      "restored": true,
+      "realWrites": 0,
+      "unexpected": [],
+      "syntheticStorageDiscarded": true,
+      "signedIn": false
+    }
+  },
+  "scope": "Current package; controlled data and transport events in the official native simulator. No real member upload or publication."
+}

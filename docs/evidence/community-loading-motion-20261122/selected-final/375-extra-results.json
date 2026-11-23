@@ -1,0 +1,90 @@
+{
+  "scope": "Native DevTools, actual application API/session handling with intercepted JSON and upload callbacks; no real member writes.",
+  "results": [
+    {
+      "name": "capability-failure-capabilities",
+      "passed": true,
+      "facts": {
+        "mode": "recommend",
+        "count": 1,
+        "loading": false,
+        "more": false,
+        "cursor": null,
+        "error": "",
+        "capabilityError": "社区状态暂时无法更新，请重试。",
+        "ugc": true,
+        "drafts": true
+      }
+    },
+    {
+      "name": "capability-failure-status",
+      "passed": true,
+      "facts": {
+        "mode": "recommend",
+        "count": 1,
+        "loading": false,
+        "more": false,
+        "cursor": null,
+        "error": "",
+        "capabilityError": "社区状态暂时无法更新，请重试。",
+        "ugc": true,
+        "drafts": false
+      }
+    },
+    {
+      "name": "capability-denial-before-other-result",
+      "passed": true,
+      "facts": {
+        "mode": "recommend",
+        "count": 0,
+        "loading": false,
+        "more": false,
+        "cursor": null,
+        "error": "",
+        "capabilityError": "社区状态暂时无法更新，请重试。",
+        "ugc": false,
+        "drafts": false
+      }
+    },
+    {
+      "name": "revoked-share-after-read",
+      "passed": true,
+      "facts": {
+        "mode": "featured",
+        "count": 0,
+        "loading": false,
+        "more": false,
+        "cursor": null,
+        "error": "登录状态已失效，请重新加载社区内容。",
+        "capabilityError": "",
+        "ugc": false,
+        "drafts": false
+      }
+    },
+    {
+      "name": "revoked-share-before-read",
+      "passed": true,
+      "facts": {
+        "mode": "featured",
+        "count": 0,
+        "loading": false,
+        "more": false,
+        "cursor": null,
+        "error": "登录状态已失效，请重新加载社区内容。",
+        "capabilityError": "",
+        "ugc": false,
+        "drafts": false
+      }
+    },
+    {
+      "name": "pending-confirmation-durable-before-response-and-preview-expiry",
+      "passed": true,
+      "facts": {
+        "saved": true,
+        "confirmationPending": true,
+        "error": "本地预览已失效，请重新核对图片确认结果。",
+        "phase": "confirming"
+      }
+    }
+  ]
+}

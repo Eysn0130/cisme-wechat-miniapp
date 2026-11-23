@@ -1,6 +1,6 @@
 /** Only fields consumed by the native card cross setData. Source models remain
  * private to the page; no cumulative raw feed is sent alongside the columns. */
-export interface FeedCard { id: string; kind: string; title: string; image: string; avatar: string; author: string; engagementLabel: string; compactImage: boolean; imageKey?:string; imagePhase?:"loading"|"arriving"|"ready"|"error" }
+export interface FeedCard { id: string; kind: string; title: string; image: string; avatar: string; author: string; engagementLabel: string; compactImage: boolean; imageKey?:string; imagePhase?:"loading"|"arriving"|"ready"|"error";imageRatio?:number }
 export function projectFeedCards(items: readonly any[]): [FeedCard[], FeedCard[]] {
   const columns: [FeedCard[], FeedCard[]] = [[], []];
   items.forEach((item, index) => columns[index % 2]!.push({ id: item.id, kind: item.kind, title: item.title || "护理故事", image: item.image || "", avatar: item.avatar || "", author: item.author || "CISME 会员", engagementLabel: item.engagementLabel || "", compactImage: index % 3 === 1 }));
@@ -18,7 +18,7 @@ export function feedColumnPatch(previous: readonly FeedCard[][], next: [FeedCard
       if (!old) { patch[`feedColumns[${c}][${i}]`] = row; return; }
       const changed = (Object.keys(row) as (keyof FeedCard)[]).filter(key => old[key] !== row[key]);
       // A cover load/retry must not replace its card, title or author node.
-      if (changed.every(key => key === "imageKey" || key === "imagePhase")) {
+      if (changed.every(key => key === "imageKey" || key === "imagePhase" || key === "imageRatio")) {
         for (const key of changed) patch[`feedColumns[${c}][${i}].${key}`] = row[key];
       } else if (changed.length) patch[`feedColumns[${c}][${i}]`] = row;
     });

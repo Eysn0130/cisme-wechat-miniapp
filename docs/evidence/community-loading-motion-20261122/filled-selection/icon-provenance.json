@@ -1,0 +1,34 @@
+{
+  "library": "@phosphor-icons/core",
+  "version": "2.1.1",
+  "license": "MIT",
+  "variant": "fill",
+  "reproduce": "npx tsx scripts/sync-miniprogram-icons.ts --navigation-selection-only",
+  "generatorSha256": "253937de58ce063c900b3e3a45f8dfa8c2f470ca1830c162b42cf4d0f6f2b214",
+  "assets": [
+    {
+      "icon": "drop",
+      "sourceSha256": "547974bcf9a14a058c7622a2412bdf25700bd83e610128829f96687e7f8499e6",
+      "assetSha256": "d892107b61a4a530aec8e9c1bfbbb09086ae183a8df1fd3eb71551282d954e65",
+      "adaptation": "currentColor replaced with #ffffff only"
+    },
+    {
+      "icon": "storefront",
+      "sourceSha256": "c4f89c48138eb0e7269cd8286bb5774135cd5cfd6ea10c588c8c62591353dd83",
+      "assetSha256": "fea56a6cebc007b0a2379817795dfc6f627c4e238528c14f4f511dcaa8d7e3e8",
+      "adaptation": "currentColor replaced with #ffffff only"
+    },
+    {
+      "icon": "users",
+      "sourceSha256": "6104c0634ed5b574e261acc05a3575db8abfb4ccbcb3bf12f5359a431303783b",
+      "assetSha256": "5206f29340e1a52c53fa65795367f1a25c2ecbdb96031dec15c0149671e49d14",
+      "adaptation": "currentColor replaced with #ffffff only"
+    },
+    {
+      "icon": "user",
+      "sourceSha256": "9e011a83732426181c4e18ebfe0322635ed7a222ccd572072b1233a91f88fd0b",
+      "assetSha256": "c5236e8df6c8d945f73d3672b72cc41c24a956290f31e228d7526c6e89165307",
+      "adaptation": "currentColor replaced with #ffffff only"
+    }
+  ]
+}

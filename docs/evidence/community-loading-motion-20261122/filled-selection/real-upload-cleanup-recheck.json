@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-11-22T17:13:13.374Z",
+  "environment": "https://staging-api.cisme.cn",
+  "session": "Same persisted IDE experience session; exact owner-only test draft read before cleanup; no new login",
+  "post": {
+    "status": 200,
+    "state": "deleted",
+    "exactTestIdMatched": true,
+    "versionUnchanged": true
+  },
+  "list": {
+    "status": 200,
+    "count": 5,
+    "testAbsent": true,
+    "versionsAndStatesUnchanged": true
+  },
+  "assets": [
+    {
+      "method": "GET",
+      "path": "/v1/me/ugc/media/:mediaId",
+      "before": 200,
+      "deletion": {
+        "status": 200,
+        "state": "deleted"
+      },
+      "after": 404,
+      "afterCode": "UGC_MEDIA_NOT_FOUND"
+    }
+  ],
+  "cleanupWrites": 1,
+  "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+  "scope": "Exact test IDs come only from the protected receipt. Additional cleanup uses the existing recoverable media state transition; no object-store erasure, public write, upload or unrelated data mutation. Independent own-media GET does not depend on post deletion. Initial preview 404 evidence is superseded.",
+  "testMediaIdSha256": [
+    "0ab8f905a8f1744d5a36667474851ece6022286c1202f833688a65c90f83086b"
+  ],
+  "testPostDigest": "bb54c7c30f19e87b5f8624f78dcb1ba6dd2d43c3d0434b176c78815a8a3cceb8"
+}

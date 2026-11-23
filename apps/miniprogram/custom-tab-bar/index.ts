@@ -33,10 +33,10 @@ Component({
     reducedMotion: shouldReduceMotion(),
     chromeStyle: currentChromeStyle(),
     items: [
-      { text: "护理", path: "/pages/home/index", icon: "/assets/icons/drop-muted.svg", activeIcon: "/assets/icons/drop-active.svg" },
-      { text: "商城", path: "/pages/shop/index", icon: "/assets/icons/storefront-plum.svg", activeIcon: "/assets/icons/storefront-plum.svg" },
-      { text: "社区", path: "/pages/community/index", icon: "/assets/icons/users-muted.svg", activeIcon: "/assets/icons/users-active.svg" },
-      { text: "我的", path: "/pages/profile/index", icon: "/assets/icons/user-muted.svg", activeIcon: "/assets/icons/user-active.svg" }
+      { text: "护理", path: "/pages/home/index", icon: "/assets/icons/drop-muted.svg", activeIcon: "/assets/icons/tab-drop-selected.svg" },
+      { text: "商城", path: "/pages/shop/index", icon: "/assets/icons/storefront-plum.svg", activeIcon: "/assets/icons/tab-storefront-selected.svg" },
+      { text: "社区", path: "/pages/community/index", icon: "/assets/icons/users-muted.svg", activeIcon: "/assets/icons/tab-users-selected.svg" },
+      { text: "我的", path: "/pages/profile/index", icon: "/assets/icons/user-muted.svg", activeIcon: "/assets/icons/tab-user-selected.svg" }
     ]
   },
   lifetimes: {

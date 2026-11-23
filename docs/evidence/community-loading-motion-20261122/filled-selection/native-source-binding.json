@@ -1,0 +1,9 @@
+{
+  "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+  "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf",
+  "beforeNativeInspectionAt": "2026-11-22T17:03:58.785643+00:00",
+  "afterNativeInspectionAt": "2026-11-22T17:16:56.449363+00:00",
+  "beforeAndAfterPackageMatch": true,
+  "trackedApplicationDiffAtFinalInspection": [],
+  "scope": "Application source was committed before final native runs; no app files changed during compilation, both widths, pointer checks or final capture. QA sampler-only truncation fix did not alter app source. Records and local PNGs are bound via the verification artifact SHA-256 index."
+}

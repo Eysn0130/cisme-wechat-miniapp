@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+  "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf",
+  "typecheck": "passed",
+  "packageGate": "passed",
+  "routeAudit": {
+    "routes": 48,
+    "hashBinding": "passed",
+    "fullVisualMatrix": "blocked"
+  },
+  "contracts": {
+    "v1Registered": 380,
+    "typedEvents": 32,
+    "status": "passed"
+  },
+  "designQaStatus": "blocked; intentionally not claimed complete",
+  "diffCheck": "passed"
+}

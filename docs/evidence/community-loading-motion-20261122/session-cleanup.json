@@ -1,0 +1,22 @@
+{
+  "cleanup": {
+    "restored": true,
+    "realWrites": 0,
+    "allNetworkIntercepted": true,
+    "blockedWriteRequests": 3,
+    "syntheticStorageDiscarded": true
+  },
+  "anonymous": {
+    "route": "pages/community/index",
+    "width": 375,
+    "guest": true,
+    "count": 20,
+    "controlledFixturePresent": false
+  },
+  "session": {
+    "restored": true,
+    "originalGlobalDataRestored": true,
+    "persistentStorageChanged": false,
+    "controlledFixturePresent": false
+  }
+}

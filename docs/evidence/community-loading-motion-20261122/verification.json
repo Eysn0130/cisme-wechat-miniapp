@@ -1,0 +1,653 @@
+{
+  "schemaVersion": 3,
+  "date": "2026-11-22",
+  "baseMainCommit": "7f7ca33f8c148d831f39094f93135cef7ec22d52",
+  "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+  "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf",
+  "scope": "Current filled-navigation package plus explicitly attributed, byte-equivalent community behavior evidence. This is not complete product/release acceptance.",
+  "skill": {
+    "vaultRevision": "e6865d28f61c44b5c3bedd4bb94007aec142e5f5",
+    "path": "30-Skills/Library/loading-state-motion/SKILL.md",
+    "sha256": "6c4ac3e258e5d115fb2cd35fe1fc56e40ff9182ff6a964fdd7eaa360e5f8e933"
+  },
+  "prdAcceptanceIds": [
+    "NATIVE-LOAD-02",
+    "NATIVE-LOAD-04",
+    "NATIVE-LOAD-05",
+    "COMPOSE-IMAGE-01",
+    "COMPOSE-ACTIONS-01",
+    "COMPOSE-PUBLISH-INTENT-01"
+  ],
+  "sourceAttribution": {
+    "currentNavigation": {
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf",
+      "path": "filled-selection/",
+      "bindingEvidence": "filled-selection/native-source-binding.json"
+    },
+    "communityAndRealUpload": {
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384",
+      "path": "selected-final/",
+      "nativeCases": 50,
+      "realUploadTasks": 1,
+      "currentPackageEquivalence": "filled-selection/community-source-equivalence.json",
+      "criticalBehaviorSourcesByteIdentical": 11,
+      "oldScreenshotsRelabeled": false
+    }
+  },
+  "navigation": {
+    "status": "passed_for_scoped_current_package_cases",
+    "devtoolsVersion": "2.02.2611092",
+    "skillVersion": "0.3.15",
+    "baseLibrary": "3.15.2",
+    "viewports": [
+      {
+        "device": "iPhone 12/13 mini",
+        "width": 375,
+        "safeBottom": 34,
+        "directions": 12,
+        "backgrounds": 4,
+        "actualPointerTargets": 5
+      },
+      {
+        "device": "Pixel 9",
+        "width": 412,
+        "safeBottom": 0,
+        "directions": 12,
+        "backgrounds": 4,
+        "actualPointerTargets": 5
+      }
+    ],
+    "compilationChecks": 7,
+    "selectedState": "Purple filled capsule, white filled Phosphor SVG and white semibold label; inactive SVGs remain outline. Outline fades out as solid fades in; reduced/static final state is visible without animation events.",
+    "interruptionChecks": [
+      "repeat tap scroll-to-top",
+      "hidden interaction blocked",
+      "switch failure and double-tap recovery",
+      "busy selected state retains contrast",
+      "low-performance solid material and no lens motion"
+    ],
+    "contrastSampleMinima": {
+      "minimumLabel": 4.9567761562973125,
+      "minimumIcon": 3.5474978724580493,
+      "minimumSelectedLabel": 6.889259805764464,
+      "minimumSelectedIcon": 5.675884862786427,
+      "minimumRimOutside": 4.362801612930762
+    },
+    "contrastScope": "Selected white ink uses fixed neighboring clear material points; other ink uses the earlier 5px-neighborhood estimator. Reported minima cover these sampled positions, not every background/antialias pixel or physical-device perception.",
+    "memberWritesInControlledNavigation": 0,
+    "sessionRestored": true
+  },
+  "communityBehavior": {
+    "status": "50 scoped native cases passed on e7ef baseline; 11 critical files byte-identical in current package",
+    "controlledTransport": true,
+    "casesPerViewport": 25,
+    "viewports": [
+      375,
+      412
+    ],
+    "freshCurrentRuntime": {
+      "cards": 20,
+      "fixturePresent": false,
+      "originalSessionRestored": true,
+      "path": "filled-selection/final-restored-runtime.json"
+    },
+    "imageReveal": "Existing 200ms native opacity reveal, not video 14px/700ms blur",
+    "confirmedSourceFixes": [
+      "capability unknown stays unknown with actionable retry",
+      "independent publicEnabled/ugcGoLiveGate handling",
+      "permission denial immediately clears caches and cursors",
+      "temporary failures retain same-owner snapshots/pagination",
+      "early featured paint cannot overwrite an appended page",
+      "share-request session revocation clears private projection with environment/attempt protection",
+      "stable image retry geometry and stale callback suppression",
+      "real valid non-reversing byte targets; unknown PUT/assembly/confirmation phases",
+      "ordinary confirmation ID persisted before POST; storage failure pauses writes",
+      "preview expiry preserves original-ID confirmation recovery",
+      "chunk read completion rechecks cancellation",
+      "queue order and explicit same-ID recovery retained"
+    ]
+  },
+  "realExperienceUpload": {
+    "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+    "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384",
+    "bytes": 92465,
+    "byteEvents": [
+      {
+        "time": 1795364651078,
+        "progress": 70,
+        "sentBytes": 65536,
+        "totalBytes": 92465
+      },
+      {
+        "time": 1795364651199,
+        "progress": 100,
+        "sentBytes": 92465,
+        "totalBytes": 92465
+      }
+    ],
+    "confirmed": true,
+    "publicWrites": 0,
+    "scope": "One private draft and bundled brand avatar image; original page and adapter with actual native HTTP/upload callbacks. No save/submit/publication, replacement, or physical-device claim.",
+    "cleanup": {
+      "status": "corrected_and_verified",
+      "initialClaimSuperseded": true,
+      "reason": "Post-linked preview 404 did not prove independent media isolation; an independent own-media GET later returned 200.",
+      "additionalRecoverableMediaCleanupWrites": 1,
+      "finalOwnMediaGet": 404,
+      "finalCode": "UGC_MEDIA_NOT_FOUND",
+      "postState": "deleted",
+      "testAbsentFromOwnList": true,
+      "baselineListComparison": "Original five list IDs/versions/states; no all-field comparison claim",
+      "evidence": "filled-selection/real-upload-cleanup-recheck.json",
+      "physicalObjectDeletionClaimed": false,
+      "testMediaIdSha256": [
+        "0ab8f905a8f1744d5a36667474851ece6022286c1202f833688a65c90f83086b"
+      ]
+    }
+  },
+  "unit": {
+    "success": true,
+    "numPassedTestSuites": 426,
+    "numFailedTestSuites": 0,
+    "numPassedTests": 3697,
+    "numFailedTests": 0,
+    "numPendingTests": 1,
+    "numTotalTests": 3698,
+    "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+    "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+  },
+  "targetedTests": 225,
+  "typecheck": "passed",
+  "packageGate": "passed",
+  "routeAudit": "48 static routes; hash binding passed, full visual/state matrix remains blocked",
+  "contractLint": "380 registered v1 methods and 32 typed events matched",
+  "subagentReview": {
+    "model": "gpt-6.1-terra",
+    "reasoningEffort": "max",
+    "mode": "Read-only history/source/evidence review; main agent checked findings and performed fixes/validation",
+    "finalConfirmedCodeBlockers": [],
+    "correctionsMade": [
+      "Legacy gate maps to ugcGoLiveGate, not communityPreviewEnabled",
+      "Selected disabled state keeps white foreground",
+      "Filled glyph replaces its underlying outline in final state",
+      "Preview 404 cleanup claim withdrawn; independent media read and exact recoverable cleanup performed"
+    ]
+  },
+  "notValidated": [
+    "Physical iOS/Android, screen reader and native frame-rate performance",
+    "WeChat propagation of OS reduced-motion/transparency/increased-contrast preferences and genuinely unsupported backdrop renderers",
+    "Real image replacement/public publication end-to-end; the single real upload ran on the e7ef package, not replayed on the final navigation package",
+    "First never-measured image ratio; existing widthFix remains",
+    "14px/700ms blur reveal; existing native 200ms opacity adaptation retained",
+    "All 48 routes, font sizes and complete visual/state matrices",
+    "Author-profile legacy cover error recovery; historical visitor-commerce/care-resume changes remain separate scope"
+  ],
+  "localIntegration": {
+    "command": "npm run test:integration",
+    "status": "not_executed",
+    "reason": "Docker CLI is installed but no local Docker daemon is available at /var/run/docker.sock. No disposable database was created. Candidate GitHub verify will run the integration suite in its isolated environment.",
+    "realDataTouched": false
+  },
+  "candidateCI": {
+    "status": "refer_to_exact_pr_head_checks",
+    "url": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/126/checks",
+    "note": "Final evidence commit and its exact-head CI are recorded on the PR and in the knowledge closeout; e05 CI does not validate this source."
+  },
+  "mainMerged": false,
+  "deployedOrExperienceUploaded": false,
+  "globalVisualGate": "blocked",
+  "historicalEvidence": [
+    {
+      "evidenceCommit": "e05bdabbb781488ca172106688e9ec58e1512dbf",
+      "sourceCommit": "2911703f2b55324f203f945bfbf8ff05cdf923ff",
+      "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80",
+      "scope": "Earlier source and pale glass stage; existing root artifacts retain original attribution, not current acceptance."
+    },
+    {
+      "sourceCommit": "56dbf6ef1c9b90448693b763d776fe2f8aa6b163",
+      "packageSourceSha256": "7e97c7674ec91414413b13c5dbf40ce4e5e160a860636697c07ecc18c6b143a7",
+      "scope": "White outlined icon intermediate, local-only white-selection directory; superseded by filled icons."
+    },
+    {
+      "sourceCommit": "c1f4b8d18dd3cc3a6f5ade4caaa46644f0789f06",
+      "packageSourceSha256": "7328697791419587cc993496a01c68c5e6570e4e12d66a1409b8c7f70429145c",
+      "scope": "Interim filled glyphs with an outline underneath; corrected in dbc4 before final acceptance."
+    }
+  ],
+  "harnessLimits": [
+    "CLI coordinate interface App.CDPEnable unimplemented; actual pointer checks use native CUA on the owned worktree window",
+    "One nav sampler exceeded the CLI 65536-character response limit. Fixture and original session were restored, only redundant rect fields were removed, then both widths reran successfully. Not a production failure or passed case.",
+    "PNG originals remain local by repository policy; hashes and measured/compressed results are versioned."
+  ],
+  "artifacts": {
+    "selected-final/package.json": {
+      "sha256": "a716ead391d6629319b2d64bf4502281e55272c93f584fff60b875595b14941f",
+      "bytes": 3620,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/community-native-results.json.gz": {
+      "sha256": "b479737090b4c299a7f3d8b94ce506a324c168514d6c933d7f82fd45c57a9c53",
+      "bytes": 2964,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/375-native-summary.json": {
+      "sha256": "5d39fa9f092bdced26d8666dbf091790fafdd53a27e1d05a73dbdfcecc747bce",
+      "bytes": 1536,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/412-native-summary.json": {
+      "sha256": "5d39fa9f092bdced26d8666dbf091790fafdd53a27e1d05a73dbdfcecc747bce",
+      "bytes": 1536,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/375-extra-results.json": {
+      "sha256": "9d1e7513dcc1ab1fab8aefc0674d8249006bfd8e2caf605ccae3d21855dc424c",
+      "bytes": 2342,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/412-extra-results.json": {
+      "sha256": "9d1e7513dcc1ab1fab8aefc0674d8249006bfd8e2caf605ccae3d21855dc424c",
+      "bytes": 2342,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/community-replay-source.json": {
+      "sha256": "14cb38a69d185adf9db8a763d00dcbc423c3a86bbb0b687d34841d15cc40acae",
+      "bytes": 328,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/replay.mjs": {
+      "sha256": "dcd49c349d2efe58ba55ebbef9dc6afb238720d3b2cd46fcc3ecfd644083e6a7",
+      "bytes": 1614,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/run-extra.mjs": {
+      "sha256": "c0142c106fa3e1d0accbc3c8aa529f60f59338df9c6c65f73c053974118a868d",
+      "bytes": 6018,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/real-upload.json": {
+      "sha256": "01dd7a59b15bbd3508abf027d303c94c04ed90960837c8480b4b35c3c9d07027",
+      "bytes": 3407,
+      "storage": "version_controlled",
+      "sourceCommit": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "filled-selection/package.json": {
+      "sha256": "fcaad7c4130c4714965b57652773a4bd6da8a7326d16f065fc13bd84ced0effb",
+      "bytes": 3620,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/unit-summary.json": {
+      "sha256": "bb3063b3f1ee659d0a2150f5d2ab0e294366f4169ab18ea1d7a902fe6a103b37",
+      "bytes": 333,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/unit-results.json.gz": {
+      "sha256": "9c70adec9559cba652efd5ccd8369e0bd698ae3da783ce54d53841212c8f25cb",
+      "bytes": 152606,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/community-source-equivalence.json": {
+      "sha256": "f932aaa0030c4a2a59674c5c3201f6475d771acec6ab20be73b453d5dbf63cb8",
+      "bytes": 2766,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/icon-provenance.json": {
+      "sha256": "304329176f1e78a6ac7df6dc6ae2060cca6a6f18e0bb0f3a1153f7a6bceef331",
+      "bytes": 1409,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/static-checks.json": {
+      "sha256": "b5b528519320ecac4e524c02672771340ddf0532d52cd00c3f1c21855515dbbf",
+      "bytes": 499,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/native-compilation.json": {
+      "sha256": "35f1ac445822d1e5bbd218fc13d569206ca6d53b6fb04f0041f34fae2b1fde29",
+      "bytes": 1343,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/compile-replay-source.json": {
+      "sha256": "44e1063ba60c68f8ee897c14eb94cab6bcd133557179ec17442cf154ef1c3ca4",
+      "bytes": 333,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/final-live-anonymous-runtime.json": {
+      "sha256": "c12b0d2d7470623d689446d6a88579b79f37cad07fdf5d23c5fbf8eb3b698af2",
+      "bytes": 221,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/final-restored-runtime.json": {
+      "sha256": "cb900dd4db1372a244693455558150db67745427cad5c96f01de03d5d894c7b1",
+      "bytes": 204,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/navigation-summary-375.json": {
+      "sha256": "3693c8906baf4621e39663d66102f6997139cb585f14aa0d3a7358a1e2fd3a6e",
+      "bytes": 6306,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/navigation-summary-412.json": {
+      "sha256": "24bed98e376874c97e5009e762b0be4be0832751dc6fc6c7b60b7e10bea015c0",
+      "bytes": 6285,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/review-375.json.gz": {
+      "sha256": "2b3252783e271c6eb51ef75a9712005b998e20b990743f191f71939bf9e6f758",
+      "bytes": 9321,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/review-412.json.gz": {
+      "sha256": "c97e085200cb72c1dea3eabe0a129717c7c9edd096d6710830a0f65c8d27b96f",
+      "bytes": 9330,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-375.json": {
+      "sha256": "3a95851f06e5c5acae9749748b542ff6fa0cabbf57cf21fe1c71bf823c142264",
+      "bytes": 1219,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-412.json": {
+      "sha256": "aa791782d9388d94f5ee80d7ecd65ceb0a6ba1e4fc827eaea5112002a1b4e1d7",
+      "bytes": 1219,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cleanup-375.json": {
+      "sha256": "b895bcbdff457e0a2ec10b4e15f5cbf57c7ef7437710665b3b1c4353bbded2c5",
+      "bytes": 568,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cleanup-412.json": {
+      "sha256": "8984ad66dbb96364c154fadc5758544e241083638a7178dc9af47d419b6e83a0",
+      "bytes": 568,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/device-375.json": {
+      "sha256": "f7f172a281815abde7e6e99bb8535c1a7193087e8c697bfaf174b08e72b0def8",
+      "bytes": 118,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/contrast.json": {
+      "sha256": "9a62113ab502aac2443daaf80662c0b9dada7feb4e4945bdc2e43708e54e7085",
+      "bytes": 32002,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/real-upload-cleanup-before.json": {
+      "sha256": "4a5d77838a05eccb445ebf7c747ec19c73e061a421c46df882a0cafb0de84ef5",
+      "bytes": 1069,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/real-upload-cleanup-recheck.json": {
+      "sha256": "da90234f6fc5ddf03229a70d8c06fc2d7d89ef050a356634fbe0a3f4a0d15948",
+      "bytes": 1297,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/replay.mjs": {
+      "sha256": "dcd49c349d2efe58ba55ebbef9dc6afb238720d3b2cd46fcc3ecfd644083e6a7",
+      "bytes": 1614,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/record-tap.mjs": {
+      "sha256": "a2a7634b65b08947b7619f8c369597cf11e7a0180509e7506a3d8dbba0308e69",
+      "bytes": 1392,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/run-navigation.mjs": {
+      "sha256": "0324964f96d2b8311d628e488d6d6e009eac5fd869808d70d33909299bc95388",
+      "bytes": 10370,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/measure-contrast.py": {
+      "sha256": "e3cd61e8ff8ab8db80f784db97cb4afe869423d3d0906fd2c6eead2150c445c8",
+      "bytes": 5324,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/375-busy.png": {
+      "sha256": "13553653df7ecebeed8d3a926d4396be6f14970d7e4bc33803ca9757b37f193f",
+      "bytes": 79263,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/375-dark.png": {
+      "sha256": "9afcb5068d56e5bd78a5a34259565390f6950a18b65e2c9adf94f09e647a161e",
+      "bytes": 95956,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/375-light.png": {
+      "sha256": "489c36b901e7e7cb93a09ad369a7961c83446b461b35eef36295bd04163e9a06",
+      "bytes": 95523,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/375-pointer-baseline.png": {
+      "sha256": "5e24c378cd5ac04c435bf3e91c904cbf6e244fb6a0a5e587132c9e7502329aba",
+      "bytes": 78562,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/375-warm.png": {
+      "sha256": "545164b5f84d53af9e16538b3dfd641916adad2c98cd080cc81b0b7025d3b1b5",
+      "bytes": 107318,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/412-busy.png": {
+      "sha256": "ea2c841a50e182ece7abaa56df806c88106f0651291b60a64eef515e4ca10bca",
+      "bytes": 73743,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/412-dark.png": {
+      "sha256": "a6d77415439083138f2d84ede1e7a0f782f24cff7273ce5c0f1b0a27c00f2a12",
+      "bytes": 72486,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/412-light.png": {
+      "sha256": "761918ff9ad1c2d2c4dd02fe222cc7c8b4ff778cc5c450ed2df4adea9cf7a08b",
+      "bytes": 73010,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/412-pointer-baseline.png": {
+      "sha256": "15876f081d3924fcb14b9f4da0e7a72359cdd507486b86bb529bf70124d7d7d7",
+      "bytes": 74792,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/412-warm.png": {
+      "sha256": "61fb9d458705a23557f3a0919e2f9e6deb55655ffdba0c61852bdb6fb9770c0c",
+      "bytes": 76305,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-375-community.png": {
+      "sha256": "20c71a052afe8950e5fe3b9cc3427eb2dde8c80155751f13626846de870433da",
+      "bytes": 62136,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-375-home.png": {
+      "sha256": "9940b9c3cb5c0c45bcadd06fdb4beb1cb281bea433e5652517120ef9d69acda5",
+      "bytes": 197738,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-375-profile.png": {
+      "sha256": "b3642fb252390cdcca2c7d4c22c00141647190e62f1b2f044f95e4be2da17bbf",
+      "bytes": 125265,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-375-publisher.png": {
+      "sha256": "5e24c378cd5ac04c435bf3e91c904cbf6e244fb6a0a5e587132c9e7502329aba",
+      "bytes": 78562,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-375-shop.png": {
+      "sha256": "0f4087080b3001147b96d9e897b16290eb84a4e7bc5fa3d5f803551060653c0c",
+      "bytes": 354313,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-412-community.png": {
+      "sha256": "b432e59302157d5250eb00fe358378619f99907d3d3a6d9cfbe770ee71dded73",
+      "bytes": 59362,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-412-home.png": {
+      "sha256": "df118a700037158dd94920a71dd888e350be36b28443917b43440d31f66279c4",
+      "bytes": 219513,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-412-profile.png": {
+      "sha256": "387bad8ad78186a17a608ee954280ec38777759acab693e7c227a2f318a701df",
+      "bytes": 115430,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-412-publisher.png": {
+      "sha256": "15876f081d3924fcb14b9f4da0e7a72359cdd507486b86bb529bf70124d7d7d7",
+      "bytes": 74792,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/cua-412-shop.png": {
+      "sha256": "f5b6d879397209329e4d8953ae9019e17775cdcb42b351e4fea3998bef453fc5",
+      "bytes": 429689,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/final-community-375.png": {
+      "sha256": "3ce68ee56e8a5768af760c493f412d7928afa238aafd6529724c98c9aae2bf17",
+      "bytes": 582652,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/final-live-anonymous-community.png": {
+      "sha256": "2452c5a248d56da2442fa17b97c40f0ad498156311357959654231f5bed7ac92",
+      "bytes": 745752,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/native-375.png": {
+      "sha256": "c8393f67d7e46d971086b85105756db2988b3c01d5e8d409a8ec20e4212a41e4",
+      "bytes": 582188,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "filled-selection/native-412.png": {
+      "sha256": "6b6d40f3a7d5f5fa29fdbe1bfa7d2900e4a97f7575328065f2f56ea83b564e52",
+      "bytes": 745805,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    },
+    "selected-final/375-cold.png": {
+      "sha256": "d83277b1997efbab0a7e761cffd6288e340ae8fbb41a34410252956c9c21bafa",
+      "bytes": 92564,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/375-ready.png": {
+      "sha256": "c201d5ff75d8a740c3dcd3a45ea8a0efe7d4bf7ec3b28bb81047be4754431d52",
+      "bytes": 360260,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/412-cold.png": {
+      "sha256": "513facdadae572a0f92102aa47525b2ea940e0999e1ab45c8db3075d8a691361",
+      "bytes": 92325,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "selected-final/412-ready.png": {
+      "sha256": "93d6ae55dea412024ef3a929d589d4c502c7f0e097af0883a3c154655cecea4e",
+      "bytes": 411948,
+      "storage": "local_only_gitignored",
+      "packageSourceSha256": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384"
+    },
+    "filled-selection/native-source-binding.json": {
+      "sha256": "c9cc51d997eaba0004bab6fb13d2944d061d77e00a0108228e24fbdae96e08e8",
+      "bytes": 671,
+      "storage": "version_controlled",
+      "sourceCommit": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+      "packageSourceSha256": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf"
+    }
+  }
+}

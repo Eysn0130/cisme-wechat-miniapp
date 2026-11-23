@@ -1,0 +1,559 @@
+{
+  "sourceCommit": "2911703f2b55324f203f945bfbf8ff05cdf923ff",
+  "packageSourceSha256": "c20e755b7fe667a13b23e68b9bfcc046db9ac182978e567c0a3577ee08d88b80",
+  "viewports": {
+    "375": {
+      "geometry": {
+        "width": 375,
+        "height": 812,
+        "safeBottom": 34,
+        "bar": {
+          "left": 11,
+          "right": 364,
+          "top": 707,
+          "bottom": 777,
+          "width": 353,
+          "height": 70,
+          "backdropFilter": "blur(20px) saturate(1.35)",
+          "backgroundImage": "linear-gradient(rgba(255, 255, 255, 0.84), rgba(248, 247, 250, 0.82))",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "items": [
+          {
+            "left": 17,
+            "right": 102.25,
+            "top": 712,
+            "bottom": 772,
+            "width": 85.25,
+            "height": 60,
+            "color": "rgb(85, 75, 91)",
+            "fontSize": "13px",
+            "fontWeight": "400"
+          },
+          {
+            "left": 102.25,
+            "right": 187.5,
+            "top": 712,
+            "bottom": 772,
+            "width": 85.25,
+            "height": 60,
+            "color": "rgb(85, 75, 91)",
+            "fontSize": "13px",
+            "fontWeight": "400"
+          },
+          {
+            "left": 187.5,
+            "right": 272.75,
+            "top": 712,
+            "bottom": 772,
+            "width": 85.25,
+            "height": 60,
+            "color": "rgb(63, 35, 88)",
+            "fontSize": "13px",
+            "fontWeight": "500"
+          },
+          {
+            "left": 272.75,
+            "right": 358,
+            "top": 712,
+            "bottom": 772,
+            "width": 85.25,
+            "height": 60,
+            "color": "rgb(85, 75, 91)",
+            "fontSize": "13px",
+            "fontWeight": "400"
+          }
+        ]
+      },
+      "edges": {
+        "repeatTap": [
+          {
+            "scrollTop": 0,
+            "duration": 0
+          }
+        ],
+        "hiddenBlocked": true,
+        "failureRecovered": true,
+        "publisherCalls": 1,
+        "reduced": {
+          "enabled": true,
+          "bar": {
+            "backdropFilter": "none",
+            "backgroundColor": "rgb(246, 244, 248)"
+          },
+          "lens": {
+            "animationName": "none",
+            "transform": "matrix(1, 0, 0, 1, 170.5, 0)"
+          }
+        }
+      },
+      "backdrops": [
+        {
+          "name": "light",
+          "active": 2,
+          "reduced": false,
+          "background": "linear-gradient(120deg,#eef2f7,#ffffff)",
+          "screenshot": "glass-375-light.png"
+        },
+        {
+          "name": "warm",
+          "active": 2,
+          "reduced": false,
+          "background": "linear-gradient(120deg,#e8c8a5,#f5ebe0)",
+          "screenshot": "glass-375-warm.png"
+        },
+        {
+          "name": "dark",
+          "active": 2,
+          "reduced": false,
+          "background": "linear-gradient(120deg,#0d1728,#2a203a)",
+          "screenshot": "glass-375-dark.png"
+        },
+        {
+          "name": "busy",
+          "active": 2,
+          "reduced": false,
+          "background": "repeating-linear-gradient(45deg,#171320 0px,#171320 3px,#ffffff 3px,#ffffff 6px)",
+          "screenshot": "glass-375-busy.png"
+        }
+      ],
+      "cleanup": {
+        "restored": true,
+        "realWrites": 0,
+        "allNetworkIntercepted": true,
+        "blockedWriteRequests": 8,
+        "syntheticStorageDiscarded": true
+      },
+      "transitions": [
+        {
+          "source": "pages/community/index",
+          "target": "pages/home/index",
+          "minimumScaleX": 0.940151,
+          "maximumScaleX": 1.2045,
+          "frames": 49,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/home/index",
+          "target": "pages/shop/index",
+          "minimumScaleX": 0.940138,
+          "maximumScaleX": 1.20804,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/shop/index",
+          "target": "pages/home/index",
+          "minimumScaleX": 0.940129,
+          "maximumScaleX": 1.20445,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/home/index",
+          "target": "pages/community/index",
+          "minimumScaleX": 0.940154,
+          "maximumScaleX": 1.20443,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/community/index",
+          "target": "pages/shop/index",
+          "minimumScaleX": 0.946098,
+          "maximumScaleX": 1.2084,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/shop/index",
+          "target": "pages/community/index",
+          "minimumScaleX": 0.946727,
+          "maximumScaleX": 1.20419,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/community/index",
+          "target": "pages/profile/index",
+          "minimumScaleX": 0.947178,
+          "maximumScaleX": 1.20803,
+          "frames": 51,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/profile/index",
+          "target": "pages/home/index",
+          "minimumScaleX": 0.946381,
+          "maximumScaleX": 1.20809,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/home/index",
+          "target": "pages/profile/index",
+          "minimumScaleX": 0.940142,
+          "maximumScaleX": 1.20798,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/profile/index",
+          "target": "pages/shop/index",
+          "minimumScaleX": 0.940152,
+          "maximumScaleX": 1.20813,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/shop/index",
+          "target": "pages/profile/index",
+          "minimumScaleX": 0.946368,
+          "maximumScaleX": 1.20804,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/profile/index",
+          "target": "pages/community/index",
+          "minimumScaleX": 0.940155,
+          "maximumScaleX": 1.20456,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        }
+      ],
+      "cliCoordinateTap": {
+        "status": "not_validated",
+        "toolError": "appservice App.CDPEnable unimplemented",
+        "route": "pages/community/index"
+      },
+      "cuaActualPointerTaps": {
+        "method": "CUA pointer clicks in the observed worktree IDE window; native route/selection read after navigation; publisher handler stubbed",
+        "viewport": 375,
+        "results": [
+          {
+            "label": "商城",
+            "point": [
+              394,
+              1312
+            ],
+            "route": "pages/shop/index",
+            "active": 1,
+            "width": 375,
+            "controlled": true,
+            "publisherCalls": 0
+          },
+          {
+            "label": "社区",
+            "point": [
+              523,
+              1312
+            ],
+            "route": "pages/community/index",
+            "active": 2,
+            "width": 375,
+            "controlled": true,
+            "publisherCalls": 0
+          },
+          {
+            "label": "独立发布按钮",
+            "point": [
+              458,
+              1224
+            ],
+            "route": "pages/community/index",
+            "active": 2,
+            "width": 375,
+            "controlled": true,
+            "publisherCalls": 1
+          }
+        ],
+        "realWrites": 0
+      },
+      "fullNativeRecord": "glass-375-native.json.gz"
+    },
+    "412": {
+      "geometry": {
+        "width": 412,
+        "height": 923,
+        "safeBottom": 0,
+        "bar": {
+          "left": 11,
+          "right": 401,
+          "top": 852,
+          "bottom": 922,
+          "width": 390,
+          "height": 70,
+          "backdropFilter": "blur(20px) saturate(1.35)",
+          "backgroundImage": "linear-gradient(rgba(255, 255, 255, 0.84), rgba(248, 247, 250, 0.82))",
+          "backgroundColor": "rgba(0, 0, 0, 0)"
+        },
+        "items": [
+          {
+            "left": 17,
+            "right": 111.5,
+            "top": 857,
+            "bottom": 917,
+            "width": 94.5,
+            "height": 60,
+            "color": "rgb(85, 75, 91)",
+            "fontSize": "13px",
+            "fontWeight": "400"
+          },
+          {
+            "left": 111.5,
+            "right": 206,
+            "top": 857,
+            "bottom": 917,
+            "width": 94.5,
+            "height": 60,
+            "color": "rgb(85, 75, 91)",
+            "fontSize": "13px",
+            "fontWeight": "400"
+          },
+          {
+            "left": 206,
+            "right": 300.5,
+            "top": 857,
+            "bottom": 917,
+            "width": 94.5,
+            "height": 60,
+            "color": "rgb(63, 35, 88)",
+            "fontSize": "13px",
+            "fontWeight": "500"
+          },
+          {
+            "left": 300.5,
+            "right": 395,
+            "top": 857,
+            "bottom": 917,
+            "width": 94.5,
+            "height": 60,
+            "color": "rgb(85, 75, 91)",
+            "fontSize": "13px",
+            "fontWeight": "400"
+          }
+        ]
+      },
+      "edges": {
+        "repeatTap": [
+          {
+            "scrollTop": 0,
+            "duration": 0
+          }
+        ],
+        "hiddenBlocked": true,
+        "failureRecovered": true,
+        "publisherCalls": 1,
+        "reduced": {
+          "enabled": true,
+          "bar": {
+            "backdropFilter": "none",
+            "backgroundColor": "rgb(246, 244, 248)"
+          },
+          "lens": {
+            "animationName": "none",
+            "transform": "matrix(1, 0, 0, 1, 189, 0)"
+          }
+        }
+      },
+      "backdrops": [
+        {
+          "name": "light",
+          "active": 2,
+          "reduced": false,
+          "background": "linear-gradient(120deg,#eef2f7,#ffffff)",
+          "screenshot": "glass-412-light.png"
+        },
+        {
+          "name": "warm",
+          "active": 2,
+          "reduced": false,
+          "background": "linear-gradient(120deg,#e8c8a5,#f5ebe0)",
+          "screenshot": "glass-412-warm.png"
+        },
+        {
+          "name": "dark",
+          "active": 2,
+          "reduced": false,
+          "background": "linear-gradient(120deg,#0d1728,#2a203a)",
+          "screenshot": "glass-412-dark.png"
+        },
+        {
+          "name": "busy",
+          "active": 2,
+          "reduced": false,
+          "background": "repeating-linear-gradient(45deg,#171320 0px,#171320 3px,#ffffff 3px,#ffffff 6px)",
+          "screenshot": "glass-412-busy.png"
+        }
+      ],
+      "cleanup": {
+        "restored": true,
+        "realWrites": 0,
+        "allNetworkIntercepted": true,
+        "blockedWriteRequests": 8,
+        "syntheticStorageDiscarded": true
+      },
+      "transitions": [
+        {
+          "source": "pages/community/index",
+          "target": "pages/home/index",
+          "minimumScaleX": 0.946413,
+          "maximumScaleX": 1.20465,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/home/index",
+          "target": "pages/shop/index",
+          "minimumScaleX": 0.940155,
+          "maximumScaleX": 1.20814,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/shop/index",
+          "target": "pages/home/index",
+          "minimumScaleX": 0.940156,
+          "maximumScaleX": 1.20811,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/home/index",
+          "target": "pages/community/index",
+          "minimumScaleX": 0.940141,
+          "maximumScaleX": 1.20808,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/community/index",
+          "target": "pages/shop/index",
+          "minimumScaleX": 0.946363,
+          "maximumScaleX": 1.20815,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/shop/index",
+          "target": "pages/community/index",
+          "minimumScaleX": 0.946444,
+          "maximumScaleX": 1.20439,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/community/index",
+          "target": "pages/profile/index",
+          "minimumScaleX": 0.946385,
+          "maximumScaleX": 1.20479,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/profile/index",
+          "target": "pages/home/index",
+          "minimumScaleX": 0.94645,
+          "maximumScaleX": 1.20808,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/home/index",
+          "target": "pages/profile/index",
+          "minimumScaleX": 0.946412,
+          "maximumScaleX": 1.20437,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/profile/index",
+          "target": "pages/shop/index",
+          "minimumScaleX": 0.940153,
+          "maximumScaleX": 1.20432,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/shop/index",
+          "target": "pages/profile/index",
+          "minimumScaleX": 0.940039,
+          "maximumScaleX": 1.20418,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        },
+        {
+          "source": "pages/profile/index",
+          "target": "pages/community/index",
+          "minimumScaleX": 0.940142,
+          "maximumScaleX": 1.20802,
+          "frames": 50,
+          "terminalScaleX": 1.0
+        }
+      ],
+      "cliCoordinateTap": {
+        "status": "not_validated",
+        "toolError": "appservice App.CDPEnable unimplemented",
+        "route": "pages/community/index"
+      },
+      "cuaActualPointerTaps": {
+        "method": "CUA pointer clicks in the observed worktree IDE window; native runtime route/selection read after navigation; publisher handler stubbed",
+        "viewport": 412,
+        "results": [
+          {
+            "label": "商城",
+            "point": [
+              389,
+              1530
+            ],
+            "route": "pages/shop/index",
+            "active": 1
+          },
+          {
+            "label": "我的",
+            "point": [
+              670,
+              1530
+            ],
+            "route": "pages/profile/index",
+            "active": 3
+          },
+          {
+            "label": "护理",
+            "point": [
+              245,
+              1530
+            ],
+            "route": "pages/home/index",
+            "active": 0
+          },
+          {
+            "label": "社区",
+            "point": [
+              530,
+              1530
+            ],
+            "route": "pages/community/index",
+            "active": 2
+          },
+          {
+            "label": "独立发布按钮",
+            "point": [
+              459,
+              1440
+            ],
+            "route": "pages/community/index",
+            "active": 2,
+            "width": 412,
+            "publisherCalls": 1,
+            "controlled": true
+          }
+        ],
+        "realWrites": 0
+      },
+      "fullNativeRecord": "glass-412-native.json.gz"
+    }
+  },
+  "scope": "Regular-like shared backdrop and a fill-only moving lens. Edge-light approximation; not Apple system Liquid Glass or physical pixel refraction."
+}

@@ -45,6 +45,8 @@
 .community-skeleton__author { width:52%; height:20rpx; }
 .community-skeleton__shine { position:absolute; top:0; right:0; bottom:0; left:0; pointer-events:none; background:linear-gradient(90deg,transparent,rgba(255,255,255,.48),transparent); animation:cisme-loading-sweep var(--cisme-load-sweep,1500ms) linear infinite; }
 .feed-card__media { position:relative; background:var(--cisme-load-bone,#eee7f2); }
+.feed-card__media--sized .feed-card__image { position:absolute; top:0; left:0; }
+.feed-card__image-retry { position:absolute; top:0; right:0; bottom:0; left:0; display:flex; align-items:center; justify-content:center; min-height:var(--cisme-hit-target); padding:12rpx; color:var(--cisme-plum); font-size:var(--cisme-text-small); line-height:1.5; }
 .feed-card__image--loading,.feed-card__image--error { opacity:0; }
 .feed-card__image--arriving { animation:community-image-arrive var(--cisme-load-arrival,200ms) ease-out; }
 @keyframes community-image-arrive { from { opacity:0; } to { opacity:1; } }

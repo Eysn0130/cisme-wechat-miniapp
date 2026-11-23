@@ -1,0 +1,939 @@
+{
+  "scope": "Native simulator PNGs, four controlled backdrops per width; actual neighboring material pixels, intended ink colors, antialias edges excluded.",
+  "samplingLimit": "For each located stroke pixel, the brightest pixel in a 5px neighborhood estimates the adjacent background. Reported minima are among these 32 sampled positions, not every background pixel or a formal whole-region worst case.",
+  "iconLimit": "Thin SVG strokes do not always contain opaque raster pixels. Icon values compare the intended source SVG fill with sampled adjacent material, not every antialiased pixel or physical-device perception.",
+  "labelTarget": 4.5,
+  "iconTarget": 3,
+  "results": [
+    {
+      "width": 375,
+      "scene": "light",
+      "item": 0,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 21,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.515523184727519
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 5.0705538652557305,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "light",
+      "item": 1,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 18,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.914300247157257
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 10.000756563196333,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "light",
+      "item": 2,
+      "label": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 28,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 11.66747308001331
+      },
+      "icon": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 12.679536364145399,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "light",
+      "item": 3,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 24,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.919272444779862
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 5.073718163758437,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "item": 0,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 23,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.166117511697331
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.838036445234288,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "item": 1,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 18,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.558301659437165
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 9.553830956414926,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "item": 2,
+      "label": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 30,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 11.46000231963902
+      },
+      "icon": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 12.546756160753699,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "warm",
+      "item": 3,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 27,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.624646975023478
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.916555450542409,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "item": 0,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 42,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.307185576307935
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 3.617649285493194,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "item": 1,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 21,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.538830772089782
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 7.149902639177326,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "item": 2,
+      "label": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 37,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 9.829132141698894
+      },
+      "icon": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 11.416045021636497,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "dark",
+      "item": 3,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 36,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.550480062799251
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 1,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 3.635272976832425,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "item": 0,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 30,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.381343256717353
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.327166901076637,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "item": 1,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 19,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.636544485465709
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 8.473448146796702,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "item": 2,
+      "label": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 32,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 10.68516613210996
+      },
+      "icon": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 12.0337011448339,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
+      }
+    },
+    {
+      "width": 375,
+      "scene": "busy",
+      "item": 3,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 29,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.641025807711178
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 1,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.287825305169531,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "item": 0,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 24,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.934097060742312
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.987142907044968,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "item": 1,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 21,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.720694460683796
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 9.982571348681121,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "item": 2,
+      "label": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 35,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 11.689755125167009
+      },
+      "icon": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 1,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 12.578438054910013,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "light",
+      "item": 3,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 19,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.968266627626448
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 2,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 5.073718163758437,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "item": 0,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 24,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.606139580603316
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.756887495930732,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "item": 1,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 22,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.369843676570402
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 9.535741552453292,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "item": 2,
+      "label": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 35,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 11.416809158630059
+      },
+      "icon": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 1,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 12.392320363522131,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "warm",
+      "item": 3,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 20,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 7.691626190124214
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 2,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.947083325319783,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "item": 0,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 32,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 4.9567761562973125
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 3.5474978724580493,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "item": 1,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 39,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.4340201496674805
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 7.135163297079757,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "item": 2,
+      "label": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 36,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 9.8362083401258
+      },
+      "icon": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 1,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 11.212125011739218,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "dark",
+      "item": 3,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 30,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.566306021884483
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 2,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 3.635272976832425,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "item": 0,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 26,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 5.917917639620068
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.259870078902686,
+        "asset": "/assets/icons/drop-muted.svg",
+        "sourceFill": "#746979"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "item": 1,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 28,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.523504208092152
+      },
+      "icon": {
+        "foreground": [
+          86,
+          48,
+          111
+        ],
+        "opaqueCorePixels": 0,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 8.456965097313052,
+        "asset": "/assets/icons/storefront-plum.svg",
+        "sourceFill": "#56306f"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "item": 2,
+      "label": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 35,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 10.68516613210996
+      },
+      "icon": {
+        "foreground": [
+          63,
+          35,
+          88
+        ],
+        "opaqueCorePixels": 1,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 11.823021836321837,
+        "asset": "/assets/icons/users-active.svg",
+        "sourceFill": "#3f2358"
+      }
+    },
+    {
+      "width": 412,
+      "scene": "busy",
+      "item": 3,
+      "label": {
+        "foreground": [
+          85,
+          75,
+          91
+        ],
+        "opaqueCorePixels": 24,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": true,
+        "minimumContrast": 6.641025807711178
+      },
+      "icon": {
+        "foreground": [
+          116,
+          105,
+          121
+        ],
+        "opaqueCorePixels": 2,
+        "method": "intended foreground against adjacent raster material",
+        "rasterStrokeHasOpaqueCore": false,
+        "minimumContrast": 4.287825305169531,
+        "asset": "/assets/icons/user-muted.svg",
+        "sourceFill": "#746979"
+      }
+    }
+  ],
+  "minimumLabel": 4.9567761562973125,
+  "minimumIcon": 3.5474978724580493
+}

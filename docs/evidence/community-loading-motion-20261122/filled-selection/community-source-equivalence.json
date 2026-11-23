@@ -1,0 +1,61 @@
+{
+  "baselineSource": "e7ef09518673b13d4628c75c1d01ddb4a4bbdd59",
+  "baselinePackage": "9dd73a3236dedbcc8319f82f581a2fe31aed97d9811a2d75eed20d4a93070384",
+  "currentSource": "dbc4ab85b8ebe34ad7f2d7257be8e37bee91b295",
+  "currentPackage": "f531a348c97a96ab1d33015b1e5222b696175cca903b49bbb099e07aa50f4cbf",
+  "changedApplicationFiles": [
+    "apps/miniprogram/assets/icons/tab-drop-selected.svg",
+    "apps/miniprogram/assets/icons/tab-storefront-selected.svg",
+    "apps/miniprogram/assets/icons/tab-user-selected.svg",
+    "apps/miniprogram/assets/icons/tab-users-selected.svg",
+    "apps/miniprogram/custom-tab-bar/index.wxml",
+    "apps/miniprogram/custom-tab-bar/index.wxss"
+  ],
+  "unchangedCriticalSources": [
+    {
+      "path": "apps/miniprogram/pages/community/index.ts",
+      "sha256": "4de1bf669d5d466a1006269ab1a700d4fe8c9b75fd91127e7889ecfcd872bc58"
+    },
+    {
+      "path": "apps/miniprogram/pages/community/index.wxml",
+      "sha256": "3e0ba25e7c01b0b9ff761411466396beed69059ddc4df3512864bd8176ae5f5c"
+    },
+    {
+      "path": "apps/miniprogram/pages/community/index.wxss",
+      "sha256": "f440002108634c25edc5c146ca21a2c30171dc05c87670aefbdbcc937586a64a"
+    },
+    {
+      "path": "apps/miniprogram/pages/community-compose/index.ts",
+      "sha256": "7efc4a6aa1bc079bedc97f1ceb91c277fff29c1871b44fb2a1763c27cb55ed9c"
+    },
+    {
+      "path": "apps/miniprogram/pages/community-compose/index.wxml",
+      "sha256": "7367ef39d0124eca13c67a120d742b7861b60d6970eb55d06c242210787c5471"
+    },
+    {
+      "path": "apps/miniprogram/pages/community-compose/index.wxss",
+      "sha256": "8b792d63cc95ff5455f89b08f2905ab0e73ef67a1e359ec3293642150e55f203"
+    },
+    {
+      "path": "apps/miniprogram/services/api.ts",
+      "sha256": "85e09ad43af8e5bcc95ab1744a2b4e14c3afa5d51df293ea87cb04f48060afe9"
+    },
+    {
+      "path": "apps/miniprogram/services/feed-projection.ts",
+      "sha256": "c0f3ad6016056969dc285a37f5a18d571843baafabc96c1d7ca55f49fe049b1f"
+    },
+    {
+      "path": "apps/miniprogram/services/ugc-local-backup.ts",
+      "sha256": "ba4a1401d305141a2f050d06ddf59f9041ca3a2fedc9d890338835aaee09e389"
+    },
+    {
+      "path": "apps/miniprogram/templates/community-feed.wxml",
+      "sha256": "6419bbaab5642da7667e159d7c19858e1a0c93748bdbb5fb042893a515f4a61f"
+    },
+    {
+      "path": "apps/miniprogram/custom-tab-bar/index.ts",
+      "sha256": "f786fd505fa897c042ffd2f9258a54661ce59952d32eed7bb2a70434e9392bf9"
+    }
+  ],
+  "scope": "The 50 community state cases and one real private upload remain attributed to the baseline package. Six navigation visual files changed; all eleven listed behavior/transport sources are byte-identical. Filled navigation has its own current-package acceptance. No old screenshot is relabeled."
+}

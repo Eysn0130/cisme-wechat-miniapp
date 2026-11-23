@@ -1,0 +1,47 @@
+[
+  {
+    "target": "publisher",
+    "method": "Actual native app CUA pointer click, followed by independent runtime read",
+    "route": "pages/community/index",
+    "active": 2,
+    "publisherCalls": 1,
+    "controlled": true,
+    "width": 412
+  },
+  {
+    "target": "shop",
+    "method": "Actual native app CUA pointer click, followed by independent runtime read",
+    "route": "pages/shop/index",
+    "active": 1,
+    "publisherCalls": 1,
+    "controlled": true,
+    "width": 412
+  },
+  {
+    "target": "home",
+    "method": "Actual native app CUA pointer click, followed by independent runtime read",
+    "route": "pages/home/index",
+    "active": 0,
+    "publisherCalls": 1,
+    "controlled": true,
+    "width": 412
+  },
+  {
+    "target": "profile",
+    "method": "Actual native app CUA pointer click, followed by independent runtime read",
+    "route": "pages/profile/index",
+    "active": 3,
+    "publisherCalls": 1,
+    "controlled": true,
+    "width": 412
+  },
+  {
+    "target": "community",
+    "method": "Actual native app CUA pointer click, followed by independent runtime read",
+    "route": "pages/community/index",
+    "active": 2,
+    "publisherCalls": 1,
+    "controlled": true,
+    "width": 412
+  }
+]

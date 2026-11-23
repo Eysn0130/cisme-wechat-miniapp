@@ -1,0 +1,10 @@
+{
+  "route": "pages/community/index",
+  "width": 375,
+  "loading": false,
+  "feedCount": 20,
+  "mode": "featured",
+  "authenticated": true,
+  "fixturePresent": false,
+  "preservedSessionPending": false
+}

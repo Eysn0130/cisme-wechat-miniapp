@@ -1,0 +1,6 @@
+{
+  "command": "npm run test:integration",
+  "status": "not_executed",
+  "reason": "Docker CLI is installed but no local Docker daemon is available at /var/run/docker.sock. No disposable database was created. Candidate GitHub verify will run the integration suite in its isolated environment.",
+  "realDataTouched": false
+}
