@@ -27,7 +27,7 @@ for(const [run,name] of [[final,'profile'],[final,'address-editor'],[final,'lega
  const frame=run.captures.find(c=>c.name===name);if(!frame)throw Error('Missing frame: '+name);
  const width=run===wide?412:375,destination=`selected-final/${name}-${width}.png`,data=await readFile(frame.path);
  await copyFile(frame.path,new URL(destination,here));
- selected.push({name,viewportWidth:width,path:destination,sha256:createHash('sha256').update(data).digest('hex'),imagePixels:{width:data.readUInt32BE(16),height:data.readUInt32BE(20)}});
+ selected.push({name,viewportWidth:width,path:destination,localPath:frame.path,storage:'local-only; repository PNG ignore policy',sha256:createHash('sha256').update(data).digest('hex'),imagePixels:{width:data.readUInt32BE(16),height:data.readUInt32BE(20)}});
 }
 const output={
  schemaVersion:1,reviewedAt:new Date().toISOString(),baseMainSha:'c2a504f09387d1b4b6efbf39ee3e6463716e82a8',

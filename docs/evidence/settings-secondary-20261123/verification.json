@@ -129,7 +129,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-profile-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "address-editor",
@@ -139,7 +141,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-address-editor-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "legal-terms",
@@ -149,7 +153,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-legal-terms-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "rights-empty",
@@ -159,7 +165,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-empty-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "rights-required-error",
@@ -169,7 +177,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-required-error-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "rights-withdraw-error",
@@ -179,7 +189,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-withdraw-error-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "rights-reply",
@@ -189,7 +201,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-rights-reply-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "management-filter",
@@ -199,7 +213,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-filter-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "management-no-permission",
@@ -209,7 +225,9 @@
         "imagePixels": {
           "width": 564,
           "height": 1218
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/final-a004bf1cb7f6-management-no-permission-375.png",
+        "storage": "local-only; repository PNG ignore policy"
       },
       {
         "name": "rights-empty",
@@ -219,7 +237,9 @@
         "imagePixels": {
           "width": 618,
           "height": 1386
-        }
+        },
+        "localPath": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/cross-size-a004bf1cb7f6-rights-empty-412.png",
+        "storage": "local-only; repository PNG ignore policy"
       }
     ],
     "measurementScope": "Page class selectors in the final 375 run; isolated child components and the 412 screenshot-only run are not included in control-geometry claims."
