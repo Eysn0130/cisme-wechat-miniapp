@@ -38,7 +38,7 @@ function runtimeLabel(): string {
 }
 
 Page({
-  openCareProfile(){if(this.data.profileBusy||this.data.avatarBusy||this.data.phoneBusy||this.data.addressBusy)return;this.setData({careProfileOpen:true});},
+  openCareProfile(){if(this.data.leaving||this.data.workingConsentId||this.data.confirmingLogout||this.data.loggingOut||this.data.leavePromptOpen||this.data.profileBusy||this.data.avatarBusy||this.data.phoneBusy||this.data.addressBusy)return;this.setData({careProfileOpen:true});},
   closeCareProfile(){this.setData({careProfileOpen:false});},
   profileSessionToken: "",
   profileVisible: true,
@@ -206,7 +206,7 @@ Page({
     } catch { if(current())this.setData({profileError:"头像未处理成功，请重新选择；原头像保持不变。"}); }
     finally { if(current())this.setData({avatarBusy:false}); }
   },
-  removeAvatar() { if(this.data.profileBusy || this.data.avatarBusy)return; this.setData({avatarUrl:defaultMemberAvatar,avatarPayload:null,avatarChanged:true}); this.markProfileDirty(); },
+  removeAvatar() { if(this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy)return; this.setData({avatarUrl:defaultMemberAvatar,avatarPayload:null,avatarChanged:true}); this.markProfileDirty(); },
   async reloadProfile() {
     if(this.data.profileBusy || this.data.avatarBusy)return;
     if(this.data.profileDirty) {
@@ -334,7 +334,7 @@ Page({
     this.syncUnloadGuard();
   },
   async openAddresses(){
-    if(this.data.addressBusy)return;
+    if(this.data.leaving||this.data.workingConsentId||this.data.confirmingLogout||this.data.loggingOut||this.data.leavePromptOpen||this.data.profileBusy||this.data.avatarBusy||this.data.phoneBusy||this.data.addressBusy)return;
     if(this.data.editingProfile && this.data.profileDirty && !await this.confirmProfileLeave())return;
     if(this.data.editingAddresses && this.data.addressDirty && !await this.confirmAddressLeave())return;
     this.setData({editingProfile:false,editingAddresses:!this.data.editingAddresses,addressEditorOpen:false,addressDirty:false,addressDraft:emptyAddressDraft(),addressQuickInput:"",addressFieldErrors:{},addressConflict:false,addressParseStatus:"idle",addressParseSummary:"",addressParseWarnings:[]});
@@ -557,7 +557,7 @@ Page({
     if(this.data.editingProfile)void this.loadProfile();
   },
   async openSettingsRoute(url:string,failureCopy:string) {
-    if(this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut || this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.addressBusy)return;
+    if(this.data.leaving || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut || this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.addressBusy)return;
     if(this.data.profileDirty && !await this.confirmProfileLeave())return;
     if(this.data.addressDirty && !await this.confirmAddressLeave())return;
     wx.navigateTo({url,fail:()=>wx.showToast({title:failureCopy,icon:"none"})});

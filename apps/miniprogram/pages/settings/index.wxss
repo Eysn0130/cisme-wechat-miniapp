@@ -15,3 +15,5 @@
 .field-placeholder{color:var(--cisme-muted)}
 
 .about-row--last{border-bottom:0}.phone-remove,.address-actions .address-action--delete{color:var(--cisme-danger)}
+
+.profile-birthday{display:flex;align-items:center;justify-content:space-between;gap:var(--cisme-space-3)}.profile-birthday--empty{color:var(--cisme-muted)}
