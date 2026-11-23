@@ -102,7 +102,7 @@ it('shows only this author’s public stories across both sources, preserves pag
  await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[author.id]);expect((await read()).statusCode).toBe(404);
 });
 it('projects a verified badge across list, author, post and comments while keeping owner identity scoped',async()=>{
- const officer=await actor('合成分享官作者'),visitor=await actor('合成普通评论者');
+ const officer=await actor('合成分享官作者'),visitor=await actor('合成普通评论者'),moderator=await actor('合成评论审核员');
  for(const who of [officer,visitor])await editorial.acceptCurrentLegal(who.id,who.principal,{consents:[{documentType:'terms',version:'profile-v1'},{documentType:'privacy',version:'profile-v1'}]});
  await pool.query('INSERT INTO member_card_number(member_id) VALUES ($1) ON CONFLICT (member_id) DO NOTHING',[officer.id]);
  await pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) SELECT member_id,user_code,'active' FROM member_card_number WHERE member_id=$1",[officer.id]);
@@ -120,18 +120,26 @@ it('projects a verified badge across list, author, post and comments while keepi
  expect((await app.inject({method:'PUT',url:'/v1/me/ugc/follows/'+officer.id,headers:headers(visitor),payload:{active:true}})).statusCode).toBe(200);
  const following=await app.inject({url:'/v1/me/community/following',headers:headers(visitor)});
  expect(following.json().items).toContainEqual(expect.objectContaining({id:post,identityBadge:'sharing-officer'}));
+ await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'community.moderate','fixture','badge comment review fixture','test','integration_fixture')",[moderator.id]);
  for(const who of [officer,visitor]){
   const posted=await app.inject({method:'POST',url:'/v1/ugc/posts/'+post+'/comments',
    headers:{...headers(who),'idempotency-key':'badge-comment-'+randomUUID()},payload:{body:'合成身份证据评论'}});
   expect(posted.statusCode,posted.body).toBe(200);
+  expect(posted.json().state).toBe('pending_review');
+  const reviewed=await app.inject({method:'POST',url:`/v1/management/ugc/comments/${posted.json().id}/review`,
+   headers:headers(moderator),payload:{decision:'approve',reason:'合成护理交流'}});
+  expect(reviewed.statusCode,reviewed.body).toBe(200);
+  expect(reviewed.json().state).toBe('published');
  }
  const comments=()=>app.inject({url:'/v1/ugc/posts/'+post+'/comments?reader=1',headers:headers(visitor)});
  const shown=(await comments()).json().items;
  expect(shown.find((item: {authorId:string})=>item.authorId===officer.id)).toMatchObject({identityBadge:'sharing-officer'});
+ expect(shown.find((item: {authorId:string})=>item.authorId===visitor.id)).toMatchObject({state:'published'});
  expect(shown.find((item: {authorId:string})=>item.authorId===visitor.id)).not.toHaveProperty('identityBadge');
  await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'community.moderate','fixture','badge moderation fixture','test','integration_fixture'),($1,'community.admin_badge','fixture','badge projection fixture','test','integration_fixture')",[officer.id]);
  expect((await read(undefined,officer.id)).json().author.identityBadge).toBe('administrator');
  await pool.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='badge test withdrawal' WHERE member_id=$1 AND capability='community.admin_badge'",[officer.id]);
+ expect((await read(undefined,officer.id)).json().author.identityBadge).toBe('sharing-officer');
  await pool.query("UPDATE sharing_officer SET state='suspended' WHERE member_id=$1",[officer.id]);
  expect((await read(undefined,officer.id)).json().author).not.toHaveProperty('identityBadge');
  expect((await comments()).json().items.find((item: {authorId:string})=>item.authorId===officer.id)).not.toHaveProperty('identityBadge');

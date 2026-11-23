@@ -568,10 +568,27 @@ describe("empty and N-1 database lifecycle", () => {
     await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('POINTS_V2_ROLLBACK_REQUIRES_ASSET_PRESERVATION')});
     await closePool(pool);migrationTip='202611170003_wechat_trade_compliance.sql';await migrate('up');pool=migrationPool();
     await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('WECHAT_TRADE_OBSERVATIONS_REQUIRE_FORWARD_RECOVERY')});
-    await closePool(pool);migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
+    await closePool(pool);migrationTip='202611180001_confirmed_member_registration.sql';await migrate('up');pool=migrationPool();
     await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('MEMBER_REGISTRATION_ROLLBACK_REQUIRES_PENDING_IDENTITY_PRESERVATION')});
     expect((await pool.query('SELECT registration_completed_at=created_at AS preserved FROM member WHERE id=$1',[legacyOfficer])).rows[0].preserved).toBe(true);
     expect((await pool.query('SELECT user_code,number::text FROM member_card_number WHERE member_id=$1',[legacyOfficer])).rows[0]).toEqual({user_code:'SO0987654321',number:originalNumber});
+    await closePool(pool);
+
+    migrationTip='202611230001_public_administrator_badge.sql';
+    await migrate('up');
+    await migrate('down');
+    pool=migrationPool();
+    expect(await capabilityNames()).not.toContain('community.admin_badge');
+    await closePool(pool);
+    await migrate('up');
+    pool=migrationPool();
+    await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+      VALUES($1,'community.admin_badge','fixture','migration rollback preservation','test','integration_fixture')`,[legacyOfficer]);
+    await expect(migrate('down')).rejects.toMatchObject({stderr:expect.stringContaining('PUBLIC_ADMIN_BADGE_GRANTS_REQUIRE_DATA_PRESERVATION')});
+    expect((await pool.query("SELECT 1 FROM authority_grant WHERE member_id=$1 AND capability='community.admin_badge'",[legacyOfficer])).rowCount).toBe(1);
+    await closePool(pool);
+
+    migrationTip=migrationFiles.at(-1)!;await migrate('up');pool=migrationPool();
     expect((await pool.query("SELECT count(*)::int AS n FROM schema_migration")).rows[0].n).toBe(migrationFiles.length);
     expect(await assertFinalSchemaContract(pool)).toEqual({tables:45,constraints:49,indexes:37,triggers:37});
     const damaged=await pool.connect();
