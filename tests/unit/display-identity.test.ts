@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { memberDisplayIdentities } from "../../services/api/src/displayIdentity";
-import { communityIdentityBadge, identityLabel, claimIdentityBadgeIntro } from "../../apps/miniprogram/services/display-identity";
+import { communityIdentityBadge, identityLabel, claimIdentityBadgeIntro, memberIdentityBadge } from "../../apps/miniprogram/services/display-identity";
 import { officialEditorialPublisherId } from "../../apps/miniprogram/services/editorial-publisher";
 
 it("uses effective administrative and explicit display grants together, and counts a sharing officer independently", async () => {
@@ -37,6 +37,11 @@ it("reserves the official mark for the official account and plays an intro only 
   expect(identityLabel("member")).toBe("普通会员");
   expect(identityLabel("support")).toBe("官方客服");
   expect(identityLabel(undefined)).toBe("");
+  expect(memberIdentityBadge("sharing-officer")).toBe("sharing-officer");
+  expect(memberIdentityBadge("administrator")).toBe("administrator");
+  expect(memberIdentityBadge("support")).toBe("support");
+  expect(memberIdentityBadge("member")).toBe("");
+  expect(memberIdentityBadge("official")).toBe("");
   expect(claimIdentityBadgeIntro("sample-author","administrator")).toBe(true);
   expect(claimIdentityBadgeIntro("sample-author","administrator")).toBe(false);
   expect(claimIdentityBadgeIntro("another-author","administrator")).toBe(true);

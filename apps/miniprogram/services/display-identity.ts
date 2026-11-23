@@ -1,6 +1,7 @@
 import { officialEditorialPublisherId } from "./editorial-publisher";
 
 export type CommunityIdentityBadge = "sharing-officer" | "administrator" | "official";
+type MemberIdentityBadge = "sharing-officer" | "administrator" | "support";
 const labels: Record<string, string> = {
   member: "普通会员",
   "sharing-officer": "分享官",
@@ -18,9 +19,13 @@ export function communityIdentityBadge(kind: unknown, authorId?: string): Commun
   return kind === "administrator" || kind === "sharing-officer" ? kind : "";
 }
 
+export function memberIdentityBadge(kind: unknown): MemberIdentityBadge | "" {
+  return kind === "sharing-officer" || kind === "administrator" || kind === "support" ? kind : "";
+}
+
 const badgesSeen = new Set<string>();
 
-export function claimIdentityBadgeIntro(authorId: string, badge: CommunityIdentityBadge): boolean {
+export function claimIdentityBadgeIntro(authorId: string, badge: CommunityIdentityBadge | MemberIdentityBadge): boolean {
   const key = authorId + ":" + badge;
   if (badgesSeen.has(key)) return false;
   badgesSeen.add(key);
