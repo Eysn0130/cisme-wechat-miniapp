@@ -1,0 +1,12 @@
+{
+  "route": "pages/settings/index",
+  "synthetic": true,
+  "profileOpen": true,
+  "dirtyPreserved": true,
+  "inputPreserved": true,
+  "leavePromptClosed": true,
+  "blockedWrites": 0,
+  "unexpected": [],
+  "nativeBackModalObserved": true,
+  "nativeContinueEditingClicked": true
+}
