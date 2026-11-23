@@ -4,6 +4,7 @@ import type { CommunityAuthorPage } from '@cisme/contracts';
 import { DomainError } from '@cisme/domain';
 import { readSnapshot, transaction } from './db.js';
 import { communityAuthors, publishedPostAuthors } from './memberProfile.js';
+import { memberDisplayIdentities } from './displayIdentity.js';
 import type { EditorialService } from './editorial.js';
 import type { FormalUgcService } from './formalUgc.js';
 import type { UgcSafetyService } from './ugcSafety.js';
@@ -13,13 +14,13 @@ import type {AuthorityService} from './authority.js';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const unavailable=()=>new DomainError('COMMUNITY_AUTHOR_NOT_FOUND','作者暂不可见',404);
 
-/** One native profile for its owner and visitors. Only published, currently
- * visible stories are counted; drafts and moderation facts never enter it. */
+/** The opt-in owner view includes hidden publications. Public counts and
+ * follow eligibility use currently visible content in both views. */
 export class CommunityProfileService {
   constructor(private pool:pg.Pool,private config:AppConfig,private editorial:EditorialService,
     private ugc:FormalUgcService,private safety:UgcSafetyService,private authority:AuthorityService){}
 
-  async page(memberId:string|undefined,authorId:string|undefined,input:{limit?:unknown;cursor?:unknown}={}):Promise<CommunityAuthorPage>{
+  async page(memberId:string|undefined,authorId:string|undefined,input:{limit?:unknown;cursor?:unknown}={},includeHidden=false):Promise<CommunityAuthorPage>{
     if(!authorId||!uuid.test(authorId))throw unavailable();
     if(authorId===officialPublisher.id){
       const page=await this.editorial.author(memberId,authorId,input);
@@ -34,11 +35,14 @@ export class CommunityProfileService {
     }
     const limit=input.limit===undefined?20:Number(input.limit);
     if(!Number.isSafeInteger(limit)||limit<1||limit>30)throw new DomainError('COMMUNITY_AUTHOR_PAGE_INVALID','请重新加载作者主页',422);
+    const isMine=memberId===authorId;
+    const ownerView=includeHidden&&isMine;
+    const cursorVersion=ownerView?2:1;
     let cursor:{at:string;kind:string;id:string}|null=null;
     if(input.cursor!==undefined){try{
       if(typeof input.cursor!=='string'||input.cursor.length>1000)throw new Error();
       const value=JSON.parse(Buffer.from(input.cursor,'base64url').toString('utf8'));
-      if(!Array.isArray(value)||value.length!==6||value[0]!==1||value[1]!==authorId||value[2]!== (memberId??null)||
+      if(!Array.isArray(value)||value.length!==6||value[0]!==cursorVersion||value[1]!==authorId||value[2]!== (memberId??null)||
         typeof value[3]!=='string'||value[3].length>80||!Number.isFinite(Date.parse(value[3]))||
         !['editorial','formal','ugc'].includes(value[4])||typeof value[5]!=='string'||!uuid.test(value[5]))throw new Error();
       cursor={at:value[3],kind:value[4],id:value[5]};
@@ -57,44 +61,55 @@ export class CommunityProfileService {
         SELECT 'editorial'::text AS kind,a.id,a.title,a.excerpt,a.published_at,a.author_display_name AS editorial_author,
           CASE WHEN jsonb_array_length(a.media)>0 THEN '/v1/editorial/media/'||a.id::text||'/'||
             COALESCE(a.media->0->'poster'->>'sha256',a.media->0->>'sha256') END AS cover_url,
-          COALESCE(s.like_count,0)::int AS like_count
+          COALESCE(s.like_count,0)::int AS like_count,false AS hidden,NULL::uuid AS hidden_cover_id
         FROM editorial_article a LEFT JOIN community_post_stats s ON s.post_id=('editorial:'||a.id::text)
         WHERE a.author_member_id=$1 AND a.publisher_id IS NULL AND a.status='published' AND EXISTS(SELECT 1 FROM wechat_identity w
           WHERE w.member_id=a.author_member_id AND w.provider='wechat_miniprogram' AND w.adapter='wechat' AND w.app_id=$3)
         UNION ALL
         SELECT 'formal',p.id,COALESCE(NULLIF(r.title,''),NULLIF(left(r.body,40),''),'图片护理故事'),left(r.body,100),
-          p.published_at,NULL,(SELECT '/v1/ugc/media/'||m.media_asset_id::text||'?variant=thumbnail' FROM ugc_post_media m
-            WHERE m.post_id=p.id AND m.revision=p.published_revision ORDER BY m.position LIMIT 1),
-          (SELECT count(*)::int FROM ugc_post_reaction x WHERE x.post_id=p.id AND x.kind='like')
+          p.published_at,NULL,CASE WHEN p.state='published' THEN '/v1/ugc/media/'||cover.media_asset_id::text||'?variant=thumbnail' END,
+          (SELECT count(*)::int FROM ugc_post_reaction x WHERE x.post_id=p.id AND x.kind='like'),
+          p.state='hidden',CASE WHEN p.state='hidden' THEN cover.media_asset_id END
         FROM ugc_post p JOIN ugc_post_revision r ON r.post_id=p.id AND r.revision=p.published_revision
-        WHERE p.author_member_id=$1 AND $2::boolean AND p.state='published' AND p.visibility='public'
+        LEFT JOIN LATERAL (
+          SELECT m.media_asset_id FROM ugc_post_media m
+          WHERE m.post_id=p.id AND m.revision=p.published_revision ORDER BY m.position LIMIT 1
+        ) cover ON true
+        WHERE p.author_member_id=$1 AND p.published_at IS NOT NULL
+          AND (($2::boolean AND p.state='published' AND p.visibility='public') OR ($8::boolean AND p.state='hidden'))
         UNION ALL
         SELECT 'ugc',f.id,f.title,f.excerpt,f.published_at,NULL,NULL,
-          COALESCE((SELECT c.like_count FROM community_post_stats c WHERE c.post_id=f.id::text),0)::int
+          COALESCE((SELECT c.like_count FROM community_post_stats c WHERE c.post_id=f.id::text),0)::int,false,NULL::uuid
         FROM feed_item f JOIN submission s ON s.id=f.submission_id WHERE s.member_id=$1 AND $2::boolean AND f.visible
       ), page AS (
         SELECT *,published_at::text AS cursor_at FROM posts
         WHERE ($4::timestamptz IS NULL OR (published_at,kind,id)<($4::timestamptz,$5::text,$6::uuid))
         ORDER BY published_at DESC,kind DESC,id DESC LIMIT $7
-      ) SELECT (SELECT count(*)::int FROM posts) AS post_count,
-        (SELECT count(*)::int FROM posts WHERE kind='formal') AS formal_count,
+      ) SELECT (SELECT count(*)::int FROM posts WHERE NOT hidden) AS post_count,
+        (SELECT count(*)::int FROM posts WHERE kind='formal' AND NOT hidden) AS formal_count,
         (SELECT id FROM posts WHERE kind='editorial' ORDER BY published_at DESC,id DESC LIMIT 1) AS follow_article_id,
         COALESCE((SELECT jsonb_agg(page ORDER BY published_at DESC,kind DESC,id DESC) FROM page),'[]'::jsonb) AS items`,
         [authorId,publicEnabled,this.config.wechat.appId===CANONICAL_WECHAT_MINIPROGRAM_APP_ID?this.config.wechat.appId:null,
-          cursor?.at??null,cursor?.kind??null,cursor?.id??null,limit+1])).rows[0];
-      const isMine=memberId===authorId;
+          cursor?.at??null,cursor?.kind??null,cursor?.id??null,limit+1,ownerView])).rows[0];
       if(!isMine&&!summary.post_count)throw unavailable();
       const publicAuthor=(await (summary.formal_count?publishedPostAuthors:communityAuthors)(client,[authorId],this.config.env))[authorId];
+      // Owner-only identity has its own projection. Public editorial stories
+      // share a current badge without widening the legacy profile field allowlist.
+      const identity = isMine || (summary.follow_article_id && !summary.formal_count)
+        ? (await memberDisplayIdentities(client,this.config.env,[authorId])).get(authorId)
+        : undefined;
+      const publicBadge = publicAuthor?.identityBadge ?? (summary.follow_article_id ? identity?.publicBadge : undefined);
       const personalName=(isMine?member.display_name:publicAuthor?.name)||'CISME 会员';
       const avatar=isMine?member.avatar_data_url||'':publicAuthor?.avatar||'';
       const rows=summary.items.slice(0,limit),last=rows.at(-1);
       return {author:{id:authorId,accountType:'member',name:personalName,avatar,avatarRevision:isMine?member.avatar_revision??null:publicAuthor?.avatarRevision??null,
-        identityBadge:publicAuthor?.identityBadge,membershipLabel:'CISME会员',bio:member.bio,bioRevision:isMine?member.bio_revision:null,
+        identityBadge:publicBadge,...(isMine&&identity?{displayIdentity:identity.privateIdentity}:{}),membershipLabel:'CISME会员',bio:member.bio,bioRevision:isMine?member.bio_revision:null,
         postCount:summary.post_count,following:member.following===true,isMine,canManage:false,canFollow:Boolean(summary.follow_article_id||summary.formal_count),followArticleId:summary.follow_article_id??null},
         items:rows.map((row:any)=>({id:row.id,kind:row.kind,authorId,author:row.editorial_author||personalName,avatar,
           avatarRevision:isMine?member.avatar_revision??null:publicAuthor?.avatarRevision??null,
-          identityBadge:publicAuthor?.identityBadge,title:row.title,excerpt:row.excerpt,coverUrl:row.cover_url,publishedAt:new Date(row.published_at).toISOString(),likeCount:row.like_count})),
-        nextCursor:summary.items.length>limit&&last?Buffer.from(JSON.stringify([1,authorId,memberId??null,last.cursor_at,last.kind,last.id])).toString('base64url'):null};
+          identityBadge:publicBadge,title:row.title,excerpt:row.hidden?'':row.excerpt,coverUrl:row.cover_url,publishedAt:new Date(row.published_at).toISOString(),likeCount:row.like_count,
+          ...(row.hidden?{hidden:true as const,hiddenCoverId:row.hidden_cover_id}:{})})),
+        nextCursor:summary.items.length>limit&&last?Buffer.from(JSON.stringify([cursorVersion,authorId,memberId??null,last.cursor_at,last.kind,last.id])).toString('base64url'):null};
     });
   }
 

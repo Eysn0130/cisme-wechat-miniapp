@@ -2,6 +2,7 @@ import { expect, it, vi } from "vitest";
 import { memberDisplayIdentities } from "../../services/api/src/displayIdentity";
 import { communityIdentityBadge, identityLabel, claimIdentityBadgeIntro, memberIdentityBadge } from "../../apps/miniprogram/services/display-identity";
 import { officialEditorialPublisherId } from "../../apps/miniprogram/services/editorial-publisher";
+import { feedColumnPatch, projectFeedCards } from "../../apps/miniprogram/services/feed-projection";
 
 it("uses effective administrative and explicit display grants together, and counts a sharing officer independently", async () => {
   const rows = [
@@ -45,4 +46,15 @@ it("reserves the official mark for the official account and plays an intro only 
   expect(claimIdentityBadgeIntro("sample-author","administrator")).toBe(true);
   expect(claimIdentityBadgeIntro("sample-author","administrator")).toBe(false);
   expect(claimIdentityBadgeIntro("another-author","administrator")).toBe(true);
+});
+
+it("projects the badge and private overlay independently, then replaces a restored text-only card", () => {
+  const story = { id:"story", kind:"formal", title:"护理故事", authorId:"officer", identityBadge:"sharing-officer" };
+  const hidden = projectFeedCards([{ ...story, hidden:true, hiddenCoverId:"cover" }]);
+  const restored = projectFeedCards([story]);
+  expect(hidden[0][0]).toMatchObject({ hidden:true, hiddenCoverId:"cover", identityBadge:"sharing-officer" });
+  expect(restored[0][0]).not.toHaveProperty("hidden");
+  expect(feedColumnPatch(hidden,restored)).toEqual({ "feedColumns[0][0]":restored[0][0] });
+  expect(feedColumnPatch(restored,projectFeedCards([{ ...story, identityBadge:undefined }])))
+    .toMatchObject({ "feedColumns[0][0]":{ identityBadge:"" } });
 });

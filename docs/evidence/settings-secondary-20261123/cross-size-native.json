@@ -1,0 +1,73 @@
+{
+  "packageSourceSha256": "a004bf1cb7f67bca169e9a73b407b883e516188314a9f2d978aeee18cdbeee69",
+  "mode": "isolated synthetic member native rendering; no member writes",
+  "legal": {
+    "publicReadSucceeded": true,
+    "documents": [
+      {
+        "type": "privacy",
+        "version": "2026-11-18-v3-guest-store"
+      },
+      {
+        "type": "terms",
+        "version": "2026-11-18-v3-guest-store"
+      }
+    ]
+  },
+  "captures": [
+    {
+      "name": "legal-privacy",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/cross-size-a004bf1cb7f6-legal-privacy-412.png",
+      "geometry": {
+        "route": "pages/legal/index",
+        "width": 412,
+        "controls": []
+      }
+    },
+    {
+      "name": "legal-terms",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/cross-size-a004bf1cb7f6-legal-terms-412.png",
+      "geometry": {
+        "route": "pages/legal/index",
+        "width": 412,
+        "controls": []
+      }
+    },
+    {
+      "name": "rights-empty",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/cross-size-a004bf1cb7f6-rights-empty-412.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 412,
+        "controls": []
+      }
+    },
+    {
+      "name": "rights-close",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/cross-size-a004bf1cb7f6-rights-close-412.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 412,
+        "controls": []
+      }
+    },
+    {
+      "name": "rights-withdraw-error",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/cross-size-a004bf1cb7f6-rights-withdraw-error-412.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 412,
+        "controls": []
+      }
+    },
+    {
+      "name": "rights-reply",
+      "path": "/Users/mini/.codex/visualizations/2026/11/23/cisme-settings-secondary/cross-size-a004bf1cb7f6-rights-reply-412.png",
+      "geometry": {
+        "route": "pages/privacy-rights/index",
+        "width": 412,
+        "controls": []
+      }
+    }
+  ]
+}

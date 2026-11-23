@@ -513,13 +513,14 @@ export class FormalUgcService{
       matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_report WHERE reporter_member_id=$1`,
         [owner])).rows[0]?.n??0;
     }else if(section==="appeals"){
-      const result=await this.pool.query(`SELECT id,post_id,reason,state,decision_code,decision_reason,created_at,
-        decided_at,created_at::text AS cursor_at FROM ugc_post_appeal WHERE author_member_id=$1
-          AND ($2::timestamptz IS NULL OR (created_at,id)<($2::timestamptz,$3::uuid))
-        ORDER BY created_at DESC,id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
+      const result=await this.pool.query(`SELECT a.id,a.post_id,a.reason,a.state,a.decision_code,a.decision_reason,a.created_at,
+        a.decided_at,a.created_at::text AS cursor_at,p.state='deleted' AS post_deleted
+        FROM ugc_post_appeal a JOIN ugc_post p ON p.id=a.post_id WHERE a.author_member_id=$1
+          AND ($2::timestamptz IS NULL OR (a.created_at,a.id)<($2::timestamptz,$3::uuid))
+        ORDER BY a.created_at DESC,a.id DESC LIMIT $4`,[owner,cursor?.at??null,cursor?.id??null,limit+1]);
       rows=result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,postId:row.post_id,reason:row.reason,
         state:row.state,decisionCode:row.decision_code,decisionReason:row.decision_reason,
-        createdAt:row.created_at,decidedAt:row.decided_at}));
+        createdAt:row.created_at,decidedAt:row.decided_at,postDeleted:row.post_deleted}));
       matchingTotal=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_post_appeal WHERE author_member_id=$1`,
         [owner])).rows[0]?.n??0;
     }else{
@@ -1101,7 +1102,8 @@ export class FormalUgcService{
       LEFT JOIN LATERAL(SELECT reason,reviewer_member_id,evidence FROM ugc_post_review_action
         WHERE post_id=a.post_id AND decision='hide' ORDER BY created_at DESC LIMIT 1) hidden ON true
       LEFT JOIN ugc_report hide_report ON hide_report.id=(hidden.evidence->>'reportId')::uuid
-      WHERE a.state='received' AND a.author_member_id<>$4::uuid
+      WHERE a.state='received' AND p.state='hidden' AND p.version=a.post_version AND p.published_revision=a.published_revision
+        AND a.author_member_id<>$4::uuid
         AND hidden.reviewer_member_id IS DISTINCT FROM $4::uuid
         AND hide_report.reporter_member_id IS DISTINCT FROM $4::uuid
         AND ($1::timestamptz IS NULL OR (a.created_at,a.id)<($1::timestamptz,$2::uuid))
@@ -1112,11 +1114,12 @@ export class FormalUgcService{
       postState:row.post_state,currentPostVersion:row.current_post_version,title:row.title,body:row.body,
       hiddenReason:row.hidden_reason,hiddenByMemberId:row.hidden_by_member_id,
       hideReporterMemberId:row.hide_reporter_member_id})),limit,scope);
-    const total=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM ugc_post_appeal a
+    const total=(await this.pool.query<{n:number}>(`SELECT count(*)::int AS n FROM ugc_post_appeal a JOIN ugc_post p ON p.id=a.post_id
       LEFT JOIN LATERAL(SELECT reviewer_member_id,evidence FROM ugc_post_review_action
         WHERE post_id=a.post_id AND decision='hide' ORDER BY created_at DESC LIMIT 1) hidden ON true
       LEFT JOIN ugc_report hide_report ON hide_report.id=(hidden.evidence->>'reportId')::uuid
-      WHERE a.state='received' AND a.author_member_id<>$1::uuid
+      WHERE a.state='received' AND p.state='hidden' AND p.version=a.post_version AND p.published_revision=a.published_revision
+        AND a.author_member_id<>$1::uuid
         AND hidden.reviewer_member_id IS DISTINCT FROM $1::uuid
         AND hide_report.reporter_member_id IS DISTINCT FROM $1::uuid`,[memberId])).rows[0]?.n??0;
     return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};

@@ -81,7 +81,8 @@ export interface CommunityFollowingCard {
 }
 export interface CommunityFollowingPage { items: CommunityFollowingCard[]; nextCursor: string | null }
 export interface CommunityAuthorPage extends CommunityFollowingPage {
-  author:{id:string;accountType:'member'|'official';name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;identityBadge?:CommunityIdentityBadge | undefined;
+  items: Array<CommunityFollowingCard & {hidden?: true; hiddenCoverId?: string | null}>;
+  author:{id:string;accountType:'member'|'official';name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;identityBadge?:CommunityIdentityBadge | undefined;displayIdentity?:MemberDisplayIdentity;
     postCount:number;following:boolean;isMine:boolean;canManage:boolean;canFollow:boolean;followArticleId:string|null};
 }
 export interface EditorialAuthorPage extends EditorialPage {

@@ -1,16 +1,17 @@
 import { pageRead } from "./page-requests";
 import { localMemberAvatar } from "./member-avatar";
-import { communityIdentityBadge, identityLabel, type CommunityIdentityBadge } from "./display-identity";
+import { communityIdentityBadge, identityLabel, memberIdentityBadge, type CommunityIdentityBadge, type MemberDisplayIdentity } from "./display-identity";
 import { editorialIdentifier, editorialMediaSrc } from "./editorial";
 import { editorialPublisherAvatar, officialEditorialPublisherId } from "./editorial-publisher";
 import type { FeedCard } from "./feed-projection";
 
 export interface CommunityAuthor {
-  id:string;name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;identityBadge?:CommunityIdentityBadge | "";
+  id:string;name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;identityBadge?:CommunityIdentityBadge | ReturnType<typeof memberIdentityBadge>;displayIdentity?:MemberDisplayIdentity;
   accountType?:"member"|"official";canManage?:boolean;
   postCount:number;following:boolean;isMine:boolean;canFollow:boolean;followArticleId:string|null;
 }
 export interface CommunityProfilePage {author:CommunityAuthor;items:FeedCard[];nextCursor:string|null}
+
 export function canEditCommunityBio(author:CommunityAuthor|null):boolean{
   return Boolean(author&&(author.isMine&&author.id!==officialEditorialPublisherId||
     author.id===officialEditorialPublisherId&&author.accountType==="official"&&author.canManage===true));
@@ -20,7 +21,7 @@ export async function readCommunityProfile(page:object,authorId:string,mine:bool
   if(!mine&&!editorialIdentifier(authorId))throw new Error("COMMUNITY_AUTHOR_INVALID");
   const path=mine?"/v1/me/community-profile":`/v1/community/authors/${encodeURIComponent(authorId)}`;
   const result=await pageRead<{author:CommunityAuthor;items:any[];nextCursor:string|null}>(page,{
-    path:`${path}?limit=20${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`,authMode:mine?"required":"optional"
+    path:`${path}?limit=20${mine?"&includeHidden=1":""}${cursor?`&cursor=${encodeURIComponent(cursor)}`:""}`,authMode:mine?"required":"optional"
   });
   const author=result?.author;
   if(!author||!editorialIdentifier(author.id)||(!mine&&author.id!==authorId)||(mine&&!author.isMine)||
@@ -41,14 +42,27 @@ export async function readCommunityProfile(page:object,authorId:string,mine:bool
   const items=await Promise.all(result.items.map(async item=>{
     if(!editorialIdentifier(item?.id)||item.authorId!==author.id||!["editorial","formal","ugc"].includes(item.kind))
       throw new Error("COMMUNITY_PROFILE_INVALID");
+    if(item.hidden===true&&(!mine||!author.isMine||item.kind!=="formal"))throw new Error("COMMUNITY_PROFILE_INVALID");
     return {id:item.id,kind:item.kind,title:item.title,author:item.author,
       identityBadge:communityIdentityBadge(item.identityBadge,item.authorId),
-      image:item.kind==="editorial"?editorialMediaSrc(item.coverUrl)
+      image:item.hidden===true?"":item.kind==="editorial"?editorialMediaSrc(item.coverUrl)
         :/^\/v1\/ugc\/media\/[0-9a-f-]{36}\?variant=thumbnail$/i.test(item.coverUrl??"")?origin+item.coverUrl:"",
       avatar:item.kind==="editorial"?editorialPublisherAvatar(item.author,await localMemberAvatar(item.avatar,item.avatarRevision),item.authorId)
         :await localMemberAvatar(item.avatar,item.avatarRevision),
-      engagementLabel:"",compactImage:false};
+      engagementLabel:"",compactImage:false,
+      ...(item.hidden===true?{hidden:true as const,hiddenCoverId:editorialIdentifier(item.hiddenCoverId)?item.hiddenCoverId:undefined}:{})};
   }));
-  const identityBadge = communityIdentityBadge(author.identityBadge, author.id);
-  return {author:{...author,avatar,identityBadge,membershipLabel:identityLabel(identityBadge) || author.membershipLabel},items,nextCursor:result.nextCursor};
+  const { displayIdentity, ...publicAuthor } = author;
+  const ownIdentity = author.isMine ? displayIdentity : undefined;
+  const identityBadge = ownIdentity ? memberIdentityBadge(ownIdentity) : communityIdentityBadge(author.identityBadge,author.id);
+  return {author:{...publicAuthor,avatar,identityBadge,membershipLabel:identityLabel(ownIdentity || identityBadge) || author.membershipLabel},items,nextCursor:result.nextCursor};
+}
+
+export async function readHiddenCover(page:object,ownerId:string,postId:string,mediaId:string):Promise<string>{
+  const origin=getApp<IAppOption>().globalData.apiBaseUrl.replace(/\/$/,"");
+  const prefix=`${origin}/v1/ugc/own-preview/${ownerId}/${mediaId}?token=`;
+  const result=await pageRead<{url:string}>(page,{path:`/v1/me/ugc/posts/${postId}/media/${mediaId}/preview-url`,authMode:"required"});
+  if(typeof result?.url!=="string"||!result.url.startsWith(prefix))return "";
+  const [expires,sourcePost,signature,extra]=result.url.slice(prefix.length).split(".");
+  return /^\d{13}$/.test(expires??"")&&sourcePost===postId&&/^[\w-]{43}$/.test(signature??"")&&extra===undefined?result.url:"";
 }

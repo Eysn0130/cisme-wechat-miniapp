@@ -1,8 +1,9 @@
 <view class="chrome-root {{reducedMotion ? 'composer--reduced' : ''}}" style="{{chromeStyle}}" bindtouchstart="guardMediaDragTouch">
   <view class="topbar">
     <button class="topbar__back {{busy || uploadBusy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="back" disabled="{{busy || uploadBusy || recoveryBusy}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/></button>
-    <button wx:if="{{!listMode}}" class="composer-drafts-shortcut {{busy || uploadBusy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="showMyPosts" disabled="{{busy || uploadBusy || recoveryBusy}}">我的投稿</button>
+    <button wx:if="{{!listMode && state !== 'hidden'}}" class="composer-drafts-shortcut {{busy || uploadBusy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="showMyPosts" disabled="{{busy || uploadBusy || recoveryBusy}}">我的投稿</button>
     <text wx:if="{{listMode}}" class="topbar__title">我的投稿</text>
+    <text wx:elif="{{state === 'hidden'}}" class="topbar__title">下架作品</text>
   </view>
   <view class="page page--stack composer-page {{!listMode ? 'composer-page--editing' : ''}} {{!listMode && publicGateUnknown ? 'composer-page--status-retry' : ''}}">
     <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在加载投稿"><view class="page-read-loading__indicator"/></view>
@@ -50,14 +51,16 @@
       <view wx:if="{{state === 'deleted'}}" class="composer-status"><text>这篇内容已删除</text><text class="composer-help">已停止公开展示，不能继续编辑或提交。</text><text wx:if="{{dirty}}" class="composer-help">修改尚未保存，离开前请复制文字或保存图片。</text></view>
       <view wx:if="{{state === 'pending_review' || state === 'awaiting_publication'}}" class="composer-result" aria-live="polite">
         <text class="composer-result__title">{{directPublication ? '正在发布' : '待重新发布'}}</text>
-        <text class="composer-help">{{directPublication ? '安全检查完成后自动公开。' : '内容尚未公开，请修改后重新发布。'}}</text>
+        <text wx:if="{{!directPublication}}" class="composer-help">请修改后重新发布。</text>
         <view class="composer-result__actions"><button class="text-button composer-action--primary" bindtap="refreshPublication">刷新状态</button><button class="text-button composer-action--quiet" bindtap="editPendingPublication">修改内容</button><button class="text-button composer-action--quiet" bindtap="showMyPosts">我的投稿</button><button class="text-button composer-action--quiet" bindtap="returnToCommunity">返回社区</button></view>
       </view>
-      <view wx:if="{{state === 'hidden'}}" class="composer-status">这篇内容已下架。{{hiddenReason ? '处理依据：' + hiddenReason : '请查看处理记录。'}}
-        <view wx:if="{{hiddenPublished}}" class="composer-hidden-summary"><text>被下架的公开版本</text><text>{{hiddenPublished.title || '图片护理故事'}}</text><text wx:if="{{hiddenPublished.body}}">{{hiddenPublished.body}}</text></view>
-        <text wx:if="{{appeal}}">{{appeal.state === 'received' ? '申诉已收到，等待另一名工作人员复核。' : appeal.state === 'resolved' ? '申诉通过，内容已恢复。' : '申诉未通过。'}}{{appeal.decisionReason ? ' · ' + appeal.decisionReason : ''}}</text>
-        <text wx:if="{{dirty}}" class="composer-help">修改尚未保存，离开前请复制文字或保存图片。重新打开后可申请申诉。</text>
-        <button wx:if="{{!appeal}}" class="secondary {{busy || recoveryBusy || dirty ? 'secondary--disabled' : ''}} {{busy || recoveryBusy || dirty ? 'control--disabled' : ''}}" bindtap="submitAppeal" disabled="{{busy || recoveryBusy || dirty}}" loading="{{operation === 'appealing'}}">申请内容申诉</button>
+      <view wx:if="{{state === 'hidden'}}" class="composer-status composer-takedown">
+        <text wx:if="{{hiddenPublished}}" class="composer-takedown__title">{{hiddenPublished.title || (hiddenPublished.body ? '文字作品' : '图片作品')}}</text>
+        <view wx:if="{{hiddenReason}}" class="composer-takedown__reason"><text class="composer-help">下架原因</text><text>{{hiddenReason}}</text></view>
+        <view wx:if="{{appeal}}" class="composer-takedown__reason" aria-live="polite"><text class="composer-takedown__title">{{appeal.state === 'received' ? '申诉处理中' : appeal.state === 'resolved' ? '已恢复展示' : '维持下架'}}</text><text wx:if="{{appeal.decisionReason}}">{{appeal.decisionReason}}</text></view>
+        <text wx:if="{{dirty}}" class="composer-help">请先保留修改的文字或图片，重新打开后再申诉。</text>
+        <button wx:if="{{appealCheckNeeded}}" class="text-button composer-takedown__action {{busy || recoveryBusy ? 'control--disabled' : ''}}" bindtap="retryLoad" disabled="{{busy || recoveryBusy}}">刷新作品状态</button>
+        <button wx:elif="{{!appeal && hiddenPublished}}" class="primary composer-takedown__action {{busy || recoveryBusy || dirty ? 'primary--disabled' : ''}} {{busy || recoveryBusy || dirty ? 'control--disabled' : ''}}" bindtap="submitAppeal" disabled="{{busy || recoveryBusy || dirty}}" loading="{{operation === 'appealing'}}">申诉</button>
       </view>
       <view wx:if="{{state === 'rejected'}}" class="composer-status"><text>需要修改后重新提交</text><text class="composer-help">{{reviewNote || '请核对内容说明并修改后，再发布。'}}{{reviewedLabel ? ' · ' + reviewedLabel : ''}}</text></view>
       <view wx:if="{{state === 'pending_review' || state === 'awaiting_publication' || ((state === 'deleted' || state === 'hidden') && dirty)}}" class="composer-readonly">
@@ -94,7 +97,7 @@
         <view class="composer-field composer-field--title"><input class="composer-title-input" confirm-type="done" value="{{title}}" bindinput="editTitle" bindkeyboardheightchange="onKeyboardHeightChange" adjust-position="{{true}}" cursor-spacing="20" disabled="{{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery}}" maxlength="120" placeholder="添加标题" placeholder-class="composer-placeholder" aria-label="标题，选填，最多120字"/><text wx:if="{{title.length >= 100}}" class="composer-counter">{{title.length}}/120</text></view>
         <view class="composer-field composer-field--body"><textarea class="composer-body-input" value="{{body}}" focus="{{bodyFocused}}" bindinput="editBody" bindkeyboardheightchange="onKeyboardHeightChange" adjust-position="{{true}}" cursor-spacing="20" disabled="{{mediaDragging || busy || uploadBusy || recoveryBusy || writeRecovery}}" maxlength="5000" auto-height="{{true}}" show-confirm-bar="{{true}}" confirm-type="done" placeholder="{{rewardKind === 'experience' ? '记录使用过程、使用时长和真实感受…' : '分享此刻的想法…'}}" placeholder-class="composer-placeholder" aria-label="护理故事正文，文字和图片至少一种，最多5000字"/><text wx:if="{{body.length >= 4800}}" class="composer-counter">{{body.length}}/5000</text></view>
       </block>
-      <view wx:if="{{state === 'hidden' || state === 'deleted'}}" class="composer-result__actions"><button class="text-button composer-action--primary" bindtap="showMyPosts">我的投稿</button><button class="text-button composer-action--quiet" bindtap="returnToCommunity">返回社区</button></view>
+      <view wx:if="{{state === 'deleted'}}" class="composer-result__actions"><button class="text-button composer-action--primary" bindtap="showMyPosts">我的投稿</button><button class="text-button composer-action--quiet" bindtap="returnToCommunity">返回社区</button></view>
     </block>
   </view>
   <view wx:if="{{!listMode && !loading && !publicationComplete && postId && (state === 'draft' || state === 'rejected' || state === 'published') && !keyboardVisible}}" class="composer-actions">

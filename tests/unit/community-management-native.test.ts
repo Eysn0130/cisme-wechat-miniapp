@@ -47,7 +47,17 @@ it('changing accounts inside confirmation cannot delete the previous member post
  const d=deferred();m.modal.mockReturnValueOnce(d.promise);const pending=p.act(tap('delete'));m.token='admin-b';d.resolve({confirm:true});await pending;expect(m.change).not.toHaveBeenCalled();expect(p.data.rows).toEqual([]);
 });
 it('a stale version refreshes authoritative data without automatically retrying the write',async()=>{
+ m.modal.mockResolvedValueOnce({confirm:true,content:'原作品含他人的个人信息'});
  m.change.mockRejectedValueOnce({status:409});m.read.mockResolvedValueOnce(page([row({version:5})]));await p.act(tap('hide'));expect(m.change).toHaveBeenCalledTimes(1);expect(p.data.rows[0].version).toBe(5);expect(p.data.error).toContain('已刷新');
+});
+it('requires a meaningful reason in the existing takedown confirmation and sends it with the post version',async()=>{
+ m.modal.mockResolvedValueOnce({confirm:true,content:'   '});await p.act(tap('hide'));
+ expect(m.change).not.toHaveBeenCalled();expect(p.data.rows).toHaveLength(1);
+ m.modal.mockResolvedValueOnce({confirm:true,content:'  原作品含他人的个人信息  '});
+ m.read.mockResolvedValueOnce(page([]));await p.act(tap('hide'));
+ expect(m.modal).toHaveBeenLastCalledWith(expect.objectContaining({editable:true,placeholderText:'填写下架原因，作者可见'}));
+ expect(m.change).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({id,version:4}),'hide','原作品含他人的个人信息');
+ expect(p.data.rows).toEqual([]);
 });
 it('an unknown write outcome remains unconfirmed and is not sent again',async()=>{
  m.change.mockRejectedValueOnce(new Error('network'));await p.act(tap('delete'));expect(m.change).toHaveBeenCalledTimes(1);expect(wxMock.showToast).not.toHaveBeenCalled();expect(p.data.rows).toHaveLength(1);expect(p.data.error).toContain('结果暂未确认');

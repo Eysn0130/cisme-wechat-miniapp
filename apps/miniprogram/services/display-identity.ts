@@ -2,6 +2,7 @@ import { officialEditorialPublisherId } from "./editorial-publisher";
 
 export type CommunityIdentityBadge = "sharing-officer" | "administrator" | "official";
 type MemberIdentityBadge = "sharing-officer" | "administrator" | "support";
+export type MemberDisplayIdentity = "member" | MemberIdentityBadge;
 const labels: Record<string, string> = {
   member: "普通会员",
   "sharing-officer": "分享官",

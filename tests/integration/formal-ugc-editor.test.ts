@@ -279,8 +279,22 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   const hiddenOwn=(await openApp.inject({method:"GET",url:`/v1/me/ugc/posts/${draft.id}`,headers:auth(owner)})).json();
   expect(hiddenOwn).toMatchObject({state:"hidden",version:10,hiddenReason:"核实后下架合成测试帖子"});
   expect(hiddenOwn.hiddenPublished.body).toBe("");
-  expect((await openApp.inject({method:"GET",url:"/v1/me/ugc/posts",headers:auth(owner)})).json().items)
-    .toContainEqual(expect.objectContaining({id:draft.id,state:"hidden"}));
+  const ownerProfile=await openApp.inject({url:"/v1/me/community-profile?includeHidden=1",headers:auth(owner)});
+  expect(ownerProfile.statusCode,ownerProfile.body).toBe(200);
+  expect(ownerProfile.json().items).toContainEqual(expect.objectContaining({
+    id:draft.id,kind:"formal",title:"图片护理故事",hidden:true,hiddenCoverId:upload.mediaId,coverUrl:null,excerpt:""
+  }));
+  const otherProfile=await openApp.inject({url:"/v1/me/community-profile?includeHidden=1",headers:auth(other)});
+  expect(otherProfile.statusCode,otherProfile.body).toBe(200);
+  expect(otherProfile.json().items).not.toContainEqual(expect.objectContaining({id:draft.id}));
+  const publicProfile=await openApp.inject({url:`/v1/community/authors/${owner.memberId}?includeHidden=1`,headers:auth(owner)});
+  expect(publicProfile.statusCode,publicProfile.body).toBe(200);
+  expect(publicProfile.json().items).not.toContainEqual(expect.objectContaining({id:draft.id}));
+  const ownerCover=await openApp.inject({url:`/v1/me/ugc/posts/${draft.id}/media/${upload.mediaId}/preview-url`,headers:auth(owner)});
+  expect(ownerCover.statusCode,ownerCover.body).toBe(200);
+  const coverUrl=new URL(ownerCover.json().url);
+  expect((await openApp.inject({url:coverUrl.pathname+coverUrl.search})).statusCode).toBe(200);
+  expect((await openApp.inject({url:`/v1/me/ugc/posts/${draft.id}/media/${upload.mediaId}/preview-url`,headers:auth(other)})).statusCode).toBe(404);
   expect((await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/appeals`,headers:auth(other),
     payload:{reason:"他人不能代为申诉",expectedVersion:10}})).statusCode).toBe(404);
   const appeal=await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/appeals`,headers:auth(owner),
@@ -312,6 +326,10 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect(restored.statusCode,JSON.stringify(restored.json())).toBe(200);
   expect(restored.json()).toMatchObject({state:"resolved",decisionCode:"restore",version:2});
   expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).json().body).toBe("");
+  const restoredProfile=await openApp.inject({url:"/v1/me/community-profile?includeHidden=1",headers:auth(owner)});
+  expect(restoredProfile.statusCode,restoredProfile.body).toBe(200);
+  expect(restoredProfile.json().items).toContainEqual(expect.objectContaining({id:draft.id,title:"图片护理故事"}));
+  expect(restoredProfile.json().items.find((item:{id:string})=>item.id===draft.id)?.hidden).toBeUndefined();
   expect((await openApp.inject({method:"GET",url:"/v1/me/ugc/activity/appeals",headers:auth(owner)})).json().items[0])
     .toMatchObject({state:"resolved",decisionCode:"restore"});
   expect((await openApp.inject({method:"POST",url:`/v1/management/ugc/appeals/${appeal.json().id}/decision`,

@@ -20,6 +20,54 @@ beforeEach(async()=>{
   await import("../../apps/miniprogram/pages/community-compose/index");
 });
 afterEach(()=>{for(const page of pages){page.stopPublicationTracking();if(page.backupTimer)clearTimeout(page.backupTimer);}vi.useRealTimers();});
+
+describe("appeals for a hidden published work",()=>{
+  const published={title:"被下架的原作",body:"合成作品正文"};
+  const appealId="dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  function hiddenPost(){
+    const page=editor({state:"hidden",hiddenPublished:published,dirty:false,version:7,requestedDraftId:post});
+    page.mediaVisible=true;
+    return page;
+  }
+
+  it("opens one reason prompt and sends one appeal for the displayed version",async()=>{
+    const page=hiddenPost(),prompt=deferred();wxMock.showModal.mockReturnValue(prompt.promise);
+    m.request.mockResolvedValue({id:appealId,state:"received"});
+    const submit=page.submitAppeal();await page.submitAppeal();
+    expect(wxMock.showModal).toHaveBeenCalledOnce();expect(m.request).not.toHaveBeenCalled();
+    prompt.resolve({confirm:true,content:"  已征得素材原作者同意  "});await submit;
+    expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:`/v1/me/ugc/posts/${post}/appeals`,method:"POST",data:{reason:"已征得素材原作者同意",expectedVersion:7}}));
+    expect(page.data).toMatchObject({appeal:{id:appealId,state:"received"},busy:false});
+    await page.submitAppeal();expect(m.request).toHaveBeenCalledOnce();
+  });
+
+  it("requires a readback after an unknown result and shows the existing appeal without writing again",async()=>{
+    const page=hiddenPost();wxMock.showModal.mockResolvedValue({confirm:true,content:"请核对原作的公开事实"});
+    m.request.mockRejectedValueOnce({code:"NETWORK_TIMEOUT"});await page.submitAppeal();
+    expect(page.data.appealCheckNeeded).toBe(true);expect(page.data.appeal).toBeNull();
+    await page.submitAppeal();expect(m.request).toHaveBeenCalledOnce();
+    m.request.mockResolvedValueOnce(draft({state:"hidden",version:7,hiddenPublished:published,appeal:{id:appealId,state:"received"}}));
+    page.retryLoad();await flush();
+    expect(page.data).toMatchObject({appeal:{id:appealId,state:"received"},appealCheckNeeded:false});
+    expect(m.request.mock.calls.filter(([options])=>options.method==="POST")).toHaveLength(1);
+  });
+
+  it("rejects a confirmation delivered after the author leaves or switches accounts",async()=>{
+    const page=hiddenPost(),prompt=deferred();wxMock.showModal.mockReturnValue(prompt.promise);
+    const submit=page.submitAppeal();page.onHide();m.token="member-b";
+    prompt.resolve({confirm:true,content:"请核对原作的公开事实"});await submit;
+    expect(m.request).not.toHaveBeenCalled();
+  });
+
+  it("clears the private takedown and appeal projection when the session ends",()=>{
+    const page=hiddenPost();
+    page.setData({hiddenReason:"合成下架说明",appeal:{id:appealId,state:"received"}});
+    page.lastSessionToken=m.token;m.token="";
+    page.onShow();
+    expect(page.data).toMatchObject({postId:"",hiddenReason:"",hiddenPublished:null,appeal:null,appealCheckNeeded:false});
+  });
+});
+
 describe("community composer command ownership",()=>{
   it("does not send confirmation if its recovery snapshot cannot be stored",async()=>{
     m.request.mockImplementation(async({path}:any)=>{

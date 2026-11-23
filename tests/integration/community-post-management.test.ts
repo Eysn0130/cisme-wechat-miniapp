@@ -75,8 +75,21 @@ it('moves the exact public revision between channels, preserves the author, awar
  expect((await featured()).json().items.some((x:any)=>x.id===p.id)).toBe(false);expect((await recommend()).json().items.some((x:any)=>x.id===p.id)).toBe(false);
  expect((await app.inject({url:`/v1/ugc/posts/${p.id}`})).statusCode).toBe(404);await rewards();expect(await balance(person)).toBe(0);
  expect((await listing('hidden')).json().items.find((x:any)=>x.id===p.id)).toMatchObject({body:p.body,state:'hidden',placement:'hidden'});
+ const appeal=await app.inject({method:'POST',url:`/v1/me/ugc/posts/${p.id}/appeals`,headers:auth(person),
+  payload:{expectedVersion:hidden.json().version,reason:'请复核这次下架原因'}});
+ expect(appeal.statusCode,appeal.body).toBe(200);
+ const queue=()=>app.inject({url:'/v1/management/ugc/appeals',headers:auth(otherAdmin)});
+ const pending=await queue();
+ expect(pending.statusCode,pending.body).toBe(200);
+ expect(pending.json().items).toContainEqual(expect.objectContaining({id:appeal.json().id}));
  const removed=await app.inject({method:'DELETE',url:`/v1/management/ugc/posts/${p.id}`,headers:auth(),payload:{expectedVersion:hidden.json().version}});expect(removed.statusCode,removed.body).toBe(200);
  expect((await listing('hidden')).json().items.some((x:any)=>x.id===p.id)).toBe(false);
+ const afterRemoval=await queue();
+ expect(afterRemoval.statusCode,afterRemoval.body).toBe(200);
+ expect(afterRemoval.json().matchingTotal).toBe(pending.json().matchingTotal-1);
+ expect(afterRemoval.json().items).not.toContainEqual(expect.objectContaining({id:appeal.json().id}));
+ expect((await app.inject({url:'/v1/me/ugc/activity/appeals',headers:auth(person)})).json().items)
+  .toContainEqual(expect.objectContaining({id:appeal.json().id,postDeleted:true}));
  expect((await pool.query('SELECT * FROM ugc_post_revision WHERE post_id=$1',[p.id])).rowCount).toBeGreaterThan(0);
  expect((await app.inject({method:'DELETE',url:`/v1/management/ugc/posts/${p.id}`,headers:auth(),payload:{expectedVersion:hidden.json().version}})).json()).toMatchObject({replayed:true,state:'deleted'});
  expect((await pool.query("SELECT principal_id FROM audit_log WHERE action='ugc.post_deleted' AND object_id=$1",[p.id])).rows).toEqual([{principal_id:`member:${admin.memberId}`}]);

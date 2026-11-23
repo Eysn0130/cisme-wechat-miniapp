@@ -2,7 +2,7 @@ import {afterAll,beforeAll,expect,it} from 'vitest';
 import {randomUUID} from 'node:crypto';
 import pg from 'pg';
 import {CANONICAL_WECHAT_MINIPROGRAM_APP_ID,loadConfig} from '@cisme/config';
-import {CISME_OFFICIAL_PUBLISHER} from '@cisme/contracts';
+import {CISME_OFFICIAL_PUBLISHER,type CommunityAuthorPage} from '@cisme/contracts';
 import {resetDatabase,testPool,TEST_DATABASE_URL} from '@cisme/testkit';
 import {createApp} from '../../services/api/src/server';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
@@ -79,8 +79,62 @@ it('shows only this author’s public stories across both sources, preserves pag
  expect((await read(undefined,author.id,'?cursor='+encodeURIComponent(page1.nextCursor))).statusCode).toBe(422);
  expect((await read(other,other.id,'?cursor='+encodeURIComponent(page1.nextCursor))).statusCode).toBe(422);
  const gated=await closed.inject({method:'GET',url:`/v1/community/authors/${author.id}`});expect(gated.statusCode).toBe(200);expect(gated.json().items.map((x:any)=>x.kind)).toEqual(['editorial']);expect(gated.json().author.postCount).toBe(1);
+ await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'community.moderate','fixture','profile takedown','test','integration_fixture')",[other.id]);
+ const postVersion=(await pool.query('SELECT version FROM ugc_post WHERE id=$1',[first])).rows[0].version;
+ const hidden=await app.inject({method:'POST',url:`/v1/management/ugc/posts/${first}/hide`,headers:headers(other),payload:{reason:'合成下架原因',expectedVersion:postVersion}});
+ expect(hidden.statusCode,hidden.body).toBe(200);
+ const ownerPages:CommunityAuthorPage['items']=[];
+ let ownCursor:string|null=null;
+ for(let i=0;i<3;i++){
+  const cursorQuery:string=ownCursor?'&cursor='+encodeURIComponent(ownCursor):'';
+  const result=await app.inject({url:'/v1/me/community-profile?includeHidden=1&limit=1'+cursorQuery,headers:headers(author)});
+  expect(result.statusCode,result.body).toBe(200);
+  const page:CommunityAuthorPage=result.json();expect(page.author.postCount).toBe(2);
+  expect(page.items).toHaveLength(1);
+  ownerPages.push(page.items[0]!);ownCursor=page.nextCursor;
+  if(i===0)expect((await read(author,author.id,'?cursor='+encodeURIComponent(ownCursor!))).statusCode).toBe(422);
+ }
+ expect(ownCursor).toBeNull();
+ expect(new Set(ownerPages.map(item=>item.id))).toEqual(new Set([first,second,curated.id]));
+ expect(ownerPages.find(item=>item.id===first)).toMatchObject({hidden:true,coverUrl:null,hiddenCoverId:null});
+ expect((await read(other)).json().items).not.toContainEqual(expect.objectContaining({id:first}));
  await pool.query('INSERT INTO ugc_block_relation(blocker_member_id,blocked_member_id) VALUES($1,$2)',[other.id,author.id]);expect((await read(other)).statusCode).toBe(404);expect((await read()).statusCode).toBe(200);
  await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[author.id]);expect((await read()).statusCode).toBe(404);
+});
+it('projects a verified badge across list, author, post and comments while keeping owner identity scoped',async()=>{
+ const officer=await actor('合成分享官作者'),visitor=await actor('合成普通评论者');
+ for(const who of [officer,visitor])await editorial.acceptCurrentLegal(who.id,who.principal,{consents:[{documentType:'terms',version:'profile-v1'},{documentType:'privacy',version:'profile-v1'}]});
+ await pool.query('INSERT INTO member_card_number(member_id) VALUES ($1) ON CONFLICT (member_id) DO NOTHING',[officer.id]);
+ await pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) SELECT member_id,user_code,'active' FROM member_card_number WHERE member_id=$1",[officer.id]);
+ const own=(await app.inject({url:'/v1/me/community-profile',headers:headers(officer)})).json();
+ expect(own.author).toMatchObject({isMine:true,displayIdentity:'sharing-officer',postCount:0});
+ expect((await read(undefined,officer.id)).statusCode).toBe(404);
+ const post=await publish(officer,'合成徽章投影帖子');
+ const list=await app.inject({url:'/v1/ugc/posts?channel=recommend'});
+ expect(list.json().items).toContainEqual(expect.objectContaining({id:post,identityBadge:'sharing-officer'}));
+ expect((await app.inject({url:'/v1/ugc/posts/'+post})).json()).toMatchObject({id:post,identityBadge:'sharing-officer'});
+ const publicProfile=(await read(undefined,officer.id)).json();
+ expect(publicProfile.author).toMatchObject({identityBadge:'sharing-officer',isMine:false});
+ expect(publicProfile.author).not.toHaveProperty('displayIdentity');
+ expect(publicProfile.items).toContainEqual(expect.objectContaining({id:post,identityBadge:'sharing-officer'}));
+ expect((await app.inject({method:'PUT',url:'/v1/me/ugc/follows/'+officer.id,headers:headers(visitor),payload:{active:true}})).statusCode).toBe(200);
+ const following=await app.inject({url:'/v1/me/community/following',headers:headers(visitor)});
+ expect(following.json().items).toContainEqual(expect.objectContaining({id:post,identityBadge:'sharing-officer'}));
+ for(const who of [officer,visitor]){
+  const posted=await app.inject({method:'POST',url:'/v1/ugc/posts/'+post+'/comments',
+   headers:{...headers(who),'idempotency-key':'badge-comment-'+randomUUID()},payload:{body:'合成身份证据评论'}});
+  expect(posted.statusCode,posted.body).toBe(200);
+ }
+ const comments=()=>app.inject({url:'/v1/ugc/posts/'+post+'/comments?reader=1',headers:headers(visitor)});
+ const shown=(await comments()).json().items;
+ expect(shown.find((item: {authorId:string})=>item.authorId===officer.id)).toMatchObject({identityBadge:'sharing-officer'});
+ expect(shown.find((item: {authorId:string})=>item.authorId===visitor.id)).not.toHaveProperty('identityBadge');
+ await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,'community.moderate','fixture','badge moderation fixture','test','integration_fixture'),($1,'community.admin_badge','fixture','badge projection fixture','test','integration_fixture')",[officer.id]);
+ expect((await read(undefined,officer.id)).json().author.identityBadge).toBe('administrator');
+ await pool.query("UPDATE authority_grant SET revoked_at=clock_timestamp(),revoked_by='fixture',revoke_reason='badge test withdrawal' WHERE member_id=$1 AND capability='community.admin_badge'",[officer.id]);
+ await pool.query("UPDATE sharing_officer SET state='suspended' WHERE member_id=$1",[officer.id]);
+ expect((await read(undefined,officer.id)).json().author).not.toHaveProperty('identityBadge');
+ expect((await comments()).json().items.find((item: {authorId:string})=>item.authorId===officer.id)).not.toHaveProperty('identityBadge');
 });
 it('allows an owner to remove the biography without sending empty text to the safety service',async()=>{
  const before=checked.length;const response=await save('',0,empty);expect(response.statusCode,response.body).toBe(200);expect(checked).toHaveLength(before);

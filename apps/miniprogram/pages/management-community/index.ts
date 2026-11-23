@@ -67,13 +67,25 @@ Page({
     const identity=owner(),epoch=++this.actionEpoch,current=()=>this.alive&&this.visible&&epoch===this.actionEpoch&&identity===owner();
     this.setData({busyId:row.id,error:''});
     try{
-      if(action==='hide'||action==='delete'){
-        const answer=await wx.showModal({title:action==='delete'?'删除这篇帖子？':'下架这篇帖子？',
-          content:action==='delete'?'帖子及评论将不再展示，相关奖励按规则撤回。删除后无法恢复。':'帖子将从社区隐藏，相关奖励按规则撤回。',
-          confirmText:action==='delete'?'删除':'下架',confirmColor:'#a8324a'});
+      if(action==='hide'){
+        const answer=await wx.showModal({title:'下架并撤回相关奖励？',editable:true,
+          placeholderText:'填写下架原因，作者可见',confirmText:'下架',confirmColor:'#a8324a'});
         if(!answer.confirm||!current())return;
+        const reason = (answer.content ?? '').trim();
+        if (reason.length < 4 || reason.length > 500) {
+          wx.showToast({title:'请填写 4–500 字的下架原因',icon:'none'});
+          return;
+        }
+        await changeCommunityPost(row,'hide',reason);
+      }else{
+        if(action==='delete'){
+          const answer=await wx.showModal({title:'删除这篇帖子？',
+            content:'帖子及评论将不再展示，相关奖励按规则撤回。删除后无法恢复。',
+            confirmText:'删除',confirmColor:'#a8324a'});
+          if(!answer.confirm||!current())return;
+        }
+        await changeCommunityPost(row,action as 'featured'|'recommend'|'delete');
       }
-      await changeCommunityPost(row,action as 'featured'|'recommend'|'hide'|'delete');
       if(!current())return;
       this.setData({busyId:'',detail:null,rows:this.data.rows.filter(r=>r.id!==row.id),total:this.data.total===null?null:Math.max(0,this.data.total-1)});
       wx.showToast({title:action==='featured'?'已移入精选':action==='recommend'?'已移回推荐':action==='hide'?'已下架':'已删除',icon:'success'});
