@@ -21,7 +21,7 @@ Page({
  sortName(v:string){return ({registered:'注册时间',number:'会员编号',paid:'实付金额',points:'可用积分',care:'护理天数',recent:'最近记录'} as Record<string,string>)[v]||'注册时间';},
  editSearch(e:WechatMiniprogram.Input){this.setData({q:e.detail.value});},
  search(){this.apply({...this.data.query,q:this.data.q.trim()});},
- changeView(e:WechatMiniprogram.CustomEvent){const view=sectionTabValue(e);if(!this.data.tabs.some(t=>t.id===view)||view===this.data.query.view)return;
+ changeView(e:WechatMiniprogram.CustomEvent){if(!this.current()||!this.data.scope||this.data.loading||this.data.loadingMore||this.data.exporting)return;const view=sectionTabValue(e);if(!this.data.tabs.some(t=>t.id===view)||view===this.data.query.view)return;
   if(this.data.scope&&this.data.resultReady&&!this.data.loading&&!this.data.loadingMore&&this.data.query.sort==='registered'){
    const available=columns(view,this.data.scope),choice=this.fieldChoice[view],fields=choice?available.filter(f=>choice.includes(f.id)):available.slice(0,3);
    this.setData({query:{...this.data.query,view},fields,items:this.raw.map(r=>rowView(r,fields,[])),selected:[],selecting:false,sheet:''});

@@ -51,6 +51,24 @@ Baseline: `b39f3de35647f4cae872723be58667d6b337b010` (main, PR #126). This is a 
 
 The read-only `inventory-tokens.py` scans all 71 native WXSS files, including 57 that already reference semantic tokens. It separates fallbacks from outside literal colors. Different literals are candidates for a role/contrast/native review, not automatic defects or permission for a bulk replacement.
 
+### Settings subpages and action recovery (2026-11-23)
+
+The next refinement starts from main `c2a504f09387d1b4b6efbf39ee3e6463716e82a8`. Review all direct settings destinations and inline editors: avatar/name, care profile, address book/editor, consent records, legal reader, data/account rights, About, and the capability-gated member-management entry. Existing management inspectors and commercial-member navigation remain owned by that flow; inspecting them does not authorize a management redesign or new permissions.
+
+| Confirmed problem | Required behavior / owner |
+| --- | --- |
+| The combined legal entry opens privacy only, with no terms switch | Reuse `section-tabs` in `pages/legal`; expose privacy and terms, and optional published cross-border text. Read the selected document, reject older responses, reset reading position on selection. Preserve the server document body, version and operator. |
+| Data-rights consent read errors silently resemble an empty list | Distinguish loading, successful empty and failure; expose a read retry while retaining the existing free-text request fallback. Bind replies to page, identity, context and read attempt. |
+| Request errors appear away from the field/action and survive a changed request kind | Show required-field/submission feedback beside the submit control, retain input on failure, focus the missing description, and clear obsolete feedback on an explicit kind change. Identity changes clear the new feedback too. |
+| Rights-page introduction repeats its form/record layout; field and picker styling drifts | Remove redundant introduction, keep meaningful retention/security consequences in context. Use opaque content surfaces and existing ink/muted/plum/danger, body/action type, spacing and control/card radius roles. Use the existing SVG caret, persistent field labels and 44 px controls. |
+| Busy navigation can look available while its handler rejects the action | Keep native disabled visuals and controller guards in lockstep for settings destinations. Prevent opening another editor during profile/phone/address/consent work or a leave confirmation. |
+| Existing care-profile completion is labelled as new setup | Last step says “保存档案” for an existing optional profile and “完成建档” for first/required setup. Reuse the same component, versioned writes and points receipts. |
+| A management read revocation clears member rows but leaves stale category tabs active | Hide category tabs until a current server scope exists, disable them during reads/exports, and reject category changes after scope loss. Preserve the current table/inspector design and backend capability checks. |
+
+Preserve `services/layout` and `.page--stack` top padding. Local page spacing must not replace measured status-bar/capsule avoidance. Long forms and records scroll in normal flow; logout stays at the approved safe-bottom location. No new global styles, component system, fake progress, legal acceptance, role grant or private-data mutation is introduced for visual QA.
+
+Current source-specific evidence and limits are indexed in `docs/evidence/settings-secondary-20261123/verification.json`. Native rendering fixtures, public legal reads, unit/contract checks and real-account/physical-device acceptance are separate evidence layers. Keep the full route and physical-device matrix blocked until its actual required checks pass; a successful status-file validator does not pass that matrix.
+
 - Profile/member-card CSS still has local muted/ink shades and rpx type sizes. Preserve approved member-card display numerals and holographic material; compare ordinary labels against shared small/body/action roles separately.
 - The shared address editor now uses existing ink/muted/plum/danger/type/control roles, explicit readable placeholders and the existing SVG chevron. Its selected address label and primary action keep their established surface/interaction roles. Do not copy its classes into each consuming page.
 - Care-onboarding keeps the accepted booklet layout and distinct steps. Its remaining local colors and 12/13/15 px sizes need a separate role-based review before changing an accepted questionnaire.
