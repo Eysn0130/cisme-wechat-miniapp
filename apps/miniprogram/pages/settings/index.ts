@@ -6,6 +6,7 @@ import { requireMemberAccess, retainMemberSnapshot } from "../../services/api";
 import { clearAuthenticationRedirectSuppression, request, resumeAuthentication, setSessionToken } from "../../services/api";
 import { currentChromeStyle, motionDuration } from "../../services/layout";
 import { authorityProjection, hasCapability } from "../../services/authority";
+import { beijingDateParts } from "../../services/business-time";
 import { emptyAddressDraft, makeStoredAddressDraft, mergeAddressDraft, parseQuickAddress, recoverStoredAddressDraft, touchAddressField, validateAddressDraft, type AddressDraft, type AddressField, type AddressLabel, type StoredAddressDraft } from "../../services/address-draft";
 
 function scrollToSettingsError() {
@@ -14,9 +15,24 @@ function scrollToSettingsError() {
 
 const consentPurposeLabels: Record<string, string> = {
   content_storage: "保存投稿资料",
-  human_review: "人工审核与风险复核",
-  feed_readonly: "审核通过后用于精选展示"
+  human_review: "历史投稿复核",
+  feed_readonly: "社区精选展示",
+  publication: "投稿内容发布"
 };
+
+type ContentGrant = { id: string; purpose: string; active?: boolean; granted_at?: string; revoked_at: string | null };
+
+function displayConsent(grant: ContentGrant) {
+  const grantedDate = grant.granted_at ? beijingDateParts(grant.granted_at).date : "";
+  const canRevoke = grant.active !== false && !grant.revoked_at;
+  return {
+    ...grant,
+    purposeLabel: consentPurposeLabels[grant.purpose] ?? "其他内容授权",
+    statusLabel: grant.revoked_at ? "已撤回" : canRevoke ? "已授权" : "已失效",
+    grantedDate,
+    canRevoke
+  };
+}
 
 function isAuthenticationFailure(error: unknown): boolean {
   const problem = error as { status?: number; code?: string };
@@ -44,7 +60,7 @@ Page({
   clipboardAttempt: 0,
   addressImportAttempt: 0,
   avatarAttempt: 0,
-  data: { careProfileOpen:false, avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "",...birthdayPicker(),birthdayDirty:false,birthdaySupported:false, profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as any[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
+  data: { careProfileOpen:false, avatarUrl: defaultMemberAvatar, avatarPayload: null as string | null, avatarChanged: false, avatarBusy: false, profileVersion: 0, profileCompleted: false, profileDirty: false, profileAttempt: 0, communityVisible: false, publicStatus: "private", publicReviewNote: "", nicknameInvalid: false, displayName: "", wechatHandle: "", memberId: "", memberCode: "",...birthdayPicker(),birthdayDirty:false,birthdaySupported:false, profileBusy: false, profileReady: false, profileError: "", authenticated: false, phoneLoading: false, phoneEnabled: false, phoneBound: false, phoneMasked: "", phoneBusy: false, phoneError: "", leavePromptOpen:false, editingProfile:false, editingAddresses:false, canManageMembers:false, addresses: [] as AddressView[], addressesEnabled:true, addressesReady:false, addressesLoading:false, addressesError:"", addressAttempt:0, addressBusy:false, addressDirty:false, addressEditorOpen:false, addressDraft:emptyAddressDraft(), addressQuickInput:"", addressParsing:false, addressParseStatus:"idle" as "idle"|"success"|"partial"|"failed", addressParseSummary:"", addressParseWarnings:[] as string[], addressFieldErrors:{} as Partial<Record<AddressField,string>>, addressConflict:false, addressRecoveryAvailable:false, addressRecoveryTime:"", chromeStyle: currentChromeStyle(), consents: [] as ReturnType<typeof displayConsent>[], loading: true, confirmingLogout: false, loggingOut: false, sessionStatus: "unknown", workingConsentId: "", loadAttempt: 0, revokeAttempt: 0, pageAlive: true, leaving: false, operationStatus: "", errorAction: "load" as "load" | "revoke" | "auth", error: "" },
   onLoad(query:Record<string,string|undefined>) { this.data.pageAlive = true; this.requestedAddressSection=query.section==="addresses"; this.requestedProfileSection=query.section==="profile"; if(this.requestedAddressSection)this.setData({editingAddresses:true}); else if(this.requestedProfileSection)this.setData({editingProfile:true}); },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
@@ -112,7 +128,7 @@ Page({
       if (!this.data.pageAlive || token !== getApp<IAppOption>().globalData.sessionToken || attempt !== this.data.loadAttempt) return;
       const profile = snapshot.settings.profile;
       this.setData({ authenticated:true,phoneEnabled:snapshot.settings.phone.enabled,phoneBound:snapshot.settings.phone.bound,phoneMasked:snapshot.settings.phone.masked || "",
-        consents:snapshot.settings.consents.map((item:any)=>({...item,purposeLabel:consentPurposeLabels[item.purpose] ?? "其他已记录用途许可"})),sessionStatus:"valid" });
+        consents:snapshot.settings.consents.map(displayConsent),sessionStatus:"valid" });
       snapshotReceived = true;
       if (this.data.profileDirty) return;
       const current=()=>this.data.pageAlive && this.profileVisible && !this.data.leaving && token === getApp<IAppOption>().globalData.sessionToken && attempt === this.data.loadAttempt;
@@ -468,9 +484,9 @@ Page({
     const attempt = this.data.loadAttempt + 1;
     this.setData({ loadAttempt: attempt, consents: [], loading: true, sessionStatus: "unknown", errorAction: "load", error: "" });
     try {
-      const consents = await request<any[]>({ path: "/v1/me/consents" });
+      const consents = await request<ContentGrant[]>({ path: "/v1/me/consents" });
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
-      this.setData({ consents: consents.map((item) => ({ ...item, purposeLabel: consentPurposeLabels[item.purpose] ?? "其他已记录用途许可" })), sessionStatus: "valid", error: "" });
+      this.setData({ consents: consents.map(displayConsent), sessionStatus: "valid", error: "" });
     } catch (error) {
       if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
       const invalid = isAuthenticationFailure(error);
@@ -482,16 +498,18 @@ Page({
   reauthenticate() { resumeAuthentication("/pages/settings/index"); },
   async revoke(event: WechatMiniprogram.TouchEvent) {
     const id = String(event.currentTarget.dataset.id ?? "");
-    const purpose = String(event.currentTarget.dataset.purpose ?? "这项用途许可");
-    if (!id || !this.data.pageAlive || this.data.leaving || this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) return;
+    const record = this.data.consents.find(item => item.id === id && item.canRevoke);
+    if (!record || this.data.loading || this.data.sessionStatus !== "valid" || !this.data.pageAlive || this.data.leaving || this.data.profileBusy || this.data.avatarBusy || this.data.phoneBusy || this.data.leavePromptOpen || this.data.workingConsentId || this.data.confirmingLogout || this.data.loggingOut) return;
+    const purpose = record.purposeLabel;
+    const token = getApp<IAppOption>().globalData.sessionToken;
     let confirmation: { confirm: boolean };
     try {
-      confirmation = await wx.showModal({ title: `确认撤回“${purpose}”？`, content: `撤回后不再将内容用于“${purpose}”；已有审核和积分记录仍会保留。`, confirmText: "确认撤回" });
+      confirmation = await wx.showModal({ title: `撤回「${purpose}」授权？`, content: record.purpose === "feed_readonly" ? "这份投稿将停止在社区精选展示。历史记录仍保留。" : "CISME 将停止按这项授权新增使用。历史记录仍保留。", confirmText: "确认撤回" });
     } catch {
       if (this.data.pageAlive) this.setData({ errorAction: "revoke", error: `暂时无法确认撤回“${purpose}”，请刷新授权记录后重试。` }, scrollToSettingsError);
       return;
     }
-    if (!confirmation.confirm || !this.data.pageAlive || this.data.workingConsentId) return;
+    if (!confirmation.confirm || !this.data.pageAlive || this.data.workingConsentId || token !== getApp<IAppOption>().globalData.sessionToken || this.data.sessionStatus !== "valid" || this.data.loading || !this.data.consents.some(item => item.id === id && item.canRevoke)) return;
     const attempt = this.data.revokeAttempt + 1;
     this.setData({ revokeAttempt: attempt, workingConsentId: id, operationStatus: "正在提交撤回请求…", error: "" });
     wx.enableAlertBeforeUnload({ message: "正在确认撤回结果，请稍等后再离开。" });

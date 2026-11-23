@@ -42,15 +42,15 @@
     </view>
     <view class="settings-label">隐私与账号</view>
     <view class="settings-group">
-      <view class="settings-row settings-row--status">
+      <view wx:if="{{consents.length || sessionStatus !== 'valid'}}" class="settings-row settings-row--status">
         <image aria-hidden="true" class="settings-row__icon" src="/assets/icons/images-plum.svg" mode="aspectFit"/>
-        <view class="settings-row__copy"><text class="settings-row__title">投稿使用授权</text><text class="settings-row__subtitle" aria-live="polite">{{loading ? '正在读取授权记录' : sessionStatus === 'valid' ? (consents.length ? consents.length + ' 项授权记录' : '尚无投稿使用授权') : '授权记录暂未确认'}}</text></view>
+        <view class="settings-row__copy"><text class="settings-row__title">内容使用授权</text><text wx:if="{{loading || sessionStatus !== 'valid'}}" class="settings-row__subtitle" aria-live="polite">{{loading ? '正在读取授权记录' : '授权记录暂未确认'}}</text></view>
         <view class="settings-row__separator" aria-hidden="true"/>
       </view>
       <view wx:if="{{consents.length}}" class="consent-list">
         <view wx:for="{{consents}}" wx:key="id" class="consent-item">
-          <view class="consent-item__copy"><text class="settings-strong">{{item.purposeLabel}}</text><text class="settings-caption">{{item.revoked_at ? '已撤回' : '有效'}}</text></view>
-          <button wx:if="{{!item.revoked_at}}" class="text-button {{!!workingConsentId || addressBusy ? 'text-button--disabled' : ''}}" data-id="{{item.id}}" data-purpose="{{item.purposeLabel}}" bindtap="revoke" loading="{{workingConsentId === item.id}}" disabled="{{!!workingConsentId || addressBusy}}" aria-label="撤回{{item.purposeLabel}}用途许可">撤回</button>
+          <view class="consent-item__copy"><text class="settings-strong">{{item.purposeLabel}}</text><text class="settings-caption">{{item.statusLabel}}{{item.grantedDate ? ' · 授权于 ' + item.grantedDate : ''}}</text></view>
+          <button wx:if="{{item.canRevoke && sessionStatus === 'valid'}}" class="text-button {{loading || !!workingConsentId || addressBusy ? 'text-button--disabled' : ''}}" data-id="{{item.id}}" bindtap="revoke" loading="{{workingConsentId === item.id}}" disabled="{{loading || !!workingConsentId || addressBusy}}" aria-label="撤回{{item.purposeLabel}}授权">撤回</button>
         </view>
       </view>
       <button class="settings-row {{leaving || !!workingConsentId || confirmingLogout || loggingOut || leavePromptOpen || profileBusy || avatarBusy || phoneBusy || addressBusy ? 'control--disabled' : ''}}" disabled="{{leaving || !!workingConsentId || confirmingLogout || loggingOut || leavePromptOpen || profileBusy || avatarBusy || phoneBusy || addressBusy}}" bindtap="openLegal"><image aria-hidden="true" class="settings-row__icon" src="/assets/icons/lock-key-plum.svg" mode="aspectFit"/><view class="settings-row__copy"><text class="settings-row__title">隐私政策与用户协议</text></view><image aria-hidden="true" class="settings-caret" src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/><view class="settings-row__separator" aria-hidden="true"/></button>

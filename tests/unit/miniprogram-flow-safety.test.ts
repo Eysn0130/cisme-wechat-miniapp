@@ -335,9 +335,9 @@ describe("mini program submission flow safety", () => {
     expect(postView).toContain('{{errorTitle}}');
     expect(postView).toContain('{{error}}');
     expect(postView).toContain('class="glass error-scene post-unavailable" aria-live="assertive" aria-atomic="true"');
-    expect(settingsView).toContain('data-purpose="{{item.purposeLabel}}"');
-    expect(settingsView).toContain('aria-label="撤回{{item.purposeLabel}}用途许可"');
-    expect(settings).toContain('title: `确认撤回“${purpose}”？`');
+    expect(settingsView).toContain('data-id="{{item.id}}" bindtap="revoke"');
+    expect(settingsView).toContain('aria-label="撤回{{item.purposeLabel}}授权"');
+    expect(settings).toContain('title: `撤回「${purpose}」授权？`');
     expect(settings).toContain("scrollToSettingsError");
   });
 

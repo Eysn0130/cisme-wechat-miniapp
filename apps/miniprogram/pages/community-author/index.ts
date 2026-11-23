@@ -5,16 +5,18 @@ import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, beginLegalRenewal, requireMemberAccess } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 import { editorialIdentifier, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
-import { readCommunityProfile, canEditCommunityBio, type CommunityAuthor } from "../../services/community-profile";
+import { readCommunityProfile, readHiddenCommunityPosts, canEditCommunityBio, type CommunityAuthor, type HiddenCommunityPost } from "../../services/community-profile";
 import { projectFeedCards, feedColumnPatch, type FeedCard } from "../../services/feed-projection";
 
 const message=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
 const stories=new WeakMap<object,FeedCard[]>();
+const emptyHiddenPosts = {hiddenPosts:[] as HiddenCommunityPost[],hiddenNextCursor:null as string|null,hiddenLoading:false,hiddenError:""};
 
 Page({
   readRevision:commerceContextRevision(),readVisible:true,lastSessionToken:"",bioAttempt:0,
   data:{chromeStyle:currentChromeStyle(),mine:false,authorId:"",author:null as CommunityAuthor|null,
     feedColumns:projectFeedCards([]),nextCursor:null as string|null,
+    ...emptyHiddenPosts,
     loading:true,loadingMore:false,busy:false,navigating:false,error:"",moreError:"",invalidId:false,epoch:0,
     bioOpen:false,bioDraft:"",bioBusy:false,bioError:"",bioVersion:0,bioConflict:false},
   onLoad(query:Record<string,string|undefined>){
@@ -30,11 +32,11 @@ Page({
     this.setData({loadingMore:false,busy:false,navigating:false});
     void this.load();
   },
-  onHide(){this.readVisible=false;this.data.epoch+=1;this.bioAttempt+=1;cancelPageReads(this);this.setData({bioBusy:false});},
+  onHide(){this.readVisible=false;this.data.epoch+=1;this.bioAttempt+=1;cancelPageReads(this);this.setData({bioBusy:false,...emptyHiddenPosts});},
   onUnload(){this.onHide();stories.delete(this);},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   current(epoch:number,token:string){return this.readVisible&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();},
-  clearProfile(){stories.delete(this);this.data.epoch+=1;this.setData({author:null,feedColumns:projectFeedCards([]),nextCursor:null,bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false,loadingMore:false,busy:false,bioBusy:false});},
+  clearProfile(){stories.delete(this);this.data.epoch+=1;this.setData({author:null,feedColumns:projectFeedCards([]),nextCursor:null,bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false,loadingMore:false,busy:false,bioBusy:false,...emptyHiddenPosts});},
   returnUrl(){return this.data.mine?"/pages/community-author/index?mine=1":`/pages/community-author/index?id=${encodeURIComponent(this.data.authorId)}`;},
   recoverExpiredRead(epoch:number,token:string,error:unknown){
     if(!this.readVisible||epoch!==this.data.epoch||!expiredEditorialRead(error,token))return false;
@@ -50,13 +52,14 @@ Page({
     this.readRevision=commerceContextRevision();this.lastSessionToken=token;
     const preserve=retainReadPresentation(this,`${this.data.mine}:${id}`)&&Boolean(this.data.author);
     if(!preserve)stories.delete(this);
-    this.setData({loading:true,invalidId:false,error:"",moreError:"",...(!preserve?{author:null,feedColumns:projectFeedCards([]),nextCursor:null}:{})});
+    this.setData({loading:true,invalidId:false,error:"",moreError:"",...emptyHiddenPosts,...(!preserve?{author:null,feedColumns:projectFeedCards([]),nextCursor:null}:{})});
     try{
       const result=await readCommunityProfile(this,id,this.data.mine);
       if(!this.current(epoch,token))return;
       stories.set(this,result.items);
       this.setData({...feedColumnPatch(this.data.feedColumns,projectFeedCards(result.items)),author:result.author,nextCursor:result.nextCursor,loading:false,
         ...(!canEditCommunityBio(result.author)&&this.data.bioOpen?{bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false}:{})});
+      if(token&&result.author.isMine)void this.loadHiddenPosts();
     }catch(error){
       if(this.recoverExpiredRead(epoch,token,error)||!this.current(epoch,token))return;
       // Revocation clears the projection. A temporary read failure can retain
@@ -65,6 +68,35 @@ Page({
       if(status===401||status===403||status===404||!preserve)this.clearProfile();
       this.setData({loading:false,error:message(error,"作者资料暂时无法加载，请重试。")});
     }
+  },
+  async loadHiddenPosts(){
+    const author = this.data.author, token = this.lastSessionToken, epoch = this.data.epoch;
+    if (!token || !author?.isMine || this.data.hiddenLoading || this.data.loading || this.data.error || !this.current(epoch,token)) return;
+    const cursor = this.data.hiddenNextCursor;
+    const current = () => this.current(epoch,token) && this.data.author?.isMine && this.data.author.id === author.id;
+    this.setData({hiddenLoading:true,hiddenError:""});
+    try {
+      const page = await readHiddenCommunityPosts(this,cursor);
+      if (!current()) return;
+      const items = new Map(this.data.hiddenPosts.map(item => [item.id,item]));
+      for (const item of page.items) items.set(item.id,item);
+      this.setData({hiddenPosts:[...items.values()],hiddenNextCursor:page.nextCursor});
+    } catch (error) {
+      if (!current()) return;
+      const status = (error as {status?:number})?.status;
+      this.setData({
+        ...([401,403,404].includes(status ?? 0) ? emptyHiddenPosts : {}),
+        hiddenError:"下架作品暂未读取，请重试。"
+      });
+    } finally {
+      if (current()) this.setData({hiddenLoading:false});
+    }
+  },
+  openHiddenPost(event:WechatMiniprogram.TouchEvent){
+    const id = String(event.currentTarget.dataset.id || "");
+    if (!this.data.author?.isMine || !this.lastSessionToken || this.data.hiddenLoading ||
+      !this.current(this.data.epoch,this.lastSessionToken) || !this.data.hiddenPosts.some(item => item.id === id)) return;
+    this.navigate(`/pages/community-compose/index?id=${encodeURIComponent(id)}`);
   },
   async onReachBottom(){
     const cursor=this.data.nextCursor;if(!cursor||this.data.loading||this.data.loadingMore||this.data.error)return;

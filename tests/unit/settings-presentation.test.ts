@@ -20,7 +20,7 @@ function mount(patch: Record<string, unknown> = {}) {
   rendered.push(view);
   return view;
 }
-const status = (view: any) => view.dom.querySelector(".settings-row--status .settings-row__subtitle").textContent;
+const status = (view: any) => view.dom.querySelector(".settings-row--status .settings-row__subtitle")?.textContent;
 const address = (view: any) => [...view.dom.querySelectorAll(".settings-row")]
   .find((row: any) => row.textContent.includes("收货地址")) as HTMLElement;
 afterEach(() => { for (const view of rendered.splice(0)) { view.detach(); } });
@@ -29,23 +29,23 @@ it("does not turn pending or failed authorization reads into a confirmed empty r
   expect(status(mount({ loading: true, sessionStatus: "unknown" }))).not.toContain("尚无");
   expect(status(mount({ sessionStatus: "unknown", error: "许可记录暂时无法加载" }))).toContain("暂未确认");
   expect(status(mount({ sessionStatus: "invalid", errorAction: "auth" }))).not.toContain("尚无");
-  expect(status(mount())).toContain("尚无投稿使用授权");
+  expect(mount().dom.textContent).not.toContain("内容使用授权");
 });
 
-it("counts historical authorization records without promising revoked records can be withdrawn again", () => {
+it("keeps historical authorization purposes and dates visible without offering withdrawal again", () => {
   const view = mount({ consents: [
-    { id: "synthetic-a", purposeLabel: "保存投稿资料", revoked_at: "2026-11-21" },
-    { id: "synthetic-b", purposeLabel: "精选展示", revoked_at: "2026-11-22" }
+    { id: "synthetic-a", purposeLabel: "保存投稿资料", statusLabel: "已撤回", grantedDate: "2026-11-21", canRevoke: false },
+    { id: "synthetic-b", purposeLabel: "社区精选展示", statusLabel: "已失效", grantedDate: "", canRevoke: false }
   ] });
-  expect(status(view)).toContain("2 项授权记录");
-  expect(status(view)).not.toContain("可逐项撤回");
+  expect(view.dom.textContent).toContain("保存投稿资料");
+  expect(view.dom.textContent).toContain("授权于 2026-11-21");
   expect(view.dom.querySelectorAll(".consent-item .text-button")).toHaveLength(0);
 });
 
 it("keeps withdrawal available only on currently active records", () => {
   const view = mount({ consents: [
-    { id: "synthetic-a", purposeLabel: "保存投稿资料", revoked_at: null },
-    { id: "synthetic-b", purposeLabel: "精选展示", revoked_at: "2026-11-22" }
+    { id: "synthetic-a", purposeLabel: "保存投稿资料", statusLabel: "已授权", canRevoke: true },
+    { id: "synthetic-b", purposeLabel: "社区精选展示", statusLabel: "已撤回", canRevoke: false }
   ] });
   expect(view.dom.querySelectorAll(".consent-item .text-button")).toHaveLength(1);
 });

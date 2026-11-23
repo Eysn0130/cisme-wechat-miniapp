@@ -14,10 +14,14 @@ export async function managedCommunityPosts(owner:object,state:PostPlacement,q:s
     throw {title:'帖子列表暂时无法读取，请重试'};
   return result;
 }
-export async function changeCommunityPost(row:Pick<ManagedCommunityPost,'id'|'version'>,action:'featured'|'recommend'|'hide'|'delete'){
+export async function changeCommunityPost(row:Pick<ManagedCommunityPost,'id'|'version'>,action:'featured'|'recommend'|'hide'|'delete',hideReason?:string){
   if(!communityPostId(row.id)||!Number.isSafeInteger(row.version)||row.version<1)throw {title:'请刷新帖子后重试'};
   const base=`/v1/management/ugc/posts/${row.id}`,data={expectedVersion:row.version};
   if(action==='delete')return request({path:base,method:'DELETE',data});
-  if(action==='hide')return request({path:base+'/hide',method:'POST',data:{...data,reason:'管理员下架公开帖子'}});
+  if(action==='hide'){
+    const reason = hideReason?.trim() ?? '';
+    if (reason.length < 4 || reason.length > 500) throw {title:'请填写 4–500 字的下架原因'};
+    return request({path:base+'/hide',method:'POST',data:{...data,reason}});
+  }
   return request({path:base+'/placement',method:'PUT',data:{...data,placement:action}});
 }

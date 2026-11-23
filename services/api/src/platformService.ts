@@ -982,7 +982,7 @@ export class PlatformService {
       if (!memberRow || memberRow.status !== "active") throw new DomainError("AUTH_REVOKED", "Member session is no longer active", 401);
       const care = scope === "settings" ? null : await this.careSnapshot(client, owner, now, { limit: scope === "home" ? 5 : 10 });
       const points = scope === "profile" ? await this.pointsSnapshot(client, owner, now, { limit: 10 }) : null;
-      const consents = scope === "settings" ? await client.query(`SELECT cg.id,cg.submission_id,cg.purpose,cg.granted_at,cg.granted_at::text AS cursor_at,rr.requested_at AS revoked_at,rr.reason AS revocation_reason
+      const consents = scope === "settings" ? await client.query(`SELECT cg.id,cg.submission_id,cg.purpose,cg.active,cg.granted_at,cg.granted_at::text AS cursor_at,rr.requested_at AS revoked_at,rr.reason AS revocation_reason
         FROM consent_grant cg LEFT JOIN revocation_request rr ON rr.consent_grant_id=cg.id WHERE cg.member_id=$1 ORDER BY cg.granted_at DESC,id DESC LIMIT 21`, [owner]) : null;
       const businessVersion = Math.max(Number(memberRow.profile_revision ?? 0), Number(care?.version ?? 0), Number(points?.projection?.version ?? 0));
       return { scope, asOf: asOf.toISOString(), businessVersion, member: memberRow, care, points, onboardingRequired:memberRow.care_onboarding_required,

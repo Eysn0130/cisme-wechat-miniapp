@@ -279,14 +279,22 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   const hiddenOwn=(await openApp.inject({method:"GET",url:`/v1/me/ugc/posts/${draft.id}`,headers:auth(owner)})).json();
   expect(hiddenOwn).toMatchObject({state:"hidden",version:10,hiddenReason:"核实后下架合成测试帖子"});
   expect(hiddenOwn.hiddenPublished.body).toBe("");
-  expect((await openApp.inject({method:"GET",url:"/v1/me/ugc/posts",headers:auth(owner)})).json().items)
-    .toContainEqual(expect.objectContaining({id:draft.id,state:"hidden"}));
+  const ownerHiddenList=await openApp.inject({url:"/v1/me/ugc/posts?state=hidden",headers:auth(owner)});
+  expect(ownerHiddenList.statusCode,ownerHiddenList.body).toBe(200);
+  expect(ownerHiddenList.json().items).toContainEqual(expect.objectContaining({
+    id:draft.id,state:"hidden",title:"图片护理故事",imageCount:1,appealState:null
+  }));
+  const otherHiddenList=await openApp.inject({url:"/v1/me/ugc/posts?state=hidden",headers:auth(other)});
+  expect(otherHiddenList.statusCode,otherHiddenList.body).toBe(200);
+  expect(otherHiddenList.json().items).not.toContainEqual(expect.objectContaining({id:draft.id}));
   expect((await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/appeals`,headers:auth(other),
     payload:{reason:"他人不能代为申诉",expectedVersion:10}})).statusCode).toBe(404);
   const appeal=await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/appeals`,headers:auth(owner),
     payload:{reason:"请复核这次下架所依据的内容",expectedVersion:10}});
   expect(appeal.statusCode,JSON.stringify(appeal.json())).toBe(200);
   expect(appeal.json()).toMatchObject({state:"received",alreadyCreated:false});
+  expect((await openApp.inject({url:"/v1/me/ugc/posts?state=hidden",headers:auth(owner)})).json().items)
+    .toContainEqual(expect.objectContaining({id:draft.id,appealState:"received"}));
   expect((await openApp.inject({method:"POST",url:`/v1/me/ugc/posts/${draft.id}/appeals`,headers:auth(owner),
     payload:{reason:"请复核这次下架所依据的内容",expectedVersion:10}})).json().alreadyCreated).toBe(true);
   expect((await openApp.inject({method:"GET",url:"/v1/me/ugc/activity/appeals",headers:auth(owner)})).json())
@@ -312,6 +320,8 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect(restored.statusCode,JSON.stringify(restored.json())).toBe(200);
   expect(restored.json()).toMatchObject({state:"resolved",decisionCode:"restore",version:2});
   expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).json().body).toBe("");
+  expect((await openApp.inject({url:"/v1/me/ugc/posts?state=hidden",headers:auth(owner)})).json().items)
+    .not.toContainEqual(expect.objectContaining({id:draft.id}));
   expect((await openApp.inject({method:"GET",url:"/v1/me/ugc/activity/appeals",headers:auth(owner)})).json().items[0])
     .toMatchObject({state:"resolved",decisionCode:"restore"});
   expect((await openApp.inject({method:"POST",url:`/v1/management/ugc/appeals/${appeal.json().id}/decision`,

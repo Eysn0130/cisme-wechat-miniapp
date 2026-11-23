@@ -15,6 +15,18 @@
         <button wx:if="{{author.isMine || author.canManage}}" class="author-bio author-bio--editable {{!author.bio ? 'author-bio--empty' : ''}} {{loading || !!error ? 'control--disabled' : ''}}" bindtap="openBio" disabled="{{loading || !!error}}" aria-label="{{author.accountType === 'official' ? '编辑官方简介' : author.bio ? '编辑简介：' + author.bio : '添加简介'}}"><text>{{author.bio || '添加简介'}}</text><image src="/assets/icons/note-pencil-plum.svg" mode="aspectFit" aria-hidden="true"/></button>
         <text wx:elif="{{author.bio}}" class="author-bio">{{author.bio}}</text>
       </view>
+      <view>
+        <view wx:if="{{author.isMine && (hiddenPosts.length || hiddenNextCursor || hiddenError)}}" class="author-hidden">
+          <text class="author-hidden__heading">已下架作品</text>
+          <button wx:for="{{hiddenPosts}}" wx:key="id" class="author-hidden__row {{hiddenLoading || navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openHiddenPost" disabled="{{hiddenLoading || navigating}}" aria-label="{{item.title}}，{{item.actionLabel}}">
+            <text class="author-hidden__title">{{item.title}}</text>
+            <text class="author-hidden__action">{{item.actionLabel}}</text>
+            <image src="/assets/icons/caret-right-muted.svg" mode="aspectFit" aria-hidden="true"/>
+          </button>
+          <view wx:if="{{hiddenError}}" class="author-hidden__error" aria-live="polite">{{hiddenError}}</view>
+          <button wx:if="{{hiddenNextCursor || hiddenError}}" class="text-button author-hidden__more {{hiddenLoading || navigating ? 'control--disabled' : ''}}" bindtap="loadHiddenPosts" disabled="{{hiddenLoading || navigating}}" loading="{{hiddenLoading}}">{{hiddenError ? '重试' : '查看更多下架作品'}}</button>
+        </view>
+      </view>
       <view class="author-stories">
         <view class="author-stories-head"><text class="author-count">{{author.postCount}} 篇故事</text><view wx:if="{{author.isMine}}" class="author-tools"><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openDrafts" disabled="{{navigating}}">草稿箱</button><button class="{{navigating ? 'control--disabled' : ''}}" bindtap="openActivity" disabled="{{navigating}}">互动记录</button></view></view>
         <template is="communityFeed" data="{{feedColumns, navigating}}"/>

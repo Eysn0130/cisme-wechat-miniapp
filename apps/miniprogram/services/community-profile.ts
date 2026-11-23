@@ -10,6 +10,24 @@ export interface CommunityAuthor {
   postCount:number;following:boolean;isMine:boolean;canFollow:boolean;followArticleId:string|null;
 }
 export interface CommunityProfilePage {author:CommunityAuthor;items:FeedCard[];nextCursor:string|null}
+type HiddenPost = {id:string;title:string;state:"hidden";appealState?:"received"|"resolved"|"rejected"|null};
+export type HiddenCommunityPost = Pick<HiddenPost,"id"|"title"> & {actionLabel:string};
+
+export async function readHiddenCommunityPosts(page:object, cursor:string|null) {
+  const path = "/v1/me/ugc/posts?limit=5&state=hidden" + (cursor ? `&cursor=${encodeURIComponent(cursor)}` : "");
+  const result = await pageRead<{items:HiddenPost[];nextCursor:string|null}>(page, {path,authMode:"required"});
+  if (!Array.isArray(result?.items) || result.items.some(item => item?.state !== "hidden" ||
+    !editorialIdentifier(item.id) || typeof item.title !== "string") ||
+    !(result.nextCursor === null || typeof result.nextCursor === "string" && result.nextCursor !== cursor)) {
+    throw new Error("HIDDEN_COMMUNITY_POSTS_INVALID");
+  }
+  const items:HiddenCommunityPost[] = result.items.map(({id,title,appealState}) => ({
+    id, title: title.trim() || "图片作品",
+    actionLabel: appealState === null ? "申诉" : appealState === "received" ? "申诉处理中" : appealState === "rejected" ? "维持下架" : "查看"
+  }));
+  return { items, nextCursor: result.nextCursor };
+}
+
 export function canEditCommunityBio(author:CommunityAuthor|null):boolean{
   return Boolean(author&&(author.isMine&&author.id!==officialEditorialPublisherId||
     author.id===officialEditorialPublisherId&&author.accountType==="official"&&author.canManage===true));
