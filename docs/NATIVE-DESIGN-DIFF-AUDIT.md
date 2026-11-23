@@ -1,6 +1,6 @@
 # Native design difference audit
 
-Status: structural review complete; screenshot comparison pending credentialed WeChat renderer/device.
+The R0 audit below is historical. Its scope and unavailable-tool statement describe that audit, not current release readiness. Current native checks must bind their own source/package hash; the current-source acceptance manifest remains authoritative for unpassed items.
 
 ## Frozen reference used
 
@@ -17,3 +17,46 @@ The Phase A evidence under `/Users/mini/CISME/cisme-home-prototype/design/qa/fre
 ## Honest evidence boundary
 
 No WeChat DevTools application or production credentials were available on this host, so no native screenshot was fabricated and no prototype screenshot was presented as native evidence. The side-by-side Product Design comparison and three-device acceptance remain external release blockers, not local P2 work.
+
+## Native settings refinement contract — 2026-11-22
+
+Baseline: `b39f3de35647f4cae872723be58667d6b337b010` (main, PR #126). This is a refinement of `pages/settings/index`, not a redesign of the accepted profile/member card, care booklet or tab bar. Product authority is PRD V2.1-R4 §6.3, P20 and the PROFILE-SYNC/PROFILE-CARD contracts, then WeChat native capabilities and verified backend state. Personal design decisions and recent chat sources are indexed in the existing CISME vault notes; historical chats are not current acceptance evidence.
+
+### Shared roles and adoption boundaries
+
+| Role | Existing source / contract | Settings / address-editor adoption |
+| --- | --- | --- |
+| Semantic color | `app.wxss`: page `#f7f2f8`, card `#fff`, ink `#352a3a`, muted `#75697a`, plum `#56306f`, lilac `#eee4f2`, danger `#9a3d55` | Use these roles rather than parallel local purple/grey literals. `--cisme-on-plum` names white text on a dark brand surface; it does not turn every control into a selected tab. |
+| Type | Existing micro 11 / small 12 / body 14 / action 16 px; shared topbar title 21 px | Row titles and inputs use action; descriptions/body use body or small according to role. Long metadata wraps, rows grow. Address fields share the 16 px input role and explicit muted placeholder class. Brand lettering and approved member-card numerals remain separate display roles. No claim of verified OS Dynamic Type propagation. |
+| Spacing | `styles/list-tokens.wxss` primitives `--cisme-space-{1,2,3,4,6}` = 8/16/24/32/48 rpx; `--cisme-page-gutter` = 28 rpx | Settings imports the shared file explicitly; global `app.wxss` stays within its existing budget. Settings is the first adopter of the list primitives; the shared address editor also adopts existing color/type/control roles. Inset separators align with text, groups have more space above headings than below. These declarations do not mean every page has migrated. |
+| Touch / rows | Existing hit target 44 px; primary/secondary actions 50 px; new list-row minimum 56 px, list icon 20 px | Whole-row actions stay native buttons; row height is a minimum, not a clipping box. No nested copy button. The address region picker uses the existing SVG chevron instead of a text glyph. Existing small text buttons retain a 44 px target. |
+| Shape / surfaces | Existing card radius 24 rpx, input/control 16 rpx, primary pill 999 rpx | Settings uses quiet opaque grouped lists and bordered inputs. Radius follows role; no requirement to force all controls to the same radius or add glass to every card. |
+| Icons / disclosure | Existing SVG family; shared back icon 18 px in a 44 px button; settings icon 20 px and chevron 14 px | Leading icons are decorative beside text. Chevron indicates navigation, or rotates for an expanded inline section. Copy names its immediate action. Never substitute emoji or infer a permission from icon/nickname. |
+| Native chrome | `services/layout.ts` / `layout-metrics.ts`, shared `.topbar` | Keep measured capsule avoidance, status bar and safe-bottom geometry. No fixed screenshot-coordinate reconstruction. |
+| Feedback / motion | Existing 120 ms press token; native disabled/loading states and error recovery | Disclosure uses the press token, reduced-motion removes its transition. Real upload/earned-points/receipt motion remains owned by its existing component and business receipt. No timer-based fake success or page-wide entrance animation. |
+| Top tabs / bottom navigation | Existing `section-tabs` text + short underline; approved filled bottom-tab selection from PR #126 | Preserve these shared components. A settings group is not a new tab design. Selected white SVG/text is specific to the darker filled navigation state. |
+| Reused task components | `address-editor`, `care-onboarding`, `points-celebration` | Do not duplicate address parsing, label buttons, care questionnaire or points receipt logic inside settings. Shared-component changes require checks of their other consumers. |
+
+### Information and state contract
+
+- Group common items into “个人资料” and “隐私与账号”; show “管理工具” only when the existing server capability allows it. Repetition can be merged only for the same task and permission scope.
+- Keep `user_code` (copyable technical identifier), nickname and `card_number` (`No.` membership identity) distinct. About retains the membership number. `envVersion` is labelled “运行环境”, not an invented application version.
+- Consent-read pending/failure/expired states must not say “尚无投稿使用授权”. A successful empty response can. Counts include historical records; only currently active records expose withdrawal. Existing confirmation, busy guards and request identifiers remain intact.
+- Address reads distinguish pending, updating, failure and confirmed empty. Address/profile editors, native pickers, dirty-leave protection, stale-response rejection and member ownership remain owned by their existing implementation.
+- Do not remove phone/address privacy, withdrawal consequences or audit retention facts to shorten the page. Give actual failure a recoverable action; do not turn a display refactor into a new authorization or legal-consent operation.
+
+### Remaining consistency review candidates
+
+The read-only `inventory-tokens.py` scans all 71 native WXSS files, including 57 that already reference semantic tokens. It separates fallbacks from outside literal colors. Different literals are candidates for a role/contrast/native review, not automatic defects or permission for a bulk replacement.
+
+- Profile/member-card CSS still has local muted/ink shades and rpx type sizes. Preserve approved member-card display numerals and holographic material; compare ordinary labels against shared small/body/action roles separately.
+- The shared address editor now uses existing ink/muted/plum/danger/type/control roles, explicit readable placeholders and the existing SVG chevron. Its selected address label and primary action keep their established surface/interaction roles. Do not copy its classes into each consuming page.
+- Care-onboarding keeps the accepted booklet layout and distinct steps. Its remaining local colors and 12/13/15 px sizes need a separate role-based review before changing an accepted questionnaire.
+- `section-tabs` remains the shared grammar for text tabs. `action-hierarchy.wxss` owns CTA/secondary/text actions; existing overrides should be checked for the same role rather than replacing every button with one appearance.
+- Glass navigation uses intentionally separate material/selected-state colors. It is not a generic settings-card token. Settings does not alter the selected white filled icon or navigation motion approved in PR #126.
+
+Check in this order on future changes: source/permission/receipt → component owner and all callers → semantic role/token → actual native text and touch geometry → loading/error/interruption/recovery → current package hash and physical-device limits. The inventory is not a WCAG certificate, a full design audit pass or permission to rewrite adjacent pages.
+
+### Verification scope
+
+Native evidence and its runtime-only, transport/storage-isolated synthetic fixture live under `docs/evidence/settings-polish-20261122`. The first readonly screenshot was taken before editing; it contains member data and stays local. Committed presentation evidence uses synthetic data only. Real identity/permission/write correctness continues to require service receipts and the existing ownership/CAS tests. Native simulator screenshots do not establish physical-device keyboard, screen-reader, system font scaling or release-wide acceptance.

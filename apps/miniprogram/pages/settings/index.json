@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "设置与许可",
+  "navigationBarTitleText": "设置",
   "usingComponents": {
     "address-editor": "/components/address-editor/index",
     "care-onboarding": "/components/care-onboarding/index",
