@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "clientDate": "2026-11-22",
+  "recordedAtUtc": "2026-11-23T02:16:44.874291+00:00",
+  "baseMain": "b39f3de35647f4cae872723be58667d6b337b010",
+  "implementationCommit": "a7c4f9aabfea6872aeb4e32e9f3147ec09e5cc50",
+  "packageSourceSha256": "93fca6eb2f16cff39494f2150c877b3ff308345a3d1c4d913b244a64da0abc11",
+  "pullRequest": "https://github.com/Eysn0130/cisme-wechat-miniapp/pull/127",
+  "draft": true,
+  "nativeTool": {
+    "applicationVersion": "2.02.2611092 Nightly",
+    "officialSkillVersion": "0.3.15",
+    "surface": "native WeChat Mini Program simulator; not a web prototype"
+  },
+  "unit": {
+    "command": "npm test -- --reporter=json --outputFile=/tmp/cisme-settings-full-unit.json",
+    "passed": 3703,
+    "failed": 0,
+    "skipped": 1,
+    "suites": 427,
+    "reportSha256": "317dee7c5a755dd991c9f0a5a19d746fd64c2069af32bc30ce1be05014e5b484",
+    "skipReason": "performance-measurement loopback-source case runs only on Linux; this local host is macOS"
+  },
+  "checks": {
+    "typecheck": true,
+    "packageGate": true,
+    "routeAudit": true,
+    "openApiContracts": true,
+    "diffHygiene": true,
+    "openApiMethods": 380
+  },
+  "native": {
+    "widths": {
+      "375": {
+        "checks": 10,
+        "record": "375-native-checks.json",
+        "screenshotHashesRecorded": true,
+        "mode": "isolated-synthetic-native-render"
+      },
+      "393": {
+        "checks": 10,
+        "record": "393-native-checks.json",
+        "screenshotHashesRecorded": true,
+        "mode": "isolated-synthetic-native-render"
+      },
+      "412": {
+        "checks": 10,
+        "record": "412-native-checks.json",
+        "screenshotHashesRecorded": true,
+        "mode": "isolated-synthetic-native-render"
+      }
+    },
+    "totalLayoutStateChecks": 30,
+    "baseline": {
+      "mode": "real readonly session before edits",
+      "screenshotKeptPrivate": true,
+      "sha256": "e73dc3e3dab8ea24440b3821566c4907295f30ad9664022bd25ef82a05d40b1e"
+    },
+    "normalProfileSupplement": {
+      "width": 393,
+      "file": "393-profile-normal-final.png",
+      "sha256": "b79ea32fdb8b2b0a54a2ed0fbad254506b4694f6df41d484f11558ee3fdd5da2",
+      "profileError": false
+    },
+    "unsavedLeave": "native input event then CUA Back / Continue Editing; draft retained, no save command",
+    "interactionRecord": "native-interaction.json",
+    "cleanupRecord": "runtime-restored.json",
+    "originalDeviceRestored": "iPhone 12/13 mini"
+  },
+  "fixtureNotes": [
+    "The matrix profile-expansion frames include avatar fallback warnings from the initial synthetic retained-entry shape. A separate normal profile read with the default avatar cleared the warning and was captured at 393.",
+    "The fixture was adjusted to keep the retained-entry shape separate from the settings default-avatar response. This is not real authentication, media upload or profile-write acceptance.",
+    "Device switching caused an automator timeout and an open-window abort; the own task window was reopened and all three width runs subsequently completed."
+  ],
+  "pending": [
+    "Final-source readonly verification after restoring a real member session; the observed mini-program session returned to signed out.",
+    "Physical WeChat device IME/keyboard, screen reader and OS font setting propagation; 130% token overrides are layout stress, not OS accessibility proof.",
+    "Native visual coverage of other shared address-editor consumers, including checkout.",
+    "Full 48-route current-source visual matrix remains blocked; prior unpassed release items are retained.",
+    "PR CI must be checked at its latest head before any merge."
+  ],
+  "releaseActions": {
+    "merged": false,
+    "deployed": false,
+    "experienceVersionUploaded": false
+  },
+  "skills": [
+    {
+      "name": "ui-ux-pro-max",
+      "sha256": "d99f9475eaff0522549bc71843b6b2a8563253329d99ad7c0236275a039c2659"
+    },
+    {
+      "name": "design-taste-frontend",
+      "sha256": "aa194351b246b8b4799099d4ed7b033d29eab6e6e3d58d8d2172978be7b3ec89"
+    },
+    {
+      "name": "impeccable",
+      "sha256": "c6921e830b7a565ebbe9aabe11516d34092062cd7fa2b442f030134857bf86a8"
+    }
+  ]
+}

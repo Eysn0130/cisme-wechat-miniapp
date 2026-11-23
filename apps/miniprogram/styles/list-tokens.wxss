@@ -1,0 +1,12 @@
+/* Shared list primitives; settings is the first adopter. */
+page {
+  --cisme-space-1: 8rpx;
+  --cisme-space-2: 16rpx;
+  --cisme-space-3: 24rpx;
+  --cisme-space-4: 32rpx;
+  --cisme-space-6: 48rpx;
+  --cisme-page-gutter: 28rpx;
+  --cisme-list-icon: 20px;
+  --cisme-list-row-min: 56px;
+  --cisme-on-plum: #fff;
+}

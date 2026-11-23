@@ -1,0 +1,47 @@
+{
+  "method": "WCAG relative luminance of declared colors; disabled text exempt; not a screen-reader or pixel-compositing certificate",
+  "checks": [
+    {
+      "role": "ink/card",
+      "foreground": "#352a3a",
+      "background": "#ffffff",
+      "ratio": 13.604
+    },
+    {
+      "role": "muted/card / placeholder / field border",
+      "foreground": "#75697a",
+      "background": "#ffffff",
+      "ratio": 5.175
+    },
+    {
+      "role": "muted/page",
+      "foreground": "#75697a",
+      "background": "#f7f2f8",
+      "ratio": 4.685
+    },
+    {
+      "role": "muted/quick-fill",
+      "foreground": "#75697a",
+      "background": "#f7f2f8",
+      "ratio": 4.685
+    },
+    {
+      "role": "danger/error",
+      "foreground": "#9a3d55",
+      "background": "#f8e8ed",
+      "ratio": 5.597
+    },
+    {
+      "role": "plum/card",
+      "foreground": "#56306f",
+      "background": "#ffffff",
+      "ratio": 10.254
+    },
+    {
+      "role": "selected address label",
+      "foreground": "#ffffff",
+      "background": "#644675",
+      "ratio": 7.851
+    }
+  ]
+}

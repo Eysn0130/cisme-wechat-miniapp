@@ -1,0 +1,3898 @@
+{
+  "schemaVersion": 1,
+  "mode": "isolated-synthetic-native-render",
+  "systemFontSettingVerified": false,
+  "checks": [
+    {
+      "name": "overview",
+      "screenshot": {
+        "file": "393-overview.png",
+        "sha256": "b839073f3f8812e3e2d0983cb98df81d1b2dd80f1d9e48d73394cd9d79d06cea",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": false,
+      "addressEditorOpen": false,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 145,
+          "bottom": 203.3984375,
+          "width": 363,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 203.3984375,
+          "bottom": 261.1953125,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 261.1953125,
+          "bottom": 317.1953125,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 317.1953125,
+          "bottom": 374.9921875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 427.9921875,
+          "bottom": 485.7890625,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 485.7890625,
+          "bottom": 541.7890625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 541.7890625,
+          "bottom": 597.7890625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 597.7890625,
+          "bottom": 653.7890625,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 326,
+          "top": 153,
+          "bottom": 195.3984375,
+          "width": 267,
+          "height": 42.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 211.3984375,
+          "bottom": 253.1953125,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 277.9921875,
+          "bottom": 300.390625,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 325.1953125,
+          "bottom": 366.9921875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 435.9921875,
+          "bottom": 477.7890625,
+          "width": 307,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 502.5859375,
+          "bottom": 524.984375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 558.5859375,
+          "bottom": 580.984375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 614.5859375,
+          "bottom": 636.984375,
+          "width": 281,
+          "height": 22.3984375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 164.1953125,
+          "bottom": 184.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 222.296875,
+          "bottom": 242.296875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 279.1953125,
+          "bottom": 299.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 336.09375,
+          "bottom": 356.09375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 446.890625,
+          "bottom": 466.890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 503.7890625,
+          "bottom": 523.7890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 559.7890625,
+          "bottom": 579.7890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 615.7890625,
+          "bottom": 635.7890625,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 338,
+          "right": 366,
+          "top": 165.4453125,
+          "bottom": 182.9453125,
+          "width": 28,
+          "height": 17.5
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 225.296875,
+          "bottom": 239.296875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 282.1953125,
+          "bottom": 296.1953125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 339.09375,
+          "bottom": 353.09375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 506.7890625,
+          "bottom": 520.7890625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 562.7890625,
+          "bottom": 576.7890625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 618.7890625,
+          "bottom": 632.7890625,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 721.1796875,
+        "bottom": 771.1796875,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 0,
+        "scrollWidth": 393,
+        "scrollHeight": 852
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "profile-expanded",
+      "screenshot": {
+        "file": "393-profile-expanded.png",
+        "sha256": "7469b101cb3f34aa05096405e8816e67c111a072e25d9f962617ec6bb792175e",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": true,
+      "addressOpen": false,
+      "addressEditorOpen": false,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -114,
+          "bottom": -55.6015625,
+          "width": 363,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -55.6015625,
+          "bottom": 2.1953125,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 2.1953125,
+          "bottom": 58.1953125,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 58.1953125,
+          "bottom": 115.9921875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 768.3828125,
+          "bottom": 826.1796875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 826.1796875,
+          "bottom": 882.1796875,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 882.1796875,
+          "bottom": 938.1796875,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 938.1796875,
+          "bottom": 994.1796875,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 29,
+          "right": 364,
+          "top": 332.1875,
+          "bottom": 376.1875,
+          "width": 335,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 29,
+          "right": 364,
+          "top": 414.1875,
+          "bottom": 458.1875,
+          "width": 335,
+          "height": 44
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 29,
+          "right": 364,
+          "top": 496.1875,
+          "bottom": 540.1875,
+          "width": 335,
+          "height": 44
+        }
+      ],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 326,
+          "top": -106,
+          "bottom": -63.6015625,
+          "width": 267,
+          "height": 42.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": -47.6015625,
+          "bottom": -5.8046875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 18.9921875,
+          "bottom": 41.390625,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 66.1953125,
+          "bottom": 107.9921875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 776.3828125,
+          "bottom": 818.1796875,
+          "width": 307,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 842.9765625,
+          "bottom": 865.375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 898.9765625,
+          "bottom": 921.375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 954.9765625,
+          "bottom": 977.375,
+          "width": 281,
+          "height": 22.3984375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": -94.8046875,
+          "bottom": -74.8046875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": -36.703125,
+          "bottom": -16.703125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 20.1953125,
+          "bottom": 40.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 77.09375,
+          "bottom": 97.09375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 787.28125,
+          "bottom": 807.28125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 844.1796875,
+          "bottom": 864.1796875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 900.1796875,
+          "bottom": 920.1796875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 956.1796875,
+          "bottom": 976.1796875,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 338,
+          "right": 366,
+          "top": -93.5546875,
+          "bottom": -76.0546875,
+          "width": 28,
+          "height": 17.5
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": -33.703125,
+          "bottom": -19.703125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 23.1953125,
+          "bottom": 37.1953125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 80.09375,
+          "bottom": 94.09375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 847.1796875,
+          "bottom": 861.1796875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 903.1796875,
+          "bottom": 917.1796875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 959.1796875,
+          "bottom": 973.1796875,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 1061.5703125,
+        "bottom": 1111.5703125,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 259,
+        "scrollWidth": 393,
+        "scrollHeight": 1429
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "address-empty",
+      "screenshot": {
+        "file": "393-address-empty.png",
+        "sha256": "9c917a45edde5eb2233d051dc322de169adfcbbbc1e6842fc6df97eb2348ce86",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": true,
+      "addressEditorOpen": false,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -62,
+          "bottom": -3.6015625,
+          "width": 363,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -3.6015625,
+          "bottom": 54.1953125,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 54.1953125,
+          "bottom": 110.1953125,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 110.1953125,
+          "bottom": 167.9921875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 450.2890625,
+          "bottom": 508.0859375,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 508.0859375,
+          "bottom": 564.0859375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 564.0859375,
+          "bottom": 620.0859375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 620.0859375,
+          "bottom": 676.0859375,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 326,
+          "top": -54,
+          "bottom": -11.6015625,
+          "width": 267,
+          "height": 42.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 4.3984375,
+          "bottom": 46.1953125,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 70.9921875,
+          "bottom": 93.390625,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 118.1953125,
+          "bottom": 159.9921875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 458.2890625,
+          "bottom": 500.0859375,
+          "width": 307,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 524.8828125,
+          "bottom": 547.28125,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 580.8828125,
+          "bottom": 603.28125,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 636.8828125,
+          "bottom": 659.28125,
+          "width": 281,
+          "height": 22.3984375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": -42.8046875,
+          "bottom": -22.8046875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 15.296875,
+          "bottom": 35.296875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 72.1953125,
+          "bottom": 92.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 129.09375,
+          "bottom": 149.09375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 469.1875,
+          "bottom": 489.1875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 526.0859375,
+          "bottom": 546.0859375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 582.0859375,
+          "bottom": 602.0859375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 638.0859375,
+          "bottom": 658.0859375,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 338,
+          "right": 366,
+          "top": -41.5546875,
+          "bottom": -24.0546875,
+          "width": 28,
+          "height": 17.5
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 18.296875,
+          "bottom": 32.296875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 75.1953125,
+          "bottom": 89.1953125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 132.09375,
+          "bottom": 146.09375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 529.0859375,
+          "bottom": 543.0859375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 585.0859375,
+          "bottom": 599.0859375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 641.0859375,
+          "bottom": 655.0859375,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 743.4765625,
+        "bottom": 793.4765625,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 207,
+        "scrollWidth": 393,
+        "scrollHeight": 1059
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "address-editor",
+      "screenshot": {
+        "file": "393-address-editor.png",
+        "sha256": "1e1ca47fffff503fb64decabc370b0c9b288ad3a091cd70c5f2a407ec444dab1",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": true,
+      "addressEditorOpen": true,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -114,
+          "bottom": -55.6015625,
+          "width": 363,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -55.6015625,
+          "bottom": 2.1953125,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 2.1953125,
+          "bottom": 58.1953125,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 58.1953125,
+          "bottom": 115.9921875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 1215.578125,
+          "bottom": 1273.375,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 1273.375,
+          "bottom": 1329.375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 1329.375,
+          "bottom": 1385.375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 1385.375,
+          "bottom": 1441.375,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 326,
+          "top": -106,
+          "bottom": -63.6015625,
+          "width": 267,
+          "height": 42.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": -47.6015625,
+          "bottom": -5.8046875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 18.9921875,
+          "bottom": 41.390625,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 66.1953125,
+          "bottom": 107.9921875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 1223.578125,
+          "bottom": 1265.375,
+          "width": 307,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 1290.171875,
+          "bottom": 1312.5703125,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 1346.171875,
+          "bottom": 1368.5703125,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 1402.171875,
+          "bottom": 1424.5703125,
+          "width": 281,
+          "height": 22.3984375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": -94.8046875,
+          "bottom": -74.8046875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": -36.703125,
+          "bottom": -16.703125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 20.1953125,
+          "bottom": 40.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 77.09375,
+          "bottom": 97.09375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 1234.4765625,
+          "bottom": 1254.4765625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 1291.375,
+          "bottom": 1311.375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 1347.375,
+          "bottom": 1367.375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 1403.375,
+          "bottom": 1423.375,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 338,
+          "right": 366,
+          "top": -93.5546875,
+          "bottom": -76.0546875,
+          "width": 28,
+          "height": 17.5
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": -33.703125,
+          "bottom": -19.703125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 23.1953125,
+          "bottom": 37.1953125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 80.09375,
+          "bottom": 94.09375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 1294.375,
+          "bottom": 1308.375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 1350.375,
+          "bottom": 1364.375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 1406.375,
+          "bottom": 1420.375,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 1508.765625,
+        "bottom": 1558.765625,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 259,
+        "scrollWidth": 393,
+        "scrollHeight": 1877
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "about-and-logout",
+      "screenshot": {
+        "file": "393-about-and-logout.png",
+        "sha256": "8b435f68e8e9bc36e2b65a7cd30c6242a23d8110198a2cbb569944d82afe5030",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": false,
+      "addressEditorOpen": false,
+      "aboutOpen": true,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 54,
+          "bottom": 112.3984375,
+          "width": 363,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 112.3984375,
+          "bottom": 170.1953125,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 170.1953125,
+          "bottom": 226.1953125,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 226.1953125,
+          "bottom": 283.9921875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 336.9921875,
+          "bottom": 394.7890625,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 394.7890625,
+          "bottom": 450.7890625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 450.7890625,
+          "bottom": 506.7890625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 506.7890625,
+          "bottom": 562.7890625,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 326,
+          "top": 62,
+          "bottom": 104.3984375,
+          "width": 267,
+          "height": 42.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 120.3984375,
+          "bottom": 162.1953125,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 186.9921875,
+          "bottom": 209.390625,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 234.1953125,
+          "bottom": 275.9921875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 344.9921875,
+          "bottom": 386.7890625,
+          "width": 307,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 411.5859375,
+          "bottom": 433.984375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 467.5859375,
+          "bottom": 489.984375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 523.5859375,
+          "bottom": 545.984375,
+          "width": 281,
+          "height": 22.3984375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 73.1953125,
+          "bottom": 93.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 131.296875,
+          "bottom": 151.296875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 188.1953125,
+          "bottom": 208.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 245.09375,
+          "bottom": 265.09375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 355.890625,
+          "bottom": 375.890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 412.7890625,
+          "bottom": 432.7890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 468.7890625,
+          "bottom": 488.7890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 524.7890625,
+          "bottom": 544.7890625,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 338,
+          "right": 366,
+          "top": 74.4453125,
+          "bottom": 91.9453125,
+          "width": 28,
+          "height": 17.5
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 134.296875,
+          "bottom": 148.296875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 191.1953125,
+          "bottom": 205.1953125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 248.09375,
+          "bottom": 262.09375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 415.7890625,
+          "bottom": 429.7890625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 471.7890625,
+          "bottom": 485.7890625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 527.7890625,
+          "bottom": 541.7890625,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 743.1796875,
+        "bottom": 793.1796875,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 91,
+        "scrollWidth": 393,
+        "scrollHeight": 943
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "consents-and-management",
+      "screenshot": {
+        "file": "393-consents-and-management.png",
+        "sha256": "e19a7a7a5b4e6a6a84654a618f75f7586a9a9a12f56efa494dfb3d83fcb95d30",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": false,
+      "addressEditorOpen": false,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": true,
+      "consentCount": 2,
+      "activeConsents": 1,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -59,
+          "bottom": -0.6015625,
+          "width": 363,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -0.6015625,
+          "bottom": 57.1953125,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 57.1953125,
+          "bottom": 113.1953125,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 113.1953125,
+          "bottom": 170.9921875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 223.9921875,
+          "bottom": 281.7890625,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 399.0859375,
+          "bottom": 455.0859375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 455.0859375,
+          "bottom": 511.0859375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 511.0859375,
+          "bottom": 567.0859375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 620.0859375,
+          "bottom": 676.0859375,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 326,
+          "top": -51,
+          "bottom": -8.6015625,
+          "width": 267,
+          "height": 42.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 7.3984375,
+          "bottom": 49.1953125,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 73.9921875,
+          "bottom": 96.390625,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 121.1953125,
+          "bottom": 162.9921875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 231.9921875,
+          "bottom": 273.7890625,
+          "width": 307,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 415.8828125,
+          "bottom": 438.28125,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 471.8828125,
+          "bottom": 494.28125,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 527.8828125,
+          "bottom": 550.28125,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 636.8828125,
+          "bottom": 659.28125,
+          "width": 281,
+          "height": 22.3984375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": -39.8046875,
+          "bottom": -19.8046875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 18.296875,
+          "bottom": 38.296875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 75.1953125,
+          "bottom": 95.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 132.09375,
+          "bottom": 152.09375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 242.890625,
+          "bottom": 262.890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 417.0859375,
+          "bottom": 437.0859375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 473.0859375,
+          "bottom": 493.0859375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 529.0859375,
+          "bottom": 549.0859375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 638.0859375,
+          "bottom": 658.0859375,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 338,
+          "right": 366,
+          "top": -38.5546875,
+          "bottom": -21.0546875,
+          "width": 28,
+          "height": 17.5
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 21.296875,
+          "bottom": 35.296875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 78.1953125,
+          "bottom": 92.1953125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 135.09375,
+          "bottom": 149.09375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 420.0859375,
+          "bottom": 434.0859375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 476.0859375,
+          "bottom": 490.0859375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 532.0859375,
+          "bottom": 546.0859375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 641.0859375,
+          "bottom": 655.0859375,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 743.4765625,
+        "bottom": 793.4765625,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 204,
+        "scrollWidth": 393,
+        "scrollHeight": 1056
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "consent-error",
+      "screenshot": {
+        "file": "393-consent-error.png",
+        "sha256": "5681e4009cea29dc96b221a75fee03c4af0cac7dc5aafed711c1c361b693782e",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": false,
+      "addressEditorOpen": false,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "unknown",
+      "loading": false,
+      "hasError": true,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 69,
+          "bottom": 127.3984375,
+          "width": 363,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 127.3984375,
+          "bottom": 185.1953125,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 185.1953125,
+          "bottom": 241.1953125,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 241.1953125,
+          "bottom": 298.9921875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 351.9921875,
+          "bottom": 409.7890625,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 409.7890625,
+          "bottom": 465.7890625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 465.7890625,
+          "bottom": 521.7890625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 521.7890625,
+          "bottom": 577.7890625,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 326,
+          "top": 77,
+          "bottom": 119.3984375,
+          "width": 267,
+          "height": 42.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 135.3984375,
+          "bottom": 177.1953125,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 201.9921875,
+          "bottom": 224.390625,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 249.1953125,
+          "bottom": 290.9921875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 359.9921875,
+          "bottom": 401.7890625,
+          "width": 307,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 426.5859375,
+          "bottom": 448.984375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 482.5859375,
+          "bottom": 504.984375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 538.5859375,
+          "bottom": 560.984375,
+          "width": 281,
+          "height": 22.3984375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 88.1953125,
+          "bottom": 108.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 146.296875,
+          "bottom": 166.296875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 203.1953125,
+          "bottom": 223.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 260.09375,
+          "bottom": 280.09375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 370.890625,
+          "bottom": 390.890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 427.7890625,
+          "bottom": 447.7890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 483.7890625,
+          "bottom": 503.7890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 539.7890625,
+          "bottom": 559.7890625,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 338,
+          "right": 366,
+          "top": 89.4453125,
+          "bottom": 106.9453125,
+          "width": 28,
+          "height": 17.5
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 149.296875,
+          "bottom": 163.296875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 206.1953125,
+          "bottom": 220.1953125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 263.09375,
+          "bottom": 277.09375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 430.7890625,
+          "bottom": 444.7890625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 486.7890625,
+          "bottom": 500.7890625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 542.7890625,
+          "bottom": 556.7890625,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 645.1796875,
+        "bottom": 695.1796875,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 76,
+        "scrollWidth": 393,
+        "scrollHeight": 928
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "consent-recovered",
+      "screenshot": {
+        "file": "393-consent-recovered.png",
+        "sha256": "de9460975b9e0c7a368e127c1eb8dcfc66a9b45718a88434db426c959f975a6a",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": false,
+      "addressEditorOpen": false,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 145,
+          "bottom": 203.3984375,
+          "width": 363,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 203.3984375,
+          "bottom": 261.1953125,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 261.1953125,
+          "bottom": 317.1953125,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 317.1953125,
+          "bottom": 374.9921875,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 427.9921875,
+          "bottom": 485.7890625,
+          "width": 363,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 485.7890625,
+          "bottom": 541.7890625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 541.7890625,
+          "bottom": 597.7890625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 597.7890625,
+          "bottom": 653.7890625,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 326,
+          "top": 153,
+          "bottom": 195.3984375,
+          "width": 267,
+          "height": 42.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 211.3984375,
+          "bottom": 253.1953125,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 277.9921875,
+          "bottom": 300.390625,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 325.1953125,
+          "bottom": 366.9921875,
+          "width": 281,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 435.9921875,
+          "bottom": 477.7890625,
+          "width": 307,
+          "height": 41.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 502.5859375,
+          "bottom": 524.984375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 558.5859375,
+          "bottom": 580.984375,
+          "width": 281,
+          "height": 22.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 614.5859375,
+          "bottom": 636.984375,
+          "width": 281,
+          "height": 22.3984375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 164.1953125,
+          "bottom": 184.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 222.296875,
+          "bottom": 242.296875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 279.1953125,
+          "bottom": 299.1953125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 336.09375,
+          "bottom": 356.09375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 446.890625,
+          "bottom": 466.890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 503.7890625,
+          "bottom": 523.7890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 559.7890625,
+          "bottom": 579.7890625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 615.7890625,
+          "bottom": 635.7890625,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 338,
+          "right": 366,
+          "top": 165.4453125,
+          "bottom": 182.9453125,
+          "width": 28,
+          "height": 17.5
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 225.296875,
+          "bottom": 239.296875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 282.1953125,
+          "bottom": 296.1953125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 339.09375,
+          "bottom": 353.09375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 506.7890625,
+          "bottom": 520.7890625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 562.7890625,
+          "bottom": 576.7890625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 618.7890625,
+          "bottom": 632.7890625,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 721.1796875,
+        "bottom": 771.1796875,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 0,
+        "scrollWidth": 393,
+        "scrollHeight": 852
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "font-130-long-name",
+      "screenshot": {
+        "file": "393-font-130-long-name.png",
+        "sha256": "dbd9480f3f6da29d57836cee017aba3b8362fb41417fc544c72fd5ea21db8ed4",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": false,
+      "addressEditorOpen": false,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 150.3984375,
+          "bottom": 220.90625,
+          "width": 363,
+          "height": 70.5078125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 220.90625,
+          "bottom": 313.25,
+          "width": 363,
+          "height": 92.34375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 313.25,
+          "bottom": 369.25,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 369.25,
+          "bottom": 438.9765625,
+          "width": 363,
+          "height": 69.7265625
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 497.375,
+          "bottom": 567.1015625,
+          "width": 363,
+          "height": 69.7265625
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 567.1015625,
+          "bottom": 623.1015625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 623.1015625,
+          "bottom": 679.1015625,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 679.1015625,
+          "bottom": 735.1015625,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 317.59375,
+          "top": 158.3984375,
+          "bottom": 212.90625,
+          "width": 258.59375,
+          "height": 54.5078125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 228.90625,
+          "bottom": 305.25,
+          "width": 281,
+          "height": 76.34375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 326.6953125,
+          "bottom": 355.8046875,
+          "width": 281,
+          "height": 29.109375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 377.25,
+          "bottom": 430.9765625,
+          "width": 281,
+          "height": 53.7265625
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 505.375,
+          "bottom": 559.1015625,
+          "width": 307,
+          "height": 53.7265625
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 580.546875,
+          "bottom": 609.65625,
+          "width": 281,
+          "height": 29.109375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 636.546875,
+          "bottom": 665.65625,
+          "width": 281,
+          "height": 29.109375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 692.546875,
+          "bottom": 721.65625,
+          "width": 281,
+          "height": 29.109375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 175.6484375,
+          "bottom": 195.6484375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 257.078125,
+          "bottom": 277.078125,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 331.25,
+          "bottom": 351.25,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 394.109375,
+          "bottom": 414.109375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 522.234375,
+          "bottom": 542.234375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 585.1015625,
+          "bottom": 605.1015625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 641.1015625,
+          "bottom": 661.1015625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 697.1015625,
+          "bottom": 717.1015625,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 329.59375,
+          "right": 366,
+          "top": 174.2734375,
+          "bottom": 197.0234375,
+          "width": 36.40625,
+          "height": 22.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 260.078125,
+          "bottom": 274.078125,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 334.25,
+          "bottom": 348.25,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 397.109375,
+          "bottom": 411.109375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 588.1015625,
+          "bottom": 602.1015625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 644.1015625,
+          "bottom": 658.1015625,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 700.1015625,
+          "bottom": 714.1015625,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 838.984375,
+        "bottom": 888.984375,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 0,
+        "scrollWidth": 393,
+        "scrollHeight": 948
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "font-130-address-editor",
+      "screenshot": {
+        "file": "393-font-130-address-editor.png",
+        "sha256": "83e9c81043e8b3c747d8c757145562492b109dd6efea76aed0a894f0b7e7f238",
+        "synthetic": true
+      },
+      "route": "pages/settings/index",
+      "width": 393,
+      "height": 852,
+      "safeBottom": 34,
+      "profileOpen": false,
+      "addressOpen": true,
+      "addressEditorOpen": true,
+      "aboutOpen": false,
+      "profileReady": true,
+      "sessionStatus": "valid",
+      "loading": false,
+      "hasError": false,
+      "admin": false,
+      "consentCount": 0,
+      "activeConsents": 0,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -172.6015625,
+          "bottom": -102.09375,
+          "width": 363,
+          "height": 70.5078125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -102.09375,
+          "bottom": -9.75,
+          "width": 363,
+          "height": 92.34375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": -9.75,
+          "bottom": 46.25,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 46.25,
+          "bottom": 115.9765625,
+          "width": 363,
+          "height": 69.7265625
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 1369.8828125,
+          "bottom": 1439.609375,
+          "width": 363,
+          "height": 69.7265625
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 1439.609375,
+          "bottom": 1495.609375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 1495.609375,
+          "bottom": 1551.609375,
+          "width": 363,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 378,
+          "top": 1551.609375,
+          "bottom": 1607.609375,
+          "width": 363,
+          "height": 56
+        }
+      ],
+      "inputs": [],
+      "copies": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 317.59375,
+          "top": -164.6015625,
+          "bottom": -110.09375,
+          "width": 258.59375,
+          "height": 54.5078125
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": -94.09375,
+          "bottom": -17.75,
+          "width": 281,
+          "height": 76.34375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 3.6953125,
+          "bottom": 32.8046875,
+          "width": 281,
+          "height": 29.109375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 54.25,
+          "bottom": 107.9765625,
+          "width": 281,
+          "height": 53.7265625
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 366,
+          "top": 1377.8828125,
+          "bottom": 1431.609375,
+          "width": 307,
+          "height": 53.7265625
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 1453.0546875,
+          "bottom": 1482.1640625,
+          "width": 281,
+          "height": 29.109375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 1509.0546875,
+          "bottom": 1538.1640625,
+          "width": 281,
+          "height": 29.109375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 59,
+          "right": 340,
+          "top": 1565.0546875,
+          "bottom": 1594.1640625,
+          "width": 281,
+          "height": 29.109375
+        }
+      ],
+      "icons": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": -147.3515625,
+          "bottom": -127.3515625,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": -65.921875,
+          "bottom": -45.921875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 8.25,
+          "bottom": 28.25,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 71.109375,
+          "bottom": 91.109375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 1394.7421875,
+          "bottom": 1414.7421875,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 1457.609375,
+          "bottom": 1477.609375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 1513.609375,
+          "bottom": 1533.609375,
+          "width": 20,
+          "height": 20
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 27,
+          "right": 47,
+          "top": 1569.609375,
+          "bottom": 1589.609375,
+          "width": 20,
+          "height": 20
+        }
+      ],
+      "trailing": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 329.59375,
+          "right": 366,
+          "top": -148.7265625,
+          "bottom": -125.9765625,
+          "width": 36.40625,
+          "height": 22.75
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": -62.921875,
+          "bottom": -48.921875,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 11.25,
+          "bottom": 25.25,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 74.109375,
+          "bottom": 88.109375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 1460.609375,
+          "bottom": 1474.609375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 1516.609375,
+          "bottom": 1530.609375,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 352,
+          "right": 366,
+          "top": 1572.609375,
+          "bottom": 1586.609375,
+          "width": 14,
+          "height": 14
+        }
+      ],
+      "back": {
+        "id": "",
+        "dataset": {},
+        "left": 12,
+        "right": 56,
+        "top": 54,
+        "bottom": 98,
+        "width": 44,
+        "height": 44
+      },
+      "title": {
+        "id": "",
+        "dataset": {},
+        "left": 174.5,
+        "right": 218.5,
+        "top": 60.75,
+        "bottom": 90.25,
+        "width": 44,
+        "height": 29.5
+      },
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 379,
+        "top": 1711.4921875,
+        "bottom": 1761.4921875,
+        "width": 365,
+        "height": 50
+      },
+      "scroll": {
+        "id": "",
+        "dataset": {},
+        "scrollLeft": 0,
+        "scrollTop": 323,
+        "scrollWidth": 393,
+        "scrollHeight": 2143
+      },
+      "blockedWrites": 0,
+      "unexpected": []
+    }
+  ]
+}

@@ -1,0 +1,2895 @@
+{
+  "schemaVersion": 1,
+  "nativeStylesheetsScanned": 71,
+  "filesUsingSemanticTokens": 57,
+  "interpretation": "A literal is not automatically a defect. Compare semantic role, accepted design, contrast and native rendering before changing it.",
+  "adoption": "Settings adopts list primitives and existing semantic tokens. Shared address-editor adopts existing color/type/input roles. Other consumers are not bulk migrated.",
+  "representatives": [
+    {
+      "file": "components/address-editor/index.wxss",
+      "tokens": [
+        "--cisme-card",
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-muted",
+        "--cisme-page",
+        "--cisme-plum",
+        "--cisme-radius-control",
+        "--cisme-safe-bottom",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#eadff0": 1,
+        "#f8e8ed": 2,
+        "#fff8fa": 1,
+        "#fbf9fb": 1,
+        "#6b4a79": 1,
+        "#fff": 2,
+        "#644675": 1,
+        "#f1eaf4": 1,
+        "#6f4a7e": 1,
+        "#4f2d67": 1
+      },
+      "literalFonts": [],
+      "literalRadii": [
+        "14rpx",
+        "18rpx",
+        "22px",
+        "22rpx",
+        "var(--cisme-radius-control,16rpx)"
+      ]
+    },
+    {
+      "file": "components/care-onboarding/index.wxss",
+      "tokens": [
+        "--cisme-safe-bottom",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#2f2149": 1,
+        "#56306f": 1,
+        "#75697a": 1,
+        "#fffcff": 2,
+        "#eee4f2": 1,
+        "#51435b": 1,
+        "#67546f": 1,
+        "#c9b3d3": 2,
+        "#fff": 3,
+        "#8a7499": 1,
+        "#9a3d55": 1,
+        "#423149": 1,
+        "#8a7b91": 1,
+        "#faf7fb": 1,
+        "#50375f": 1,
+        "#795987": 1
+      },
+      "literalFonts": [
+        "12px",
+        "13px",
+        "15px"
+      ],
+      "literalRadii": [
+        "12px",
+        "28px",
+        "50%",
+        "999px"
+      ]
+    },
+    {
+      "file": "components/section-tabs/index.wxss",
+      "tokens": [
+        "--cisme-motion-press",
+        "--cisme-muted",
+        "--cisme-plum"
+      ],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [
+        "30rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "2px"
+      ]
+    },
+    {
+      "file": "custom-tab-bar/index.wxss",
+      "tokens": [
+        "--cisme-safe-bottom"
+      ],
+      "literalColorsOutsideVar": {
+        "#f6f4f8": 1,
+        "#48275f": 1,
+        "#755186": 1,
+        "#77538a": 1,
+        "#694579": 1,
+        "#6d4782": 3,
+        "#79558f": 1,
+        "#624076": 1,
+        "#554b5b": 2,
+        "#fff": 3,
+        "#746979": 2,
+        "#56306f": 1
+      },
+      "literalFonts": [
+        "13px"
+      ],
+      "literalRadii": [
+        "35px",
+        "42px",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/profile/index.wxss",
+      "tokens": [
+        "--cisme-load-bone",
+        "--cisme-menu-height",
+        "--cisme-menu-top",
+        "--cisme-motion-press",
+        "--cisme-safe-bottom"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#817687": 2,
+        "#817788": 1,
+        "#3c3041": 1,
+        "#6f6474": 1,
+        "#827786": 1,
+        "#403545": 1,
+        "#776d7b": 1,
+        "#ece5ef": 1,
+        "#fbf6ff": 1,
+        "#665077": 1,
+        "#4b355b": 1,
+        "#37273f": 1,
+        "#fff": 4,
+        "#dfd0e7": 1
+      },
+      "literalFonts": [
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "40rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "16px",
+        "18rpx",
+        "22rpx",
+        "28rpx",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/settings/index.wxss",
+      "tokens": [
+        "--cisme-card",
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-lilac",
+        "--cisme-line",
+        "--cisme-list-icon",
+        "--cisme-list-row-min",
+        "--cisme-motion-press",
+        "--cisme-muted",
+        "--cisme-on-plum",
+        "--cisme-page",
+        "--cisme-page-gutter",
+        "--cisme-plum",
+        "--cisme-radius-card",
+        "--cisme-radius-control",
+        "--cisme-safe-bottom",
+        "--cisme-space-2",
+        "--cisme-space-3",
+        "--cisme-space-6",
+        "--cisme-stack-top",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": [
+        "0",
+        "15rpx",
+        "50%",
+        "8rpx",
+        "var(--cisme-radius-card)",
+        "var(--cisme-radius-control)"
+      ]
+    },
+    {
+      "file": "styles/action-hierarchy.wxss",
+      "tokens": [
+        "--cisme-motion-press",
+        "--cisme-plum",
+        "--cisme-text-action",
+        "--cisme-text-body"
+      ],
+      "literalColorsOutsideVar": {
+        "#ded1e3": 1,
+        "#6f6075": 2,
+        "#e9e1ec": 1
+      },
+      "literalFonts": [],
+      "literalRadii": [
+        "0"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "file": "app.wxss",
+      "tokens": [
+        "--cisme-back-top",
+        "--cisme-hit-target",
+        "--cisme-menu-top",
+        "--cisme-motion-press",
+        "--cisme-nav-side",
+        "--cisme-stack-top",
+        "--cisme-status-bar",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-small",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#352a3a": 3,
+        "#2f2149": 1,
+        "#75697a": 6,
+        "#56306f": 4,
+        "#321d48": 2,
+        "#eee4f2": 3,
+        "#9a3d55": 1,
+        "#f7f2f8": 2,
+        "#fff": 3,
+        "#f7f3f8": 1,
+        "#f8f4f9": 1,
+        "#34283c": 1,
+        "#3a2b43": 1,
+        "#8d3150": 2,
+        "#f8e8ed": 2,
+        "#3b2e41": 1,
+        "#776b7b": 1,
+        "#78528f": 2,
+        "#3e2454": 2
+      },
+      "literalFonts": [
+        "21px",
+        "29rpx",
+        "36rpx",
+        "38rpx",
+        "46rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "26rpx",
+        "32rpx",
+        "40rpx",
+        "50%",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "components/address-editor/index.wxss",
+      "tokens": [
+        "--cisme-card",
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-muted",
+        "--cisme-page",
+        "--cisme-plum",
+        "--cisme-radius-control",
+        "--cisme-safe-bottom",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#eadff0": 1,
+        "#f8e8ed": 2,
+        "#fff8fa": 1,
+        "#fbf9fb": 1,
+        "#6b4a79": 1,
+        "#fff": 2,
+        "#644675": 1,
+        "#f1eaf4": 1,
+        "#6f4a7e": 1,
+        "#4f2d67": 1
+      },
+      "literalFonts": [],
+      "literalRadii": [
+        "14rpx",
+        "18rpx",
+        "22px",
+        "22rpx",
+        "var(--cisme-radius-control,16rpx)"
+      ]
+    },
+    {
+      "file": "components/card-foil/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": [
+        "inherit"
+      ]
+    },
+    {
+      "file": "components/care-campaign/index.wxss",
+      "tokens": [
+        "--cisme-campaign-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#fff": 2,
+        "#30243b": 1,
+        "#56306f": 1,
+        "#cec7d2": 1,
+        "#654080": 1,
+        "#684c7a": 1
+      },
+      "literalFonts": [],
+      "literalRadii": [
+        "0",
+        "50%"
+      ]
+    },
+    {
+      "file": "components/care-onboarding/index.wxss",
+      "tokens": [
+        "--cisme-safe-bottom",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#2f2149": 1,
+        "#56306f": 1,
+        "#75697a": 1,
+        "#fffcff": 2,
+        "#eee4f2": 1,
+        "#51435b": 1,
+        "#67546f": 1,
+        "#c9b3d3": 2,
+        "#fff": 3,
+        "#8a7499": 1,
+        "#9a3d55": 1,
+        "#423149": 1,
+        "#8a7b91": 1,
+        "#faf7fb": 1,
+        "#50375f": 1,
+        "#795987": 1
+      },
+      "literalFonts": [
+        "12px",
+        "13px",
+        "15px"
+      ],
+      "literalRadii": [
+        "12px",
+        "28px",
+        "50%",
+        "999px"
+      ]
+    },
+    {
+      "file": "components/community-image-editor/index.wxss",
+      "tokens": [
+        "--cisme-back-top",
+        "--cisme-nav-side",
+        "--cisme-safe-bottom",
+        "--cisme-status-bar",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#101010": 1,
+        "#fff": 4,
+        "#e9e5ec": 1,
+        "#bbb": 1,
+        "#181818": 2,
+        "#292929": 2,
+        "#d8c5e4": 4,
+        "#ddd": 3,
+        "#eddef5": 2,
+        "#302934": 1,
+        "#4a434e": 2,
+        "#242126": 2,
+        "#342b39": 1,
+        "#928898": 1,
+        "#f2b6bb": 1,
+        "#b0a7b7": 1,
+        "#30213a": 1,
+        "#83798c": 1,
+        "#39333f": 1,
+        "#211e25": 1,
+        "#857b8d": 1,
+        "#6a5876": 1,
+        "#2c2433": 1,
+        "#b5a3c0": 1,
+        "#44364e": 1,
+        "#ad99b8": 1
+      },
+      "literalFonts": [
+        "10px",
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "16px",
+        "23px"
+      ],
+      "literalRadii": [
+        "0 5px 0 0",
+        "10px",
+        "12px",
+        "24px",
+        "50%"
+      ]
+    },
+    {
+      "file": "components/community-text-card/index.wxss",
+      "tokens": [
+        "--cisme-back-top",
+        "--cisme-nav-side",
+        "--cisme-safe-bottom",
+        "--cisme-status-bar",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#fff": 10,
+        "#352a3a": 4,
+        "#f0e8f5": 1,
+        "#f6f1f7": 1,
+        "#f7f7f8": 1,
+        "#56306f": 7,
+        "#e8e1ec": 1,
+        "#75697a": 5,
+        "#9a3d55": 1,
+        "#9c8ca5": 1,
+        "#f6f3f7": 2,
+        "#69566e": 1,
+        "#f5eee5": 1,
+        "#fbfaf6": 1,
+        "#f3dff1": 1,
+        "#dce5f1": 1,
+        "#e6deeb": 1,
+        "#8b7896": 1,
+        "#9a8aa4": 1
+      },
+      "literalFonts": [
+        "100px",
+        "11px",
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "16px",
+        "17px",
+        "18px",
+        "19px",
+        "22px",
+        "26px"
+      ],
+      "literalRadii": [
+        "12px",
+        "18px",
+        "24px",
+        "28px",
+        "50%",
+        "8px"
+      ]
+    },
+    {
+      "file": "components/points-celebration/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {
+        "#422652": 1,
+        "#fbf4ff": 1,
+        "#70527e": 1,
+        "#ac89bc": 1,
+        "#bc9b65": 2,
+        "#6f9b98": 1
+      },
+      "literalFonts": [
+        "14px",
+        "18px",
+        "22px",
+        "30px",
+        "48px",
+        "64px"
+      ],
+      "literalRadii": [
+        "26px",
+        "2px"
+      ]
+    },
+    {
+      "file": "components/reward-moment/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {
+        "#f8f0e8": 1,
+        "#ede2ef": 1,
+        "#f1e4ec": 3,
+        "#eee0ef": 1,
+        "#43274f": 1,
+        "#f1e6f0": 1,
+        "#e4d4e5": 1,
+        "#f2e8f0": 1
+      },
+      "literalFonts": [
+        "25rpx",
+        "26rpx",
+        "28rpx",
+        "30rpx",
+        "32rpx",
+        "34rpx",
+        "40rpx",
+        "58rpx",
+        "64rpx"
+      ],
+      "literalRadii": [
+        "22rpx",
+        "28rpx"
+      ]
+    },
+    {
+      "file": "components/section-tabs/index.wxss",
+      "tokens": [
+        "--cisme-motion-press",
+        "--cisme-muted",
+        "--cisme-plum"
+      ],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [
+        "30rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "2px"
+      ]
+    },
+    {
+      "file": "custom-tab-bar/index.wxss",
+      "tokens": [
+        "--cisme-safe-bottom"
+      ],
+      "literalColorsOutsideVar": {
+        "#f6f4f8": 1,
+        "#48275f": 1,
+        "#755186": 1,
+        "#77538a": 1,
+        "#694579": 1,
+        "#6d4782": 3,
+        "#79558f": 1,
+        "#624076": 1,
+        "#554b5b": 2,
+        "#fff": 3,
+        "#746979": 2,
+        "#56306f": 1
+      },
+      "literalFonts": [
+        "13px"
+      ],
+      "literalRadii": [
+        "35px",
+        "42px",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/account/index.wxss",
+      "tokens": [
+        "--cisme-line",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#faf7fb": 3,
+        "#321538": 1,
+        "#fff": 1,
+        "#f3e8f8": 1,
+        "#b8a9c0": 1,
+        "#45304f": 1,
+        "#4f206c": 1,
+        "#827489": 1,
+        "#82748a": 1,
+        "#ded4e2": 1,
+        "#796b80": 2,
+        "#e9e1ec": 1,
+        "#e4d9e8": 1,
+        "#51216d": 1,
+        "#eee5f0": 1,
+        "#796a80": 1,
+        "#873954": 1,
+        "#cbb9d6": 1,
+        "#432751": 1
+      },
+      "literalFonts": [
+        "13px",
+        "15px",
+        "17px",
+        "21px",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "29rpx",
+        "30rpx",
+        "31rpx",
+        "60rpx",
+        "80rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "50%",
+        "8rpx",
+        "999px"
+      ]
+    },
+    {
+      "file": "pages/aftersale/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-lilac",
+        "--cisme-line",
+        "--cisme-load-bone",
+        "--cisme-muted",
+        "--cisme-plum",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#fff": 7,
+        "#faf7fb": 1,
+        "#705278": 1,
+        "#f1eaf3": 1,
+        "#61486c": 1,
+        "#a99ab4": 1,
+        "#fffcff": 1
+      },
+      "literalFonts": [
+        "12px",
+        "13px",
+        "14px",
+        "16px",
+        "18px",
+        "20px",
+        "24px",
+        "24rpx",
+        "26px",
+        "27rpx",
+        "28rpx",
+        "32rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "12rpx",
+        "16rpx",
+        "18rpx",
+        "20rpx",
+        "24rpx",
+        "28rpx 28rpx 0 0",
+        "6rpx"
+      ]
+    },
+    {
+      "file": "pages/checkout/components/reward-checkout/index.wxss",
+      "tokens": [
+        "--cisme-ink",
+        "--cisme-muted",
+        "--cisme-plum"
+      ],
+      "literalColorsOutsideVar": {
+        "#f2eaf6": 1,
+        "#fdfaff": 1,
+        "#d7c9df": 1,
+        "#eee5f3": 1,
+        "#e9e0e8": 1,
+        "#302037": 1,
+        "#fcf9fb": 1,
+        "#dfd0e6": 1,
+        "#f1e8f5": 1,
+        "#59316d": 1,
+        "#d8c5e1": 1,
+        "#5e4968": 1,
+        "#4d285f": 2,
+        "#65516f": 1,
+        "#9876a8": 1,
+        "#613477": 2,
+        "#49424f": 1
+      },
+      "literalFonts": [
+        "23rpx",
+        "25rpx",
+        "26rpx",
+        "28rpx",
+        "30rpx",
+        "32rpx",
+        "34rpx",
+        "36rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "12rpx",
+        "24rpx",
+        "32rpx 32rpx 0 0",
+        "4rpx",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/checkout/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-plum",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#fff": 6,
+        "#eee7ef": 1,
+        "#7a5a88": 1,
+        "#f0e7f3": 1,
+        "#765284": 1,
+        "#f3ebf5": 2,
+        "#eee7f0": 1,
+        "#6d6171": 1,
+        "#2d193b66": 1,
+        "#fdfaff": 1,
+        "#f4eef7": 1,
+        "#e9ddf1": 1
+      },
+      "literalFonts": [
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "16px",
+        "17px",
+        "18px",
+        "32rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "18rpx",
+        "20rpx",
+        "22rpx",
+        "24rpx",
+        "28rpx",
+        "32rpx 32rpx 0 0"
+      ]
+    },
+    {
+      "file": "pages/commission/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted"
+      ],
+      "literalColorsOutsideVar": {
+        "#69477a": 1,
+        "#382346": 1,
+        "#fff": 3,
+        "#f2eaf4": 1,
+        "#685b70": 1,
+        "#56306f": 1
+      },
+      "literalFonts": [
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "29rpx",
+        "30rpx"
+      ],
+      "literalRadii": [
+        "18rpx",
+        "20rpx",
+        "24rpx",
+        "28rpx"
+      ]
+    },
+    {
+      "file": "pages/community/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-load-arrival",
+        "--cisme-load-bone",
+        "--cisme-load-sweep",
+        "--cisme-muted",
+        "--cisme-nav-side",
+        "--cisme-plum",
+        "--cisme-safe-bottom",
+        "--cisme-status-bar",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f4f8": 3,
+        "#2f2149": 1,
+        "#716a77": 1,
+        "#756b79": 1,
+        "#fff": 4,
+        "#352a3a": 1,
+        "#726779": 1,
+        "#543f5f": 1,
+        "#ddcfe3": 1,
+        "#684c73": 1,
+        "#e3dce7": 1,
+        "#f3eef6": 1,
+        "#f7f4f9": 1,
+        "#634477": 1
+      },
+      "literalFonts": [
+        "18px",
+        "23rpx",
+        "24px",
+        "24rpx",
+        "26rpx",
+        "29rpx",
+        "30rpx",
+        "44rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "0 0 28rpx 28rpx",
+        "12px",
+        "14px",
+        "14rpx",
+        "20px 20px 0 0",
+        "24px",
+        "24rpx",
+        "4px",
+        "50%",
+        "54rpx",
+        "6rpx"
+      ]
+    },
+    {
+      "file": "pages/community-activity/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-safe-bottom",
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#786e7d": 1,
+        "#6e6273": 1,
+        "#9a3f57": 1,
+        "#dfd4e4": 3,
+        "#fff": 4,
+        "#56306f": 1,
+        "#eee5f1": 1,
+        "#654570": 1,
+        "#e7ddea": 1,
+        "#47374f": 1,
+        "#53485a": 1,
+        "#817686": 1,
+        "#81578f": 1,
+        "#684878": 2,
+        "#75697a": 1
+      },
+      "literalFonts": [
+        "14px",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "28rpx"
+      ],
+      "literalRadii": [
+        "12px",
+        "12rpx",
+        "14rpx",
+        "18rpx"
+      ]
+    },
+    {
+      "file": "pages/community-author/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-lilac",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-plum",
+        "--cisme-safe-bottom",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f4f8": 2,
+        "#fff": 3
+      },
+      "literalFonts": [
+        "38rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "20rpx",
+        "32rpx 32rpx 0 0",
+        "50%",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/community-compose/index.wxss",
+      "tokens": [
+        "--cisme-back-top",
+        "--cisme-danger",
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-ink-deep",
+        "--cisme-lilac",
+        "--cisme-line",
+        "--cisme-load-ease",
+        "--cisme-load-progress",
+        "--cisme-menu-top",
+        "--cisme-muted",
+        "--cisme-plum",
+        "--cisme-plum-deep",
+        "--cisme-safe-bottom",
+        "--cisme-stack-top",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-micro",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#fff": 7,
+        "#f7f4f9": 2,
+        "#faf3f5": 1,
+        "#f3f0f5": 2,
+        "#eee7f3": 1,
+        "#f6f4f7": 1,
+        "#807188": 1,
+        "#55316d": 1,
+        "#e8dfee": 1,
+        "#76647f": 1
+      },
+      "literalFonts": [
+        "14px",
+        "18px",
+        "26rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "10px",
+        "12px",
+        "14px",
+        "24px",
+        "28px",
+        "2px",
+        "50%",
+        "5px",
+        "8px",
+        "inherit"
+      ]
+    },
+    {
+      "file": "pages/community-post/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": []
+    },
+    {
+      "file": "pages/community-review/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-safe-bottom",
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#8b738f": 1,
+        "#eee5f0": 1,
+        "#654e70": 1,
+        "#413249": 1,
+        "#4c4153": 1,
+        "#e4d7e8": 1,
+        "#fff": 5,
+        "#876b80": 1,
+        "#5d4d65": 1,
+        "#d9c7df": 1,
+        "#f8f3f9": 1,
+        "#674b72": 1,
+        "#66556e": 1,
+        "#786a7d": 1,
+        "#6b417b": 1,
+        "#776b7d": 1,
+        "#56306f": 1,
+        "#333": 3,
+        "#133667": 3,
+        "#a8324a": 1,
+        "#f7f3f8": 1
+      },
+      "literalFonts": [
+        "12px",
+        "14px",
+        "16px",
+        "21rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "28rpx",
+        "37rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "12rpx",
+        "14rpx",
+        "16rpx",
+        "18rpx",
+        "20rpx",
+        "22px",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/home/index.wxss",
+      "tokens": [
+        "--cisme-back-top",
+        "--cisme-hit-target",
+        "--cisme-load-bone",
+        "--cisme-menu-height",
+        "--cisme-menu-top",
+        "--cisme-nav-side",
+        "--cisme-safe-bottom",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-micro",
+        "--cisme-text-small",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#30233d": 1,
+        "#f1eaf7": 1,
+        "#f5eff8": 1,
+        "#302044": 1,
+        "#f7f5f8": 1,
+        "#fff": 10,
+        "#8d3150": 2,
+        "#75697a": 5,
+        "#321d48": 1,
+        "#65516f": 1,
+        "#66367b": 1,
+        "#56306f": 4,
+        "#514358": 1,
+        "#f8e8ed": 1,
+        "#7c6688": 1,
+        "#624b6d": 1,
+        "#eee5f2": 2,
+        "#9a8f9d": 1,
+        "#f1eaf3": 1,
+        "#56386a": 1,
+        "#634677": 2,
+        "#6c5278": 1,
+        "#846d90": 2,
+        "#927f9a": 1,
+        "#3c2948": 1,
+        "#665d69": 1,
+        "#634d6d": 1,
+        "#76548b": 1,
+        "#402851": 1,
+        "#918794": 1,
+        "#61466e": 1,
+        "#eee4f2": 1,
+        "#4c3b52": 1,
+        "#eadff0": 1,
+        "#67467b": 2,
+        "#e7dfea": 1,
+        "#403347": 1,
+        "#876b98": 1,
+        "#f0e8f4": 1,
+        "#75697b": 1,
+        "#bcaec5": 1,
+        "#6b4e7d": 2,
+        "#493b51": 2,
+        "#81728a": 1,
+        "#e3dae8": 1
+      },
+      "literalFonts": [
+        "42rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "12rpx",
+        "14px",
+        "20rpx",
+        "24rpx",
+        "26rpx",
+        "32px",
+        "36rpx",
+        "48rpx 48rpx 0 0",
+        "4px",
+        "50%",
+        "8px",
+        "999px",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/invite/index.wxss",
+      "tokens": [
+        "--cisme-hit-target"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#958a97": 1,
+        "#6e6278": 1,
+        "#eee5f3": 1,
+        "#392c40": 1,
+        "#958b98": 2,
+        "#493550": 1,
+        "#817587": 2,
+        "#6d4c88": 1,
+        "#3b284d": 1,
+        "#493b50": 1,
+        "#786b7e": 1,
+        "#e6dce9": 1,
+        "#fff": 3,
+        "#947e9f": 1,
+        "#44354d": 1,
+        "#53386a": 1,
+        "#776b7b": 1,
+        "#d8c6e1": 1,
+        "#53396a": 1,
+        "#f3ebf6": 1,
+        "#604274": 1,
+        "#a44855": 1,
+        "#e3d7e8": 1,
+        "#5c4270": 1
+      },
+      "literalFonts": [
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "30rpx",
+        "40rpx"
+      ],
+      "literalRadii": [
+        "18rpx",
+        "30rpx",
+        "34rpx",
+        "44rpx",
+        "46rpx",
+        "50%",
+        "62rpx"
+      ]
+    },
+    {
+      "file": "pages/legal/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {
+        "#756c75": 1
+      },
+      "literalFonts": [
+        "26rpx",
+        "30rpx",
+        "34rpx",
+        "38rpx",
+        "40rpx"
+      ],
+      "literalRadii": []
+    },
+    {
+      "file": "pages/management/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-plum"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f3f8": 1,
+        "#fff": 1,
+        "#f2ecf5": 1
+      },
+      "literalFonts": [
+        "12px",
+        "14px",
+        "15px",
+        "20px",
+        "28rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "24rpx"
+      ]
+    },
+    {
+      "file": "pages/management-catalog/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#ece5ef": 1,
+        "#6f6573": 1,
+        "#fff": 1,
+        "#eee7ef": 1,
+        "#8b818e": 1,
+        "#f2ebf4": 1,
+        "#634d6e": 1
+      },
+      "literalFonts": [
+        "20rpx",
+        "23rpx",
+        "28rpx"
+      ],
+      "literalRadii": [
+        "20rpx",
+        "24rpx",
+        "28rpx",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/management-community/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f3f8": 1,
+        "#ede6f1": 4,
+        "#ece5ef": 2,
+        "#fcf9fd": 1
+      },
+      "literalFonts": [
+        "11px",
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "16px",
+        "18px",
+        "20px"
+      ],
+      "literalRadii": [
+        "12rpx",
+        "16rpx",
+        "28rpx 28rpx 0 0",
+        "4rpx",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/management-finance/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#74667c": 1,
+        "#e9dfea": 2,
+        "#fff": 4,
+        "#45334e": 1,
+        "#807386": 1,
+        "#56366b": 1,
+        "#54475a": 1,
+        "#817789": 1,
+        "#d9c9df": 2,
+        "#f8f3f9": 1,
+        "#624674": 3,
+        "#eee7f2": 1,
+        "#554262": 1,
+        "#fff2f1": 1,
+        "#a14040": 1,
+        "#55475e": 1,
+        "#4c365c": 1,
+        "#dfd4e4": 1,
+        "#56306f": 1
+      },
+      "literalFonts": [
+        "14px",
+        "20rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "28rpx"
+      ],
+      "literalRadii": [
+        "12px",
+        "14rpx",
+        "16rpx",
+        "20rpx",
+        "22rpx"
+      ]
+    },
+    {
+      "file": "pages/management-fulfillment/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-text-body"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#fff": 2,
+        "#faf7fb": 1,
+        "#705278": 1,
+        "#f1eaf3": 1,
+        "#61486c": 1,
+        "#f2eaf7": 1,
+        "#5b3c70": 1
+      },
+      "literalFonts": [
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "32rpx"
+      ],
+      "literalRadii": [
+        "12rpx",
+        "18rpx",
+        "20rpx",
+        "24rpx"
+      ]
+    },
+    {
+      "file": "pages/management-member/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-safe-bottom",
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 2,
+        "#fff": 9,
+        "#765a87": 1,
+        "#43334e": 3,
+        "#e2d3e7": 1,
+        "#eadfec": 1,
+        "#ece4ee": 1,
+        "#46374d": 4,
+        "#eee7f0": 3,
+        "#776d7b": 1,
+        "#756a79": 1,
+        "#d9c9df": 2,
+        "#563c67": 1,
+        "#f5eef7": 1,
+        "#624674": 3,
+        "#817687": 1,
+        "#5b4a64": 1,
+        "#6c5c70": 1,
+        "#756b78": 2,
+        "#574a5e": 1,
+        "#d8c9dd": 4,
+        "#fbf9fc": 1,
+        "#594964": 1,
+        "#725582": 1,
+        "#f1e9f4": 1,
+        "#51345f": 1,
+        "#5d4b65": 1,
+        "#56306f": 1
+      },
+      "literalFonts": [
+        "14px",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "29rpx",
+        "32rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "12px",
+        "16rpx",
+        "17rpx",
+        "18rpx",
+        "26rpx",
+        "28rpx",
+        "30rpx 30rpx 0 0"
+      ]
+    },
+    {
+      "file": "pages/management-members/commercial/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-safe-bottom",
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 2,
+        "#fff": 10,
+        "#eee7f0": 2,
+        "#493654": 1,
+        "#817687": 2,
+        "#e4d9e8": 1,
+        "#403545": 3,
+        "#624674": 3,
+        "#eee8f0": 2,
+        "#56306f": 3,
+        "#efe6f2": 1,
+        "#46374c": 1,
+        "#756a79": 2,
+        "#d9c9df": 1,
+        "#eee7f1": 1,
+        "#786b7d": 1,
+        "#756b78": 2,
+        "#46374d": 2,
+        "#d7c7dd": 1,
+        "#f5eef7": 1,
+        "#4c3c56": 1,
+        "#765e83": 1,
+        "#807484": 1,
+        "#43334e": 1,
+        "#6c5c70": 1,
+        "#574a5e": 1,
+        "#d8c9dd": 2,
+        "#5d4b65": 1
+      },
+      "literalFonts": [
+        "14px",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "30rpx",
+        "32rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "12px",
+        "16rpx",
+        "18rpx",
+        "20rpx",
+        "24rpx",
+        "26rpx",
+        "30rpx 30rpx 0 0",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/management-members/components/member-inspector/index.wxss",
+      "tokens": [
+        "--cisme-load-bone"
+      ],
+      "literalColorsOutsideVar": {
+        "#fcfaff": 2,
+        "#dbd0e2": 1,
+        "#352a3a": 7,
+        "#ece2f1": 1,
+        "#75697a": 6,
+        "#56306f": 10,
+        "#e6dce9": 8,
+        "#8a7d91": 1,
+        "#817287": 1,
+        "#514456": 1,
+        "#8d465f": 1,
+        "#e7deed": 1,
+        "#fff": 2
+      },
+      "literalFonts": [
+        "11px",
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "16px",
+        "19px",
+        "20px",
+        "22px"
+      ],
+      "literalRadii": [
+        "0",
+        "24px",
+        "24px 24px 0 0",
+        "3px",
+        "4px",
+        "50%",
+        "inherit"
+      ]
+    },
+    {
+      "file": "pages/management-members/detail/index.wxss",
+      "tokens": [
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": []
+    },
+    {
+      "file": "pages/management-members/index.wxss",
+      "tokens": [
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {
+        "#eee6f2": 1,
+        "#e5dbe9": 1,
+        "#e6dce9": 2,
+        "#f9f6fb": 1,
+        "#75697a": 2,
+        "#352a3a": 2,
+        "#ece2f1": 1,
+        "#56306f": 3,
+        "#ede2f3": 1,
+        "#f0eaf4": 1,
+        "#e6ddeb": 1,
+        "#fff": 1,
+        "#6e4a86": 1
+      },
+      "literalFonts": [
+        "10px",
+        "11px",
+        "12px",
+        "13px",
+        "14px",
+        "18px"
+      ],
+      "literalRadii": [
+        "0",
+        "12px",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/management-members/shared.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {
+        "#f9f6fb": 1,
+        "#352a3a": 1,
+        "#75697a": 2,
+        "#7e3e55": 1,
+        "#fcfaff": 1,
+        "#dbd0e2": 1,
+        "#ece3f0": 1,
+        "#56306f": 3,
+        "#fff": 1
+      },
+      "literalFonts": [
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "19px"
+      ],
+      "literalRadii": [
+        "0",
+        "24px 24px 0 0",
+        "25px",
+        "2px"
+      ]
+    },
+    {
+      "file": "pages/management-order-detail/index.wxss",
+      "tokens": [
+        "--cisme-bg",
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-page",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#fff": 1,
+        "#eee7f0": 1,
+        "#6d6171": 1
+      },
+      "literalFonts": [
+        "23rpx",
+        "24rpx",
+        "26rpx",
+        "28rpx",
+        "29rpx"
+      ],
+      "literalRadii": [
+        "18rpx",
+        "22rpx",
+        "26rpx"
+      ]
+    },
+    {
+      "file": "pages/management-orders/index.wxss",
+      "tokens": [
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-page"
+      ],
+      "literalColorsOutsideVar": {
+        "#fff": 1,
+        "#674d72": 1,
+        "#efe7f1": 1,
+        "#eee7f0": 1,
+        "#6d6171": 1,
+        "#7d6f85": 1,
+        "#603c75": 1,
+        "#e3dbe8": 1,
+        "#82748a": 1,
+        "#55435f": 1
+      },
+      "literalFonts": [
+        "21rpx",
+        "23rpx",
+        "24rpx",
+        "28rpx"
+      ],
+      "literalRadii": [
+        "22rpx",
+        "26rpx",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/management-points/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {
+        "#f7f1f8": 2,
+        "#392940": 1,
+        "#fff": 3,
+        "#ece0ef": 1,
+        "#e9e0ed": 1,
+        "#726579": 1,
+        "#684071": 1,
+        "#d9cddd": 1,
+        "#e6ddeb": 1,
+        "#51405c": 1,
+        "#817388": 1
+      },
+      "literalFonts": [
+        "23rpx",
+        "24rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "32rpx"
+      ],
+      "literalRadii": [
+        "16rpx",
+        "20rpx",
+        "24rpx"
+      ]
+    },
+    {
+      "file": "pages/management-privacy/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-plum"
+      ],
+      "literalColorsOutsideVar": {
+        "#fff": 1,
+        "#f7f1f8": 1,
+        "#faf7fa": 2
+      },
+      "literalFonts": [
+        "12px",
+        "13px",
+        "14px",
+        "16px"
+      ],
+      "literalRadii": [
+        "12px",
+        "16px",
+        "8px"
+      ]
+    },
+    {
+      "file": "pages/management-product/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#e9e0ed": 1,
+        "#5f4869": 1,
+        "#fff": 2,
+        "#3d3042": 1,
+        "#6f6573": 2,
+        "#ddd1e2": 1,
+        "#fbf9fc": 1,
+        "#342b38": 1,
+        "#75697a": 2,
+        "#eee7ef": 1,
+        "#d4c5da": 1,
+        "#f5eff7": 1,
+        "#56306f": 2,
+        "#6f3349": 1,
+        "#f8e8ed": 1,
+        "#8a7d8e": 1
+      },
+      "literalFonts": [
+        "20rpx",
+        "21rpx",
+        "23rpx",
+        "24rpx",
+        "27rpx",
+        "30rpx"
+      ],
+      "literalRadii": [
+        "18rpx",
+        "22rpx",
+        "28rpx",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/management-rewards/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-load-bone",
+        "--cisme-muted",
+        "--cisme-plum"
+      ],
+      "literalColorsOutsideVar": {
+        "#eee3f4": 1,
+        "#2a193b66": 1,
+        "#fdfaff": 1,
+        "#f2ebf6": 1,
+        "#e3dbe8": 1,
+        "#82748a": 1,
+        "#55435f": 1,
+        "#fff": 3,
+        "#56306f": 1,
+        "#70617a": 1,
+        "#593873": 1,
+        "#594865": 2,
+        "#56336f": 1,
+        "#e9dff0": 1,
+        "#654379": 1,
+        "#f0e8f5": 1,
+        "#514359": 1,
+        "#74627e": 1
+      },
+      "literalFonts": [
+        "11px",
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "16px",
+        "18px",
+        "23px",
+        "24rpx",
+        "26px",
+        "26rpx",
+        "36rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "10px",
+        "12px",
+        "16rpx",
+        "20rpx",
+        "24rpx",
+        "32rpx 32rpx 0 0",
+        "6px",
+        "8px"
+      ]
+    },
+    {
+      "file": "pages/management-sharing/index.wxss",
+      "tokens": [
+        "--cisme-ink"
+      ],
+      "literalColorsOutsideVar": {
+        "#efe7f3": 1,
+        "#e8e0ed": 1
+      },
+      "literalFonts": [
+        "13px",
+        "14px",
+        "16px"
+      ],
+      "literalRadii": [
+        "20rpx"
+      ]
+    },
+    {
+      "file": "pages/management-support/index.wxss",
+      "tokens": [
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#3c3041": 1,
+        "#75697a": 2,
+        "#fff": 3,
+        "#715584": 1,
+        "#776d7b": 1,
+        "#675d6b": 1,
+        "#6f6275": 1,
+        "#eee7f1": 1,
+        "#8d3150": 2,
+        "#f8e8ed": 1,
+        "#345f52": 1,
+        "#e4f1ed": 1
+      },
+      "literalFonts": [
+        "20rpx",
+        "24rpx",
+        "28rpx",
+        "30rpx",
+        "36rpx"
+      ],
+      "literalRadii": [
+        "28rpx",
+        "50%",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/management-support-chat/index.wxss",
+      "tokens": [
+        "--cisme-back-top",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-menu-top",
+        "--cisme-menu-width",
+        "--cisme-muted",
+        "--cisme-plum",
+        "--cisme-text-body",
+        "--cisme-text-small",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#75697a": 7,
+        "#876998": 1,
+        "#2f7d5a": 1,
+        "#a66518": 1,
+        "#8b858e": 1,
+        "#56306f": 11,
+        "#745b80": 1,
+        "#85798a": 1,
+        "#6d6271": 2,
+        "#fffaff": 1,
+        "#eee4f2": 3,
+        "#fff": 10,
+        "#3f3444": 1,
+        "#f0e7f3": 1,
+        "#8b808e": 1,
+        "#786b7d": 1,
+        "#9a3151": 1,
+        "#8d3150": 3,
+        "#eee7f0": 1,
+        "#352a3a": 3,
+        "#fffafd": 1,
+        "#6e6073": 1,
+        "#8e759c": 1,
+        "#f8e8ed": 1,
+        "#6f6473": 1,
+        "#432458": 1,
+        "#eee8f0": 1,
+        "#fffcff": 1,
+        "#d9cedd": 1,
+        "#3f3447": 2,
+        "#9b3451": 1,
+        "#e7dfea": 2,
+        "#efe7f2": 1
+      },
+      "literalFonts": [
+        "17px",
+        "20rpx",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "28rpx",
+        "30rpx",
+        "34rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "14rpx",
+        "18rpx",
+        "20rpx",
+        "22px",
+        "22rpx",
+        "24rpx",
+        "25px",
+        "27rpx 8rpx 27rpx 27rpx",
+        "30rpx",
+        "34rpx 34rpx 0 0",
+        "50%",
+        "8rpx",
+        "8rpx 24rpx 24rpx",
+        "8rpx 27rpx 27rpx",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/order-detail/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-text-action",
+        "--cisme-text-body"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#fff": 8,
+        "#69477a": 1,
+        "#382346": 1,
+        "#eee6f0": 1,
+        "#6d6171": 1,
+        "#8d3150": 2,
+        "#fbf8fc": 1,
+        "#352a3a": 1,
+        "#56306f": 8,
+        "#f0eaf3": 1,
+        "#4d4054": 5,
+        "#a43b55": 1,
+        "#eee4f1": 1,
+        "#eee5f1": 2,
+        "#6b5e71": 1,
+        "#eee7f0": 1,
+        "#756879": 1,
+        "#f6f1f8": 1,
+        "#e5dce8": 1,
+        "#faf7fb": 1
+      },
+      "literalFonts": [
+        "21rpx",
+        "22rpx",
+        "23px",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "28rpx",
+        "29rpx",
+        "30rpx",
+        "32rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "14rpx",
+        "16rpx",
+        "18rpx",
+        "20rpx",
+        "22px",
+        "22rpx",
+        "24px",
+        "26rpx",
+        "30rpx",
+        "30rpx 30rpx 0 0"
+      ]
+    },
+    {
+      "file": "pages/orders/index.wxss",
+      "tokens": [
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#fff": 1,
+        "#694a75": 1,
+        "#efe6f2": 1,
+        "#716a74": 1,
+        "#eee9ef": 1
+      },
+      "literalFonts": [
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "26rpx",
+        "32rpx"
+      ],
+      "literalRadii": [
+        "28rpx",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/points/index.wxss",
+      "tokens": [
+        "--cisme-font-serif",
+        "--cisme-safe-bottom",
+        "--cisme-text-body",
+        "--cisme-text-small",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#f6f0f8": 1,
+        "#fbf8fb": 1,
+        "#968b98": 1,
+        "#fff": 6,
+        "#76588b": 1,
+        "#3e2850": 1,
+        "#756a79": 1,
+        "#3e3144": 1,
+        "#938896": 1,
+        "#eee5f1": 1,
+        "#4d3f52": 1,
+        "#948a97": 1,
+        "#6d6172": 1,
+        "#56306f": 12,
+        "#4e4053": 1,
+        "#928795": 1,
+        "#fff3d7": 1,
+        "#e6dcea": 1,
+        "#fffcff": 5,
+        "#87728f": 1,
+        "#352342": 3,
+        "#6c4a7c": 1,
+        "#796d80": 1,
+        "#a18baa": 1,
+        "#7b5c30": 1,
+        "#eee6f0": 1,
+        "#3f2d4c": 3,
+        "#624570": 1,
+        "#eee5f2": 1,
+        "#9c3754": 1,
+        "#d5c1df": 1,
+        "#7b6c82": 1,
+        "#796a81": 1,
+        "#f0e8f3": 1,
+        "#e1d3e7": 1,
+        "#f0e7f4": 1,
+        "#cdb6d8": 1,
+        "#dac7e3": 2,
+        "#594361": 1,
+        "#f2eaf5": 1,
+        "#59416b": 1,
+        "#34273d": 1,
+        "#653c7b": 1,
+        "#76687e": 1,
+        "#6f6079": 1,
+        "#557263": 1,
+        "#603776": 1,
+        "#382941": 2,
+        "#bba4c8": 1,
+        "#e8dfee": 1,
+        "#504359": 1,
+        "#76647f": 1
+      },
+      "literalFonts": [
+        "21rpx",
+        "22rpx",
+        "24rpx",
+        "25rpx",
+        "28rpx",
+        "29rpx",
+        "30rpx",
+        "33rpx",
+        "34rpx",
+        "37rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "10px",
+        "12px",
+        "14px",
+        "16rpx",
+        "18px",
+        "22px",
+        "24px 24px 0 0",
+        "25rpx",
+        "26px",
+        "32rpx",
+        "50%",
+        "58rpx",
+        "999px",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/post/index.wxss",
+      "tokens": [
+        "--cisme-plum",
+        "--cisme-safe-bottom",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#333333": 11,
+        "#ffffff": 9,
+        "#ff2e4d": 2,
+        "#b33d4c": 5,
+        "#56306f": 1,
+        "#d83b4e": 1,
+        "#ff2442": 3,
+        "#133667": 3,
+        "#13386c": 2,
+        "#707070": 3,
+        "#6b6b6b": 1,
+        "#526857": 1,
+        "#333": 2,
+        "#fff": 2,
+        "#b03348": 1,
+        "#f8f5fa": 1,
+        "#ddd2e5": 1,
+        "#d8cbdf": 1,
+        "#e0d6e6": 1
+      },
+      "literalFonts": [],
+      "literalRadii": [
+        "0",
+        "100px",
+        "12px",
+        "14px",
+        "16px 16px 0 0",
+        "20px",
+        "22px",
+        "4px",
+        "50%",
+        "6px"
+      ]
+    },
+    {
+      "file": "pages/privacy-rights/index.wxss",
+      "tokens": [
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted"
+      ],
+      "literalColorsOutsideVar": {
+        "#faf7fa": 3,
+        "#56306f": 2,
+        "#e5dce8": 1,
+        "#776b7e": 1,
+        "#d8c9dd": 1,
+        "#fff": 1
+      },
+      "literalFonts": [
+        "12px",
+        "14px",
+        "18px"
+      ],
+      "literalRadii": [
+        "0",
+        "12px"
+      ]
+    },
+    {
+      "file": "pages/product/index.wxss",
+      "tokens": [
+        "--cisme-safe-bottom",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f4f8": 5,
+        "#eee8f3": 3,
+        "#5e4c69": 1,
+        "#91729f": 1,
+        "#fff": 3,
+        "#fffcff": 4,
+        "#56306f": 2,
+        "#7b6589": 1,
+        "#352a3a": 3,
+        "#6f5a7b": 3,
+        "#796286": 3,
+        "#594365": 1,
+        "#4d355c": 1,
+        "#796786": 1,
+        "#d9cbdc": 2,
+        "#61476f": 1,
+        "#dacde0": 1,
+        "#6c547a": 1,
+        "#5b3c70": 1,
+        "#8e6ca2": 1,
+        "#f2eaf7": 1,
+        "#80668e": 1,
+        "#624d70": 1,
+        "#eee4f2": 1,
+        "#70597f": 1
+      },
+      "literalFonts": [
+        "16px",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "29rpx",
+        "30rpx",
+        "42rpx",
+        "54rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "20rpx",
+        "24rpx",
+        "44rpx 44rpx 0 0",
+        "48px",
+        "7rpx",
+        "8px"
+      ]
+    },
+    {
+      "file": "pages/profile/index.wxss",
+      "tokens": [
+        "--cisme-load-bone",
+        "--cisme-menu-height",
+        "--cisme-menu-top",
+        "--cisme-motion-press",
+        "--cisme-safe-bottom"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#817687": 2,
+        "#817788": 1,
+        "#3c3041": 1,
+        "#6f6474": 1,
+        "#827786": 1,
+        "#403545": 1,
+        "#776d7b": 1,
+        "#ece5ef": 1,
+        "#fbf6ff": 1,
+        "#665077": 1,
+        "#4b355b": 1,
+        "#37273f": 1,
+        "#fff": 4,
+        "#dfd0e7": 1
+      },
+      "literalFonts": [
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "27rpx",
+        "40rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "16px",
+        "18rpx",
+        "22rpx",
+        "28rpx",
+        "50%"
+      ]
+    },
+    {
+      "file": "pages/progress/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": []
+    },
+    {
+      "file": "pages/records/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-hit-target",
+        "--cisme-menu-height",
+        "--cisme-menu-top",
+        "--cisme-nav-side",
+        "--cisme-navbar-height",
+        "--cisme-plum",
+        "--cisme-safe-bottom",
+        "--cisme-status-bar",
+        "--cisme-text-body",
+        "--cisme-text-micro",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#352a3a": 8,
+        "#75697a": 15,
+        "#563d68": 1,
+        "#fffafd": 1,
+        "#56306f": 5,
+        "#f0e5f5": 1,
+        "#3c294c": 2,
+        "#eee4f2": 1,
+        "#f8f4f9": 1,
+        "#f3edf6": 1,
+        "#fff": 5,
+        "#6d5481": 1,
+        "#3f2b50": 1,
+        "#2d2138": 1,
+        "#5d416f": 1,
+        "#817788": 1,
+        "#423548": 2,
+        "#756a79": 6,
+        "#887b8d": 1,
+        "#403246": 1,
+        "#604574": 2,
+        "#eee5f2": 2,
+        "#796f7d": 1,
+        "#654878": 4,
+        "#eee4f3": 1,
+        "#624678": 1,
+        "#6f6573": 2,
+        "#463849": 1,
+        "#5e4272": 1,
+        "#824b64": 1,
+        "#f5e9ee": 1,
+        "#7e6f83": 1,
+        "#796d7d": 1,
+        "#3d3043": 1,
+        "#7a6f7e": 1,
+        "#4b3a52": 1,
+        "#897d8c": 1,
+        "#6d537a": 1,
+        "#5f4271": 1,
+        "#493b4e": 1,
+        "#7d7281": 1,
+        "#f5eff7": 1,
+        "#9a3d55": 1,
+        "#54366b": 1,
+        "#fcf9fc": 1,
+        "#f4edf6": 1,
+        "#7c6b83": 1,
+        "#3e2d46": 1,
+        "#59455f": 1,
+        "#807483": 1,
+        "#6f5b76": 1,
+        "#705382": 1,
+        "#49384f": 3,
+        "#7f7482": 1,
+        "#eae0ef": 1,
+        "#513c5b": 1,
+        "#706474": 1,
+        "#f7f3f8": 1,
+        "#6b527c": 1,
+        "#402c51": 1,
+        "#fffdfd": 4,
+        "#4f3c59": 1,
+        "#8c7d94": 2,
+        "#74667d": 1,
+        "#4e3b59": 1,
+        "#b8a3c6": 1,
+        "#a093a7": 1,
+        "#8b6da0": 1,
+        "#b6a8bf": 1,
+        "#91839a": 1,
+        "#f2eaf4": 1,
+        "#705180": 1,
+        "#f1eaf5": 1,
+        "#44314f": 1,
+        "#8d7e96": 1,
+        "#f3edf7": 1,
+        "#e9deef": 1,
+        "#e7dced": 1,
+        "#84728e": 1,
+        "#786881": 1,
+        "#e9e1ec": 1,
+        "#86738f": 1,
+        "#776b7d": 2
+      },
+      "literalFonts": [],
+      "literalRadii": [
+        "0",
+        "12px",
+        "18px",
+        "20rpx",
+        "22px",
+        "22rpx",
+        "24rpx",
+        "26px",
+        "28px",
+        "32rpx",
+        "40rpx 40rpx 0 0",
+        "50%",
+        "999px",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/referral/index.wxss",
+      "tokens": [
+        "--cisme-safe-bottom",
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#eadfee": 1,
+        "#fff": 1,
+        "#6e5b76": 1,
+        "#decfe5": 1,
+        "#453452": 1,
+        "#fbf8fc": 1,
+        "#756a79": 1,
+        "#766b7c": 1,
+        "#eee7f1": 1
+      },
+      "literalFonts": [
+        "22rpx",
+        "23rpx",
+        "24rpx"
+      ],
+      "literalRadii": [
+        "16rpx",
+        "18rpx",
+        "30rpx"
+      ]
+    },
+    {
+      "file": "pages/rewards/index.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-ink-deep",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-plum",
+        "--cisme-stack-top"
+      ],
+      "literalColorsOutsideVar": {
+        "#f1eaf5": 1,
+        "#faf7fb": 2,
+        "#f7f2f9": 1,
+        "#faf6fd": 1,
+        "#fff9ff": 1,
+        "#ddd0eb": 1,
+        "#fdfaff": 2,
+        "#5132620c": 1,
+        "#fdfbff": 1,
+        "#4e2f5b08": 1,
+        "#e4d5ee": 1,
+        "#6e3d8516": 1,
+        "#e9dfed": 1,
+        "#aa8fb9": 1,
+        "#fff": 1,
+        "#faf7fb88": 1,
+        "#ded3e5": 1,
+        "#796881": 1,
+        "#2c1a3e66": 1,
+        "#f2edf6": 1,
+        "#faf7fd": 2,
+        "#eee6f3": 1,
+        "#e9d9f2": 1,
+        "#d9bee7": 1,
+        "#c9a9db": 1,
+        "#52345f": 1,
+        "#5a3a66": 1,
+        "#f6eff9": 1,
+        "#5f4770": 1,
+        "#eee8f1": 1,
+        "#786981": 1,
+        "#f1e9f6": 1
+      },
+      "literalFonts": [
+        "11px",
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "16px",
+        "17px",
+        "20px",
+        "22px",
+        "24px",
+        "24rpx",
+        "26px",
+        "27px",
+        "28px",
+        "31px",
+        "32px",
+        "34rpx",
+        "38rpx",
+        "48px",
+        "56px"
+      ],
+      "literalRadii": [
+        "14rpx",
+        "18rpx",
+        "24rpx",
+        "28rpx",
+        "32rpx 32rpx 0 0",
+        "50%",
+        "99rpx"
+      ]
+    },
+    {
+      "file": "pages/settings/index.wxss",
+      "tokens": [
+        "--cisme-card",
+        "--cisme-hit-target",
+        "--cisme-ink",
+        "--cisme-lilac",
+        "--cisme-line",
+        "--cisme-list-icon",
+        "--cisme-list-row-min",
+        "--cisme-motion-press",
+        "--cisme-muted",
+        "--cisme-on-plum",
+        "--cisme-page",
+        "--cisme-page-gutter",
+        "--cisme-plum",
+        "--cisme-radius-card",
+        "--cisme-radius-control",
+        "--cisme-safe-bottom",
+        "--cisme-space-2",
+        "--cisme-space-3",
+        "--cisme-space-6",
+        "--cisme-stack-top",
+        "--cisme-text-action",
+        "--cisme-text-body",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": [
+        "0",
+        "15rpx",
+        "50%",
+        "8rpx",
+        "var(--cisme-radius-card)",
+        "var(--cisme-radius-control)"
+      ]
+    },
+    {
+      "file": "pages/sharing-officer/index.wxss",
+      "tokens": [
+        "--cisme-line",
+        "--cisme-plum"
+      ],
+      "literalColorsOutsideVar": {
+        "#fffafd": 1,
+        "#63546c": 1,
+        "#51425b": 1,
+        "#faf6fc": 1
+      },
+      "literalFonts": [
+        "12px",
+        "13px",
+        "14px",
+        "16px",
+        "17px",
+        "22px"
+      ],
+      "literalRadii": [
+        "0",
+        "12px",
+        "8px"
+      ]
+    },
+    {
+      "file": "pages/shop/index.wxss",
+      "tokens": [
+        "--cisme-nav-side",
+        "--cisme-navbar-height",
+        "--cisme-safe-bottom",
+        "--cisme-status-bar",
+        "--cisme-text-micro"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f4f8": 1,
+        "#352a3a": 2,
+        "#2f2149": 2,
+        "#6f5c7c": 1,
+        "#5d486a": 1,
+        "#eee8f4": 1,
+        "#362443": 1,
+        "#70597f": 2,
+        "#685477": 1,
+        "#b9a6c9": 1,
+        "#715282": 1,
+        "#fffcff": 1,
+        "#eee8f3": 1,
+        "#796286": 1,
+        "#56306f": 2,
+        "#7b6589": 1,
+        "#735b81": 1,
+        "#eee4f2": 1
+      },
+      "literalFonts": [
+        "21rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "29rpx",
+        "48rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "18rpx",
+        "8rpx",
+        "var(--shop-card-radius)"
+      ]
+    },
+    {
+      "file": "pages/submit/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": []
+    },
+    {
+      "file": "pages/support/index.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-lilac",
+        "--cisme-muted",
+        "--cisme-plum",
+        "--cisme-text-small",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#f7f2f8": 1,
+        "#75697a": 9,
+        "#876998": 1,
+        "#2f7d5a": 1,
+        "#a66518": 1,
+        "#8b858e": 1,
+        "#745b80": 2,
+        "#85798a": 1,
+        "#6d6271": 2,
+        "#fffaff": 1,
+        "#eee4f2": 4,
+        "#fff": 7,
+        "#3f3444": 1,
+        "#f0e7f3": 1,
+        "#56306f": 8,
+        "#8b808e": 1,
+        "#786b7d": 1,
+        "#9a3151": 1,
+        "#8d3150": 4,
+        "#eee7f0": 1,
+        "#352a3a": 4,
+        "#fffafd": 1,
+        "#6e6073": 1,
+        "#8e759c": 1,
+        "#f8e8ed": 1,
+        "#f1e9f3": 2,
+        "#432458": 1,
+        "#eee8f0": 1,
+        "#fbf7fc": 1,
+        "#49384f": 1,
+        "#72557f": 1,
+        "#fffcff": 1,
+        "#d9cedd": 1,
+        "#f2eaf4": 1,
+        "#625668": 1,
+        "#f4eff5": 1,
+        "#f3edf6": 1,
+        "#3f3447": 1,
+        "#efe7f2": 1
+      },
+      "literalFonts": [
+        "17px",
+        "20rpx",
+        "21rpx",
+        "22rpx",
+        "23rpx",
+        "24rpx",
+        "25rpx",
+        "26rpx",
+        "27rpx",
+        "34rpx"
+      ],
+      "literalRadii": [
+        "0",
+        "16rpx",
+        "17rpx",
+        "18rpx",
+        "20rpx",
+        "22px",
+        "22rpx",
+        "24rpx",
+        "27rpx 8rpx 27rpx 27rpx",
+        "30rpx",
+        "34rpx 34rpx 0 0",
+        "50%",
+        "8rpx",
+        "8rpx 24rpx 24rpx",
+        "8rpx 27rpx 27rpx",
+        "999rpx"
+      ]
+    },
+    {
+      "file": "pages/task/index.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": []
+    },
+    {
+      "file": "styles/action-hierarchy.wxss",
+      "tokens": [
+        "--cisme-motion-press",
+        "--cisme-plum",
+        "--cisme-text-action",
+        "--cisme-text-body"
+      ],
+      "literalColorsOutsideVar": {
+        "#ded1e3": 1,
+        "#6f6075": 2,
+        "#e9e1ec": 1
+      },
+      "literalFonts": [],
+      "literalRadii": [
+        "0"
+      ]
+    },
+    {
+      "file": "styles/community-feed.wxss",
+      "tokens": [
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {
+        "#665c6a": 1
+      },
+      "literalFonts": [
+        "28rpx"
+      ],
+      "literalRadii": [
+        "24rpx",
+        "50%"
+      ]
+    },
+    {
+      "file": "styles/fulfillment-policy.wxss",
+      "tokens": [
+        "--cisme-ink",
+        "--cisme-line",
+        "--cisme-muted",
+        "--cisme-plum",
+        "--cisme-text-action",
+        "--cisme-text-body"
+      ],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": [
+        "0"
+      ]
+    },
+    {
+      "file": "styles/list-tokens.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {
+        "#fff": 1
+      },
+      "literalFonts": [],
+      "literalRadii": []
+    },
+    {
+      "file": "styles/management-workbench.wxss",
+      "tokens": [
+        "--cisme-danger",
+        "--cisme-ink",
+        "--cisme-lilac",
+        "--cisme-motion-press",
+        "--cisme-muted",
+        "--cisme-page",
+        "--cisme-plum",
+        "--cisme-radius-card",
+        "--cisme-radius-control",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#fff": 2,
+        "#eee4f2": 1
+      },
+      "literalFonts": [
+        "12px",
+        "14px",
+        "16px",
+        "20px",
+        "22px",
+        "26px",
+        "28px"
+      ],
+      "literalRadii": [
+        "0",
+        "12rpx",
+        "var(--cisme-radius-card)",
+        "var(--cisme-radius-control)"
+      ]
+    },
+    {
+      "file": "styles/read-loading.wxss",
+      "tokens": [
+        "--cisme-line",
+        "--cisme-load-bone",
+        "--cisme-load-spin",
+        "--cisme-load-sweep",
+        "--cisme-plum",
+        "--cisme-topbar-height"
+      ],
+      "literalColorsOutsideVar": {
+        "#eee7f2": 1
+      },
+      "literalFonts": [],
+      "literalRadii": [
+        "50%"
+      ]
+    },
+    {
+      "file": "styles/section-tabs-layout.wxss",
+      "tokens": [],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": [
+        "0"
+      ]
+    },
+    {
+      "file": "styles/sharing-officer.wxss",
+      "tokens": [
+        "--cisme-ink",
+        "--cisme-muted",
+        "--cisme-plum"
+      ],
+      "literalColorsOutsideVar": {
+        "#f6f1f8": 1,
+        "#6e5a7c": 1,
+        "#e4dbe9": 2,
+        "#e6deec": 2,
+        "#eee5f3": 1,
+        "#593377": 1,
+        "#8b335b": 1,
+        "#f0e5ef": 1,
+        "#fcf9fd": 1,
+        "#f1eaf5": 1,
+        "#e9e2ed": 1
+      },
+      "literalFonts": [
+        "11px",
+        "12px",
+        "13px",
+        "14px",
+        "15px",
+        "18px",
+        "23px",
+        "30px"
+      ],
+      "literalRadii": [
+        "0",
+        "16rpx",
+        "20rpx",
+        "40rpx 40rpx 0 0"
+      ]
+    },
+    {
+      "file": "styles/sheet-dismiss.wxss",
+      "tokens": [
+        "--cisme-hit-target",
+        "--cisme-lilac",
+        "--cisme-plum",
+        "--cisme-text-small"
+      ],
+      "literalColorsOutsideVar": {},
+      "literalFonts": [],
+      "literalRadii": [
+        "999rpx"
+      ]
+    }
+  ]
+}

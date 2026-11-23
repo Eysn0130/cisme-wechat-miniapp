@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "a6204da328d5b0a02c70e3fea485193f1a06f8c7d5d18bfbdde4b5cea83f3702",
+  "mode": "isolated synthetic native rendering; no delete or unbind command executed",
+  "cases": [
+    {
+      "name": "address-list",
+      "file": "settings-a6204da328d5-address-list-375.png",
+      "style": {
+        "width": 48,
+        "height": 44,
+        "color": "rgb(154, 61, 85)"
+      },
+      "sha256": "6f2ad0ca38bf520189d6960b234fbe955e77fee583d22c23465b8ee768e7c48c"
+    },
+    {
+      "name": "profile-phone",
+      "file": "settings-a6204da328d5-profile-phone-375.png",
+      "style": {
+        "width": 105,
+        "height": 44,
+        "color": "rgb(154, 61, 85)"
+      },
+      "sha256": "b69dc595005ff13a7107d36bb2607865e24db56def83135b7bea988ad9109b9c"
+    }
+  ]
+}

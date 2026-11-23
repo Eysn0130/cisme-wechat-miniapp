@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "clientDate": "2026-11-22",
+  "recordedAtUtc": "2026-11-23T03:44:26.546900+00:00",
+  "baseCommit": "f92296c6df4a46281ff15a4f0ec47cb75c4cbd6f",
+  "packageSourceSha256": "a6204da328d5b0a02c70e3fea485193f1a06f8c7d5d18bfbdde4b5cea83f3702",
+  "sourceFiles": {
+    "pages/settings/index.ts": "0e87c524c1b1aae8b474c98036df007c4555562f2925e4d9be3df9da737ae01f",
+    "pages/settings/index.wxml": "18fd5a63735ff90e6051ce94c9887ca46e7e778649658cfef479de90a83d8ec6",
+    "pages/settings/index.wxss": "849b006b42b9521b50b772c007431d75d90c377ff03b8e4f8bf1a9fe84815186",
+    "pages/profile/index.wxml": "93cb0cf3de82a2aad16bf40e5ab996b0cf2a6d225d05b9a5477d562014eed9b6",
+    "pages/profile/index.wxss": "f9d22f09dd49ac8acc2b88cf2306a81e0adfab7d0c3af7cf668d6f46b0dd15c9",
+    "components/address-editor/index.wxml": "cac02780a37a3d6a427e38e64020d2fcbd521a9c87e75cd3a95cafb1968cd6cb",
+    "components/address-editor/index.wxss": "11f436bf16358d3f4dcebf759281edae6814e371405d0528076b4d214e7db3c9"
+  },
+  "change": "Remove generic explanatory copy from My/settings and the shared address editor; keep persistent labels, actionable errors, real status and operation-specific consequences. Preserve No. membership number at bottom right. Follow-up: place logout above the bottom safe area using a minimum-viewport flex flow, let expanded forms grow and scroll, remove duplicate address task heading/final About divider, and use the existing danger color for unbind/delete.",
+  "removed": [
+    "Settings generic privacy/audit footer and its icon",
+    "Avatar picker instruction duplicating the native action",
+    "Redundant nickname, WeChat handle, recipient and phone placeholders",
+    "Address input-method and quick-fill introductions",
+    "Default-address explanatory sentence",
+    "Consent revoked-status and accepted-receipt repeated purpose clauses",
+    "Draft storage/ownership explanation; keep its timestamp",
+    "Duplicate membership-card footer label"
+  ],
+  "unit": {
+    "passed": 3703,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Linux-only loopback performance case on macOS"
+  },
+  "checks": {
+    "typecheck": true,
+    "packageGate": true,
+    "contracts": true,
+    "diffHygiene": true
+  },
+  "native": {
+    "mode": "isolated synthetic native rendering and readonly retry",
+    "width": 375,
+    "totalChecks": 9,
+    "layoutAndCopyCases": 6,
+    "dangerActionVisualCases": 2,
+    "errorRecoveryCases": 1,
+    "records": [
+      "copy-native-results.json",
+      "settings-controls-native.json",
+      "settings-error-native.json"
+    ],
+    "cleanupRecords": [
+      "copy-runtime-restored.json",
+      "settings-controls-restored.json",
+      "settings-error-restored.json"
+    ],
+    "logout": {
+      "id": "",
+      "dataset": {},
+      "left": 14,
+      "right": 361,
+      "top": 716,
+      "bottom": 766,
+      "width": 347,
+      "height": 50
+    },
+    "safeBottom": 34,
+    "contentGapAboveSafeArea": 12,
+    "numberRightAligned": true,
+    "note": "Long forms and errors stay in document flow; no fixed logout overlay. Prior evidence belongs to its original package."
+  },
+  "pending": [
+    "Real authenticated final-source verification after the existing signed-out session.",
+    "Physical-device keyboard, screen reader and OS font propagation.",
+    "Other native consumers of the shared address editor, including checkout.",
+    "Current-source full visual matrix remains blocked; old 30-case evidence belongs to package 93fca6eb and is not relabelled as this package.",
+    "Latest PR head CI before any merge."
+  ],
+  "releaseActions": {
+    "merged": false,
+    "deployed": false,
+    "experienceVersionUploaded": false
+  },
+  "history": [
+    {
+      "commit": "f92296c6df4a46281ff15a4f0ec47cb75c4cbd6f",
+      "packageSourceSha256": "b68a8e5ea81ee534de8aa300b3b13315523dc048d1610521e5761ffd1ac9af34",
+      "scope": "first copy-cleanup implementation; subsequent user request lowers logout and refines child regions"
+    }
+  ]
+}
