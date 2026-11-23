@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "packageSourceSha256": "a6204da328d5b0a02c70e3fea485193f1a06f8c7d5d18bfbdde4b5cea83f3702",
+  "mode": "isolated synthetic request failure and readonly retry",
+  "failed": {
+    "route": "pages/settings/index",
+    "status": "unknown",
+    "error": true,
+    "summary": {
+      "id": "settings-error-summary",
+      "dataset": {},
+      "left": 14,
+      "right": 361,
+      "top": 676.7890625,
+      "bottom": 765.984375,
+      "width": 347,
+      "height": 89.1953125
+    },
+    "retry": {
+      "id": "",
+      "dataset": {},
+      "left": 25,
+      "right": 139,
+      "top": 711.984375,
+      "bottom": 755.984375,
+      "width": 114,
+      "height": 44
+    },
+    "height": 812,
+    "safeBottom": 34
+  },
+  "recovered": {
+    "status": "valid",
+    "error": false,
+    "count": 0
+  },
+  "file": "settings-a6204da328d5-consent-error-375.png",
+  "sha256": "b5632729204b5d27da3b1ea4fe8a807127d5cd3e5754dbd2a97e01ce34c0b54e"
+}

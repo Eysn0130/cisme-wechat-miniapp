@@ -4,10 +4,32 @@
   "captures": [
     {
       "name": "settings",
-      "file": "copy-settings-375.png",
-      "sha256": "1261f20879aa73b8689ceef812e266a42f9ebf90cc646087310bbdbde27a903e",
+      "file": "settings-a6204da328d5-settings-375.png",
+      "sha256": "c4a0b6013bb20b5cec72360707333e0a331ce5e81333a951a5adc7f7ef6e6858",
       "route": "pages/settings/index",
       "width": 375,
+      "height": 812,
+      "safeBottom": 34,
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 361,
+        "top": 716,
+        "bottom": 766,
+        "width": 347,
+        "height": 50
+      },
+      "page": {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 375,
+        "top": 0,
+        "bottom": 812,
+        "width": 375,
+        "height": 812
+      },
       "loading": false,
       "profileError": false,
       "error": false,
@@ -101,10 +123,32 @@
     },
     {
       "name": "profile-editor",
-      "file": "copy-profile-editor-375.png",
-      "sha256": "4a98ca6f5ae57b6c1414b324cfac62e90c8a0a324d2b887a8f866e7dd14b73fa",
+      "file": "settings-a6204da328d5-profile-editor-375.png",
+      "sha256": "9f6cda4f14f46bdeb513b5ad168487e7b860fff3e252e0001ea3082e86572007",
       "route": "pages/settings/index",
       "width": 375,
+      "height": 812,
+      "safeBottom": 34,
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 361,
+        "top": 889.984375,
+        "bottom": 939.984375,
+        "width": 347,
+        "height": 50
+      },
+      "page": {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 375,
+        "top": -280,
+        "bottom": 985.984375,
+        "width": 375,
+        "height": 1265.984375
+      },
       "loading": false,
       "profileError": false,
       "error": false,
@@ -198,10 +242,32 @@
     },
     {
       "name": "address-editor",
-      "file": "copy-address-editor-375.png",
-      "sha256": "cd656b3084033db728d0ae281526f1b77e604ed6ab1680b803665a18d5c88217",
+      "file": "settings-a6204da328d5-address-editor-375.png",
+      "sha256": "988febe0625cb3f248bb47269dbaedd8a27e67ddf141f0afdbce451ef06f43c3",
       "route": "pages/settings/index",
       "width": 375,
+      "height": 812,
+      "safeBottom": 34,
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 361,
+        "top": 1380.3828125,
+        "bottom": 1430.3828125,
+        "width": 347,
+        "height": 50
+      },
+      "page": {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 375,
+        "top": -280,
+        "bottom": 1476.3828125,
+        "width": 375,
+        "height": 1756.3828125
+      },
       "loading": false,
       "profileError": false,
       "error": false,
@@ -254,8 +320,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": 1152.78125,
-          "bottom": 1210.578125,
+          "top": 1129.5859375,
+          "bottom": 1187.3828125,
           "width": 345,
           "height": 57.796875
         },
@@ -264,8 +330,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": 1210.578125,
-          "bottom": 1266.578125,
+          "top": 1187.3828125,
+          "bottom": 1243.3828125,
           "width": 345,
           "height": 56
         },
@@ -274,8 +340,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": 1266.578125,
-          "bottom": 1322.578125,
+          "top": 1243.3828125,
+          "bottom": 1299.3828125,
           "width": 345,
           "height": 56
         },
@@ -284,8 +350,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": 1322.578125,
-          "bottom": 1378.578125,
+          "top": 1299.3828125,
+          "bottom": 1355.3828125,
           "width": 345,
           "height": 56
         }
@@ -295,10 +361,32 @@
     },
     {
       "name": "address-actions",
-      "file": "copy-address-actions-375.png",
-      "sha256": "8ecefe9bed73d3c538779d5c9e4990f77f8aa170d0513b7a5085b59548e39ef3",
+      "file": "settings-a6204da328d5-address-actions-375.png",
+      "sha256": "e86a0d9807ba09bb62e141b1d8697bdfd33f723f3471bb2166b0dbcbeabfbec3",
       "route": "pages/settings/index",
       "width": 375,
+      "height": 812,
+      "safeBottom": 34,
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 361,
+        "top": 716.3828125,
+        "bottom": 766.3828125,
+        "width": 347,
+        "height": 50
+      },
+      "page": {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 375,
+        "top": -944,
+        "bottom": 812.3828125,
+        "width": 375,
+        "height": 1756.3828125
+      },
       "loading": false,
       "profileError": false,
       "error": false,
@@ -311,8 +399,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": -829.5,
-          "bottom": -771.1015625,
+          "top": -806,
+          "bottom": -747.6015625,
           "width": 345,
           "height": 58.3984375
         },
@@ -321,8 +409,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": -771.1015625,
-          "bottom": -713.3046875,
+          "top": -747.6015625,
+          "bottom": -689.8046875,
           "width": 345,
           "height": 57.796875
         },
@@ -331,8 +419,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": -713.3046875,
-          "bottom": -657.3046875,
+          "top": -689.8046875,
+          "bottom": -633.8046875,
           "width": 345,
           "height": 56
         },
@@ -341,8 +429,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": -657.3046875,
-          "bottom": -599.5078125,
+          "top": -633.8046875,
+          "bottom": -576.0078125,
           "width": 345,
           "height": 57.796875
         },
@@ -351,8 +439,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": 465.28125,
-          "bottom": 523.078125,
+          "top": 465.5859375,
+          "bottom": 523.3828125,
           "width": 345,
           "height": 57.796875
         },
@@ -361,8 +449,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": 523.078125,
-          "bottom": 579.078125,
+          "top": 523.3828125,
+          "bottom": 579.3828125,
           "width": 345,
           "height": 56
         },
@@ -371,8 +459,8 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": 579.078125,
-          "bottom": 635.078125,
+          "top": 579.3828125,
+          "bottom": 635.3828125,
           "width": 345,
           "height": 56
         },
@@ -381,8 +469,127 @@
           "dataset": {},
           "left": 15,
           "right": 360,
-          "top": 635.078125,
-          "bottom": 691.078125,
+          "top": 635.3828125,
+          "bottom": 691.3828125,
+          "width": 345,
+          "height": 56
+        }
+      ],
+      "blockedWrites": 0,
+      "unexpected": []
+    },
+    {
+      "name": "about",
+      "file": "settings-a6204da328d5-about-375.png",
+      "sha256": "b431f42aa501673598055fdc3b63185f01447a17d06ff7ce5ce9e414a860e0dd",
+      "route": "pages/settings/index",
+      "width": 375,
+      "height": 812,
+      "safeBottom": 34,
+      "logout": {
+        "id": "",
+        "dataset": {},
+        "left": 14,
+        "right": 361,
+        "top": 715.7890625,
+        "bottom": 765.7890625,
+        "width": 347,
+        "height": 50
+      },
+      "page": {
+        "id": "",
+        "dataset": {},
+        "left": 0,
+        "right": 375,
+        "top": -64,
+        "bottom": 811.7890625,
+        "width": 375,
+        "height": 875.7890625
+      },
+      "loading": false,
+      "profileError": false,
+      "error": false,
+      "footerCount": 0,
+      "cardFooter": null,
+      "cardNumber": null,
+      "rows": [
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 360,
+          "top": 74,
+          "bottom": 132.3984375,
+          "width": 345,
+          "height": 58.3984375
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 360,
+          "top": 132.3984375,
+          "bottom": 190.1953125,
+          "width": 345,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 360,
+          "top": 190.1953125,
+          "bottom": 246.1953125,
+          "width": 345,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 360,
+          "top": 246.1953125,
+          "bottom": 303.9921875,
+          "width": 345,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 360,
+          "top": 355.9921875,
+          "bottom": 413.7890625,
+          "width": 345,
+          "height": 57.796875
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 360,
+          "top": 413.7890625,
+          "bottom": 469.7890625,
+          "width": 345,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 360,
+          "top": 469.7890625,
+          "bottom": 525.7890625,
+          "width": 345,
+          "height": 56
+        },
+        {
+          "id": "",
+          "dataset": {},
+          "left": 15,
+          "right": 360,
+          "top": 525.7890625,
+          "bottom": 581.7890625,
           "width": 345,
           "height": 56
         }
@@ -392,10 +599,14 @@
     },
     {
       "name": "my-page",
-      "file": "copy-my-page-375.png",
-      "sha256": "47d7174496a14c8d53bbd73c5671a530285f760a1038001bedaf67306480173b",
+      "file": "settings-a6204da328d5-my-page-375.png",
+      "sha256": "fb2f6b772dacd680a0054f9a9d9c0a7ad92784134d7e21466efa2eb2fbd9a4f3",
       "route": "pages/profile/index",
       "width": 375,
+      "height": 812,
+      "safeBottom": 34,
+      "logout": null,
+      "page": null,
       "loading": false,
       "profileError": false,
       "error": false,
@@ -506,5 +717,6 @@
       "unexpected": []
     }
   ],
-  "cardFooterText": "No. 00042"
+  "cardFooterText": "No. 00042",
+  "packageSourceSha256": "a6204da328d5b0a02c70e3fea485193f1a06f8c7d5d18bfbdde4b5cea83f3702"
 }

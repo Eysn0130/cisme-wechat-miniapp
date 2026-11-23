@@ -5,20 +5,23 @@ import {restore} from './runtime-fixture.mjs';
 const shots=process.env.CISME_SETTINGS_SHOTS;
 if(!shots)throw Error('CISME_SETTINGS_SHOTS required');
 await mkdir(shots,{recursive:true});
+const packageHash=JSON.parse(await readFile(new URL('../visual/current-source-acceptance.json',import.meta.url),'utf8')).packageSourceSha256;
+const prefix='settings-'+packageHash.slice(0,12);
 const captures=[];
 async function capture(name){
-  const path=`${shots}/copy-${name}-375.png`;
+  const path=`${shots}/${prefix}-${name}-375.png`;
   await cli('simulator_screenshot',['--path',path,'--optimize','false']);
   const state=await evaluate(async function(){
     const p=getCurrentPages().slice(-1)[0],q=getApp().__settingsReview;
-    const r=await new Promise(resolve=>wx.createSelectorQuery().selectAll('.settings-principle').boundingClientRect().select('.member-card__footer').boundingClientRect().select('.member-card__number').boundingClientRect().selectAll('.settings-row,.profile-row').boundingClientRect().exec(resolve));
-    return {route:p.route,width:wx.getWindowInfo().windowWidth,loading:p.data.loading,profileError:!!p.data.profileError,error:!!p.data.error,footerCount:r[0].length,cardFooter:r[1],cardNumber:r[2],rows:r[3],blockedWrites:q.blockedWrites,unexpected:q.unexpected};
+    const r=await new Promise(resolve=>wx.createSelectorQuery().selectAll('.settings-principle').boundingClientRect().select('.member-card__footer').boundingClientRect().select('.member-card__number').boundingClientRect().selectAll('.settings-row,.profile-row').boundingClientRect().select('.settings-logout').boundingClientRect().select('.settings-page').boundingClientRect().exec(resolve));
+    const w=wx.getWindowInfo();return {route:p.route,width:w.windowWidth,height:w.windowHeight,safeBottom:w.screenHeight-w.safeArea.bottom,logout:r[4],page:r[5],loading:p.data.loading,profileError:!!p.data.profileError,error:!!p.data.error,footerCount:r[0].length,cardFooter:r[1],cardNumber:r[2],rows:r[3],blockedWrites:q.blockedWrites,unexpected:q.unexpected};
   });
   if(state.width!==375||state.blockedWrites||state.unexpected.length||state.error||state.profileError)throw Error(name+': unexpected state');
+  if(name==='settings'&&Math.abs(state.logout.bottom-(state.height-state.safeBottom-12))>2)throw Error('Logout did not settle above the bottom safe area');
   if(state.footerCount)throw Error('Removed explanatory footer still rendered');
   if(state.rows.some(r=>r.height<44||r.left<0||r.right>375.5))throw Error(name+': invalid row geometry');
   if(state.cardNumber&&Math.abs(state.cardFooter.right-state.cardNumber.right)>1)throw Error('Membership number lost right alignment');
-  captures.push({name,file:`copy-${name}-375.png`,sha256:createHash('sha256').update(await readFile(path)).digest('hex'),...state});
+  captures.push({name,file:`${prefix}-${name}-375.png`,sha256:createHash('sha256').update(await readFile(path)).digest('hex'),...state});
   console.log(JSON.stringify({name,route:state.route,pass:true}));
 }
 async function scroll(top){await cli('automation_viewport_action',['--action','pageScrollTo','--scroll-top',String(top)]);}
@@ -42,12 +45,14 @@ try{
   await cli('automation_element_action',['--selector','.settings-empty .secondary','--action','tap']);
   await capture('address-editor');
   await scroll(100000);await capture('address-actions');
+  await evaluate(function(){getCurrentPages().slice(-1)[0].setData({editingProfile:false,editingAddresses:false,addressEditorOpen:false,addressDirty:false,aboutOpen:true});});
+  await scroll(100000);await capture('about');
   await evaluate(function(){const p=getCurrentPages().slice(-1)[0];p.setData({addressDirty:false,profileDirty:false});p.syncUnloadGuard();});
   await cli('automation_navigate',['--action','switchTab','--url','/pages/profile/index']);
   await evaluate(async function(){const p=getCurrentPages().slice(-1)[0];for(let i=0;i<100&&(p.data.loading||p.data.authorityState==='loading'||p.data.commercialState==='loading');i++)await new Promise(r=>setTimeout(r,100));});
   await scroll(0);await capture('my-page');
   const card=await cli('automation_element_action',['--selector','.member-card__footer','--action','text']);
-  await writeFile(directory+'/copy-native-results.json',JSON.stringify({schemaVersion:1,mode:'isolated synthetic native copy/layout check',captures,cardFooterText:card},null,2)+'\n');
+  await writeFile(directory+'/copy-native-results.json',JSON.stringify({schemaVersion:1,packageSourceSha256:packageHash,mode:'isolated synthetic native copy/layout check',captures,cardFooterText:card},null,2)+'\n');
 }finally{
   const route=await evaluate(function(){return getCurrentPages().slice(-1)[0]?.route;});
   if(route!=='pages/settings/index')await cli('automation_navigate',['--action','navigateTo','--url','/pages/settings/index']);
