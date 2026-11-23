@@ -76,6 +76,17 @@ describe('support sender identity and native avatar cache', () => {
     cache.accept(person(), changed); await flush(); cache.fail(person().key); cache.accept(person(), changed); await flush();
     expect(avatar.load).toHaveBeenCalledTimes(2); expect(cache.avatar(person().key)).toBe('/assets/icons/user-circle-plum.svg');
   });
+  it('clears a support badge from a current snapshot even when older loaded messages still carry it', () => {
+    const cache = new SupportIdentityCache(), changed = vi.fn();
+    const operator = person(undefined, '合成客服');
+    const verified = { ...operator, identityBadge: 'support' as const };
+    const conversation = { id: 'identity-badge-thread' };
+    cache.absorb({ conversation, identities: { [operator.key]: verified } }, changed);
+    expect(cache.resolve({ sender: verified }).sender?.identityBadge).toBe('support');
+    cache.absorb({ conversation, identities: { [operator.key]: operator } }, changed);
+    cache.accept(verified, changed);
+    expect(cache.resolve({ sender: verified }).sender?.identityBadge).toBeUndefined();
+  });
   it('keeps adjacent replies from different operators distinct and never relabels legacy replies as the current handler', () => {
     const raw = [person('a'.repeat(64), '小熹'), person('c'.repeat(64), '小明')].map((sender, index) => ({ id: `${index}`, sequence: index + 1,
       senderType: 'admin', sender, body: '回复', createdAt: `2026-11-11T10:0${index}:00Z`, avatarPath: 'https://untrusted.example/avatar.jpg' }));

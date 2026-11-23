@@ -5,6 +5,7 @@
   "backgroundTextStyle": "dark",
   "onReachBottomDistance": 96,
   "usingComponents": {
-    "points-celebration": "../../components/points-celebration/index"
+    "points-celebration": "../../components/points-celebration/index",
+    "identity-badge": "/components/identity-badge/index"
   }
 }

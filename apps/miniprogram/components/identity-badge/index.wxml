@@ -1,0 +1,3 @@
+<view wx:if="{{mark}}" class="identity-badge {{intro ? 'identity-badge--intro' : ''}}" style="width:{{size}}rpx;height:{{size}}rpx">
+  <image class="identity-badge__image" src="/assets/icons/identity-{{mark}}.svg" mode="aspectFit" aria-label="{{label}}" aria-hidden="{{decorative}}" />
+</view>

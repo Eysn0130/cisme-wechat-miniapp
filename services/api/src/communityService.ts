@@ -69,7 +69,7 @@ export class CommunityService {
         LEFT JOIN community_comment reply ON reply.id=c.reply_to_id LEFT JOIN like_counts lc ON lc.comment_id=c.id LEFT JOIN mine ON mine.comment_id=c.id
         ORDER BY c.created_at,c.id LIMIT $5`, [postId, memberId ?? null, cursor?.createdAt ?? null, cursor?.id ?? null, limit + 1]);
       const rows = comments.rows.slice(0, limit);
-      const authors = await communityAuthors(client, rows.flatMap(c => [c.authorId,c.replyAuthorId]));
+      const authors = await communityAuthors(client, rows.flatMap(c => [c.authorId,c.replyAuthorId]), this.config.env);
       const last = comments.rows.length > limit ? rows[rows.length - 1] : null;
       const nextCursor = last ? commentCursor({ createdAt: last.createdAt, id: last.id }) : null;
       const aggregate = summary.rows[0];

@@ -54,7 +54,7 @@ export const CAPABILITIES = [
   "community.moderate", "member.support_view", "member.profile.read", "member.manage",
   "member.care.read", "member.contact.read", "member.export",
   "commission.read", "commission.rate.manage", "commission.rate.approve",
-  "commission.settlement.approve", "privacy.request.manage", "editorial.manage"
+  "commission.settlement.approve", "privacy.request.manage", "editorial.manage", "community.admin_badge"
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 // A public publishing identity, never a synthetic member or a login principal.
@@ -62,9 +62,11 @@ export const CISME_OFFICIAL_PUBLISHER = {
   key: 'cisme-scalp-lab', id: 'fe841ebb-1db1-57de-988b-4ff1534f23e6',
   name: 'CISME头皮实验室', avatar: '/assets/cisme/cisme-scalp-lab-avatar-v1.jpg'
 } as const;
+export type MemberDisplayIdentity = "member" | "sharing-officer" | "administrator" | "support";
+export type CommunityIdentityBadge = "sharing-officer" | "administrator" | "official";
 export interface EditorialCard {
   id:string;title:string;excerpt:string;authorId:string;author:string;avatar:string;
-  coverUrl:string|null;publishedAt:string;likeCount:number;saveCount:number;
+  coverUrl:string|null;publishedAt:string;likeCount:number;saveCount:number;identityBadge?:CommunityIdentityBadge | undefined;
 }
 export interface EditorialDetail extends EditorialCard {
   version:number;body:string;media:Array<{id:string;url:string;aiUsage:'generated'|'not_declared';type?:'video';mimeType?:'video/mp4';posterUrl?:string;width?:number;height?:number;durationMs?:number}>;liked:boolean;saved:boolean;
@@ -74,12 +76,12 @@ export interface EditorialDetail extends EditorialCard {
 export interface EditorialPage { items:EditorialCard[];nextCursor:string|null }
 export interface CommunityFollowingCard {
   kind: "editorial" | "formal" | "ugc"; id: string; authorId: string; author: string;
-  avatar: string; avatarRevision: string | null; title: string; excerpt: string;
+  avatar: string; avatarRevision: string | null; title: string; excerpt: string; identityBadge?: CommunityIdentityBadge | undefined;
   coverUrl: string | null; publishedAt: string; likeCount: number;
 }
 export interface CommunityFollowingPage { items: CommunityFollowingCard[]; nextCursor: string | null }
 export interface CommunityAuthorPage extends CommunityFollowingPage {
-  author:{id:string;accountType:'member'|'official';name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;
+  author:{id:string;accountType:'member'|'official';name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;identityBadge?:CommunityIdentityBadge | undefined;
     postCount:number;following:boolean;isMine:boolean;canManage:boolean;canFollow:boolean;followArticleId:string|null};
 }
 export interface EditorialAuthorPage extends EditorialPage {
@@ -208,6 +210,7 @@ export interface SupportSenderIdentityView {
   avatarRevision: string | null;
   avatarDataUrl?: string | null;
   redacted?: boolean;
+  identityBadge?: "support";
 }
 export interface SupportMessageView {
   id: string;

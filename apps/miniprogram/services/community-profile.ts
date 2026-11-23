@@ -1,11 +1,12 @@
 import { pageRead } from "./page-requests";
 import { localMemberAvatar } from "./member-avatar";
+import { communityIdentityBadge, identityLabel, type CommunityIdentityBadge } from "./display-identity";
 import { editorialIdentifier, editorialMediaSrc } from "./editorial";
 import { editorialPublisherAvatar, officialEditorialPublisherId } from "./editorial-publisher";
 import type { FeedCard } from "./feed-projection";
 
 export interface CommunityAuthor {
-  id:string;name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;
+  id:string;name:string;avatar:string;avatarRevision:string|null;membershipLabel:string;bio:string;bioRevision:number|null;identityBadge?:CommunityIdentityBadge | "";
   accountType?:"member"|"official";canManage?:boolean;
   postCount:number;following:boolean;isMine:boolean;canFollow:boolean;followArticleId:string|null;
 }
@@ -41,11 +42,13 @@ export async function readCommunityProfile(page:object,authorId:string,mine:bool
     if(!editorialIdentifier(item?.id)||item.authorId!==author.id||!["editorial","formal","ugc"].includes(item.kind))
       throw new Error("COMMUNITY_PROFILE_INVALID");
     return {id:item.id,kind:item.kind,title:item.title,author:item.author,
+      identityBadge:communityIdentityBadge(item.identityBadge,item.authorId),
       image:item.kind==="editorial"?editorialMediaSrc(item.coverUrl)
         :/^\/v1\/ugc\/media\/[0-9a-f-]{36}\?variant=thumbnail$/i.test(item.coverUrl??"")?origin+item.coverUrl:"",
       avatar:item.kind==="editorial"?editorialPublisherAvatar(item.author,await localMemberAvatar(item.avatar,item.avatarRevision),item.authorId)
         :await localMemberAvatar(item.avatar,item.avatarRevision),
       engagementLabel:"",compactImage:false};
   }));
-  return {author:{...author,avatar},items,nextCursor:result.nextCursor};
+  const identityBadge = communityIdentityBadge(author.identityBadge, author.id);
+  return {author:{...author,avatar,identityBadge,membershipLabel:identityLabel(identityBadge) || author.membershipLabel},items,nextCursor:result.nextCursor};
 }

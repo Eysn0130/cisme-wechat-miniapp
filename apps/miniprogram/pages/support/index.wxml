@@ -33,7 +33,7 @@
       </view>
       <view wx:else id="support-{{item.sequence}}" class="support-message support-message--{{item.senderType}} {{item.groupStart ? 'support-message--group-start' : 'support-message--grouped'}}">
         <view class="support-avatar-slot">
-          <view wx:if="{{item.groupStart}}" class="support-avatar support-avatar--{{item.avatarKind}} {{item.avatarKind === 'ai' || item.avatarPath !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{item.avatarKind === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : item.avatarPath}}" mode="aspectFill" data-key="{{item.sender.key}}" binderror="onAvatarError" aria-label="{{item.senderLabel}}的头像"/></view>
+          <view wx:if="{{item.groupStart}}" class="support-avatar-wrap"><view class="support-avatar support-avatar--{{item.avatarKind}} {{item.avatarKind === 'ai' || item.avatarPath !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{item.avatarKind === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : item.avatarPath}}" mode="aspectFill" data-key="{{item.sender.key}}" binderror="onAvatarError" aria-label="{{item.senderLabel}}的头像"/></view><identity-badge wx:if="{{item.senderType === 'admin' && item.sender.identityBadge === 'support'}}" kind="support" size="{{26}}"/></view>
         </view>
         <view class="support-message__content">
           <text wx:if="{{item.groupStart && item.senderType !== 'user'}}" class="support-message__sender">{{item.senderLabel}}</text>

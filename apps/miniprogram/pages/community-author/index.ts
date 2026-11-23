@@ -3,7 +3,8 @@ import { retainReadPresentation } from "../../services/read-presentation";
 import { cancelPageReads } from "../../services/page-requests";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { request, resumeAuthentication, beginLegalRenewal, requireMemberAccess } from "../../services/api";
-import { currentChromeStyle } from "../../services/layout";
+import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
+import { claimIdentityBadgeIntro } from "../../services/display-identity";
 import { editorialIdentifier, followEditorialArticle, expiredEditorialRead } from "../../services/editorial";
 import { readCommunityProfile, canEditCommunityBio, type CommunityAuthor } from "../../services/community-profile";
 import { projectFeedCards, feedColumnPatch, type FeedCard } from "../../services/feed-projection";
@@ -13,7 +14,7 @@ const stories=new WeakMap<object,FeedCard[]>();
 
 Page({
   readRevision:commerceContextRevision(),readVisible:true,lastSessionToken:"",bioAttempt:0,
-  data:{chromeStyle:currentChromeStyle(),mine:false,authorId:"",author:null as CommunityAuthor|null,
+  data:{chromeStyle:currentChromeStyle(),mine:false,authorId:"",author:null as CommunityAuthor|null,badgeIntro:false,
     feedColumns:projectFeedCards([]),nextCursor:null as string|null,
     loading:true,loadingMore:false,busy:false,navigating:false,error:"",moreError:"",invalidId:false,epoch:0,
     bioOpen:false,bioDraft:"",bioBusy:false,bioError:"",bioVersion:0,bioConflict:false},
@@ -30,11 +31,18 @@ Page({
     this.setData({loadingMore:false,busy:false,navigating:false});
     void this.load();
   },
-  onHide(){this.readVisible=false;this.data.epoch+=1;this.bioAttempt+=1;cancelPageReads(this);this.setData({bioBusy:false});},
+  onHide(){this.readVisible=false;this.data.epoch+=1;this.bioAttempt+=1;cancelPageReads(this);this.setData({bioBusy:false,badgeIntro:false});},
   onUnload(){this.onHide();stories.delete(this);},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
+  onAuthorAvatarLoad(event: WechatMiniprogram.BaseEvent) {
+    const author = this.data.author;
+    const { authorId, avatar } = event.currentTarget.dataset;
+    if (!author?.identityBadge || author.id !== authorId || author.avatar !== avatar || this.data.loading
+        || !this.current(this.data.epoch,this.lastSessionToken) || shouldReduceMotion()) return;
+    if (claimIdentityBadgeIntro(author.id, author.identityBadge)) this.setData({badgeIntro:true});
+  },
   current(epoch:number,token:string){return this.readVisible&&epoch===this.data.epoch&&token===getApp<IAppOption>().globalData.sessionToken&&this.readRevision===commerceContextRevision();},
-  clearProfile(){stories.delete(this);this.data.epoch+=1;this.setData({author:null,feedColumns:projectFeedCards([]),nextCursor:null,bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false,loadingMore:false,busy:false,bioBusy:false});},
+  clearProfile(){stories.delete(this);this.data.epoch+=1;this.setData({author:null,badgeIntro:false,feedColumns:projectFeedCards([]),nextCursor:null,bioOpen:false,bioDraft:"",bioError:"",bioVersion:0,bioConflict:false,loadingMore:false,busy:false,bioBusy:false});},
   returnUrl(){return this.data.mine?"/pages/community-author/index?mine=1":`/pages/community-author/index?id=${encodeURIComponent(this.data.authorId)}`;},
   recoverExpiredRead(epoch:number,token:string,error:unknown){
     if(!this.readVisible||epoch!==this.data.epoch||!expiredEditorialRead(error,token))return false;

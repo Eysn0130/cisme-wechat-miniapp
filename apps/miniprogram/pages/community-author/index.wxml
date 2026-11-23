@@ -7,7 +7,7 @@
     <block wx:if="{{author}}">
       <view class="author-head">
         <view class="author-identity">
-          <image class="author-avatar" src="{{author.avatar}}" mode="aspectFill" aria-label="{{author.name}}的头像"/>
+          <view class="author-avatar-wrap"><image class="author-avatar" src="{{author.avatar}}" mode="aspectFill" bindload="onAuthorAvatarLoad" data-author-id="{{author.id}}" data-avatar="{{author.avatar}}" aria-hidden="true"/><identity-badge wx:if="{{author.identityBadge}}" kind="{{author.identityBadge}}" size="{{44}}" intro="{{badgeIntro}}" decorative="{{true}}"/></view>
           <view class="author-info"><text class="author-name">{{author.name}}</text><text class="author-membership">{{author.membershipLabel}}</text></view>
           <button wx:if="{{author.isMine}}" class="author-action  {{loading || !!error || navigating ? 'control--disabled' : ''}}" bindtap="openSettings" disabled="{{loading || !!error || navigating}}">编辑资料</button>
           <button wx:elif="{{author.canFollow}}" class="author-action author-follow  {{loading || !!error || busy ? 'control--disabled' : ''}}" bindtap="toggleFollow" disabled="{{loading || !!error || busy}}" aria-label="{{author.following ? '取消关注作者' : '关注作者'}}">{{author.following ? '已关注' : '关注'}}</button>

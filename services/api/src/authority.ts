@@ -32,14 +32,14 @@ export async function requireHistoricalMemberWithClient(client:DbClient,memberId
 }
 
 export class AuthorityService {
-  constructor(private readonly pool: pg.Pool, private readonly environment: AppEnvironment) {}
+  constructor(private readonly pool: pg.Pool, readonly environment: AppEnvironment) {}
 
   async projection(memberId: string | undefined): Promise<AuthorityProjection> {
     const owner = member(memberId);
     const result = await this.pool.query<{ capability: Capability }>(`SELECT capability FROM authority_grant
       WHERE EXISTS(SELECT 1 FROM member m WHERE m.id=member_id AND m.status='active') AND member_id=$1 AND environment=$2 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now()) ORDER BY capability`, [owner, this.environment]);
     const capabilities = result.rows.map((row) => row.capability).filter((value) => capabilitySet.has(value));
-    return { version: 1, capabilities, managementAvailable: capabilities.length > 0 };
+    return { version: 1, capabilities, managementAvailable: capabilities.some(capability => capability !== "community.admin_badge") };
   }
 
   async require(memberId: string | undefined, capability: Capability): Promise<string> {

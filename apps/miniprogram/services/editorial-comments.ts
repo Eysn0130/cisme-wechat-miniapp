@@ -5,7 +5,7 @@ import type { CommunityComment } from "./community";
 
 export type EditorialCommentStatus="pending"|"published"|"rejected"|"hidden";
 export type EditorialComment=Omit<CommunityComment,"status">&{status:EditorialCommentStatus;version:number;replyRootId:string};
-export type EditorialCommentAuthors=Record<string,{name:string;avatar:string;avatarRevision:string|null}>;
+export type EditorialCommentAuthors=Record<string,{name:string;avatar:string;avatarRevision:string|null;identityBadge?:import("./display-identity").CommunityIdentityBadge | undefined}>;
 export interface EditorialCommentsPage {
   comments:EditorialComment[];authors:EditorialCommentAuthors;commentCount:number;
   commentsEnabled:boolean;commentsPolicyVersion:number;canModerate:boolean;

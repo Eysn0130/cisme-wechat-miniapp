@@ -381,7 +381,7 @@ export class SupportService {
 
   private async messageView(client:DbClient|pg.Pool,row: MessageRow, conversationRow: ConversationRow, perspective: "member" | "operator", media?: ReadonlyMap<string, MediaRow>,verifiedReplyTarget?:string) {
     const mediaRows = media ?? await this.mediaMap(client, [row]);
-    const identities = await supportIdentities(client, conversationRow, [row]);
+    const identities = await supportIdentities(client, conversationRow, [row], this.authority.environment);
     // Fresh inserts are validated by the sender trigger while this transaction
     // still holds the conversation lock. Historical receipts must recheck links.
     const validTarget=row.reply_to_message_id&&(row.reply_to_message_id===verifiedReplyTarget||(await client.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2',[row.reply_to_message_id,row.conversation_id])).rowCount);
@@ -507,7 +507,7 @@ export class SupportService {
       WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id,boundary,pageLimit + 1]);
     const hasOlder = after === null && result.rows.length > pageLimit;
     const pageRows = hasOlder ? result.rows.slice(result.rows.length - pageLimit) : result.rows;
-    const identityPage = await supportIdentities(client, row, pageRows);
+    const identityPage = await supportIdentities(client, row, pageRows, this.authority.environment);
     const media = await this.mediaMap(client, pageRows);
     const replyIds=pageRows.flatMap(message=>message.reply_to_message_id?[message.reply_to_message_id]:[]);
     const validTargets=new Set((replyIds.length?(await client.query<{id:string}>(`SELECT id FROM support_message WHERE id=ANY($1::uuid[]) AND conversation_id=$2 AND sequence>$3`,[replyIds,row.id,boundary])).rows:[]).map(target=>target.id));

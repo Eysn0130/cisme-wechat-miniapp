@@ -1,0 +1,16 @@
+.identity-badge {
+  position:absolute;
+  right:-2rpx;
+  bottom:-2rpx;
+  z-index:1;
+  pointer-events:none;
+}
+.identity-badge__image { display:block; width:100%; height:100%; }
+.identity-badge--intro { animation:identity-badge-intro 250ms ease-out both; }
+@keyframes identity-badge-intro {
+  0%, 100% { transform:scale(1); filter:brightness(1); }
+  36% { transform:scale(1.09); filter:brightness(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .identity-badge--intro { animation:none; }
+}

@@ -7,6 +7,8 @@ import { normalizeMemberAvatar } from './memberAvatar.js';
 import { createHash } from 'node:crypto';
 import type { AppEnvironment } from '@cisme/config';
 import {registrationProfileComplete} from './memberRegistration.js';
+import { memberDisplayIdentities } from './displayIdentity.js';
+import type { CommunityIdentityBadge } from '@cisme/contracts';
 
 export interface MemberProfileInput {
   displayName?: unknown; wechatHandle?: unknown; avatarDataUrl?: unknown;
@@ -100,30 +102,38 @@ export class MemberProfile {
   }
 }
 
+type PublicAuthor = { name: string; avatar: string; avatarRevision: string | null; identityBadge?: CommunityIdentityBadge | undefined };
+
 // Only this allowlist may be projected into public community data. Contact
 // handles, phone fields, OpenID and internal review reasons never leave here.
-export async function communityAuthors(pool: pg.Pool | pg.PoolClient, memberIds: string[]) {
+export async function communityAuthors(pool: pg.Pool | pg.PoolClient, memberIds: string[], environment?: AppEnvironment): Promise<Record<string, PublicAuthor>> {
   const ids = [...new Set(memberIds)].filter(Boolean).slice(0,500);
-  if (!ids.length) return {} as Record<string,{ name:string; avatar:string; avatarRevision:string | null }>;
+  if (!ids.length) return {};
   const result = await pool.query(`SELECT m.id,
     CASE WHEN p.community_visible AND p.public_status='approved' THEN m.display_name ELSE 'CISME 会员' END AS name,
     CASE WHEN p.community_visible AND p.public_status='approved' THEN p.avatar_data_url END AS avatar,
-    CASE WHEN p.community_visible AND p.public_status='approved' THEN p.avatar_revision END AS revision
+    CASE WHEN p.community_visible AND p.public_status='approved' THEN p.avatar_revision END AS revision,
+    p.community_visible AND p.public_status='approved' AS identity_visible
     FROM member m LEFT JOIN member_profile p ON p.member_id=m.id WHERE m.id=ANY($1::uuid[]) AND m.status='active'`,[ids]);
-  return Object.fromEntries(result.rows.map((row,index)=>[row.id,{name:row.name,avatar:index < 50 ? row.avatar || '' : '',avatarRevision:index < 50 ? row.revision || null : null}]));
+  const identities = environment ? await memberDisplayIdentities(pool, environment, result.rows.filter(row => row.identity_visible).map(row => row.id)) : undefined;
+  return Object.fromEntries(result.rows.map((row,index)=>[row.id,{name:row.name,avatar:index < 50 ? row.avatar || '' : '',
+    avatarRevision:index < 50 ? row.revision || null : null,identityBadge:identities?.get(row.id)?.publicBadge} ]));
 }
 
 // Publishing a comment explicitly displays this small identity next to it.
 // It does not opt the member into a public profile or expose contact fields.
-export async function editorialCommentAuthors(pool: pg.Pool | pg.PoolClient, memberIds: string[]) {
+export async function editorialCommentAuthors(pool: pg.Pool | pg.PoolClient, memberIds: string[], environment?: AppEnvironment,
+  badgeMemberIds?: ReadonlySet<string>): Promise<Record<string, PublicAuthor>> {
   const ids = [...new Set(memberIds)].filter(Boolean).slice(0,500);
-  if (!ids.length) return {} as Record<string,{name:string;avatar:string;avatarRevision:string|null}>;
+  if (!ids.length) return {};
   const result=await pool.query(`SELECT m.id,m.display_name AS name,p.avatar_data_url AS avatar,p.avatar_revision AS revision
     FROM member m LEFT JOIN member_profile p ON p.member_id=m.id
     WHERE m.id=ANY($1::uuid[]) AND m.status='active'`,[ids]);
   const avatarIds=new Set(ids.slice(0,51));
+  const identities = environment ? await memberDisplayIdentities(pool, environment, result.rows.filter(row => !badgeMemberIds || badgeMemberIds.has(row.id)).map(row => row.id)) : undefined;
   return Object.fromEntries(result.rows.map(row=>[row.id,{name:row.name||'CISME 会员',
-    avatar:avatarIds.has(row.id)?row.avatar||'':'',avatarRevision:avatarIds.has(row.id)?row.revision||null:null}]));
+    avatar:avatarIds.has(row.id)?row.avatar||'':'',avatarRevision:avatarIds.has(row.id)?row.revision||null:null,
+    identityBadge:identities?.get(row.id)?.publicBadge}]));
 }
 
 // A public post carries its actual author's small display identity, just as

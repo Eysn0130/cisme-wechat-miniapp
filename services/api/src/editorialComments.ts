@@ -92,7 +92,7 @@ export class EditorialCommentsService{
       const targets=rows.flatMap(row=>[row.author_member_id]);
       const replyIds=rows.map(row=>row.reply_to_id).filter(Boolean);
       const replies=replyIds.length?(await client.query<{id:string;author_member_id:string}>(`SELECT id,author_member_id FROM editorial_comment WHERE id=ANY($1::uuid[])`,[replyIds])).rows:[];
-      const authors=await editorialCommentAuthors(client,[...targets,...replies.map(row=>row.author_member_id)]);
+      const authors=await editorialCommentAuthors(client,[...targets,...replies.map(row=>row.author_member_id)],this.config.env,new Set(targets));
       const page=finishPage(rows.map(row=>({...row,cursorAt:row.cursor_at})),limit,scope);
       return {...summary,preview:false,asOf:asOf.toISOString(),authors,
         nextCursor:page.nextCursor,truncated:page.hasMore,hasMore:page.hasMore,loadedCount:page.loadedCount,

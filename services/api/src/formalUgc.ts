@@ -375,9 +375,9 @@ export class FormalUgcService{
         AND (NOT $8::boolean OR NOT COALESCE(${featuredPostSql},false))
       ORDER BY p.published_at DESC,p.id DESC LIMIT $4`,[q,authorId,memberId??null,limit+1,cursorAt,cursorId,followingOnly,input.channel==='recommend']);
     const page=result.rows.slice(0,limit),last=page[page.length-1],hasMore=result.rows.length>limit;
-    const authors=await publishedPostAuthors(this.pool,page.map(row=>row.author_member_id));
+    const authors=await publishedPostAuthors(this.pool,page.map(row=>row.author_member_id),this.config.env);
     return {items:page.map(row=>({id:row.id,authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",
-      avatar:authors[row.author_member_id]?.avatar??"",avatarRevision:authors[row.author_member_id]?.avatarRevision??null,title:row.title||row.body?.slice(0,40)||"图片护理故事",
+      avatar:authors[row.author_member_id]?.avatar??"",avatarRevision:authors[row.author_member_id]?.avatarRevision??null,identityBadge:authors[row.author_member_id]?.identityBadge,title:row.title||row.body?.slice(0,40)||"图片护理故事",
       excerpt:row.body?.slice(0,100)||"",aiUsage:row.ai_usage,coverId:row.cover_id,likeCount:row.like_count,publishedAt:row.published_at})),
       total:page.length,nextCursor:hasMore&&last?Buffer.from(JSON.stringify({at:new Date(last.published_at).toISOString(),id:last.id})).toString("base64url"):null,
       publicEnabled:true};
@@ -418,14 +418,14 @@ export class FormalUgcService{
         WHERE b.post_id=$1 AND b.revision=$2 AND a.state='approved' ORDER BY b.position`,[id,post.published_revision]),
       this.pool.query(`SELECT kind,count(*)::int AS count,bool_or(member_id=$2) AS mine FROM ugc_post_reaction WHERE post_id=$1 GROUP BY kind`,[id,memberId??null]),
       memberId?this.publicComments(memberId,id,{limit:30}):Promise.resolve({items:[],matchingTotal:0,nextCursor:null}),
-      publishedPostAuthors(this.pool,[post.author_member_id]),
+      publishedPostAuthors(this.pool,[post.author_member_id],this.config.env),
       memberId?this.pool.query(`SELECT (EXISTS(SELECT 1 FROM ugc_author_follow
         WHERE follower_member_id=$1 AND followed_member_id=$2)
         OR EXISTS(SELECT 1 FROM community_follow WHERE member_id=$1 AND author_id=$2::text)) AS following`,[memberId,post.author_member_id])
         :Promise.resolve({rows:[{following:false}]})
     ]);
     return {id,version:post.version,authorId:post.author_member_id,author:authors[post.author_member_id]?.name??"CISME 会员",
-      avatar:authors[post.author_member_id]?.avatar??"",avatarRevision:authors[post.author_member_id]?.avatarRevision??null,title:post.title??"",body:post.body??"",rewardKind:post.reward_kind,experienceProductCode:post.experience_product_code,experienceDays:post.experience_days,aiUsage:post.ai_usage,
+      avatar:authors[post.author_member_id]?.avatar??"",avatarRevision:authors[post.author_member_id]?.avatarRevision??null,identityBadge:authors[post.author_member_id]?.identityBadge,title:post.title??"",body:post.body??"",rewardKind:post.reward_kind,experienceProductCode:post.experience_product_code,experienceDays:post.experience_days,aiUsage:post.ai_usage,
       publishedAt:post.published_at,isMine:memberId===post.author_member_id,following:follow.rows[0]?.following===true,media:media.rows,
       likeCount:reactions.rows.find(row=>row.kind==="like")?.count??0,saveCount:reactions.rows.find(row=>row.kind==="save")?.count??0,
       liked:reactions.rows.find(row=>row.kind==="like")?.mine??false,saved:reactions.rows.find(row=>row.kind==="save")?.mine??false,
@@ -455,10 +455,10 @@ export class FormalUgcService{
       ORDER BY c.created_at,c.id LIMIT $5`,[id,memberId??null,cursor?.at??null,cursor?.id??null,limit+1]);
     const total=(await this.pool.query(`SELECT count(*)::int AS n FROM ugc_comment c JOIN member commenter ON commenter.id=c.author_member_id
       WHERE ${condition}`,[id,memberId??null])).rows[0]?.n??0;
-    const authors=await publishedPostAuthors(this.pool,result.rows.map(row=>row.author_member_id));
+    const authors=await publishedPostAuthors(this.pool,result.rows.map(row=>row.author_member_id),this.config.env);
     const page=finishPage(result.rows.map(row=>({id:row.id,cursorAt:row.cursor_at,body:row.body,state:row.state,version:row.version,createdAt:row.created_at,
       authorId:row.author_member_id,author:authors[row.author_member_id]?.name??"CISME 会员",avatar:authors[row.author_member_id]?.avatar??"",
-      avatarRevision:authors[row.author_member_id]?.avatarRevision??null,isMine:memberId===row.author_member_id,
+      avatarRevision:authors[row.author_member_id]?.avatarRevision??null,identityBadge:authors[row.author_member_id]?.identityBadge,isMine:memberId===row.author_member_id,
       likeCount:row.like_count,liked:row.liked===true,parentId:row.parent_id,replyToId:row.reply_to_id})),limit,scope);
     return {...page,items:page.items.map(({cursorAt:_,...item})=>item),matchingTotal:total};
   }

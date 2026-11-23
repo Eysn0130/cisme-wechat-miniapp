@@ -21,6 +21,8 @@ type GallerySizingCache = {id:string;version:number;media:string[];ownerToken:st
 type PreviewIntent = {owner:number;attempt:number;ownerToken:string;id:string;version:number|undefined;media:string[];imageIdentity:string;read:GalleryRead|null};
 type GalleryTouch = {identity:string;startX:number;startY:number;moved:boolean};
 type ReadingRead = { id:string; version:number; ownerToken:string; mediaIdentity:string; videoIdentity:string; layoutIdentity:string; canvasHeight:number; attempt:number; scrollTop:number };
+import { communityIdentityBadge, identityLabel } from "../../services/display-identity";
+
 type CommentIntent = { owner:number; attempt:number; token:string; id:string; version:number };
 const commentFailure=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
 
@@ -268,7 +270,8 @@ Page({
           // successful read may retire that old refusal, never an unknown write.
           const clearSocialRefusal=this.editorialSocialRefusal!==null&&this.data.socialError===this.editorialSocialRefusal;
           if(clearSocialRefusal)this.editorialSocialRefusal=null;
-          this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:this.data.formalSource?"formal":"editorial",avatar,
+          const identityBadge=communityIdentityBadge(article.identityBadge,article.authorId);
+          this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:this.data.formalSource?"formal":"editorial",avatar,identityBadge,identityLabel:identityLabel(identityBadge),
             readingSegments:readingSegments(article.body),publishedLabel:new Date(article.publishedAt).toLocaleDateString("zh-CN"),engagementLabel:"精选内容"},
             media:display.images,mediaIndex:restored?.index??0,galleryHeight,video:display.video,videoHeightRpx,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",imageEventId:display.images.length?`${attempt}:${article.version}:${article.id}:${galleryHeight}`:"",following:article.following,
             commentAuthenticated:Boolean(token),commentsLoading:true,socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false},()=>{
@@ -302,7 +305,7 @@ Page({
       // The feed exposes an object key, not an authorized media URL or avatar.
       // Never attribute bundled brand imagery or a local portrait to a submission.
       const reviewed = feed.find((item: any) => item.id === this.data.id) ?? null;
-      this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, author: reviewed.author || "CISME 会员", publishedLabel: "用户投稿", provenanceLabel: "经作者授权并审核后展示" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、授权已失效，或链接无效。请返回社区查看其他内容。" });
+      this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, identityBadge:communityIdentityBadge(reviewed.identityBadge), author: reviewed.author || "CISME 会员", publishedLabel: "用户投稿", provenanceLabel: "经作者授权并审核后展示" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、授权已失效，或链接无效。请返回社区查看其他内容。" });
       if (reviewed) {
         void this.loadSocial();
         void this.prepareShare(attempt);

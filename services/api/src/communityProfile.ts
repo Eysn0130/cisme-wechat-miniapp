@@ -27,7 +27,7 @@ export class CommunityProfileService {
       if(!profile)throw unavailable();
       const canManage=await this.editorial.canManage(memberId);
       return {author:{...page.author,accountType:'official',name:officialPublisher.name,avatar:officialPublisher.avatar,
-        avatarRevision:null,membershipLabel:'CISME官方',bio:profile.biography,bioRevision:canManage?profile.profile_revision:null,isMine:false,canManage,canFollow:true,
+        avatarRevision:null,membershipLabel:'CISME官方',identityBadge:'official',bio:profile.biography,bioRevision:canManage?profile.profile_revision:null,isMine:false,canManage,canFollow:true,
         followArticleId:page.items[0]?.id??null},
         items:page.items.map(item=>({...item,kind:'editorial',avatar:officialPublisher.avatar,avatarRevision:null})),
         nextCursor:page.nextCursor};
@@ -84,16 +84,16 @@ export class CommunityProfileService {
           cursor?.at??null,cursor?.kind??null,cursor?.id??null,limit+1])).rows[0];
       const isMine=memberId===authorId;
       if(!isMine&&!summary.post_count)throw unavailable();
-      const publicAuthor=(await (summary.formal_count?publishedPostAuthors:communityAuthors)(client,[authorId]))[authorId];
+      const publicAuthor=(await (summary.formal_count?publishedPostAuthors:communityAuthors)(client,[authorId],this.config.env))[authorId];
       const personalName=(isMine?member.display_name:publicAuthor?.name)||'CISME 会员';
       const avatar=isMine?member.avatar_data_url||'':publicAuthor?.avatar||'';
       const rows=summary.items.slice(0,limit),last=rows.at(-1);
       return {author:{id:authorId,accountType:'member',name:personalName,avatar,avatarRevision:isMine?member.avatar_revision??null:publicAuthor?.avatarRevision??null,
-        membershipLabel:'CISME会员',bio:member.bio,bioRevision:isMine?member.bio_revision:null,
+        identityBadge:publicAuthor?.identityBadge,membershipLabel:'CISME会员',bio:member.bio,bioRevision:isMine?member.bio_revision:null,
         postCount:summary.post_count,following:member.following===true,isMine,canManage:false,canFollow:Boolean(summary.follow_article_id||summary.formal_count),followArticleId:summary.follow_article_id??null},
         items:rows.map((row:any)=>({id:row.id,kind:row.kind,authorId,author:row.editorial_author||personalName,avatar,
           avatarRevision:isMine?member.avatar_revision??null:publicAuthor?.avatarRevision??null,
-          title:row.title,excerpt:row.excerpt,coverUrl:row.cover_url,publishedAt:new Date(row.published_at).toISOString(),likeCount:row.like_count})),
+          identityBadge:publicAuthor?.identityBadge,title:row.title,excerpt:row.excerpt,coverUrl:row.cover_url,publishedAt:new Date(row.published_at).toISOString(),likeCount:row.like_count})),
         nextCursor:summary.items.length>limit&&last?Buffer.from(JSON.stringify([1,authorId,memberId??null,last.cursor_at,last.kind,last.id])).toString('base64url'):null};
     });
   }
