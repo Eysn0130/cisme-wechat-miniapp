@@ -51,8 +51,8 @@ describe('settings personal data requests',()=>{
   api.request.mockRejectedValueOnce(Error('offline'));await p.loadConsents();
   expect(p.data.consentsReady).toBe(false);expect(p.data.consentsError).toContain('重试');
   expect(p.data.message).toBe('保留的申请说明');
-  api.request.mockResolvedValueOnce([]);await p.loadConsents();
-  expect(p.data.consentsReady).toBe(true);expect(p.data.consentsError).toBe('');expect(p.data.consentGrants).toEqual([]);
+  p.data.submitError='请填写申请说明。';api.request.mockResolvedValueOnce([]);await p.loadConsents();
+  expect(p.data.consentsReady).toBe(true);expect(p.data.consentsError).toBe('');expect(p.data.submitError).toBe('');expect(p.data.consentGrants).toEqual([]);
  });
  it('discards a late consent result on hide and on identity change',async()=>{
   const p=await page('privacy-rights');let finish!:(value:any)=>void;

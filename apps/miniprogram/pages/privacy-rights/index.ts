@@ -121,7 +121,7 @@ Page({
  },
  async loadConsents(){
   const attempt=++this.data.consentAttempt,token=privacyToken(),revision=commerceContextRevision();
-  this.setData({consentGrants:[],consentGrantIndex:0,consentsLoading:Boolean(token&&!this.data.closedRights),consentsReady:false,consentsError:''});
+  this.setData({consentGrants:[],consentGrantIndex:0,consentsLoading:Boolean(token&&!this.data.closedRights),consentsReady:false,consentsError:'',submitError:'',messageFocus:false});
   if(!token||this.data.closedRights)return;
   try{
    const grants=await request<Array<{id:string;submission_id:string;purpose:string;active:boolean;revoked_at:string|null}>>({path:'/v1/me/consents'});

@@ -41,7 +41,7 @@
 <text>{{consentsError}}</text>
 <button class="text-button {{busy||replyBusy||exportBusy ? 'text-button--disabled' : ''}}" bindtap="loadConsents" disabled="{{busy||replyBusy||exportBusy}}">重新读取授权</button>
 </view>
-<text wx:if="{{!closedRights && labels[selected] === '撤回个人信息处理同意' && consentsReady && !consentGrants.length}}" class="rights-meta">暂无可直接撤回的授权，可填写申请说明。</text>
+<text wx:if="{{!closedRights && labels[selected] === '撤回个人信息处理同意' && consentsReady && !consentGrants.length}}" class="rights-meta">暂无可直接撤回的投稿授权，可填写申请说明。</text>
 <picker wx:if="{{!closedRights && labels[selected] === '撤回个人信息处理同意' && consentGrants.length}}" range="{{consentGrants}}" range-key="label" value="{{consentGrantIndex}}" bindchange="chooseConsentGrant" aria-label="选择要撤回的授权" disabled="{{busy||replyBusy||exportBusy}}">
 <view class="rights-picker">
 <text class="rights-picker__value">{{consentGrants[consentGrantIndex].label}}</text>
