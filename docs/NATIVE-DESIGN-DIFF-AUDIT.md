@@ -40,11 +40,11 @@ Baseline: `b39f3de35647f4cae872723be58667d6b337b010` (main, PR #126). This is a 
 ### Information and state contract
 
 - Group common items into “个人资料” and “隐私与账号”; show “管理工具” only when the existing server capability allows it. Repetition can be merged only for the same task and permission scope.
-- Keep `user_code` (copyable technical identifier), nickname and `card_number` (`No.` membership identity) distinct. About retains the membership number. `envVersion` is labelled “运行环境”, not an invented application version.
+- Keep `user_code` (copyable technical identifier), nickname and `card_number` (`No.` membership identity) distinct. The membership number is displayed on My’s member card. Following the user’s 2026-11-23 correction, Settings does not repeat it or expose the developer/runtime environment. Remove the empty About entry rather than inventing replacement content.
 - Consent-read pending/failure/expired states must not say “尚无投稿使用授权”. A successful empty response can. Counts include historical records; only currently active records expose withdrawal. Existing confirmation, busy guards and request identifiers remain intact.
 - Address reads distinguish pending, updating, failure and confirmed empty. Address/profile editors, native pickers, dirty-leave protection, stale-response rejection and member ownership remain owned by their existing implementation.
 - Settings uses a minimum-viewport flex column. Its footer consumes free space, keeps at least the shared large spacing above logout, and sits above the measured bottom inset plus the small content gap. Expanded forms make the document grow; logout never overlays a field. Existing error-summary scrolling and recovery stay in the footer.
-- Address editing uses the shared component’s own task heading, without a second address-book heading above it. Unbind/delete actions use the existing danger role and retain their confirmations and busy guards; logout remains a secondary action. About keeps its factual fields with no redundant final divider.
+- Address editing uses the shared component’s own task heading, without a second address-book heading above it. Unbind/delete actions use the existing danger role and retain their confirmations and busy guards; logout remains a secondary action. The final settings row has no trailing divider.
 - Following the user’s copy cleanup, remove the generic privacy footer and helper copy that repeats labels or adjacent controls. Keep consequential facts at the relevant edit, confirmation, privacy/legal or rights entry; keep recoverable errors and truthful states. The existing withdrawal confirmation still states purpose cessation and retained audit/points records. A copy change does not create a new authorization or legal-consent operation.
 
 ### Remaining consistency review candidates
@@ -53,7 +53,7 @@ The read-only `inventory-tokens.py` scans all 71 native WXSS files, including 57
 
 ### Settings subpages and action recovery (2026-11-23)
 
-The next refinement starts from main `c2a504f09387d1b4b6efbf39ee3e6463716e82a8`. Review all direct settings destinations and inline editors: avatar/name, care profile, address book/editor, consent records, legal reader, data/account rights, About, and the capability-gated member-management entry. Existing management inspectors and commercial-member navigation remain owned by that flow; inspecting them does not authorize a management redesign or new permissions.
+The next refinement starts from main `c2a504f09387d1b4b6efbf39ee3e6463716e82a8`. Review all direct settings destinations and inline editors: avatar/name, care profile, address book/editor, consent records, legal reader, data/account rights, and the capability-gated member-management entry. The previously reviewed About section was subsequently removed at the user’s request because it contained only a duplicate member number and runtime information. Existing management inspectors and commercial-member navigation remain owned by that flow; inspecting them does not authorize a management redesign or new permissions.
 
 | Confirmed problem | Required behavior / owner |
 | --- | --- |

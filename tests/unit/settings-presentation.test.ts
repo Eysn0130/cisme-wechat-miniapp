@@ -10,10 +10,10 @@ const rendered: any[] = [];
 function mount(patch: Record<string, unknown> = {}) {
   const id = simulate.load({ template, data: {
     loading: false, sessionStatus: "valid", profileReady: true,
-    memberCode: "TESTCODE0001", memberCardNumber: "00042", displayName: "合成会员",
+    memberCode: "TESTCODE0001", displayName: "合成会员",
     addresses: [], addressesReady: true, addressesLoading: false, addressesError: "",
-    consents: [], editingProfile: false, editingAddresses: false, aboutOpen: false,
-    careProfileOpen: false, canManageMembers: false, runtimeLabel: "体验版", ...patch
+    consents: [], editingProfile: false, editingAddresses: false,
+    careProfileOpen: false, canManageMembers: false, ...patch
   }, usingComponents: { "address-editor": empty, "care-onboarding": empty, "points-celebration": empty } });
   const view = simulate.render(id);
   view.attach(document.body);
@@ -62,10 +62,11 @@ it("does not leave an admin section or duplicate heading in an ordinary member's
   expect(mount().dom.textContent).not.toContain("账号与服务");
 });
 
-it("keeps the distinct membership number in About while the user code has one copy destination", () => {
-  const view = mount({ aboutOpen: true });
+it("keeps one user-code copy destination without redundant About or environment details", () => {
+  const view = mount();
   expect(view.dom.textContent.match(/TESTCODE0001/g)).toHaveLength(1);
-  expect(view.dom.textContent).toContain("No. 00042");
-  expect(view.dom.textContent).toContain("运行环境");
+  expect(view.dom.textContent).not.toContain("会员编号");
+  expect(view.dom.textContent).not.toContain("关于 CISME");
+  expect(view.dom.textContent).not.toContain("运行环境");
   expect(template).toMatch(/<button[^>]*settings-row--copy[^>]*aria-label="复制用户编号"/);
 });
