@@ -128,6 +128,12 @@ it('creates native product attribution and keeps first permanent ownership until
  const generic=await expectOk(app.inject({method:'POST',url:'/v1/shares',headers:{...auth(a),'idempotency-key':'sharing-generic-product'},payload:{targetType:'product',targetRef:'sharing-test-product'}}));expect(generic.officerShareId).toBe(shareA);
  const firstVisit=await expectOk(app.inject({method:'POST',url:`/v1/officer-shares/${shareA}/visits`,payload:{visitKey:'synthetic-first-visit-0001'}}));
  const lastVisit=await service.visit(shareB,'synthetic-second-visit-0002');
+ // Both visits happened within one JavaScript millisecond. Bind the later
+ // visit first and verify that database precision still identifies the first.
+ await pool.query(`WITH visit_time AS (SELECT date_trunc('milliseconds',min(visited_at))-interval '1 millisecond' AS at
+  FROM sharing_visit WHERE visit_key IN ('synthetic-first-visit-0001','synthetic-second-visit-0002'))
+  UPDATE sharing_visit SET visited_at=visit_time.at+CASE WHEN visit_key='synthetic-first-visit-0001' THEN interval '1 microsecond' ELSE interval '2 microseconds' END
+  FROM visit_time WHERE visit_key IN ('synthetic-first-visit-0001','synthetic-second-visit-0002')`);
  const returning=buyer,oldVisit=await service.visit(shareA,'synthetic-existing-member-0001');await expectOk(command(returning,'bind_visit',{visitToken:oldVisit.visitToken}));expect((await service.mine(returning.memberId)).relation).toBeNull();
  buyer=await expectOk(app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'sharing-new-after-link',displayName:'合成受邀新会员',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}}));
  address=randomUUID();await pool.query(`INSERT INTO member_delivery_address(id,member_id,encrypted_payload,payload_hmac,key_version,label,client_request_key) VALUES($1,$2,'synthetic-only',$3,'fixture','home','sharing-new-buyer-address')`,[address,buyer.memberId,'a'.repeat(64)]);

@@ -395,7 +395,9 @@ export class SupportService {
 
   private async messageView(client:DbClient|pg.Pool,row: MessageRow, conversationRow: ConversationRow, perspective: "member" | "operator", media?: ReadonlyMap<string, MediaRow>,verifiedReplyTarget?:string) {
     const mediaRows = media ?? await this.mediaMap(client, [row]);
-    const identities = await supportIdentities(client, conversationRow, [row], this.authority.environment);
+    const sender = row.sender_type === "user" || row.sender_type === "admin"
+      ? (await supportIdentities(client, conversationRow, [row], this.authority.environment)).sender(row, true)
+      : undefined;
     // Fresh inserts are validated by the sender trigger while this transaction
     // still holds the conversation lock. Historical receipts must recheck links.
     const validTarget=row.reply_to_message_id&&(row.reply_to_message_id===verifiedReplyTarget||(await client.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2',[row.reply_to_message_id,row.conversation_id])).rowCount);
@@ -403,7 +405,7 @@ export class SupportService {
       counterpartyReadSequence: Number(perspective === "member" ? conversationRow.team_last_read_sequence : conversationRow.member_last_read_sequence),
       previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${conversationRow.id}/media`,
       media: mediaRows
-    }), sender: identities.sender(row, true) };
+    }), sender };
   }
 
   private async replyTarget(client:DbClient,row:ConversationRow,input:ReplyTargetInput,requiredTarget=false){
