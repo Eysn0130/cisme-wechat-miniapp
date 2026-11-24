@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "872a054ea4e65a6130627003258e8c3d593dc2e9648f8b2f5188a1ff7c7f4b2b",
+  "packageSourceSha256": "68976d40c75a0bdcdd1d512e941e7166a6f03d7e0a4db89914f39ee0a1c0b93f",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-22 binds the source after the user selected the pearl-outline navigation proposal. Earlier community/glass records retain c20e755b provenance; the selected navigation revision is scoped separately. Full routes, OS accessibility and physical-device coverage remain pending.",
+  "note": "2026-11-24 binds the sharing-officer waiting screen with automatic status sync and approval feedback. Earlier community/glass and QR-preview records retain their own provenance. Full routes, OS accessibility and physical-device coverage remain pending.",
   "previousSourceRecord": {
     "packageSourceSha256": "7f56d3f01f1b9852f176aabb56ae4f8d699d29b5c0ca9ea3fd741127c548f638",
     "scope": "0.1.57 uploaded development candidate before loading-state tokens, upload stages and inaccessible aftersale routing; historical screenshots and phone evidence remain historical."

@@ -88,4 +88,16 @@
 <button wx:if="{{!closedRights&&order.status==='pending_payment'&&(order.transactionSourceKind!=='verified_commerce'||isolatedPayment)}}" class="secondary danger-action {{busy?'secondary--disabled':''}}" bindtap="cancel" loading="{{busy}}" disabled="{{busy}}">取消订单</button></block><view wx:if="{{coreReady}}" class="order-history"><button class="text-button" bindtap="toggleRecordedHistory" aria-expanded="{{recordedHistoryOpen}}">{{recordedHistoryOpen?'收起处理记录':'查看处理记录'}}</button><template wx:if="{{recordedHistoryOpen}}" is="recorded-commands" data="{{recordedGroups,compact:true}}"/></view></view>
 </view>
 
-<points-celebration owner="{{rewardOwner}}" auto-receipts="{{true}}" enabled="{{!loading}}"/>
+<points-celebration owner="{{rewardOwner}}" auto-receipts="{{true}}" enabled="{{!loading&&!qualificationPurchase}}"/>
+<view wx:if="{{qualificationMoment}}" class="credit-moment officer-task-moment {{qualificationReduced?'credit-moment--reduced':'credit-moment--spinning'}}" aria-live="polite" aria-label="任务完成">
+ <view class="credit-moment__shade" aria-hidden="true"/>
+ <view class="credit-moment__card">
+  <image class="credit-moment__silk" src="/assets/cisme/card-silk-v2.svg" mode="aspectFill" aria-hidden="true"/>
+  <view class="credit-moment__light" aria-hidden="true"/>
+  <view class="credit-moment__seal" aria-hidden="true">
+   <image class="credit-moment__opal" src="/assets/cisme/onboarding-pearl-seal-v1.png" mode="aspectFit"/>
+   <image class="credit-moment__check" src="/assets/icons/check-plum.svg" mode="aspectFit"/>
+  </view>
+  <text class="credit-moment__title">任务完成</text>
+ </view>
+</view>

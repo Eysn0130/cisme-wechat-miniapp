@@ -10,9 +10,11 @@ import { centsToYuan } from "../../services/commerce";
 import { nativeCatalogImage } from "../../services/catalog";
 import { clientOperationKey, myOrder, myShipment, myTracking, myLogisticsView, confirmMyReceipt, queryMyWechatReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { beginWechatReceiptReturn, clearWechatReceiptReturn, takeWechatReceiptReturn } from "../../services/wechat-receipt-return";
-import { currentChromeStyle } from "../../services/layout";
+import { currentChromeStyle, shouldReduceMotion } from "../../services/layout";
 import { createSupportThreadState,mergeAcknowledgement,mergeSyncPage,presentSupportMessages,supportPollDelay,type SupportThreadState } from "../../services/support-thread-state";
 import { stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
+import { campaignEssenceCode } from "../../services/home-campaign";
+import { markQualificationCompleted, qualificationOrderOwner, qualificationReturnDistance } from "../../services/sharing-qualification-purchase";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已支付"};
 const receiptLabels:Record<string,string>={unverified:"微信记录：待核对",awaiting_shipping:"微信记录：待发货",shipped:"微信记录：已发货",
   confirmed:"微信记录：已确认收货",completed:"微信记录：交易完成",refunded:"微信记录：已退款",
@@ -47,12 +49,20 @@ Page({
     tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
+    qualificationPurchase:false,qualificationMoment:false,qualificationReduced:false,
     supportSheetOpen:false,sheetLoading:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[] as SheetAvailable[],sheetConsulting:false,sheetPreviousCase:null as SheetCase|null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
     sheetConversation:null as SheetConversation|null,sheetContextVersion:0,sheetContextStartSequence:0,sheetKindIndex:1,sheetKindOptions:['仅退款','退货退款'],
     sheetBasisIndex:0,sheetBasisOptions:['请选择问题类型','七日无理由','商品问题','错发','漏发','物流问题','其他'],
     sheetReason:"",sheetSubmitting:false,sheetAttempt:null as {key:string;payload:Record<string,unknown>}|null,
     sheetInput:"",sheetSending:false,sheetSendAttempt:null as SheetSendAttempt|null,sheetKeyboardHeight:0,sheetHeight:'78vh'},
+  qualificationKey:'',
+  qualificationAttempt:0,
+  checkingQualification:false,
+  qualificationTimer:null as ReturnType<typeof setTimeout>|null,
+  qualificationPoll:null as ReturnType<typeof setTimeout>|null,
+  qualificationRecheckOnShow:false,
   onResize(){this.setData({chromeStyle:currentChromeStyle(),sheetHeight:supportSheetHeight()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
+    this.qualificationKey=query.sharingQualification??'';
     this.merchantOrderNumber=query.outTradeNo??query.merchant_trade_no??"";
     this.launchAftersale=query.aftersale==='1';
     const merchantPresent=query.outTradeNo!==undefined||query.merchant_trade_no!==undefined;
@@ -61,6 +71,7 @@ Page({
     this.setData({id:merchantEntry?'':id,invalidId:!merchantEntry&&(!orderIdPattern.test(id)||merchantPresent),sheetHeight:supportSheetHeight()});},
   onShow(){this.setData({rewardOwner:currentCreditOwner()});this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false,closedRights:historicalCommerceClosed()});this.syncSession();
     if(!requireHistoricalCommerceAccess())return;
+    this.setData({qualificationPurchase:!this.data.closedRights&&!!qualificationOrderOwner(this.qualificationKey,this.data.id)});
     this.wechatReturn=takeWechatReceiptReturn(this.data.id,historicalCommerceToken());
     if(this.data.supportSheetOpen&&!this.data.sheetSendAttempt){
       const attempt=takeSupportSendAttempt(historicalCommerceToken(),this.data.id);
@@ -72,6 +83,7 @@ Page({
     }
     void this.load();},
   syncSession(){const token=historicalCommerceToken(),changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
+    if(changed){this.stopQualificationMoment();this.qualificationRecheckOnShow=false;}
     if(changed&&this.merchantOrderNumber)this.setData({id:''});
     if(changed){clearWechatReceiptReturn();this.wechatReturn=null;this.receiptQueryAttempt+=1;this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
@@ -89,6 +101,7 @@ Page({
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===historicalCommerceToken()&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;this.receiptQueryAttempt+=1;this.trackingAttempt+=1;
+    this.stopQualificationMoment();
     this.stopSheetPoll();this.sheetReadEpoch+=1;this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,receiptQueryLoading:false,trackingLoading:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
   finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
     this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
@@ -151,13 +164,83 @@ Page({
       const order=await myOrder(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
-      this.setData({order:this.normalize(order),coreReady:true,loading:false});
+      const qualificationPaid=this.data.qualificationPurchase&&order.status==='paid';
+      this.setData({order:this.normalize(order),coreReady:true,loading:false,
+        ...(qualificationPaid?{actionStatus:'',actionError:''}:{})});
+      if(this.data.qualificationPurchase)void this.confirmSharingQualification(order);
+      if(this.qualificationRecheckOnShow){
+        this.qualificationRecheckOnShow=false;
+        if(order.status==='pending_payment')this.waitForQualificationPayment();
+      }
       if(!this.data.closedRights){this.applyRuntime();void this.loadRecovery();this.refreshRecordedCommands();}
       void this.loadShipment();void this.loadRefunds(epoch,token);
       if(this.wechatReturn){const returned=this.wechatReturn;this.wechatReturn=null;void this.queryWechatReceipt(false,returned);}
       if(this.launchAftersale){this.launchAftersale=false;this.openAftersale();}
       else if(this.data.supportSheetOpen)void this.loadSupportSheet();
     }catch(error){if(this.readCurrent(epoch,token,readEpoch))this.setData({order:[401,403,404].includes((error as {status?:number})?.status??0)?null:this.data.order,coreReady:false,loading:false,error:errorTitle(error,"订单详情暂时无法同步。")});}
+  },
+  stopQualificationMoment(){
+    this.qualificationAttempt++;
+    this.checkingQualification=false;
+    if(this.qualificationTimer!==null)clearTimeout(this.qualificationTimer);
+    this.qualificationTimer=null;
+    if(this.qualificationPoll!==null)clearTimeout(this.qualificationPoll);
+    this.qualificationPoll=null;
+    if(this.data.qualificationMoment)this.setData({qualificationMoment:false});
+  },
+  async confirmSharingQualification(order:CommerceOrder<MemberOrderAddress>){
+    const key=this.qualificationKey,owner=qualificationOrderOwner(key,order.id);
+    if(!owner||this.checkingQualification||this.data.qualificationMoment||this.data.closedRights||
+       order.status!=='paid'||order.transactionSourceKind!=='verified_commerce'||order.cashPayableCents<=0||
+       (order.refundedCents??0)>=order.totalCents||
+       !order.lines.some(line=>line.productCode===campaignEssenceCode&&line.quantity>0)||
+       !qualificationReturnDistance(key,order.id,this))return;
+    const attempt=++this.qualificationAttempt,revision=commerceContextRevision(),token=historicalCommerceToken();
+    const current=()=>this.data.visible&&this.data.pageAlive&&this.qualificationAttempt===attempt&&
+      token===historicalCommerceToken()&&revision===commerceContextRevision()&&this.data.id===order.id&&
+      this.data.order?.status==='paid'&&(this.data.order.refundedCents??0)<this.data.order.totalCents&&
+      qualificationOrderOwner(key,order.id)===owner;
+    this.checkingQualification=true;
+    try{
+      const wallet=await pageRead<{memberId:string;qualification:{met:boolean}}>(this,{path:'/v1/me/sharing-officer'});
+      if(!current()||wallet.memberId!==owner||wallet.qualification?.met!==true)return;
+      const reduced=shouldReduceMotion();
+      this.setData({qualificationMoment:true,qualificationReduced:reduced});
+      this.qualificationTimer=setTimeout(()=>{
+        this.qualificationTimer=null;
+        if(!current()){
+          if(this.qualificationAttempt===attempt)this.setData({qualificationMoment:false});
+          return;
+        }
+        const delta=qualificationReturnDistance(key,order.id,this);
+        this.setData({qualificationMoment:false});
+        if(!delta)return;
+        markQualificationCompleted(key,order.id);
+        wx.navigateBack({delta,fail:()=>wx.showToast({title:'任务完成，请返回分享官页',icon:'none'})});
+      },reduced?1500:1820);
+    }catch{
+      if(current())this.setData({actionError:'暂时无法确认分享官资格，请刷新订单或返回分享官页查看。'});
+    }finally{
+      if(this.qualificationAttempt===attempt)this.checkingQualification=false;
+    }
+  },
+  waitForQualificationPayment(remaining=4){
+    const id=this.data.id,key=this.qualificationKey,token=historicalCommerceToken(),revision=commerceContextRevision(),attempt=this.qualificationAttempt;
+    const waiting=()=>this.data.visible&&this.data.order?.status==='pending_payment'&&this.data.id===id&&
+      this.qualificationAttempt===attempt&&token===historicalCommerceToken()&&revision===commerceContextRevision()&&!!qualificationOrderOwner(key,id);
+    if(!remaining||this.qualificationPoll!==null||!waiting())return;
+    const timer=setTimeout(async()=>{
+      try{
+        if(!waiting())return;
+        const order=await myOrder(id,this);
+        if(!waiting())return;
+        if(order.id===id&&order.status!=='pending_payment'){void this.load();return;}
+      }catch{
+        // The existing order controls remain available if reconciliation is slow.
+      }finally{if(this.qualificationPoll===timer)this.qualificationPoll=null;}
+      this.waitForQualificationPayment(remaining-1);
+    },remaining===4?700:1500);
+    this.qualificationPoll=timer;
   },
   async loadShipment(){
     if(!this.canAct()||this.data.busy)return;
@@ -321,11 +404,13 @@ Page({
     try{const result=await request<{state:string;simulation:boolean;requestPayment?:WechatMiniprogram.RequestPaymentOption}>({
       path:`/v1/me/orders/${id}/payment-intent`,method:"POST",data:{}});
       if(!current())return;
-      if(result.state==="verified_pending")this.setData({actionStatus:"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。"});
+      if(result.state==="verified_pending"){this.setData({actionStatus:"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。"});this.waitForQualificationPayment();}
       else if(result.simulation)this.setData({actionStatus:"测试支付已准备好，不会发起真实微信付款或扣款。"});
       else if(result.requestPayment&&!this.data.visible){this.setData({actionStatus:"付款信息已获取，请返回订单确认后再付款。"});return;}
-      else if(result.requestPayment){try{await wx.requestPayment(result.requestPayment);}
-        catch{if(current())this.setData({actionError:"微信付款未确认，请按原单核对。"});}
+      else if(result.requestPayment){
+        if(this.data.qualificationPurchase)this.qualificationRecheckOnShow=true;
+        try{await wx.requestPayment(result.requestPayment);}
+        catch{if(current()){this.qualificationRecheckOnShow=false;this.setData({actionError:"微信付款未确认，请按原单核对。"});}}
         // The intent action must not release busy while its authoritative follow-up is pending.
         if(current()){this.setData({busy:false});await this.recheckPayment();}}
     }catch(error){if(current())this.setData({actionError:errorTitle(error,"暂时无法发起付款，请核对原订单后重试。")});}
@@ -340,6 +425,7 @@ Page({
       this.setData({actionStatus:result.state==="verified_pending"?"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。":
         result.state==="paid"?"付款已确认。":result.state==="notpay"?"渠道仍未确认付款。":"原单状态待确认，请稍后重查。"});
       if(result.state==="paid"){this.setData({busy:false});void this.load();}
+      if(result.state==="verified_pending")this.waitForQualificationPayment();
     }catch(error){if(current())this.setData({actionError:errorTitle(error,"原单暂时无法核对，请稍后重试。")});}
     finally{this.finishAction(epoch,token);}},
   async cancel(){const order=this.data.order;if(this.data.closedRights||!this.canAct()||this.data.busy||order?.status!=="pending_payment"||

@@ -130,11 +130,12 @@ export class SharingOfficerService {
     FROM sharing_settlement_line WHERE member_id=$1 AND state='paid'`,[actor])).rows[0];
    const relation=await this.relationWithClient(client,actor);
    const qualification=await sharingQualification(client,actor);
-   const canApply=Boolean(p?.enabled&&qualification.met&&(!officer||['rejected','terminated'].includes(officer.state)));
+   const offersApplication=Boolean(p?.enabled&&(!officer||['rejected','terminated'].includes(officer.state)));
+   const canApply=offersApplication&&qualification.met;
    return {memberId:actor,officer:officerView(officer),policy:officerPolicyView(officer?.v2_application_version&&p?{...p,basis_points:sharingV2BasisPoints}:p),relation,
     pendingReferrer:await this.pendingReferrer(client,actor),
     qualification,canApply,
-    ...(canApply?{applicationAgreement:applicationAgreement(this.effectiveAgreementDate())}:{}),
+    ...(offersApplication?{applicationAgreement:applicationAgreement(this.effectiveAgreementDate())}:{}),
     canShare:Boolean(p?.enabled&&officer?.state==='active'),payee:payee?{version:payee.version,updatedAt:payee.updated_at}:null,
     metrics:{...metrics,settledTaxCents:Number(paid.tax),settledNetCents:Number(paid.net)}};
   },'REPEATABLE READ');
