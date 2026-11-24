@@ -18,6 +18,8 @@ type AgreementDocument=Omit<AgreementIdentity,'effectiveOn'>&{
  introduction:string;sections:{heading:string;paragraphs:{kind:'paragraph'|'bullet'|'subheading';text:string}[]}[];closing:string[];
 };
 type QualificationMotion=''|'entry'|'achieved';
+const reviewCheckIntervalMs=8_000;
+const reviewApprovalMs=760;
 const agreementReset={agreementOpen:false,agreementClosing:false,agreementSeconds:10,agreementAtEnd:false,agreementReady:false,agreementReduced:false};
 function sameAgreement(agreement:AgreementDocument|null,confirmation:AgreementIdentity|null) {
  return !!agreement?.effectiveOn&&!!confirmation&&agreement.version===confirmation.version&&agreement.digest===confirmation.digest&&agreement.effectiveOn===confirmation.effectiveOn;
@@ -25,40 +27,131 @@ function sameAgreement(agreement:AgreementDocument|null,confirmation:AgreementId
 function orderRow(r:any){return {...r,date:officerDate(r.createdAt),cash:officerMoney(r.cashMerchandiseCents),refund:officerMoney(r.refundedMerchandiseCents),pending:officerMoney(r.pendingCents),available:officerMoney(r.availableCents),settled:officerMoney(r.settledCents),recovery:officerMoney(r.outstandingRecoveryCents),rate:(r.basisPoints/100).toFixed(2).replace(/\.00$/,''),label:r.orderStatus==='pending_payment'?'待付款':['cancelled','expired','closed'].includes(r.orderStatus)?'已关闭':r.disputed?'售后处理中':r.outstandingRecoveryCents?'待核对冲回':r.paymentHeldCents?'结算中':r.settledCents?'已结算':r.availableCents?'可结算':r.pendingCents?'待结算':r.paidAt?'无可结算佣金':'未计佣'};}
 function settlementRow(r:any){return {...r,date:officerDate(r.paidAt||r.createdAt),gross:officerMoney(r.grossCents),tax:officerMoney(r.taxCents),net:officerMoney(r.netCents),label:officerLabels[r.state]||r.state};}
 const giftClear={giftActivities:[] as OfficerRewardOffers['activities'],giftActivityId:'',giftActivityTitle:'',giftActivityIndex:0,giftBundles:[] as any[],giftShare:null as any,giftShareBusy:false,giftError:'',giftAvailable:false,detailBusy:false};
-const cleared={...giftClear,memberId:'',wallet:null as any,metrics:{} as Record<string,string>,items:[] as any[],products:[] as any[],productCursor:null as string|null,moreProducts:false,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,preview:null as any,assets:null as any,share:null as any,sheet:'',selected:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,orderLineId:'',sourcePeriod:'',note:'',legalName:'',channel:'',account:'',code:'',error:'',agreement:null as AgreementDocument|null,agreementChecked:false,qualificationMotion:'' as QualificationMotion,qualificationPurchaseNeeded:false,qualificationOpening:false,...agreementReset};
+const cleared={...giftClear,memberId:'',wallet:null as any,metrics:{} as Record<string,string>,items:[] as any[],products:[] as any[],productCursor:null as string|null,moreProducts:false,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,preview:null as any,assets:null as any,share:null as any,sheet:'',selected:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,orderLineId:'',sourcePeriod:'',note:'',legalName:'',channel:'',account:'',code:'',error:'',agreement:null as AgreementDocument|null,agreementChecked:false,qualificationMotion:'' as QualificationMotion,qualificationPurchaseNeeded:false,qualificationOpening:false,reviewMotion:false,reviewApproved:false,...agreementReset};
 Page({
  alive:false,visible:false,epoch:0,session:'',context:0,qrPath:'',
  qualificationKey:'',
+ reviewTimer:null as ReturnType<typeof setTimeout>|null,
+ reviewApprovalTimer:null as ReturnType<typeof setTimeout>|null,
+ reviewFailures:0,
  agreementConsent:null as AgreementIdentity|null,agreementDeadline:0,agreementTick:null as ReturnType<typeof setInterval>|null,agreementExit:null as ReturnType<typeof setTimeout>|null,
  data:{...cleared,agreementAttempt:0,chromeStyle:currentChromeStyle(),tabs,tab:'overview',referrerOnly:false,loading:true,busy:false,stateLabel:'',rate:'',releaseDays:0,hasDashboard:false,giftMode:false},
  onLoad(query:Record<string,string>){this.alive=true;this.setData({referrerOnly:query.mode==='referrer',giftMode:query.mode==='gift'});},
- onShow(){wx.hideShareMenu();this.visible=true;this.epoch++;const session=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();if(session!==this.session||context!==this.context){this.stopAgreementTimers();this.agreementConsent=null;discardQualificationPurchase(this.qualificationKey);this.qualificationKey='';this.setData({...cleared});}this.session=session;this.context=context;if(requireMemberAccess())void this.load();},
- onHide(){wx.hideShareMenu();this.visible=false;this.epoch++;cancelPageReads(this);this.cleanupQr();this.stopAgreementTimers();this.agreementConsent=null;this.setData({sheet:'',legalName:'',channel:'',account:'',assets:null,giftShare:null,giftShareBusy:false,detailBusy:false,agreementChecked:false,qualificationMotion:'',qualificationOpening:false,...agreementReset});},
+ onShow(){
+  wx.hideShareMenu();
+  this.visible=true;
+  this.epoch++;
+  this.reviewFailures=0;
+  const session=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();
+  if(session!==this.session||context!==this.context){
+   this.stopAgreementTimers();
+   this.agreementConsent=null;
+   discardQualificationPurchase(this.qualificationKey);
+   this.qualificationKey='';
+   this.setData({...cleared});
+  }
+  this.session=session;
+  this.context=context;
+  const resumingReview=this.isReviewPending();
+  this.setData({reviewMotion:!shouldReduceMotion(),...(resumingReview?{loading:false,busy:false,error:''}:{})});
+  if(requireMemberAccess())void this.load(false,resumingReview);
+ },
+ onHide(){
+  wx.hideShareMenu();
+  this.visible=false;
+  this.epoch++;
+  this.stopReviewPolling();
+  this.stopReviewApproval();
+  cancelPageReads(this);
+  this.cleanupQr();
+  this.stopAgreementTimers();
+  this.agreementConsent=null;
+  this.setData({sheet:'',legalName:'',channel:'',account:'',assets:null,giftShare:null,giftShareBusy:false,detailBusy:false,agreementChecked:false,qualificationMotion:'',qualificationOpening:false,reviewMotion:false,reviewApproved:false,...agreementReset});
+ },
  onUnload(){this.onHide();discardQualificationPurchase(this.qualificationKey);this.alive=false;this.setData({...cleared});},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  current(epoch?:number){return this.alive&&this.visible&&(epoch===undefined||epoch===this.epoch)&&this.session===getApp<IAppOption>().globalData.sessionToken&&this.context===commerceContextRevision();},
- async load(more=false){if(!this.current())return;const epoch=++this.epoch;this.setData({loading:true,error:''});try{
-  const {applicationAgreement,...wallet}=await officerRead(this,'/v1/me/sharing-officer');if(!this.current(epoch))return;
-  const agreement:AgreementDocument|null=applicationAgreement?.title&&Array.isArray(applicationAgreement.sections)?applicationAgreement:null;
-  if(!wallet.canApply||!sameAgreement(agreement,this.agreementConsent))this.agreementConsent=null;
-  const inQualificationView=!this.data.giftMode&&!this.data.referrerOnly&&(!wallet.officer||wallet.officer.state==='rejected');
-  const qualificationPurchaseNeeded=inQualificationView&&wallet.policy?.enabled===true&&wallet.qualification?.met===false;
-  const returnedAfterCelebration=wallet.qualification?.met===true&&consumeQualificationReturn(this,wallet.memberId);
-  let qualificationMotion:QualificationMotion='';
-  if(inQualificationView&&wallet.qualification?.met===true&&!shouldReduceMotion()){
-   const previous=this.data.wallet;
-   const newlyAchieved=!returnedAfterCelebration&&previous?.memberId===wallet.memberId&&previous.qualification?.met===false;
-   qualificationMotion=newlyAchieved?'achieved':this.data.qualificationMotion||'entry';
+ isReviewPending(){return !this.data.giftMode&&!this.data.referrerOnly&&this.data.wallet?.officer?.state==='pending';},
+ stopReviewPolling(){
+  if(this.reviewTimer!==null)clearTimeout(this.reviewTimer);
+  this.reviewTimer=null;
+ },
+ scheduleReviewPolling(){
+  if(!this.current()||!this.isReviewPending()||this.reviewTimer!==null)return;
+  this.reviewTimer=setTimeout(()=>{
+   this.reviewTimer=null;
+   if(!this.current()||!this.isReviewPending())return;
+   if(this.data.loading||this.data.busy||this.data.sheet){this.scheduleReviewPolling();return;}
+   void this.load(false,true);
+  },reviewCheckIntervalMs*2**this.reviewFailures);
+ },
+ stopReviewApproval(){
+  if(this.reviewApprovalTimer!==null)clearTimeout(this.reviewApprovalTimer);
+  this.reviewApprovalTimer=null;
+ },
+ async load(more=false,syncReview=false){
+  if(!this.current())return;
+  const epoch=syncReview?this.epoch:++this.epoch;
+  const previous=this.data.wallet;
+  const wasPending=this.isReviewPending();
+  this.stopReviewPolling();
+  if(!syncReview)this.setData({loading:true,error:''});
+  try{
+   const {applicationAgreement,...wallet}=await officerRead(this,'/v1/me/sharing-officer');
+   if(!this.current(epoch))return;
+   this.reviewFailures=0;
+   const sameMember=previous!==null&&previous.memberId===wallet.memberId;
+   if(syncReview&&(this.data.busy||this.data.sheet||(sameMember&&wallet.officer?.state==='pending')))return;
+   const canCelebrate=wallet.canShare===true&&wallet.officer?.state==='active'&&this.data.reviewMotion;
+   const newlyApproved=canCelebrate&&sameMember&&wasPending;
+   const reviewApproved=newlyApproved||(canCelebrate&&sameMember&&this.data.reviewApproved);
+   if(!reviewApproved)this.stopReviewApproval();
+   const agreement:AgreementDocument|null=applicationAgreement?.title&&Array.isArray(applicationAgreement.sections)?applicationAgreement:null;
+   if(!wallet.canApply||!sameAgreement(agreement,this.agreementConsent))this.agreementConsent=null;
+   const inQualificationView=!this.data.giftMode&&!this.data.referrerOnly&&(!wallet.officer||wallet.officer.state==='rejected');
+   const qualificationPurchaseNeeded=inQualificationView&&wallet.policy?.enabled===true&&wallet.qualification?.met===false;
+   const returnedAfterCelebration=wallet.qualification?.met===true&&consumeQualificationReturn(this,wallet.memberId);
+   let qualificationMotion:QualificationMotion='';
+   if(inQualificationView&&wallet.qualification?.met===true&&!shouldReduceMotion()){
+    const newlyAchieved=!returnedAfterCelebration&&sameMember&&previous.qualification?.met===false;
+    qualificationMotion=newlyAchieved?'achieved':this.data.qualificationMotion||'entry';
+   }
+   const metrics:Record<string,string>={};
+   for(const key of Object.keys(wallet.metrics))metrics[key]=officerMoney(wallet.metrics[key]);
+   this.setData({
+    wallet,agreement,agreementChecked:!!this.agreementConsent,qualificationMotion,qualificationPurchaseNeeded,reviewApproved,
+    memberId:wallet.memberId,metrics,stateLabel:wallet.officer?.state==='active'&&!wallet.policy?.enabled?'推广已暂停':officerLabels[wallet.officer?.state]||'',
+    hasDashboard:Boolean(wallet.officer&&(['active','suspended','terminated'].includes(wallet.officer.state)||wallet.metrics.orderCount>0)),
+    rate:((wallet.policy?.basisPoints??0)/100).toFixed(2).replace(/\.00$/,''),releaseDays:wallet.policy?.releaseDays??0,pending:officerPending(wallet.memberId)
+   });
+   if(newlyApproved){
+    this.stopReviewApproval();
+    this.reviewApprovalTimer=setTimeout(()=>{
+     this.reviewApprovalTimer=null;
+     if(this.current())this.setData({reviewApproved:false});
+    },reviewApprovalMs);
+   }
+   if(this.data.giftMode){await this.loadGiftOffers(epoch);return;}
+   if(!this.data.referrerOnly&&wallet.officer?.state==='active'&&this.data.tab==='overview')await this.loadProducts(false,epoch);
+   if(!this.data.referrerOnly&&this.data.tab!=='overview'){
+    const page=await officerRead(this,`/v1/me/sharing-officer/${this.data.tab}?limit=20${this.data.tab==='orders'&&this.data.orderLineId?'&lineId='+this.data.orderLineId:''}${more&&this.data.nextCursor?'&cursor='+encodeURIComponent(this.data.nextCursor):''}`);
+    if(!this.current(epoch))return;
+    const rows=page.items.map(this.data.tab==='orders'?orderRow:settlementRow);
+    this.setData({items:more?[...this.data.items,...rows]:rows,nextCursor:page.nextCursor,hasMore:page.hasMore});
+   }
+  }catch(error){
+   if(this.current(epoch)){
+    if(syncReview&&this.isReviewPending())this.reviewFailures=Math.min(this.reviewFailures+1,2);
+    else this.setData({error:officerError(error)});
+   }
+  }finally{
+   if(this.current(epoch)){
+    if(!syncReview)this.setData({loading:false,busy:false});
+    this.scheduleReviewPolling();
+   }
+   if(!syncReview)wx.stopPullDownRefresh();
   }
-  const metrics:Record<string,string>={};for(const key of Object.keys(wallet.metrics))metrics[key]=officerMoney(wallet.metrics[key]);
-  this.setData({wallet,agreement,agreementChecked:!!this.agreementConsent,qualificationMotion,qualificationPurchaseNeeded,memberId:wallet.memberId,metrics,stateLabel:wallet.officer?.state==='active'&&!wallet.policy?.enabled?'推广已暂停':officerLabels[wallet.officer?.state]||'',hasDashboard:Boolean(wallet.officer&&(['active','suspended','terminated'].includes(wallet.officer.state)||wallet.metrics.orderCount>0)),rate:((wallet.policy?.basisPoints??0)/100).toFixed(2).replace(/\.00$/,''),releaseDays:wallet.policy?.releaseDays??0,pending:officerPending(wallet.memberId)});
-  if(this.data.giftMode){await this.loadGiftOffers(epoch);return;}
-  if(!this.data.referrerOnly&&wallet.officer?.state==='active'&&this.data.tab==='overview')await this.loadProducts(false,epoch);
-  if(!this.data.referrerOnly&&this.data.tab!=='overview'){
-   const page=await officerRead(this,`/v1/me/sharing-officer/${this.data.tab}?limit=20${this.data.tab==='orders'&&this.data.orderLineId?'&lineId='+this.data.orderLineId:''}${more&&this.data.nextCursor?'&cursor='+encodeURIComponent(this.data.nextCursor):''}`);if(!this.current(epoch))return;
-   const rows=page.items.map(this.data.tab==='orders'?orderRow:settlementRow);this.setData({items:more?[...this.data.items,...rows]:rows,nextCursor:page.nextCursor,hasMore:page.hasMore});
-  }
- }catch(error){if(this.current(epoch))this.setData({error:officerError(error)});}finally{if(this.current(epoch))this.setData({loading:false,busy:false});wx.stopPullDownRefresh();}},
+ },
  openGiftSharing(){if(this.current()&&this.data.wallet?.canShare&&!this.data.busy&&!this.data.pending)wx.navigateTo({url:'/pages/sharing-officer/index?mode=gift'});},
  async loadGiftOffers(epoch:number){
   if(!this.data.wallet?.canShare){this.setData({...giftClear});return;}
@@ -92,7 +185,7 @@ Page({
   }});
  },
  retry(){if(!this.data.busy)void this.load();},
- onPullDownRefresh(){if(!this.data.busy&&!this.data.agreementOpen)void this.load();else wx.stopPullDownRefresh();},
+ onPullDownRefresh(){if(!this.data.busy&&!this.data.agreementOpen&&!this.isReviewPending()&&!this.data.reviewApproved)void this.load();else wx.stopPullDownRefresh();},
  more(){if(!this.data.loading&&!this.data.busy&&this.data.hasMore)void this.load(true);},
  async moreProducts(){if(this.data.loading||this.data.busy)return;this.setData({busy:true});try{await this.loadProducts(true);}catch(e){this.setData({error:officerError(e)});}finally{if(this.current())this.setData({busy:false});}},
  changeTab(e:unknown){const tab=sectionTabValue(e);if(this.data.busy||this.data.pending||!tabs.some(t=>t.id===tab)||tab===this.data.tab)return;cancelPageReads(this);this.epoch++;this.setData({tab,items:[],nextCursor:null,hasMore:false,orderLineId:'',sourcePeriod:''});void this.load();},

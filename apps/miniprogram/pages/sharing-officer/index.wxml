@@ -25,7 +25,7 @@
     <text wx:if="{{wallet.pendingReferrer}}" class="officer-note">已选 {{wallet.pendingReferrer.label}}，首笔有效成交后生效。</text><text wx:else class="officer-note">更换只影响之后创建的订单。</text>
    </block>
    <block wx:else>
-    <view class="officer-intro"><text wx:if="{{stateLabel&&wallet.officer.state!=='pending'}}" class="officer-status">{{stateLabel}}</text>
+    <view class="officer-intro"><text wx:if="{{stateLabel&&wallet.officer.state!=='pending'&&!reviewApproved}}" class="officer-status">{{stateLabel}}</text>
      <block wx:if="{{!wallet.officer||wallet.officer.state==='rejected'}}">
       <text class="officer-heading">把喜欢，分享出去。</text>
       <view wx:if="{{wallet.qualification.met}}" class="officer-qualification officer-qualification--met">
@@ -52,21 +52,30 @@
       </view>
       <text wx:if="{{!qualificationPurchaseNeeded&&!wallet.canApply}}" class="officer-copy">申请暂未开放</text>
      </block>
-     <block wx:elif="{{wallet.officer.state==='pending'}}">
-      <view class="officer-review-wait">
-       <view class="officer-review-wait__status" aria-role="status">
-        <view class="officer-review-wait__mark" aria-hidden="true"><image src="/assets/icons/clock-plum.svg" mode="aspectFit"/></view>
-        <text class="officer-review-wait__title">等待中</text>
-        <text class="officer-muted">申请已提交</text>
+     <block wx:elif="{{wallet.officer.state==='pending'||reviewApproved}}">
+      <view class="officer-review {{reviewMotion?'officer-review--motion':''}} {{reviewApproved?'officer-review--approved':''}}">
+       <view class="officer-qualification__mark-row" aria-hidden="true">
+        <view class="officer-qualification__rule"/>
+        <view class="officer-qualification__seal officer-review__seal">
+         <image class="officer-qualification__pearl" src="/assets/cisme/onboarding-pearl-seal-v1.png" mode="aspectFit"/>
+         <view wx:if="{{reviewMotion&&!reviewApproved}}" class="officer-review__orbit"><view class="officer-review__glow"/></view>
+         <view wx:if="{{reviewApproved}}" class="officer-qualification__glint"><view class="officer-qualification__shine"/></view>
+         <image class="officer-review__icon officer-review__clock" src="/assets/icons/clock-plum.svg" mode="aspectFit"/>
+         <image wx:if="{{reviewApproved}}" class="officer-review__icon officer-review__check" src="/assets/icons/check-plum.svg" mode="aspectFit"/>
+        </view>
+        <view class="officer-qualification__rule"/>
        </view>
-       <button class="text-button officer-review-wait__refresh {{loading||busy?'control--disabled':''}}" bindtap="retry" disabled="{{loading||busy}}">刷新状态</button>
+       <view class="officer-review__copy" aria-role="status" aria-live="polite">
+        <text class="officer-review__title">{{reviewApproved?'已开通':'等待中'}}</text>
+        <text wx:if="{{!reviewApproved}}" class="officer-review__caption">申请已提交</text>
+       </view>
       </view>
      </block>
      <block wx:else><text class="officer-heading">每一份分享，<text class="officer-heading-line">都有回响。</text></text><view class="officer-between"><text class="officer-code">{{wallet.officer.referralCode}}</text><button class="action-text {{busy||pending ? 'control--disabled' : ''}}" data-sheet="payee" bindtap="open" disabled="{{busy||pending}}">收款资料</button></view></block>
      <button wx:if="{{wallet.officer.state==='terminated'&&wallet.canApply}}" class="primary {{busy||pending ? 'primary--disabled' : ''}}" data-sheet="apply" bindtap="open" disabled="{{busy||pending}}">重新申请</button>
      <text wx:if="{{wallet.officer.reviewReason&&(wallet.officer.state==='rejected'||wallet.officer.state==='suspended'||wallet.officer.state==='terminated')}}" class="officer-copy">{{wallet.officer.reviewReason}}</text>
     </view>
-    <block wx:if="{{hasDashboard}}">
+    <block wx:if="{{hasDashboard&&!reviewApproved}}">
      <view class="officer-metrics"><view><text class="officer-money">{{metrics.pendingCents}}</text><text>待结算 · 税前</text></view><view><text class="officer-money">{{metrics.availableCents}}</text><text>可结算 · 税前</text></view><view><text class="officer-money">{{metrics.settledNetCents}}</text><text>已到账 · 税后</text></view></view>
      <view wx:if="{{wallet.metrics.outstandingRecoveryCents}}" class="officer-warning">退款待核对冲回 ¥{{metrics.outstandingRecoveryCents}}</view>
      <section-tabs items="{{tabs}}" value="{{tab}}" bindchange="changeTab" disabled="{{busy||pending}}" label="分享官分类"/>

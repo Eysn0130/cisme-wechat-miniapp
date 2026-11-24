@@ -17,6 +17,8 @@ let page:any;const owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 function deferred(){let resolve!:(v:any)=>void;const promise=new Promise<any>(yes=>resolve=yes);return {promise,resolve};}
 const flush=async()=>{for(let i=0;i<30;i++)await Promise.resolve();};
 const wallet={memberId:owner,canApply:true,canShare:false,officer:null,policy:{enabled:true,basisPoints:1000,releaseDays:7},metrics:{orderCount:0,pendingCents:0,availableCents:0,settledNetCents:0},relation:{code:'SOAAAAAAAAAA',version:1}};
+const pendingReview={...wallet,canApply:false,officer:{state:'pending',version:1}};
+const approvedReview={...pendingReview,canShare:true,officer:{state:'active',version:2}};
 const agreement={title:'产品分享官合作协议',version:'V2.0',digest:'a'.repeat(64),effectiveOn:'2026-11-24',sections:[{heading:'第一条',paragraphs:[{kind:'paragraph',text:'合成协议内容'}]}]};
 const applyButton={currentTarget:{dataset:{sheet:'apply'}}},applyAction={currentTarget:{dataset:{action:'apply'}}};
 function scrollToEnd(p:any,attempt=p.data.agreementAttempt){p.agreementEnd({currentTarget:{dataset:{attempt}}});}
@@ -30,7 +32,7 @@ beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token='owner-session';m.c
  (globalThis as any).wx={hideShareMenu:vi.fn(),stopPullDownRefresh:vi.fn(),getStorageSync:()=>'',showToast:vi.fn(),nextTick:vi.fn(),env:{USER_DATA_PATH:'/synthetic'},getFileSystemManager:()=>({unlinkSync:vi.fn()}),navigateBack:vi.fn(),navigateTo:vi.fn()};
  m.authority.mockResolvedValue({capabilities:['member.manage','commission.rate.manage','commission.read','commission.settlement.approve']});
 });
-afterEach(()=>{page?.stopAgreementTimers?.();vi.useRealTimers();});
+afterEach(()=>{page?.stopAgreementTimers?.();page?.stopReviewPolling?.();page?.stopReviewApproval?.();vi.useRealTimers();});
 
 it('shows the agreement before qualification and uses the same main action for the scoped purchase',async()=>{
  vi.useFakeTimers();
@@ -136,6 +138,65 @@ it('does not let a late wallet read repopulate another session or a hidden page'
 });
 it('keeps a rejected former officer’s existing money history accessible',async()=>{
  m.read.mockResolvedValue({...wallet,officer:{state:'rejected',version:4},metrics:{...wallet.metrics,orderCount:1}});const p=await mount('consumer');p.onShow();await flush();expect(p.data.hasDashboard).toBe(true);
+});
+it('silently reads a pending application and plays the opening moment once after approval',async()=>{
+ vi.useFakeTimers();
+ m.read.mockResolvedValueOnce(pendingReview).mockResolvedValueOnce(pendingReview).mockResolvedValue(approvedReview);
+ const p=await mount('consumer');p.onShow();await flush();
+ expect(p.data).toMatchObject({reviewMotion:true,reviewApproved:false,loading:false,stateLabel:'待审核'});
+ p.onPullDownRefresh();
+ expect(m.read).toHaveBeenCalledTimes(1);
+ await vi.advanceTimersByTimeAsync(8_000);
+ expect(m.read).toHaveBeenCalledTimes(2);
+ expect(p.data).toMatchObject({reviewApproved:false,loading:false,error:''});
+ await vi.advanceTimersByTimeAsync(8_000);
+ expect(m.read).toHaveBeenLastCalledWith(p,'/v1/me/sharing-officer');
+ expect(p.data).toMatchObject({reviewApproved:true,stateLabel:'已开通',hasDashboard:true,loading:false});
+ await vi.advanceTimersByTimeAsync(760);
+ expect(p.data.reviewApproved).toBe(false);
+ await vi.advanceTimersByTimeAsync(16_000);
+ expect(m.read).toHaveBeenCalledTimes(3);
+ p.onHide();p.onShow();await flush();
+ expect(p.data.reviewApproved).toBe(false);
+});
+it('backs off a failed quiet read and preserves the last confirmed waiting state',async()=>{
+ vi.useFakeTimers();
+ m.read.mockResolvedValueOnce(pendingReview).mockRejectedValueOnce(new Error('network interrupted')).mockResolvedValue(pendingReview);
+ const p=await mount('consumer');p.onShow();await flush();
+ await vi.advanceTimersByTimeAsync(23_999);
+ expect(m.read).toHaveBeenCalledTimes(2);
+ expect(p.data).toMatchObject({wallet:pendingReview,stateLabel:'待审核',error:'',loading:false});
+ await vi.advanceTimersByTimeAsync(1);
+ expect(m.read).toHaveBeenCalledTimes(3);
+ await vi.advanceTimersByTimeAsync(8_000);
+ expect(m.read).toHaveBeenCalledTimes(4);
+});
+it('stops reads and motion on hide and resynchronizes without applying the late response',async()=>{
+ vi.useFakeTimers();
+ const late=deferred();
+ m.read.mockResolvedValueOnce(pendingReview).mockReturnValueOnce(late.promise).mockResolvedValue(pendingReview);
+ const p=await mount('consumer');p.onShow();await flush();
+ await vi.advanceTimersByTimeAsync(24_000);
+ expect(m.read).toHaveBeenCalledTimes(2);
+ p.onHide();
+ expect(p.data.reviewMotion).toBe(false);
+ await vi.advanceTimersByTimeAsync(16_000);
+ expect(m.read).toHaveBeenCalledTimes(2);
+ p.onShow();await flush();
+ expect(m.read).toHaveBeenCalledTimes(3);
+ late.resolve(approvedReview);await flush();
+ expect(p.data).toMatchObject({wallet:pendingReview,reviewMotion:true,reviewApproved:false});
+});
+it.each([['active','已开通'],['rejected','未通过']])('shows a resolved %s state with motion reduced',async(state,label)=>{
+ vi.useFakeTimers();m.reducedMotion=true;
+ const terminal=state==='active'?approvedReview:{...pendingReview,officer:{state,version:2}};
+ m.read.mockResolvedValueOnce(pendingReview).mockResolvedValue(terminal);
+ const p=await mount('consumer');p.onShow();await flush();
+ expect(p.data.reviewMotion).toBe(false);
+ await vi.advanceTimersByTimeAsync(8_000);
+ expect(p.data).toMatchObject({stateLabel:label,reviewApproved:false,loading:false});
+ await vi.advanceTimersByTimeAsync(16_000);
+ expect(m.read).toHaveBeenCalledTimes(2);
 });
 it('opens an applicant in the pending management queue and sends one verified approval',async()=>{
  const applicant='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
