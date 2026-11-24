@@ -102,6 +102,9 @@ it('requires a paid essence set before applications, isolates review authority a
  expect((await expectOk(command(a,'apply',{note:'合成申请'},false,applyKey))).referralCode).toBe(codeA);
  expect((await command(a,'apply',{note:'不同内容'},false,applyKey)).statusCode).toBe(409);
  expect((await command(a,'officer_state',{memberId:a.memberId,state:'active',expectedVersion:1,reason:'无权自审'},true)).statusCode).toBe(403);
+ const detail=await expectOk(app.inject({method:'GET',headers:auth(manager),url:`/v1/management/sharing-officer?section=officer-detail&memberId=${a.memberId}&version=1`}));
+ expect(detail.detail).toMatchObject({accountState:'active',qualification:{met:true},member:null});
+ expect((await app.inject({method:'GET',headers:auth(manager),url:`/v1/management/sharing-officer?section=customers&memberId=${a.memberId}`})).statusCode).toBe(403);
  for(const target of [a,b]){const application=target===a?applied:await expectOk(command(target,'apply',{}));if(target===b)codeB=application.referralCode;
   await expectOk(command(manager,'officer_state',{memberId:target.memberId,state:'active',expectedVersion:1,reason:'合成审核通过'},true));}
  expect((await service.mine(a.memberId)).canShare).toBe(true);expect((await pool.query('SELECT user_code FROM member_card_number WHERE member_id=$1',[a.memberId])).rows[0].user_code).toBe(codeA);const owned=await finance.management(manager.memberId,{memberId:a.memberId});expect('items'in owned&&owned.items.map((r:any)=>r.memberId)).toEqual([a.memberId]);expect((await pool.query('SELECT count(*)::int AS n FROM commercial_membership')).rows[0].n).toBe(0);
@@ -279,12 +282,23 @@ it('requires the active agreement and manual identity decision, binds only after
    const queueUrl='/v1/management/sharing-officer?section=officers&filter=pending&memberId='+applicant.memberId;
    expect((await app.inject({method:'GET',url:queueUrl,headers:auth(applicant)})).statusCode).toBe(403);
    const readQueue=()=>expectOk(app.inject({method:'GET',url:queueUrl,headers:auth(manager)}));
-   expect((await readQueue()).items).toEqual([expect.objectContaining({memberId:applicant.memberId,state:'pending',version:1,agreementVersion:'V2.0'})]);
+   expect((await readQueue()).items).toEqual([expect.objectContaining({memberId:applicant.memberId,state:'pending',version:1,agreementVersion:'V2.0',
+    applicationAt:application.agreement.acceptedAt,availablePoints:expect.any(Number)})]);
+   const readDetail=(version:number)=>app.inject({method:'GET',headers:auth(manager),
+    url:`/v1/management/sharing-officer?section=officer-detail&memberId=${applicant.memberId}&version=${version}`});
+   const pendingDetail=await expectOk(readDetail(1));
+   expect(pendingDetail.detail).toMatchObject({qualification:{met:true},agreement:{acceptedAt:application.agreement.acceptedAt,verifiedAt:null},
+    member:{registeredAt:expect.any(String),publicPosts:0,commerce:{paidOrderCount:1,orders:[{paidCents:29800}]}}});
    const approval={memberId:applicant.memberId,expectedVersion:1,state:'active',reason:'合成核验通过'};
    expect((await command(manager,'officer_state',approval,true)).statusCode).toBe(422);
    const verificationReference='KYC-SYNTHETIC-'+codes.length;
    await expectOk(command(manager,'officer_state',{...approval,verificationReference},true));
    expect((await readQueue()).items).toEqual([]);
+   expect((await readDetail(1)).statusCode).toBe(409);
+   const reviewed=await expectOk(readDetail(2));
+   expect(reviewed.detail).toMatchObject({review:{result:'active',occurredAt:expect.any(String),reviewer:'sharing-manager'},
+    agreement:{verifiedAt:expect.any(String),reference:'•••'+verificationReference.slice(-3)}});
+   expect(JSON.stringify(reviewed)).not.toContain(verificationReference);
    expect((await service.mine(applicant.memberId)).policy).toMatchObject({basisPoints:3000});
    const evidence=await pool.query('SELECT agreement_digest,verified_at,verification_reference FROM sharing_v2_application WHERE member_id=$1',[applicant.memberId]);
    expect(evidence.rows).toEqual([{agreement_digest:document.digest,verified_at:expect.any(Date),verification_reference:verificationReference}]);
@@ -312,6 +326,52 @@ it('requires the active agreement and manual identity decision, binds only after
   expect(await service.mine(customer.memberId)).toMatchObject({relation:{version:1,code:codes[0],agreementVersion:'V2.0'},pendingReferrer:null});
   expect((await service.orders(officer.memberId,{id:firstV2.id})).items[0]).toMatchObject({availableCents:2640,cashMerchandiseCents:8800,agreementVersion:'V2.0'});
 
+  const customerPage=(filter:string)=>expectOk(app.inject({method:'GET',headers:auth(manager),
+   url:`/v1/management/sharing-officer?section=customers&memberId=${officer.memberId}&customerFilter=${filter}&limit=1`}));
+  const changeState=(state:string,expectedVersion:number)=>expectOk(command(manager,'officer_state',
+   {memberId:officer.memberId,state,expectedVersion,reason:'合成资格调整'},true));
+  async function expectSnapshot(expected:string|null){
+   const order=await seedOrder(customer);
+   const result=await pool.query('SELECT referrer_member_id FROM commission_order_snapshot WHERE order_id=$1',[order.id]);
+   expect(result.rows[0]?.referrer_member_id??null).toBe(expected);
+   return order.id;
+  }
+  const reviewedPage=()=>expectOk(app.inject({method:'GET',headers:auth(manager),
+   url:`/v1/management/sharing-officer?section=officers&filter=reviewed&memberId=${officer.memberId}`}));
+  const decisionAt=(await reviewedPage()).items[0].reviewedAt;
+  await changeState('suspended',2);
+  expect((await reviewedPage()).items[0]).toMatchObject({state:'suspended',reviewedAt:decisionAt});
+  const pausedOrder=await expectSnapshot(null);
+  expect((await customerPage('retained')).items).toEqual([expect.objectContaining({id:customer.memberId,version:1,controlVersion:1})]);
+  await changeState('active',3);
+  await expectSnapshot(officer.memberId);
+
+  const commandInput={memberId:officer.memberId,buyerId:customer.memberId,expectedVersion:1,expectedControlVersion:1,
+   expectedOfficerVersion:4,reason:'合成归属调整',remove:true,confirmed:true};
+  expect((await command(manager,'customer_relation',{...commandInput,confirmed:false},true)).json().code).toBe('SHARING_CUSTOMER_CONFIRM_REQUIRED');
+  expect((await command(officer,'customer_relation',commandInput,true)).statusCode).toBe(403);
+  const removeKey='sharing-customer-remove-exact';
+  const removed=await expectOk(command(manager,'customer_relation',commandInput,true,removeKey));
+  expect(removed).toEqual({controlVersion:2,removed:true});
+  expect(await expectOk(command(manager,'customer_relation',commandInput,true,removeKey))).toEqual(removed);
+  expect((await customerPage('retained')).items).toEqual([]);
+  expect((await customerPage('removed')).items).toEqual([expect.objectContaining({id:customer.memberId,controlVersion:2,restorable:true})]);
+  expect((await service.mine(customer.memberId)).relation).toBeNull();
+  await expectSnapshot(null);
+  const newVisit=await expectOk(app.inject({method:'POST',url:'/v1/officer-shares/'+shareId+'/visits',payload:{visitKey:'sharing-v2-removed-second-visit'}}));
+  await expectOk(command(customer,'bind_visit',{visitToken:newVisit.visitToken}));
+  expect((await service.mine(customer.memberId)).pendingReferrer).toBeNull();
+  await changeState('suspended',4);
+  await changeState('active',5);
+  await expectSnapshot(null);
+  const restore={...commandInput,expectedOfficerVersion:6,expectedControlVersion:2,remove:false};
+  expect((await command(manager,'customer_relation',{...restore,expectedControlVersion:1},true)).json().code).toBe('VERSION_CONFLICT');
+  expect(await expectOk(command(manager,'customer_relation',restore,true))).toEqual({controlVersion:3,removed:false});
+  await expectSnapshot(officer.memberId);
+  expect((await pool.query('SELECT 1 FROM commission_order_snapshot WHERE order_id=$1',[pausedOrder])).rowCount).toBe(0);
+  expect((await pool.query('SELECT action FROM audit_log WHERE object_id=$1 AND action IN ($2,$3)',[customer.memberId,'sharing.customer.remove','sharing.customer.restore'])).rowCount).toBe(2);
+  expect((await service.orders(officer.memberId,{id:firstV2.id})).items[0]?.availableCents).toBe(2640);
+
   await expectOk(command(customer,'change_referrer',{code:codes[1],confirmed:true,expectedVersion:1}));
   expect(await service.mine(customer.memberId)).toMatchObject({relation:{code:codes[0]},pendingReferrer:{code:codes[1]}});
   const refunded=await seedOrder(customer);
@@ -325,6 +385,12 @@ it('requires the active agreement and manual identity decision, binds only after
   await releaseSharingCommissions(pool);
   expect(await service.mine(customer.memberId)).toMatchObject({relation:{version:2,code:codes[1]},pendingReferrer:null});
   expect((await service.orders(next.memberId,{id:changed.id})).items[0]).toMatchObject({availableCents:2640});
+  const latest={...commandInput,memberId:next.memberId,expectedOfficerVersion:2,expectedVersion:2,expectedControlVersion:3};
+  await expectOk(command(manager,'customer_relation',latest,true));
+  await expectOk(command(customer,'change_referrer',{code:codes[0],confirmed:true,expectedVersion:0}));
+  expect((await command(manager,'customer_relation',{...latest,expectedControlVersion:4,remove:false},true)).json().code)
+   .toBe('SHARING_CUSTOMER_REPLACEMENT_PENDING');
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:{code:codes[0]}});
 
   expect(sharingV2Period(new Date('2026-12-30T15:59:59Z'))).toBe('2026-12');
   expect(sharingV2Period(new Date('2026-12-30T16:00:00Z'))).toBe('2027-01');

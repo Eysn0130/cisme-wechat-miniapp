@@ -201,7 +201,7 @@ export class CommercialMembershipService {
   async snapshotOrder(client: DbClient, orderId: string, buyerId: string, sourceKind: "synthetic_nonproduction" | "verified_commerce", cashMerchandiseCents: number, _requestedAt: Date) {
     const officerSnapshot=await snapshotSharingOfficer(client,orderId,buyerId,sourceKind,cashMerchandiseCents);
     if(officerSnapshot)return officerSnapshot;
-    // A customer with officer ownership never silently falls back to legacy cash referral.
+    // Keep paused and manually removed officer relationships out of legacy cash referral.
     if((await client.query(`SELECT 1 FROM sharing_customer_relation WHERE buyer_id=$1
       UNION ALL SELECT 1 FROM sharing_v2_referral_intent WHERE buyer_id=$1 AND state='pending' LIMIT 1`,[buyerId])).rowCount)return null;
     // Relation/qualification timestamps are written by PostgreSQL. Compare

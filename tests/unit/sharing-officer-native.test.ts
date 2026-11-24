@@ -29,7 +29,7 @@ async function mount(kind:'consumer'|'admin',query:Record<string,string>={}){
 }
 beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token='owner-session';m.context=0;m.pending=null;m.reducedMotion=false;
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token,apiBaseUrl:'https://staging-api.cisme.cn'}});
- (globalThis as any).wx={hideShareMenu:vi.fn(),stopPullDownRefresh:vi.fn(),getStorageSync:()=>'',showToast:vi.fn(),nextTick:vi.fn(),env:{USER_DATA_PATH:'/synthetic'},getFileSystemManager:()=>({unlinkSync:vi.fn()}),navigateBack:vi.fn(),navigateTo:vi.fn()};
+ (globalThis as any).wx={hideShareMenu:vi.fn(),stopPullDownRefresh:vi.fn(),getStorageSync:()=>'',showToast:vi.fn(),showModal:vi.fn(),nextTick:vi.fn(),env:{USER_DATA_PATH:'/synthetic'},getFileSystemManager:()=>({unlinkSync:vi.fn()}),navigateBack:vi.fn(),navigateTo:vi.fn()};
  m.authority.mockResolvedValue({capabilities:['member.manage','commission.rate.manage','commission.read','commission.settlement.approve']});
 });
 afterEach(()=>{page?.stopAgreementTimers?.();page?.stopReviewPolling?.();page?.stopReviewApproval?.();vi.useRealTimers();});
@@ -202,12 +202,14 @@ it('opens an applicant in the pending management queue and sends one verified ap
  const applicant='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
  const row={memberId:applicant,displayName:'合成申请人',state:'pending',version:1,agreementVersion:'V2.0'};
  const projection={memberId:owner,scope:{manage:true},policy:wallet.policy,items:[row]};
- m.read.mockResolvedValue(projection);
+ m.read.mockImplementation((_page,path)=>Promise.resolve(path.includes('section=officer-detail')?
+  {memberId:owner,detail:{officer:row,accountState:'active',qualification:{met:true}}}:projection));
  const p=await mount('admin',{filter:'pending'});
  p.onShow();await flush();
  expect(p.data.filter).toBe('pending');
  expect(m.read.mock.calls[0]?.[1]).toContain('&filter=pending');
  p.selectOfficer({currentTarget:{dataset:{id:applicant}}});
+ await flush();
  const approve={currentTarget:{dataset:{state:'active',label:'同意申请'}}};
  p.setData({scope:{manage:false}});
  p.chooseDecision(approve);
@@ -224,6 +226,49 @@ it('opens an applicant in the pending management queue and sends one verified ap
  },true);
  expect(p.data.items).toEqual([]);
  expect(wx.showToast).toHaveBeenCalledWith({title:'分享官已开通',icon:'none'});
+});
+it('filters by review event and requires a second confirmation to remove or restore a customer',async()=>{
+ const applicant='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',buyer='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+ const row={memberId:applicant,displayName:'合成申请人',state:'suspended',version:3,reviewedAt:'2026-11-23T17:00:00Z',applicationAt:'2026-11-20T09:00:00Z',availablePoints:0};
+ const scope={manage:true,customers:true},projection={memberId:owner,scope,items:[row]};
+ let removed=false;
+ const customer={id:buyer,displayName:'合成会员',version:1,restorable:true};
+ m.read.mockImplementation((_page,path)=>{
+  if(path.includes('section=officer-detail'))return Promise.resolve({memberId:owner,detail:{officer:row,accountState:'active'}});
+  if(path.includes('section=customers')){
+   const showingRemoved=path.includes('customerFilter=removed');
+   return Promise.resolve({...projection,officerState:'suspended',officerVersion:3,
+    items:showingRemoved===removed?[{...customer,controlVersion:removed?2:1,removedAt:removed?'2026-11-24':null}]:[]});
+  }
+  return Promise.resolve(projection);
+ });
+ m.command.mockImplementation(async(_owner,_action,input)=>{removed=input.remove;return {removed};});
+ const p=await mount('admin');
+ p.onShow();await flush();
+ p.filterChange({detail:{value:'2'}});await flush();
+ expect(m.read.mock.calls.at(-1)?.[1]).toContain('&filter=reviewed');
+ expect(p.data.officerGroups[0]).toMatchObject({key:'2026-11-24',items:[{points:'0'}]});
+ const rowTap=(id:string)=>({currentTarget:{dataset:{id}}});
+ p.selectOfficer(rowTap(applicant));await flush();
+ p.openCustomers();await flush();
+ p.chooseCustomer(rowTap(buyer));
+ p.setData({reason:'确认测试'});
+ vi.mocked(wx.showModal).mockResolvedValueOnce({confirm:false,cancel:true});
+ await p.confirmCustomer();
+ expect(m.command).not.toHaveBeenCalled();
+ expect(p.data.sheet).toBe('customer-decision');
+ vi.mocked(wx.showModal).mockResolvedValue({confirm:true,cancel:false});
+ await p.confirmCustomer();await flush();
+ expect(m.command).toHaveBeenLastCalledWith(owner,'customer_relation',expect.objectContaining({
+  memberId:applicant,buyerId:buyer,remove:true,expectedVersion:1,expectedControlVersion:1,expectedOfficerVersion:3,confirmed:true
+ }),true);
+ expect(p.data.customers).toEqual([]);
+ p.changeCustomerFilter({detail:{value:'1'}});await flush();
+ p.chooseCustomer(rowTap(buyer));
+ p.setData({reason:'恢复测试'});
+ await p.confirmCustomer();
+ expect(m.command).toHaveBeenLastCalledWith(owner,'customer_relation',expect.objectContaining({remove:false,expectedControlVersion:2}),true);
+ expect(wx.showModal).toHaveBeenLastCalledWith(expect.objectContaining({content:expect.stringContaining('资格恢复后的新订单才计佣')}));
 });
 it('clears private finance and payee data when the management page hides',async()=>{
  m.read.mockResolvedValue({memberId:owner,scope:{finance:true,manage:true},policy:wallet.policy,items:[{memberId:owner,displayName:'合成分享官',state:'active'}],hasMore:false,nextCursor:null});

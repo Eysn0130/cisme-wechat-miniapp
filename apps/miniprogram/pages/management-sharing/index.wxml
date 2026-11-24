@@ -1,11 +1,31 @@
+<page-meta page-style="{{sheet?'overflow: hidden;':''}}"/>
 <view class="chrome-root officer-root" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">分享官管理</text></view>
 <view class="page page--stack officer-page">
  <view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在加载"><view class="page-read-loading__indicator"/></view>
  <section-tabs items="{{tabs}}" value="{{tab}}" bindchange="changeTab" disabled="{{busy||pending}}" label="分享官管理分类"/>
  <view wx:if="{{error&&!sheet}}" class="officer-error"><text>{{error}}</text><button class="action-text {{busy||loading ? 'control--disabled' : ''}}" bindtap="retry" disabled="{{busy||loading}}">重试</button></view>
  <view wx:if="{{pending}}" class="officer-recovery"><text>上次操作待确认</text><view class="officer-actions"><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="recover" disabled="{{busy}}">查询结果</button><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="recover" data-abandon="{{true}}" disabled="{{busy}}">结束这次请求</button></view></view>
- <block wx:if="{{tab==='officers'&&scope}}"><view class="officer-between officer-section"><text>申请与资格</text><picker range="{{filters}}" value="{{filterIndex}}" bindchange="filterChange" disabled="{{busy||pending}}"><view class="officer-link officer-picker">{{filters[filterIndex]}}⌄</view></picker></view>
-  <button wx:for="{{items}}" wx:key="memberId" class="officer-record {{busy||pending||!scope.manage ? 'control--disabled' : ''}}" data-id="{{item.memberId}}" bindtap="selectOfficer" disabled="{{busy||pending||!scope.manage}}"><view class="officer-between"><text class="officer-strong">{{item.displayName}}</text><text class="officer-link">{{item.label}}</text></view><view class="officer-between officer-muted"><text>{{item.referralCode}}</text><text>{{item.date}}</text></view><text wx:if="{{item.applicationNote}}" class="officer-note">{{item.applicationNote}}</text></button>
+ <block wx:if="{{tab==='officers'&&scope}}">
+  <view class="officer-between officer-section"><text>申请与资格</text><picker range="{{filters}}" value="{{filterIndex}}" bindchange="filterChange" disabled="{{busy||pending||sheet}}" aria-label="申请与资格筛选"><view class="officer-link officer-picker">{{filters[filterIndex]}}⌄</view></picker></view>
+  <view wx:for="{{officerGroups}}" wx:for-item="day" wx:key="key" class="officer-review-day">
+   <view class="officer-review-day-head"><text>{{day.label}}</text><view class="officer-review-day-rule" aria-hidden="true"/></view>
+   <button wx:for="{{day.items}}" wx:key="memberId" class="officer-person-card {{busy||pending||!scope.manage?'control--disabled':''}}" data-id="{{item.memberId}}" bindtap="selectOfficer" disabled="{{busy||pending||!scope.manage}}" aria-label="{{item.displayName+' '+item.badgeLabel+' '+item.label}}">
+    <view class="officer-review-avatar">
+     <image src="{{item.avatar||'/assets/icons/user-circle-plum.svg'}}" mode="aspectFill" aria-hidden="true"/>
+     <identity-badge wx:if="{{item.badge}}" kind="{{item.badge}}" size="{{31}}" decorative="{{true}}"/>
+    </view>
+    <view class="officer-review-person">
+     <text class="officer-person-name">{{item.displayName}}</text>
+     <text class="officer-review-caption">{{item.referralCode}}{{item.state!=='pending'&&item.points!==''?' · '+item.points+' 积分':''}}</text>
+    </view>
+    <view class="officer-review-tail">
+     <text wx:if="{{item.time}}" class="officer-review-caption">{{item.time}}</text>
+     <text wx:if="{{item.state==='pending'&&item.points!==''}}" class="officer-person-points">{{item.points}} <text class="officer-review-caption">积分</text></text>
+     <text wx:if="{{item.state!=='pending'||filter!=='pending'}}" class="officer-review-result {{item.state==='active'?'officer-review-result--active':''}}">{{item.label}}</text>
+    </view>
+    <image wx:if="{{scope.manage}}" class="officer-review-caret" src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/>
+   </button>
+  </view>
  </block>
  <block wx:elif="{{tab==='policy'&&policy}}"><view class="officer-between officer-section"><text>当前规则</text><button class="action-text {{busy||pending ? 'control--disabled' : ''}}" bindtap="openPolicy" disabled="{{busy||pending}}">修改</button></view><view class="officer-detail-row"><text>申请与推广</text><text>{{policy.enabled?'已开放':'已暂停'}}</text></view><view class="officer-detail-row"><text>佣金</text><text>{{policy.basisPoints/100}}% · 商品实付</text></view><view class="officer-detail-row"><text>客户归属</text><text>{{policy.attributionDays===null?'永久':policy.attributionDays+' 天'}}</text></view><view class="officer-detail-row"><text>多人推荐</text><text>{{policy.priority==='first'?'首次推荐':'最近一次推荐'}}</text></view><view class="officer-detail-row"><text>自购</text><text>不计佣</text></view><view class="officer-detail-row"><text>可结算时间</text><text>收货满 {{policy.releaseDays}} 天</text></view><text class="officer-note">进行中售后暂不结算。修改只影响后续新建订单；已有客户归属按建立时规则保留。</text></block>
  <block wx:elif="{{tab==='orders'&&scope}}"><button wx:for="{{items}}" wx:key="id" class="officer-record {{busy||pending ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="order" disabled="{{busy||pending}}"><view class="officer-between"><text class="officer-strong">{{item.productName}}</text><text class="officer-link">¥{{item.cash}}</text></view><text class="officer-note">{{item.orderNumber}} · {{item.officerCode}}</text><text wx:if="{{item.outstandingRecoveryCents}}" class="officer-warning">待核对冲回 ¥{{item.recovery}}</text></button></block>
@@ -14,27 +34,123 @@
    <button wx:for="{{items}}" wx:key="id" class="officer-record {{busy||pending ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="selectLine" disabled="{{busy||pending}}"><view class="officer-between"><text class="officer-strong">{{item.displayName}}</text><text class="officer-link">{{item.label}}</text></view><view class="officer-between officer-muted"><text>税前 ¥{{item.gross}}</text><text>扣税 {{item.taxCents===null?'待审核':'¥'+item.tax}}</text></view><view wx:if="{{item.taxCents!==null}}" class="officer-muted">{{item.state==='paid'?'实际到账':'预计实付'}} ¥{{item.net}}</view></button>
   </block>
  </block>
- <view wx:if="{{!loading&&!items.length&&tab!=='policy'&&scope}}" class="officer-empty">{{tab==='officers'&&filter==='pending'?'暂无待审核申请':'暂无记录'}}</view><button wx:if="{{hasMore}}" class="action-text officer-more {{busy||loading ? 'control--disabled' : ''}}" bindtap="more" disabled="{{busy||loading}}">加载更多</button>
+ <view wx:if="{{!loading&&!items.length&&tab!=='policy'&&scope}}" class="officer-empty">{{tab==='officers'&&filter==='pending'?'暂无待审核申请':tab==='officers'&&filter==='reviewed'?'暂无已审核申请':'暂无记录'}}</view><button wx:if="{{hasMore}}" class="action-text officer-more {{busy||loading ? 'control--disabled' : ''}}" bindtap="more" disabled="{{busy||loading}}">加载更多</button>
 </view>
-<view wx:if="{{sheet}}" class="officer-mask" bindtap="close"><view class="officer-sheet" catchtap="stop"><view class="officer-sheet-head"><text>{{sheet==='policy'?'修改规则':sheet==='officer'?(selected.state==='pending'?'审核申请':'分享官资格'):sheet==='decision'?decisionLabel:sheet==='line'?'结算明细':'推广订单'}}</text><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="close" disabled="{{busy}}">关闭</button></view><scroll-view class="officer-sheet-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+<view wx:if="{{sheet}}" class="officer-mask" bindtap="close">
+<view class="officer-sheet {{sheet==='officer'||sheet==='customers'?'officer-sheet--review':''}}" catchtap="stop">
+<view class="officer-sheet-head">
+ <text>{{sheet==='policy'?'修改规则':sheet==='officer'?(selected.state==='pending'?'审核申请':'审核详情'):sheet==='decision'?decisionLabel:sheet==='customers'?'推荐归属':sheet==='customer-decision'?(customerSelected.removedAt?'恢复归属':'移除归属'):sheet==='line'?'结算明细':'推广订单'}}</text>
+ <button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="close" disabled="{{busy}}">{{sheet==='customer-decision'||sheet==='customers'||sheet==='decision'?'返回':'关闭'}}</button>
+</view>
+<scroll-view class="officer-sheet-scroll" scroll-y enhanced show-scrollbar="{{false}}">
  <block wx:if="{{sheet==='policy'}}"><view class="officer-detail-row"><text>开放申请与推广</text><switch checked="{{enabled}}" bindchange="toggle" color="#593377" disabled="{{busy||pending}}"/></view><label class="officer-field"><text>佣金比例（%）</text><input type="digit" value="{{rate}}" data-field="rate" bindinput="edit" disabled="{{busy||pending}}"/></label><label class="officer-field"><text>确认收货后等待天数</text><input type="number" value="{{days}}" data-field="days" bindinput="edit" disabled="{{busy||pending}}"/></label><view class="officer-detail-row"><text>客户归属</text><picker range="{{durations}}" value="{{durationIndex}}" data-field="durationIndex" bindchange="pick" disabled="{{busy||pending}}"><text class="officer-link">{{durations[durationIndex]}}⌄</text></picker></view><label wx:if="{{durationIndex===1}}" class="officer-field"><text>归属天数</text><input type="number" value="{{attributionDays}}" data-field="attributionDays" bindinput="edit" disabled="{{busy||pending}}"/></label><view class="officer-detail-row"><text>多人推荐</text><picker range="{{priorities}}" value="{{priorityIndex}}" data-field="priorityIndex" bindchange="pick" disabled="{{busy||pending}}"><text class="officer-link">{{priorities[priorityIndex]}}⌄</text></picker></view><label class="officer-field"><text>修改依据</text><textarea value="{{reason}}" data-field="reason" bindinput="edit" maxlength="300" disabled="{{busy||pending}}"/></label><button class="primary {{busy||pending||!rate||!days||!reason ? 'primary--disabled' : ''}}" data-action="policy" bindtap="operate" disabled="{{busy||pending||!rate||!days||!reason}}" loading="{{busy}}">保存新规则</button></block>
  <block wx:elif="{{sheet==='officer'&&selected}}">
-  <view class="officer-review-summary">
-   <view class="officer-between"><text class="officer-review-name">{{selected.displayName}}</text><text class="officer-review-state">{{selected.label}}</text></view>
-   <text class="officer-muted">{{selected.referralCode}}</text>
-   <view wx:if="{{selected.state==='pending'&&selected.date}}" class="officer-detail-row"><text>申请时间</text><text>{{selected.date}}</text></view>
-   <view wx:if="{{selected.state==='pending'&&selected.agreementVersion}}" class="officer-detail-row"><text>合作协议</text><text>已确认</text></view>
-   <text wx:if="{{selected.applicationNote}}" class="officer-copy">{{selected.applicationNote}}</text>
+  <view class="officer-review-identity">
+   <view class="officer-review-avatar officer-review-avatar--detail">
+    <image src="{{selected.avatar||'/assets/icons/user-circle-plum.svg'}}" mode="aspectFill" aria-hidden="true"/>
+    <identity-badge wx:if="{{selected.badge}}" kind="{{selected.badge}}" size="{{36}}" />
+   </view>
+   <view class="officer-review-person">
+    <text class="officer-review-name">{{selected.displayName}}</text>
+    <text class="officer-review-caption">{{selected.referralCode}}{{selected.points!==''?' · '+selected.points+' 积分':''}}</text>
+    <text wx:if="{{selected.applicationDate}}" class="officer-review-caption">申请于 {{selected.applicationDate}}</text>
+   </view>
+   <text class="officer-review-state">{{selected.label}}</text>
   </view>
-  <view wx:if="{{scope.manage&&selected.memberId!==memberId&&selected.state==='pending'}}" class="officer-review-actions">
-   <button class="primary {{busy||pending?'primary--disabled':''}}" data-state="active" data-label="同意申请" bindtap="chooseDecision" disabled="{{busy||pending}}">同意申请</button>
-   <button class="action-text {{busy||pending?'control--disabled':''}}" data-state="rejected" data-label="拒绝申请" bindtap="chooseDecision" disabled="{{busy||pending}}">拒绝申请</button>
+  <view wx:if="{{reviewLoading}}" class="page-read-loading" aria-role="status" aria-label="正在读取申请"><view class="page-read-loading__indicator"/></view>
+  <view wx:if="{{reviewError}}" class="officer-error"><text>{{reviewError}}</text><button class="action-text" bindtap="refreshOfficerReview">{{reviewStale?'更新列表':'重试'}}</button></view>
+  <block wx:if="{{review}}">
+   <text class="officer-review-section">{{selected.state==='pending'?'开通条件':'审核记录'}}</text>
+   <view class="officer-review-card">
+    <block wx:if="{{selected.state==='pending'}}">
+     <view wx:if="{{!review.accountActive}}" class="officer-review-fact"><text>账号状态</text><text class="officer-review-caution">当前不可开通</text></view>
+     <view class="officer-review-fact"><text>精华套组</text><text class="{{review.qualificationMet?'':'officer-review-caution'}}">{{review.qualificationMet?'已购至少 1 组':'条件未达成'}}</text></view>
+    </block>
+    <block wx:elif="{{review.review}}">
+     <view class="officer-review-fact"><text>审核结论</text><text>{{review.review.label}}</text></view>
+     <view class="officer-review-fact"><text>审核时间</text><text>{{review.review.date}}</text></view>
+     <view wx:if="{{review.review.reviewer}}" class="officer-review-fact"><text>审核人</text><text>{{review.review.reviewer}}</text></view>
+    </block>
+    <view wx:else class="officer-review-fact"><text>审核时间</text><text>历史记录缺失</text></view>
+    <block wx:if="{{review.agreement}}">
+     <view class="officer-review-fact"><text>合作协议</text><text>已确认</text></view>
+     <view class="officer-review-fact officer-review-fact--meta"><text>确认时间</text><text>{{review.agreement.accepted}}</text></view>
+     <view class="officer-review-fact"><text>人工核验</text><text>{{review.agreement.verified?'已登记':'待登记'}}</text></view>
+     <view wx:if="{{review.agreement.verified}}" class="officer-review-fact officer-review-fact--meta"><text>核验时间</text><text>{{review.agreement.verified}}</text></view>
+     <view wx:if="{{review.agreement.reference}}" class="officer-review-fact officer-review-fact--meta"><text>核验凭据</text><text>{{review.agreement.reference}}</text></view>
+    </block>
+    <view wx:if="{{review.review.reason}}" class="officer-review-note"><text>处理依据</text><text>{{review.review.reason}}</text></view>
+    <view wx:if="{{(selected.state==='suspended'||selected.state==='terminated')&&review.reason}}" class="officer-review-note"><text>当前资格说明</text><text>{{review.reason}}</text></view>
+   </view>
+   <block wx:if="{{review.member}}">
+    <text class="officer-review-section">会员记录</text>
+    <view class="officer-review-card">
+     <block wx:if="{{review.member.commerce}}">
+      <button class="officer-review-fact officer-review-trigger {{reviewOpen==='orders'?'officer-review-trigger--open':''}}" data-section="orders" bindtap="toggleOfficerRecord" aria-expanded="{{reviewOpen==='orders'}}"><text>购物记录</text><view class="officer-review-value"><text>已付 {{review.member.commerce.paidOrderCount}} 单</text><image class="officer-review-caret" src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/></view></button>
+      <view wx:if="{{reviewOpen==='orders'}}" class="officer-review-expanded">
+       <view class="officer-review-fact"><text>订单净实付</text><text>¥{{review.member.commerce.net}}</text></view>
+       <view class="officer-review-fact"><text>已退款</text><text>¥{{review.member.commerce.refunded}}</text></view>
+       <view class="officer-review-fact"><text>处理中售后</text><text>{{review.member.commerce.openAftersales}} 单</text></view>
+       <view wx:for="{{review.member.commerce.orders}}" wx:key="id" class="officer-review-snippet"><text>{{item.title||'商品订单'}}</text><text class="officer-review-caption">{{item.date}} · 净实付 ¥{{item.net}}</text></view>
+      </view>
+     </block>
+     <view wx:if="{{review.member.registered}}" class="officer-review-fact"><text>注册时间</text><text>{{review.member.registered}}</text></view>
+     <block wx:if="{{review.member.referrals}}">
+      <button class="officer-review-fact officer-review-trigger {{reviewOpen==='referrals'?'officer-review-trigger--open':''}}" data-section="referrals" bindtap="toggleOfficerRecord" aria-expanded="{{reviewOpen==='referrals'}}"><text>分享与邀请</text><view class="officer-review-value"><text>邀请注册 {{review.member.referrals.invitedRegistrations}} 人</text><image class="officer-review-caret" src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/></view></button>
+      <view wx:if="{{reviewOpen==='referrals'}}" class="officer-review-expanded">
+       <view class="officer-review-fact"><text>当前推荐归属</text><text>{{review.member.referrals.attributedMembers}} 人</text></view>
+       <view wx:if="{{review.member.referrals.verifiedPaidOrders!==null}}" class="officer-review-fact"><text>核实付款的推广订单</text><text>{{review.member.referrals.verifiedPaidOrders}} 单</text></view>
+      </view>
+     </block>
+     <button class="officer-review-fact officer-review-trigger {{reviewOpen==='posts'?'officer-review-trigger--open':''}}" data-section="posts" bindtap="toggleOfficerRecord" aria-expanded="{{reviewOpen==='posts'}}"><text>社区发帖</text><view class="officer-review-value"><text>公开 {{review.member.publicPosts}} 篇</text><image class="officer-review-caret" src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/></view></button>
+     <view wx:if="{{reviewOpen==='posts'}}" class="officer-review-expanded">
+      <text wx:if="{{!review.member.posts.length}}" class="officer-review-caption">暂无公开作品</text>
+      <view wx:for="{{review.member.posts}}" wx:key="id" class="officer-review-snippet"><text>{{item.title||'护理分享'}}</text><text class="officer-review-caption">{{item.date}}</text></view>
+     </view>
+    </view>
+   </block>
+   <view wx:if="{{selected.applicationNote}}" class="officer-review-note officer-review-note--section"><text>申请说明</text><text>{{selected.applicationNote}}</text></view>
+   <block wx:if="{{review.history.length}}">
+    <button class="action-text officer-review-history" data-section="history" bindtap="toggleOfficerRecord" aria-expanded="{{reviewOpen==='history'}}">历次审核</button>
+    <view wx:if="{{reviewOpen==='history'}}" class="officer-review-card">
+     <view wx:for="{{review.history}}" wx:key="version" class="officer-review-note"><text>{{item.label}} · {{item.date}}</text><text>{{item.reason}}</text></view>
+    </view>
+   </block>
+  </block>
+ </block>
+ <block wx:elif="{{sheet==='customers'&&selected}}">
+  <view class="officer-between officer-customer-toolbar">
+   <text class="officer-review-name">{{selected.displayName}}</text>
+   <picker range="{{customerFilters}}" value="{{customerFilterIndex}}" bindchange="changeCustomerFilter" disabled="{{busy||pending}}" aria-label="推荐归属筛选">
+    <view class="officer-link officer-picker">{{customerFilters[customerFilterIndex]}}⌄</view>
+   </picker>
   </view>
-  <view wx:if="{{scope.manage&&selected.memberId!==memberId&&selected.state!=='pending'}}" class="officer-actions">
-   <button wx:if="{{selected.state==='active'}}" class="action-text" data-state="suspended" data-label="暂停资格" bindtap="chooseDecision">暂停资格</button>
-   <button wx:if="{{selected.state==='suspended'}}" class="action-text" data-state="active" data-label="恢复资格" bindtap="chooseDecision">恢复资格</button>
-   <button wx:if="{{selected.state==='active'||selected.state==='suspended'}}" class="action-text" data-state="terminated" data-label="终止资格" bindtap="chooseDecision">终止资格</button>
+  <text wx:if="{{customerOfficerState==='suspended'}}" class="officer-review-caption officer-customer-pause">资格已暂停，期间的新订单不计佣。</text>
+  <view wx:if="{{customerLoading}}" class="page-read-loading" aria-role="status" aria-label="正在读取推荐归属"><view class="page-read-loading__indicator"/></view>
+  <view wx:if="{{customerError}}" class="officer-error">
+   <text>{{customerError}}</text>
+   <button class="action-text" bindtap="retryCustomers">重试</button>
   </view>
+  <view wx:if="{{customers.length}}" class="officer-review-card">
+   <view wx:for="{{customers}}" wx:key="id" class="officer-review-fact officer-customer-row">
+    <view class="officer-review-person">
+     <text class="officer-person-name">{{item.displayName||'CISME 会员'}}</text>
+     <text wx:if="{{item.userCode}}" class="officer-review-caption">{{item.userCode}}</text>
+    </view>
+    <text wx:if="{{item.expired||item.removedAt&&!item.restorable}}" class="officer-review-caption">{{item.expired?'已到期':'已另选推荐人'}}</text>
+    <button wx:else class="action-text {{busy||pending||customerLoading||customerError||item.id===memberId?'control--disabled':''}}" data-id="{{item.id}}" bindtap="chooseCustomer"
+     disabled="{{busy||pending||customerLoading||customerError||item.id===memberId}}">{{item.removedAt?'恢复归属':'移除归属'}}</button>
+   </view>
+  </view>
+  <view wx:elif="{{!customerLoading&&!customerError}}" class="officer-empty">{{customerFilterIndex===0?'暂无保留归属的会员':'暂无已移除的归属'}}</view>
+  <button wx:if="{{customerMore}}" class="action-text officer-more {{busy||customerLoading?'control--disabled':''}}" bindtap="moreCustomers" disabled="{{busy||customerLoading}}">加载更多</button>
+ </block>
+ <block wx:elif="{{sheet==='customer-decision'&&customerSelected}}">
+  <text class="officer-review-name">{{customerSelected.displayName||'CISME 会员'}}</text>
+  <text wx:if="{{customerSelected.userCode}}" class="officer-note">{{customerSelected.userCode}}</text>
+  <label class="officer-field"><text>调整依据</text><textarea value="{{reason}}" data-field="reason" bindinput="edit" maxlength="300" disabled="{{busy||pending}}"/></label>
+  <button class="primary {{busy||pending||reason.length<2?'primary--disabled':''}}" bindtap="confirmCustomer" loading="{{busy}}"
+   disabled="{{busy||pending||reason.length<2}}">{{customerSelected.removedAt?'确认恢复':'确认移除'}}</button>
  </block>
  <block wx:elif="{{sheet==='decision'&&selected}}">
   <text class="officer-review-name">{{selected.displayName}}</text>
@@ -60,4 +176,22 @@
   <block wx:if="{{scope.finance&&selected.outstandingRecoveryCents}}"><label class="officer-field"><text>核对冲回税前佣金（元）</text><input type="digit" value="{{recoveryAmount}}" data-field="recoveryAmount" bindinput="edit" disabled="{{busy||pending}}"/></label><label class="officer-field"><text>实际收回（元）</text><input type="digit" value="{{receivedAmount}}" data-field="receivedAmount" bindinput="edit" disabled="{{busy||pending}}"/></label><label class="officer-field"><text>财务税务调整（元，可为负）</text><input value="{{taxAdjustment}}" data-field="taxAdjustment" bindinput="edit" disabled="{{busy||pending}}"/></label><label class="officer-field"><text>回收流水号</text><input value="{{reference}}" data-field="reference" bindinput="edit" disabled="{{busy||pending}}"/></label><label class="officer-field"><text>财务核对记录</text><textarea value="{{reason}}" data-field="reason" bindinput="edit" maxlength="500" disabled="{{busy||pending}}"/></label><button class="primary {{busy||pending||!recoveryAmount||receivedAmount===''||taxAdjustment===''||!reference||!reason ? 'primary--disabled' : ''}}" data-action="record_recovery" bindtap="operate" disabled="{{busy||pending||!recoveryAmount||receivedAmount===''||taxAdjustment===''||!reference||!reason}}" loading="{{busy}}">登记已收回</button></block>
  </block>
  <text wx:if="{{error}}" class="officer-error">{{error}}</text><view wx:if="{{pending}}" class="officer-actions"><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="recover" disabled="{{busy}}">查询上次操作</button><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="recover" data-abandon="{{true}}" disabled="{{busy}}">结束这次请求</button></view>
-</scroll-view></view></view></view>
+</scroll-view>
+ <view wx:if="{{sheet==='officer'&&scope.manage&&selected.memberId!==memberId}}" class="officer-review-footer">
+  <view wx:if="{{selected.state==='pending'}}" class="officer-review-actions">
+   <button class="primary {{busy||pending||!review.canApprove?'primary--disabled':''}}" data-state="active" data-label="同意申请" bindtap="chooseDecision" disabled="{{busy||pending||!review.canApprove}}">同意申请</button>
+   <button class="action-text {{busy||pending||reviewStale||!review.accountActive?'control--disabled':''}}" data-state="rejected" data-label="拒绝申请" bindtap="chooseDecision" disabled="{{busy||pending||reviewStale||!review.accountActive}}">拒绝申请</button>
+  </view>
+  <block wx:elif="{{review.accountActive&&!reviewStale&&(selected.state==='active'||selected.state==='suspended')}}">
+   <view class="officer-actions officer-management-links">
+    <button class="action-text" bindtap="toggleQualificationActions" aria-expanded="{{qualificationActions}}">资格管理</button>
+    <button wx:if="{{scope.customers}}" class="action-text" bindtap="openCustomers">管理推荐归属</button>
+   </view>
+   <view wx:if="{{qualificationActions}}" class="officer-actions officer-qualification-actions">
+    <button wx:if="{{selected.state==='active'}}" class="action-text" data-state="suspended" data-label="暂停资格" bindtap="chooseDecision">暂停资格</button>
+    <button wx:if="{{selected.state==='suspended'}}" class="action-text" data-state="active" data-label="恢复资格" bindtap="chooseDecision">恢复资格</button>
+    <button class="action-text officer-danger-text" data-state="terminated" data-label="终止资格" bindtap="chooseDecision">终止资格</button>
+   </view>
+  </block>
+ </view>
+</view></view></view>

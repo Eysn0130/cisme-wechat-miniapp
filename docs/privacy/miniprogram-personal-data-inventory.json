@@ -850,7 +850,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "6e77a6a7180691188f896b8e79a6bdd32b777a3a13b305bc8f8226c41ae98ca9",
+  "migrationSetSha256": "d3ca529fa898855e74a17ce8238ee79aafdd3e246418c1c11629831144d68e2e",
   "egressSignatureSha256": "51385a8246d036be461cc5496918b981d47f9d77cb0361131ed2d02e0cbec0e7",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1523,5 +1523,10 @@
     "source": "Active sharing officer qualification and environment-scoped authority grants. The official publisher stays an independent identity.",
     "projection": "The community receives a badge kind for visible authors. The administrator mark requires a current administrative grant and an explicit public designation from the administrator settings. Human support is scoped to the verified conversation sender. Internal capability rows are excluded from public author responses.",
     "storage": "The public designation uses the existing audited authority_grant record. It confers no operational access. Native badge animation state lives in memory for the current mini-program run."
+  },
+  "sharingManagementReview20261124": {
+    "scope": "Internal sharing-officer review and reversible management of the current direct recommendation relation.",
+    "access": "Review is limited to member.manage. Profile, points, orders and promotion payment facts retain their separate capabilities. Relation administration requires member.manage and member.profile.read. No contact, proof document or referred buyer list enters a sharing officer's own application or wallet.",
+    "storage": "The relation stores a removal time and a control version. A change is audited with the actor, buyer, officer, version and supplied reason. The owner export projects only the buyer's own relation including its removal time. Existing order snapshots and their retention are independent."
   }
 }

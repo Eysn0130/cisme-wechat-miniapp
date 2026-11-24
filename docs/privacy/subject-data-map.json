@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "06e0441d5464fc13a7565c2a35ada7a9e3f94585c82aa0109513c56eeac3d8fd",
+  "migrationSetSha256": "bf66ea87342268b2bcb999bc636ceacc36d714b11e7595bd5255f71ae95b4f1c",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -6799,18 +6799,20 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "The buyer owns the live relationship projection. Only the public referrer code is derived. Under V2.0 a relationship commits after a qualifying order; a later qualification termination removes the live relation while retaining history. The sharing officer's export excludes their referred buyers' identity.",
+      "specialHandling": "The buyer owns the relationship projection, including the removal time if management detached it. Only the public referrer code is derived. Under V2.0 a relationship commits after a qualifying order. Qualification termination removes the live relation while retaining history. The sharing officer's export excludes their referred buyers' identity.",
       "exportFields": [
         "source",
         "effective_at",
         "expires_at",
-        "version"
+        "version",
+        "removed_at"
       ],
       "excludedFields": [
         "buyer_id",
         "officer_id",
         "policy_id",
-        "visit_id"
+        "visit_id",
+        "control_version"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",

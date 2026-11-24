@@ -1,7 +1,9 @@
 import type {DbClient} from './db.js';
 import {transaction} from './db.js';
 import {requireActiveMemberWithClient} from './authority.js';
-import {SharingOfficerService,sharingOrderProjection,sharingOrderView,currentSharingPolicySql,officerPolicyView,officerView} from './sharingOfficer.js';
+import {SharingOfficerService,sharingOrderProjection,sharingOrderView,currentSharingPolicySql,officerPolicyView} from './sharingOfficer.js';
+import {sharingReviewDetail,sharingReviewQueue} from './sharingOfficerReview.js';
+import {sharingAdminCustomers} from './sharingOfficerCustomerAdmin.js';
 import {sharingFail as fail,sharingId as id,sharingInt as int,sharingText as text,sharingMonth,sharingTax,csvCell} from './sharingOfficerPolicy.js';
 import {pageLimit,pageScope,readPageCursor,finishPage} from './keysetPage.js';
 import {sharingV2Cutoff,sharingV2PaymentWindow} from './sharingOfficerV2.js';
@@ -27,25 +29,36 @@ export class SharingOfficerFinance {
    return {...page,items:page.items.map(({cursorAt:_,...r})=>r)};
   },'REPEATABLE READ');
  }
- async management(actorId:string|undefined,query:{section?:string;cursor?:unknown;limit?:unknown;filter?:string;batchId?:string;lineId?:string;memberId?:string}={}){
+ async management(actorId:string|undefined,query:{section?:string;cursor?:unknown;limit?:unknown;filter?:string;batchId?:string;lineId?:string;memberId?:string;version?:string;customerFilter?:string}={}){
   return transaction(this.service.pool,async client=>{
    const actor=await requireActiveMemberWithClient(client,actorId),capabilities=await this.service.authority.projection(actor);
    const canManage=capabilities.capabilities.includes('member.manage'),canConfigure=capabilities.capabilities.includes('commission.rate.manage'),
     canRead=capabilities.capabilities.includes('commission.read'),canFinance=capabilities.capabilities.includes('commission.settlement.approve');
    if(!canManage&&!canConfigure&&!canRead&&!canFinance)fail('CAPABILITY_REQUIRED','没有分享官管理权限',403);
-   const section=query.section??'officers',limit=pageLimit(query.limit),scope=pageScope(['sharing-admin',actor,section,query.filter??'',query.batchId??'',query.lineId??'',query.memberId??'']),cursor=readPageCursor(query.cursor,scope);
-   const target=query.memberId?id(query.memberId):null;
-   const p=(await client.query(currentSharingPolicySql)).rows[0],result={memberId:actor,scope:{manage:canManage,configure:canConfigure,read:canRead,finance:canFinance},policy:officerPolicyView(p)};
-   if(section==='officers'){
-    if(!canManage&&!canRead)fail('CAPABILITY_REQUIRED','没有分享官资料查看权限',403);
-    const filter=query.filter??'all';if(!['all','pending','active','rejected','suspended','terminated'].includes(filter))fail('SHARING_FILTER_INVALID','分类无效',422);
-    const rows=(await client.query(`SELECT o.*,o.member_id AS id,o.created_at::text AS cursor_at,m.display_name,
-     EXISTS(SELECT 1 FROM sharing_payee p WHERE p.member_id=o.member_id) AS payee_ready
-     FROM sharing_officer o JOIN member m ON m.id=o.member_id WHERE ($1='all' OR o.state=$1) AND ($5::uuid IS NULL OR o.member_id=$5)
-     AND ($2::timestamptz IS NULL OR (o.created_at,o.member_id)<($2,$3::uuid)) ORDER BY o.created_at DESC,o.member_id DESC LIMIT $4`,
-     [filter,cursor?.at??null,cursor?.id??null,limit+1,target])).rows;
-    const page=finishPage(rows.map(r=>({id:r.id,cursorAt:r.cursor_at,memberId:r.member_id,displayName:r.display_name,payeeReady:r.payee_ready,...officerView(r)})),limit,scope);
-    return {...result,...page,items:page.items.map(({cursorAt:_,...r})=>r)};
+   const section=query.section??'officers',limit=pageLimit(query.limit),scope=pageScope(['sharing-admin',actor,section==='officers'?'officers-by-event':section,query.filter??'',query.batchId??'',query.lineId??'',query.memberId??'']);
+   const cursor=section==='customers'?null:readPageCursor(query.cursor,scope);
+   const target=query.memberId?id(query.memberId).toLowerCase():null;
+   const profile=capabilities.capabilities.includes('member.profile.read'),authority=this.service.authority;
+   const p=(await client.query(currentSharingPolicySql)).rows[0],result={memberId:actor,scope:{manage:canManage,customers:canManage&&profile,configure:canConfigure,read:canRead,finance:canFinance},policy:officerPolicyView(p)};
+   if(section==='customers'){
+    await authority.requireWithClient(client,actor,'member.manage');
+    await authority.requireWithClient(client,actor,'member.profile.read');
+    return {...result,...await sharingAdminCustomers(client,actor,target??id(null),query.customerFilter??'retained',limit,query.cursor)};
+   }
+   if(section==='officers'||section==='officer-detail'){
+    const detail=section==='officer-detail';
+    if(!canManage&&(detail||!canRead))fail('CAPABILITY_REQUIRED','没有分享官资料查看权限',403);
+    await authority.requireWithClient(client,actor,canManage?'member.manage':'commission.read');
+    const points=!detail&&profile&&capabilities.capabilities.includes('commerce.money.reconcile');
+    const orders=detail&&profile&&capabilities.capabilities.includes('commerce.order.read');
+    const commission=detail&&profile&&(canRead||canFinance);
+    if(profile)await authority.requireWithClient(client,actor,'member.profile.read');
+    if(points)await authority.requireWithClient(client,actor,'commerce.money.reconcile');
+    if(orders)await authority.requireWithClient(client,actor,'commerce.order.read');
+    if(commission)await authority.requireWithClient(client,actor,canRead?'commission.read':'commission.settlement.approve');
+    const access={profile,points,orders,commission};
+    if(detail)return {...result,detail:await sharingReviewDetail(client,actor,target??id(null),int(Number(query.version),'申请版本',1,2_000_000_000),access,authority.environment)};
+    return {...result,...await sharingReviewQueue(client,query.filter??'all',target,cursor,limit,scope,access,authority.environment)};
    }
    if(section==='policy'){
     if(!canConfigure)fail('CAPABILITY_REQUIRED','没有分享官规则管理权限',403);return result;
