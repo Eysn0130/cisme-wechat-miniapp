@@ -2,12 +2,13 @@ import {sealSharingPayload,openSharingPayload,sharingCommandDigest} from './shar
 import {createHash,randomBytes,randomUUID} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
-import type {Capability} from '@cisme/contracts';
+import {sharingOfficerAgreement,type Capability} from '@cisme/contracts';
 import {AuthorityService,requireActiveMemberWithClient} from './authority.js';
 import {transaction,type DbClient} from './db.js';
 import {commissionBuckets} from './commissionPolicy.js';
 import {sharingFail as fail,sharingText as text,sharingId as id,sharingInt as int,sharingPolicyInput} from './sharingOfficerPolicy.js';
 import {pageLimit,pageScope,readPageCursor,finishPage} from './keysetPage.js';
+import {bindSharingV2ReleasedOrder,clearSharingV2Referrals,setSharingV2Intent,sharingV2BasisPoints} from './sharingOfficerV2.js';
 
 type Row=Record<string,any>;
 function commandCapability(action:string):Capability|null{
@@ -15,6 +16,14 @@ function commandCapability(action:string):Capability|null{
  return ['prepare_month','review_line','void_line','record_payment','record_recovery'].includes(action)?'commission.settlement.approve':null;
 }
 export const sharingHash=(input:unknown)=>createHash('sha256').update(JSON.stringify(input)).digest('hex');
+type AgreementAcceptance={version:string;digest:string;effectiveOn:string;acceptedAt:string};
+function applicationAgreement(effectiveOn:string|null){
+ const document=effectiveOn?{
+  ...sharingOfficerAgreement,draftNotice:'',
+  closing:[sharingOfficerAgreement.closing[0],`协议版本：${sharingOfficerAgreement.version}`,`生效日期：${effectiveOn}`]
+ }:sharingOfficerAgreement;
+ return {...document,effectiveOn,digest:sharingHash({...document,effectiveOn})};
+}
 export const currentSharingPolicySql=`SELECT p.* FROM sharing_policy p ORDER BY p.version DESC LIMIT 1`;
 export const sharingQualificationProduct='aigerong-scalp-repair-essence-100';
 /** A referral shared from published content or a gift has no catalog target.
@@ -53,17 +62,19 @@ export const sharingDisputeSql=(alias:string)=>`(EXISTS(SELECT 1 FROM commission
 export function officerPolicyView(p:Row|undefined){return p?{id:p.id,version:p.version,enabled:p.enabled,attributionDays:p.attribution_days,
  priority:p.priority,selfPurchase:p.self_purchase,basisPoints:p.basis_points,releaseDays:p.release_days}:null;}
 export function officerView(r:Row|undefined){return r?{state:r.state,version:r.version,applicationNote:r.application_note,
- reviewReason:r.review_reason,appliedAt:r.created_at,updatedAt:r.updated_at,referralCode:r.referral_code}:null;}
+ reviewReason:r.review_reason,appliedAt:r.created_at,updatedAt:r.updated_at,referralCode:r.referral_code,
+ ...(r.v2_application_version?{agreementVersion:'V2.0'}:{})}:null;}
 export function sharingOrderView(r:Row){
  const buckets=commissionBuckets({accruedCents:Number(r.accrued),reversedCents:Number(r.reversed),releasedCents:Number(r.released),paidCents:Number(r.paid),heldCents:Number(r.held)});
  return {id:r.order_id,orderNumber:r.order_number,createdAt:r.created_at,paidAt:r.paid_at,orderStatus:r.order_status,
   officerCode:r.officer_code,productName:r.product_name,quantity:r.quantity,basisPoints:r.basis_points,policyVersion:r.policy_version,
+  ...(r.sharing_v2_application_version?{agreementVersion:'V2.0'}:{}),
   cashMerchandiseCents:Number(r.cash_merchandise_cents),refundedMerchandiseCents:Number(r.refunded),
   ...buckets,recoveredCents:Number(r.recovered),outstandingRecoveryCents:Math.max(0,buckets.recoveryCents-Number(r.recovered)),
   disputed:r.disputed===true,receiptAt:r.receipt_confirmed_at,eligibleAt:r.receipt_confirmed_at?new Date(new Date(r.receipt_confirmed_at).getTime()+r.release_days*86400_000).toISOString():null};
 }
 export const sharingOrderProjection=`SELECT s.order_id,o.order_number,s.created_at,o.paid_at,o.status AS order_status,
- so.referral_code AS officer_code,s.basis_points,s.cash_merchandise_cents,p.version AS policy_version,p.release_days,
+ so.referral_code AS officer_code,s.basis_points,s.cash_merchandise_cents,s.sharing_v2_application_version,p.version AS policy_version,p.release_days,
  (SELECT string_agg(l.product_name,'、' ORDER BY l.line_number) FROM commerce_order_line l WHERE l.order_id=s.order_id) AS product_name,
  (SELECT sum(l.quantity)::int FROM commerce_order_line l WHERE l.order_id=s.order_id) AS quantity,
  ship.receipt_confirmed_at,
@@ -80,6 +91,11 @@ export const sharingOrderProjection=`SELECT s.order_id,o.order_number,s.created_
 
 export class SharingOfficerService {
  constructor(readonly pool:pg.Pool,readonly authority:AuthorityService,private config:AppConfig){}
+ private effectiveAgreementDate(){
+  const date=this.config.sharingAgreementV2EffectiveOn;
+  const today=new Date(Date.now()+8*3600_000).toISOString().slice(0,10);
+  return date&&date<=today?date:null;
+ }
  seal(value:unknown,scope:string){return sealSharingPayload(this.config,value,scope);}
  unseal(value:string,scope:string):Row{return openSharingPayload(this.config,value,scope);}
  async command(actorId:string|undefined,keyInput:string,action:string,input:Row,operation:(client:DbClient,actor:string)=>Promise<unknown>){
@@ -93,8 +109,10 @@ export class SharingOfficerService {
    if(prior){if(prior.request_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT','同一请求编号对应了不同内容');return prior.response;}
    const result=await operation(client,actor);
    await client.query('INSERT INTO sharing_command(actor_id,request_key,request_hash,response,required_capability) VALUES($1,$2,$3,$4,$5)',[actor,key,fingerprint,JSON.stringify(result),required]);
+   const application=action==='apply' ? result as {version:number;agreement?:AgreementAcceptance} : undefined;
+   const evidence={requestHash:fingerprint,...(application?.agreement?{applicationVersion:application.version,agreement:application.agreement}:{})};
    await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
-    VALUES($1,$2,'sharing_officer',$3,$4,$5)`,[`member:${actor}`,`sharing.${action}`,actor,{requestHash:fingerprint},key]);
+    VALUES($1,$2,'sharing_officer',$3,$4,$5)`,[`member:${actor}`,`sharing.${action}`,actor,evidence,key]);
    return result;
   },'SERIALIZABLE');
  }
@@ -112,8 +130,11 @@ export class SharingOfficerService {
     FROM sharing_settlement_line WHERE member_id=$1 AND state='paid'`,[actor])).rows[0];
    const relation=await this.relationWithClient(client,actor);
    const qualification=await sharingQualification(client,actor);
-   return {memberId:actor,officer:officerView(officer),policy:officerPolicyView(p),relation,
-    qualification,canApply:Boolean(p?.enabled&&qualification.met&&(!officer||['rejected','terminated'].includes(officer.state))),
+   const canApply=Boolean(p?.enabled&&qualification.met&&(!officer||['rejected','terminated'].includes(officer.state)));
+   return {memberId:actor,officer:officerView(officer),policy:officerPolicyView(officer?.v2_application_version&&p?{...p,basis_points:sharingV2BasisPoints}:p),relation,
+    pendingReferrer:await this.pendingReferrer(client,actor),
+    qualification,canApply,
+    ...(canApply?{applicationAgreement:applicationAgreement(this.effectiveAgreementDate())}:{}),
     canShare:Boolean(p?.enabled&&officer?.state==='active'),payee:payee?{version:payee.version,updatedAt:payee.updated_at}:null,
     metrics:{...metrics,settledTaxCents:Number(paid.tax),settledNetCents:Number(paid.net)}};
   },'REPEATABLE READ');
@@ -140,10 +161,28 @@ export class SharingOfficerService {
     if(!p?.enabled)fail('SHARING_APPLICATION_UNAVAILABLE','分享官申请尚未开放',503);
     if(officer&&!['rejected','terminated'].includes(officer.state))fail('SHARING_APPLICATION_EXISTS','申请已提交，请查看当前状态');
     if(!(await sharingQualification(client,actor)).met)fail('SHARING_PURCHASE_REQUIRED','购买精华套组1组后可申请；退款或售后中的商品暂不计入',409);
+    const effectiveOn=this.effectiveAgreementDate();
+    const agreement=input.agreement as {accepted?:unknown;version?:unknown;digest?:unknown;effectiveOn?:unknown}|null|undefined;
+    const document=effectiveOn?applicationAgreement(effectiveOn):null;
+    if(document){
+     if(agreement?.accepted!==true)fail('SHARING_AGREEMENT_REQUIRED','请先阅读并勾选分享官合作协议',409);
+     if(agreement.version!==document?.version||agreement.digest!==document.digest||agreement.effectiveOn!==effectiveOn)
+      fail('SHARING_AGREEMENT_CHANGED','合作协议已更新，请重新阅读并确认',409);
+    }else if(input.agreement!==undefined||officer?.v2_application_version)fail('SHARING_AGREEMENT_NOT_EFFECTIVE','合作协议尚未启用',409);
     const note=input.note===undefined?'':text(input.note,'申请说明',0,500);
     const row=(await client.query(`INSERT INTO sharing_officer(member_id,state,application_note,referral_code) VALUES($1,'pending',$2,$3)
      ON CONFLICT(member_id) DO UPDATE SET state='pending',application_note=$2,review_reason='',version=sharing_officer.version+1,updated_at=clock_timestamp() RETURNING *`,[actor,note,(await client.query('SELECT user_code FROM member_card_number WHERE member_id=$1',[actor])).rows[0].user_code])).rows[0];
-    await this.event(client,actor,row,officer?.state??null,'购买条件已核验，提交申请');return {state:row.state,version:row.version,referralCode:row.referral_code};
+    if(effectiveOn&&document){
+     const {digest,...snapshot}=document;
+     await client.query(`INSERT INTO sharing_v2_agreement_document(agreement_version,agreement_digest,effective_on,body_snapshot)
+      VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[document.version,digest,effectiveOn,JSON.stringify(snapshot)]);
+     await client.query(`INSERT INTO sharing_v2_application(member_id,application_version,agreement_version,agreement_digest,effective_on,accepted_at)
+      VALUES($1,$2,$3,$4,$5,$6)`,[actor,row.version,document.version,digest,effectiveOn,row.updated_at]);
+     await client.query('UPDATE sharing_officer SET v2_application_version=$2 WHERE member_id=$1',[actor,row.version]);
+    }
+    await this.event(client,actor,row,officer?.state??null,'购买条件已核验，提交申请');
+    return {state:row.state,version:row.version,referralCode:row.referral_code,
+     ...(effectiveOn&&document?{agreement:{version:document.version,digest:document.digest,effectiveOn,acceptedAt:row.updated_at.toISOString()}}:{})};
    }
    if(!officer)fail('SHARING_OFFICER_REQUIRED','请先申请分享官资格',403);
    if(action==='payee'){
@@ -189,12 +228,22 @@ export class SharingOfficerService {
   if(visit.visitor_id&&visit.visitor_id!==actor)fail('SHARING_VISIT_ALREADY_BOUND','访问凭据已使用',409);
   await client.query('UPDATE sharing_visit SET visitor_id=$1,bound_at=COALESCE(bound_at,clock_timestamp()) WHERE id=$2',[actor,visit.id]);
   const p=(await client.query(currentSharingPolicySql)).rows[0];
-  const link=(await client.query(`SELECT l.officer_id FROM sharing_link l JOIN sharing_officer o ON o.member_id=l.officer_id
-   JOIN member m ON m.id=o.member_id WHERE l.share_id=$1 AND o.state='active' AND m.status='active' FOR SHARE OF o,m`,[visit.share_id])).rows[0];
+  const link=(await client.query(`SELECT l.officer_id,o.v2_application_version,a.verified_at FROM sharing_link l JOIN sharing_officer o ON o.member_id=l.officer_id
+   JOIN member m ON m.id=o.member_id
+   LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
+   WHERE l.share_id=$1 AND o.state='active' AND m.status='active' FOR SHARE OF o,m`,[visit.share_id])).rows[0];
   if(p?.enabled&&link&&link.officer_id!==actor){
    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`sharing-relation:${actor}`]);
-   const current=(await client.query('SELECT * FROM sharing_customer_relation WHERE buyer_id=$1 FOR UPDATE',[actor])).rows[0];
+   const current=(await client.query(`SELECT r.*,o.v2_application_version FROM sharing_customer_relation r
+    JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1 FOR UPDATE OF r`,[actor])).rows[0];
    const now=(await client.query('SELECT clock_timestamp() AS at')).rows[0].at as Date;
+   if(link.v2_application_version){
+    if(link.verified_at&&new Date(visit.visited_at)>=new Date(link.verified_at)&&
+      (!current||current.expires_at&&new Date(current.expires_at)<=now))
+      await setSharingV2Intent(client,actor,link.officer_id,visit.id,'first_touch');
+    return {recorded:true};
+   }
+   if(current?.v2_application_version||await this.pendingReferrer(client,actor))return {recorded:true};
    const inWindow=p.attribution_days===null||new Date(visit.visited_at).getTime()>now.getTime()-p.attribution_days*86400_000;
    const expired=current?.expires_at&&new Date(current.expires_at)<=now;
    const registered=(await client.query<{created_at:Date}>('SELECT registration_completed_at AS created_at FROM member WHERE id=$1',[actor])).rows[0];
@@ -207,7 +256,8 @@ export class SharingOfficerService {
   return {recorded:true};
  }
  private async setRelation(client:DbClient,buyer:string,officer:string,visit:string|null,source:string,at:Date,p:Row,prior:Row|undefined){
-  const version=(prior?.version??0)+1,expiry=p.attribution_days===null?null:new Date(new Date(at).getTime()+p.attribution_days*86400_000);
+  const version=(await client.query('SELECT COALESCE(max(version),0)+1 AS version FROM sharing_relation_event WHERE buyer_id=$1',[buyer])).rows[0].version;
+  const expiry=p.attribution_days===null?null:new Date(new Date(at).getTime()+p.attribution_days*86400_000);
   await client.query(`INSERT INTO sharing_relation_event(buyer_id,version,from_officer_id,to_officer_id,visit_id,source)
    VALUES($1,$2,$3,$4,$5,$6)`,[buyer,version,prior?.officer_id??null,officer,visit,source]);
   await client.query(`INSERT INTO sharing_customer_relation(buyer_id,officer_id,visit_id,source,effective_at,expires_at,policy_id,version)
@@ -215,20 +265,30 @@ export class SharingOfficerService {
    [buyer,officer,visit,source,at,expiry,p.id,version]);
  }
  async relationWithClient(client:DbClient,buyer:string){
-  const r=(await client.query(`SELECT r.*,o.referral_code,o.state,m.display_name FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id JOIN member m ON m.id=o.member_id WHERE r.buyer_id=$1`,[buyer])).rows[0];
-  return r?{code:r.referral_code,label:r.display_name,displayName:r.display_name,version:r.version,state:r.state,expiresAt:r.expires_at,source:r.source}:null;
+  const r=(await client.query(`SELECT r.*,o.referral_code,o.state,o.v2_application_version,m.display_name FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id JOIN member m ON m.id=o.member_id WHERE r.buyer_id=$1`,[buyer])).rows[0];
+  return r?{code:r.referral_code,label:r.display_name,displayName:r.display_name,version:r.version,state:r.state,expiresAt:r.expires_at,source:r.source,
+   ...(r.v2_application_version?{agreementVersion:'V2.0'}:{})}:null;
+ }
+ async pendingReferrer(client:DbClient,buyer:string){
+  const row=(await client.query(`SELECT o.referral_code AS code,m.display_name AS label,i.id AS id
+   FROM sharing_v2_referral_intent i JOIN sharing_officer o ON o.member_id=i.officer_id
+   JOIN member m ON m.id=i.officer_id WHERE i.buyer_id=$1 AND i.state='pending' AND o.state='active' AND m.status='active'`,[buyer])).rows[0];
+  return row??null;
  }
  async previewReferrer(actorId:string|undefined,codeInput:unknown){
   const code=text(codeInput,'用户编号',12,12).toUpperCase();
   return transaction(this.pool,async client=>{
    const actor=await requireActiveMemberWithClient(client,actorId);
-   const row=(await client.query(`SELECT n.member_id,n.user_code,m.display_name,o.state FROM member_card_number n
+   const row=(await client.query(`SELECT n.member_id,n.user_code,m.display_name,o.state,o.v2_application_version FROM member_card_number n
     JOIN member m ON m.id=n.member_id LEFT JOIN sharing_officer o ON o.member_id=n.member_id
     WHERE n.user_code=$1 AND m.status='active'`,[code])).rows[0];
    if(!row)fail('SHARING_REFERRER_UNAVAILABLE','未找到此用户编号',404);
    if(row.member_id===actor)fail('SHARING_SELF_REFERRAL','不能将自己设为推荐人',422);
    const p=(await client.query(currentSharingPolicySql)).rows[0];
-   return {code:row.user_code,label:row.display_name,displayName:row.display_name,eligible:row.state==='active'&&p?.enabled===true,current:await this.relationWithClient(client,actor)};
+   const current=await this.relationWithClient(client,actor);
+  const pending=await this.pendingReferrer(client,actor);
+  return {code:row.user_code,label:row.display_name,displayName:row.display_name,eligible:row.state==='active'&&p?.enabled===true,
+    onFirstValidOrder:!!row.v2_application_version||!!current?.agreementVersion||!!pending,current};
   });
  }
  private async changeReferrer(client:DbClient,actor:string,input:Row){
@@ -236,13 +296,23 @@ export class SharingOfficerService {
   const code=text(input.code,'用户编号',12,12).toUpperCase(),p=(await client.query(currentSharingPolicySql)).rows[0];
   if(!p?.enabled)fail('SHARING_UNAVAILABLE','当前暂不可更换推荐人',503);
   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`sharing-relation:${actor}`]);
-  const prior=(await client.query('SELECT * FROM sharing_customer_relation WHERE buyer_id=$1 FOR UPDATE',[actor])).rows[0];
+  const prior=(await client.query(`SELECT r.*,o.v2_application_version FROM sharing_customer_relation r
+   JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1 FOR UPDATE OF r`,[actor])).rows[0];
   if((prior?.version??0)!==int(input.expectedVersion,'推荐关系版本',0,2_000_000_000))fail('VERSION_CONFLICT','推荐人已更新，请重新确认');
-  const officer=(await client.query(`SELECT o.member_id FROM sharing_officer o JOIN member m ON m.id=o.member_id
+  const pending=await this.pendingReferrer(client,actor);
+  if((pending?.id??null)!==(input.expectedPendingId??null))fail('VERSION_CONFLICT','待生效推荐人已更新，请重新确认');
+  const officer=(await client.query(`SELECT o.member_id,o.v2_application_version FROM sharing_officer o JOIN member m ON m.id=o.member_id
    WHERE o.referral_code=$1 AND o.state='active' AND m.status='active' FOR SHARE OF o,m`,[code])).rows[0];
   if(!officer)fail('SHARING_REFERRER_UNAVAILABLE','该分享官当前不可选择',404);
   if(officer.member_id===actor)fail('SHARING_SELF_REFERRAL','不能将自己设为推荐人',422);
-  if(prior?.officer_id===officer.member_id)return this.relationWithClient(client,actor);
+  if(prior?.officer_id===officer.member_id){
+   await client.query("UPDATE sharing_v2_referral_intent SET state='superseded' WHERE buyer_id=$1 AND state='pending'",[actor]);
+   return this.relationWithClient(client,actor);
+  }
+  if(officer.v2_application_version||prior?.v2_application_version||pending){
+   await setSharingV2Intent(client,actor,officer.member_id,null,'member_choice');
+   return {pendingReferrer:await this.pendingReferrer(client,actor),current:await this.relationWithClient(client,actor)};
+  }
   const at=(await client.query('SELECT clock_timestamp() AS at')).rows[0].at;
   await this.setRelation(client,actor,officer.member_id,null,'member_choice',at,p,prior);
   return this.relationWithClient(client,actor);
@@ -286,7 +356,19 @@ export class SharingOfficerService {
     if(!allowed[row.state]?.includes(desired))fail('SHARING_STATE_INVALID','当前不能切换到此资格状态');
     if(row.state==='pending'&&desired==='active'&&!(await sharingQualification(client,target)).met)
       fail('SHARING_PURCHASE_REQUIRED','该会员的精华套组购买条件未达成，请核对退款及售后状态',409);
+    if(row.state==='pending'&&desired==='active'&&row.v2_application_version){
+     const reference=text(input.verificationReference,'身份核验凭据编号',4,80);
+     if(!/^[a-zA-Z][a-zA-Z0-9_\-]{3,79}$/.test(reference))
+      fail('SHARING_VERIFICATION_REFERENCE_INVALID','请登记核验凭据编号',422);
+     const verified=await client.query(`UPDATE sharing_v2_application SET verified_at=clock_timestamp(),verified_by=$3,verification_reference=$4
+      WHERE member_id=$1 AND application_version=$2 AND verified_at IS NULL`,[target,row.v2_application_version,actor,reference]);
+     if(!verified.rowCount)fail('SHARING_VERIFICATION_REQUIRED','身份核验记录无法确认',409);
+    }
     const updated=(await client.query('UPDATE sharing_officer SET state=$2,review_reason=$3,version=version+1,updated_at=clock_timestamp() WHERE member_id=$1 RETURNING *',[target,desired,reason])).rows[0];
+    if(desired==='terminated'){
+     if(row.v2_application_version)await clearSharingV2Referrals(client,target);
+     else await client.query("UPDATE sharing_v2_referral_intent SET state='released' WHERE officer_id=$1 AND state='pending'",[target]);
+    }
     await this.event(client,actor,updated,row.state,reason);return {state:updated.state,version:updated.version,referralCode:updated.referral_code};
    }
    fail('SHARING_ACTION_INVALID','操作无效',422);
@@ -297,16 +379,24 @@ export class SharingOfficerService {
 /** Same transaction as order creation; explicit customer ownership is independent of points/legacy referral. */
 export async function snapshotSharingOfficer(client:DbClient,orderId:string,buyerId:string,sourceKind:string,cashMerchandiseCents:number){
  const policy=(await client.query(currentSharingPolicySql)).rows[0];if(!policy?.enabled)return null;
- const relation=(await client.query(`SELECT r.officer_id,r.visit_id,e.id AS relation_event_id FROM sharing_customer_relation r
+ await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`sharing-relation:${buyerId}`]);
+ const intent=sourceKind==='verified_commerce'?(await client.query(`SELECT i.officer_id,i.visit_id,i.id AS intent_id,o.v2_application_version,NULL::uuid AS relation_event_id
+  FROM sharing_v2_referral_intent i JOIN sharing_officer o ON o.member_id=i.officer_id JOIN member m ON m.id=o.member_id
+  LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
+  WHERE i.buyer_id=$1 AND i.state='pending' AND o.state='active' AND m.status='active'
+    AND (o.v2_application_version IS NULL OR a.verified_at IS NOT NULL)
+  FOR SHARE OF i,o,m`,[buyerId])).rows[0]:null;
+ const relation=intent??(await client.query(`SELECT r.officer_id,r.visit_id,e.id AS relation_event_id,NULL::uuid AS intent_id,o.v2_application_version FROM sharing_customer_relation r
   JOIN sharing_relation_event e ON e.buyer_id=r.buyer_id AND e.version=r.version
   JOIN sharing_officer o ON o.member_id=r.officer_id JOIN member m ON m.id=o.member_id
   WHERE r.buyer_id=$1 AND r.officer_id<>$1 AND o.state='active' AND m.status='active'
    AND (r.expires_at IS NULL OR r.expires_at>clock_timestamp()) FOR SHARE OF r,o,m`,[buyerId])).rows[0];
- if(!relation)return null;
+ if(!relation||sourceKind!=='verified_commerce'&&relation.v2_application_version)return null;
  return (await client.query(`INSERT INTO commission_order_snapshot(order_id,buyer_member_id,referrer_member_id,basis_points,
-  cash_merchandise_cents,source_kind,program,sharing_policy_id,sharing_visit_id,sharing_relation_event_id)
-  VALUES($1,$2,$3,$4,$5,$6,'sharing_officer',$7,$8,$9) ON CONFLICT(order_id) DO NOTHING RETURNING order_id`,
-  [orderId,buyerId,relation.officer_id,policy.basis_points,cashMerchandiseCents,sourceKind,policy.id,relation.visit_id,relation.relation_event_id])).rows[0]??null;
+  cash_merchandise_cents,source_kind,program,sharing_policy_id,sharing_visit_id,sharing_relation_event_id,sharing_v2_application_version,sharing_v2_intent_id)
+  VALUES($1,$2,$3,$4,$5,$6,'sharing_officer',$7,$8,$9,$10,$11) ON CONFLICT(order_id) DO NOTHING RETURNING order_id`,
+  [orderId,buyerId,relation.officer_id,relation.v2_application_version?sharingV2BasisPoints:policy.basis_points,cashMerchandiseCents,sourceKind,policy.id,
+   relation.visit_id,relation.relation_event_id,relation.v2_application_version,relation.intent_id])).rows[0]??null;
 }
 
 /** Immutable release based on recorded receipt and the order's locked company policy. */
@@ -319,16 +409,18 @@ export async function releaseSharingCommissions(pool:pg.Pool,limit=50){
     AND ship.receipt_confirmed_at<=clock_timestamp()-make_interval(days=>p.release_days)
     AND NOT ${sharingDisputeSql('s')}
     AND NOT EXISTS(SELECT 1 FROM commission_ledger_entry e WHERE e.order_id=s.order_id AND e.kind='release')
-    AND EXISTS(SELECT 1 FROM commission_ledger_entry e WHERE e.order_id=s.order_id AND e.kind='accrual')
+    AND COALESCE((SELECT sum(e.amount_cents) FROM commission_ledger_entry e
+      WHERE e.order_id=s.order_id AND e.kind IN ('accrual','refund_reversal')),0)>0
    ORDER BY ship.receipt_confirmed_at,s.order_id LIMIT $1 FOR UPDATE OF o SKIP LOCKED`,[limit])).rows;
   let released=0;
   for(const row of candidates){
    const sums=(await client.query(`SELECT COALESCE(sum(amount_cents) FILTER(WHERE kind IN ('accrual','refund_reversal')),0)::text AS net
     FROM commission_ledger_entry WHERE order_id=$1`,[row.order_id])).rows[0];
    const amount=Number(sums.net);if(amount<=0)continue;
-   await client.query(`INSERT INTO commission_ledger_entry(order_id,referrer_member_id,event_key,kind,amount_cents,source_fact_id,actor_principal_id)
+   const release=await client.query(`INSERT INTO commission_ledger_entry(order_id,referrer_member_id,event_key,kind,amount_cents,source_fact_id,actor_principal_id)
     SELECT order_id,referrer_member_id,$2,'release',$3,sharing_policy_id,'worker:sharing-release' FROM commission_order_snapshot WHERE order_id=$1
-    ON CONFLICT(event_key) DO NOTHING`,[row.order_id,`sharing-release:${row.order_id}`,amount]);released++;
+    ON CONFLICT(event_key) DO NOTHING`,[row.order_id,`sharing-release:${row.order_id}`,amount]);
+   if(release.rowCount){await bindSharingV2ReleasedOrder(client,row.order_id);released++;}
   }return released;
  });
 }

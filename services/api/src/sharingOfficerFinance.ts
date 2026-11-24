@@ -4,18 +4,22 @@ import {requireActiveMemberWithClient} from './authority.js';
 import {SharingOfficerService,sharingOrderProjection,sharingOrderView,currentSharingPolicySql,officerPolicyView,officerView} from './sharingOfficer.js';
 import {sharingFail as fail,sharingId as id,sharingInt as int,sharingText as text,sharingMonth,sharingTax,csvCell} from './sharingOfficerPolicy.js';
 import {pageLimit,pageScope,readPageCursor,finishPage} from './keysetPage.js';
+import {sharingV2Cutoff,sharingV2PaymentWindow} from './sharingOfficerV2.js';
 type Row=Record<string,any>;
+const v2AllocationSql=`EXISTS(SELECT 1 FROM sharing_settlement_allocation sa
+ JOIN commission_order_snapshot cs ON cs.order_id=sa.order_id WHERE sa.line_id=l.id AND cs.sharing_v2_application_version IS NOT NULL)`;
 
 function lineView(r:Row){return {id:r.id,batchId:r.batch_id,period:r.period,state:r.state,version:r.version,
  grossCents:Number(r.gross_cents),taxCents:r.tax_cents===null?null:Number(r.tax_cents),netCents:r.net_cents===null?null:Number(r.net_cents),
- taxNote:r.tax_note,reviewedAt:r.reviewed_at,paidAt:r.paid_at,paymentReference:r.payment_reference,createdAt:r.created_at};}
+ taxNote:r.tax_note,reviewedAt:r.reviewed_at,paidAt:r.paid_at,paymentReference:r.payment_reference,createdAt:r.created_at,
+ ...(r.v2_allocation?{paymentWindow:sharingV2PaymentWindow(r.period)}:{})};}
 
 export class SharingOfficerFinance {
  constructor(private service:SharingOfficerService){}
  async settlements(actorId:string|undefined,query:{cursor?:unknown;limit?:unknown;id?:string}={}){
   return transaction(this.service.pool,async client=>{
    const actor=await requireActiveMemberWithClient(client,actorId),limit=pageLimit(query.limit),scope=pageScope(['officer-settlements',actor,query.id??'']),cursor=readPageCursor(query.cursor,scope);
-   const rows=(await client.query(`SELECT l.*,l.created_at::text AS cursor_at,b.period FROM sharing_settlement_line l
+   const rows=(await client.query(`SELECT l.*,l.created_at::text AS cursor_at,b.period,${v2AllocationSql} AS v2_allocation FROM sharing_settlement_line l
     JOIN sharing_settlement_batch b ON b.id=l.batch_id WHERE l.member_id=$1 AND ($2::uuid IS NULL OR l.id=$2)
     AND ($3::timestamptz IS NULL OR (l.created_at,l.id)<($3,$4::uuid)) ORDER BY l.created_at DESC,l.id DESC LIMIT $5`,
     [actor,query.id?id(query.id):null,cursor?.at??null,cursor?.id??null,limit+1])).rows;
@@ -67,7 +71,7 @@ export class SharingOfficerFinance {
    }
    if(section==='lines'){
     if(!canFinance)fail('CAPABILITY_REQUIRED','没有财务管理权限',403);
-    const batchId=id(query.batchId),rows=(await client.query(`SELECT l.*,l.created_at::text AS cursor_at,b.period,o.referral_code,m.display_name
+    const batchId=id(query.batchId),rows=(await client.query(`SELECT l.*,l.created_at::text AS cursor_at,b.period,o.referral_code,m.display_name,${v2AllocationSql} AS v2_allocation
      FROM sharing_settlement_line l JOIN sharing_settlement_batch b ON b.id=l.batch_id JOIN sharing_officer o ON o.member_id=l.member_id
      JOIN member m ON m.id=l.member_id WHERE l.batch_id=$1 AND ($5::uuid IS NULL OR l.member_id=$5) AND ($6::uuid IS NULL OR l.id=$6) AND ($2::timestamptz IS NULL OR (l.created_at,l.id)<($2,$3::uuid))
      ORDER BY l.created_at DESC,l.id DESC LIMIT $4`,[batchId,cursor?.at??null,cursor?.id??null,limit+1,target,query.lineId?id(query.lineId):null])).rows;
@@ -156,15 +160,17 @@ export class SharingOfficerFinance {
  }
  private async prepare(client:DbClient,actor:string,input:Row){
   const now=(await client.query('SELECT clock_timestamp() AS at')).rows[0].at as Date,{period,cutoff}=sharingMonth(input.period,now);
+  const v2Cutoff=sharingV2Cutoff(period);
   const batch=(await client.query(`INSERT INTO sharing_settlement_batch(period,cutoff_at,created_by) VALUES($1,$2,$3)
    ON CONFLICT(period) DO UPDATE SET period=EXCLUDED.period RETURNING *`,[period,cutoff,actor])).rows[0];
   // Work in bounded officer pages. Repeating prepare only picks unprepared officers.
   const owners=(await client.query(`SELECT DISTINCT s.referrer_member_id AS member_id FROM commission_order_snapshot s
    WHERE s.program='sharing_officer' AND s.source_kind='verified_commerce' AND s.created_at<$2
     AND NOT EXISTS(SELECT 1 FROM sharing_settlement_line l WHERE l.batch_id=$1 AND l.member_id=s.referrer_member_id AND l.state<>'voided')
-    AND EXISTS(SELECT 1 FROM commission_ledger_entry e WHERE e.order_id=s.order_id AND e.kind='release' AND e.occurred_at<$2)
+    AND EXISTS(SELECT 1 FROM commission_ledger_entry e WHERE e.order_id=s.order_id AND e.kind='release'
+      AND e.occurred_at<CASE WHEN s.sharing_v2_application_version IS NULL THEN $2 ELSE $4::timestamptz END)
     AND ($3::uuid IS NULL OR s.referrer_member_id>$3::uuid)
-   ORDER BY s.referrer_member_id LIMIT 11`,[batch.id,cutoff,input.afterMemberId?id(input.afterMemberId):null])).rows;
+   ORDER BY s.referrer_member_id LIMIT 11`,[batch.id,cutoff,input.afterMemberId?id(input.afterMemberId):null,v2Cutoff])).rows;
   let created=0;const skipped:string[]=[];
   for(const owner of owners.slice(0,10)){
    const orderIds=(await client.query(`SELECT s.order_id FROM commission_order_snapshot s WHERE s.program='sharing_officer'
@@ -176,7 +182,7 @@ export class SharingOfficerFinance {
    const allocations:Array<{orderId:string;amount:number}>=[];
    for(const row of views){
     if(row.disputed||row.orderStatus!=='paid'||row.availableCents<=0)continue;
-    const release=(await client.query("SELECT 1 FROM commission_ledger_entry WHERE order_id=$1 AND kind='release' AND occurred_at<$2",[row.id,cutoff])).rowCount;
+    const release=(await client.query("SELECT 1 FROM commission_ledger_entry WHERE order_id=$1 AND kind='release' AND occurred_at<$2",[row.id,row.agreementVersion?v2Cutoff:cutoff])).rowCount;
     if(release)allocations.push({orderId:row.id,amount:row.availableCents});
    }
    const gross=allocations.reduce((sum,r)=>sum+r.amount,0);if(!gross)continue;

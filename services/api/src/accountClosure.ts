@@ -1,4 +1,5 @@
 import {eraseOptionalSharingPayee} from './sharingOfficerPrivacy.js';
+import {clearSharingV2Referrals} from './sharingOfficerV2.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { link, lstat, open, readFile, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -526,9 +527,11 @@ export async function applyAccountClosure(client:DbClient,marker:ClosureMarker) 
   changed+=(await client.query('DELETE FROM editorial_comment_like WHERE member_id=$1 OR comment_id IN (SELECT id FROM editorial_comment WHERE author_member_id=$1)',[marker.memberId])).rowCount??0;
   if(!held)changed+=(await client.query('UPDATE editorial_comment_report SET description=NULL WHERE reporter_member_id=$1 AND description IS NOT NULL',[marker.memberId])).rowCount??0;
 
-  const priorOfficer=(await client.query('SELECT state FROM sharing_officer WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];
+  const priorOfficer=(await client.query('SELECT state,v2_application_version FROM sharing_officer WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];
   const endedOfficer=(await client.query("UPDATE sharing_officer SET state='terminated',version=version+1,review_reason='本人注销账号',updated_at=clock_timestamp() WHERE member_id=$1 AND state<>'terminated' RETURNING version",[marker.memberId])).rows[0];
   if(endedOfficer){changed++;await client.query(`INSERT INTO sharing_officer_event(member_id,version,from_state,to_state,actor_id,reason) VALUES($1,$2,$3,'terminated',$1,'本人注销账号')`,[marker.memberId,endedOfficer.version,priorOfficer.state]);}
+  if(priorOfficer?.v2_application_version)changed+=await clearSharingV2Referrals(client,marker.memberId);
+  changed+=(await client.query("UPDATE sharing_v2_referral_intent SET state='released' WHERE buyer_id=$1 AND state='pending'",[marker.memberId])).rowCount??0;
   if(!held)changed+=(await eraseOptionalSharingPayee(client,marker.memberId,marker.createdAt)).rowCount??0;
   const previousMembership=(await client.query<{state:string}>(
     'SELECT state FROM commercial_membership WHERE member_id=$1 FOR UPDATE',[marker.memberId])).rows[0];

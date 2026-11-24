@@ -4,6 +4,10 @@ import {openSharingPayload} from './sharingOfficerCrypto.js';
 export const sharingPortableSpecs=[
  {section:'sharingOfficer',collection:'qualification',single:true,sql:`SELECT referral_code,state,application_note,review_reason,created_at,updated_at FROM sharing_officer WHERE member_id=$1`},
  {section:'sharingOfficer',collection:'qualificationHistory',single:false,sql:`SELECT version,from_state,to_state,reason,occurred_at FROM sharing_officer_event WHERE member_id=$1 ORDER BY version`},
+ {section:'sharingOfficer',collection:'agreementConfirmations',single:false,sql:`SELECT a.application_version,a.agreement_version,a.agreement_digest,a.effective_on,a.accepted_at,a.verified_at,a.verification_reference,d.body_snapshot AS document
+  FROM sharing_v2_application a JOIN sharing_v2_agreement_document d USING(agreement_version,agreement_digest,effective_on)
+  WHERE a.member_id=$1 ORDER BY a.application_version`},
+ {section:'sharingOfficer',collection:'monthlyAssessments',single:false,sql:`SELECT application_version,through_period,valid_order_counts,terminated,reviewed_at FROM sharing_v2_assessment WHERE member_id=$1 ORDER BY application_version,through_period`},
  {section:'sharingOfficer',collection:'customerRelation',single:true,sql:`SELECT o.referral_code,r.source,r.effective_at,r.expires_at,r.version FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1`},
  {section:'sharingOfficer',collection:'relationHistory',single:false,sql:`SELECT e.version,a.referral_code AS from_code,b.referral_code AS to_code,e.source,e.occurred_at FROM sharing_relation_event e LEFT JOIN sharing_officer a ON a.member_id=e.from_officer_id JOIN sharing_officer b ON b.member_id=e.to_officer_id WHERE e.buyer_id=$1 ORDER BY e.version`},
  {section:'sharingOfficer',collection:'links',single:false,sql:`SELECT share_id,product_code,created_at FROM sharing_link WHERE officer_id=$1 ORDER BY created_at,share_id`},

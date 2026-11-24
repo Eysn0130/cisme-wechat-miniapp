@@ -1,4 +1,5 @@
 import {releaseSharingCommissions} from "../../api/src/sharingOfficer.js";
+import {assessSharingV2Performance} from "../../api/src/sharingOfficerV2.js";
 import { loadConfig } from "@cisme/config";
 import { createPool } from "../../api/src/db.js";
 import { createObjectStorage } from "../../api/src/storage.js";
@@ -42,7 +43,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     error=>console.error('CISME_LOGISTICS_MESSAGE_FAILED',safeFailureFields(error)),60_000):null;
   const tradeWorker=shipping?startWorkerLoop(async()=>{await shipping.runTradeCycle();return false;},
     error=>console.error('CISME_WECHAT_TRADE_FAILED',safeFailureFields(error)),60_000):null;
-  const sharingWorker=startWorkerLoop(async()=>{await releaseSharingCommissions(pool);return false;},
+  const sharingWorker=startWorkerLoop(async()=>{await releaseSharingCommissions(pool);await assessSharingV2Performance(pool);return false;},
     error=>console.error('CISME_SHARING_RELEASE_FAILED',safeFailureFields(error)),60_000);
   let lastHeartbeat=0;
   const heartbeatPath=join(tmpdir(),'cisme-worker-heartbeat.json');
