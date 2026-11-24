@@ -1,8 +1,9 @@
+import {randomUUID} from 'node:crypto';
 import type {DbClient} from './db.js';
 import {transaction} from './db.js';
 import {requireActiveMemberWithClient} from './authority.js';
 import {SharingOfficerService,sharingOrderProjection,sharingOrderView,currentSharingPolicySql,officerPolicyView} from './sharingOfficer.js';
-import {sharingReviewDetail,sharingReviewQueue} from './sharingOfficerReview.js';
+import {sharingMemberCards,sharingReviewDetail,sharingReviewQueue} from './sharingOfficerReview.js';
 import {sharingAdminCustomers} from './sharingOfficerCustomerAdmin.js';
 import {sharingFail as fail,sharingId as id,sharingInt as int,sharingText as text,sharingMonth,sharingTax,csvCell} from './sharingOfficerPolicy.js';
 import {pageLimit,pageScope,readPageCursor,finishPage} from './keysetPage.js';
@@ -38,18 +39,26 @@ export class SharingOfficerFinance {
    const section=query.section??'officers',limit=pageLimit(query.limit),scope=pageScope(['sharing-admin',actor,section==='officers'?'officers-by-event':section,query.filter??'',query.batchId??'',query.lineId??'',query.memberId??'']);
    const cursor=section==='customers'?null:readPageCursor(query.cursor,scope);
    const target=query.memberId?id(query.memberId).toLowerCase():null;
-   const profile=capabilities.capabilities.includes('member.profile.read'),authority=this.service.authority;
+   const profile=capabilities.capabilities.includes('member.profile.read'),canReadPoints=profile&&capabilities.capabilities.includes('commerce.money.reconcile');
+   const authority=this.service.authority;
    const p=(await client.query(currentSharingPolicySql)).rows[0],result={memberId:actor,scope:{manage:canManage,customers:canManage&&profile,configure:canConfigure,read:canRead,finance:canFinance},policy:officerPolicyView(p)};
    if(section==='customers'){
     await authority.requireWithClient(client,actor,'member.manage');
     await authority.requireWithClient(client,actor,'member.profile.read');
-    return {...result,...await sharingAdminCustomers(client,actor,target??id(null),query.customerFilter??'retained',limit,query.cursor)};
+    if(canReadPoints)await authority.requireWithClient(client,actor,'commerce.money.reconcile');
+    const officer=target??id(null),filter=query.customerFilter??'retained';
+    const page=await sharingAdminCustomers(client,actor,officer,filter,limit,query.cursor);
+    const cards=await sharingMemberCards(client,page.items.map(row=>row.id),{profile,points:canReadPoints},authority.environment);
+    await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+     VALUES($1,'sharing.admin.customers.read','member',$2,'SHARING_RELATION_CONTROL',$3,$4)`,
+     [`member:${actor}`,officer,{filter,count:page.items.length,points:canReadPoints},randomUUID()]);
+    return {...result,...page,items:page.items.map(row=>({...row,...cards.get(row.id)}))};
    }
    if(section==='officers'||section==='officer-detail'){
     const detail=section==='officer-detail';
     if(!canManage&&(detail||!canRead))fail('CAPABILITY_REQUIRED','没有分享官资料查看权限',403);
     await authority.requireWithClient(client,actor,canManage?'member.manage':'commission.read');
-    const points=!detail&&profile&&capabilities.capabilities.includes('commerce.money.reconcile');
+    const points=!detail&&canReadPoints;
     const orders=detail&&profile&&capabilities.capabilities.includes('commerce.order.read');
     const commission=detail&&profile&&(canRead||canFinance);
     if(profile)await authority.requireWithClient(client,actor,'member.profile.read');

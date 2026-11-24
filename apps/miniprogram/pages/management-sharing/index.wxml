@@ -131,15 +131,19 @@
    <text>{{customerError}}</text>
    <button class="action-text" bindtap="retryCustomers">重试</button>
   </view>
-  <view wx:if="{{customers.length}}" class="officer-review-card">
-   <view wx:for="{{customers}}" wx:key="id" class="officer-review-fact officer-customer-row">
+  <view wx:if="{{customers.length}}">
+   <view wx:for="{{customers}}" wx:key="id" class="officer-person-card officer-customer-card">
+    <view class="officer-review-avatar">
+     <image src="{{item.avatar}}" mode="aspectFill" aria-hidden="true"/>
+     <identity-badge wx:if="{{item.badge}}" kind="{{item.badge}}" size="{{31}}"/>
+    </view>
     <view class="officer-review-person">
      <text class="officer-person-name">{{item.displayName||'CISME 会员'}}</text>
-     <text wx:if="{{item.userCode}}" class="officer-review-caption">{{item.userCode}}</text>
+     <text wx:if="{{item.cardNumber||item.userCode||item.points!==''}}" class="officer-review-caption">{{item.cardNumber||item.userCode}}{{item.points!==''?((item.cardNumber||item.userCode?' · ':'')+item.points+' 积分'):''}}</text>
     </view>
     <text wx:if="{{item.expired||item.removedAt&&!item.restorable}}" class="officer-review-caption">{{item.expired?'已到期':'已另选推荐人'}}</text>
     <button wx:else class="action-text {{busy||pending||customerLoading||customerError||item.id===memberId?'control--disabled':''}}" data-id="{{item.id}}" bindtap="chooseCustomer"
-     disabled="{{busy||pending||customerLoading||customerError||item.id===memberId}}">{{item.removedAt?'恢复归属':'移除归属'}}</button>
+     disabled="{{busy||pending||customerLoading||customerError||item.id===memberId}}" aria-label="{{(item.removedAt?'恢复':'移除')+(item.displayName||'该会员')+'的推荐归属'}}">{{item.removedAt?'恢复归属':'移除归属'}}</button>
    </view>
   </view>
   <view wx:elif="{{!customerLoading&&!customerError}}" class="officer-empty">{{customerFilterIndex===0?'暂无保留归属的会员':'暂无已移除的归属'}}</view>
@@ -147,7 +151,7 @@
  </block>
  <block wx:elif="{{sheet==='customer-decision'&&customerSelected}}">
   <text class="officer-review-name">{{customerSelected.displayName||'CISME 会员'}}</text>
-  <text wx:if="{{customerSelected.userCode}}" class="officer-note">{{customerSelected.userCode}}</text>
+  <text wx:if="{{customerSelected.cardNumber||customerSelected.userCode}}" class="officer-note">{{customerSelected.cardNumber||customerSelected.userCode}}</text>
   <label class="officer-field"><text>调整依据</text><textarea value="{{reason}}" data-field="reason" bindinput="edit" maxlength="300" disabled="{{busy||pending}}"/></label>
   <button class="primary {{busy||pending||reason.length<2?'primary--disabled':''}}" bindtap="confirmCustomer" loading="{{busy}}"
    disabled="{{busy||pending||reason.length<2}}">{{customerSelected.removedAt?'确认恢复':'确认移除'}}</button>

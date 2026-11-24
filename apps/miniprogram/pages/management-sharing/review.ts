@@ -7,14 +7,23 @@ export const officerFilters=[
  {id:'active',label:'已开通'},{id:'suspended',label:'已暂停'},{id:'terminated',label:'已终止'},{id:'rejected',label:'未通过'}
 ];
 
+type MemberCardSource={avatar?:string|null;avatarRevision?:string|null;displayIdentity?:string|null;cardNumber?:string|null;availablePoints?:number};
+async function prepareMemberCard<T extends MemberCardSource>(row:T){
+ const {avatar,avatarRevision,displayIdentity,availablePoints,...member}=row;
+ const badge=memberIdentityBadge(displayIdentity);
+ return {...member,badge,badgeLabel:identityLabel(badge),avatar:await localMemberAvatar(avatar,avatarRevision),
+  points:Number.isSafeInteger(availablePoints)?String(availablePoints).replace(/\B(?=(\d{3})+(?!\d))/g,','):''};
+}
+
+export type CustomerRecord={id:string;displayName:string;userCode:string;version:number;controlVersion:number;expired:boolean;restorable:boolean;removedAt:string|null}&MemberCardSource;
+export type CustomerRow=Awaited<ReturnType<typeof prepareCustomerRow>>;
+export function prepareCustomerRow(row:CustomerRecord){return prepareMemberCard(row);}
+
 export async function prepareOfficerRow(row:any){
- const {avatar,avatarRevision,displayIdentity,...officer}=row;
+ const officer=await prepareMemberCard(row);
  const applicationDate=officerDate(officer.applicationAt===undefined?officer.appliedAt:officer.applicationAt);
  const date=officer.state==='pending'?applicationDate:officerDate(officer.reviewedAt);
- const badge=memberIdentityBadge(displayIdentity);
- return {...officer,applicationDate,date,time:date.slice(11),label:officerLabels[officer.state]||'',badge,
-  badgeLabel:identityLabel(badge),avatar:await localMemberAvatar(avatar,avatarRevision),
-  points:Number.isSafeInteger(officer.availablePoints)?String(officer.availablePoints).replace(/\B(?=(\d{3})+(?!\d))/g,','):''};
+ return {...officer,applicationDate,date,time:date.slice(11),label:officerLabels[officer.state]||''};
 }
 
 export type OfficerDay={key:string;label:string;items:any[]};

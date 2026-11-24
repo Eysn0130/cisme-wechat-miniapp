@@ -326,7 +326,7 @@ it('requires the active agreement and manual identity decision, binds only after
   expect(await service.mine(customer.memberId)).toMatchObject({relation:{version:1,code:codes[0],agreementVersion:'V2.0'},pendingReferrer:null});
   expect((await service.orders(officer.memberId,{id:firstV2.id})).items[0]).toMatchObject({availableCents:2640,cashMerchandiseCents:8800,agreementVersion:'V2.0'});
 
-  const customerPage=(filter:string)=>expectOk(app.inject({method:'GET',headers:auth(manager),
+  const customerPage=(filter:string,viewer=manager)=>expectOk(app.inject({method:'GET',headers:auth(viewer),
    url:`/v1/management/sharing-officer?section=customers&memberId=${officer.memberId}&customerFilter=${filter}&limit=1`}));
   const changeState=(state:string,expectedVersion:number)=>expectOk(command(manager,'officer_state',
    {memberId:officer.memberId,state,expectedVersion,reason:'合成资格调整'},true));
@@ -342,7 +342,12 @@ it('requires the active agreement and manual identity decision, binds only after
   await changeState('suspended',2);
   expect((await reviewedPage()).items[0]).toMatchObject({state:'suspended',reviewedAt:decisionAt});
   const pausedOrder=await expectSnapshot(null);
-  expect((await customerPage('retained')).items).toEqual([expect.objectContaining({id:customer.memberId,version:1,controlVersion:1})]);
+  expect((await customerPage('retained')).items).toEqual([expect.objectContaining({id:customer.memberId,version:1,controlVersion:1,
+   cardNumber:expect.stringMatching(/^No\. \d{5,}$/),displayIdentity:'member',avatar:null,availablePoints:expect.any(Number)})]);
+  const profileOnly=await identity('sharing-v2-profile-only-admin');
+  for(const cap of ['member.manage','member.profile.read'])await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+   VALUES($1,$2,'fixture','sharing read scope','test','integration_fixture')`,[profileOnly.memberId,cap]);
+  expect((await customerPage('retained',profileOnly)).items[0]).not.toHaveProperty('availablePoints');
   await changeState('active',3);
   await expectSnapshot(officer.memberId);
 

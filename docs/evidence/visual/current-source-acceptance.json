@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "dd98b4aa7aac9be8943b5d1ca1acc32686b5d9f5111a20e4aedd9ba2f1f01d2d",
+  "packageSourceSha256": "9ce5258178f88f498d853d458b7efa000e8bdb6e586953241a9f1ef2f3d5f873",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-24 binds the current sharing-officer management review, filtering and attribution controls. Earlier waiting, community, glass and QR-preview evidence retains its original source. Full routes, OS accessibility and physical-device coverage remain pending.",
+  "note": "2026-11-24 binds the current sharing-officer management review, filtering and attribution member cards and controls. Earlier waiting, community, glass and QR-preview evidence retains its original source. Full routes, OS accessibility and physical-device coverage remain pending.",
   "previousSourceRecord": {
     "packageSourceSha256": "7f56d3f01f1b9852f176aabb56ae4f8d699d29b5c0ca9ea3fd741127c548f638",
     "scope": "0.1.57 uploaded development candidate before loading-state tokens, upload stages and inaccessible aftersale routing; historical screenshots and phone evidence remain historical."

@@ -12,6 +12,7 @@ import {careQuestions,careProfilePortableQuery,openCareAnswers} from './careOnbo
 import {memberAdministrationSection} from './memberAdministrationSections.js';
 import {csvCell} from './sharingOfficerPolicy.js';
 type Row=Record<string,any>;
+export function memberAdminCardNumber(number:string|null){return number?`No. ${number.padStart(5,'0')}`:null;}
 export function memberAdminPoints(r:Row){
   const unlock=userNumber(r.unlock_frozen),expired=userNumber(r.expired_available),expiredFrozen=userNumber(r.expired_frozen),base=userNumber(r.points_available)-expired+unlock,
    offset=unlock>0?Math.min(userNumber(r.points_debt),Math.max(0,base)):0;
@@ -38,7 +39,7 @@ export class MemberAdministration{
  async audit(c:DbClient,actor:string,target:string|null,action:string,details:Row={}){await c.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
  VALUES($1,$2,'member',$3,'MEMBER_ADMINISTRATION',$4,$5)`,[`member:${actor}`,action,target,details,randomUUID()]);}
  row(r:Row,s:UserScope){
-  return {id:r.id,userCode:r.user_code,displayName:r.display_name,cardNumber:r.card_number?`No. ${r.card_number.padStart(5,'0')}`:null,avatar:r.avatar_data_url??null,avatarRevision:r.avatar_revision??null,profileVersion:r.profile_revision??0,accountStatus:r.account_status,createdAt:r.created_at,administrator:Boolean(r.is_administrator),highestAdministrator:r.id===this.config.memberAdministrationRootId,
+  return {id:r.id,userCode:r.user_code,displayName:r.display_name,cardNumber:memberAdminCardNumber(r.card_number),avatar:r.avatar_data_url??null,avatarRevision:r.avatar_revision??null,profileVersion:r.profile_revision??0,accountStatus:r.account_status,createdAt:r.created_at,administrator:Boolean(r.is_administrator),highestAdministrator:r.id===this.config.memberAdministrationRootId,
    phoneMasked:r.phone_masked??null,onboarding:r.care_erased_at?'erased':r.onboarding_completed_at?'complete':'incomplete',
    points:s.points?memberAdminPoints(r):null,
    commerce:s.orders?memberAdminCommerce(r):null,

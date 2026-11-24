@@ -232,7 +232,7 @@ it('filters by review event and requires a second confirmation to remove or rest
  const row={memberId:applicant,displayName:'合成申请人',state:'suspended',version:3,reviewedAt:'2026-11-23T17:00:00Z',applicationAt:'2026-11-20T09:00:00Z',availablePoints:0};
  const scope={manage:true,customers:true},projection={memberId:owner,scope,items:[row]};
  let removed=false;
- const customer={id:buyer,displayName:'合成会员',version:1,restorable:true};
+ const customer={id:buyer,displayName:'合成会员',cardNumber:'No. 00042',displayIdentity:'sharing-officer',availablePoints:0,version:1,restorable:true};
  m.read.mockImplementation((_page,path)=>{
   if(path.includes('section=officer-detail'))return Promise.resolve({memberId:owner,detail:{officer:row,accountState:'active'}});
   if(path.includes('section=customers')){
@@ -251,6 +251,7 @@ it('filters by review event and requires a second confirmation to remove or rest
  const rowTap=(id:string)=>({currentTarget:{dataset:{id}}});
  p.selectOfficer(rowTap(applicant));await flush();
  p.openCustomers();await flush();
+ expect(p.data.customers[0]).toMatchObject({cardNumber:'No. 00042',points:'0',badge:'sharing-officer',avatar:'/assets/icons/user-circle-plum.svg'});
  p.chooseCustomer(rowTap(buyer));
  p.setData({reason:'确认测试'});
  vi.mocked(wx.showModal).mockResolvedValueOnce({confirm:false,cancel:true});

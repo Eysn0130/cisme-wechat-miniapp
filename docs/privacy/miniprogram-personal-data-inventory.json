@@ -1526,7 +1526,7 @@
   },
   "sharingManagementReview20261124": {
     "scope": "Internal sharing-officer review and reversible management of the current direct recommendation relation.",
-    "access": "Review is limited to member.manage. Profile, points, orders and promotion payment facts retain their separate capabilities. Relation administration requires member.manage and member.profile.read. No contact, proof document or referred buyer list enters a sharing officer's own application or wallet.",
+    "access": "Review is limited to member.manage. Profile, points, orders and promotion payment facts retain their separate capabilities. Relation administration requires member.manage and member.profile.read. Buyer cards reuse avatar, nickname, member number and verified identity, with available points only under commerce.money.reconcile. No contact, proof document or referred buyer list enters a sharing officer's own application or wallet.",
     "storage": "The relation stores a removal time and a control version. A change is audited with the actor, buyer, officer, version and supplied reason. The owner export projects only the buyer's own relation including its removal time. Existing order snapshots and their retention are independent."
   }
 }

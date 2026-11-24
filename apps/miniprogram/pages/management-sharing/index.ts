@@ -5,8 +5,7 @@ import {cancelPageReads} from '../../services/page-requests';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 import {sectionTabValue} from '../../services/section-tabs';
 import {officerRead,officerCommand,officerPending,resolveOfficerPending,officerMoney,officerDate,officerError,officerLabels,officerHistoryRow,type OfficerPending} from '../../services/sharing-officer';
-import {groupOfficerRows,officerFilters,officerReviewView,prepareOfficerRow,type OfficerDay} from './review';
-type CustomerRow={id:string;displayName:string;userCode:string;version:number;controlVersion:number;expired:boolean;restorable:boolean;removedAt:string|null};
+import {groupOfficerRows,officerFilters,officerReviewView,prepareCustomerRow,prepareOfficerRow,type CustomerRecord,type CustomerRow,type OfficerDay} from './review';
 const customerFilters=[{id:'retained',label:'保留归属'},{id:'removed',label:'已移除'}];
 const customerEmpty={customers:[] as CustomerRow[],customerFilterIndex:0,customerCursor:null as string|null,customerMore:false,customerLoading:false,
  customerError:'',customerOfficerVersion:0,customerOfficerState:'',customerSelected:null as CustomerRow|null};
@@ -114,7 +113,9 @@ Page({
    if(result.memberId!==this.data.memberId||!result.scope?.customers){
     this.closeAll();void this.load();return;
    }
-   const items:CustomerRow[]=result.items??[];
+   const records:CustomerRecord[]=result.items??[];
+   const items=await Promise.all(records.map(prepareCustomerRow));
+   if(!current())return;
    const customers=more?[...new Map([...this.data.customers,...items].map(row=>[row.id,row])).values()]:items;
    this.setData({customers,customerCursor:result.nextCursor??null,customerMore:Boolean(result.hasMore),
     customerOfficerVersion:result.officerVersion,customerOfficerState:result.officerState});

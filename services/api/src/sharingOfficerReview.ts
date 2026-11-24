@@ -1,7 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import type {AppEnvironment} from '@cisme/config';
 import type {DbClient} from './db.js';
-import {memberAdminCommerce,memberAdminPoints} from './memberAdministration.js';
+import {memberAdminCardNumber,memberAdminCommerce,memberAdminPoints} from './memberAdministration.js';
 import {userProjectionSql} from './memberAdministrationSql.js';
 import {userNumber} from './memberAdministrationPolicy.js';
 import {memberDisplayIdentities} from './displayIdentity.js';
@@ -36,6 +36,16 @@ async function projections(client:DbClient,ids:string[],scope:ReviewScope,enviro
  return new Map(rows.map(r=>[String(r.id),r]));
 }
 
+export async function sharingMemberCards(client:DbClient,ids:string[],scope:Pick<ReviewScope,'profile'|'points'>,environment:AppEnvironment){
+ const members=await projections(client,ids,{...scope,orders:false,commission:false},environment);
+ const identities=await memberDisplayIdentities(client,environment,[...members.keys()]);
+ return new Map([...members].map(([id,member])=>[id,{
+  cardNumber:memberAdminCardNumber(member.card_number),
+  avatar:member.avatar_data_url??null,avatarRevision:member.avatar_revision??null,displayIdentity:identities.get(id)?.privateIdentity??null,
+  ...(scope.points?{availablePoints:memberAdminPoints(member).available}:{})
+ }]));
+}
+
 function reviewView(row:Row){
  return {...officerView(row),id:row.id,memberId:row.member_id,displayName:row.display_name,payeeReady:row.payee_ready,
   applicationAt:row.application_at??null,reviewedAt:row.reviewed_at??null};
@@ -52,13 +62,8 @@ export async function sharingReviewQueue(client:DbClient,filter:string,target:st
   ) SELECT *,list_at::text AS cursor_at FROM ordered WHERE ($2::timestamptz IS NULL OR (list_at,id)<($2,$3::uuid))
   ORDER BY list_at DESC,id DESC LIMIT $4`,[filter,cursor?.at??null,cursor?.id??null,limit+1,target]);
  const page=finishPage(rows.map(r=>({...r,id:String(r.id),cursorAt:String(r.cursor_at)})),limit,key);
- const ids=page.items.map(r=>r.id),members=await projections(client,ids,{...scope,orders:false},environment);
- const identities=await memberDisplayIdentities(client,environment,ids.filter(memberId=>members.has(memberId)));
- return {...page,items:page.items.map(r=>{
-  const member=members.get(r.id);
-  return {...reviewView(r),...(member?{avatar:member.avatar_data_url??null,avatarRevision:member.avatar_revision??null,displayIdentity:identities.get(r.id)?.privateIdentity??null}:{}),
-   ...(scope.points&&member?{availablePoints:memberAdminPoints(member).available}:{})};
- })};
+ const cards=await sharingMemberCards(client,page.items.map(row=>row.id),scope,environment);
+ return {...page,items:page.items.map(row=>({...reviewView(row),...cards.get(row.id)}))};
 }
 
 export async function sharingReviewDetail(client:DbClient,actor:string,target:string,expectedVersion:number,scope:ReviewScope,environment:AppEnvironment){
