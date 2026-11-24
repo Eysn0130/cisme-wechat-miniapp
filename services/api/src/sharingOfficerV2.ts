@@ -52,13 +52,14 @@ export async function bindSharingV2ReleasedOrder(client:DbClient,orderId:string)
   WHERE i.id=$1 FOR UPDATE OF i FOR SHARE OF o,m,m2`,[snapshot.sharing_v2_intent_id,snapshot.sharing_policy_id])).rows[0];
  if(intent?.state!=='pending'||intent.officer_state!=='active'||intent.status!=='active'||intent.buyer_status!=='active'||
   intent.v2_application_version!==snapshot.sharing_v2_application_version)return;
- const prior=(await client.query("SELECT officer_id FROM sharing_customer_relation WHERE buyer_id=$1 FOR UPDATE",[buyer])).rows[0];
+ const prior=(await client.query("SELECT officer_id,removed_at FROM sharing_customer_relation WHERE buyer_id=$1 FOR UPDATE",[buyer])).rows[0];
+ if(prior?.removed_at&&intent.source==='first_touch')return;
  const version=(await client.query(`SELECT COALESCE(max(version),0)+1 AS version FROM sharing_relation_event WHERE buyer_id=$1`,[buyer])).rows[0].version;
  await client.query(`INSERT INTO sharing_relation_event(buyer_id,version,from_officer_id,to_officer_id,visit_id,source)
   VALUES($1,$2,$3,$4,$5,$6)`,[buyer,version,prior?.officer_id??null,intent.officer_id,intent.visit_id,intent.source]);
  await client.query(`INSERT INTO sharing_customer_relation(buyer_id,officer_id,visit_id,source,effective_at,expires_at,policy_id,version)
   VALUES($1,$2,$3,$4,clock_timestamp(),clock_timestamp()+make_interval(days=>$7),$5,$6)
-  ON CONFLICT(buyer_id) DO UPDATE SET officer_id=$2,visit_id=$3,source=$4,effective_at=excluded.effective_at,expires_at=excluded.expires_at,policy_id=$5,version=$6`,
+  ON CONFLICT(buyer_id) DO UPDATE SET officer_id=$2,visit_id=$3,source=$4,effective_at=excluded.effective_at,expires_at=excluded.expires_at,policy_id=$5,version=$6,removed_at=NULL`,
  [buyer,intent.officer_id,intent.visit_id,intent.source,snapshot.sharing_policy_id,version,intent.v2_application_version?null:intent.attribution_days]);
  await client.query("UPDATE sharing_v2_referral_intent SET state='bound' WHERE id=$1",[intent.id]);
 }

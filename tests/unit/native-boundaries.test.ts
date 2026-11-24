@@ -150,7 +150,7 @@ describe("native mini program boundary", () => {
       "rewards/index.wxml": 3,
       "management-rewards/index.wxml": 7,
       "sharing-officer/index.wxml": 10,
-      "management-sharing/index.wxml": 6,
+      "management-sharing/index.wxml": 7,
     });
 
     const normalize = (expression: string) => expression.replace(/\s+/g, "");
@@ -256,7 +256,7 @@ describe("native mini program boundary", () => {
       "rewards": ["back", "load", "openWallet", "retryPending", "cancelPending", "openVoucher", "openClaim", "support", "support", "openClaim", "loadMoreClaims", "useCoupon", "copyTracking", "openCoupons", "cancelClaim", "openReturn", "support", "receive", "closeRules", "support", "closeReturn", "submitReturn", "closeProducts", "openCouponProduct", "support"],
       "management-rewards": ["back","retryLoad","reconcile","openIssue","openConfig","openConfig","openStock","openRevoke","loadMore","export","clearDates","openExportMenu","openBulk","exportNext","openDetail","loadMore","closeSheet","reconcile","loadProducts","saveConfig","saveConfig","saveConfig","stockDirection","stockDirection","saveStock","@share","revoke","export","chooseBulkFile","exportNext","confirmBulk","copyDelivery","copyTracking","operate","operate","operate"],
       "sharing-officer": ["back","retry","recover","recover","giftDetails","open","open","open","openGiftSharing","promote","moreProducts","clearSource","detail","more","toggleAgreement","openAgreement","open","@share","retryGiftShare","close","operate","operate","previewReferrer","operate","@share","copyLink","moreHistory","settlementOrders","recover","recover","closeAgreement","agree"],
-      "management-sharing": ["back", "retry", "recover", "recover", "selectOfficer", "openPolicy", "order", "operate", "selectBatch", "closeBatch", "exportBatch", "operate", "selectLine", "more", "close", "operate", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "operate", "readPayee", "loadLineOrders", "order", "moreLineOrders", "operate", "operate", "operate", "moreHistory", "operate", "recover", "recover"],
+      "management-sharing": ["back", "retry", "recover", "recover", "selectOfficer", "openPolicy", "order", "operate", "selectBatch", "closeBatch", "exportBatch", "operate", "selectLine", "more", "close", "operate", "refreshOfficerReview", "toggleOfficerRecord", "toggleOfficerRecord", "toggleOfficerRecord", "toggleOfficerRecord", "retryCustomers", "chooseCustomer", "moreCustomers", "confirmCustomer", "operate", "readPayee", "loadLineOrders", "order", "moreLineOrders", "operate", "operate", "operate", "moreHistory", "operate", "recover", "recover", "chooseDecision", "chooseDecision", "toggleQualificationActions", "openCustomers", "chooseDecision", "chooseDecision", "chooseDecision"],
       "management-members/commercial": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
       "management-members/detail": ["back"],
       "management-members/components/member-inspector": ["expand", "close", "retry", "selectSection", "phone", "selectSection", "openAdministrator", "management", "copyProfile", "selectSection", "selectSection", "selectSection", "management", "openRecord", "more", "closeAdministrator", "openAdministrator", "toggleAdministratorCapability", "clearAdministratorCapabilities", "saveAdministrator"],

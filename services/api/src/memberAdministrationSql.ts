@@ -6,7 +6,7 @@ export function userCountSql(s:UserScope,canonicalOnly:boolean){return `SELECT m
  LEFT JOIN sharing_officer so ON so.member_id=m.id AND ${s.sharing?'true':'false'}
  WHERE $1::timestamptz IS NOT NULL AND m.status<>'deleted' AND m.registration_completed_at IS NOT NULL ${canonicalOnly?"AND EXISTS(SELECT 1 FROM wechat_identity wi WHERE wi.member_id=m.id AND wi.provider='wechat_miniprogram' AND wi.app_id='wx4eac2d4fb11d299b')":''}`;}
 /** Every lateral source is preaggregated before joining: no order×post×grant fanout. $1 is the snapshot clock. */
-export function userProjectionSql(s:UserScope,canonicalOnly:boolean,environment:AppEnvironment='test'){
+export function userProjectionSql(s:Pick<UserScope,'points'|'orders'|'care'|'rewards'|'sharing'|'support'>,canonicalOnly:boolean,environment:AppEnvironment='test'){
  const yes=(v:boolean)=>v?'true':'false';
  return `SELECT m.id,m.display_name,m.status AS account_status,m.registration_completed_at AS created_at,m.registration_completed_at::text AS registered_sort,
  mc.number::text AS card_number,mc.user_code,EXISTS(SELECT 1 FROM authority_grant ag WHERE ag.member_id=m.id AND ag.environment='${environment}' AND ag.revoked_at IS NULL AND (ag.expires_at IS NULL OR ag.expires_at>$1)) AS is_administrator,p.avatar_data_url,p.avatar_revision,p.profile_revision,c.phone_masked,
@@ -44,9 +44,9 @@ export function userProjectionSql(s:UserScope,canonicalOnly:boolean,environment:
  LEFT JOIN LATERAL(SELECT (SELECT count(*) FROM member_purchase_coupon pc WHERE ${yes(s.rewards)} AND pc.member_id=m.id AND pc.state='available' AND pc.expires_at>$1) AS usable_coupons,
  (SELECT count(*) FROM reward_voucher rv WHERE ${yes(s.rewards)} AND rv.member_id=m.id AND rv.state='unused' AND rv.expires_at>$1) AS unclaimed_rewards)vch ON true
  LEFT JOIN sharing_officer so ON so.member_id=m.id AND ${yes(s.sharing)}
- LEFT JOIN sharing_customer_relation relation ON relation.buyer_id=m.id AND ${yes(s.sharing)} AND (relation.expires_at IS NULL OR relation.expires_at>$1)
+ LEFT JOIN sharing_customer_relation relation ON relation.buyer_id=m.id AND ${yes(s.sharing)} AND relation.removed_at IS NULL AND (relation.expires_at IS NULL OR relation.expires_at>$1)
  LEFT JOIN sharing_officer referrer ON referrer.member_id=relation.officer_id
- LEFT JOIN LATERAL(SELECT count(*) AS direct_count FROM sharing_customer_relation r WHERE ${yes(s.sharing)} AND r.officer_id=m.id AND (r.expires_at IS NULL OR r.expires_at>$1))direct ON true
+ LEFT JOIN LATERAL(SELECT count(*) AS direct_count FROM sharing_customer_relation r WHERE ${yes(s.sharing)} AND r.officer_id=m.id AND r.removed_at IS NULL AND (r.expires_at IS NULL OR r.expires_at>$1))direct ON true
  LEFT JOIN LATERAL(SELECT max(sm.created_at) AS last_at FROM support_message sm JOIN support_conversation sc ON sc.id=sm.conversation_id
  WHERE ${yes(s.support)} AND sc.member_id=m.id AND sm.sender_type='user')sup ON true
  WHERE m.status<>'deleted' AND m.registration_completed_at IS NOT NULL ${canonicalOnly?"AND EXISTS(SELECT 1 FROM wechat_identity wi WHERE wi.member_id=m.id AND wi.provider='wechat_miniprogram' AND wi.app_id='wx4eac2d4fb11d299b')":''}`;

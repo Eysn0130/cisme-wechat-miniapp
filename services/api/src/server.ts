@@ -224,7 +224,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
  });
  app.post<{Params:{shareId:string};Body:{visitKey:unknown}}>('/v1/officer-shares/:shareId/visits',{bodyLimit:2000,config:{rateLimit:{max:60,timeWindow:'1 minute'}}},r=>officers.visit(r.params.shareId,r.body?.visitKey));
  app.post<{Body:{shareId:unknown}}>('/v1/me/sharing-officer/share-assets',{bodyLimit:2000},r=>officerAssets.assets(r.memberId,r.body?.shareId));
- app.get<{Querystring:{section?:string;cursor?:string;limit?:string;filter?:string;batchId?:string;lineId?:string}}>('/v1/management/sharing-officer',r=>officerFinance.management(r.memberId,r.query));
+ app.get<{Querystring:{section?:string;cursor?:string;limit?:string;filter?:string;batchId?:string;lineId?:string;memberId?:string;version?:string;customerFilter?:string}}>('/v1/management/sharing-officer',(r,reply)=>{
+  reply.header('Cache-Control','private, no-store');return officerFinance.management(r.memberId,r.query);
+ });
  app.get<{Params:{id:string};Querystring:{cursor?:string;limit?:string}}>('/v1/management/sharing-officer/orders/:id',r=>officerFinance.orderDetail(r.memberId,r.params.id,true,r.query));
  app.post<{Body:{action:string;input:Record<string,unknown>}}>('/v1/management/sharing-officer/commands',{bodyLimit:12_000},r=>{
   if(!r.body||typeof r.body.action!=='string'||!r.body.input||Array.isArray(r.body.input)||typeof r.body.input!=='object')sharingFail('SHARING_INPUT_INVALID','请求内容无效',422);

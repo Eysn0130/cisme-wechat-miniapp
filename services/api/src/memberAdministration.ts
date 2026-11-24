@@ -12,6 +12,16 @@ import {careQuestions,careProfilePortableQuery,openCareAnswers} from './careOnbo
 import {memberAdministrationSection} from './memberAdministrationSections.js';
 import {csvCell} from './sharingOfficerPolicy.js';
 type Row=Record<string,any>;
+export function memberAdminCardNumber(number:string|null){return number?`No. ${number.padStart(5,'0')}`:null;}
+export function memberAdminPoints(r:Row){
+  const unlock=userNumber(r.unlock_frozen),expired=userNumber(r.expired_available),expiredFrozen=userNumber(r.expired_frozen),base=userNumber(r.points_available)-expired+unlock,
+   offset=unlock>0?Math.min(userNumber(r.points_debt),Math.max(0,base)):0;
+  return {available:Math.max(0,base-offset),frozen:Math.max(0,userNumber(r.points_frozen)-expiredFrozen-unlock),reserved:userNumber(r.points_reserved),debt:Math.max(0,userNumber(r.points_debt)-offset),updatedAt:r.wallet_updated_at??null,projected:unlock+expired+expiredFrozen>0};
+}
+export function memberAdminCommerce(r:Row){
+  const paidCents=userNumber(r.paid_cents),refundedCents=userNumber(r.refunded_cents);
+  return {orderCount:userNumber(r.order_count),paidOrderCount:userNumber(r.paid_count),paidCents,refundedCents,netCents:paidCents-refundedCents,openAftersales:userNumber(r.aftersale_count)};
+}
 export class MemberAdministration{
  readonly authority:AuthorityService;
  constructor(readonly pool:pg.Pool,readonly config:AppConfig){this.authority=new AuthorityService(pool,config.env);}
@@ -29,12 +39,10 @@ export class MemberAdministration{
  async audit(c:DbClient,actor:string,target:string|null,action:string,details:Row={}){await c.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
  VALUES($1,$2,'member',$3,'MEMBER_ADMINISTRATION',$4,$5)`,[`member:${actor}`,action,target,details,randomUUID()]);}
  row(r:Row,s:UserScope){
-  const unlock=userNumber(r.unlock_frozen),expired=userNumber(r.expired_available),expiredFrozen=userNumber(r.expired_frozen),base=userNumber(r.points_available)-expired+unlock,
-   offset=unlock>0?Math.min(userNumber(r.points_debt),Math.max(0,base)):0;
-  return {id:r.id,userCode:r.user_code,displayName:r.display_name,cardNumber:r.card_number?`No. ${r.card_number.padStart(5,'0')}`:null,avatar:r.avatar_data_url??null,avatarRevision:r.avatar_revision??null,profileVersion:r.profile_revision??0,accountStatus:r.account_status,createdAt:r.created_at,administrator:Boolean(r.is_administrator),highestAdministrator:r.id===this.config.memberAdministrationRootId,
+  return {id:r.id,userCode:r.user_code,displayName:r.display_name,cardNumber:memberAdminCardNumber(r.card_number),avatar:r.avatar_data_url??null,avatarRevision:r.avatar_revision??null,profileVersion:r.profile_revision??0,accountStatus:r.account_status,createdAt:r.created_at,administrator:Boolean(r.is_administrator),highestAdministrator:r.id===this.config.memberAdministrationRootId,
    phoneMasked:r.phone_masked??null,onboarding:r.care_erased_at?'erased':r.onboarding_completed_at?'complete':'incomplete',
-   points:s.points?{available:Math.max(0,base-offset),frozen:Math.max(0,userNumber(r.points_frozen)-expiredFrozen-unlock),reserved:userNumber(r.points_reserved),debt:Math.max(0,userNumber(r.points_debt)-offset),updatedAt:r.wallet_updated_at??null,projected:unlock+expired+expiredFrozen>0}:null,
-   commerce:s.orders?{orderCount:userNumber(r.order_count),paidOrderCount:userNumber(r.paid_count),paidCents:userNumber(r.paid_cents),refundedCents:userNumber(r.refunded_cents),netCents:userNumber(r.paid_cents)-userNumber(r.refunded_cents),openAftersales:userNumber(r.aftersale_count)}:null,
+   points:s.points?memberAdminPoints(r):null,
+   commerce:s.orders?memberAdminCommerce(r):null,
    activity:{careDays:s.care?userNumber(r.care_days):null,streak:s.care?userNumber(r.streak):null,publicPosts:userNumber(r.post_count),recentAt:r.recent_at??null},
    rewards:s.rewards?{availableCoupons:userNumber(r.usable_coupons),unclaimedRewards:userNumber(r.unclaimed_rewards)}:null,
    sharing:s.sharing?{state:r.officer_state??'none',code:r.officer_code??null,version:r.officer_version??null,referrerCode:r.referrer_code??null,referrerSource:r.referrer_source??null,directCount:userNumber(r.direct_count)}:null};
