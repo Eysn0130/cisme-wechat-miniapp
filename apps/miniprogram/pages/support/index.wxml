@@ -33,12 +33,13 @@
       </view>
       <view wx:else id="support-{{item.sequence}}" class="support-message support-message--{{item.senderType}} {{item.groupStart ? 'support-message--group-start' : 'support-message--grouped'}}">
         <view class="support-avatar-slot">
-          <view wx:if="{{item.groupStart}}" class="support-avatar-wrap"><view class="support-avatar support-avatar--{{item.avatarKind}} {{item.avatarKind === 'ai' || item.avatarPath !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{item.avatarKind === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : item.avatarPath}}" mode="aspectFill" data-key="{{item.sender.key}}" binderror="onAvatarError" aria-label="{{item.senderLabel}}的头像"/></view><identity-badge wx:if="{{item.senderType === 'admin' && item.sender.identityBadge === 'support'}}" kind="support" size="{{26}}"/></view>
+          <view wx:if="{{item.groupStart}}" class="support-avatar-wrap"><view class="support-avatar support-avatar--{{item.avatarKind}} {{item.avatarKind === 'ai' || item.avatarPath !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{item.avatarKind === 'ai' ? '/assets/cisme/cisme-ai-avatar-v1.png' : item.avatarPath}}" mode="aspectFill" data-ai="{{item.avatarKind === 'ai'}}" data-key="{{item.sender.key}}" binderror="onAvatarError" aria-label="{{item.senderLabel}}的头像"/></view><identity-badge wx:if="{{item.sender.identityBadge}}" kind="{{item.sender.identityBadge}}" size="{{26}}"/></view>
         </view>
         <view class="support-message__content">
           <text wx:if="{{item.groupStart && item.senderType !== 'user'}}" class="support-message__sender">{{item.senderLabel}}</text>
           <text wx:if="{{item.replyReferenceLabel}}" class="support-reply-reference">{{item.replyReferenceLabel}}</text>
           <view wx:if="{{item.body}}" class="support-bubble">{{item.body}}</view>
+          <button wx:if="{{item.helpLabel}}" class="support-help {{helpNavigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openHelp" disabled="{{helpNavigating}}">{{item.helpLabel}}</button>
           <view wx:if="{{item.attachments.length}}" class="support-media-grid">
             <button wx:for="{{item.attachments}}" wx:for-item="media" wx:key="id" class="support-media" data-media-id="{{media.id}}" bindtap="previewImage" aria-label="预览客服图片">
               <image src="{{media.localPath || '/assets/icons/images-plum.svg'}}" mode="aspectFill" lazy-load="true"/>
@@ -56,7 +57,7 @@
     </block>
 
     <view wx:if="{{pendingMessage}}" class="support-message support-message--user support-message--pending">
-      <view class="support-avatar-slot"><view class="support-avatar {{ownAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{ownAvatar}}" mode="aspectFill" binderror="onAvatarError" aria-label="你的头像"/></view></view>
+      <view class="support-avatar-slot"><view class="support-avatar-wrap"><view class="support-avatar {{ownAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{ownAvatar}}" mode="aspectFill" binderror="onAvatarError" aria-label="你的头像"/></view><identity-badge wx:if="{{identityMemberKey ? memberBadge : ownBadge}}" kind="{{identityMemberKey ? memberBadge : ownBadge}}" size="{{26}}"/></view></view>
       <view class="support-message__content">
         <view wx:if="{{pendingMessage.body}}" class="support-bubble">{{pendingMessage.body}}</view>
         <view wx:if="{{pendingMessage.attachments.length}}" class="support-media-grid"><view class="support-media"><image src="{{pendingMessage.attachments[0].localPath}}" mode="aspectFill"/></view></view>
@@ -66,7 +67,7 @@
     </view>
 
     <view wx:if="{{aiReplyWaiting || presence.operatorTyping}}" id="support-ai-wait" class="support-typing {{aiReplyWaiting ? 'support-typing--ai' : ''}}" aria-live="polite">
-      <view class="support-avatar support-avatar--{{aiReplyWaiting ? 'ai' : 'human'}} {{aiReplyWaiting || agentAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{aiReplyWaiting ? '/assets/cisme/cisme-ai-avatar-v1.png' : agentAvatar}}" mode="aspectFill" data-key="{{identityAgentKey}}" binderror="onAvatarError" aria-hidden="true"/></view>
+      <view class="support-avatar-wrap"><view class="support-avatar support-avatar--{{aiReplyWaiting ? 'ai' : 'human'}} {{aiReplyWaiting || agentAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-avatar--photo' : ''}}"><image src="{{aiReplyWaiting ? '/assets/cisme/cisme-ai-avatar-v1.png' : agentAvatar}}" mode="aspectFill" data-ai="{{aiReplyWaiting}}" data-key="{{identityAgentKey}}" binderror="onAvatarError" aria-hidden="true"/></view><identity-badge wx:if="{{!aiReplyWaiting && agentBadge}}" kind="{{agentBadge}}" size="{{26}}"/></view>
       <view class="support-typing__body"><view class="support-typing__dots" aria-hidden="true"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{aiReplyWaiting ? '正在思考…' : presence.agentDisplayName + '正在输入…'}}</text></view>
     </view>
     <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重试</button><button wx:elif="{{errorAction === 'handoff'}}" class="{{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="retryHandoff" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}">{{handoffFailed ? '重试申请' : '申请人工'}}</button></view>
@@ -78,7 +79,7 @@
 
   <view class="support-composer {{composerFocused ? 'support-composer--focused' : ''}}">
     <view wx:if="{{!closedRights}}" class="support-composer__actions">
-      <view wx:if="{{conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active')}}" class="support-human support-human--status" aria-live="polite"><view class="support-human__dot"></view><text>{{conversation.status === 'waiting_human' ? '人工已申请' : '人工接待中'}}</text></view>
+      <view wx:if="{{conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active')}}" class="support-human support-human--status" aria-live="polite"><view wx:if="{{conversation.status === 'human_active' && identityAgentKey}}" class="support-handler-avatar-wrap"><view class="support-handler-avatar {{agentAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-handler-avatar--photo' : ''}}"><image src="{{agentAvatar}}" data-key="{{identityAgentKey}}" mode="aspectFill" binderror="onAvatarError" aria-hidden="true"/></view><identity-badge wx:if="{{agentBadge}}" kind="{{agentBadge}}" size="{{22}}"/></view><view wx:else class="support-human__dot"></view><text>{{conversation.status === 'waiting_human' ? '人工已申请，等待接待' : agentDisplayName ? agentDisplayName + ' · 人工接待中' : '人工接待中'}}</text></view>
       <button wx:if="{{!loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human {{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="requestHuman" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}"><text>{{handoffBusy ? '正在申请人工…' : '申请人工'}}</text></button>
       <button wx:if="{{newTopicAttempt || historyLoaded && !loading && newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启 AI 新对话' : '清空之前聊天并开始新对话'}}"><text>{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
     </view>

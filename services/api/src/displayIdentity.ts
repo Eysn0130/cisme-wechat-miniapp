@@ -6,7 +6,13 @@ const administrationCapabilities: readonly Capability[] = [
   "member.manage", "community.moderate", "editorial.manage", "privacy.request.manage",
   "commerce.product.manage", "commerce.qualification.manage", "commerce.inventory.manage", "commerce.fulfillment.manage"
 ];
-const displayCapabilities = [...administrationCapabilities, "support.reply", "community.admin_badge"];
+export const displayCapabilities = [...administrationCapabilities, "support.reply", "community.admin_badge"];
+
+export function privateMemberDisplayIdentity(officer:boolean,grants:readonly Capability[]): MemberDisplayIdentity {
+  if (administrationCapabilities.some(capability => grants.includes(capability))) return "administrator";
+  if (grants.includes("support.reply")) return "support";
+  return officer ? "sharing-officer" : "member";
+}
 
 interface IdentityRow {
   id: string;
@@ -32,10 +38,8 @@ export async function memberDisplayIdentities(
     [memberIds, environment, displayCapabilities]
   );
   return new Map(rows.map(row => {
-    const administrator = administrationCapabilities.some(capability => row.grants.includes(capability));
-    const privateIdentity = administrator ? "administrator" : row.grants.includes("support.reply") ? "support"
-      : row.officer ? "sharing-officer" : "member";
-    const publicBadge = administrator && row.grants.includes("community.admin_badge") ? "administrator"
+    const privateIdentity = privateMemberDisplayIdentity(row.officer,row.grants);
+    const publicBadge = privateIdentity === "administrator" && row.grants.includes("community.admin_badge") ? "administrator"
       : row.officer ? "sharing-officer" : undefined;
     return [row.id, { privateIdentity, publicBadge }];
   }));

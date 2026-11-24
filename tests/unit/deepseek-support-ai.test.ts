@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { loadConfig } from "@cisme/config";
 import { ApprovedKnowledgeRegistry, SupportAiBoundary } from "../../services/api/src/supportAiBoundary";
 import { createSupportAiBoundary, DeepSeekSupportAiProvider, redactSupportModelText, supportKnowledge } from "../../services/api/src/deepseekSupportAi";
+import {supportHelpArticles} from "../../services/api/src/supportHelpArticles";
+import {publicCatalogQuestion,supportKnowledgeGrounding} from "../../services/api/src/supportKnowledgeRetrieval";
 
 const config = { enabled: true, apiKey: "synthetic-private-provider-token", model: "deepseek-flash" as const, timeoutMs: 1_000 };
 const knowledge = supportKnowledge();
@@ -14,8 +16,8 @@ const ok = (value: unknown = output, finish = "stop") => new Response(JSON.strin
 
 describe("DeepSeek customer support integration", () => {
   it("versions the current care entry and published human hours without inventing consent or immediate staffing", () => {
-    expect(knowledge).toHaveLength(3);
-    expect(knowledge.every(source => source.version === "2026-11-11-care-catalog-1")).toBe(true);
+    expect(knowledge).toHaveLength(3+supportHelpArticles.length);
+    expect(knowledge.slice(0,3).every(source => source.version === "2026-11-11-care-catalog-1")).toBe(true);
     const care = knowledge.find(source => source.id === "cisme.care-guide")!;
     expect(care.content).toContain("可多选今天实际用过的净润洗发水、净屑洗发水、护理精华");
     expect(care.content).toContain("普通日护理感受选填");
@@ -29,6 +31,57 @@ describe("DeepSeek customer support integration", () => {
     expect(policy.content).toContain("不承诺即时接入");
     expect(policy.content).not.toContain("没有已验证的服务排班");
     expect(() => new ApprovedKnowledgeRegistry(knowledge)).not.toThrow();
+  });
+
+  it.each([
+    ['我找不到订单，订单入口在哪里？','cisme.help-orders','我的订单'],
+    ['退款入口在哪里，我要怎么退款？','cisme.help-aftersale','售后服务'],
+    ['付款失败，如何核对支付结果？','cisme.help-payment','查询付款结果'],
+    ['我要查看物流和确认收货','cisme.help-logistics','物流与收货'],
+    ['我退货寄哪里？','cisme.help-return','退货指引'],
+    ['从哪里可以邀请好友？','cisme.help-invite','分享给朋友'],
+    ['护理记录在哪里看？','cisme.help-care-records','详情'],
+    ['我想修改头像','cisme.help-profile','头像与昵称'],
+    ['我的积分怎么用？','cisme.help-points','积分明细'],
+    ['我想申请推荐官','cisme.help-sharing-officer','合作协议'],
+    ['作品下架后怎么申诉？','cisme.help-community-appeal','我的社区'],
+    ['去哪注销账号？','cisme.help-privacy','数据与账号权利']
+  ])('grounds %s in the specific approved article',(body,id,phrase)=>{
+    const input={...projection,question:{sequence:2,body}};
+    const selected=supportKnowledgeGrounding.select(input,knowledge);
+    const source=selected.find(entry=>entry.id===id);
+    expect(source?.content).toContain(phrase);
+    expect(selected.some(entry=>entry.id==='cisme.help-product-use')).toBe(false);
+    expect(selected.length).toBeLessThan(7);
+  });
+
+  it('serves current verified steps even if the model invents a business outcome with a valid citation',async()=>{
+    let retrieved:string[]=[];
+    const input={...projection,question:{sequence:2,body:'申请退款的入口在哪里？'}};
+    const boundary=new SupportAiBoundary({id:'fixture',available:true,async suggest({knowledge}){
+      retrieved=knowledge.map(source=>source.id);
+      const article=knowledge.find(source=>source.id==='cisme.help-aftersale')!;
+      return {text:'您的订单已经退款到账了。',confidence:0.97,handoffReason:null,citations:[{sourceId:article.id,version:article.version}]};
+    }},new ApprovedKnowledgeRegistry(knowledge),1_000,true,supportKnowledgeGrounding);
+    const reply=await boundary.suggestedReply(input);
+    expect(retrieved).toContain('cisme.help-aftersale');
+    expect(retrieved).not.toContain('cisme.help-invite');
+    expect(reply.text).toContain('售后服务');
+    expect(reply.text).not.toContain('退款到账了');
+    expect(publicCatalogQuestion({...input,question:{sequence:2,body:'我的退款是多少钱？'}})).toBe(false);
+  });
+
+  it('rejects citations withheld for the question and generic sources used to guess unknown facts',async()=>{
+    const held=knowledge.find(row=>row.id==='cisme.help-invite')!;
+    const policy=knowledge.find(row=>row.id==='cisme.support-policy')!;
+    let source=held;
+    const boundary=new SupportAiBoundary({id:'fixture',available:true,async suggest(){
+      return {text:'下个月一等奖是随机现金。',confidence:0.99,handoffReason:null,citations:[{sourceId:source.id,version:source.version}]};
+    }},new ApprovedKnowledgeRegistry(knowledge),1_000,true,supportKnowledgeGrounding);
+    const input={...projection,question:{sequence:2,body:'下个月的隐藏活动会发什么奖？'}};
+    await expect(boundary.suggestedReply(input)).rejects.toMatchObject({code:'SUPPORT_AI_UNGROUNDED'});
+    source=policy;
+    await expect(boundary.suggestedReply(input)).rejects.toMatchObject({code:'SUPPORT_AI_UNGROUNDED'});
   });
 
   it("requires explicit enablement and valid server-only configuration", () => {

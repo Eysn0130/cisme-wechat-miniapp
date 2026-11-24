@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApprovedKnowledgeRegistry, SupportAiBoundary } from '../../services/api/src/supportAiBoundary';
-import { supportCatalogKnowledge } from '../../services/api/src/supportCatalogKnowledge';
+import { catalogAnswer, supportCatalogKnowledge } from '../../services/api/src/supportCatalogKnowledge';
 import { redactSupportModelText, supportKnowledge } from '../../services/api/src/deepseekSupportAi';
 const catalog = (priceCents = 19800) => supportCatalogKnowledge({ checkoutEnabled: true, nextCursor: null,
   items: [{ name: '净润小紫瓶', subtitle: '已发布', description: '按产品说明使用', shoppingPointsMultiplier: 3,
@@ -27,11 +27,17 @@ describe('approved live catalog knowledge', () => {
     } }, new ApprovedKnowledgeRegistry(supportKnowledge()));
     const replies = await Promise.all([boundary.suggestedReply(conversation, [a]), boundary.suggestedReply(conversation, [b])]);
     expect(replies.map(reply => reply.citations[0]!.version)).toEqual([a.version, b.version]);
-    expect(observed).toEqual([a.version, b.version]); expect(boundary.status().approvedKnowledgeSources).toHaveLength(3);
+    expect(observed).toEqual([a.version, b.version]); expect(boundary.status().approvedKnowledgeSources).toHaveLength(supportKnowledge().length);
     const wrong = new SupportAiBoundary({ id: 'wrong-citation', available: true, async suggest() {
       return { text: '错误版本', confidence: 1, handoffReason: null, citations: [{ sourceId: a.id, version: a.version }] };
     } }, new ApprovedKnowledgeRegistry(supportKnowledge()));
     await expect(wrong.suggestedReply(conversation, [b])).rejects.toMatchObject({ code: 'SUPPORT_AI_UNGROUNDED' });
+  });
+  it('answers exact product price from the supplied snapshot and asks to identify an unspecified item',()=>{
+    expect(catalogAnswer(catalog(),'净润小紫瓶 280mL 多少钱？')).toContain('280mL ¥198.00');
+    expect(catalogAnswer(catalog(20100),'净润小紫瓶 280mL 多少钱？')).toContain('¥201.00');
+    expect(catalogAnswer(catalog(),'多少钱？')).toContain('哪款');
+    expect(catalogAnswer(supportCatalogKnowledge(null),'净润小紫瓶多少钱？')).toContain('暂时无法确认');
   });
   it('redacts volunteered order, waybill and contact identifiers without swallowing ordinary WeChat questions', () => {
     const message = '订单号：CM202611110001，快递单号为SF1234567890。微信号是member_secret；联系手机：13800138000';

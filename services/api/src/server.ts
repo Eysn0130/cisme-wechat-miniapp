@@ -84,6 +84,7 @@ import { FormalUgcService } from "./formalUgc.js";
 import { UgcSafetyService, startUgcSafetyLoop } from "./ugcSafety.js";
 import { createSupportAiBoundary } from "./deepseekSupportAi.js";
 import { supportCatalogKnowledge } from './supportCatalogKnowledge.js';
+import {publicCatalogQuestion,supportQuestionText} from './supportKnowledgeRetrieval.js';
 import { PlatformService } from "./platformService.js";
 import { createObjectStorage, type ObjectStorage } from "./storage.js";
 import { registerCloudHttpTransport } from "./cloudHttpTransport.js";
@@ -196,8 +197,9 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const ugcSafety = new UgcSafetyService(pool, config, storage,fetch,body=>tradeEvents.receive(body));
   const communityProfile = new CommunityProfileService(pool,config,editorial,formalUgc,ugcSafety,authority);
   const supportAi = createSupportAiBoundary(config.supportAi);
-  const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi, async () => {
-    try { return [supportCatalogKnowledge(await catalog.publicList({ limit: 50 }))]; }
+  const support = new SupportService(pool, authority, service, storage, accountClosure, supportAi, async projection => {
+    if(!publicCatalogQuestion(projection))return [];
+    try { return [supportCatalogKnowledge(await catalog.publicList({ limit: 50 }),supportQuestionText(projection))]; }
     catch { return [supportCatalogKnowledge(null)]; }
   });
   const access = new CommunityAccess(pool, config, authority);
@@ -736,7 +738,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     request.memberId,request.principalId,request.params.ruleId,request.headers["idempotency-key"],
     (request.body ?? {}) as {decision?:unknown;expectedVersion?:unknown;reason?:unknown}));
   app.get("/v1/me/support/summary", async request => support.summary(request.memberId));
-  app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async request => support.messagesForMember(request.memberId, request.query,request.authScope!=='privacy_rights'));
+  app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async (request,reply) => {
+    reply.header('Cache-Control','private, no-store');
+    return support.messagesForMember(request.memberId, request.query,request.authScope!=='privacy_rights');
+  });
   app.post("/v1/me/support/new-topic",async request=>support.startNewTopic(request.memberId,request.principalId,
     (request.body??{}) as {conversationId?:unknown;expectedVersion?:unknown;requestId?:unknown},request.id));
   app.post("/v1/me/support/messages", async request => {
@@ -762,8 +767,14 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     const media = await support.memberSupportMedia(request.memberId, request.params.mediaId,request.authScope!=='privacy_rights');
     return reply.header("Cache-Control", "private, no-store").type(media.mimeType).send(Buffer.from(media.bytes));
   });
-  app.get<{Querystring:{cursor?:string;limit?:string}}>("/v1/management/support/conversations", async request => support.queue(request.memberId, request.query));
-  app.get<{Params:{conversationId:string};Querystring:{after?:string;before?:string;limit?:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.operatorMessages(request.memberId, request.principalId, request.params.conversationId, request.query));
+  app.get<{Querystring:{cursor?:string;limit?:string}}>("/v1/management/support/conversations", async (request,reply) => {
+    reply.header('Cache-Control','private, no-store');
+    return support.queue(request.memberId,request.query,request.principalId);
+  });
+  app.get<{Params:{conversationId:string};Querystring:{after?:string;before?:string;limit?:string}}>("/v1/management/support/conversations/:conversationId/messages", async (request,reply) => {
+    reply.header('Cache-Control','private, no-store');
+    return support.operatorMessages(request.memberId,request.principalId,request.params.conversationId,request.query);
+  });
   app.get<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/aftersales", async request =>
     aftersales.forConversation(request.memberId,request.params.conversationId));
   app.post<{Params:{conversationId:string;caseId:string}}>("/v1/management/support/conversations/:conversationId/aftersales/:caseId/actions", async request =>{
@@ -774,6 +785,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       undefined,{conversationId:request.params.conversationId,principalId:request.principalId});
   });
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/claim", async request => support.claim(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/return-to-queue", async request => support.returnToQueue(request.memberId,request.principalId,request.params.conversationId,(request.body??{}) as {expectedVersion?:unknown},request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.reply(request.memberId, request.principalId, request.params.conversationId,
     (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/read", async request => support.markTeamRead(request.memberId, request.params.conversationId, (request.body ?? {}) as {lastSeenSequence?:unknown}));

@@ -1,10 +1,34 @@
 import { defaultMemberAvatar, localMemberAvatar } from './member-avatar';
-import { memberIdentity, publishMemberIdentity } from './member-identity';
+import { memberIdentity, publishMemberIdentity, type MemberIdentity } from './member-identity';
+import { memberIdentityBadge } from './display-identity';
 import { request } from './api';
 
+export type SupportIdentityBadge = "sharing-officer" | "administrator" | "support";
 export type SupportSender = { key: string; displayName: string; profileRevision: number; operatorUpdatedAt: string | null;
-  avatarRevision: string | null; avatarDataUrl?: string | null; redacted?: boolean; identityBadge?: "support" | undefined };
+  avatarRevision: string | null; avatarDataUrl?: string | null; redacted?: boolean; identityBadge?: SupportIdentityBadge | undefined };
 type Entry = { identity: SupportSender; avatarPath: string; failed: boolean; loading: boolean };
+
+// Short-lived, memory-only recovery for a page that is destroyed while a
+// message receipt is unknown. Identity/environment changes invalidate all
+// retained drafts before another page can consume them.
+let recoveryOwner = '';
+let recoveryRevision = -1;
+const recoveries = new Map<string, { value: unknown; createdAt: number }>();
+function recoveryScope(owner: string, revision: number) {
+  if (!owner || owner !== recoveryOwner || revision !== recoveryRevision) {
+    recoveries.clear(); recoveryOwner = owner; recoveryRevision = revision;
+  }
+}
+export function stageSupportRecovery<T>(owner: string, revision: number, scope: string, value: T) {
+  recoveryScope(owner, revision);
+  if (owner && scope) recoveries.set(scope, { value, createdAt: Date.now() });
+}
+export function takeSupportRecovery<T>(owner: string, revision: number, scope: string): T | null {
+  recoveryScope(owner, revision);
+  const entry = recoveries.get(scope); recoveries.delete(scope);
+  return entry && Date.now() - entry.createdAt <= 10 * 60_000 ? entry.value as T : null;
+}
+export function clearSupportRecoveries() { recoveries.clear(); recoveryOwner = ''; recoveryRevision = -1; }
 
 /** Private per-page cache. Raw image bytes never enter the rendering bridge. */
 export class SupportIdentityCache {
@@ -33,7 +57,7 @@ export class SupportIdentityCache {
     // Cached message senders must not restore a badge removed in a
     // later conversation snapshot.
     const verifiedBadge = fromSnapshot || !previous ? value.identityBadge : previous.identity.identityBadge;
-    identity.identityBadge = !identity.redacted && verifiedBadge === "support" ? "support" : undefined;
+    identity.identityBadge = !identity.redacted ? memberIdentityBadge(verifiedBadge) || undefined : undefined;
     const sameAvatar = previous && previous.identity.avatarRevision === identity.avatarRevision && !identity.redacted;
     const entry: Entry = sameAvatar ? previous : { identity, avatarPath: defaultMemberAvatar, failed: false, loading: false };
     entry.identity = identity;
@@ -55,10 +79,11 @@ export class SupportIdentityCache {
   }
   avatar(key: string) { return this.entries.get(key)?.avatarPath ?? defaultMemberAvatar; }
   name(key: string) { return this.entries.get(key)?.identity.displayName; }
+  badge(key: string): SupportIdentityBadge | "" { return memberIdentityBadge(this.entries.get(key)?.identity.identityBadge); }
   fail(key: string) { const entry = this.entries.get(key); if (entry) { entry.avatarPath = defaultMemberAvatar; entry.failed = true; } }
 }
 
-export async function supportOwnIdentity(current: () => boolean) {
+export async function supportOwnIdentity(current: () => boolean): Promise<(MemberIdentity & { identityBadge?: SupportIdentityBadge | "" }) | null> {
   const snapshot = memberIdentity();
   try {
     const result = await request<any>({ path: '/v1/me/profile' });
@@ -68,6 +93,7 @@ export async function supportOwnIdentity(current: () => boolean) {
     const avatarUrl = await localMemberAvatar(member.avatar_data_url, member.avatar_revision).catch(() => defaultMemberAvatar);
     if (!current()) return null;
     publishMemberIdentity({ id: member.id, display_name: member.display_name, profile_revision: member.profile_revision ?? 0, avatarUrl });
-    return memberIdentity();
+    const own = memberIdentity();
+    return own ? { ...own, ...(typeof member.displayIdentity === 'string' ? { identityBadge: memberIdentityBadge(member.displayIdentity) } : {}) } : null;
   } catch { return current() ? snapshot : null; }
 }

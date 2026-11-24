@@ -15,12 +15,16 @@ export interface SupportAiProvider {
   suggest(input: { conversation: ModelSafeSupportProjection; knowledge: ApprovedKnowledgeSource[] }): Promise<SupportAiSuggestion>;
 }
 export type ApprovedKnowledgeSource = { id: string; version: string; title: string; content: string; sha256: string; approved: true };
+export type SupportKnowledgeGrounding = {
+  select(conversation: ModelSafeSupportProjection, sources: ApprovedKnowledgeSource[]): ApprovedKnowledgeSource[];
+  refine(suggestion: SupportAiSuggestion, conversation: ModelSafeSupportProjection, knowledge: ApprovedKnowledgeSource[]): SupportAiSuggestion;
+};
 
 export class ApprovedKnowledgeRegistry {
   private readonly sources = new Map<string, ApprovedKnowledgeSource>();
   constructor(sources: ApprovedKnowledgeSource[]) {
     for (const source of sources) {
-      if (!/^[a-z0-9][a-z0-9._-]{2,79}$/.test(source.id) || !source.version.trim() || !source.title.trim() || !source.content.trim()) throw new Error("KNOWLEDGE_SOURCE_INVALID");
+      if (source.approved !== true || !/^[a-z0-9][a-z0-9._-]{2,79}$/.test(source.id) || !source.version.trim() || !source.title.trim() || !source.content.trim()) throw new Error("KNOWLEDGE_SOURCE_INVALID");
       if (createHash("sha256").update(source.content).digest("hex") !== source.sha256) throw new Error("KNOWLEDGE_SOURCE_HASH_MISMATCH");
       const key = `${source.id}@${source.version}`;
       if (this.sources.has(key)) throw new Error("KNOWLEDGE_SOURCE_DUPLICATE");
@@ -59,12 +63,14 @@ export class DisabledSupportAiProvider implements SupportAiProvider {
 }
 
 export class SupportAiBoundary {
-  constructor(private readonly provider: SupportAiProvider, private readonly knowledge: ApprovedKnowledgeRegistry, private readonly timeoutMs = 4_000, private readonly autoSend = false) {}
+  constructor(private readonly provider: SupportAiProvider, private readonly knowledge: ApprovedKnowledgeRegistry,
+    private readonly timeoutMs = 4_000, private readonly autoSend = false, private readonly grounding?: SupportKnowledgeGrounding) {}
   status() { const ready = this.provider.available && this.knowledge.list().length > 0; return { status: ready ? "READY" : SUPPORT_AI_STATUS, providerId: this.provider.id, providerAvailable: this.provider.available, approvedKnowledgeSources: this.knowledge.list().map(({ id, version, title, sha256 }) => ({ id, version, title, sha256 })), autoSendEnabled: ready && this.autoSend, businessWriteToolsEnabled: false }; }
   async suggestedReply(conversation: ModelSafeSupportProjection, runtimeKnowledge: ApprovedKnowledgeSource[] = []): Promise<SupportAiSuggestion> {
     if (!this.provider.available) throw new DomainError("SUPPORT_AI_PROVIDER_PENDING", SUPPORT_AI_STATUS, 503);
     const registry = new ApprovedKnowledgeRegistry([...this.knowledge.list(), ...runtimeKnowledge]);
-    const knowledge = registry.list();
+    const sources = registry.list();
+    const knowledge = this.grounding?.select(conversation,sources) ?? sources;
     if (!knowledge.length) throw new DomainError("SUPPORT_AI_KNOWLEDGE_PENDING", "No approved knowledge source is available", 503);
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -73,12 +79,17 @@ export class SupportAiBoundary {
       const text=typeof output.text==="string"?output.text.trim():"";
       if (!text || Array.from(text).length>4000) throw new DomainError("SUPPORT_AI_OUTPUT_INVALID", "AI suggestion output is invalid", 502);
       if (!Number.isFinite(output.confidence)||output.confidence<0||output.confidence>1) throw new DomainError("SUPPORT_AI_OUTPUT_INVALID", "AI confidence is invalid", 502);
-      if (!Array.isArray(output.citations)||!output.citations.length||output.citations.some((citation)=>!citation||typeof citation.sourceId!=="string"||typeof citation.version!=="string"||!registry.has(citation))) throw new DomainError("SUPPORT_AI_UNGROUNDED", "AI suggestion lacks an approved source; use human handling", 409);
+      const supplied = new Set(knowledge.map(source=>`${source.id}@${source.version}`));
+      if (!Array.isArray(output.citations)||!output.citations.length||output.citations.length>knowledge.length||
+        output.citations.some((citation)=>!citation||typeof citation.sourceId!=="string"||typeof citation.version!=="string"||
+          !supplied.has(`${citation.sourceId}@${citation.version}`))) throw new DomainError("SUPPORT_AI_UNGROUNDED", "AI suggestion lacks a source supplied for this question", 409);
       if (output.handoffReason !== null && output.handoffReason !== undefined && (typeof output.handoffReason !== "string" || output.handoffReason.length > 200)) throw new DomainError("SUPPORT_AI_OUTPUT_INVALID", "AI handoff reason is invalid", 502);
       if (conversation.humanRequest ? !['general','human_followup','clarify','mixed'].includes(output.route??'') : output.route!==undefined&&output.route!=='general')
         throw new DomainError('SUPPORT_AI_ROUTE_INVALID', 'AI did not classify the current question reliably', 502);
-      return { text, citations: output.citations, confidence: output.confidence, handoffReason: output.handoffReason??null,
+      const citations = output.citations.map(({sourceId,version})=>({sourceId,version}));
+      const suggestion = { text, citations, confidence: output.confidence, handoffReason: output.handoffReason??null,
         ...(output.route!==undefined?{route:output.route}:{}) };
+      return this.grounding?.refine(suggestion,conversation,knowledge) ?? suggestion;
     } finally { if(timer)clearTimeout(timer); }
   }
 }

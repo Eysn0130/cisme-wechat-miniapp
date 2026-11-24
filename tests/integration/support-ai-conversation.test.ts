@@ -9,6 +9,8 @@ import {PlatformService} from '../../services/api/src/platformService';
 import {SupportService} from '../../services/api/src/supportService';
 import {createApiGatewayStorage} from '../../services/api/src/storage';
 import {ApprovedKnowledgeRegistry,SupportAiBoundary,type SupportAiSuggestion} from '../../services/api/src/supportAiBoundary';
+import {supportKnowledge} from '../../services/api/src/deepseekSupportAi';
+import {supportKnowledgeGrounding} from '../../services/api/src/supportKnowledgeRetrieval';
 
 const pool=testPool();
 const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'synthetic-ai-chat-session',UPLOAD_TOKEN_SECRET:'synthetic-ai-chat-upload',OBJECT_STORAGE_DRIVER:'api_gateway',API_RATE_LOGIN_MAX:'200'});
@@ -66,6 +68,21 @@ describe('persistent AI support and manual handoff',()=>{
   const audit=(await pool.query("SELECT after_state FROM audit_log WHERE action='support.ai.reply' AND object_id=$1",[first.conversation.id])).rows[0].after_state;
   expect(audit).toMatchObject({inReplyTo:first.message.id,citations:reply.citations,confidence:0.95});expect(JSON.stringify(audit)).not.toContain('如何记录');
   expect(await handoffEvents(first.conversation.id)).toBe(0);
+ });
+ it('saves the verified aftersale instructions and allows only the known order-list destination on both reads',async()=>{
+  const approved=new SupportAiBoundary({id:'synthetic-source-routing',available:true,async suggest({knowledge}){
+    const article=knowledge.find(item=>item.id==='cisme.help-aftersale')!;
+    return {route:'general',text:'我已经替你退到微信账户了。',confidence:0.95,handoffReason:null,
+      citations:[{sourceId:article.id,version:article.version}]};
+  }},new ApprovedKnowledgeRegistry(supportKnowledge()),4_000,true,supportKnowledgeGrounding);
+  const service=new SupportService(pool,new AuthorityService(pool,'test'),new PlatformService(pool,config,storage),storage,undefined,approved);
+  const response=await service.sendMember(user.memberId,user.principalId,{body:'如何申请退款？',clientMessageId:'synthetic-verified-aftersale'},'synthetic');
+  expect(response.aiMessages?.[0]).toMatchObject({body:expect.stringContaining('售后服务'),helpAction:'orders',knowledgeTitle:'申请售后与查看进度'});
+  expect(JSON.stringify(response.aiMessages)).not.toContain('已经替你退');
+  const page=(await app.inject({method:'GET',url:'/v1/me/support/messages',headers:auth(user.sessionToken)})).json();
+  expect(page.messages.at(-1)).toMatchObject({helpAction:'orders',knowledgeTitle:'申请售后与查看进度'});
+  expect(await handoffEvents(response.conversation.id)).toBe(0);
+  expect((await pool.query("SELECT 1 FROM commerce_refund_request r JOIN commerce_order o ON o.id=r.order_id WHERE o.member_id=$1",[user.memberId])).rowCount).toBe(0);
  });
  it('keeps explicit handoff in the same admin queue, discards late AI, and delivers the claimed administrator reply to the member',async()=>{
   const late=deferred<SupportAiSuggestion>();suggest.mockReturnValueOnce(late.promise);const pending=send();await vi.waitFor(()=>expect(suggest).toHaveBeenCalledOnce());

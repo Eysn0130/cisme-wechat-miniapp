@@ -1,4 +1,4 @@
-import { SupportIdentityCache, supportOwnIdentity, type SupportSender } from '../../services/support-identity';
+import { SupportIdentityCache, supportOwnIdentity, stageSupportRecovery, takeSupportRecovery, type SupportSender } from '../../services/support-identity';
 import { defaultMemberAvatar } from '../../services/member-avatar';
 import { memberIdentity } from '../../services/member-identity';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
@@ -8,6 +8,7 @@ import { centsToYuan } from "../../services/commerce";
 import { nativeCatalogImage } from "../../services/catalog";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
+import { openSupportHelp, supportHelpLabel } from "../../services/support-help";
 import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
 import {
   createSupportThreadState,
@@ -29,14 +30,17 @@ type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null;
   replyToMessageId?: string | null; sender?: SupportSender; avatarPath?: string;
+  helpAction?: unknown;
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
   deliveryState: "server_accepted" | "read" };
-type Message = PresentedSupportMessage<RawMessage>;
+type Message = PresentedSupportMessage<RawMessage> & { helpLabel?: string };
 type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human_active" | "resolved"; version: number; memberReadSequence?: number; teamReadSequence?: number };
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
 type SelectedImage = { localPath: string; size: number; mimeType: string; status: "uploading" | "ready" | "failed"; progress: number; progressKnown?:boolean; uploadPhase?:"uploading"|"assembling"|"confirming"; mediaId: string; error: string };
 type OrderChoice = { id: string; orderNumberTail: string; status: string; statusLabel: string; totalYuan: string; totalCents: number; currency: "CNY"; productName: string; productImage: string | null; itemSummary: string };
 type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null; expectedConversationId: string | null; contextVersion: number };
+type MemberRecovery = { attempt: SendAttempt | null; input: string; selectedImage: SelectedImage | null; selectedOrder: OrderChoice | null;
+  conversationId: string | null; contextVersion: number };
 type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string };
 type HandoffAttempt = { contextVersion: number; questionMessageId: string | null; expectedConversationId?: string };
 type TopicMetadata = { contextStartSequence?: unknown; contextVersion?: unknown; conversation?: Conversation | null };
@@ -54,6 +58,7 @@ function memberComposerCanSend(input: string, image: SelectedImage | null, order
 
 Page({
   identityCache: null as SupportIdentityCache | null,
+  pendingRecovery: null as MemberRecovery | null,
   linkedOrderId:"",
   snapshotToken:"",
   readRevision:commerceContextRevision(),
@@ -71,6 +76,7 @@ Page({
   orderPickerRevision: 0,
   orderPickerToken: "",
   lastScrollTop: 0,
+  bottomScrollTop: 0,
   lastActivityAt: 0,
   lastPresenceSentAt: 0,
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
@@ -80,11 +86,11 @@ Page({
   uploadAbort: null as (() => void) | null,
   mediaDownloads: [] as Array<() => void>,
   data: {
-    ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar, identityMemberKey: "", identityAgentKey: "",
+    ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", ownBadge: "", memberAvatar: defaultMemberAvatar, memberBadge: "", agentAvatar: defaultMemberAvatar, agentBadge: "", agentDisplayName: "", identityMemberKey: "", identityAgentKey: "",
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, historyStartLoaded: false, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
-    pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
+    pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false, helpNavigating: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
     newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
     attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
@@ -111,10 +117,11 @@ Page({
     this.lastActivityAt = Date.now();
     this.orderPickerRevision += 1;
     this.orderPickerToken = "";
-    this.setData({ sending: false, handoffBusy: false, newTopicBusy: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
+    this.setData({ sending: false, handoffBusy: false, newTopicBusy: false, helpNavigating: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
     if (!preserve) {
       this.identityCache?.reset();
-      this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar });
+      this.pendingRecovery = null;
+      this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", ownBadge: "", memberAvatar: defaultMemberAvatar, memberBadge: "", agentAvatar: defaultMemberAvatar, agentBadge: "", agentDisplayName: "", identityMemberKey: "", identityAgentKey: "" });
       this.inputRevision += 1;
       this.orderSelectionRevision += 1;
       this.linkedOrderDismissed = false;
@@ -130,7 +137,10 @@ Page({
     if (!(closedRights?requireHistoricalCommerceAccess(`/pages/support/index?orderId=${this.linkedOrderId}`):requireMemberAccess("/pages/support/index"))) { this.data.visible = false; return; }
     if (!closedRights) void this.loadOwnIdentity();
     const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
-    if(!this.data.sendAttempt){
+    if (!this.data.sendAttempt) {
+      this.pendingRecovery = takeSupportRecovery<MemberRecovery>(sessionToken(), this.readRevision, `member:${draftScope}`);
+    }
+    if(!this.data.sendAttempt&&!this.pendingRecovery){
       const pending=takeSupportSendAttempt(sessionToken(),draftScope);
       if(pending){
         const sendAttempt:SendAttempt={id:pending.id,body:pending.body,mediaIds:[],linkedOrderId:pending.linkedOrderId,
@@ -139,9 +149,9 @@ Page({
           composerSendEnabled:true,error:'发送结果尚未确认，重试不会重复发送。'});
       }
     }
-    if(!this.data.input&&!this.data.sendAttempt){
+    if(!this.data.input&&!this.data.sendAttempt&&!this.pendingRecovery){
       const draft=takeSupportDraft(sessionToken(),draftScope);
-      if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.input?this.data.selectedImage:this.data.selectedImage,this.data.selectedOrder)});
+      if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.selectedImage,this.data.selectedOrder)});
     }
     if (preserve && this.data.conversation && !this.data.loading) {
       // Keep the existing scroll-view and its reading position through native
@@ -178,11 +188,19 @@ Page({
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
   onUnload() { this.newTopicRevision += 1; this.stopAiReplyWait(); const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
-    if(!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===(this.linkedOrderId||null)&&
-      !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null,
-        expectedConversationId:this.data.sendAttempt.expectedConversationId,contextVersion:this.data.sendAttempt.contextVersion});
-    else if(!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
-      stageSupportDraft(sessionToken(),draftScope,this.data.input);
+    const attempt=this.data.sendAttempt;
+    if(sessionToken()===this.snapshotToken&&this.readRevision===commerceContextRevision()){
+      if(this.pendingRecovery)stageSupportRecovery(sessionToken(),this.readRevision,`member:${draftScope}`,this.pendingRecovery);
+      else if(this.data.selectedImage||this.data.selectedOrder&&this.data.selectedOrder.id!==(this.linkedOrderId||null)||
+        attempt&&(attempt.mediaIds.length>0||attempt.linkedOrderId!==(this.linkedOrderId||null)))
+        stageSupportRecovery<MemberRecovery>(sessionToken(),this.readRevision,`member:${draftScope}`,{attempt,input:this.data.input,
+          selectedImage:this.data.selectedImage,selectedOrder:this.data.selectedOrder,conversationId:this.data.conversation?.id??null,contextVersion:this.data.contextVersion});
+      else if(!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===(this.linkedOrderId||null)&&
+        !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null,
+          expectedConversationId:this.data.sendAttempt.expectedConversationId,contextVersion:this.data.sendAttempt.contextVersion});
+      else if(!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
+        stageSupportDraft(sessionToken(),draftScope,this.data.input);
+    }
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); this.choosingImage = false; this.nativePickerReturn?.(); this.nativePickerReturn = null; },
   openAftersaleCase(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??'');
@@ -190,6 +208,19 @@ Page({
     wx.navigateTo({url:`/pages/aftersale/index?caseId=${id}`});
   },
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
+  restoreRecovery(conversation: Conversation | null, contextVersion: number) {
+    const recovered=this.pendingRecovery;
+    if(!recovered)return;
+    this.pendingRecovery=null;
+    const sameConversation=recovered.conversationId===conversation?.id || !recovered.conversationId&&recovered.contextVersion===0;
+    if(!sameConversation||recovered.contextVersion!==contextVersion){
+      this.setComposerState({error:"会话已更新，原草稿或待核对消息不再属于当前对话。",errorAction:""});return;
+    }
+    this.setData({input:recovered.input,selectedImage:recovered.selectedImage,selectedOrder:recovered.selectedOrder,
+      sendAttempt:recovered.attempt,composerSendEnabled:recovered.attempt?false:memberComposerCanSend(recovered.input,recovered.selectedImage,recovered.selectedOrder)});
+    if(recovered.attempt)this.setData({pendingMessage:this.pendingFrom(recovered.attempt,'unknown'),error:'发送结果尚未确认，内容已保留，请核对原消息。',errorAction:''});
+    this.scheduleComposerMeasure();
+  },
   stopAiReplyWait() { this.aiWaitRevision += 1; if (this.data.aiReplyWaiting) this.setData({ aiReplyWaiting: false }); },
   currentConversation(incoming: Conversation | null | undefined) { return newestSupportConversation(this.data.conversation, incoming); },
   responseContextVersion(page: TopicMetadata) {
@@ -221,7 +252,7 @@ Page({
     this.stopAiReplyWait(); this.clearPresenceTimer(); this.abortTransientWork();
     this.handoffRevision += 1;
     if (!keepAttempt) this.clearTopicDraft();
-    this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
+    this.lastScrollTop = 0; this.bottomScrollTop = 0; this.lastPresenceSentAt = 0;
     this.orderPickerRevision += 1; this.orderPickerToken = "";
     this.setComposerState({ ...(!keepAttempt ? { pendingMessage: null, sendAttempt: null, sending: false } : {}), uploadBusy: false, handoffBusy: false,
       presence: emptyPresence, anchor: "", olderCursor: null, historyStartLoaded: false, loadingOlder: false, handoffFailed: false, handoffAttempt: null,
@@ -259,11 +290,11 @@ Page({
     const cache = this.identityCache;
     const changed = () => {
       if (!this.owns(epoch, token) || this.identityCache !== cache) return;
-      this.applyThreadState(this.threadState(), { memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey) });
+      this.applyThreadState(this.threadState(), { memberAvatar: cache.avatar(cache.memberKey), memberBadge: cache.badge(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), agentBadge: cache.badge(cache.agentKey) });
     };
     cache.absorb(page, changed);
     for (const message of page.messages ?? []) cache.accept(message.sender, changed);
-    this.setData({ memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), identityMemberKey: cache.memberKey, identityAgentKey: cache.agentKey });
+    this.setData({ memberAvatar: cache.avatar(cache.memberKey), memberBadge: cache.badge(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), agentBadge: cache.badge(cache.agentKey), agentDisplayName: cache.name(cache.agentKey) || "", identityMemberKey: cache.memberKey, identityAgentKey: cache.agentKey });
   },
   async loadOwnIdentity() {
     const epoch = this.lifecycleEpoch, token = sessionToken();
@@ -271,9 +302,11 @@ Page({
     const cached = memberIdentity();
     this.setData({ ownAvatar: cached?.avatarUrl || defaultMemberAvatar, ownDisplayName: cached?.display_name || 'CISME 会员' });
     const identity = await supportOwnIdentity(current);
-    if (current() && identity) this.setData({ ownAvatar: identity.avatarUrl || defaultMemberAvatar, ownDisplayName: identity.display_name });
+    if (current() && identity) this.setData({ ownAvatar: identity.avatarUrl || defaultMemberAvatar, ownDisplayName: identity.display_name,
+      ...(identity.identityBadge !== undefined ? { ownBadge: identity.identityBadge } : {}) });
   },
   onAvatarError(event: WechatMiniprogram.TouchEvent) {
+    if (event.currentTarget.dataset.ai) return;
     const key = event.currentTarget.dataset.key as string | undefined;
     if (key) { this.identityCache?.fail(key); this.applyThreadState(this.threadState(), {
       memberAvatar: this.identityCache?.avatar(this.identityCache.memberKey), agentAvatar: this.identityCache?.avatar(this.identityCache.agentKey) }); }
@@ -287,7 +320,25 @@ Page({
     return presentSupportMessages(messages.map(item => {
       this.identityCache?.accept(item.sender, () => { if (this.owns(identityEpoch, identityToken) && cache === this.identityCache) this.applyThreadState(this.threadState()); });
       return this.identityCache?.resolve(item) ?? item;
-    }), { ownSenderType: "user", memberDisplayName: this.data.ownDisplayName, counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName });
+    }), { ownSenderType: "user", memberDisplayName: this.data.ownDisplayName, counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName })
+      .map(item => ({ ...item, helpLabel: item.senderType === "ai" ? supportHelpLabel(item.helpAction) : "" }));
+  },
+  async openHelp(event: WechatMiniprogram.TouchEvent) {
+    const epoch=this.lifecycleEpoch,token=sessionToken();
+    if (!this.owns(epoch,token)||this.data.closedRights||this.data.helpNavigating) return;
+    const id = String(event.currentTarget.dataset.id ?? "");
+    const message = this.data.messages.find(item => item.id === id && item.senderType === "ai");
+    if (!message || !supportHelpLabel(message.helpAction)) return;
+    this.setData({ helpNavigating: true });
+    const complete = () => { if (this.owns(epoch, token)) this.setData({ helpNavigating: false }); };
+    try {
+      if(message.helpAction==='shop'&&(this.data.input.trim()||this.data.selectedImage||this.data.selectedOrder)){
+        const confirm=await wx.showModal({title:'进入商城？',content:'将离开当前聊天。之后可从客服入口继续。',confirmText:'进入商城'});
+        if(!confirm.confirm||!this.owns(epoch,token)){complete();return;}
+      }
+      openSupportHelp(message.helpAction, complete);
+    }
+    catch { complete(); wx.showToast({ title: "页面暂时无法打开", icon: "none" }); }
   },
   headerPatch(conversation: Conversation | null, presence: Presence, aiAvailable?: boolean) {
     if (!conversation) return (aiAvailable ?? this.data.supportAiAvailable) && !this.data.closedRights
@@ -407,6 +458,7 @@ Page({
       this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, historyStartLoaded, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
         anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
+      this.restoreRecovery(conversation, contextVersion);
       this.downloadMedia(messages);
       await this.markRead();
       void this.publishPresence(true, Boolean(this.data.input.trim()), true);
@@ -455,9 +507,14 @@ Page({
       });
       if (incoming.length) this.downloadMedia(incoming);
       this.pollFailures = 0;
+      if (this.data.error === "消息暂时无法更新，请检查网络后重试。") this.setComposerState({ error: "", errorAction: "" });
       await this.markRead();
       void this.publishPresence(true, Boolean(this.data.input.trim()));
-    } catch { this.pollFailures += 1; }
+    } catch {
+      this.pollFailures += 1;
+      if (this.owns(epoch, ownerToken) && this.pollFailures >= 2 && !this.data.error)
+        this.setComposerState({ error: "消息暂时无法更新，请检查网络后重试。", errorAction: "sync" });
+    }
     finally { this.pollInFlight = false; this.schedulePoll(); }
   },
   async loadOlder() {
@@ -485,10 +542,13 @@ Page({
   },
   onThreadScroll(event: WechatMiniprogram.ScrollViewScroll) {
     const top = Number(event.detail.scrollTop) || 0;
-    if (top + 8 < this.lastScrollTop && this.data.atBottom) this.setData({ atBottom: false, anchor: "" });
+    if (this.data.atBottom) {
+      this.bottomScrollTop = Math.max(this.bottomScrollTop, top);
+      if (top + 8 < this.bottomScrollTop) this.setData({ atBottom: false, anchor: "" });
+    }
     this.lastScrollTop = top;
   },
-  onThreadBottom() { if (!this.data.atBottom || this.data.newMessagesBelowCount) this.setData({ atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false }); void this.markRead(); },
+  onThreadBottom() { this.bottomScrollTop = this.lastScrollTop; if (!this.data.atBottom || this.data.newMessagesBelowCount) this.setData({ atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false }); void this.markRead(); },
   jumpToLatest() {
     const newest = this.data.messages[this.data.messages.length - 1];
     this.setData({ atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, anchor: newest ? `support-${newest.sequence}` : "" });
@@ -626,6 +686,12 @@ Page({
           await this.load();
           if (this.owns(recoveryEpoch, ownerToken))
             this.setComposerState({ error: "会话已更新，原消息未发送，请重新输入。", errorAction: "sync" });
+        } else if ((error as {code?:string})?.code === "SUPPORT_MEDIA_NOT_FOUND") {
+          const selected = this.data.selectedImage;
+          this.setComposerState({ sendAttempt: null, pendingMessage: null, composerSendEnabled: selected ? false : memberComposerCanSend(this.data.input, null, this.data.selectedOrder),
+            ...(selected ? { selectedImage: { ...selected, mediaId: "", status: "failed", error: "图片已失效，请重传或移除。" } } : {}),
+            error: "图片已失效，消息未发送。文字已保留，请重传或移除图片。", errorAction: "" });
+          this.scheduleComposerMeasure();
         } else this.setComposerState({ error: "发送结果尚未确认，内容已保留，请重试。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
       }
     } finally {

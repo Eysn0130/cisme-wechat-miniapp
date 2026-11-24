@@ -79,6 +79,19 @@ describe('native AI and human support collaboration receipts',()=>{
   m.request.mockImplementation(async input=>input.path==='/v1/me/support/messages'?{conversation,message:message('user',1),aiStatus:'pending',aiMessages:[]}:{});
   await p.send();expect(p.data.errorAction).toBe('handoff');expect(schedule).toHaveBeenCalledOnce();
  });
+ it('unlocks editing after the server rejects an expired image without discarding the text',async()=>{
+  p.data.selectedImage={status:'ready',mediaId:'expired',localPath:'wxfile://test.jpg',size:100,mimeType:'image/jpeg'};
+  m.request.mockImplementation(async input=>{
+   if(input.path==='/v1/me/support/messages')throw {status:404,code:'SUPPORT_MEDIA_NOT_FOUND'};
+   return {};
+  });
+  await p.send();
+  expect(p.data).toMatchObject({input:'护理如何保存？',sendAttempt:null,pendingMessage:null,sending:false,composerSendEnabled:false,
+   selectedImage:{status:'failed',mediaId:'',localPath:'wxfile://test.jpg'}});
+  expect(p.data.error).toContain('图片已失效');
+  p.removeImage();
+  expect(p.data).toMatchObject({input:'护理如何保存？',selectedImage:null,composerSendEnabled:true});
+ });
  it.each(['hidden','account'])('defers resize measurement and discards its callback after %s ownership changes',async(change)=>{
   const ticks=captureComposerMeasurements();p.onResize();expect(ticks).toHaveLength(1);expect(p.measureComposer).not.toHaveBeenCalled();
   if(change==='hidden'){p.data.visible=false;p.lifecycleEpoch++;}else m.token='synthetic-other';
