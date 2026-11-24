@@ -39,7 +39,7 @@
         </view>
         <view class="support-message__content">
           <text wx:if="{{item.groupStart && item.senderType !== 'user'}}" class="support-message__sender">{{item.senderLabel}}</text>
-          <text wx:if="{{item.replyReferenceLabel}}" class="support-reply-reference">{{item.replyReferenceLabel}}</text>
+          <text wx:if="{{item.replyReferenceLabel}}" class="support-reply-reference support-chat-quote">{{item.replyReferenceLabel}}</text>
           <view wx:if="{{item.body}}" class="support-bubble">{{item.body}}</view>
           <button wx:if="{{item.helpLabel}}" class="support-help {{helpNavigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openHelp" disabled="{{helpNavigating}}">{{item.helpLabel}}</button>
           <view wx:if="{{item.attachments.length}}" class="support-media-grid">

@@ -26,3 +26,19 @@
   min-height: 104rpx;
   padding: 0 10rpx 10rpx;
 }
+
+.support-chat-quote {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: 8rpx;
+  padding: 6rpx 12rpx;
+  overflow: hidden;
+  border-radius: 10rpx;
+  color: var(--cisme-muted);
+  background: #efedf0;
+  font-size: var(--cisme-text-small);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

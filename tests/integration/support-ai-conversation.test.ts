@@ -256,7 +256,8 @@ describe('persistent AI support and manual handoff',()=>{
   expect((await pool.query("SELECT id FROM support_message WHERE conversation_id=$1 AND client_message_id=$2",[waiting.id,`ai-reply:${result.message.id}`])).rowCount).toBe(1);
  });
  it('enforces targeted reply ownership, human generation and current topic before a new admin command',async()=>{
-  const origin=await send('原人工问题','synthetic-target-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
+  const originBody='原人工问题\n'+('护理记录'.repeat(24));
+  const origin=await send(originBody,'synthetic-target-origin');const waiting=await support.requestHuman(user.memberId,user.principalId);
   await support.claim(operator.memberId,operator.principalId,waiting.id,{expectedVersion:waiting.version},'synthetic');
   const input={body:'目标回复',clientMessageId:'synthetic-target-validation',replyToMessageId:origin.message.id,expectedHumanRequestGeneration:1,contextVersion:0};
   await expect(support.reply(operator.memberId,operator.principalId,waiting.id,{...input,expectedHumanRequestGeneration:0},'synthetic')).rejects.toMatchObject({code:'SUPPORT_HUMAN_REQUEST_CHANGED'});
@@ -266,6 +267,14 @@ describe('persistent AI support and manual handoff',()=>{
   await expect(support.reply(operator.memberId,operator.principalId,waiting.id,{...input,replyToMessageId:foreignMessage.message.id},'synthetic')).rejects.toMatchObject({code:'SUPPORT_REPLY_TARGET_INVALID'});
   const written=await support.reply(operator.memberId,operator.principalId,waiting.id,input,'synthetic');
   expect(written.message.replyToMessageId).toBe(origin.message.id);
+  const query={after:origin.message.sequence};
+  const views=await Promise.all([support.messagesForMember(user.memberId,query),
+    support.operatorMessages(operator.memberId,operator.principalId,waiting.id,query)]);
+  const excerpt=Array.from(originBody.replace(/\n/g,' ')).slice(0,80).join('')+'…';
+  for(const view of views){
+   expect(view.messages.some(message=>message.id===origin.message.id)).toBe(false);
+   expect(view.messages.find(message=>message.id===written.message.id)).toMatchObject({replyToMessageId:origin.message.id,replyExcerpt:excerpt});
+  }
   await expect(support.reply(operator.memberId,operator.principalId,waiting.id,{...input,replyToMessageId:foreignMessage.message.id},'synthetic')).rejects.toMatchObject({code:'IDEMPOTENCY_CONFLICT'});
  });
  it('requires the scoped SQL marker for AI in manual service and rejects cross-conversation reply links',async()=>{

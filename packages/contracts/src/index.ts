@@ -216,6 +216,7 @@ export interface SupportSenderIdentityView {
 export interface SupportMessageView {
   id: string;
   replyToMessageId?: string | null;
+  replyExcerpt?: string;
   sequence: number;
   senderType: SupportSenderType;
   sender?: SupportSenderIdentityView | undefined;

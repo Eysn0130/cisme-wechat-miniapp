@@ -93,6 +93,12 @@ function contentType(body: string, images: readonly string[], orderId: string | 
 function messageColumns(): string {
   return "id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at,reply_to_message_id";
 }
+function replyExcerpt(target: Pick<MessageRow, "body" | "content_type">): string {
+  const characters = Array.from(target.body.replace(/\s+/g, " ").trim());
+  if (characters.length) return characters.slice(0, 80).join("") + (characters.length > 80 ? "…" : "");
+  if (target.content_type === "image" || target.content_type === "mixed") return "图片咨询";
+  return target.content_type === "order" ? "订单咨询" : "";
+}
 function view(row: MessageRow, input: { counterpartyReadSequence: number; previewPrefix: string; media: ReadonlyMap<string, MediaRow> }): SupportMessageView {
   const attachments = (Array.isArray(row.attachment_refs) ? row.attachment_refs : []).flatMap((id) => {
     const media = input.media.get(id);
@@ -518,12 +524,20 @@ export class SupportService {
     const identityPage = await supportIdentities(client, row, pageRows, this.authority.environment);
     const media = await this.mediaMap(client, pageRows);
     const replyIds=pageRows.flatMap(message=>message.reply_to_message_id?[message.reply_to_message_id]:[]);
-    const validTargets=new Set((replyIds.length?(await client.query<{id:string}>(`SELECT id FROM support_message WHERE id=ANY($1::uuid[]) AND conversation_id=$2 AND sequence>$3`,[replyIds,row.id,boundary])).rows:[]).map(target=>target.id));
-    const messages = pageRows.map((messageRow) => ({ ...view({...messageRow,reply_to_message_id:messageRow.reply_to_message_id&&validTargets.has(messageRow.reply_to_message_id)?messageRow.reply_to_message_id:null}, {
-      counterpartyReadSequence: Number(perspective === "member" ? row.team_last_read_sequence : row.member_last_read_sequence),
-      previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
-      media
-    }), sender: identityPage.sender(messageRow) }));
+    const targets = replyIds.length ? (await client.query<Pick<MessageRow,"id" | "sequence" | "body" | "content_type">>(
+      `SELECT id,sequence,body,content_type FROM support_message
+       WHERE id=ANY($1::uuid[]) AND conversation_id=$2 AND sequence>$3 AND sender_type='user'`, [replyIds,row.id,boundary])).rows : [];
+    const byId = new Map(targets.map(target => [target.id, target]));
+    const messages = pageRows.map(messageRow => {
+      const target = byId.get(messageRow.reply_to_message_id ?? "");
+      const original = target && Number(target.sequence) < Number(messageRow.sequence) ? target : undefined;
+      const excerpt = original && messageRow.sender_type === "admin" ? replyExcerpt(original) : "";
+      return { ...view({...messageRow,reply_to_message_id:original?.id ?? null}, {
+        counterpartyReadSequence: Number(perspective === "member" ? row.team_last_read_sequence : row.member_last_read_sequence),
+        previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
+        media
+      }), ...(excerpt ? {replyExcerpt: excerpt} : {}), sender: identityPage.sender(messageRow) };
+    });
     const olderCursor:number|null=hasOlder?messages[0]!.sequence:null;
     const presence = await this.presence(row,new Date(),client);
     if (identityPage.agentIdentityKey) presence.agentDisplayName = identityPage.identities[identityPage.agentIdentityKey]?.displayName ?? 'CISME 客服';

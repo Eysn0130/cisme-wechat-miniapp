@@ -851,6 +851,7 @@ Page({
       senderType: "admin" as const,
       body: attempt.body,
       replyToMessageId: attempt.replyToMessageId,
+      ...(this.data.replyTarget?.id === attempt.replyToMessageId ? { replyExcerpt: this.data.replyTarget.summary } : {}),
       contentType: "text",
       createdAt: new Date().toISOString(),
       attachments: [],

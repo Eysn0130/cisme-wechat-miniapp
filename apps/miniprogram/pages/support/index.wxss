@@ -211,20 +211,6 @@
   line-height: 1.25;
 }
 
-.support-reply-reference {
-  display: -webkit-box;
-  overflow: hidden;
-  min-width: 0;
-  max-width: 100%;
-  margin-bottom: 8rpx;
-  color: var(--cisme-muted);
-  font-size: var(--cisme-text-small);
-  line-height: 1.4;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-}
-
 .support-bubble {
   max-width: 100%;
   padding: 19rpx 23rpx;
