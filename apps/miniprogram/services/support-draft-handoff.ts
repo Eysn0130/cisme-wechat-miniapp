@@ -5,6 +5,42 @@ let pending:{session:string;orderId:string;text:string;createdAt:number}|null=nu
 export type SupportSendAttemptHandoff={id:string;body:string;linkedOrderId:string|null;expectedConversationId?:string|null;contextVersion?:number};
 let pendingAttempt:{session:string;orderId:string;attempt:SupportSendAttemptHandoff;createdAt:number}|null=null;
 const lifetimeMs=10*60*1000;
+let recoveryOwner='';
+let recoveryRevision=-1;
+const recoveries=new Map<string,{value:unknown;expiresAt:number}>();
+
+export function clearSupportDraftHandoffs() {
+  pending=null;
+  pendingAttempt=null;
+  recoveries.clear();
+  recoveryOwner='';
+  recoveryRevision=-1;
+}
+
+// The full-chat recovery may also carry an attachment or operator reply target.
+// Both owner and API context must still match before the page rechecks the conversation.
+function recoveryScope(owner:string,revision:number) {
+  if(owner!==recoveryOwner||revision!==recoveryRevision) {
+    recoveries.clear();
+    recoveryOwner=owner;
+    recoveryRevision=revision;
+  }
+}
+
+export function stageSupportRecovery<T>(owner:string,revision:number,scope:string,value:T) {
+  recoveryScope(owner,revision);
+  if(!owner||!scope)return;
+  const now=Date.now();
+  for(const [key,entry] of recoveries)if(entry.expiresAt<now)recoveries.delete(key);
+  recoveries.set(scope,{value,expiresAt:now+lifetimeMs});
+}
+
+export function takeSupportRecovery<T>(owner:string,revision:number,scope:string):T|null {
+  recoveryScope(owner,revision);
+  const entry=recoveries.get(scope);
+  recoveries.delete(scope);
+  return entry&&entry.expiresAt>=Date.now()?entry.value as T:null;
+}
 
 export function stageSupportDraft(session:string,orderId:string,text:string):void{
   pending=session&&orderId&&text.trim()?{session,orderId,text,createdAt:Date.now()}:null;

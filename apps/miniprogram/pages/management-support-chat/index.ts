@@ -1,4 +1,5 @@
-import { SupportIdentityCache, supportOwnIdentity, stageSupportRecovery, takeSupportRecovery, type SupportSender } from '../../services/support-identity';
+import { SupportIdentityCache, supportOwnIdentity, type SupportSender } from '../../services/support-identity';
+import { stageSupportRecovery, takeSupportRecovery } from '../../services/support-draft-handoff';
 import { defaultMemberAvatar } from '../../services/member-avatar';
 import { memberIdentity } from '../../services/member-identity';
 import { pageRead, cancelPageReads } from "../../services/page-requests";

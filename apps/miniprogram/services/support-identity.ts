@@ -8,28 +8,6 @@ export type SupportSender = { key: string; displayName: string; profileRevision:
   avatarRevision: string | null; avatarDataUrl?: string | null; redacted?: boolean; identityBadge?: SupportIdentityBadge | undefined };
 type Entry = { identity: SupportSender; avatarPath: string; failed: boolean; loading: boolean };
 
-// Short-lived, memory-only recovery for a page that is destroyed while a
-// message receipt is unknown. Identity/environment changes invalidate all
-// retained drafts before another page can consume them.
-let recoveryOwner = '';
-let recoveryRevision = -1;
-const recoveries = new Map<string, { value: unknown; createdAt: number }>();
-function recoveryScope(owner: string, revision: number) {
-  if (!owner || owner !== recoveryOwner || revision !== recoveryRevision) {
-    recoveries.clear(); recoveryOwner = owner; recoveryRevision = revision;
-  }
-}
-export function stageSupportRecovery<T>(owner: string, revision: number, scope: string, value: T) {
-  recoveryScope(owner, revision);
-  if (owner && scope) recoveries.set(scope, { value, createdAt: Date.now() });
-}
-export function takeSupportRecovery<T>(owner: string, revision: number, scope: string): T | null {
-  recoveryScope(owner, revision);
-  const entry = recoveries.get(scope); recoveries.delete(scope);
-  return entry && Date.now() - entry.createdAt <= 10 * 60_000 ? entry.value as T : null;
-}
-export function clearSupportRecoveries() { recoveries.clear(); recoveryOwner = ''; recoveryRevision = -1; }
-
 /** Private per-page cache. Raw image bytes never enter the rendering bridge. */
 export class SupportIdentityCache {
   private entries = new Map<string, Entry>();

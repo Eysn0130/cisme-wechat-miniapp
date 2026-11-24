@@ -1,4 +1,4 @@
-import { SupportIdentityCache, supportOwnIdentity, stageSupportRecovery, takeSupportRecovery, type SupportSender } from '../../services/support-identity';
+import { SupportIdentityCache, supportOwnIdentity, type SupportSender } from '../../services/support-identity';
 import { defaultMemberAvatar } from '../../services/member-avatar';
 import { memberIdentity } from '../../services/member-identity';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
@@ -9,7 +9,7 @@ import { nativeCatalogImage } from "../../services/catalog";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import { openSupportHelp, supportHelpLabel } from "../../services/support-help";
-import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
+import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt, stageSupportRecovery, takeSupportRecovery } from "../../services/support-draft-handoff";
 import {
   createSupportThreadState,
   mergeAcknowledgement,
