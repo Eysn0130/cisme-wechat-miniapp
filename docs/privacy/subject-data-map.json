@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "3cbe651d67148473edd12d9eff8af6328c068f9d58b7cff59e33c40fb117bac5",
+  "migrationSetSha256": "06e0441d5464fc13a7565c2a35ada7a9e3f94585c82aa0109513c56eeac3d8fd",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -2789,7 +2789,9 @@
         "program",
         "sharing_policy_id",
         "sharing_visit_id",
-        "sharing_relation_event_id"
+        "sharing_relation_event_id",
+        "sharing_v2_application_version",
+        "sharing_v2_intent_id"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -6797,7 +6799,7 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "buyer_id is the data subject; officer_id is a distinct recommender, not an owned customer identity. Owner projections include derived public referral_code only. Existing permanent first ownership changes solely on buyer confirmation; no sharing-officer export of customer UUID/profile.",
+      "specialHandling": "The buyer owns the live relationship projection. Only the public referrer code is derived. Under V2.0 a relationship commits after a qualifying order; a later qualification termination removes the live relation while retaining history. The sharing officer's export excludes their referred buyers' identity.",
       "exportFields": [
         "source",
         "effective_at",
@@ -6851,7 +6853,7 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Applicant owns canonical membership qualification and current application/review fields. Reviewer is a separate actor. No purchase, commercial tier, agreement or subordinate commission is implied. Closure terminates qualification, preserving necessary direct trade/qualification evidence.",
+      "specialHandling": "Applicant owns canonical membership qualification and current application/review fields. Company reviewer and worker are separate actors. The V2.0 evidence relationship is versioned independently; historical qualifications do not gain V2.0 by inference. Closure terminates the qualification and removes its live V2.0 bindings while retaining evidence.",
       "exportFields": [
         "referral_code",
         "state",
@@ -6862,7 +6864,8 @@
       ],
       "excludedFields": [
         "member_id",
-        "version"
+        "version",
+        "v2_application_version"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -6883,7 +6886,7 @@
         ]
       ],
       "actorColumns": [],
-      "specialHandling": "Append-only qualification history belongs to the applicant; actor_id is an independently authorized company operator and is not exported as another member profile.",
+      "specialHandling": "Append-only qualification history belongs to the applicant. The authorized company actor is excluded from member export. A system assessment has no member actor and preserves its qualified source data separately.",
       "exportFields": [
         "version",
         "from_state",
@@ -6894,7 +6897,8 @@
       "excludedFields": [
         "actor_id",
         "id",
-        "member_id"
+        "member_id",
+        "system_assessment"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",
@@ -7953,6 +7957,113 @@
       ],
       "derivedOwnerExportFields": [
         "period"
+      ]
+    },
+    {
+      "table": "sharing_v2_agreement_document",
+      "subjectPaths": [],
+      "actorColumns": [],
+      "specialHandling": "This versioned agreement text is a company document with no member attributes. The exact archived body is included only through the owner's linked acceptance; the standalone document table is not queried as a member data collection.",
+      "exportFields": [],
+      "excludedFields": [
+        "agreement_version",
+        "agreement_digest",
+        "effective_on",
+        "body_snapshot"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "COMPANY_CONFIG_OR_CREDENTIAL_CACHE_EXCLUDED_FROM_OWNER_EXPORT"
+    },
+    {
+      "table": "sharing_v2_application",
+      "subjectPaths": [
+        [
+          "sharing_v2_application.member_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [
+        "verified_by"
+      ],
+      "specialHandling": "Applicant owns the agreement acceptance and company verification outcome. Export only their archived contract and opaque verification reference; the reviewer is a separate actor. The approval event is stored without identity documents or numbers.",
+      "exportFields": [
+        "application_version",
+        "agreement_version",
+        "agreement_digest",
+        "effective_on",
+        "accepted_at",
+        "verified_at",
+        "verification_reference"
+      ],
+      "excludedFields": [
+        "member_id",
+        "verified_by"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED",
+      "derivedOwnerExportFields": [
+        "document"
+      ]
+    },
+    {
+      "table": "sharing_v2_assessment",
+      "subjectPaths": [
+        [
+          "sharing_v2_assessment.member_id -> sharing_v2_application.member_id",
+          "sharing_v2_application.member_id -> sharing_officer.member_id",
+          "sharing_officer.member_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Assessment and termination evidence belongs to the applicant. The worker writes minimal counts across three completed periods. No referred member identity enters the record.",
+      "exportFields": [
+        "application_version",
+        "through_period",
+        "valid_order_counts",
+        "terminated",
+        "reviewed_at"
+      ],
+      "excludedFields": [
+        "member_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED"
+    },
+    {
+      "table": "sharing_v2_referral_intent",
+      "subjectPaths": [
+        [
+          "sharing_v2_referral_intent.buyer_id -> member.id",
+          "member.id"
+        ]
+      ],
+      "actorColumns": [],
+      "specialHandling": "Only the buyer can export their selection and outcome, with the prospective referrer's already visible public code. The officer and visit identifiers remain internal. Account closure releases live intents and retains prior facts.",
+      "exportFields": [
+        "source",
+        "state",
+        "created_at"
+      ],
+      "excludedFields": [
+        "id",
+        "buyer_id",
+        "officer_id",
+        "visit_id"
+      ],
+      "syntheticErasureFields": [],
+      "productionErasure": "DISABLED",
+      "retention": "NECESSARY_QUALIFICATION_AND_FINANCIAL_EVIDENCE_WITH_LEGAL_HOLD; NO_AUTOMATIC_PURGE_POLICY_INFERRED",
+      "fullSubjectResolverStatus": "APPROVED_TYPED_OWNER_PROJECTION_IMPLEMENTED",
+      "derivedOwnerExportFields": [
+        "to_code"
       ]
     },
     {
