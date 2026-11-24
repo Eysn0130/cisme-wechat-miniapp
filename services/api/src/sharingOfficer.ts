@@ -207,7 +207,7 @@ export class SharingOfficerService {
   VALUES($1,$2,$3,$4,$5,$6)`,[row.member_id,row.version,from,row.state,actor,reason]);}
  async visit(shareId:string,visitKeyInput:unknown){
   if(!/^[0-9a-f]{32}$/.test(shareId))fail('SHARING_LINK_NOT_FOUND','分享链接不可用',404);
-  const visitKey=text(visitKeyInput,'访问凭据',16,160),visitedAt=new Date();
+  const visitKey=text(visitKeyInput,'访问凭据',16,160);
   return transaction(this.pool,async client=>{
    const link=(await client.query(`SELECT l.product_code,o.state,p.publication_status,p.qualification_status,m.status AS member_status
     FROM sharing_link l JOIN sharing_officer o ON o.member_id=l.officer_id JOIN member m ON m.id=o.member_id
@@ -218,15 +218,15 @@ export class SharingOfficerService {
    const policy=(await client.query(currentSharingPolicySql)).rows[0];
    if(link.state!=='active'||link.member_status!=='active'||!policy?.enabled)return {productCode,visitToken:null};
    const token=randomBytes(32).toString('base64url');
-   const visit=(await client.query(`INSERT INTO sharing_visit(share_id,visit_key,token_hash,token_ciphertext,visited_at)
-    VALUES($1,$2,$3,$4,$5) ON CONFLICT(share_id,visit_key) DO UPDATE SET visit_key=EXCLUDED.visit_key RETURNING token_ciphertext`,
-    [shareId,visitKey,sharingHash(token),this.seal({token},`sharing-visit:${shareId}:${visitKey}`),visitedAt])).rows[0];
+   const visit=(await client.query(`INSERT INTO sharing_visit(share_id,visit_key,token_hash,token_ciphertext)
+    VALUES($1,$2,$3,$4) ON CONFLICT(share_id,visit_key) DO UPDATE SET visit_key=EXCLUDED.visit_key RETURNING token_ciphertext`,
+    [shareId,visitKey,sharingHash(token),this.seal({token},`sharing-visit:${shareId}:${visitKey}`)])).rows[0];
    return {productCode,visitToken:this.unseal(visit.token_ciphertext,`sharing-visit:${shareId}:${visitKey}`).token};
   });
  }
  private async bindVisit(client:DbClient,actor:string,input:Row){
   const token=text(input.visitToken,'访问凭据',43,43),hash=sharingHash(token);
-  const visit=(await client.query('SELECT * FROM sharing_visit WHERE token_hash=$1 FOR UPDATE',[hash])).rows[0];
+  const visit=(await client.query('SELECT *,visited_at::text AS precise_visited_at FROM sharing_visit WHERE token_hash=$1 FOR UPDATE',[hash])).rows[0];
   if(!visit)fail('SHARING_VISIT_NOT_FOUND','访问凭据无效',404);
   if(visit.visitor_id&&visit.visitor_id!==actor)fail('SHARING_VISIT_ALREADY_BOUND','访问凭据已使用',409);
   await client.query('UPDATE sharing_visit SET visitor_id=$1,bound_at=COALESCE(bound_at,clock_timestamp()) WHERE id=$2',[actor,visit.id]);
@@ -238,8 +238,10 @@ export class SharingOfficerService {
    LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
    WHERE l.share_id=$1 AND o.state='active' AND m.status='active' FOR SHARE OF o,m`,[visit.share_id])).rows[0];
   if(link&&link.officer_id!==actor){
-   const current=(await client.query(`SELECT r.*,o.v2_application_version FROM sharing_customer_relation r
-    JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1 FOR UPDATE OF r`,[actor])).rows[0];
+   const current=(await client.query(`SELECT r.*,o.v2_application_version,
+    $2::timestamptz<r.effective_at AS earlier_visit,$2::timestamptz>r.effective_at AS later_visit
+    FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id
+    WHERE r.buyer_id=$1 FOR UPDATE OF r`,[actor,visit.precise_visited_at])).rows[0];
    if(current?.removed_at)return {recorded:true};
    const now=(await client.query('SELECT clock_timestamp() AS at')).rows[0].at as Date;
    if(link.v2_application_version){
@@ -251,16 +253,16 @@ export class SharingOfficerService {
    if(current?.v2_application_version||await this.pendingReferrer(client,actor))return {recorded:true};
    const inWindow=p.attribution_days===null||new Date(visit.visited_at).getTime()>now.getTime()-p.attribution_days*86400_000;
    const expired=current?.expires_at&&new Date(current.expires_at)<=now;
-   const registered=(await client.query<{created_at:Date}>('SELECT registration_completed_at AS created_at FROM member WHERE id=$1',[actor])).rows[0];
-   const newFromLink=Boolean(registered&&new Date(registered.created_at)>=new Date(visit.visited_at));
-   const correctEarlier=current?.source==='first_touch'&&p.priority==='first'&&new Date(visit.visited_at)<new Date(current.effective_at);
-   const later=current?.source!=='member_choice'&&p.priority==='last'&&new Date(visit.visited_at)>new Date(current?.effective_at??0);
+   const registered=await client.query('SELECT 1 FROM member WHERE id=$1 AND registration_completed_at>=$2::timestamptz',[actor,visit.precise_visited_at]);
+   const newFromLink=Boolean(registered.rowCount);
+   const correctEarlier=current?.source==='first_touch'&&p.priority==='first'&&current.earlier_visit;
+   const later=current?.source!=='member_choice'&&p.priority==='last'&&current?.later_visit;
    if(newFromLink&&inWindow&&(!current||expired||correctEarlier||later))await this.setRelation(client,actor,link.officer_id,visit.id,
-    p.priority==='first'?'first_touch':'last_touch',visit.visited_at,p,current);
+    p.priority==='first'?'first_touch':'last_touch',visit.precise_visited_at,p,current);
   }
   return {recorded:true};
  }
- private async setRelation(client:DbClient,buyer:string,officer:string,visit:string|null,source:string,at:Date,p:Row,prior:Row|undefined){
+ private async setRelation(client:DbClient,buyer:string,officer:string,visit:string|null,source:string,at:Date|string,p:Row,prior:Row|undefined){
   const version=(await client.query('SELECT COALESCE(max(version),0)+1 AS version FROM sharing_relation_event WHERE buyer_id=$1',[buyer])).rows[0].version;
   const expiry=p.attribution_days===null?null:new Date(new Date(at).getTime()+p.attribution_days*86400_000);
   await client.query(`INSERT INTO sharing_relation_event(buyer_id,version,from_officer_id,to_officer_id,visit_id,source)
