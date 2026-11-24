@@ -164,7 +164,9 @@ Page({
       const order=await myOrder(this.data.id,this);
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
-      this.setData({order:this.normalize(order),coreReady:true,loading:false});
+      const qualificationPaid=this.data.qualificationPurchase&&order.status==='paid';
+      this.setData({order:this.normalize(order),coreReady:true,loading:false,
+        ...(qualificationPaid?{actionStatus:'',actionError:''}:{})});
       if(this.data.qualificationPurchase)void this.confirmSharingQualification(order);
       if(this.qualificationRecheckOnShow){
         this.qualificationRecheckOnShow=false;
