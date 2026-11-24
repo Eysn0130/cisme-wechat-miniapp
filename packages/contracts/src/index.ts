@@ -211,14 +211,17 @@ export interface SupportSenderIdentityView {
   avatarRevision: string | null;
   avatarDataUrl?: string | null;
   redacted?: boolean;
-  identityBadge?: "support";
+  identityBadge?: Exclude<MemberDisplayIdentity, "member">;
 }
 export interface SupportMessageView {
   id: string;
   replyToMessageId?: string | null;
+  replyExcerpt?: string;
   sequence: number;
   senderType: SupportSenderType;
   sender?: SupportSenderIdentityView | undefined;
+  helpAction?: SupportHelpAction | undefined;
+  knowledgeTitle?: string | undefined;
   body: string;
   contentType: SupportMessageContentType;
   attachments: Array<{ id: string; mimeType: "image/jpeg" | "image/png" | "image/webp"; sizeBytes: number; previewPath: string }>;
@@ -227,6 +230,8 @@ export interface SupportMessageView {
   deliveryState: "server_accepted" | "read";
   createdAt: string;
 }
+
+export type SupportHelpAction = "orders" | "care-records" | "points" | "invite" | "my-community" | "settings" | "sharing-officer" | "shop" | "privacy";
 
 export interface SupportConversationView {
   id: string;

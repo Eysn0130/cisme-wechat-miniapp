@@ -8,7 +8,8 @@ import { centsToYuan } from "../../services/commerce";
 import { nativeCatalogImage } from "../../services/catalog";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
-import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from "../../services/support-draft-handoff";
+import { openSupportHelp, supportHelpLabel } from "../../services/support-help";
+import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt, stageSupportRecovery, takeSupportRecovery } from "../../services/support-draft-handoff";
 import {
   createSupportThreadState,
   mergeAcknowledgement,
@@ -29,14 +30,17 @@ type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null;
   replyToMessageId?: string | null; sender?: SupportSender; avatarPath?: string;
+  helpAction?: unknown;
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
   deliveryState: "server_accepted" | "read" };
-type Message = PresentedSupportMessage<RawMessage>;
+type Message = PresentedSupportMessage<RawMessage> & { helpLabel?: string };
 type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human_active" | "resolved"; version: number; memberReadSequence?: number; teamReadSequence?: number };
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
 type SelectedImage = { localPath: string; size: number; mimeType: string; status: "uploading" | "ready" | "failed"; progress: number; progressKnown?:boolean; uploadPhase?:"uploading"|"assembling"|"confirming"; mediaId: string; error: string };
 type OrderChoice = { id: string; orderNumberTail: string; status: string; statusLabel: string; totalYuan: string; totalCents: number; currency: "CNY"; productName: string; productImage: string | null; itemSummary: string };
 type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null; expectedConversationId: string | null; contextVersion: number };
+type MemberRecovery = { attempt: SendAttempt | null; input: string; selectedImage: SelectedImage | null; selectedOrder: OrderChoice | null;
+  conversationId: string | null; contextVersion: number };
 type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string };
 type HandoffAttempt = { contextVersion: number; questionMessageId: string | null; expectedConversationId?: string };
 type TopicMetadata = { contextStartSequence?: unknown; contextVersion?: unknown; conversation?: Conversation | null };
@@ -54,6 +58,7 @@ function memberComposerCanSend(input: string, image: SelectedImage | null, order
 
 Page({
   identityCache: null as SupportIdentityCache | null,
+  pendingRecovery: null as MemberRecovery | null,
   linkedOrderId:"",
   snapshotToken:"",
   readRevision:commerceContextRevision(),
@@ -71,6 +76,7 @@ Page({
   orderPickerRevision: 0,
   orderPickerToken: "",
   lastScrollTop: 0,
+  bottomScrollTop: 0,
   lastActivityAt: 0,
   lastPresenceSentAt: 0,
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
@@ -80,21 +86,19 @@ Page({
   uploadAbort: null as (() => void) | null,
   mediaDownloads: [] as Array<() => void>,
   data: {
-    ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar, identityMemberKey: "", identityAgentKey: "",
+    ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", ownBadge: "", memberAvatar: defaultMemberAvatar, memberBadge: "", agentAvatar: defaultMemberAvatar, agentBadge: "", agentDisplayName: "", identityMemberKey: "", identityAgentKey: "",
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
     olderCursor: null as number | null, historyStartLoaded: false, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
-    pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false,
-    atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
-    newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
+    pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false, helpNavigating: false,
+    atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
     attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
     selectedImage: null as SelectedImage | null, uploadBusy: false
   },
   onLoad(options:Record<string,string>) { this.data.pageAlive = true;
     const orderId=options.orderId??'';
     this.linkedOrderId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)?orderId:''; },
-  onReady() { this.measureComposer(); },
-  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.scheduleComposerMeasure(); },
+  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     const previousRevision = this.readRevision;
     this.readRevision=commerceContextRevision();
@@ -111,10 +115,11 @@ Page({
     this.lastActivityAt = Date.now();
     this.orderPickerRevision += 1;
     this.orderPickerToken = "";
-    this.setData({ sending: false, handoffBusy: false, newTopicBusy: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
+    this.setData({ sending: false, handoffBusy: false, newTopicBusy: false, helpNavigating: false, closedRights, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [], orderPickerError: "" });
     if (!preserve) {
       this.identityCache?.reset();
-      this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar });
+      this.pendingRecovery = null;
+      this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", ownBadge: "", memberAvatar: defaultMemberAvatar, memberBadge: "", agentAvatar: defaultMemberAvatar, agentBadge: "", agentDisplayName: "", identityMemberKey: "", identityAgentKey: "" });
       this.inputRevision += 1;
       this.orderSelectionRevision += 1;
       this.linkedOrderDismissed = false;
@@ -130,7 +135,10 @@ Page({
     if (!(closedRights?requireHistoricalCommerceAccess(`/pages/support/index?orderId=${this.linkedOrderId}`):requireMemberAccess("/pages/support/index"))) { this.data.visible = false; return; }
     if (!closedRights) void this.loadOwnIdentity();
     const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
-    if(!this.data.sendAttempt){
+    if (!this.data.sendAttempt) {
+      this.pendingRecovery = takeSupportRecovery<MemberRecovery>(sessionToken(), this.readRevision, `member:${draftScope}`);
+    }
+    if(!this.data.sendAttempt&&!this.pendingRecovery){
       const pending=takeSupportSendAttempt(sessionToken(),draftScope);
       if(pending){
         const sendAttempt:SendAttempt={id:pending.id,body:pending.body,mediaIds:[],linkedOrderId:pending.linkedOrderId,
@@ -139,9 +147,9 @@ Page({
           composerSendEnabled:true,error:'发送结果尚未确认，重试不会重复发送。'});
       }
     }
-    if(!this.data.input&&!this.data.sendAttempt){
+    if(!this.data.input&&!this.data.sendAttempt&&!this.pendingRecovery){
       const draft=takeSupportDraft(sessionToken(),draftScope);
-      if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.input?this.data.selectedImage:this.data.selectedImage,this.data.selectedOrder)});
+      if(draft)this.setData({input:draft,composerSendEnabled:closedRights?Boolean(draft.trim()):memberComposerCanSend(draft,this.data.selectedImage,this.data.selectedOrder)});
     }
     if (preserve && this.data.conversation && !this.data.loading) {
       // Keep the existing scroll-view and its reading position through native
@@ -150,7 +158,6 @@ Page({
       void this.poll();
     } else void this.load();
     if(this.linkedOrderId)void this.loadLinkedOrder();
-    wx.nextTick(() => this.measureComposer());
   },
   onHide() {
     this.newTopicRevision += 1;
@@ -178,11 +185,19 @@ Page({
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
   onUnload() { this.newTopicRevision += 1; this.stopAiReplyWait(); const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
-    if(!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===(this.linkedOrderId||null)&&
-      !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null,
-        expectedConversationId:this.data.sendAttempt.expectedConversationId,contextVersion:this.data.sendAttempt.contextVersion});
-    else if(!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
-      stageSupportDraft(sessionToken(),draftScope,this.data.input);
+    const attempt=this.data.sendAttempt;
+    if(sessionToken()===this.snapshotToken&&this.readRevision===commerceContextRevision()){
+      if(this.pendingRecovery)stageSupportRecovery(sessionToken(),this.readRevision,`member:${draftScope}`,this.pendingRecovery);
+      else if(this.data.selectedImage||this.data.selectedOrder&&this.data.selectedOrder.id!==(this.linkedOrderId||null)||
+        attempt&&(attempt.mediaIds.length>0||attempt.linkedOrderId!==(this.linkedOrderId||null)))
+        stageSupportRecovery<MemberRecovery>(sessionToken(),this.readRevision,`member:${draftScope}`,{attempt,input:this.data.input,
+          selectedImage:this.data.selectedImage,selectedOrder:this.data.selectedOrder,conversationId:this.data.conversation?.id??null,contextVersion:this.data.contextVersion});
+      else if(!this.data.selectedImage&&this.data.sendAttempt?.linkedOrderId===(this.linkedOrderId||null)&&
+        !this.data.sendAttempt.mediaIds.length)stageSupportSendAttempt(sessionToken(),draftScope,{id:this.data.sendAttempt.id,body:this.data.sendAttempt.body,linkedOrderId:this.linkedOrderId||null,
+          expectedConversationId:this.data.sendAttempt.expectedConversationId,contextVersion:this.data.sendAttempt.contextVersion});
+      else if(!this.linkedOrderDismissed&&!this.data.sendAttempt&&!this.data.selectedImage&&this.data.input.trim())
+        stageSupportDraft(sessionToken(),draftScope,this.data.input);
+    }
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); this.choosingImage = false; this.nativePickerReturn?.(); this.nativePickerReturn = null; },
   openAftersaleCase(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??'');
@@ -190,6 +205,18 @@ Page({
     wx.navigateTo({url:`/pages/aftersale/index?caseId=${id}`});
   },
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
+  restoreRecovery(conversation: Conversation | null, contextVersion: number) {
+    const recovered=this.pendingRecovery;
+    if(!recovered)return;
+    this.pendingRecovery=null;
+    const sameConversation=recovered.conversationId===conversation?.id || !recovered.conversationId&&recovered.contextVersion===0;
+    if(!sameConversation||recovered.contextVersion!==contextVersion){
+      this.setComposerState({error:"会话已更新，原草稿或待核对消息不再属于当前对话。",errorAction:""});return;
+    }
+    this.setData({input:recovered.input,selectedImage:recovered.selectedImage,selectedOrder:recovered.selectedOrder,
+      sendAttempt:recovered.attempt,composerSendEnabled:recovered.attempt?false:memberComposerCanSend(recovered.input,recovered.selectedImage,recovered.selectedOrder)});
+    if(recovered.attempt)this.setData({pendingMessage:this.pendingFrom(recovered.attempt,'unknown'),error:'发送结果尚未确认，内容已保留，请核对原消息。',errorAction:''});
+  },
   stopAiReplyWait() { this.aiWaitRevision += 1; if (this.data.aiReplyWaiting) this.setData({ aiReplyWaiting: false }); },
   currentConversation(incoming: Conversation | null | undefined) { return newestSupportConversation(this.data.conversation, incoming); },
   responseContextVersion(page: TopicMetadata) {
@@ -221,7 +248,7 @@ Page({
     this.stopAiReplyWait(); this.clearPresenceTimer(); this.abortTransientWork();
     this.handoffRevision += 1;
     if (!keepAttempt) this.clearTopicDraft();
-    this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
+    this.lastScrollTop = 0; this.bottomScrollTop = 0; this.lastPresenceSentAt = 0;
     this.orderPickerRevision += 1; this.orderPickerToken = "";
     this.setComposerState({ ...(!keepAttempt ? { pendingMessage: null, sendAttempt: null, sending: false } : {}), uploadBusy: false, handoffBusy: false,
       presence: emptyPresence, anchor: "", olderCursor: null, historyStartLoaded: false, loadingOlder: false, handoffFailed: false, handoffAttempt: null,
@@ -249,7 +276,6 @@ Page({
         currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:nativeCatalogImage(order.lines[0]?.image),
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
       this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
-      this.scheduleComposerMeasure();
     }catch{if(current())this.setComposerState({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
   },
   clearPresenceTimer() { if (this.presenceTimer) clearTimeout(this.presenceTimer); this.presenceTimer = null; },
@@ -259,11 +285,11 @@ Page({
     const cache = this.identityCache;
     const changed = () => {
       if (!this.owns(epoch, token) || this.identityCache !== cache) return;
-      this.applyThreadState(this.threadState(), { memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey) });
+      this.applyThreadState(this.threadState(), { memberAvatar: cache.avatar(cache.memberKey), memberBadge: cache.badge(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), agentBadge: cache.badge(cache.agentKey) });
     };
     cache.absorb(page, changed);
     for (const message of page.messages ?? []) cache.accept(message.sender, changed);
-    this.setData({ memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), identityMemberKey: cache.memberKey, identityAgentKey: cache.agentKey });
+    this.setData({ memberAvatar: cache.avatar(cache.memberKey), memberBadge: cache.badge(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), agentBadge: cache.badge(cache.agentKey), agentDisplayName: cache.name(cache.agentKey) || "", identityMemberKey: cache.memberKey, identityAgentKey: cache.agentKey });
   },
   async loadOwnIdentity() {
     const epoch = this.lifecycleEpoch, token = sessionToken();
@@ -271,9 +297,11 @@ Page({
     const cached = memberIdentity();
     this.setData({ ownAvatar: cached?.avatarUrl || defaultMemberAvatar, ownDisplayName: cached?.display_name || 'CISME 会员' });
     const identity = await supportOwnIdentity(current);
-    if (current() && identity) this.setData({ ownAvatar: identity.avatarUrl || defaultMemberAvatar, ownDisplayName: identity.display_name });
+    if (current() && identity) this.setData({ ownAvatar: identity.avatarUrl || defaultMemberAvatar, ownDisplayName: identity.display_name,
+      ...(identity.identityBadge !== undefined ? { ownBadge: identity.identityBadge } : {}) });
   },
   onAvatarError(event: WechatMiniprogram.TouchEvent) {
+    if (event.currentTarget.dataset.ai) return;
     const key = event.currentTarget.dataset.key as string | undefined;
     if (key) { this.identityCache?.fail(key); this.applyThreadState(this.threadState(), {
       memberAvatar: this.identityCache?.avatar(this.identityCache.memberKey), agentAvatar: this.identityCache?.avatar(this.identityCache.agentKey) }); }
@@ -287,7 +315,25 @@ Page({
     return presentSupportMessages(messages.map(item => {
       this.identityCache?.accept(item.sender, () => { if (this.owns(identityEpoch, identityToken) && cache === this.identityCache) this.applyThreadState(this.threadState()); });
       return this.identityCache?.resolve(item) ?? item;
-    }), { ownSenderType: "user", memberDisplayName: this.data.ownDisplayName, counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName });
+    }), { ownSenderType: "user", memberDisplayName: this.data.ownDisplayName, counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName })
+      .map(item => ({ ...item, helpLabel: item.senderType === "ai" ? supportHelpLabel(item.helpAction) : "" }));
+  },
+  async openHelp(event: WechatMiniprogram.TouchEvent) {
+    const epoch=this.lifecycleEpoch,token=sessionToken();
+    if (!this.owns(epoch,token)||this.data.closedRights||this.data.helpNavigating) return;
+    const id = String(event.currentTarget.dataset.id ?? "");
+    const message = this.data.messages.find(item => item.id === id && item.senderType === "ai");
+    if (!message || !supportHelpLabel(message.helpAction)) return;
+    this.setData({ helpNavigating: true });
+    const complete = () => { if (this.owns(epoch, token)) this.setData({ helpNavigating: false }); };
+    try {
+      if(message.helpAction==='shop'&&(this.data.input.trim()||this.data.selectedImage||this.data.selectedOrder)){
+        const confirm=await wx.showModal({title:'进入商城？',content:'将离开当前聊天。之后可从客服入口继续。',confirmText:'进入商城'});
+        if(!confirm.confirm||!this.owns(epoch,token)){complete();return;}
+      }
+      openSupportHelp(message.helpAction, complete);
+    }
+    catch { complete(); wx.showToast({ title: "页面暂时无法打开", icon: "none" }); }
   },
   headerPatch(conversation: Conversation | null, presence: Presence, aiAvailable?: boolean) {
     if (!conversation) return (aiAvailable ?? this.data.supportAiAvailable) && !this.data.closedRights
@@ -320,53 +366,30 @@ Page({
     this.setComposerState({ ...messagePatch, syncCursor: state.syncCursor, maxSeenSequence: state.maxSeenSequence, readCursor: state.readCursor, ...patch });
     if (Object.keys(messagePatch).length) this.data.messages = messages;
   },
-  composerControlKey() {
-    if (this.data.closedRights) return "";
-    const status = this.data.conversation?.status;
-    const human = status === "waiting_human" || status === "human_active";
-    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
-      ? this.data.newTopicBusy ? ":topic-busy" : this.data.newTopicAttempt ? ":topic-retry" : ":topic" : "";
-    if (human) return status + topic;
-    if (!this.data.loading && this.data.errorAction !== "handoff" && (!status || status === "ai_active" || status === "resolved"))
-      return (this.data.handoffBusy ? "handoff-busy" : "handoff") + topic;
-    return topic;
-  },
   setComposerState(patch: Record<string, unknown>) {
-    const before = this.composerControlKey();
     const scopeChanged = "conversation" in patch && (patch.conversation as Conversation | null)?.id !== this.data.conversation?.id
       || "contextVersion" in patch && patch.contextVersion !== this.data.contextVersion
       || "contextStartSequence" in patch && patch.contextStartSequence !== this.data.contextStartSequence;
     if (scopeChanged && !("historyStartLoaded" in patch)) patch = { ...patch, historyStartLoaded: false };
     this.setData(patch);
-    if (before !== this.composerControlKey()) this.scheduleComposerMeasure();
-  },
-  scheduleComposerMeasure() {
-    const epoch = this.lifecycleEpoch, ownerToken = sessionToken();
-    wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureComposer(); });
-  },
-  measureComposer() {
-    if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
-    const epoch = this.lifecycleEpoch, ownerToken = sessionToken();
-    wx.createSelectorQuery().select(".support-composer").boundingClientRect((rect) => {
-      if (!this.owns(epoch, ownerToken) || !rect || typeof rect.height !== "number") return;
-      const height = Math.max(112, Math.ceil(rect.height));
-      this.setData({ threadBottomStyle: `bottom:${height}px`, newMessageBottomStyle: `bottom:${height + 12}px` });
-    }).exec();
   },
   onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
     const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
     const composerCapped = lineCount > 6;
     if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
-    wx.nextTick(() => this.measureComposer());
   },
   onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
-    const keyboardHeight = Number(event.detail.height) || 0;
+    if (!this.data.visible || !this.data.composerFocused) return;
+    const keyboardHeight = Math.max(0, Number(event.detail.height) || 0);
     if (keyboardHeight === this.data.keyboardHeight) return;
     this.setData({ keyboardHeight });
-    wx.nextTick(() => this.measureComposer());
   },
-  onComposerFocus() { this.lastActivityAt = Date.now(); this.setData({ composerFocused: true }); },
-  onComposerBlur() { this.setData({ composerFocused: false }); void this.publishPresence(true, false, true); },
+  onComposerFocus(event: WechatMiniprogram.TextareaFocus) {
+    if (!this.data.visible) return;
+    this.lastActivityAt = Date.now();
+    this.setData({ composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
+  },
+  onComposerBlur() { this.setData({ composerFocused: false, keyboardHeight: 0 }); void this.publishPresence(true, false, true); },
   activePolling() { return this.data.presence.operatorTyping || Date.now() - this.lastActivityAt < 30_000; },
   startPolling() { this.pollFailures = 0; this.schedulePoll(); },
   schedulePoll() {
@@ -407,6 +430,7 @@ Page({
       this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, historyStartLoaded, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
         anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
+      this.restoreRecovery(conversation, contextVersion);
       this.downloadMedia(messages);
       await this.markRead();
       void this.publishPresence(true, Boolean(this.data.input.trim()), true);
@@ -455,9 +479,14 @@ Page({
       });
       if (incoming.length) this.downloadMedia(incoming);
       this.pollFailures = 0;
+      if (this.data.error === "消息暂时无法更新，请检查网络后重试。") this.setComposerState({ error: "", errorAction: "" });
       await this.markRead();
       void this.publishPresence(true, Boolean(this.data.input.trim()));
-    } catch { this.pollFailures += 1; }
+    } catch {
+      this.pollFailures += 1;
+      if (this.owns(epoch, ownerToken) && this.pollFailures >= 2 && !this.data.error)
+        this.setComposerState({ error: "消息暂时无法更新，请检查网络后重试。", errorAction: "sync" });
+    }
     finally { this.pollInFlight = false; this.schedulePoll(); }
   },
   async loadOlder() {
@@ -485,10 +514,13 @@ Page({
   },
   onThreadScroll(event: WechatMiniprogram.ScrollViewScroll) {
     const top = Number(event.detail.scrollTop) || 0;
-    if (top + 8 < this.lastScrollTop && this.data.atBottom) this.setData({ atBottom: false, anchor: "" });
+    if (this.data.atBottom) {
+      this.bottomScrollTop = Math.max(this.bottomScrollTop, top);
+      if (top + 8 < this.bottomScrollTop) this.setData({ atBottom: false, anchor: "" });
+    }
     this.lastScrollTop = top;
   },
-  onThreadBottom() { if (!this.data.atBottom || this.data.newMessagesBelowCount) this.setData({ atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false }); void this.markRead(); },
+  onThreadBottom() { this.bottomScrollTop = this.lastScrollTop; if (!this.data.atBottom || this.data.newMessagesBelowCount) this.setData({ atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false }); void this.markRead(); },
   jumpToLatest() {
     const newest = this.data.messages[this.data.messages.length - 1];
     this.setData({ atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, anchor: newest ? `support-${newest.sequence}` : "" });
@@ -617,7 +649,6 @@ Page({
         if (this.owns(epoch, ownerToken) && this.data.error) this.setData({ error: "消息已收到，对话暂未同步，请刷新查看。", errorAction: "sync" });
       }
       await this.markRead();
-      wx.nextTick(() => this.measureComposer());
     } catch (error) {
       if (this.owns(epoch, ownerToken) && this.data.sendAttempt?.id === sendAttempt.id) {
         if ((error as {code?:string})?.code === "SUPPORT_CONTEXT_CHANGED") {
@@ -626,6 +657,11 @@ Page({
           await this.load();
           if (this.owns(recoveryEpoch, ownerToken))
             this.setComposerState({ error: "会话已更新，原消息未发送，请重新输入。", errorAction: "sync" });
+        } else if ((error as {code?:string})?.code === "SUPPORT_MEDIA_NOT_FOUND") {
+          const selected = this.data.selectedImage;
+          this.setComposerState({ sendAttempt: null, pendingMessage: null, composerSendEnabled: selected ? false : memberComposerCanSend(this.data.input, null, this.data.selectedOrder),
+            ...(selected ? { selectedImage: { ...selected, mediaId: "", status: "failed", error: "图片已失效，请重传或移除。" } } : {}),
+            error: "图片已失效，消息未发送。文字已保留，请重传或移除图片。", errorAction: "" });
         } else this.setComposerState({ error: "发送结果尚未确认，内容已保留，请重试。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
       }
     } finally {
@@ -690,7 +726,6 @@ Page({
       this.inputRevision += 1;
       const candidate: SelectedImage = { localPath, size, mimeType, status: "uploading", progress: 0, mediaId: "", error: "" };
       this.setData({ selectedImage: candidate, composerSendEnabled: false });
-      wx.nextTick(() => this.measureComposer());
       await this.uploadImage(candidate);
     } catch (error) { if (current() && !isCancellation(error)) this.setComposerState({ error: "无法读取所选图片，请检查微信隐私权限后重试。", errorAction: "" }); }
     finally { this.choosingImage = false; }
@@ -730,7 +765,7 @@ Page({
         this.setComposerState({ selectedImage: failed, composerSendEnabled: false, error: failed.error, errorAction: "" });
       }
     } finally {
-      if (current()) { this.uploadAbort = null; this.setData({ uploadBusy: false }); wx.nextTick(() => this.measureComposer()); }
+      if (current()) { this.uploadAbort = null; this.setData({ uploadBusy: false }); }
     }
   },
   retryImageUpload() { if(!this.data.sendAttempt)void this.uploadImage(); },
@@ -742,7 +777,6 @@ Page({
     if (mediaId) void request({ path: `/v1/me/support/media/${mediaId}`, method: "DELETE", data: {}, cacheTags: ["support"] }).catch(() => {});
     this.inputRevision += 1;
     this.setData({ selectedImage: null, uploadBusy: false, composerSendEnabled: memberComposerCanSend(this.data.input, null, this.data.selectedOrder) });
-    wx.nextTick(() => this.measureComposer());
   },
   async openOrderPicker() {
     if (!this.data.pageAlive || !this.data.visible || this.data.closedRights || this.data.sending || this.data.sendAttempt) return;
@@ -791,13 +825,11 @@ Page({
     this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderDismissed = true;
     this.closeOrderPicker();
     this.setData({ selectedOrder: selected, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, selected) });
-    wx.nextTick(() => this.measureComposer());
   },
   removeOrder() {
     if(this.data.closedRights||this.data.sendAttempt||this.data.sending||this.data.newTopicBusy||this.data.newTopicAttempt)return;
     this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderDismissed = true;
     this.setData({ selectedOrder: null, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, null) });
-    wx.nextTick(() => this.measureComposer());
   },
   openOrder(event: WechatMiniprogram.TouchEvent) { const id = String(event.currentTarget.dataset.id ?? ""); if (id) wx.navigateTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(id)}` }); },
   downloadMedia(messages: readonly RawMessage[]) {
@@ -867,7 +899,6 @@ Page({
     takeSupportDraft(sessionToken(), this.linkedOrderId || GENERAL_SUPPORT_SCOPE);
     this.setData({ input: "", selectedImage: null, selectedOrder: null, composerSendEnabled: false,
       composerCapped: false, composerLineCount: 1, attachmentSheetOpen: false, orderPickerOpen: false });
-    this.scheduleComposerMeasure();
   },
   async startNewTopic() {
     if (!this.data.pageAlive || !this.data.visible || this.data.closedRights || this.data.newTopicBusy || this.data.sending

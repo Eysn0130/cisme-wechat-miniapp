@@ -154,8 +154,9 @@ describe('independent user-requested support conversation reset recovery',()=>{
   it('reconciles an uncommitted reset before accepting a stale operator claim',async()=>{
     const row=await seed(2),input=inputFor(row);failRemote=true;
     await expect(reset(input)).rejects.toMatchObject({status:503});failRemote=false;
-    await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
-      VALUES($1,'support.assign','synthetic','Reset recovery claim fixture','test','integration_fixture')`,[user.memberId]);
+    for(const capability of ['support.assign','support.read','support.reply'])await pool.query(`
+      INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+      VALUES($1,$2,'synthetic','Reset recovery claim fixture','test','integration_fixture')`,[user.memberId,capability]);
     await expect(support.claim(user.memberId,user.principalId,row.id,{expectedVersion:row.version},'synthetic-stale-claim'))
       .rejects.toMatchObject({code:'VERSION_CONFLICT',status:409});
     expect((await current(row.id)).status).toBe('ai_active');

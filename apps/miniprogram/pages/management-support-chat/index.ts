@@ -1,4 +1,5 @@
 import { SupportIdentityCache, supportOwnIdentity, type SupportSender } from '../../services/support-identity';
+import { stageSupportRecovery, takeSupportRecovery } from '../../services/support-draft-handoff';
 import { defaultMemberAvatar } from '../../services/member-avatar';
 import { memberIdentity } from '../../services/member-identity';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
@@ -35,6 +36,7 @@ type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyp
 type HumanRequest = { generation: number; status: "waiting_human" | "human_active"; anchorKnown: boolean; anchorMessageId: string | null; anchorSequence: number | null; anchorSummary: string | null };
 type ReplyTarget = { id: string; sequence: number | null; summary: string; generation: number; contextVersion: number };
 type SendAttempt = { id: string; body: string; replyToMessageId: string; expectedHumanRequestGeneration: number; contextVersion: number };
+type OperatorRecovery = { conversationId: string; contextVersion: number; humanGeneration: number; input: string; replyTarget: ReplyTarget | null; attempt: SendAttempt | null };
 type AftersaleCase = {id:string;state:string;kind:string;version:number;orderId:string;returnDestination:null|{version:number};claimBasis:string};
 type ReturnForm = {recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string};
 
@@ -44,6 +46,10 @@ function sessionToken(): string { return getApp<IAppOption>().globalData.session
 
 Page({
   identityCache: null as SupportIdentityCache | null,
+  pendingRecovery: null as OperatorRecovery | null,
+  recoveryOwner: "",
+  recoveryRevision: -1,
+  viewOwner: "",
   readRevision:commerceContextRevision(),
   pollTimer: null as ReturnType<typeof setTimeout> | null,
   pollInFlight: false,
@@ -51,12 +57,13 @@ Page({
   lifecycleEpoch: 0,
   inputRevision: 0,
   lastScrollTop: 0,
+  bottomScrollTop: 0,
   lastActivityAt: 0,
   lastPresenceSentAt: 0,
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
   mediaDownloads: [] as Array<() => void>,
   data: {
-    ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar, identityMemberKey: "", identityAgentKey: "",
+    ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", ownBadge: "", memberAvatar: defaultMemberAvatar, memberBadge: "", agentAvatar: defaultMemberAvatar, agentBadge: "", identityMemberKey: "", identityAgentKey: "",
     chromeStyle: currentChromeStyle(),
     id: "",
     memberDisplayName: "CISME 会员",
@@ -78,13 +85,13 @@ Page({
     assignedToMe: false,
     canAssign: false,
     canReply: false,
+    canReturnToQueue: false,
+    accessDenied: false,
     canViewContext: false,
     canManageAftersale:false,aftersaleCases:[] as AftersaleCase[],aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
     returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""} as ReturnForm,
     freightOptions:['商家承担','用户承担'],
     returnAttempt:null as {key:string;caseId:string;payload:Record<string,unknown>}|null,
-    aiStatus: "PROVIDER INTEGRATION PENDING",
-    aiProviderAvailable: false, aiDraftBusy: false,
     input: "",
     sendAttempt: null as SendAttempt | null,
     pendingMessage: null as Message | null,
@@ -104,19 +111,15 @@ Page({
     keyboardHeight: 0,
     composerCapped: false,
     composerLineCount: 1,
-    composerSendEnabled: false,
-    threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
-    newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)"
+    composerSendEnabled: false
   },
 
   onLoad(query: Record<string, string | undefined>) {
     this.data.pageAlive = true;
     this.setData({ id: query.id || "" });
   },
-  onReady() { this.measureActions(); },
   onResize() {
     this.setData({ chromeStyle: currentChromeStyle() });
-    this.measureActions();
   },
   async onShow() {
     this.stopPolling();
@@ -128,18 +131,19 @@ Page({
     this.lastActivityAt = Date.now();
     const preserve = retainMemberSnapshot(this);
     const ownerToken = sessionToken();
+    this.viewOwner = ownerToken;
+    if (this.recoveryOwner && (this.recoveryOwner !== ownerToken || this.recoveryRevision !== this.readRevision)) this.pendingRecovery = null;
     if (!preserve) {
       this.inputRevision += 1;
       this.clearSensitiveThread();
     }
-    this.setData({ loading: true, busy: false, aiDraftBusy: false, statusLabel: "正在加载", statusTone: "neutral" });
+    this.setData({ loading: true, busy: false, accessDenied: false,
+      ...(!this.data.conversation ? { statusLabel: "正在加载", statusTone: "neutral" } : {}) });
     try {
       const authority = await authorityProjection(this);
       if (!this.owns(epoch, ownerToken)) return;
       if (authority.version !== 1 || !authority.managementAvailable || !hasCapability(authority, "support.read")) {
-        this.clearSensitiveThread();
-        this.data.visible = false;
-        this.setData({ loading:false, error:"当前账号没有客服访问权限，请返回管理中心或重试。" });
+        this.rejectRead({status:403}, epoch, ownerToken);
         return;
       }
       const canAssign = hasCapability(authority, "support.assign");
@@ -148,18 +152,22 @@ Page({
       const canManageAftersale = hasCapability(authority,"commerce.aftersale.review");
       if (!canReply) {
         this.inputRevision += 1;
+        this.pendingRecovery = null;
         this.setData({ input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
       }
       this.setData({ canAssign, canReply, canViewContext,canManageAftersale,
         ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}),
         ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],returnFormCaseId:"",returnAttempt:null}:{}) });
+      const recovered = takeSupportRecovery<OperatorRecovery>(ownerToken, this.readRevision, `operator:${this.data.id}`);
+      if (canReply && recovered) { this.pendingRecovery = recovered; this.recoveryOwner = ownerToken; this.recoveryRevision = this.readRevision; }
       void this.loadOwnIdentity();
-      await Promise.all([this.load(), this.loadAiStatus()]);
+      if (this.data.conversation && !this.pollInFlight) await this.poll(true);
+      else await this.load();
+      if (this.owns(epoch, ownerToken) && !this.data.error && this.data.conversation) this.restoreRecovery();
       if(canManageAftersale&&this.owns(epoch,ownerToken))void this.loadAftersales();
       if (this.owns(epoch, ownerToken)) this.startPolling();
-      wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
-    } catch {
-      if (this.owns(epoch, ownerToken)) {
+    } catch (error) {
+      if (!this.rejectRead(error, epoch, ownerToken) && this.owns(epoch, ownerToken)) {
         this.clearSensitiveThread();
         this.data.visible = false;
         this.setData({ loading:false, error:"客服权限或会话暂时无法核验，请重试。" });
@@ -179,6 +187,13 @@ Page({
     this.setData({ composerFocused: false, keyboardHeight: 0 });
   },
   onUnload() { cancelPageReads(this);
+    if(sessionToken()===this.viewOwner&&this.readRevision===commerceContextRevision()){
+      if (this.pendingRecovery) stageSupportRecovery(sessionToken(),this.readRevision,`operator:${this.data.id}`,this.pendingRecovery);
+      else if (this.data.conversation && (this.data.input.trim() || this.data.sendAttempt))
+        stageSupportRecovery<OperatorRecovery>(sessionToken(),this.readRevision,`operator:${this.data.id}`,{
+          conversationId:this.data.conversation.id,contextVersion:this.data.contextVersion,humanGeneration:this.data.humanRequest?.generation??0,
+          input:this.data.input,replyTarget:this.data.replyTarget,attempt:this.data.sendAttempt });
+    }
     void this.publishPresence(false, false, true);
     this.data.pageAlive = false;
     this.data.visible = false;
@@ -202,7 +217,7 @@ Page({
   },
   clearSensitiveThread() {
     this.identityCache?.reset();
-    this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", memberAvatar: defaultMemberAvatar, agentAvatar: defaultMemberAvatar });
+    this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", ownBadge: "", memberAvatar: defaultMemberAvatar, memberBadge: "", agentAvatar: defaultMemberAvatar, agentBadge: "", identityMemberKey: "", identityAgentKey: "" });
     this.clearPresenceTimer();
     this.abortDownloads();
     this.setData({
@@ -225,6 +240,7 @@ Page({
       assignedToMe: false,
       canAssign: false,
       canReply: false,
+      canReturnToQueue: false,
       canViewContext: false,
       canManageAftersale:false,aftersaleCases:[],aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
       returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""},returnAttempt:null,
@@ -245,17 +261,42 @@ Page({
       composerSendEnabled: false
     });
   },
+  rejectRead(error: unknown, epoch: number, token: string): boolean {
+    const status = (error as {status?:number})?.status;
+    if (![401,403,404].includes(status ?? 0) || !this.data.pageAlive || !this.data.visible || epoch !== this.lifecycleEpoch
+      || sessionToken() !== token && !(status === 401 && !sessionToken())) return false;
+    this.stopPolling();
+    this.pendingRecovery = null;
+    takeSupportRecovery(token, this.readRevision, `operator:${this.data.id}`);
+    this.clearSensitiveThread();
+    this.data.visible = false;
+    this.setData({ loading: false, accessDenied: true, error: status === 403 ? "当前账号没有客服访问权限，请返回管理中心或重试。" : "客服访问权限或会话已变化，请返回或重试。" });
+    return true;
+  },
+  restoreRecovery() {
+    const saved=this.pendingRecovery,conversation=this.data.conversation;
+    if(!saved||!conversation)return;
+    this.pendingRecovery=null;
+    if(saved.conversationId!==conversation.id||saved.contextVersion!==this.data.contextVersion){
+      this.setData({error:"聊天已更新，原草稿或待核对回复不再属于当前对话。"});return;
+    }
+    const changed=saved.humanGeneration!==(this.data.humanRequest?.generation??0);
+    this.setData({input:saved.input,sendAttempt:saved.attempt,replyTarget:changed?null:saved.replyTarget,
+      replyTargetNeedsRefresh:changed&&!saved.attempt,composerSendEnabled:!saved.attempt&&!changed&&this.data.canReply&&this.data.assignedToMe&&Boolean(saved.input.trim()&&saved.replyTarget),
+      ...(saved.attempt?{pendingMessage:this.pendingFrom(saved.attempt,'unknown'),error:"回复是否发送成功还未确认，请核对原回复。"}
+        :changed?{error:"人工事项已变化，原草稿已保留，请刷新后核对回复对象。"}:{})});
+  },
   identityPage(page: any) {
     const epoch = this.lifecycleEpoch, token = sessionToken();
     if (!this.identityCache) this.identityCache = new SupportIdentityCache();
     const cache = this.identityCache;
     const changed = () => {
       if (!this.owns(epoch, token) || this.identityCache !== cache) return;
-      this.applyThreadState(this.threadState(), { memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey) });
+      this.applyThreadState(this.threadState(), { memberAvatar: cache.avatar(cache.memberKey), memberBadge: cache.badge(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), agentBadge: cache.badge(cache.agentKey) });
     };
     cache.absorb(page, changed);
     for (const message of page.messages ?? []) cache.accept(message.sender, changed);
-    this.setData({ memberAvatar: cache.avatar(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), identityMemberKey: cache.memberKey, identityAgentKey: cache.agentKey, memberDisplayName: cache.name(cache.memberKey) || page.memberDisplayName || this.data.memberDisplayName });
+    this.setData({ memberAvatar: cache.avatar(cache.memberKey), memberBadge: cache.badge(cache.memberKey), agentAvatar: cache.avatar(cache.agentKey), agentBadge: cache.badge(cache.agentKey), identityMemberKey: cache.memberKey, identityAgentKey: cache.agentKey, memberDisplayName: cache.name(cache.memberKey) || page.memberDisplayName || this.data.memberDisplayName });
   },
   async loadOwnIdentity() {
     const epoch = this.lifecycleEpoch, token = sessionToken();
@@ -263,9 +304,11 @@ Page({
     const cached = memberIdentity();
     this.setData({ ownAvatar: cached?.avatarUrl || defaultMemberAvatar, ownDisplayName: cached?.display_name || 'CISME 会员' });
     const identity = await supportOwnIdentity(current);
-    if (current() && identity) this.setData({ ownAvatar: identity.avatarUrl || defaultMemberAvatar, ownDisplayName: identity.display_name });
+    if (current() && identity) this.setData({ ownAvatar: identity.avatarUrl || defaultMemberAvatar, ownDisplayName: identity.display_name,
+      ...(identity.identityBadge !== undefined ? { ownBadge: identity.identityBadge } : {}) });
   },
   onAvatarError(event: WechatMiniprogram.TouchEvent) {
+    if (event.currentTarget.dataset.ai) return;
     const key = event.currentTarget.dataset.key as string | undefined;
     if (key) { this.identityCache?.fail(key); this.applyThreadState(this.threadState(), {
       memberAvatar: this.identityCache?.avatar(this.identityCache.memberKey), agentAvatar: this.identityCache?.avatar(this.identityCache.agentKey) }); }
@@ -285,7 +328,7 @@ Page({
   },
   clearRetiredTopic() {
     this.clearPresenceTimer(); this.abortDownloads(); this.inputRevision += 1;
-    this.lastScrollTop = 0; this.lastPresenceSentAt = 0;
+    this.lastScrollTop = 0; this.bottomScrollTop = 0; this.lastPresenceSentAt = 0;
     this.setData({ input: "", sendAttempt: null, pendingMessage: null, replyTarget: null, humanIssueSummary: "", composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
       presence: emptyPresence, olderCursor: null, loadingOlder: false, anchor: "", atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
   },
@@ -365,7 +408,17 @@ Page({
     this.setData({ replyTarget: { id, sequence: message.sequence, summary: this.questionSummary(message),
       generation: this.data.humanRequest?.generation ?? 0, contextVersion: this.data.contextVersion }, input: "", composerSendEnabled: false,
       composerCapped: false, composerLineCount: 1, error: "" });
-    wx.nextTick(() => this.measureActions());
+  },
+  async openOriginalIssue() {
+    const epoch = this.lifecycleEpoch, token = sessionToken();
+    if (!this.owns(epoch, token) || !this.data.assignedToMe || !this.data.canReply
+      || this.data.conversation?.status !== "human_active" || !this.data.humanRequest?.anchorKnown) return;
+    try {
+      await wx.showModal({ title: "人工申请的原问题", content: this.data.humanIssueSummary || "请查看更早的消息。",
+        showCancel: false, confirmText: "知道了" });
+    } catch {
+      if (this.owns(epoch, token)) wx.showToast({ title: "暂时无法打开原问题", icon: "none" });
+    }
   },
   present(messages: readonly RawMessage[], conversation?: Conversation | null, presence?: Presence, memberDisplayName?: string): Message[] {
     const activeConversation = conversation === undefined ? this.data.conversation : conversation;
@@ -392,7 +445,6 @@ Page({
     return { statusLabel: presence.memberOnline ? "处理中 · 会员在线" : "处理中 · 会员未在线", statusTone: presence.memberOnline ? "online" : "neutral", presence };
   },
   applyThreadState(state: SupportThreadState<Message>, patch: Record<string, unknown> = {}) {
-    const beforeLayout = this.actionsLayoutKey();
     const conversation = (patch.conversation as Conversation | undefined) ?? this.data.conversation;
     const presence = (patch.presence as Presence | undefined) ?? this.data.presence;
     const memberDisplayName = (patch.memberDisplayName as string | undefined) ?? this.data.memberDisplayName;
@@ -400,42 +452,26 @@ Page({
     const messagePatch = supportMessageSetDataPatch(this.data.messages, messages);
     this.setData({ ...messagePatch, syncCursor: state.syncCursor, maxSeenSequence: state.maxSeenSequence, readCursor: state.readCursor, ...patch });
     if (Object.keys(messagePatch).length) this.data.messages = messages;
-    if (beforeLayout !== this.actionsLayoutKey()) {
-      const epoch = this.lifecycleEpoch, token = sessionToken();
-      wx.nextTick(() => { if (this.owns(epoch, token)) this.measureActions(); });
-    }
-  },
-  actionsLayoutKey() {
-    return JSON.stringify([this.data.loading, this.data.conversation?.status, this.data.assignedToMe,
-      this.data.humanIssueSummary, this.data.replyTarget?.summary, this.data.replyTargetNeedsRefresh]);
-  },
-  measureActions() {
-    if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
-    wx.createSelectorQuery().select(".operator-actions").boundingClientRect((rect) => {
-      if (!this.data.pageAlive || !rect || typeof rect.height !== "number") return;
-      const height = Math.max(112, Math.ceil(rect.height));
-      this.setData({ threadBottomStyle: `bottom:${height}px`, newMessageBottomStyle: `bottom:${height + 12}px` });
-    }).exec();
   },
   onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
     const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
     const composerCapped = lineCount > 6;
     if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
-    wx.nextTick(() => this.measureActions());
   },
   onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
-    const keyboardHeight = Number(event.detail.height) || 0;
+    if (!this.data.visible || !this.data.composerFocused) return;
+    const keyboardHeight = Math.max(0, Number(event.detail.height) || 0);
     if (keyboardHeight === this.data.keyboardHeight) return;
     this.setData({ keyboardHeight });
-    wx.nextTick(() => this.measureActions());
   },
-  onComposerFocus() {
+  onComposerFocus(event: WechatMiniprogram.TextareaFocus) {
+    if (!this.data.visible) return;
     this.lastActivityAt = Date.now();
-    this.setData({ composerFocused: true });
+    this.setData({ composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
     void this.publishPresence(true, Boolean(this.data.input.trim()));
   },
   onComposerBlur() {
-    this.setData({ composerFocused: false });
+    this.setData({ composerFocused: false, keyboardHeight: 0 });
     void this.publishPresence(true, false, true);
   },
   activePolling() {
@@ -447,7 +483,7 @@ Page({
   },
   schedulePoll() {
     this.stopPolling();
-    if (!this.data.pageAlive || !this.data.visible) return;
+    if (!this.data.pageAlive || !this.data.visible || this.data.accessDenied) return;
     this.pollTimer = setTimeout(() => void this.poll(), supportPollDelay(this.pollFailures, this.activePolling()));
   },
   stopPolling() {
@@ -466,16 +502,6 @@ Page({
     }));
   },
 
-  async loadAiStatus() {
-    const epoch = this.lifecycleEpoch;
-    const ownerToken = sessionToken();
-    try {
-      const status = await pageRead<any>(this,{ path: "/v1/management/support/ai/status", cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: status.status || "PROVIDER INTEGRATION PENDING", aiProviderAvailable: status.providerAvailable === true });
-    } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: "PROVIDER INTEGRATION PENDING", aiProviderAvailable: false });
-    }
-  },
   async load() {
     if (!this.data.id) {
       this.setData({ loading: false, statusLabel: "", statusTone: "neutral", error: "未找到这次会话，请返回客服列表重新进入。" });
@@ -483,7 +509,8 @@ Page({
     }
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    this.setData({ loading: true, error: "", statusLabel: "正在加载", statusTone: "neutral" });
+    this.setData({ loading: true, error: "",
+      ...(!this.data.conversation ? { statusLabel: "正在加载", statusTone: "neutral" } : {}) });
     try {
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
@@ -504,6 +531,7 @@ Page({
         memberDisplayName,
         conversation,
         assignedToMe,
+        canReturnToQueue: page.canReturnToQueue === true,
         olderCursor: page.olderCursor ?? null,
         contextStartSequence: topic.contextStartSequence,
         contextVersion: topic.contextVersion,
@@ -518,8 +546,8 @@ Page({
       this.downloadMedia(raw);
       await this.markRead();
       if (assignedToMe && conversation.status === "human_active") void this.publishPresence(true, Boolean(this.data.input.trim()), true);
-    } catch {
-      if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loading: false, statusLabel: "", statusTone: "neutral", error: "会话暂时无法同步，请重试。" });
+    } catch (error) {
+      if (!this.rejectRead(error, epoch, ownerToken) && this.owns(epoch, ownerToken)) this.setData({ loading: false, statusLabel: "", statusTone: "neutral", error: "会话暂时无法同步，请重试。" });
     }
   },
   async loadAftersales(){
@@ -600,8 +628,8 @@ Page({
       ?'本案或权限已变化。请先刷新核对，原请求记录会保留。':'提交结果未核实；可用原请求重试，避免重复发送。'});
     }finally{if(this.owns(epoch,token))this.setData({busy:false});}
   },
-  async poll() {
-    if (this.pollInFlight || !this.data.pageAlive || !this.data.visible || this.data.loading || this.data.busy || !this.data.conversation) {
+  async poll(revalidating = false) {
+    if (this.pollInFlight || !this.data.pageAlive || !this.data.visible || (this.data.loading && !revalidating) || this.data.busy || !this.data.conversation) {
       this.schedulePoll();
       return;
     }
@@ -639,8 +667,9 @@ Page({
         contextStartSequence: topic.contextStartSequence, contextVersion: topic.contextVersion,
         ...(topic.changed ? { olderCursor: page.olderCursor ?? null, atBottom: true } : {}),
         assignedToMe,
+        canReturnToQueue: page.canReturnToQueue === true,
         ...this.replyContextPatch(page, state.messages, topic.contextVersion, topic.changed),
-        ...(lostAssignment ? { input: "", sendAttempt: null, pendingMessage: null, replyTarget: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}),
+        ...(lostAssignment ? { composerSendEnabled: false } : {}),
         ...this.headerPatch(conversation, presence, assignedToMe),
         anchor: topic.changed ? newest ? `operator-${newest.sequence}` : "" : freshCount && shouldFollow && newest ? `operator-${newest.sequence}` : this.data.anchor,
         newMessagesBelowCount: shouldFollow || topic.changed ? 0 : (this.data.newMessagesBelowCount ?? 0) + freshCount,
@@ -648,12 +677,18 @@ Page({
       });
       if (incoming.length) this.downloadMedia(incoming);
       this.pollFailures = 0;
+      if (this.data.error === "消息暂时无法更新，请检查网络后刷新。") this.setData({ error: "" });
       await this.markRead();
       if (assignedToMe && conversation.status === "human_active") void this.publishPresence(true, Boolean(this.data.input.trim()));
-    } catch {
-      this.pollFailures += 1;
+    } catch (error) {
+      if (!this.rejectRead(error, epoch, ownerToken)) {
+        this.pollFailures += 1;
+        if (this.owns(epoch, ownerToken) && (revalidating || this.pollFailures >= 2) && !this.data.error)
+          this.setData({ error: "消息暂时无法更新，请检查网络后刷新。" });
+      }
     } finally {
       this.pollInFlight = false;
+      if (revalidating && this.owns(epoch, ownerToken)) this.setData({ loading: false });
       this.schedulePoll();
     }
   },
@@ -677,18 +712,22 @@ Page({
       this.applyThreadState(state, { olderCursor: page.olderCursor ?? null, anchor: preserve ? `operator-${preserve}` : "",
         ...(!olderMetadata ? this.replyContextPatch(page, state.messages, topic.contextVersion) : {}) });
       this.downloadMedia(older);
-    } catch {
-      if (this.data.visible) wx.showToast({ title: "更早消息暂时无法加载", icon: "none" });
+    } catch (error) {
+      if (!this.rejectRead(error, epoch, ownerToken) && this.owns(epoch, ownerToken)) wx.showToast({ title: "更早消息暂时无法加载", icon: "none" });
     } finally {
       if (this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch) this.setData({ loadingOlder: false });
     }
   },
   onThreadScroll(event: WechatMiniprogram.ScrollViewScroll) {
     const top = Number(event.detail.scrollTop) || 0;
-    if (top + 8 < this.lastScrollTop && this.data.atBottom) this.setData({ atBottom: false, anchor: "" });
+    if (this.data.atBottom) {
+      this.bottomScrollTop = Math.max(this.bottomScrollTop, top);
+      if (top + 8 < this.bottomScrollTop) this.setData({ atBottom: false, anchor: "" });
+    }
     this.lastScrollTop = top;
   },
   onThreadBottom() {
+    this.bottomScrollTop = this.lastScrollTop;
     if (!this.data.atBottom || this.data.newMessagesBelowCount) this.setData({ atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
     void this.markRead();
   },
@@ -737,7 +776,7 @@ Page({
   },
 
   async claim() {
-    if (!this.data.canAssign || this.data.busy || !this.data.conversation) return;
+    if (!this.data.canAssign || !this.data.canReply || this.data.busy || !this.data.conversation || this.data.conversation.status !== "waiting_human") return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     let claimed = false;
@@ -757,6 +796,41 @@ Page({
       this.startPolling();
     }
   },
+  async returnToQueue() {
+    const current = this.data.conversation;
+    if (!current || current.status !== "human_active" || !this.data.canReturnToQueue || this.data.busy || this.data.sendAttempt) return;
+    const epoch = this.lifecycleEpoch, token = sessionToken(), revision = this.inputRevision;
+    const id = current.id, expectedVersion = current.version, contextVersion = this.data.contextVersion;
+    let submitted = false;
+    try {
+      const result = await wx.showModal({ title: "交回待接待？", content: this.data.input.trim()
+        ? "会话将回到待接待，当前页面保留未发送的草稿。" : "会话将回到待接待，其他有权限的客服可继续接待。", confirmText: "交回" });
+      if (!result.confirm || !this.owns(epoch, token)) return;
+      if (this.data.busy || this.data.sendAttempt || !this.data.canReturnToQueue || this.data.conversation?.id !== id
+        || this.data.conversation.version !== expectedVersion || this.data.contextVersion !== contextVersion || this.inputRevision !== revision) {
+        this.setData({ error: "会话已变化，请刷新后再交回。" }); return;
+      }
+      this.setData({ busy: true, error: "" }); submitted = true;
+      const conversation = await request<Conversation>({ path: `/v1/management/support/conversations/${id}/return-to-queue`, method: "POST", data: { expectedVersion }, cacheTags: ["support"] });
+      if (!this.owns(epoch, token) || this.data.contextVersion !== contextVersion || this.data.conversation?.id !== id) return;
+      const latest = newestSupportConversation(this.data.conversation, conversation) as Conversation;
+      if (latest === conversation && conversation.status === "waiting_human") {
+        this.clearPresenceTimer();
+        this.setData({ conversation, assignedToMe: false, canReturnToQueue: false, composerSendEnabled: false,
+          ...this.headerPatch(conversation, emptyPresence, false) });
+      }
+      await this.load();
+    } catch {
+      if (this.owns(epoch, token)) {
+        if (submitted) {
+          await this.load();
+          if (this.owns(epoch, token)) this.setData({ error: "交回结果请以当前会话状态为准，未发送的草稿已保留。" });
+        } else this.setData({ error: "确认窗口暂时无法打开，草稿已保留，请重试。" });
+      }
+    } finally {
+      if (submitted && this.owns(epoch, token)) this.setData({ busy: false });
+    }
+  },
   updateInput(event: WechatMiniprogram.TextareaInput) {
     if (this.data.busy || this.data.sendAttempt) return;
     this.inputRevision += 1;
@@ -770,28 +844,6 @@ Page({
     });
     void this.publishPresence(true, Boolean(input.trim()), !input.trim());
   },
-  async suggest() {
-    if (!this.data.aiProviderAvailable || !this.data.assignedToMe || this.data.busy || this.data.sendAttempt || !this.data.replyTarget || this.data.replyTargetNeedsRefresh) return;
-    const draftRevision = this.inputRevision;
-    const epoch = this.lifecycleEpoch;
-    const ownerToken = sessionToken();
-    const contextVersion = this.data.contextVersion;
-    const replyTarget = this.data.replyTarget;
-    this.setData({ busy: true, aiDraftBusy: true, error: "" });
-    try {
-      const draft = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/suggested-reply`, method: "POST", data: { replyToMessageId: replyTarget.id,
-        expectedHumanRequestGeneration: replyTarget.generation, contextVersion: replyTarget.contextVersion }, cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.inputRevision === draftRevision && this.data.replyTarget?.id === replyTarget.id) {
-        this.inputRevision += 1;
-        const input = String(draft.text || "");
-        this.setData({ input, composerSendEnabled: Boolean(input.trim() && this.data.replyTarget), sendAttempt: null });
-      }
-    } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: "AI 建议回复不可用，请继续人工处理。草稿不会自动发送。" });
-    } finally {
-      if (this.owns(epoch, ownerToken)) this.setData({ busy: false, aiDraftBusy: false });
-    }
-  },
   pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {
     const raw = {
       id: `local-${attempt.id}`,
@@ -799,6 +851,7 @@ Page({
       senderType: "admin" as const,
       body: attempt.body,
       replyToMessageId: attempt.replyToMessageId,
+      ...(this.data.replyTarget?.id === attempt.replyToMessageId ? { replyExcerpt: this.data.replyTarget.summary } : {}),
       contentType: "text",
       createdAt: new Date().toISOString(),
       attachments: [],
@@ -811,7 +864,8 @@ Page({
   async send() {
     const previous = this.data.sendAttempt;
     const body = previous?.body ?? this.data.input.trim();
-    if (!body || !this.data.canReply || !this.data.assignedToMe || this.data.busy || this.data.conversation?.status !== "human_active") return;
+    if (!body || !this.data.canReply || this.data.busy || !this.data.conversation
+      || !previous && (!this.data.assignedToMe || this.data.conversation.status !== "human_active")) return;
     const target = this.data.replyTarget;
     if (!previous && (!target || this.data.replyTargetNeedsRefresh || target.contextVersion !== this.data.contextVersion || target.generation !== (this.data.humanRequest?.generation ?? 0))) {
       this.setData({ composerSendEnabled: false, error: this.data.replyTargetNeedsRefresh ? "人工事项已变化，请刷新后确认要回复的问题。" : "请先点选要回复的用户消息。" }); return;
@@ -841,19 +895,24 @@ Page({
       const normalized = this.normalize([result.message]).filter(item => item.sequence > topic.contextStartSequence);
       if (normalized.length && !this.data.messages.some((item) => item.id === result.message.id)) this.append(normalized);
       const clearDraft = this.inputRevision === draftRevision && this.data.input.trim() === body;
+      const conversation = newestSupportConversation(this.data.conversation, result.conversation) as Conversation;
       this.setData({
         ...(clearDraft ? { input: "", sendAttempt: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false } : {}),
         pendingMessage: null,
-        conversation: result.conversation,
+        conversation,
         contextStartSequence: topic.contextStartSequence, contextVersion: topic.contextVersion,
-        ...this.headerPatch(result.conversation, this.data.presence, true)
+        ...this.headerPatch(conversation, this.data.presence, this.data.assignedToMe)
       });
       if (clearDraft) this.inputRevision += 1;
       await this.markRead();
-      wx.nextTick(() => this.measureActions());
     } catch (error) {
       if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.data.sendAttempt?.id === sendAttempt.id) {
-        if (["SUPPORT_CONTEXT_CHANGED", "SUPPORT_HUMAN_REQUEST_CHANGED", "SUPPORT_REPLY_TARGET_INVALID"].includes(String((error as {code?:string})?.code))) {
+        if ((error as {code?:string})?.code === "SUPPORT_ASSIGNMENT_REQUIRED") {
+          this.setData({ sendAttempt: null, pendingMessage: null, composerSendEnabled: false, error: "当前接待人已变化，原回复未发送，草稿已保留。" });
+        } else if (["SUPPORT_HUMAN_REQUEST_CHANGED", "SUPPORT_REPLY_TARGET_INVALID"].includes(String((error as {code?:string})?.code))) {
+          this.setData({sendAttempt:null,pendingMessage:null,replyTarget:null,replyTargetNeedsRefresh:true,composerSendEnabled:false,
+            error:"人工事项已变化，原回复未发送，草稿已保留。请刷新后确认回复对象。"});
+        } else if ((error as {code?:string})?.code === "SUPPORT_CONTEXT_CHANGED") {
           this.clearRetiredTopic(); this.setData({ replyTargetNeedsRefresh: true, error: "人工事项已变化，原回复未发送。请刷新后确认要回复的问题。" });
         } else {
           const status = (error as {status?:number})?.status;
@@ -897,9 +956,11 @@ Page({
       this.inputRevision += 1;
       this.setData({ conversation, assignedToMe: false, humanRequest: null, humanIssueSummary: "", replyTarget: null, replyTargetNeedsRefresh: false,
         input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false, ...this.headerPatch(conversation, emptyPresence, false) });
-      wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
-    } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: submitted ? "状态已变化，请刷新后再确认。" : "确认窗口暂时无法打开，人工接待和草稿已保留，请重试。" });
+    } catch (error) {
+      if (this.owns(epoch, ownerToken)) this.setData({ error: !submitted ? "确认窗口暂时无法打开，人工接待和草稿已保留，请重试。"
+        : (error as {code?:string})?.code === "AFTERSALE_CASE_ACTIVE"
+          ? this.data.canManageAftersale ? "本会话有待处理售后，请先通过“本会话售后”处理。" : "本会话有待处理售后，请联系有售后权限的同事处理。"
+          : "结束结果或会话状态待确认，请刷新后核对。" });
     } finally {
       if (submitted && this.owns(epoch, ownerToken)) this.setData({ busy: false });
     }

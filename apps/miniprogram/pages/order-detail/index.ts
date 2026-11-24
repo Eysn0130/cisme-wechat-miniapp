@@ -46,7 +46,7 @@ Page({
   launchAftersale:false,
   sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,sheetValidationError:false,
   data:{rewardOwner:'',recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
-    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
+    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string;shippedLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
     qualificationPurchase:false,qualificationMoment:false,qualificationReduced:false,
@@ -252,7 +252,12 @@ Page({
       if(!this.readCurrent(epoch,token,readEpoch)||attempt!==this.shipmentAttempt)return;
       const labels:Record<string,string>={not_ready:"付款后安排发货",awaiting_dispatch:"待发货",shipped:"已发货",delivered:"快递已签收",exception:"物流异常，请联系客服"};
       if(row.orderId!==this.data.id||!labels[row.logisticsState]||row.id&&(!Number.isSafeInteger(row.version)||row.version!<1))throw new Error("Invalid shipment");
-      this.setData({shipment:{...row,stateLabel:!row.id&&(this.data.order?.refundedCents??0)>0?"退款后暂停发货":labels[row.logisticsState]!,wechatReceipt:row.wechatReceipt?
+      const order=this.data.order;
+      const stateLabel=!row.id&&(order?.refundedCents??0)>0?"退款后暂停发货"
+        :!row.id&&order?.status==='cancelled'?"订单已取消":!row.id&&order?.status==='expired'?"订单已关闭":labels[row.logisticsState]!;
+      const shippedLabel=row.shippedAt&&Number.isFinite(Date.parse(row.shippedAt))
+        ?new Date(row.shippedAt).toLocaleString('zh-CN',{hour12:false,timeZone:'Asia/Shanghai'}):'';
+      this.setData({shipment:{...row,stateLabel,shippedLabel,wechatReceipt:row.wechatReceipt?
         {...row.wechatReceipt,displayLabel:receiptLabels[row.wechatReceipt.status]??"微信记录：需人工核对",observedLabel:row.wechatReceipt.observedAt?
           new Date(row.wechatReceipt.observedAt).toLocaleString('zh-CN',{hour12:false}):''}:null},shipmentLoading:false,
         ...(row.receiptConfirmedAt?{receiptKey:"",receiptVersion:0}:{})});
@@ -262,7 +267,7 @@ Page({
     if(!this.canAct()||this.data.shipmentLoading||!this.data.shipment?.id||!this.data.shipment.trackingNumber)return;
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken();
     try{await wx.setClipboardData({data:this.data.shipment.trackingNumber});}
-    catch{if(this.readCurrent(epoch,token,readEpoch))this.setData({trackingError:'复制未完成，可以长按上方运单号复制。'});}
+    catch{if(this.readCurrent(epoch,token,readEpoch))wx.showToast({title:'复制未完成，请长按运单号',icon:'none'});}
   },
   async openLogistics(){
     if(this.data.closedRights||!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id
@@ -275,10 +280,10 @@ Page({
       if(result.orderId!==this.data.id||result.shipmentId!==shipmentId||result.source!=='wechat_logistics_plugin'
         ||typeof result.waybillToken!=='string'||result.waybillToken.length<20||result.waybillToken.length>4096||/[\s\u0000-\u001f\u007f]/.test(result.waybillToken))throw Error('Invalid logistics view');
       // A buyer-only capability stays in this call, never page data or storage.
-      const plugin=await requirePlugin.async('logisticsPlugin') as {openWaybillTracking:(options:{waybillToken:string})=>void};
+      const plugin=await requirePlugin.async('logisticsPlugin') as {openWaybillTracking:(options:{waybillToken:string})=>void|Promise<unknown>};
       if(!current())return;
       if(typeof plugin?.openWaybillTracking!=='function')throw Error('Logistics plugin unavailable');
-      plugin.openWaybillTracking({waybillToken:result.waybillToken});
+      await plugin.openWaybillTracking({waybillToken:result.waybillToken});
     }catch(error){if(current())this.setData({trackingError:errorTitle(error,'暂时无法打开物流详情，可以复制运单号查询或联系客服。')});}
     finally{if(current())this.setData({trackingLoading:false});}
   },

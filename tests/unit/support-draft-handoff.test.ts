@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt } from '../../apps/miniprogram/services/support-draft-handoff';
+import { GENERAL_SUPPORT_SCOPE, clearSupportDraftHandoffs, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt, stageSupportRecovery, takeSupportRecovery } from '../../apps/miniprogram/services/support-draft-handoff';
 
-afterEach(()=>{vi.useRealTimers();stageSupportDraft('','','');stageSupportSendAttempt('','',null);});
+afterEach(()=>{vi.useRealTimers();clearSupportDraftHandoffs();});
 
 it('hands an unsent support draft to the same account and order once',()=>{
   stageSupportDraft('session-a','order-a','请帮我核对运单');
@@ -50,4 +50,28 @@ it('discards drafts across account or order changes and after a short idle windo
   stageSupportDraft('session-a','order-a','过期内容');
   vi.advanceTimersByTime(10*60*1000+1);
   expect(takeSupportDraft('session-a','order-a')).toBeNull();
+});
+
+it('bounds full chat recovery to the same identity, scope and environment revision',()=>{
+  vi.useFakeTimers();
+  const parked={body:'待核对',messageId:'original-key'};
+  stageSupportRecovery('session-a',1,'operator:conversation-a',parked);
+  expect(takeSupportRecovery('session-a',1,'operator:conversation-b')).toBeNull();
+  expect(takeSupportRecovery('session-a',1,'operator:conversation-a')).toEqual(parked);
+  expect(takeSupportRecovery('session-a',1,'operator:conversation-a')).toBeNull();
+  stageSupportRecovery('session-a',1,'operator:conversation-a',parked);
+  expect(takeSupportRecovery('session-a',2,'operator:conversation-a')).toBeNull();
+  stageSupportRecovery('session-a',2,'operator:conversation-a',parked);
+  vi.advanceTimersByTime(10*60_000+1);
+  expect(takeSupportRecovery('session-a',2,'operator:conversation-a')).toBeNull();
+});
+
+it('clears all support handoffs even if the previous session later returns',()=>{
+  stageSupportDraft('session-a','order-a','私人订单正文');
+  stageSupportSendAttempt('session-a','order-a',{id:'previous-key',body:'待核对',linkedOrderId:'order-a'});
+  stageSupportRecovery('session-a',1,'operator:conversation-a',{body:'待核对'});
+  clearSupportDraftHandoffs();
+  expect(takeSupportDraft('session-a','order-a')).toBeNull();
+  expect(takeSupportSendAttempt('session-a','order-a')).toBeNull();
+  expect(takeSupportRecovery('session-a',1,'operator:conversation-a')).toBeNull();
 });

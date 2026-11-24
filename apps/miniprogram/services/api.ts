@@ -7,6 +7,7 @@ import { clearAllUgcBackups } from "./ugc-local-backup";
 import { RequestCoordinator } from "./request-coordinator";
 import { sendJsonRequest, type TransportHandle } from "./http";
 import { guestCommunityRouteAllowed } from "./route-access";
+import { clearSupportDraftHandoffs } from "./support-draft-handoff";
 const app = { get globalData() { return getApp<IAppOption>().globalData; } };
 const authReturnKey = "cisme.authReturnUrl";
 const tabRoutes = new Set(["/pages/home/index", "/pages/shop/index", "/pages/community/index", "/pages/profile/index"]);
@@ -42,6 +43,7 @@ export function setSessionToken(token: string): void {
   rejectedSession = null;
   for (const release of privateDownloads) release();
   invalidateCommerceRecoveryContext();
+  clearSupportDraftHandoffs();
   if(!token){clearAllUgcBackups();try{redactCommerceCommandPayloads();}catch{/* Keep malformed recovery records fail-closed; never retain the auth session. */}}
   clearMemberAvatarCache();
   clearMemberIdentity();

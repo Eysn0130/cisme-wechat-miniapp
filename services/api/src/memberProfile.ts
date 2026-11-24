@@ -25,7 +25,8 @@ export class MemberProfile {
       COALESCE(p.public_status,'private') AS public_status, p.public_review_note
       FROM member m LEFT JOIN member_points_profile bp ON bp.member_id=m.id LEFT JOIN member_card_number mc ON mc.member_id=m.id LEFT JOIN member_profile p ON p.member_id=m.id WHERE m.id=$1 AND m.status='active'`, [memberId]);
     if (!row.rows[0]) throw new DomainError('MEMBER_NOT_FOUND', '会员不存在或已停用', 404);
-    return row.rows[0];
+    const displayIdentity = (await memberDisplayIdentities(this.pool,this.environment,[memberId])).get(memberId)?.privateIdentity;
+    return {...row.rows[0],displayIdentity};
   }
   async update(memberId: string | undefined, input: MemberProfileInput) {
     if (!memberId) throw new DomainError('AUTH_REQUIRED', '请先登录会员账号', 401);

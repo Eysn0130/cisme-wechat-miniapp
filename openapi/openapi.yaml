@@ -2770,10 +2770,28 @@ paths:
       tags: [Support, Authority]
       operationId: claimSupportConversation
       security: [{session: []}]
-      description: Requires support.assign. Row lock plus expectedVersion permits only one competing operator to claim.
+      description: Requires support.read, support.assign and support.reply. The assigned employee can read and reply. Row lock plus expectedVersion permits only one competing claim.
       parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExpectedVersion'}}}}
-      responses: {'200': {description: Audited human_active assignment}, '403': {description: support.assign required}, '409': {description: Already assigned, resolved, or changed}}
+      responses: {'200': {description: Audited human_active assignment}, '403': {description: All claim capabilities are required}, '409': {description: Already assigned, resolved, or changed}}
+  /v1/management/support/conversations/{conversationId}/return-to-queue:
+    post:
+      tags: [Support, Authority]
+      operationId: returnSupportConversationToQueue
+      security: [{session: []}]
+      description: Requires support.read and support.assign. Only the current handler or an operator also holding member.manage may return the active human issue to the queue. Preserves its original question and conversation history.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExpectedVersion'}}}}
+      responses: {'200': {description: Audited waiting_human assignment release}, '403': {description: Handler or supervisory capability required}, '409': {description: Assignment or version changed}}
+  /v1/management/support/conversations/{conversationId}/dismiss:
+    post:
+      tags: [Support, Authority]
+      operationId: dismissSupportConversationFromWorkbench
+      security: [{session: []}]
+      description: Requires support.read. Removes the observed row from the current employee's workbench until a later message. Conversation history and assignment are preserved.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExpectedVersion'}}}}
+      responses: {'200': {description: Employee-scoped dismissal receipt}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/management/support/conversations/{conversationId}/read:
     post:
       tags: [Support, Authority]
@@ -5100,7 +5118,8 @@ components:
     SupportPresenceView: {type: object, required: [serverTime, agentDisplayName, operatorOnline, operatorTyping, memberOnline, memberTyping], properties: {serverTime: {type: string, format: date-time}, agentDisplayName: {type: string, minLength: 1, maxLength: 40}, operatorOnline: {type: boolean}, operatorTyping: {type: boolean}, memberOnline: {type: boolean}, memberTyping: {type: boolean}}}
     SupportMessageAttachment: {type: object, additionalProperties: false, required: [id, mimeType, sizeBytes, previewPath], properties: {id: {$ref: '#/components/schemas/Uuid'}, mimeType: {type: string, enum: [image/jpeg, image/png, image/webp]}, sizeBytes: {type: integer, minimum: 1, maximum: 5242880}, previewPath: {type: string, pattern: '^/v1/'}}}
     SupportOrderCard: {type: object, additionalProperties: false, required: [orderId, orderNumberTail, status, currency, totalCents, productName, itemSummary], properties: {orderId: {$ref: '#/components/schemas/Uuid'}, orderNumberTail: {type: string, pattern: '^[A-Z0-9]{4}$'}, status: {type: string, enum: [pending_payment, cancelled, expired]}, currency: {const: CNY}, totalCents: {type: integer, minimum: 0}, productName: {type: string}, productImage: {type: [string, 'null']}, itemSummary: {type: string}}}
-    SupportMessageView: {type: object, additionalProperties: false, required: [id, sequence, senderType, body, contentType, attachments, orderCard, deliveryState, createdAt], properties: {id: {$ref: '#/components/schemas/Uuid'}, sequence: {type: integer, minimum: 1}, senderType: {type: string, enum: [user, ai, admin, system]}, body: {type: string}, contentType: {type: string, enum: [text, image, order, mixed, system]}, attachments: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/SupportMessageAttachment'}}, orderCard: {oneOf: [{$ref: '#/components/schemas/SupportOrderCard'}, {type: 'null'}]}, deliveryState: {type: string, enum: [server_accepted, read], description: server_accepted never claims transport delivery or recipient reading; read is derived from the opposite authoritative read cursor.}, createdAt: {type: string, format: date-time}}}
+    SupportSenderIdentity: {type: object, description: Conversation-scoped display projection, properties: {key: {type: string}, displayName: {type: string}, profileRevision: {type: integer}, operatorUpdatedAt: {type: [string, 'null']}, avatarRevision: {type: [string, 'null']}, avatarDataUrl: {type: [string, 'null']}, redacted: {type: boolean}, identityBadge: {type: string, enum: [sharing-officer, administrator, support]}}}
+    SupportMessageView: {type: object, additionalProperties: false, required: [id, sequence, senderType, body, contentType, attachments, orderCard, deliveryState, createdAt], properties: {id: {$ref: '#/components/schemas/Uuid'}, sequence: {type: integer, minimum: 1}, senderType: {type: string, enum: [user, ai, admin, system]}, sender: {$ref: '#/components/schemas/SupportSenderIdentity'}, replyToMessageId: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}]}, replyExcerpt: {type: string, maxLength: 81, description: Plain excerpt of the verified original question in the authorized current conversation for an operator reply.}, helpAction: {type: string, enum: [orders, care-records, points, invite, my-community, settings, sharing-officer, shop, privacy]}, knowledgeTitle: {type: string, maxLength: 80}, body: {type: string}, contentType: {type: string, enum: [text, image, order, mixed, system]}, attachments: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/SupportMessageAttachment'}}, orderCard: {oneOf: [{$ref: '#/components/schemas/SupportOrderCard'}, {type: 'null'}]}, returnInstruction: {type: [object, 'null'], properties: {caseId: {$ref: '#/components/schemas/Uuid'}, version: {type: integer}, recipientName: {type: string}, phone: {type: string}, region: {type: string}, address: {type: string}, freightPayer: {type: string}, instructions: {type: string}}}, deliveryState: {type: string, enum: [server_accepted, read], description: server_accepted never claims transport delivery or recipient reading; read is derived from the opposite authoritative read cursor.}, createdAt: {type: string, format: date-time}}}
     CareVersionCommandInput: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}
     CarePhaseCommandInput: {type: object, additionalProperties: false, required: [reasonCode, expectedVersion], properties: {reasonCode: {type: string, minLength: 1}, expectedVersion: {type: integer, minimum: 1}}}
     DailyCareRecordInput: {type: object, additionalProperties: false, required: [stepCodes, selfAssessment], properties: {stepCodes: {type: array, minItems: 4, maxItems: 4, prefixItems: [{const: '00'}, {const: '01'}, {const: '02'}, {const: '03'}], items: false}, selfAssessment: {type: string, enum: [comfortable, neutral, attention]}}}

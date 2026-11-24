@@ -76,4 +76,67 @@ describe.sequential('canonical support message sender profiles', () => {
     expect((await app.inject({ method: 'GET', url: `${base}/messages`, headers: auth(stranger) })).statusCode).toBe(403);
     expect(claimed.status).toBe('human_active');
   });
+
+  it('dismisses the observed workbench row only for the current employee until a new message',async()=>{
+    const member=await identity('synthetic-dismissal-member');
+    const send=(body:string,key:string)=>app.inject({method:'POST',url:'/v1/me/support/messages',headers:auth(member),payload:{body,clientMessageId:key}});
+    const firstMessage=(await send('需要了解物流','operator-dismiss-first')).json();
+    const conversation=firstMessage.conversation;
+    const queue=(person:any)=>app.inject({method:'GET',url:'/v1/management/support/conversations',headers:auth(person)});
+    const hasRow=async(person:any)=>(await queue(person)).json().items.some((row:any)=>row.id===conversation.id);
+    const dismiss=(person:any,expectedVersion:number)=>app.inject({method:'POST',url:`/v1/management/support/conversations/${conversation.id}/dismiss`,headers:auth(person),payload:{expectedVersion}});
+    expect(await hasRow(first)).toBe(true);
+    expect((await dismiss(member,conversation.version)).statusCode).toBe(403);
+    expect((await dismiss(first,conversation.version-1)).statusCode).toBe(409);
+    const removed=await dismiss(first,conversation.version);
+    expect(removed.statusCode).toBe(200); expect(removed.json()).toEqual({conversationId:conversation.id,dismissed:true});
+    expect((await dismiss(first,conversation.version)).json()).toEqual(removed.json());
+    expect(await hasRow(first)).toBe(false); expect(await hasRow(second)).toBe(true);
+    const memberPage=await app.inject({method:'GET',url:'/v1/me/support/messages',headers:auth(member)});
+    expect(memberPage.json().messages.some((row:any)=>row.id===firstMessage.message.id)).toBe(true);
+    expect(memberPage.json().conversation.status).toBe(conversation.status);
+    expect((await send('补充一条想咨询','operator-dismiss-second')).statusCode).toBe(200);
+    expect(await hasRow(first)).toBe(true);
+    expect((await dismiss(first,conversation.version)).statusCode).toBe(409);
+  });
+
+  it('keeps the issue and verified identities when an assigned employee returns it for another employee',async()=>{
+    const member=await identity('synthetic-returning-member');
+    const avatar=await profile(member,'synthetic-returning-member-photo');
+    const grant=(person:any,capability:string)=>pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+      VALUES($1,$2,'synthetic','Staff handoff integration','test','integration_fixture')`,[person.memberId,capability]);
+    await grant(member,'member.manage');
+    for(const capability of ['support.read','support.assign'])await grant(stranger,capability);
+    const sent=(await app.inject({method:'POST',url:'/v1/me/support/messages',headers:auth(member),
+      payload:{body:'物流信息需要人工核对',clientMessageId:'support-return-question'}})).json();
+    const waiting=(await app.inject({method:'POST',url:'/v1/me/support/handoff',headers:auth(member),
+      payload:{expectedConversationId:sent.conversation.id,contextVersion:0,questionMessageId:sent.message.id}})).json();
+    const base=`/v1/management/support/conversations/${waiting.id}`;
+    const command=(person:any,action:string,expectedVersion:number)=>app.inject({method:'POST',url:`${base}/${action}`,headers:auth(person),payload:{expectedVersion}});
+    expect((await command(stranger,'claim',waiting.version)).statusCode).toBe(403);
+    const claimed=(await command(first,'claim',waiting.version)).json();
+    const operatorPage=(person:any)=>app.inject({method:'GET',url:`${base}/messages`,headers:auth(person)}).then(response=>response.json());
+    const own=await operatorPage(first),other=await operatorPage(second);
+    expect(own).toMatchObject({assignedToMe:true,canReturnToQueue:true});
+    expect(other).toMatchObject({assignedToMe:false,canReturnToQueue:false});
+    expect(own.identities[own.memberIdentityKey]).toMatchObject({identityBadge:'administrator',avatarDataUrl:avatar.data});
+    expect(own.identities[own.agentIdentityKey]).toMatchObject({identityBadge:'support'});
+    expect((await command(second,'return-to-queue',claimed.version)).statusCode).toBe(403);
+    expect((await command(first,'return-to-queue',claimed.version-1)).statusCode).toBe(409);
+    const returned=(await command(first,'return-to-queue',claimed.version)).json();
+    expect(returned.status).toBe('waiting_human');
+    const page=await operatorPage(second);
+    expect(page).toMatchObject({agentIdentityKey:null,canReturnToQueue:false,humanRequest:{generation:1,anchorMessageId:sent.message.id}});
+    const queue=(await app.inject({method:'GET',url:'/v1/management/support/conversations',headers:auth(second)})).json();
+    expect(queue.items.find((row:any)=>row.id===returned.id)).toMatchObject({member:{identityBadge:'administrator',avatarDataUrl:avatar.data},status:'waiting_human'});
+    expect(JSON.stringify(queue)).not.toMatch(/sender_principal_id|openid|phone_masked/);
+    const reassigned=(await command(second,'claim',returned.version)).json();
+    expect(reassigned.status).toBe('human_active');
+    const payload={body:'可以继续核对旧问题。',clientMessageId:'support-return-answer',replyToMessageId:sent.message.id,expectedHumanRequestGeneration:1,contextVersion:0};
+    expect((await app.inject({method:'POST',url:`${base}/messages`,headers:auth(first),payload})).statusCode).toBe(409);
+    const reply=await app.inject({method:'POST',url:`${base}/messages`,headers:auth(second),payload});
+    expect(reply.statusCode).toBe(200);
+    expect(reply.json().message).toMatchObject({replyToMessageId:sent.message.id,sender:{identityBadge:'support'}});
+    expect((await pool.query("SELECT 1 FROM audit_log WHERE object_id=$1 AND action='support.conversation.return_to_queue'",[returned.id])).rowCount).toBe(1);
+  });
 });

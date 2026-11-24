@@ -11,7 +11,9 @@ import type {AccountClosure} from './accountClosure.js';
 import {recordWholeSuppression} from './supportRetention.js';
 import type {SupportAiBoundary,SupportAiSuggestion,ApprovedKnowledgeSource,ModelSafeSupportProjection} from './supportAiBoundary.js';
 import {applySupportConversationReset,supportNewTopicOperation} from './supportConversationReset.js';
-import { supportIdentities } from './supportIdentity.js';
+import { supportIdentities,supportSenderKey } from './supportIdentity.js';
+import {memberDisplayIdentities} from './displayIdentity.js';
+import {supportGuideForReply} from './supportKnowledgeRetrieval.js';
 
 type ConversationRow = {
   id: string; member_id: string; status: SupportConversationStatus; priority: "normal" | "high" | "urgent";
@@ -64,11 +66,12 @@ function cursor(input: unknown): number | null {
 function queueCursor(input: unknown): {rank:number;unreadRank:number;at:string;id:string}|null {
   if(input===undefined)return null;
   try{const value=JSON.parse(Buffer.from(String(input),"base64url").toString("utf8")) as Record<string,unknown>;
-    if(!Number.isInteger(value.rank)||!Number.isInteger(value.unreadRank)||typeof value.at!=="string"||!Number.isFinite(Date.parse(value.at))||typeof value.id!=="string"||!/^[0-9a-f-]{36}$/i.test(value.id))throw new Error();
+    if(!Number.isInteger(value.rank)||!Number.isInteger(value.unreadRank)||typeof value.at!=="string"||!Number.isFinite(Date.parse(value.at))||typeof value.id!=="string")throw new Error();
+    uuid(value.id,'CURSOR_INVALID');
     return {rank:Number(value.rank),unreadRank:Number(value.unreadRank),at:value.at,id:value.id};
   }catch{throw new DomainError("CURSOR_INVALID","Support queue cursor is invalid",422);}
 }
-function encodeQueueCursor(row:{rank:number;unread_rank:number;updated_at:Date;id:string}):string{return Buffer.from(JSON.stringify({rank:row.rank,unreadRank:row.unread_rank,at:row.updated_at.toISOString(),id:row.id})).toString("base64url");}
+function encodeQueueCursor(row:{rank:number;unread_rank:number;cursor_at:string;id:string}):string{return Buffer.from(JSON.stringify({rank:row.rank,unreadRank:row.unread_rank,at:row.cursor_at,id:row.id})).toString("base64url");}
 function uuid(value: unknown, code: string): string {
   if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new DomainError(code, "Identifier is invalid", 422);
   return value;
@@ -90,12 +93,19 @@ function contentType(body: string, images: readonly string[], orderId: string | 
 function messageColumns(): string {
   return "id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at,reply_to_message_id";
 }
+function replyExcerpt(target: Pick<MessageRow, "body" | "content_type">): string {
+  const characters = Array.from(target.body.replace(/\s+/g, " ").trim());
+  if (characters.length) return characters.slice(0, 80).join("") + (characters.length > 80 ? "…" : "");
+  if (target.content_type === "image" || target.content_type === "mixed") return "图片咨询";
+  return target.content_type === "order" ? "订单咨询" : "";
+}
 function view(row: MessageRow, input: { counterpartyReadSequence: number; previewPrefix: string; media: ReadonlyMap<string, MediaRow> }): SupportMessageView {
   const attachments = (Array.isArray(row.attachment_refs) ? row.attachment_refs : []).flatMap((id) => {
     const media = input.media.get(id);
     return media ? [{ id, mimeType: media.mime_type, sizeBytes: Number(media.size_bytes), previewPath: `${input.previewPrefix}/${id}` }] : [];
   });
   return { id: row.id, sequence: Number(row.sequence), senderType: row.sender_type, body: row.body, contentType: row.content_type,
+    ...(row.sender_type==='ai'?supportGuideForReply(row.body):{}),
     attachments, orderCard: row.order_snapshot ?? null,
     returnInstruction:row.linked_case_id&&row.return_instruction_snapshot?{caseId:row.linked_case_id,...row.return_instruction_snapshot}:null,
     replyToMessageId:row.reply_to_message_id??null,
@@ -111,6 +121,23 @@ function requestHash(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 const newTopicOperation = supportNewTopicOperation;
+const dismissQueueOperation = 'support.queue.dismiss';
+
+function checkedTopicContext(row:ConversationRow,receipts:readonly {response_body:unknown}[]){
+  const next=Number(row.next_sequence);
+  const invalid=()=>new DomainError('SUPPORT_TOPIC_RECEIPT_INVALID','会话状态暂时无法核对，请稍后重试',503);
+  if(!Number.isSafeInteger(next)||next<1)throw invalid();
+  let contextStartSequence=0,contextVersion=0;
+  for(const receipt of receipts){
+    const value=receipt.response_body as {conversationId?:unknown;contextStartSequence?:unknown;resultVersion?:unknown}|null;
+    if(!value||value.conversationId!==row.id||!Number.isSafeInteger(value.contextStartSequence)||
+      Number(value.contextStartSequence)<0||Number(value.contextStartSequence)>=next||
+      !Number.isSafeInteger(value.resultVersion)||Number(value.resultVersion)<1||Number(value.resultVersion)>row.version)throw invalid();
+    contextStartSequence=Math.max(contextStartSequence,Number(value.contextStartSequence));
+    contextVersion=Math.max(contextVersion,Number(value.resultVersion));
+  }
+  return {contextStartSequence,contextVersion};
+}
 
 export function modelSafeSupportProjection(input: { conversation: ConversationRow; messages: Array<{sequence:string;sender_type:"user"|"ai"|"admin"|"system";body:string;[key:string]:unknown}> }) {
   return { conversationId: input.conversation.id, status: input.conversation.status,
@@ -120,11 +147,11 @@ export function modelSafeSupportProjection(input: { conversation: ConversationRo
 export class SupportService {
   constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService, private readonly platform: PlatformService, private readonly storage: ObjectStorage,
     private readonly suppression?:AccountClosure,private readonly ai?:Pick<SupportAiBoundary,'status'|'suggestedReply'>,
-    private readonly publicKnowledge?:()=>Promise<ApprovedKnowledgeSource[]>) {}
+    private readonly publicKnowledge?:(projection:ModelSafeSupportProjection)=>Promise<ApprovedKnowledgeSource[]>) {}
 
   async suggestedReply(projection: ModelSafeSupportProjection) {
     if (!this.ai?.status().providerAvailable) throw new DomainError('SUPPORT_AI_PROVIDER_PENDING','AI 客服暂不可用',503);
-    return this.ai.suggestedReply(projection, await this.publicKnowledge?.() ?? []);
+    return this.ai.suggestedReply(projection, await this.publicKnowledge?.(projection) ?? []);
   }
 
   private automaticAiAvailable():boolean {
@@ -150,23 +177,10 @@ export class SupportService {
   private async contextState(client:DbClient|pg.Pool,row:ConversationRow):Promise<{contextStartSequence:number;contextVersion:number}> {
     // Command receipts survive ordinary-message retention. A display message
     // must never be the sole boundary, because that message may be purged.
-    const next=Number(row.next_sequence);
-    if(!Number.isSafeInteger(next)||next<1)throw new DomainError('SUPPORT_TOPIC_RECEIPT_INVALID','会话状态暂时无法核对，请稍后重试',503);
     const receipts=await client.query<{response_body:unknown}>(`SELECT response_body FROM idempotency_operation
       WHERE principal_id=$1 AND operation=$2 AND response_body->>'conversationId'=$3`,
       [`member:${row.member_id}`,newTopicOperation,row.id]);
-    let boundary=0,contextVersion=0;
-    for(const receipt of receipts.rows){
-      const value=receipt.response_body as {conversationId?:unknown;contextStartSequence?:unknown;resultVersion?:unknown}|null;
-      if(!value||value.conversationId!==row.id||!Number.isSafeInteger(value.contextStartSequence)||
-        Number(value.contextStartSequence)<0||Number(value.contextStartSequence)>=next||
-        !Number.isSafeInteger(value.resultVersion)||Number(value.resultVersion)<1||Number(value.resultVersion)>row.version){
-        throw new DomainError('SUPPORT_TOPIC_RECEIPT_INVALID','会话状态暂时无法核对，请稍后重试',503);
-      }
-      boundary=Math.max(boundary,Number(value.contextStartSequence));
-      contextVersion=Math.max(contextVersion,Number(value.resultVersion));
-    }
-    return {contextStartSequence:boundary,contextVersion};
+    return checkedTopicContext(row,receipts.rows);
   }
 
   private async contextBoundary(client:DbClient|pg.Pool,row:ConversationRow){
@@ -297,8 +311,8 @@ export class SupportService {
         }
         else body=currentHuman
           ?(failure==='SUPPORT_AI_HUMAN_CONTEXT_REQUIRED'?'信息已收到，需要人工核实；已有人工申请会继续保留。':'这次暂时没能准确回答，已有人工申请会继续保留，你也可以补充问题。')
-          :(['SUPPORT_AI_HUMAN_CONTEXT_REQUIRED','SUPPORT_AI_HANDOFF_REQUIRED'].includes(failure)
-            ?'这个问题需要人工核实 😊 点「申请人工」，客服会接着帮你。':'这次没能及时回复你，抱歉呀 🌿 你可以稍后再问，或点「申请人工」。');
+          :(['SUPPORT_AI_HUMAN_CONTEXT_REQUIRED','SUPPORT_AI_HANDOFF_REQUIRED','SUPPORT_AI_UNGROUNDED'].includes(failure)
+            ?'目前没有足够资料确认这件事。可以点「申请人工」继续核对。':'暂时无法获取 AI 回复。可以稍后再问，或点「申请人工」。');
         const sequence=Number(row.next_sequence),replyId=randomUUID();
         if(isAi&&row.status!=='ai_active')await client.query("SELECT set_config('cisme.support_ai_reply',$1,true)",[`${id}:${messageId}:${topic.contextVersion}:${row.human_request_generation??0}`]);
         const inserted=(await client.query<MessageRow>(`INSERT INTO support_message
@@ -510,12 +524,20 @@ export class SupportService {
     const identityPage = await supportIdentities(client, row, pageRows, this.authority.environment);
     const media = await this.mediaMap(client, pageRows);
     const replyIds=pageRows.flatMap(message=>message.reply_to_message_id?[message.reply_to_message_id]:[]);
-    const validTargets=new Set((replyIds.length?(await client.query<{id:string}>(`SELECT id FROM support_message WHERE id=ANY($1::uuid[]) AND conversation_id=$2 AND sequence>$3`,[replyIds,row.id,boundary])).rows:[]).map(target=>target.id));
-    const messages = pageRows.map((messageRow) => ({ ...view({...messageRow,reply_to_message_id:messageRow.reply_to_message_id&&validTargets.has(messageRow.reply_to_message_id)?messageRow.reply_to_message_id:null}, {
-      counterpartyReadSequence: Number(perspective === "member" ? row.team_last_read_sequence : row.member_last_read_sequence),
-      previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
-      media
-    }), sender: identityPage.sender(messageRow) }));
+    const targets = replyIds.length ? (await client.query<Pick<MessageRow,"id" | "sequence" | "body" | "content_type">>(
+      `SELECT id,sequence,body,content_type FROM support_message
+       WHERE id=ANY($1::uuid[]) AND conversation_id=$2 AND sequence>$3 AND sender_type='user'`, [replyIds,row.id,boundary])).rows : [];
+    const byId = new Map(targets.map(target => [target.id, target]));
+    const messages = pageRows.map(messageRow => {
+      const target = byId.get(messageRow.reply_to_message_id ?? "");
+      const original = target && Number(target.sequence) < Number(messageRow.sequence) ? target : undefined;
+      const excerpt = original && messageRow.sender_type === "admin" ? replyExcerpt(original) : "";
+      return { ...view({...messageRow,reply_to_message_id:original?.id ?? null}, {
+        counterpartyReadSequence: Number(perspective === "member" ? row.team_last_read_sequence : row.member_last_read_sequence),
+        previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
+        media
+      }), ...(excerpt ? {replyExcerpt: excerpt} : {}), sender: identityPage.sender(messageRow) };
+    });
     const olderCursor:number|null=hasOlder?messages[0]!.sequence:null;
     const presence = await this.presence(row,new Date(),client);
     if (identityPage.agentIdentityKey) presence.agentDisplayName = identityPage.identities[identityPage.agentIdentityKey]?.displayName ?? 'CISME 客服';
@@ -890,48 +912,107 @@ export class SupportService {
   private async operator(memberId: string | undefined, capability: Capability): Promise<string> {
     return this.authority.require(memberId, capability);
   }
-  async queue(memberId: string | undefined, query: { cursor?: unknown; limit?: unknown }) {
-    await this.operator(memberId, "support.read"); const pageLimit = limit(query.limit); const after=queueCursor(query.cursor);
+  async queue(memberId: string | undefined, query: { cursor?: unknown; limit?: unknown },principalId?:string) {
+    const operator=await this.operator(memberId, "support.read"),pageLimit=limit(query.limit),after=queueCursor(query.cursor);
     await this.reconcile();
-    const result = await this.pool.query(`WITH ranked AS (SELECT c.id,c.status,c.priority,c.current_handler_principal_id,c.member_unread_count,c.team_unread_count,c.version,c.updated_at,
-      m.display_name AS member_display_name,latest.body AS last_message,latest.sender_type AS last_sender_type,
-      CASE c.status WHEN 'waiting_human' THEN 0 WHEN 'human_active' THEN 1 WHEN 'ai_active' THEN 2 ELSE 3 END AS rank,
-      CASE WHEN c.team_unread_count>0 THEN 0 ELSE 1 END AS unread_rank
-      FROM support_conversation c JOIN member m ON m.id=c.member_id
-      LEFT JOIN LATERAL(SELECT body,sender_type FROM support_message WHERE conversation_id=c.id ORDER BY sequence DESC LIMIT 1) latest ON true)
-      SELECT * FROM ranked WHERE $1::int IS NULL OR rank>$1 OR (rank=$1 AND unread_rank>$2) OR
+    return readSnapshot(this.pool,async client=>{
+      if(!await this.authority.has(operator,'support.read',client))throw new DomainError('CAPABILITY_REQUIRED','客服权限已变化',403);
+      type QueueRow=ConversationRow&{rank:number;unread_rank:number;cursor_at:string;member_status:string;member_display_name:string;
+        profile_revision:number|null;avatar_revision:string|null;avatar_data_url:string|null;handler_display_name:string|null};
+      const result=await client.query<QueueRow>(`WITH ranked AS (SELECT c.*,
+        CASE c.status WHEN 'waiting_human' THEN 0 WHEN 'human_active' THEN 1 WHEN 'ai_active' THEN 2 ELSE 3 END AS rank,
+        CASE WHEN c.team_unread_count>0 THEN 0 ELSE 1 END AS unread_rank FROM support_conversation c
+        WHERE NOT EXISTS (SELECT 1 FROM idempotency_operation dismissed WHERE dismissed.principal_id=$6
+          AND dismissed.operation=$7 AND dismissed.idempotency_key=c.id::text || ':' || (c.next_sequence-1)::text)),
+       page AS (SELECT * FROM ranked WHERE $1::int IS NULL OR rank>$1 OR (rank=$1 AND unread_rank>$2) OR
         (rank=$1 AND unread_rank=$2 AND updated_at<$3::timestamptz) OR
-        (rank=$1 AND unread_rank=$2 AND updated_at=$3::timestamptz AND id::text<$4)
-      ORDER BY rank,unread_rank,updated_at DESC,id DESC LIMIT $5`, [after?.rank??null,after?.unreadRank??null,after?.at??null,after?.id??null,pageLimit+1]);
-    // The durable aggregate may retain protected transaction evidence. Its
-    // preview is derived only from the current generation, like active chat.
-    for(const item of result.rows.slice(0,pageLimit)){
-      const row=await this.findById(this.pool,item.id),boundary=await this.contextBoundary(this.pool,row);
-      const latest=(await this.pool.query<{body:string;sender_type:string}>(`SELECT body,sender_type FROM support_message
-        WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence DESC LIMIT 1`,[item.id,boundary])).rows[0];
-      item.last_message=latest?.body??null;item.last_sender_type=latest?.sender_type??null;
-    }
-    return { items: result.rows.slice(0, pageLimit).map((item: any) => ({ id:item.id,status:item.status,priority:item.priority,
-      memberUnreadCount:item.member_unread_count,teamUnreadCount:item.team_unread_count,version:item.version,updatedAt:item.updated_at.toISOString(),memberDisplayName:item.member_display_name,
-      lastMessage:item.last_message ?? "暂无消息",lastSenderType:item.last_sender_type ?? null })), nextCursor: result.rows.length > pageLimit ? encodeQueueCursor(result.rows[pageLimit-1]) : null };
+        (rank=$1 AND unread_rank=$2 AND updated_at=$3::timestamptz AND id<$4::uuid)
+        ORDER BY rank,unread_rank,updated_at DESC,id DESC LIMIT $5)
+        SELECT page.*,page.updated_at::text AS cursor_at,m.status AS member_status,m.display_name AS member_display_name,
+          p.profile_revision,p.avatar_revision,p.avatar_data_url,
+          CASE WHEN page.current_handler_principal_id IS NOT NULL AND handler.status IS DISTINCT FROM 'deleted'
+            THEN COALESCE(NULLIF(o.display_name,''),NULLIF(handler.display_name,''),'CISME 客服') END AS handler_display_name
+        FROM page JOIN member m ON m.id=page.member_id LEFT JOIN member_profile p ON p.member_id=m.id
+        LEFT JOIN support_operator_profile o ON o.principal_id=page.current_handler_principal_id
+        LEFT JOIN wechat_identity w ON w.provider=split_part(page.current_handler_principal_id,':',1)
+          AND w.id=CASE WHEN split_part(page.current_handler_principal_id,':',2) ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+            THEN split_part(page.current_handler_principal_id,':',2)::uuid END
+        LEFT JOIN member handler ON handler.id=w.member_id
+        ORDER BY page.rank,page.unread_rank,page.updated_at DESC,page.id DESC`,
+        [after?.rank??null,after?.unreadRank??null,after?.at??null,after?.id??null,pageLimit+1,`member:${operator}`,dismissQueueOperation]);
+      const page=result.rows.slice(0,pageLimit);
+      if(!page.length)return {items:[],nextCursor:null};
+      const ids=page.map(row=>row.id);
+      const receipts=await client.query<{id:string;response_body:unknown}>(`SELECT q.id,op.response_body FROM
+        unnest($1::uuid[],$2::text[]) AS q(id,principal) JOIN idempotency_operation op
+        ON op.principal_id=q.principal AND op.operation=$3 AND op.response_body->>'conversationId'=q.id::text`,
+      [ids,page.map(row=>`member:${row.member_id}`),newTopicOperation]);
+      const byConversation=new Map<string,typeof receipts.rows>();
+      for(const receipt of receipts.rows){
+        const items=byConversation.get(receipt.id);
+        if(items)items.push(receipt);else byConversation.set(receipt.id,[receipt]);
+      }
+      // Preview only messages in the live topic, even when order evidence from
+      // an earlier topic still exists for retention.
+      const boundaries=page.map(row=>checkedTopicContext(row,byConversation.get(row.id)??[]).contextStartSequence);
+      const latest=await client.query<{id:string;body:string;sender_type:string}>(`SELECT q.id,message.body,message.sender_type
+        FROM unnest($1::uuid[],$2::bigint[]) AS q(id,boundary) JOIN LATERAL
+        (SELECT body,sender_type FROM support_message WHERE conversation_id=q.id AND sequence>q.boundary ORDER BY sequence DESC LIMIT 1) message ON true`,
+      [ids,boundaries]);
+      const previews=new Map(latest.rows.map(row=>[row.id,row]));
+      const identities=await memberDisplayIdentities(client,this.authority.environment,page.map(row=>row.member_id));
+      const items=page.map(row=>{
+        const preview=previews.get(row.id),redacted=row.member_status==='deleted';
+        const badge=identities.get(row.member_id)?.privateIdentity,displayName=redacted?'已注销会员':row.member_display_name||'CISME 会员';
+        const member={key:supportSenderKey(row.id,'user',row.member_id),displayName,profileRevision:row.profile_revision??0,operatorUpdatedAt:null,
+          avatarRevision:redacted?null:row.avatar_revision,avatarDataUrl:redacted?null:row.avatar_data_url,redacted,
+          ...(badge&&badge!=='member'?{identityBadge:badge}:{})};
+        return {...conversation(row),memberDisplayName:displayName,member,assignedToMe:Boolean(principalId&&row.current_handler_principal_id===principalId),
+          handlerDisplayName:row.handler_display_name,lastMessage:preview?.body??'暂无消息',lastSenderType:preview?.sender_type??null};
+      });
+      return {items,nextCursor:result.rows.length>pageLimit?encodeQueueCursor(page[pageLimit-1]!):null};
+    });
+  }
+  async dismissFromQueue(memberId:string|undefined,id:string,input:{expectedVersion?:unknown}) {
+    const operator=await this.operator(memberId,'support.read');
+    const expected=version(input.expectedVersion);
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,operator,'support.read');
+      const row=await this.findById(client,uuid(id,'SUPPORT_CONVERSATION_INVALID'),true);
+      if(row.version!==expected)throw new DomainError('VERSION_CONFLICT','有新的会话变化，请核对后再移除',409);
+      // The receipt is scoped to the employee and the last message present
+      // during confirmation. Any later message restores the row in this view.
+      const key=`${row.id}:${Number(row.next_sequence)-1}`;
+      const result={conversationId:row.id,dismissed:true};
+      await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
+        VALUES($1,$2,$3,$3,$4,200,$5) ON CONFLICT DO NOTHING`,[`member:${operator}`,dismissQueueOperation,key,requestHash({key}),result]);
+      return result;
+    });
   }
   async operatorMessages(memberId: string | undefined, principalId: string | undefined, id: string, query: { after?: unknown; before?: unknown; limit?: unknown }) {
-    await this.operator(memberId, "support.read"); const principal=required(principalId,"AUTH_REQUIRED");
+    const operator=await this.operator(memberId, "support.read"),principal=required(principalId,"AUTH_REQUIRED");
     await this.reconcile((await this.findById(this.pool,id)).member_id);
     return readSnapshot(this.pool,async client=>{
+      if(!await this.authority.has(operator,'support.read',client))throw new DomainError('CAPABILITY_REQUIRED','客服权限已变化',403);
       const row=await this.findById(client,id),context=await this.contextState(client,row);
       const page=await this.messagePage(row,query,"operator",client,context.contextStartSequence);
-      const member=await client.query<{display_name:string}>("SELECT display_name FROM member WHERE id=$1",[row.member_id]);
-      return {...page,...context,humanRequest:this.operatorHumanView(await this.humanContext(client,row,context)),memberDisplayName:member.rows[0]?.display_name??"CISME 会员",assignedToMe:row.current_handler_principal_id===principal};
+      const assignedToMe=row.current_handler_principal_id===principal;
+      const canReturnToQueue=row.status==='human_active'&&await this.authority.has(operator,'support.assign',client)&&
+        (assignedToMe||await this.authority.has(operator,'member.manage',client));
+      return {...page,...context,humanRequest:this.operatorHumanView(await this.humanContext(client,row,context)),
+        memberDisplayName:page.identities[page.memberIdentityKey]?.displayName??"CISME 会员",assignedToMe,canReturnToQueue};
     });
   }
   async claim(memberId: string | undefined, principalId: string | undefined, id: string, input: { expectedVersion?: unknown }, traceId: string) {
-    await this.operator(memberId, "support.assign"); const principal = required(principalId, "AUTH_REQUIRED"); const expected = version(input.expectedVersion);
+    const operator=await this.operator(memberId, "support.assign"),principal=required(principalId, "AUTH_REQUIRED"),expected=version(input.expectedVersion);
     const owner=(await this.findById(this.pool,id)).member_id;
     await this.reconcile(owner);
     return transaction(this.pool, async (client) => {
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
       await this.reconcileLocked(client,owner);
+      await this.authority.requireWithClient(client,operator,'support.assign');
+      await this.authority.requireWithClient(client,operator,'support.read');
+      await this.authority.requireWithClient(client,operator,'support.reply');
       const row = await this.findById(client, id, true);
       if (row.status === "human_active" && row.current_handler_principal_id === principal) return conversation(row);
       if (row.version !== expected) throw new DomainError("VERSION_CONFLICT", "Conversation changed; reload before claiming", 409);
@@ -953,14 +1034,45 @@ export class SupportService {
       return conversation(updated);
     });
   }
+  async returnToQueue(memberId:string|undefined,principalId:string|undefined,id:string,input:{expectedVersion?:unknown},traceId:string) {
+    const operator=await this.operator(memberId,'support.assign'),principal=required(principalId,'AUTH_REQUIRED'),expected=version(input.expectedVersion);
+    const owner=(await this.findById(this.pool,id)).member_id;
+    await this.reconcile(owner);
+    return transaction(this.pool,async client=>{
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+      await this.reconcileLocked(client,owner);
+      await this.authority.requireWithClient(client,operator,'support.assign');
+      await this.authority.requireWithClient(client,operator,'support.read');
+      const row=await this.findById(client,id,true);
+      if(row.current_handler_principal_id!==principal)await this.authority.requireWithClient(client,operator,'member.manage');
+      if(row.version!==expected||row.status!=='human_active')
+        throw new DomainError('VERSION_CONFLICT','接待状态已变化，请刷新后核对',409);
+      const sequence=Number(row.next_sequence),messageId=randomUUID();
+      const inserted=(await client.query<{created_at:Date}>(`INSERT INTO support_message
+        (id,conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id)
+        VALUES($1,$2,$3,'system','system:support','人工事项已交回待接待，可在这里查看后续回复。','system',$4) RETURNING created_at`,
+      [messageId,id,sequence,`support-return-${id}-v${expected+1}`])).rows[0]!;
+      const updated=(await client.query<ConversationRow>(`UPDATE support_conversation SET
+        status='waiting_human',current_handler_principal_id=NULL,next_sequence=next_sequence+1,
+        member_unread_count=member_unread_count+1,version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
+      await this.audit(client,principal,'support.conversation.return_to_queue',id,
+        {version:row.version,status:row.status,handler:row.current_handler_principal_id},
+        {version:updated.version,status:updated.status,humanRequestGeneration:updated.human_request_generation},traceId);
+      await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:id,
+        aggregateVersion:updated.version,businessKey:`support-message:${messageId}`,
+        payload:{conversationId:id,messageId,senderType:'system',sequence},occurredAt:inserted.created_at});
+      return conversation(updated);
+    });
+  }
   async reply(memberId: string | undefined, principalId: string | undefined, id: string, input: { body?: unknown; clientMessageId?: unknown }&ReplyTargetInput, traceId: string) {
-    await this.operator(memberId, "support.reply"); const principal = required(principalId, "AUTH_REQUIRED");
+    const operator=await this.operator(memberId, "support.reply"),principal=required(principalId, "AUTH_REQUIRED");
     const body=textBody(input.body); const messageKey=clientMessageId(input.clientMessageId);
     const targetOwner=(await this.findById(this.pool,id)).member_id;
     await this.reconcile(targetOwner);
     const result=await transaction(this.pool, async (client) => {
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${targetOwner}`]);
       await this.reconcileLocked(client,targetOwner);
+      await this.authority.requireWithClient(client,operator,'support.reply');
       let row=await this.findById(client,id,true);
       const duplicate=await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='admin' AND sender_principal_id=$2 AND client_message_id=$3`,[id,principal,messageKey]);

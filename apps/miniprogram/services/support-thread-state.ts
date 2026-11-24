@@ -8,6 +8,7 @@ export interface SupportSequenceMessage {
   senderType: string;
   createdAt?: string;
   replyToMessageId?: string | null;
+  replyExcerpt?: string;
   sender?: SupportSender;
   avatarPath?: string;
 }
@@ -191,8 +192,10 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
       : item.sequence <= counterpartyReadSequence ? "已读" : "已发送";
     const orderCard = (item as TMessage & {orderCard?:{productImage?:string|null}|null}).orderCard;
     const question = item.replyToMessageId ? loadedQuestions.get(item.replyToMessageId) : undefined;
-    const replyReferenceLabel = question && question.sequence < item.sequence && question.id !== previousChat?.id
-      ? `回复：${replyQuestionSummary(question)}` : "";
+    const replyExcerpt = question && question.sequence < item.sequence && (item.senderType === "admin" || question.id !== previousChat?.id)
+      ? replyQuestionSummary(question)
+      : !question && item.senderType === "admin" && item.replyToMessageId ? item.replyExcerpt : "";
+    const replyReferenceLabel = replyExcerpt ? `回复：${replyExcerpt}` : "";
     if (isChatMessage(item)) previousChat = item;
     const { avatarDataUrl: _rawAvatar, ...sender } = item.sender ?? {};
     const avatarPath = typeof item.avatarPath === 'string' && /^(wxfile:\/\/|http:\/\/usr\/|\/assets\/)/.test(item.avatarPath) ? item.avatarPath : defaultMemberAvatar;

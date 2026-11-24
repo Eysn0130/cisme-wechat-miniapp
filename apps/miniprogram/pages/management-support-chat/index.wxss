@@ -1,3 +1,5 @@
+@import "../../styles/support-chat-layout.wxss";
+
 .operator-shell {
   min-height: 100vh;
   background:
@@ -6,9 +8,14 @@
 }
 
 .operator-topbar {
-  padding-left: 64px;
-  padding-right: calc(var(--cisme-menu-width, 88px) + 64px);
+  --operator-header-inset: var(--cisme-nav-side, 112rpx);
+  padding-left: var(--operator-header-inset);
+  padding-right: var(--operator-header-inset);
   background: rgba(248, 244, 249, .94);
+}
+
+.operator-topbar--with-info {
+  --operator-header-inset: calc(var(--cisme-nav-side, 112rpx) + 44px);
 }
 
 .operator-title {
@@ -62,7 +69,7 @@
 .operator-more {
   position: absolute;
   top: var(--cisme-back-top, var(--cisme-menu-top, env(safe-area-inset-top)));
-  right: calc(var(--cisme-menu-width, 88px) + 12px);
+  right: var(--cisme-nav-side, 112rpx);
   width: 44px;
   height: 44px;
   padding: 0;
@@ -77,10 +84,10 @@
 }
 
 .operator-thread {
-  position: fixed;
-  top: var(--cisme-topbar-height, calc(env(safe-area-inset-top) + 44px));
+  position: absolute;
+  top: 0;
   right: 3rpx;
-  bottom: calc(env(safe-area-inset-bottom) + 150rpx);
+  bottom: 0;
   left: 0;
   width: auto;
 }
@@ -164,6 +171,7 @@
 }
 .operator-message--admin .operator-avatar-slot { margin-right: 0; margin-left: 12rpx; width: 68rpx; }
 .operator-avatar.operator-avatar--photo image { width: 100%; height: 100%; }
+.operator-avatar-wrap { position:relative; flex:none; width:68rpx; height:68rpx; }
 
 .operator-avatar-slot {
   flex: none;
@@ -220,20 +228,6 @@
   color: #75697a;
   font-size: 20rpx;
   line-height: 1.25;
-}
-
-.operator-reply-reference {
-  display: -webkit-box;
-  overflow: hidden;
-  min-width: 0;
-  max-width: 100%;
-  margin-bottom: 8rpx;
-  color: var(--cisme-muted);
-  font-size: var(--cisme-text-small);
-  line-height: 1.4;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
 }
 
 .operator-bubble {
@@ -481,10 +475,10 @@
 }
 
 .operator-new-message {
-  position: fixed;
+  position: absolute;
   z-index: 31;
   right: 24rpx;
-  bottom: calc(env(safe-area-inset-bottom) + 172rpx);
+  bottom: 12px;
   min-height: 44px;
   padding: 0 24rpx;
   border: 0;
@@ -496,12 +490,10 @@
 }
 
 .operator-actions {
-  position: fixed;
+  position: relative;
   z-index: 30;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  padding: 14rpx 20rpx calc(env(safe-area-inset-bottom) + 14rpx);
+  flex: none;
+  padding: 12rpx 20rpx calc(var(--cisme-chat-safe-bottom) + 12rpx);
   border-top: 1rpx solid rgba(78, 47, 91, .1);
   background: rgba(250, 247, 251, .97);
   box-shadow: 0 -12rpx 34rpx rgba(55, 34, 67, .055);
@@ -513,16 +505,15 @@
 }
 
 .operator-human-issue {
+  display: flex;
+  align-items: baseline;
+  gap: 14rpx;
   margin-bottom: 12rpx;
-  padding: 16rpx 20rpx;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  padding: 10rpx 16rpx;
 }
 
 .operator-human-issue__title {
-  display: block;
-  margin-bottom: 6rpx;
+  flex: none;
   color: var(--cisme-muted);
   font-size: var(--cisme-text-small);
   line-height: 1.4;
@@ -530,11 +521,12 @@
 
 .operator-human-issue__summary {
   display: -webkit-box;
+  min-width: 0;
   overflow: hidden;
   color: var(--cisme-ink);
   font-size: var(--cisme-text-body);
   line-height: 1.5;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow-wrap: anywhere;
 }
@@ -558,16 +550,23 @@
   line-height: 1.45;
   text-align: center;
 }
+.operator-draft-notice { padding:10rpx 20rpx; color:var(--cisme-muted); font-size:24rpx; line-height:1.4; }
 
 .operator-compose__head {
-  display: flex; align-items: center; gap: 14rpx; min-width: 0;
-  margin: 0 22rpx; border-bottom: 1rpx solid var(--cisme-line);
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+  margin: 0 22rpx;
 }
-.operator-ai-action {
-  display: flex; align-items: center; justify-content: center; flex: none;
-  min-width: 44px; min-height: 44px; margin: 0 -8rpx 0 0; padding: 0 8rpx;
-  border: 0; border-radius: 0; background: transparent; box-shadow: none;
-  color: var(--cisme-plum); font-size: .75rem; line-height: 1.25; transition: opacity 120ms ease;
+.operator-compose__commands {
+  display: flex;
+  align-self: flex-start;
+  flex: none;
+  gap: 18rpx;
+}
+.operator-compose__commands .operator-text-action {
+  padding: 0;
 }
 .operator-text-action--pressed { opacity: .6; }
 
@@ -587,15 +586,15 @@
 
 .operator-reply-target {
   display: flex;
-  align-items: flex-start;
-  gap: 4rpx;
+  align-items: baseline;
+  gap: 8rpx;
   flex: 1;
   min-width: 0;
   margin: 0;
-  padding: 16rpx 0;
+  padding: 8rpx 0;
   color: var(--cisme-muted);
-  font-size: 24rpx;
-  line-height: 1.4;
+  font-size: var(--cisme-text-small);
+  line-height: 1.25;
 }
 
 .operator-reply-target__label {
@@ -603,20 +602,20 @@
 }
 
 .operator-reply-target__summary {
+  display: block;
   min-width: 0;
-  display: -webkit-box;
   overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
+  color: var(--cisme-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .operator-input {
   display: block;
   width: 100%;
-  min-height: 224rpx;
-  max-height: 344rpx;
-  padding: 22rpx 22rpx 104rpx;
+  min-height: 64rpx;
+  max-height: 240rpx;
+  padding: 16rpx 22rpx 0;
   overflow-y: auto;
   border: 0;
   color: #352a3a;
@@ -626,21 +625,13 @@
 }
 
 .operator-input--capped {
-  height: 344rpx;
+  height: 240rpx;
 }
 
 .operator-input__placeholder {
   color: var(--cisme-muted);
   font-size: 28rpx;
   font-weight: 400;
-}
-
-.operator-compose__tools {
-  position: absolute;
-  right: 10rpx;
-  bottom: 10rpx;
-  display: flex;
-  align-items: center;
 }
 
 .operator-send {
@@ -675,20 +666,32 @@
   background: #eee8f0;
 }
 
-.operator-resolve {
+.operator-text-action {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  flex: none;
+  min-width: 44px;
   min-height: 44px;
-  margin: 10rpx 0 0;
-  padding: 0 24rpx;
+  margin: 0;
+  padding: 0 8rpx;
   border: 0;
   border-radius: 0;
-  color: #56306f;
+  color: var(--cisme-plum);
   background: transparent;
-  font-size: 22rpx;
+  font-size: var(--cisme-text-small);
   line-height: 1.25;
+  white-space: nowrap;
+}
+
+.operator-return,
+.operator-original {
+  color: var(--cisme-muted);
+}
+
+.operator-original {
+  margin-right: auto;
+  margin-left: 4rpx;
 }
 
 .context-mask {

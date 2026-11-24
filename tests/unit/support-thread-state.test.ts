@@ -152,6 +152,19 @@ describe("support thread state", () => {
     expect(presented[2]!.replyReferenceLabel).toBe(`回复：护理 ${"😊".repeat(77)}…`);
   });
 
+  it("shows the exact reference for an adjacent human reply and a verified source from an earlier page", () => {
+    const [question, answer, olderAnswer, unlinked] = presentSupportMessages([
+      { ...message(2, "user"), body: "本页原句" },
+      { ...message(3), replyToMessageId: "m-2", replyExcerpt: "不用缓存文本覆盖已加载的原句" },
+      { ...message(4), replyToMessageId: "m-1", replyExcerpt: "前一页原句" },
+      { ...message(5), replyToMessageId: null, replyExcerpt: "没有来源" }
+    ], { ownSenderType: "user" });
+    expect(question!.replyReferenceLabel).toBe("");
+    expect(answer!.replyReferenceLabel).toBe("回复：本页原句");
+    expect(olderAnswer!.replyReferenceLabel).toBe("回复：前一页原句");
+    expect(unlinked!.replyReferenceLabel).toBe("");
+  });
+
   it("keeps an old full case id in the underlying event while showing a short receipt", () => {
     const body="售后申请已收到 · 编号 8bb27d44-9e66-4bcd-8471-dd7535263e02。客服将按本案处理。";
     const shown=presentSupportMessages([{...message(1,"system"),body}],{ownSenderType:"user"})[0]!;

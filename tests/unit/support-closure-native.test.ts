@@ -98,7 +98,7 @@ describe('native support resolution and modal recovery',()=>{
   m.modal.mockRejectedValueOnce(new Error('showModal:fail native window unavailable'));await admin.resolve();
   expect(server.status).toBe('human_active');expect(m.request).not.toHaveBeenCalled();expect(admin.data.input).toBe('当前回复草稿');
   await admin.resolve();expect(server.status).toBe('resolved');expect(admin.data).toMatchObject({assignedToMe:false,humanRequest:null,replyTarget:null,input:'',busy:false});
-  await member.poll();expect(member.data.conversation.status).toBe('resolved');expect(member.data.supportAiAvailable).toBe(false);expect(member.composerControlKey()).toContain(':topic');
+  await member.poll();expect(member.data.conversation.status).toBe('resolved');expect(member.data.supportAiAvailable).toBe(false);expect(member.data.newTopicAvailable).toBe(true);
   await member.startNewTopic();expect(member.data.messages).toEqual([]);expect(member.data.contextStartSequence).toBe(1);expect(member.data.conversation.status).toBe('ai_active');
   expect(m.request.mock.calls.filter(([input])=>input.path.endsWith('/resolve'))).toHaveLength(1);
   expect(m.request.mock.calls.filter(([input])=>input.path==='/v1/me/support/new-topic')).toHaveLength(1);

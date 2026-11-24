@@ -32,12 +32,34 @@
     </view>
     <canvas type="2d" id="member-avatar-canvas" class="account-avatar-canvas" aria-hidden="true"/>
     <view wx:if="{{editingAddresses}}" class="settings-detail" aria-label="收货地址管理区">
-      <view wx:if="{{!addressEditorOpen}}" class="detail-head"><view><text class="detail-head__title">地址簿</text><text wx:if="{{addresses.length >= 10}}" class="detail-head__copy">已达 10 个地址上限，删除旧地址后可新增。</text></view><button wx:if="{{addressesEnabled && !addressEditorOpen}}" class="inline-action {{addressBusy || addresses.length >= 10 ? 'control--disabled' : ''}}" bindtap="newAddress" disabled="{{addressBusy || addresses.length >= 10}}">新增</button></view>
+      <block wx:if="{{!addressEditorOpen}}">
+        <view class="detail-head detail-head--addresses">
+          <text class="detail-head__title">地址簿</text>
+          <button wx:if="{{addressesEnabled}}" class="inline-action {{addressBusy || addresses.length >= 10 ? 'control--disabled' : ''}}" bindtap="newAddress" disabled="{{addressBusy || addresses.length >= 10}}">新增</button>
+        </view>
+        <text wx:if="{{addresses.length >= 10}}" class="detail-head__copy">已达 10 个地址上限，删除旧地址后可新增。</text>
+      </block>
       <view wx:if="{{addressesLoading && !addressesReady}}" class="settings-inline-state" aria-live="polite">正在加载地址…</view>
       <view wx:if="{{addressesError}}" class="state state--error" aria-live="assertive"><text>{{addressesError}}</text><button wx:if="{{!addressEditorOpen}}" class="text-button {{addressesLoading ? 'text-button--disabled' : ''}}" bindtap="loadAddresses" disabled="{{addressesLoading}}">重新加载</button></view>
       <view wx:if="{{addressRecoveryAvailable && !addressEditorOpen}}" class="address-recovery" aria-live="polite"><view class="address-recovery__copy"><text class="settings-strong">未保存的地址草稿</text><text wx:if="{{addressRecoveryTime}}" class="settings-caption">{{addressRecoveryTime}}</text></view><view class="address-recovery__actions"><button bindtap="discardRecoveredAddressDraft"><text>丢弃</text></button><button class="address-recovery__primary" bindtap="restoreAddressDraft"><text>恢复</text></button></view></view>
       <view wx:if="{{addressesReady && !addresses.length && !addressEditorOpen}}" class="settings-empty"><image aria-hidden="true" src="/assets/icons/package-plum.svg" mode="aspectFit"/><text class="settings-strong">尚未保存收货地址</text><button class="secondary {{!addressesEnabled ? 'secondary--disabled' : ''}}" bindtap="newAddress" disabled="{{!addressesEnabled}}">新增收货地址</button></view>
-      <view wx:if="{{!addressEditorOpen}}" class="address-list"><view wx:for="{{addresses}}" wx:key="id" class="address-item"><button class="address-main {{addressBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="editAddress" disabled="{{addressBusy}}" aria-label="编辑 {{item.recipientName}} 的收货地址"><view class="address-head"><text class="settings-strong">{{item.recipientName}}</text><text>{{item.phone}}</text><text class="address-tag">{{item.labelText}}</text><text wx:if="{{item.isDefault}}" class="address-default">默认</text></view><text class="address-summary">{{item.summary}}</text></button><view class="address-actions"><button wx:if="{{!item.isDefault}}" class="{{addressBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="setDefaultAddress" disabled="{{addressBusy}}" aria-label="将 {{item.recipientName}} 的地址设为默认">设为默认</button><button class="address-action--delete {{addressBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="deleteAddress" disabled="{{addressBusy}}" aria-label="删除 {{item.recipientName}} 的收货地址">删除</button></view></view></view>
+      <view wx:if="{{!addressEditorOpen}}" class="address-list">
+        <view wx:for="{{addresses}}" wx:key="id" class="address-item">
+          <button class="address-main {{addressBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="editAddress" disabled="{{addressBusy}}" aria-label="编辑 {{item.recipientName}} 的收货地址">
+            <view class="address-head">
+              <text class="settings-strong address-contact">{{item.recipientName}}</text>
+              <text class="address-contact">{{item.phone}}</text>
+              <text class="address-tag">{{item.labelText}}</text>
+              <text wx:if="{{item.isDefault}}" class="address-default">默认</text>
+            </view>
+            <text class="address-summary">{{item.summary}}</text>
+          </button>
+          <view class="address-actions">
+            <button wx:if="{{!item.isDefault}}" class="{{addressBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="setDefaultAddress" disabled="{{addressBusy}}" aria-label="将 {{item.recipientName}} 的地址设为默认">设为默认</button>
+            <button class="address-action--delete {{addressBusy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="deleteAddress" disabled="{{addressBusy}}" aria-label="删除 {{item.recipientName}} 的收货地址">删除</button>
+          </view>
+        </view>
+      </view>
       <address-editor wx:if="{{addressEditorOpen}}" draft="{{addressDraft}}" busy="{{addressBusy}}" parsing="{{addressParsing}}" quick-input="{{addressQuickInput}}" parse-status="{{addressParseStatus}}" parse-summary="{{addressParseSummary}}" parse-warnings="{{addressParseWarnings}}" field-errors="{{addressFieldErrors}}" conflict="{{addressConflict}}" can-save-as-new="{{addresses.length < 10}}" bindquickinput="editAddressQuickInput" bindrecognize="recognizeAddressText" bindpaste="pasteAndRecognizeAddress" bindwechat="importWechatAddress" bindfieldchange="editAddressField" bindregionchange="changeAddressRegion" bindlabelchange="selectAddressLabel" binddefaultchange="changeAddressDefault" bindcancel="cancelAddressEdit" bindsave="saveAddress" bindloadserver="loadConflictedAddress" bindsaveasnew="saveConflictedAsNew"/>
     </view>
     <view class="settings-label">隐私与账号</view>
