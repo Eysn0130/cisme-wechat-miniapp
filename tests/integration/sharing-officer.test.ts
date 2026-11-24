@@ -7,6 +7,7 @@ import {createApiGatewayStorage} from '../../services/api/src/storage';
 import {AuthorityService} from '../../services/api/src/authority';
 import {SharingOfficerService,snapshotSharingOfficer,releaseSharingCommissions} from '../../services/api/src/sharingOfficer';
 import {SharingOfficerFinance} from '../../services/api/src/sharingOfficerFinance';
+import {assessSharingV2Performance,sharingV2Cutoff,sharingV2PaymentWindow,sharingV2Period} from '../../services/api/src/sharingOfficerV2';
 import {VerifiedPaymentInbox} from '../../services/api/src/verifiedPaymentInbox';
 import {VerifiedRefundInbox} from '../../services/api/src/verifiedRefundInbox';
 import {SharingOfficerAssets} from '../../services/api/src/sharingOfficerAssets';
@@ -69,12 +70,12 @@ async function refund(order:any,amount:number,paymentId:string){
  const fact=signedFact({mchid:merchantId,out_trade_no:order.number,transaction_id:order.transactionId,out_refund_no:ref,refund_id:'PR'+randomBytes(10).toString('hex'),refund_status:'SUCCESS',success_time:new Date().toISOString(),amount:{total:9300,refund:amount,payer_total:9300,payer_refund:amount}},'REFUND.SUCCESS','refund-'+ref,'refund');
  const received=await refunds.receive(fact.rawBody,fact.headers);expect(await refunds.processOne(received.inboxId)).toBe('applied');expect((await refunds.receive(fact.rawBody,fact.headers)).inboxId).toBe(received.inboxId);return received;
 }
-async function ship(order:any){
+async function ship(order:any,sameDay=false){
  const sync=(await pool.query(`INSERT INTO commerce_shipping_sync(order_id,created_by_member_id,request_key,request_hmac,encrypted_parcel,key_version,evidence_reference)
   VALUES($1,$2,$3,$4,'synthetic-only','v1','synthetic-fixture') RETURNING id`,[order.id,manager.memberId,'shipping-'+order.id,'a'.repeat(64)])).rows[0].id;
- const receipt=new Date(order.at.getTime()+2*86400_000);
+ const shipmentDelay=sameDay?2000:86400_000,receipt=new Date(order.at.getTime()+2*shipmentDelay);
  await pool.query(`INSERT INTO commerce_shipment(order_id,shipping_sync_id,carrier_name,shipped_at,receipt_confirmed_at,created_by_member_id)
-  VALUES($1,$2,'合成承运商',$3,$4,$5)`,[order.id,sync,new Date(order.at.getTime()+86400_000),receipt,manager.memberId]);
+  VALUES($1,$2,'合成承运商',$3,$4,$5)`,[order.id,sync,new Date(order.at.getTime()+shipmentDelay),receipt,manager.memberId]);
 }
 beforeAll(async()=>{
  await resetDatabase(pool);app=await createApp({config,pool,storage:createApiGatewayStorage(config)});
@@ -254,4 +255,84 @@ it('shows the same verified payment, refund, coupon-free order and paid sharing 
  const settlements:any=await admin.section(manager.memberId,b.memberId,'settlements');
  expect(settlements.items.find((r:any)=>r.id===line.id)).toMatchObject({grossCents:1584,taxCents:84,netCents:1500,state:'paid',source:null});
  expect(JSON.stringify(settlements)).not.toContain('SYNTHETIC-PAID-');
+});
+
+it('requires the active agreement and manual identity decision, binds only after valid orders, and clears expired V2 relations',async()=>{
+ const identity=(name:string)=>expectOk(app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:name,displayName:name,
+  consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}}));
+ const [officer,next,customer]=await Promise.all(['sharing-v2-officer','sharing-v2-next','sharing-v2-customer'].map(identity));
+ for(const applicant of [officer,next])await pay(await seedOrder(applicant,false,true));
+ expect((await service.mine(officer.memberId)).applicationAgreement).toMatchObject({version:'V2.0',effectiveOn:null});
+ expect((await command(officer,'apply',{agreement:{accepted:true}})).json().code).toBe('SHARING_AGREEMENT_NOT_EFFECTIVE');
+ config.sharingAgreementV2EffectiveOn='2026-01-01';
+ try{
+  const codes:string[]=[];
+  for(const applicant of [officer,next]){
+   const document=(await service.mine(applicant.memberId)).applicationAgreement!;
+   const agreement={accepted:true,version:document.version,effectiveOn:document.effectiveOn,digest:document.digest};
+   expect((await command(applicant,'apply',{})).json().code).toBe('SHARING_AGREEMENT_REQUIRED');
+   expect((await command(applicant,'apply',{agreement:{...agreement,digest:'0'.repeat(64)}})).json().code).toBe('SHARING_AGREEMENT_CHANGED');
+   const key='sharing-v2-consent-'+applicant.memberId;
+   const application=await expectOk(command(applicant,'apply',{agreement},false,key));
+   expect(application).toMatchObject({state:'pending',version:1,agreement:{version:'V2.0',effectiveOn:'2026-01-01',digest:document.digest,acceptedAt:expect.any(String)}});
+   expect(await expectOk(command(applicant,'apply',{agreement},false,key))).toEqual(application);
+   const approval={memberId:applicant.memberId,expectedVersion:1,state:'active',reason:'合成核验通过'};
+   expect((await command(manager,'officer_state',approval,true)).statusCode).toBe(422);
+   const verificationReference='KYC-SYNTHETIC-'+codes.length;
+   await expectOk(command(manager,'officer_state',{...approval,verificationReference},true));
+   expect((await service.mine(applicant.memberId)).policy).toMatchObject({basisPoints:3000});
+   const evidence=await pool.query('SELECT agreement_digest,verified_at,verification_reference FROM sharing_v2_application WHERE member_id=$1',[applicant.memberId]);
+   expect(evidence.rows).toEqual([{agreement_digest:document.digest,verified_at:expect.any(Date),verification_reference:verificationReference}]);
+   const {digest,...body}=document;
+   const client=await pool.connect();
+   try{
+    const portable=await collectSharingPortableData(client,config,applicant.memberId);
+    expect(portable.agreementConfirmations).toEqual([expect.objectContaining({agreement_digest:digest,document:body})]);
+   }finally{client.release();}
+   codes.push(application.referralCode);
+  }
+  expect((await pool.query('SELECT * FROM sharing_v2_agreement_document')).rowCount).toBe(1);
+  const policy=(await service.mine(manager.memberId)).policy!;
+  await expectOk(command(manager,'policy',{enabled:true,attributionDays:null,priority:'first',selfPurchase:false,
+   basisPoints:policy.basisPoints,releaseDays:0,reason:'合成当日有效订单',expectedVersion:policy.version},true));
+  const {shareId}=await expectOk(command(officer,'share',{productCode:'sharing-test-product'}));
+  const {visitToken}=await expectOk(app.inject({method:'POST',url:'/v1/officer-shares/'+shareId+'/visits',payload:{visitKey:'sharing-v2-customer-visit'}}));
+  await expectOk(command(customer,'bind_visit',{visitToken}));
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:{code:codes[0]}});
+  const firstV2=await seedOrder(customer);
+  await pay(firstV2);
+  expect((await service.mine(customer.memberId)).relation).toBeNull();
+  await ship(firstV2,true);
+  await releaseSharingCommissions(pool);
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:{version:1,code:codes[0],agreementVersion:'V2.0'},pendingReferrer:null});
+  expect((await service.orders(officer.memberId,{id:firstV2.id})).items[0]).toMatchObject({availableCents:2640,cashMerchandiseCents:8800,agreementVersion:'V2.0'});
+
+  await expectOk(command(customer,'change_referrer',{code:codes[1],confirmed:true,expectedVersion:1}));
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:{code:codes[0]},pendingReferrer:{code:codes[1]}});
+  const refunded=await seedOrder(customer);
+  await refund(refunded,8800,await pay(refunded));
+  await ship(refunded,true);
+  await releaseSharingCommissions(pool);
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:{code:codes[0]},pendingReferrer:{code:codes[1]}});
+  const changed=await seedOrder(customer);
+  await pay(changed);
+  await ship(changed,true);
+  await releaseSharingCommissions(pool);
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:{version:2,code:codes[1]},pendingReferrer:null});
+  expect((await service.orders(next.memberId,{id:changed.id})).items[0]).toMatchObject({availableCents:2640});
+
+  expect(sharingV2Period(new Date('2026-12-30T15:59:59Z'))).toBe('2026-12');
+  expect(sharingV2Period(new Date('2026-12-30T16:00:00Z'))).toBe('2027-01');
+  expect(sharingV2Cutoff('2027-02').toISOString()).toBe('2027-02-28T16:00:00.000Z');
+  expect(sharingV2PaymentWindow('2026-12')).toEqual({start:'2027-01-10',end:'2027-01-15'});
+  const releaseAt=(await pool.query<{occurred_at:Date}>("SELECT occurred_at FROM commission_ledger_entry WHERE order_id=$1 AND kind='release'",[changed.id])).rows[0]!.occurred_at;
+  const [year,month]=sharingV2Period(releaseAt).split('-').map(Number);
+  await assessSharingV2Performance(pool,25,new Date(Date.UTC(year!,month!+2,5)));
+  expect((await service.mine(next.memberId)).officer?.state).toBe('active');
+  expect(await assessSharingV2Performance(pool,25,new Date(Date.UTC(year!,month!+3,5)))).toBe(2);
+  expect(await assessSharingV2Performance(pool,25,new Date(Date.UTC(year!,month!+3,5)))).toBe(0);
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:null});
+  expect((await service.mine(next.memberId)).officer).toMatchObject({state:'terminated',reviewReason:'连续三个月有效推荐业绩为零'});
+  expect((await service.orders(next.memberId,{id:changed.id})).items[0]).toMatchObject({availableCents:2640});
+ }finally{config.sharingAgreementV2EffectiveOn=null;}
 });

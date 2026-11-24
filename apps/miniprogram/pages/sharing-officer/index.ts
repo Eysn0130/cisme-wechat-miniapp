@@ -2,7 +2,7 @@ import {officerRewardOffers,prepareOfficerRewardShare,type OfficerRewardOffers} 
 import {prepareRewardDetailImages} from '../../services/reward-images';
 import {clientOperationKey} from '../../services/orders';
 import {requireMemberAccess,request} from '../../services/api';
-import {currentChromeStyle} from '../../services/layout';
+import {currentChromeStyle,shouldReduceMotion} from '../../services/layout';
 import {cancelPageReads} from '../../services/page-requests';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 import {catalogList} from '../../services/commerce';
@@ -11,23 +11,35 @@ import {campaignEssenceCode} from '../../services/home-campaign';
 import {sectionTabValue} from '../../services/section-tabs';
 import {officerRead,officerCommand,officerPending,resolveOfficerPending,officerMoney,officerDate,officerError,officerLabels,officerHistoryRow,type OfficerPending} from '../../services/sharing-officer';
 const tabs=[{id:'overview',label:'推广'},{id:'orders',label:'推广订单'},{id:'settlements',label:'结算'}];
+type AgreementIdentity={version:string;digest:string;effectiveOn:string};
+type AgreementDocument=Omit<AgreementIdentity,'effectiveOn'>&{
+ effectiveOn:string|null;title:string;brand:string;subtitle:string;tagline:string[];draftNotice:string;parties:string[];
+ introduction:string;sections:{heading:string;paragraphs:{kind:'paragraph'|'bullet'|'subheading';text:string}[]}[];closing:string[];
+};
+const agreementReset={agreementOpen:false,agreementClosing:false,agreementSeconds:10,agreementAtEnd:false,agreementReady:false,agreementReduced:false};
+function sameAgreement(agreement:AgreementDocument|null,confirmation:AgreementIdentity|null) {
+ return !!agreement?.effectiveOn&&!!confirmation&&agreement.version===confirmation.version&&agreement.digest===confirmation.digest&&agreement.effectiveOn===confirmation.effectiveOn;
+}
 function orderRow(r:any){return {...r,date:officerDate(r.createdAt),cash:officerMoney(r.cashMerchandiseCents),refund:officerMoney(r.refundedMerchandiseCents),pending:officerMoney(r.pendingCents),available:officerMoney(r.availableCents),settled:officerMoney(r.settledCents),recovery:officerMoney(r.outstandingRecoveryCents),rate:(r.basisPoints/100).toFixed(2).replace(/\.00$/,''),label:r.orderStatus==='pending_payment'?'待付款':['cancelled','expired','closed'].includes(r.orderStatus)?'已关闭':r.disputed?'售后处理中':r.outstandingRecoveryCents?'待核对冲回':r.paymentHeldCents?'结算中':r.settledCents?'已结算':r.availableCents?'可结算':r.pendingCents?'待结算':r.paidAt?'无可结算佣金':'未计佣'};}
 function settlementRow(r:any){return {...r,date:officerDate(r.paidAt||r.createdAt),gross:officerMoney(r.grossCents),tax:officerMoney(r.taxCents),net:officerMoney(r.netCents),label:officerLabels[r.state]||r.state};}
 const giftClear={giftActivities:[] as OfficerRewardOffers['activities'],giftActivityId:'',giftActivityTitle:'',giftActivityIndex:0,giftBundles:[] as any[],giftShare:null as any,giftShareBusy:false,giftError:'',giftAvailable:false,detailBusy:false};
-const cleared={...giftClear,memberId:'',wallet:null as any,metrics:{} as Record<string,string>,items:[] as any[],products:[] as any[],productCursor:null as string|null,moreProducts:false,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,preview:null as any,assets:null as any,share:null as any,sheet:'',selected:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,orderLineId:'',sourcePeriod:'',note:'',legalName:'',channel:'',account:'',code:'',error:''};
+const cleared={...giftClear,memberId:'',wallet:null as any,metrics:{} as Record<string,string>,items:[] as any[],products:[] as any[],productCursor:null as string|null,moreProducts:false,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,preview:null as any,assets:null as any,share:null as any,sheet:'',selected:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,orderLineId:'',sourcePeriod:'',note:'',legalName:'',channel:'',account:'',code:'',error:'',agreement:null as AgreementDocument|null,agreementChecked:false,...agreementReset};
 Page({
  alive:false,visible:false,epoch:0,session:'',context:0,qrPath:'',
- data:{...cleared,chromeStyle:currentChromeStyle(),tabs,tab:'overview',referrerOnly:false,loading:true,busy:false,stateLabel:'',rate:'',releaseDays:0,hasDashboard:false,giftMode:false},
+ agreementConsent:null as AgreementIdentity|null,agreementDeadline:0,agreementTick:null as ReturnType<typeof setInterval>|null,agreementExit:null as ReturnType<typeof setTimeout>|null,
+ data:{...cleared,agreementAttempt:0,chromeStyle:currentChromeStyle(),tabs,tab:'overview',referrerOnly:false,loading:true,busy:false,stateLabel:'',rate:'',releaseDays:0,hasDashboard:false,giftMode:false},
  onLoad(query:Record<string,string>){this.alive=true;this.setData({referrerOnly:query.mode==='referrer',giftMode:query.mode==='gift'});},
- onShow(){wx.hideShareMenu();this.visible=true;this.epoch++;const session=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();if(session!==this.session||context!==this.context)this.setData({...cleared});this.session=session;this.context=context;if(requireMemberAccess())void this.load();},
- onHide(){wx.hideShareMenu();this.visible=false;this.epoch++;cancelPageReads(this);this.cleanupQr();this.setData({sheet:'',legalName:'',channel:'',account:'',assets:null,giftShare:null,giftShareBusy:false,detailBusy:false});},
+ onShow(){wx.hideShareMenu();this.visible=true;this.epoch++;const session=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();if(session!==this.session||context!==this.context){this.stopAgreementTimers();this.agreementConsent=null;this.setData({...cleared});}this.session=session;this.context=context;if(requireMemberAccess())void this.load();},
+ onHide(){wx.hideShareMenu();this.visible=false;this.epoch++;cancelPageReads(this);this.cleanupQr();this.stopAgreementTimers();this.agreementConsent=null;this.setData({sheet:'',legalName:'',channel:'',account:'',assets:null,giftShare:null,giftShareBusy:false,detailBusy:false,agreementChecked:false,...agreementReset});},
  onUnload(){this.onHide();this.alive=false;this.setData({...cleared});},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  current(epoch?:number){return this.alive&&this.visible&&(epoch===undefined||epoch===this.epoch)&&this.session===getApp<IAppOption>().globalData.sessionToken&&this.context===commerceContextRevision();},
  async load(more=false){if(!this.current())return;const epoch=++this.epoch;this.setData({loading:true,error:''});try{
-  const wallet=await officerRead(this,'/v1/me/sharing-officer');if(!this.current(epoch))return;
+  const {applicationAgreement,...wallet}=await officerRead(this,'/v1/me/sharing-officer');if(!this.current(epoch))return;
+  const agreement:AgreementDocument|null=wallet.canApply&&applicationAgreement?.title&&Array.isArray(applicationAgreement.sections)?applicationAgreement:null;
+  if(!sameAgreement(agreement,this.agreementConsent))this.agreementConsent=null;
   const metrics:Record<string,string>={};for(const key of Object.keys(wallet.metrics))metrics[key]=officerMoney(wallet.metrics[key]);
-  this.setData({wallet,memberId:wallet.memberId,metrics,stateLabel:wallet.officer?.state==='active'&&!wallet.policy?.enabled?'推广已暂停':officerLabels[wallet.officer?.state]||'',hasDashboard:Boolean(wallet.officer&&(['active','suspended','terminated'].includes(wallet.officer.state)||wallet.metrics.orderCount>0)),rate:((wallet.policy?.basisPoints??0)/100).toFixed(2).replace(/\.00$/,''),releaseDays:wallet.policy?.releaseDays??0,pending:officerPending(wallet.memberId)});
+  this.setData({wallet,agreement,agreementChecked:!!this.agreementConsent,memberId:wallet.memberId,metrics,stateLabel:wallet.officer?.state==='active'&&!wallet.policy?.enabled?'推广已暂停':officerLabels[wallet.officer?.state]||'',hasDashboard:Boolean(wallet.officer&&(['active','suspended','terminated'].includes(wallet.officer.state)||wallet.metrics.orderCount>0)),rate:((wallet.policy?.basisPoints??0)/100).toFixed(2).replace(/\.00$/,''),releaseDays:wallet.policy?.releaseDays??0,pending:officerPending(wallet.memberId)});
   if(this.data.giftMode){await this.loadGiftOffers(epoch);return;}
   if(!this.data.referrerOnly&&wallet.officer?.state==='active'&&this.data.tab==='overview')await this.loadProducts(false,epoch);
   if(!this.data.referrerOnly&&this.data.tab!=='overview'){
@@ -58,20 +70,95 @@ Page({
   this.setData({products:[...(more?this.data.products:[]),...page.items.map((p:any)=>({...p,displayImage:nativeCatalogImage(p.imagePath||p.image||''),price:p.price!==null?officerMoney(p.price):''}))],productCursor:page.nextCursor,moreProducts:Boolean(page.nextCursor)});},
  qualifyPurchase(){if(!this.current()||this.data.busy||this.data.pending)return;wx.navigateTo({url:`/pages/product/index?id=${campaignEssenceCode}`});},
  retry(){if(!this.data.busy)void this.load();},
- onPullDownRefresh(){if(!this.data.busy)void this.load();else wx.stopPullDownRefresh();},
+ onPullDownRefresh(){if(!this.data.busy&&!this.data.agreementOpen)void this.load();else wx.stopPullDownRefresh();},
  more(){if(!this.data.loading&&!this.data.busy&&this.data.hasMore)void this.load(true);},
  async moreProducts(){if(this.data.loading||this.data.busy)return;this.setData({busy:true});try{await this.loadProducts(true);}catch(e){this.setData({error:officerError(e)});}finally{if(this.current())this.setData({busy:false});}},
  changeTab(e:unknown){const tab=sectionTabValue(e);if(this.data.busy||this.data.pending||!tabs.some(t=>t.id===tab)||tab===this.data.tab)return;cancelPageReads(this);this.epoch++;this.setData({tab,items:[],nextCursor:null,hasMore:false,orderLineId:'',sourcePeriod:''});void this.load();},
  edit(e:WechatMiniprogram.CustomEvent){const field=String(e.currentTarget.dataset.field);if(['note','legalName','channel','account','code'].includes(field)&&!this.data.busy)this.setData({[field]:String(e.detail.value),...(field==='code'?{preview:null}:{})});},
- open(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending)return;const sheet=String(e.currentTarget.dataset.sheet);if(sheet==='apply'&&!this.data.wallet?.canApply)return;if(['apply','payee','referrer'].includes(sheet))this.setData({sheet,preview:null,code:'',note:'',legalName:'',channel:'',account:'',error:''});},
+ stopAgreementTimers(){
+  if(this.agreementTick!==null)clearInterval(this.agreementTick);
+  if(this.agreementExit!==null)clearTimeout(this.agreementExit);
+  this.agreementTick=null;
+  this.agreementExit=null;
+  this.agreementDeadline=0;
+ },
+ openAgreement(){
+  if(!this.current()||!this.data.wallet?.canApply||this.data.loading||this.data.busy||this.data.pending||this.data.sheet||this.data.agreementOpen)return;
+  if(!this.data.agreement){wx.showToast({title:'协议暂未加载，请下拉刷新',icon:'none'});return;}
+  const attempt=this.data.agreementAttempt+1;
+  this.agreementDeadline=this.data.agreement.effectiveOn?Date.now()+10_000:0;
+  this.setData({...agreementReset,agreementOpen:true,agreementReduced:shouldReduceMotion(),agreementAttempt:attempt});
+  if(this.agreementDeadline)this.agreementTick=setInterval(()=>this.updateAgreementTime(attempt),200);
+  wx.nextTick(()=>{
+   if(!this.readingAgreement(attempt))return;
+   const query=wx.createSelectorQuery();
+   query.select('#officer-agreement-scroll').boundingClientRect();
+   query.select('#officer-agreement-body').boundingClientRect();
+   query.exec(([frame,body])=>{
+    if(frame?.height>0&&body?.height>0&&body.height<=frame.height&&this.readingAgreement(attempt))this.reachAgreementEnd(attempt);
+   });
+  });
+ },
+ readingAgreement(attempt:number){
+  return this.current()&&this.data.agreementOpen&&!this.data.agreementClosing&&this.data.agreementAttempt===attempt;
+ },
+ updateAgreementTime(attempt:number){
+  if(!this.readingAgreement(attempt)||!this.agreementDeadline)return;
+  const seconds=Math.max(0,Math.ceil((this.agreementDeadline-Date.now())/1000));
+  if(seconds!==this.data.agreementSeconds)this.setData({agreementSeconds:seconds,agreementReady:seconds===0&&this.data.agreementAtEnd});
+  if(seconds===0&&this.agreementTick!==null){clearInterval(this.agreementTick);this.agreementTick=null;}
+ },
+ reachAgreementEnd(attempt:number){
+  if(!this.readingAgreement(attempt)||this.data.agreementAtEnd)return;
+  const ready=this.agreementDeadline>0&&Date.now()>=this.agreementDeadline;
+  this.setData({agreementAtEnd:true,agreementReady:ready,...(ready?{agreementSeconds:0}:{})});
+ },
+ agreementEnd(e:WechatMiniprogram.CustomEvent){
+  this.reachAgreementEnd(Number(e.currentTarget.dataset.attempt));
+ },
+ closeAgreement(){
+  if(!this.data.agreementOpen||this.data.agreementClosing)return;
+  this.stopAgreementTimers();
+  this.setData({agreementClosing:true,agreementReady:false});
+  if(this.data.agreementReduced)this.setData({...agreementReset});
+  else this.agreementExit=setTimeout(()=>{this.agreementExit=null;this.setData({...agreementReset});},160);
+ },
+ toggleAgreement(){
+  if(!this.current()||this.data.loading||this.data.busy||this.data.pending)return;
+  if(this.data.agreementChecked){
+   this.agreementConsent=null;
+   this.setData({agreementChecked:false});
+  }else this.openAgreement();
+ },
+ agree(){
+  const agreement=this.data.agreement;
+  if(!this.readingAgreement(this.data.agreementAttempt)||!agreement?.effectiveOn||!this.data.agreementAtEnd||!this.agreementDeadline||Date.now()<this.agreementDeadline)return;
+  this.agreementConsent={version:agreement.version,digest:agreement.digest,effectiveOn:agreement.effectiveOn};
+  this.setData({agreementChecked:true});
+  this.closeAgreement();
+ },
+ applicationConsent(){
+  if(!this.data.wallet?.canApply||!this.current()||this.data.agreementOpen||this.data.loading)return null;
+  if(!this.data.agreement?.effectiveOn){wx.showToast({title:this.data.agreement?'合作协议尚未启用':'协议暂未加载，请下拉刷新',icon:'none'});return null;}
+  if(!sameAgreement(this.data.agreement,this.agreementConsent)){wx.showToast({title:'请阅读并勾选分享官合作协议',icon:'none'});return null;}
+  return this.agreementConsent;
+ },
+ open(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||this.data.agreementOpen)return;const sheet=String(e.currentTarget.dataset.sheet);if(sheet==='apply'&&!this.applicationConsent())return;if(['apply','payee','referrer'].includes(sheet))this.setData({sheet,preview:null,code:'',note:'',legalName:'',channel:'',account:'',error:''});},
  close(){if(!this.data.busy){this.cleanupQr();this.setData({sheet:'',selected:null,history:[],historyCursor:null,historyMore:false,historyLoading:false,assets:null,preview:null,legalName:'',channel:'',account:'',error:''});}},
- stop(){},back(){if(this.data.busy)return;wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},
+ stop(){},back(){if(this.data.agreementOpen){this.closeAgreement();return;}if(this.data.busy)return;wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},
  async operate(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||!this.current())return;const action=String(e.currentTarget.dataset.action);let input:Record<string,unknown>;
-  if(action==='apply'){if(!this.data.wallet?.canApply)return;input={note:this.data.note};}else if(action==='payee')input={legalName:this.data.legalName,channel:this.data.channel,account:this.data.account,expectedVersion:this.data.wallet?.payee?.version??0};
-  else if(action==='change_referrer'&&this.data.preview?.eligible===true)input={code:this.data.preview.code,confirmed:true,expectedVersion:this.data.wallet?.relation?.version??0};else return;
+  if(action==='apply'){const consent=this.applicationConsent();if(this.data.sheet!=='apply'||!consent)return;input={note:this.data.note,agreement:{...consent,accepted:true}};}else if(action==='payee')input={legalName:this.data.legalName,channel:this.data.channel,account:this.data.account,expectedVersion:this.data.wallet?.payee?.version??0};
+  else if(action==='change_referrer'&&this.data.preview?.eligible===true)input={code:this.data.preview.code,confirmed:true,expectedVersion:this.data.wallet?.relation?.version??0,...(this.data.wallet?.pendingReferrer?{expectedPendingId:this.data.wallet.pendingReferrer.id}:{})};else return;
   this.setData({busy:true,error:''});const epoch=this.epoch;
-  try{await officerCommand(this.data.memberId,action,input);if(!this.current(epoch))return;this.setData({sheet:'',legalName:'',channel:'',account:'',preview:null});wx.showToast({title:action==='apply'?'申请已提交':action==='payee'?'收款资料已保存':'推荐人已更新',icon:'success'});await this.load();}
-  catch(error){if(this.current(epoch))this.setData({error:officerError(error),pending:officerPending(this.data.memberId)});}finally{if(this.current(epoch))this.setData({busy:false});}},
+  try{const result=await officerCommand(this.data.memberId,action,input);if(!this.current(epoch))return;this.setData({sheet:'',legalName:'',channel:'',account:'',preview:null});wx.showToast({title:action==='apply'?'申请已提交':action==='payee'?'收款资料已保存':result?.pendingReferrer?'已记录，待首笔有效成交':'推荐人已更新',icon:'success'});await this.load();}
+  catch(error){if(this.current(epoch)){
+   const title=officerError(error);
+   if(action==='apply'&&String((error as {code?:string}).code).startsWith('SHARING_AGREEMENT_')){
+    this.agreementConsent=null;this.setData({agreementChecked:false,sheet:''});
+    const refresh=this.load(),refreshEpoch=this.epoch;await refresh;
+    if(this.current(refreshEpoch))this.setData({error:title});
+   }else this.setData({error:title,pending:officerPending(this.data.memberId)});
+  }}finally{if(this.current(epoch))this.setData({busy:false});}},
  async recover(e:WechatMiniprogram.TouchEvent){const p=this.data.pending;if(!p||this.data.busy)return;const epoch=this.epoch;this.setData({busy:true,error:''});try{const r=await resolveOfficerPending(p,e.currentTarget.dataset.abandon===true);if(!this.current(epoch))return;if(r.state==='not_found')this.setData({error:'尚未执行，可结束这次请求后重新填写。'});else{this.setData({pending:null,sheet:''});await this.load();}}catch(e){if(this.current(epoch))this.setData({error:officerError(e)});}finally{if(this.current(epoch))this.setData({busy:false});}},
  async previewReferrer(){if(this.data.busy)return;const epoch=this.epoch;this.setData({busy:true,error:'',preview:null});try{const p=await officerRead(this,'/v1/me/sharing-officer/referrer-preview?code='+encodeURIComponent(this.data.code.trim().toUpperCase()));if(this.current(epoch))this.setData({preview:p});}catch(e){if(this.current(epoch))this.setData({error:officerError(e)});}finally{if(this.current(epoch))this.setData({busy:false});}},
  async promote(e:WechatMiniprogram.TouchEvent){if(!this.data.wallet?.canShare||this.data.busy||this.data.pending)return;const product=this.data.products.find(p=>p.code===e.currentTarget.dataset.code);if(!product)return;

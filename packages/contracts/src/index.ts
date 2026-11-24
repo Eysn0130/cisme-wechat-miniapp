@@ -399,3 +399,4 @@ export interface OutboxEvent<T = Record<string, unknown>> {
   occurredAt: string;
   payload: T;
 }
+export { sharingOfficerAgreement } from "./sharingOfficerAgreement.js";

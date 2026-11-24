@@ -742,7 +742,7 @@
     },
     {
       "surface": "sharing_officer_application_and_finance",
-      "informationType": "Canonical applicant identity, reviewed qualification, direct relation events and immutable commission sources; optional encrypted legal name/payment method/account supplied by the member.",
+      "informationType": "Canonical applicant identity, reviewed qualification, version and digest of the explicitly accepted cooperation agreement, server acceptance timestamp and application version, company verification outcome, reference and internal reviewer/time, direct referral intents and relation events, period order counts, and immutable commission sources; optional encrypted legal name/payment method/account supplied by the member.",
       "purpose": "Free promotion applications, explicit referrer replacement, direct-order commission and finance-reviewed monthly manual settlement.",
       "activation": "Applicant submits voluntarily; company grants are checked server-side; bank data is collected only on explicit Save, not during login.",
       "serverStorage": "Independent experience/formal PostgreSQL; existing versioned AES-GCM contact key with canonical-owner AAD; minimum necessary immutable transaction/payee snapshot evidence retained.",
@@ -850,7 +850,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "e10b0c19a08f639812219f5aa50fd7b76928013d8fbcf38ae16e16618a91de8b",
+  "migrationSetSha256": "6e77a6a7180691188f896b8e79a6bdd32b777a3a13b305bc8f8226c41ae98ca9",
   "egressSignatureSha256": "51385a8246d036be461cc5496918b981d47f9d77cb0361131ed2d02e0cbec0e7",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1475,6 +1475,14 @@
     "privacy": "No referred buyer identity, phone, address or openid in officer DTO/CSV/export. No raw bank data in command receipts, logs, frontend storage or default company CSV. Authorized payee reads audited; revoked finance receipts redacted; admin hide clears sensitive memory; temporary exports registered with session cleanup.",
     "testBoundary": "One newly initialized isolated PostgreSQL16 cluster and disposable local object directory only. No real member/payment/finance records are created during acceptance. Remote-tunnel latency is not evidence of deployed co-located API/database speed; original portable-export deadline remains unchanged.",
     "physicalDeviceAccepted": false
+  },
+  "sharingAgreementV2Review20261124": {
+    "source": "Cooperation agreement V2.0 and owner-confirmed date, manual verification and referrer replacement rules.",
+    "tables": ["sharing_v2_agreement_document", "sharing_v2_application", "sharing_v2_referral_intent", "sharing_v2_assessment"],
+    "acceptance": "An eligible member submits the version and digest of the displayed effective agreement after confirming. The exact authorized text is archived once by digest alongside the server acceptance time and application evidence in the same transaction. No reading path, scroll position, device fingerprint or timer events are retained.",
+    "verification": "Only an authorized reviewer can record completed company manual identity verification with an opaque reference; the applicant ID, verification result, reviewer and time are evidence. No identity documents, photographs, identity numbers or external recipients are introduced.",
+    "review": "Opaque relation and order references remain in first-party storage. A three-period performance result can terminate qualification and detach live customer bindings. Original confirmed agreement, transaction, referral and audit evidence is preserved; no named referred customer is exposed in the officer wallet or CSV.",
+    "rights": "Owner-scoped portable export includes their acceptance, verification and assessment records. Existing access, retention, account-closure and finance evidence controls continue. No production record was used for this mapping."
   },
   "travelRewardSharedInvitationReview20261116": {
     "scope": "An administrator-created forwardable campaign invitation; authenticated completed members accept their own single voucher. No new third-party recipient or sensitive field.",

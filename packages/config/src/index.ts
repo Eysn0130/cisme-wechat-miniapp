@@ -14,6 +14,7 @@ export function migrationReadOnly(env: NodeJS.ProcessEnv = process.env): boolean
 export interface AppConfig {
   env: AppEnvironment;
   memberAdministrationRootId?: string | null;
+  sharingAgreementV2EffectiveOn: string | null;
   port: number;
   databaseUrl: string;
   allowDevAdapters: boolean;
@@ -123,6 +124,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   if (deepseekApiKey && /[\r\n\0]/.test(deepseekApiKey)) throw new Error("CONFIG_INVALID:DEEPSEEK_API_KEY");
   const supportAiTimeoutMs = integer("SUPPORT_AI_TIMEOUT_MS", env.SUPPORT_AI_TIMEOUT_MS, 4_000, 250, 5_000);
   const appEnv = (env.APP_ENV ?? "development") as AppEnvironment;
+  const sharingAgreementV2EffectiveOn = env.SHARING_AGREEMENT_V2_EFFECTIVE_ON?.trim() || null;
+  if (sharingAgreementV2EffectiveOn) {
+    const stamp = Date.parse(sharingAgreementV2EffectiveOn + "T00:00:00Z");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(sharingAgreementV2EffectiveOn) || !Number.isFinite(stamp) ||
+      new Date(stamp).toISOString().slice(0,10) !== sharingAgreementV2EffectiveOn)
+      throw new Error("CONFIG_INVALID:SHARING_AGREEMENT_V2_EFFECTIVE_ON");
+  }
   if(env.WECHAT_SHARE_ENV_VERSION!==undefined&&!['trial','release'].includes(env.WECHAT_SHARE_ENV_VERSION))throw new Error('CONFIG_INVALID:WECHAT_SHARE_ENV_VERSION');
   if (!["development", "test", "staging", "production"].includes(appEnv)) throw new Error("CONFIG_INVALID:APP_ENV");
   const allowDevAdapters = bool(env.ALLOW_DEV_ADAPTERS, appEnv !== "production" && appEnv !== "staging");
@@ -366,6 +374,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     pointsRedemptionEnabled,
     pointsRedemptionApprovalExpiresAt: env.POINTS_REDEMPTION_APPROVAL_EXPIRES_AT?.trim() || null,
     ugcGoLiveGate,
+    sharingAgreementV2EffectiveOn,
     pointsRulesEnabled,
     pointsRuleIds,
     pointsFinanceApprovalId: env.POINTS_FINANCE_APPROVAL_ID ?? null,

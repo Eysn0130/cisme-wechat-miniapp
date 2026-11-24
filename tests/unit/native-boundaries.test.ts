@@ -149,7 +149,7 @@ describe("native mini program boundary", () => {
       "referral/index.wxml": 2,
       "rewards/index.wxml": 3,
       "management-rewards/index.wxml": 7,
-      "sharing-officer/index.wxml": 10,
+      "sharing-officer/index.wxml": 11,
       "management-sharing/index.wxml": 5,
     });
 
@@ -255,7 +255,7 @@ describe("native mini program boundary", () => {
       "checkout/components/reward-checkout": ["load", "retryPending", "cancelPending", "openBundleSheet", "editAddresses", "selectAddress", "editSurvey", "viewClaim", "support", "viewCompleted", "confirm", "closeBundleSheet", "load", "previewBundle", "previewBundle", "chooseBundle", "support", "confirmBundle"],
       "rewards": ["back", "load", "openWallet", "retryPending", "cancelPending", "openVoucher", "openClaim", "support", "support", "openClaim", "loadMoreClaims", "useCoupon", "copyTracking", "openCoupons", "cancelClaim", "openReturn", "support", "receive", "closeRules", "support", "closeReturn", "submitReturn", "closeProducts", "openCouponProduct", "support"],
       "management-rewards": ["back","retryLoad","reconcile","openIssue","openConfig","openConfig","openStock","openRevoke","loadMore","export","clearDates","openExportMenu","openBulk","exportNext","openDetail","loadMore","closeSheet","reconcile","loadProducts","saveConfig","saveConfig","saveConfig","stockDirection","stockDirection","saveStock","@share","revoke","export","chooseBulkFile","exportNext","confirmBulk","copyDelivery","copyTracking","operate","operate","operate"],
-      "sharing-officer": ["back","retry","recover","recover","giftDetails","open","open","qualifyPurchase","open","open","openGiftSharing","promote","moreProducts","clearSource","detail","more","@share","retryGiftShare","close","operate","operate","previewReferrer","operate","@share","copyLink","moreHistory","settlementOrders","recover","recover"],
+      "sharing-officer": ["back","retry","recover","recover","giftDetails","open","qualifyPurchase","open","open","openGiftSharing","promote","moreProducts","clearSource","detail","more","toggleAgreement","openAgreement","open","@share","retryGiftShare","close","operate","operate","previewReferrer","operate","@share","copyLink","moreHistory","settlementOrders","recover","recover","closeAgreement","agree"],
       "management-sharing": ["back", "retry", "recover", "recover", "selectOfficer", "openPolicy", "order", "operate", "selectBatch", "closeBatch", "exportBatch", "operate", "selectLine", "more", "close", "operate", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "chooseDecision", "operate", "readPayee", "loadLineOrders", "order", "moreLineOrders", "operate", "operate", "operate", "moreHistory", "operate", "recover", "recover"],
       "management-members/commercial": ["back", "openGlobalRateForm", "togglePending", "reviewRate", "reviewRate", "loadMoreRates", "search", "load", "openMember", "loadMore", "closeGlobalRateForm", "closeGlobalRateForm", "submitGlobalRateForm"],
       "management-members/detail": ["back"],
