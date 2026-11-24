@@ -15,6 +15,7 @@ import { clientOperationKey, createCheckoutQuote, createPendingOrder, isolatedCr
 import { currentChromeStyle } from "../../services/layout";
 import {eligibleCoupons,rewardExpiry,type EligibleCoupon} from '../../services/rewards';
 import {cancelPageReads} from '../../services/page-requests';
+import {bindQualificationOrder} from '../../services/sharing-qualification-purchase';
 
 function problemCopy(error: unknown): string {
   const problem = error as { code?: string; title?: string };
@@ -49,6 +50,7 @@ Page({
   requestEpoch: 0,
   loadAttempt: 0,
   couponAttempt:0,
+  qualificationKey:'',
   incomingCouponId:'',incomingCouponToken:'',
   mounted: false,
   visible: false,
@@ -71,6 +73,7 @@ Page({
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onLoad(query: Record<string, string | undefined>) {
     this.mounted = true;
+    this.qualificationKey=query.sharingQualification??'';
     if(/^[a-f0-9-]{36}$/i.test(query.rewardVoucher??'')){this.setData({rewardMode:true,rewardVoucherId:query.rewardVoucher!,rewardFromCare:query.from==='care',loading:false});return;}
     const requestedQuantity = Number(query.quantity);
     const quantity = Number.isSafeInteger(requestedQuantity) ? Math.max(1, Math.min(99, requestedQuantity)) : 1;
@@ -328,7 +331,8 @@ Page({
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;
       this.stopCountdown();
       this.setData({ quote: null, quoteView:null, quoteClock: null, quoteExpired: false });
-      wx.redirectTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(order.id)}`, fail: () => { this.setData({ busy: false, error: "订单已创建，但详情页暂时无法打开；可从“我的订单”查看。" }); } });
+      const qualification=bindQualificationOrder(this.qualificationKey,quote.item?.productCode??'',order.id);
+      wx.redirectTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(order.id)}${qualification}`, fail: () => { this.setData({ busy: false, error: "订单已创建，但详情页暂时无法打开；可从“我的订单”查看。" }); } });
     } catch (error) {
       if (this.authenticationFailure(error, epoch, ownerToken)) return;
       if (!requestStillOwned(this.ownership(), epoch, ownerToken)) return;

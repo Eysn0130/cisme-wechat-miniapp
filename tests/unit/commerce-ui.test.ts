@@ -17,7 +17,7 @@ describe("R4-A native commerce boundary",()=>{
     const detail=await readFile(resolve(root,"apps/miniprogram/pages/product/index.ts"),"utf8");expect(detail).toContain("catalogDetail(this.data.id,this)");expect(detail).not.toContain("catalog.items.find");
     const orderSources=await Promise.all(["services/orders.ts","pages/checkout/index.ts","pages/order-detail/index.ts"].map(path=>readFile(resolve(root,"apps/miniprogram",path),"utf8")));
     expect(orderSources.join("\n")).not.toContain("payment-success");
-    expect(orderSources[2]).toContain('else if(result.requestPayment){try{await wx.requestPayment(result.requestPayment);}')
+    expect(orderSources[2]).toMatch(/else if\(result\.requestPayment\)\{[^{}]*try\{await wx\.requestPayment\(result\.requestPayment\);\}/);
     // Payment callback is not authoritative; the parent must await the server query.
     expect(orderSources[2]).toContain('if(current()){this.setData({busy:false});await this.recheckPayment();}')
     expect(orderSources[2]).not.toContain('void this.recheckPayment();')

@@ -26,7 +26,32 @@
    </block>
    <block wx:else>
     <view class="officer-intro"><text wx:if="{{stateLabel}}" class="officer-status">{{stateLabel}}</text>
-     <block wx:if="{{!wallet.officer||wallet.officer.state==='rejected'}}"><text class="officer-heading">把喜欢，分享出去。</text><view class="officer-qualification"><view class="officer-qualification__head"><image class="officer-qualification__icon {{wallet.qualification.met?'officer-qualification__icon--met':''}}" src="{{wallet.qualification.met?'/assets/icons/check-circle-plum.svg':'/assets/icons/receipt-plum.svg'}}"/><text class="officer-strong">购买精华套组 1 组</text><text class="officer-qualification__state">{{wallet.qualification.met?'已达成':'待达成'}}</text></view><text class="officer-muted">头皮紧致修护精华液 · ¥298</text></view><button wx:if="{{wallet.policy.enabled&&!wallet.qualification.met}}" class="primary {{busy||pending?'primary--disabled':''}}" bindtap="qualifyPurchase" disabled="{{busy||pending}}">去选购精华套组</button><text wx:elif="{{!wallet.canApply}}" class="officer-copy">申请暂未开放</text></block>
+     <block wx:if="{{!wallet.officer||wallet.officer.state==='rejected'}}">
+      <text class="officer-heading">把喜欢，分享出去。</text>
+      <view wx:if="{{wallet.qualification.met}}" class="officer-qualification officer-qualification--met">
+       <view class="officer-qualification__mark-row" aria-hidden="true">
+        <view class="officer-qualification__rule"/>
+        <view class="officer-qualification__seal {{qualificationMotion==='achieved'?'officer-qualification__seal--achieved':''}}">
+         <image class="officer-qualification__pearl" src="/assets/cisme/onboarding-pearl-seal-v1.png" mode="aspectFit"/>
+         <view wx:if="{{qualificationMotion}}" class="officer-qualification__glint"><view class="officer-qualification__shine"/></view>
+         <image class="officer-qualification__check" src="/assets/icons/check-plum.svg" mode="aspectFit"/>
+        </view>
+        <view class="officer-qualification__rule"/>
+       </view>
+       <text class="officer-qualification__completed" aria-live="polite">任务完成</text>
+       <text class="officer-strong">购买精华套组 1 组</text>
+       <text class="officer-muted">头皮紧致修护精华液 · ¥298</text>
+      </view>
+      <view wx:else class="officer-qualification officer-qualification--purchase">
+       <image class="officer-qualification__product" src="/pages/sharing-officer/assets/qualifying-essence-set.webp" mode="aspectFit" aria-hidden="true"/>
+       <view class="officer-qualification__copy">
+        <text class="officer-qualification__state">待完成</text>
+        <text class="officer-strong">购买精华套组 1 组</text>
+        <text class="officer-muted">头皮紧致修护精华液 · ¥298</text>
+       </view>
+      </view>
+      <text wx:if="{{!qualificationPurchaseNeeded&&!wallet.canApply}}" class="officer-copy">申请暂未开放</text>
+     </block>
      <block wx:elif="{{wallet.officer.state==='pending'}}"><image class="officer-pending-icon" src="/assets/icons/check-circle-plum.svg"/><text class="officer-heading">申请已提交</text></block>
      <block wx:else><text class="officer-heading">每一份分享，<text class="officer-heading-line">都有回响。</text></text><view class="officer-between"><text class="officer-code">{{wallet.officer.referralCode}}</text><button class="action-text {{busy||pending ? 'control--disabled' : ''}}" data-sheet="payee" bindtap="open" disabled="{{busy||pending}}">收款资料</button></view></block>
      <button wx:if="{{wallet.officer.state==='terminated'&&wallet.canApply}}" class="primary {{busy||pending ? 'primary--disabled' : ''}}" data-sheet="apply" bindtap="open" disabled="{{busy||pending}}">重新申请</button>
@@ -48,13 +73,13 @@
     </block>
    </block>
   </block>
-  <view wx:if="{{wallet.canApply&&!giftMode&&!referrerOnly&&tab==='overview'}}" class="officer-application">
+  <view wx:if="{{(wallet.canApply||qualificationPurchaseNeeded)&&!giftMode&&!referrerOnly&&tab==='overview'}}" class="officer-application">
    <view wx:if="{{agreement}}" class="officer-agreement-row">
-    <button wx:if="{{agreement.effectiveOn}}" class="officer-agreement-check {{loading||busy||pending ? 'control--disabled' : ''}}" bindtap="toggleAgreement" disabled="{{loading||busy||pending}}" aria-role="checkbox" aria-checked="{{agreementChecked}}" aria-label="我已阅读并同意产品分享官合作协议"><view class="officer-agreement-check__mark {{agreementChecked ? 'officer-agreement-check__mark--on' : ''}}"><image wx:if="{{agreementChecked}}" src="/assets/icons/check-white.svg" aria-hidden="true"/></view></button>
-    <text wx:if="{{agreement.effectiveOn}}">我已阅读并同意</text>
+    <button class="officer-agreement-check {{loading||busy||pending||!wallet.canApply||!agreement.effectiveOn ? 'control--disabled' : ''}}" bindtap="toggleAgreement" disabled="{{loading||busy||pending||!wallet.canApply||!agreement.effectiveOn}}" aria-role="checkbox" aria-checked="{{agreementChecked}}" aria-label="我已阅读并同意产品分享官合作协议"><view class="officer-agreement-check__mark {{agreementChecked ? 'officer-agreement-check__mark--on' : ''}}"><image wx:if="{{agreementChecked}}" src="/assets/icons/check-white.svg" aria-hidden="true"/></view></button>
+    <text>我已阅读并同意</text>
     <button class="text-button officer-agreement-link {{loading||busy||pending ? 'control--disabled' : ''}}" bindtap="openAgreement" disabled="{{loading||busy||pending}}">《{{agreement.title}}》</button>
    </view>
-   <button class="primary {{loading||busy||pending ? 'primary--disabled' : ''}}" data-sheet="apply" bindtap="open" disabled="{{loading||busy||pending}}">成为分享官</button>
+   <button class="primary {{loading||busy||pending||qualificationOpening ? 'primary--disabled' : ''}}" data-sheet="apply" bindtap="open" disabled="{{loading||busy||pending||qualificationOpening}}">成为推荐官</button>
   </view>
  </view>
  <view wx:if="{{giftMode&&wallet.canShare&&giftActivities.length}}" class="officer-gift-footer"><text wx:if="{{giftError}}" class="officer-error">{{giftError}}</text><button wx:if="{{giftShare}}" class="primary {{loading||!giftAvailable?'primary--disabled':''}}" open-type="share" disabled="{{loading||!giftAvailable}}">分享这份礼遇</button><button wx:else class="primary {{loading||giftShareBusy||!giftAvailable?'primary--disabled':''}}" bindtap="retryGiftShare" loading="{{giftShareBusy}}" disabled="{{loading||giftShareBusy||!giftAvailable}}">{{!giftAvailable?'礼遇已领完':giftError?'重试分享':'准备分享'}}</button></view>
@@ -93,8 +118,8 @@
     </view>
    </scroll-view>
    <view class="officer-agreement-footer">
-    <text wx:if="{{agreement.effectiveOn&&!agreementAtEnd}}" class="officer-agreement-hint">请滑至协议末尾</text>
-    <button class="primary officer-agreement-accept {{!agreementReady ? 'primary--disabled' : ''}}" bindtap="agree" disabled="{{!agreementReady}}">{{!agreement.effectiveOn?'协议尚未启用':agreementSeconds?'我已同意（'+agreementSeconds+'s）':'我已同意'}}</button>
+    <text wx:if="{{agreement.effectiveOn&&wallet.canApply&&!agreementAtEnd}}" class="officer-agreement-hint">请滑至协议末尾</text>
+    <button class="primary officer-agreement-accept {{!agreementReady ? 'primary--disabled' : ''}}" bindtap="agree" disabled="{{!agreementReady}}">{{!agreement.effectiveOn?'协议尚未启用':!wallet.canApply?'完成购买后可同意':agreementSeconds?'我已同意（'+agreementSeconds+'s）':'我已同意'}}</button>
    </view>
   </view>
  </view>

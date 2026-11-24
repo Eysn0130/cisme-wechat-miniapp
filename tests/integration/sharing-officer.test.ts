@@ -94,7 +94,7 @@ afterAll(async()=>{await app?.close();await pool.end();});
 
 it('requires a paid essence set before applications, isolates review authority and preserves idempotent decisions',async()=>{
  expect((await app.inject({method:'GET',url:'/v1/me/sharing-officer'})).statusCode).toBe(401);
- const status=await service.mine(a.memberId);expect(status).toMatchObject({canApply:false,qualification:{met:false},policy:{attributionDays:null,priority:'first',selfPurchase:false,basisPoints:1000,releaseDays:7}});policyVersion=status.policy!.version;
+ const status=await service.mine(a.memberId);expect(status).toMatchObject({canApply:false,qualification:{met:false},applicationAgreement:{version:'V2.0',effectiveOn:null},policy:{attributionDays:null,priority:'first',selfPurchase:false,basisPoints:1000,releaseDays:7}});policyVersion=status.policy!.version;
  expect((await command(a,'apply',{})).json().code).toBe('SHARING_PURCHASE_REQUIRED');
  for(const member of [a,b])await pay(await seedOrder(member,false,true));
  expect((await service.mine(a.memberId)).canApply).toBe(true);

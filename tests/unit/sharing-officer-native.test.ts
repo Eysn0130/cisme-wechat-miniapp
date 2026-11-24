@@ -1,10 +1,13 @@
 import {afterEach,beforeEach,it,expect,vi} from 'vitest';
-const m=vi.hoisted(()=>({read:vi.fn(),command:vi.fn(),authority:vi.fn(),token:'owner-session',context:0,pending:null as any}));
+const m=vi.hoisted(()=>({read:vi.fn(),command:vi.fn(),authority:vi.fn(),token:'owner-session',context:0,pending:null as any,reducedMotion:false}));
 vi.mock('../../apps/miniprogram/services/api',()=>({requireMemberAccess:()=>true,request:m.read,registerPrivateExport:()=>vi.fn()}));
-vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',shouldReduceMotion:()=>false}));
+vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',shouldReduceMotion:()=>m.reducedMotion}));
 vi.mock('../../apps/miniprogram/services/page-requests',()=>({cancelPageReads:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/authority',()=>({authorityProjection:m.authority}));
-vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>m.context}));
+vi.mock('../../apps/miniprogram/services/commerce-command-store',async()=>({
+ ...await vi.importActual<typeof import('../../apps/miniprogram/services/commerce-command-store')>('../../apps/miniprogram/services/commerce-command-store'),
+ commerceContextRevision:()=>m.context
+}));
 vi.mock('../../apps/miniprogram/services/commerce',()=>({catalogList:async()=>({items:[],nextCursor:null})}));
 vi.mock('../../apps/miniprogram/services/catalog',()=>({nativeCatalogImage:(v:string)=>v}));
 vi.mock('../../apps/miniprogram/services/sharing-officer',async()=>{
@@ -22,12 +25,66 @@ async function mount(kind:'consumer'|'admin'){
  if(kind==='consumer')await import('../../apps/miniprogram/pages/sharing-officer/index');else await import('../../apps/miniprogram/pages/management-sharing/index');
  page.onLoad({});return page;
 }
-beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token='owner-session';m.context=0;m.pending=null;
+beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token='owner-session';m.context=0;m.pending=null;m.reducedMotion=false;
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token,apiBaseUrl:'https://staging-api.cisme.cn'}});
- (globalThis as any).wx={hideShareMenu:vi.fn(),stopPullDownRefresh:vi.fn(),getStorageSync:()=>'',showToast:vi.fn(),nextTick:vi.fn(),env:{USER_DATA_PATH:'/synthetic'},getFileSystemManager:()=>({unlinkSync:vi.fn()}),navigateBack:vi.fn()};
+ (globalThis as any).wx={hideShareMenu:vi.fn(),stopPullDownRefresh:vi.fn(),getStorageSync:()=>'',showToast:vi.fn(),nextTick:vi.fn(),env:{USER_DATA_PATH:'/synthetic'},getFileSystemManager:()=>({unlinkSync:vi.fn()}),navigateBack:vi.fn(),navigateTo:vi.fn()};
  m.authority.mockResolvedValue({capabilities:['member.manage','commission.rate.manage','commission.read','commission.settlement.approve']});
 });
 afterEach(()=>{page?.stopAgreementTimers?.();vi.useRealTimers();});
+
+it('shows the agreement before qualification and uses the same main action for the scoped purchase',async()=>{
+ vi.useFakeTimers();
+ const pending={...wallet,canApply:false,qualification:{met:false},applicationAgreement:agreement};
+ m.read.mockResolvedValue(pending);
+ const p=await mount('consumer');
+ p.onShow();await flush();
+ expect(p.data.qualificationPurchaseNeeded).toBe(true);
+ p.openAgreement();scrollToEnd(p);await vi.advanceTimersByTimeAsync(12_000);p.agree();
+ expect(p.data).toMatchObject({agreementOpen:true,agreementChecked:false,agreementReady:false});
+ p.closeAgreement();await vi.advanceTimersByTimeAsync(160);
+ p.open(applyButton);p.open(applyButton);
+ expect(wx.navigateTo).toHaveBeenCalledTimes(1);
+ expect(wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:expect.stringMatching(/^\/pages\/product\/index\?id=aigerong-scalp-repair-essence-100&sharingQualification=/)}));
+ expect(m.command).not.toHaveBeenCalled();
+ const {bindQualificationOrder,markQualificationCompleted,qualificationOrderOwner,qualificationReturnDistance}=await import('../../apps/miniprogram/services/sharing-qualification-purchase');
+ const id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',detail={};
+ (globalThis as any).getCurrentPages=()=>[p,{},detail];
+ expect(bindQualificationOrder(p.qualificationKey,'unrelated-sku',id)).toBe('');
+ expect(qualificationOrderOwner(p.qualificationKey,id)).toBeNull();
+ expect(bindQualificationOrder(p.qualificationKey,'aigerong-scalp-repair-essence-100',id)).toContain('sharingQualification=');
+ expect(qualificationReturnDistance(p.qualificationKey,id,detail)).toBe(2);
+ expect(qualificationReturnDistance(p.qualificationKey,id,{})).toBe(0);
+ markQualificationCompleted(p.qualificationKey,id);
+ expect(qualificationOrderOwner(p.qualificationKey,id)).toBeNull();
+ p.onHide();
+ m.read.mockResolvedValue({...wallet,qualification:{met:true},applicationAgreement:agreement});
+ p.onShow();await flush();
+ expect(p.data.qualificationMotion).toBe('entry');
+ expect(p.data.agreementChecked).toBe(false);
+});
+
+it('replays the qualification shine on entry and reserves the spin for a verified qualification change',async()=>{
+ const pending={...wallet,canApply:false,qualification:{met:false}};
+ const qualified={...wallet,qualification:{met:true},applicationAgreement:agreement};
+ m.read.mockResolvedValue(pending);
+ const p=await mount('consumer');
+ p.onShow();await flush();
+ expect(p.data.qualificationMotion).toBe('');
+ m.read.mockResolvedValue(qualified);
+ await p.load();
+ expect(p.data.qualificationMotion).toBe('achieved');
+ await p.load();
+ expect(p.data.qualificationMotion).toBe('achieved');
+ p.onHide();
+ expect(p.data.qualificationMotion).toBe('');
+ p.onShow();await flush();
+ expect(p.data.qualificationMotion).toBe('entry');
+ p.onHide();
+ m.reducedMotion=true;
+ p.onShow();await flush();
+ expect(p.data.wallet.qualification.met).toBe(true);
+ expect(p.data.qualificationMotion).toBe('');
+});
 
 it('requires both ten seconds and the document end before checking and then submitting an application',async()=>{
  vi.useFakeTimers();m.read.mockResolvedValue({...wallet,applicationAgreement:agreement});

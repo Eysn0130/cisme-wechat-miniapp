@@ -9,6 +9,7 @@ import {catalogList} from '../../services/commerce';
 import {nativeCatalogImage} from '../../services/catalog';
 import {campaignEssenceCode} from '../../services/home-campaign';
 import {sectionTabValue} from '../../services/section-tabs';
+import {beginQualificationPurchase,consumeQualificationReturn,discardQualificationPurchase,qualificationPurchaseQuery} from '../../services/sharing-qualification-purchase';
 import {officerRead,officerCommand,officerPending,resolveOfficerPending,officerMoney,officerDate,officerError,officerLabels,officerHistoryRow,type OfficerPending} from '../../services/sharing-officer';
 const tabs=[{id:'overview',label:'推广'},{id:'orders',label:'推广订单'},{id:'settlements',label:'结算'}];
 type AgreementIdentity={version:string;digest:string;effectiveOn:string};
@@ -16,6 +17,7 @@ type AgreementDocument=Omit<AgreementIdentity,'effectiveOn'>&{
  effectiveOn:string|null;title:string;brand:string;subtitle:string;tagline:string[];draftNotice:string;parties:string[];
  introduction:string;sections:{heading:string;paragraphs:{kind:'paragraph'|'bullet'|'subheading';text:string}[]}[];closing:string[];
 };
+type QualificationMotion=''|'entry'|'achieved';
 const agreementReset={agreementOpen:false,agreementClosing:false,agreementSeconds:10,agreementAtEnd:false,agreementReady:false,agreementReduced:false};
 function sameAgreement(agreement:AgreementDocument|null,confirmation:AgreementIdentity|null) {
  return !!agreement?.effectiveOn&&!!confirmation&&agreement.version===confirmation.version&&agreement.digest===confirmation.digest&&agreement.effectiveOn===confirmation.effectiveOn;
@@ -23,23 +25,33 @@ function sameAgreement(agreement:AgreementDocument|null,confirmation:AgreementId
 function orderRow(r:any){return {...r,date:officerDate(r.createdAt),cash:officerMoney(r.cashMerchandiseCents),refund:officerMoney(r.refundedMerchandiseCents),pending:officerMoney(r.pendingCents),available:officerMoney(r.availableCents),settled:officerMoney(r.settledCents),recovery:officerMoney(r.outstandingRecoveryCents),rate:(r.basisPoints/100).toFixed(2).replace(/\.00$/,''),label:r.orderStatus==='pending_payment'?'待付款':['cancelled','expired','closed'].includes(r.orderStatus)?'已关闭':r.disputed?'售后处理中':r.outstandingRecoveryCents?'待核对冲回':r.paymentHeldCents?'结算中':r.settledCents?'已结算':r.availableCents?'可结算':r.pendingCents?'待结算':r.paidAt?'无可结算佣金':'未计佣'};}
 function settlementRow(r:any){return {...r,date:officerDate(r.paidAt||r.createdAt),gross:officerMoney(r.grossCents),tax:officerMoney(r.taxCents),net:officerMoney(r.netCents),label:officerLabels[r.state]||r.state};}
 const giftClear={giftActivities:[] as OfficerRewardOffers['activities'],giftActivityId:'',giftActivityTitle:'',giftActivityIndex:0,giftBundles:[] as any[],giftShare:null as any,giftShareBusy:false,giftError:'',giftAvailable:false,detailBusy:false};
-const cleared={...giftClear,memberId:'',wallet:null as any,metrics:{} as Record<string,string>,items:[] as any[],products:[] as any[],productCursor:null as string|null,moreProducts:false,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,preview:null as any,assets:null as any,share:null as any,sheet:'',selected:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,orderLineId:'',sourcePeriod:'',note:'',legalName:'',channel:'',account:'',code:'',error:'',agreement:null as AgreementDocument|null,agreementChecked:false,...agreementReset};
+const cleared={...giftClear,memberId:'',wallet:null as any,metrics:{} as Record<string,string>,items:[] as any[],products:[] as any[],productCursor:null as string|null,moreProducts:false,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,preview:null as any,assets:null as any,share:null as any,sheet:'',selected:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,orderLineId:'',sourcePeriod:'',note:'',legalName:'',channel:'',account:'',code:'',error:'',agreement:null as AgreementDocument|null,agreementChecked:false,qualificationMotion:'' as QualificationMotion,qualificationPurchaseNeeded:false,qualificationOpening:false,...agreementReset};
 Page({
  alive:false,visible:false,epoch:0,session:'',context:0,qrPath:'',
+ qualificationKey:'',
  agreementConsent:null as AgreementIdentity|null,agreementDeadline:0,agreementTick:null as ReturnType<typeof setInterval>|null,agreementExit:null as ReturnType<typeof setTimeout>|null,
  data:{...cleared,agreementAttempt:0,chromeStyle:currentChromeStyle(),tabs,tab:'overview',referrerOnly:false,loading:true,busy:false,stateLabel:'',rate:'',releaseDays:0,hasDashboard:false,giftMode:false},
  onLoad(query:Record<string,string>){this.alive=true;this.setData({referrerOnly:query.mode==='referrer',giftMode:query.mode==='gift'});},
- onShow(){wx.hideShareMenu();this.visible=true;this.epoch++;const session=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();if(session!==this.session||context!==this.context){this.stopAgreementTimers();this.agreementConsent=null;this.setData({...cleared});}this.session=session;this.context=context;if(requireMemberAccess())void this.load();},
- onHide(){wx.hideShareMenu();this.visible=false;this.epoch++;cancelPageReads(this);this.cleanupQr();this.stopAgreementTimers();this.agreementConsent=null;this.setData({sheet:'',legalName:'',channel:'',account:'',assets:null,giftShare:null,giftShareBusy:false,detailBusy:false,agreementChecked:false,...agreementReset});},
- onUnload(){this.onHide();this.alive=false;this.setData({...cleared});},
+ onShow(){wx.hideShareMenu();this.visible=true;this.epoch++;const session=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision();if(session!==this.session||context!==this.context){this.stopAgreementTimers();this.agreementConsent=null;discardQualificationPurchase(this.qualificationKey);this.qualificationKey='';this.setData({...cleared});}this.session=session;this.context=context;if(requireMemberAccess())void this.load();},
+ onHide(){wx.hideShareMenu();this.visible=false;this.epoch++;cancelPageReads(this);this.cleanupQr();this.stopAgreementTimers();this.agreementConsent=null;this.setData({sheet:'',legalName:'',channel:'',account:'',assets:null,giftShare:null,giftShareBusy:false,detailBusy:false,agreementChecked:false,qualificationMotion:'',qualificationOpening:false,...agreementReset});},
+ onUnload(){this.onHide();discardQualificationPurchase(this.qualificationKey);this.alive=false;this.setData({...cleared});},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  current(epoch?:number){return this.alive&&this.visible&&(epoch===undefined||epoch===this.epoch)&&this.session===getApp<IAppOption>().globalData.sessionToken&&this.context===commerceContextRevision();},
  async load(more=false){if(!this.current())return;const epoch=++this.epoch;this.setData({loading:true,error:''});try{
   const {applicationAgreement,...wallet}=await officerRead(this,'/v1/me/sharing-officer');if(!this.current(epoch))return;
-  const agreement:AgreementDocument|null=wallet.canApply&&applicationAgreement?.title&&Array.isArray(applicationAgreement.sections)?applicationAgreement:null;
-  if(!sameAgreement(agreement,this.agreementConsent))this.agreementConsent=null;
+  const agreement:AgreementDocument|null=applicationAgreement?.title&&Array.isArray(applicationAgreement.sections)?applicationAgreement:null;
+  if(!wallet.canApply||!sameAgreement(agreement,this.agreementConsent))this.agreementConsent=null;
+  const inQualificationView=!this.data.giftMode&&!this.data.referrerOnly&&(!wallet.officer||wallet.officer.state==='rejected');
+  const qualificationPurchaseNeeded=inQualificationView&&wallet.policy?.enabled===true&&wallet.qualification?.met===false;
+  const returnedAfterCelebration=wallet.qualification?.met===true&&consumeQualificationReturn(this,wallet.memberId);
+  let qualificationMotion:QualificationMotion='';
+  if(inQualificationView&&wallet.qualification?.met===true&&!shouldReduceMotion()){
+   const previous=this.data.wallet;
+   const newlyAchieved=!returnedAfterCelebration&&previous?.memberId===wallet.memberId&&previous.qualification?.met===false;
+   qualificationMotion=newlyAchieved?'achieved':this.data.qualificationMotion||'entry';
+  }
   const metrics:Record<string,string>={};for(const key of Object.keys(wallet.metrics))metrics[key]=officerMoney(wallet.metrics[key]);
-  this.setData({wallet,agreement,agreementChecked:!!this.agreementConsent,memberId:wallet.memberId,metrics,stateLabel:wallet.officer?.state==='active'&&!wallet.policy?.enabled?'推广已暂停':officerLabels[wallet.officer?.state]||'',hasDashboard:Boolean(wallet.officer&&(['active','suspended','terminated'].includes(wallet.officer.state)||wallet.metrics.orderCount>0)),rate:((wallet.policy?.basisPoints??0)/100).toFixed(2).replace(/\.00$/,''),releaseDays:wallet.policy?.releaseDays??0,pending:officerPending(wallet.memberId)});
+  this.setData({wallet,agreement,agreementChecked:!!this.agreementConsent,qualificationMotion,qualificationPurchaseNeeded,memberId:wallet.memberId,metrics,stateLabel:wallet.officer?.state==='active'&&!wallet.policy?.enabled?'推广已暂停':officerLabels[wallet.officer?.state]||'',hasDashboard:Boolean(wallet.officer&&(['active','suspended','terminated'].includes(wallet.officer.state)||wallet.metrics.orderCount>0)),rate:((wallet.policy?.basisPoints??0)/100).toFixed(2).replace(/\.00$/,''),releaseDays:wallet.policy?.releaseDays??0,pending:officerPending(wallet.memberId)});
   if(this.data.giftMode){await this.loadGiftOffers(epoch);return;}
   if(!this.data.referrerOnly&&wallet.officer?.state==='active'&&this.data.tab==='overview')await this.loadProducts(false,epoch);
   if(!this.data.referrerOnly&&this.data.tab!=='overview'){
@@ -68,7 +80,17 @@ Page({
  async giftDetails(e:WechatMiniprogram.TouchEvent){const code=String(e.currentTarget.dataset.code);if(!['moisture','dandruff'].includes(code)||!this.current()||this.data.detailBusy)return;const epoch=this.epoch;this.setData({detailBusy:true});try{const images=await prepareRewardDetailImages('sharing-officer');if(this.current(epoch))wx.previewImage({current:images[code as 'moisture'|'dandruff'],urls:[images.moisture,images.dandruff]});}catch{if(this.current(epoch))wx.showToast({title:'图片暂不可用，请重试',icon:'none'});}finally{if(this.current(epoch))this.setData({detailBusy:false});}},
  async loadProducts(more=false,epoch?:number){const page=await catalogList(more&&this.data.productCursor?this.data.productCursor:undefined,this);if(!this.current(epoch))return;
   this.setData({products:[...(more?this.data.products:[]),...page.items.map((p:any)=>({...p,displayImage:nativeCatalogImage(p.imagePath||p.image||''),price:p.price!==null?officerMoney(p.price):''}))],productCursor:page.nextCursor,moreProducts:Boolean(page.nextCursor)});},
- qualifyPurchase(){if(!this.current()||this.data.busy||this.data.pending)return;wx.navigateTo({url:`/pages/product/index?id=${campaignEssenceCode}`});},
+ qualifyPurchase(){
+  if(!this.current()||!this.data.qualificationPurchaseNeeded||this.data.loading||this.data.busy||this.data.pending||this.data.qualificationOpening)return;
+  const key=beginQualificationPurchase(this,this.data.memberId);
+  if(!key)return;
+  this.qualificationKey=key;
+  this.setData({qualificationOpening:true});
+  wx.navigateTo({url:`/pages/product/index?id=${campaignEssenceCode}${qualificationPurchaseQuery(key,campaignEssenceCode)}`,fail:()=>{
+   discardQualificationPurchase(key);
+   if(this.current()&&key===this.qualificationKey)this.setData({qualificationOpening:false,error:'商品页暂时无法打开，请重试。'});
+  }});
+ },
  retry(){if(!this.data.busy)void this.load();},
  onPullDownRefresh(){if(!this.data.busy&&!this.data.agreementOpen)void this.load();else wx.stopPullDownRefresh();},
  more(){if(!this.data.loading&&!this.data.busy&&this.data.hasMore)void this.load(true);},
@@ -83,10 +105,10 @@ Page({
   this.agreementDeadline=0;
  },
  openAgreement(){
-  if(!this.current()||!this.data.wallet?.canApply||this.data.loading||this.data.busy||this.data.pending||this.data.sheet||this.data.agreementOpen)return;
+  if(!this.current()||(!this.data.wallet?.canApply&&!this.data.qualificationPurchaseNeeded)||this.data.loading||this.data.busy||this.data.pending||this.data.sheet||this.data.agreementOpen)return;
   if(!this.data.agreement){wx.showToast({title:'协议暂未加载，请下拉刷新',icon:'none'});return;}
   const attempt=this.data.agreementAttempt+1;
-  this.agreementDeadline=this.data.agreement.effectiveOn?Date.now()+10_000:0;
+  this.agreementDeadline=this.data.agreement.effectiveOn&&this.data.wallet?.canApply?Date.now()+10_000:0;
   this.setData({...agreementReset,agreementOpen:true,agreementReduced:shouldReduceMotion(),agreementAttempt:attempt});
   if(this.agreementDeadline)this.agreementTick=setInterval(()=>this.updateAgreementTime(attempt),200);
   wx.nextTick(()=>{
@@ -124,7 +146,7 @@ Page({
   else this.agreementExit=setTimeout(()=>{this.agreementExit=null;this.setData({...agreementReset});},160);
  },
  toggleAgreement(){
-  if(!this.current()||this.data.loading||this.data.busy||this.data.pending)return;
+  if(!this.current()||!this.data.wallet?.canApply||this.data.loading||this.data.busy||this.data.pending)return;
   if(this.data.agreementChecked){
    this.agreementConsent=null;
    this.setData({agreementChecked:false});
@@ -132,7 +154,7 @@ Page({
  },
  agree(){
   const agreement=this.data.agreement;
-  if(!this.readingAgreement(this.data.agreementAttempt)||!agreement?.effectiveOn||!this.data.agreementAtEnd||!this.agreementDeadline||Date.now()<this.agreementDeadline)return;
+  if(!this.data.wallet?.canApply||!this.readingAgreement(this.data.agreementAttempt)||!agreement?.effectiveOn||!this.data.agreementAtEnd||!this.agreementDeadline||Date.now()<this.agreementDeadline)return;
   this.agreementConsent={version:agreement.version,digest:agreement.digest,effectiveOn:agreement.effectiveOn};
   this.setData({agreementChecked:true});
   this.closeAgreement();
@@ -143,7 +165,7 @@ Page({
   if(!sameAgreement(this.data.agreement,this.agreementConsent)){wx.showToast({title:'请阅读并勾选分享官合作协议',icon:'none'});return null;}
   return this.agreementConsent;
  },
- open(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||this.data.agreementOpen)return;const sheet=String(e.currentTarget.dataset.sheet);if(sheet==='apply'&&!this.applicationConsent())return;if(['apply','payee','referrer'].includes(sheet))this.setData({sheet,preview:null,code:'',note:'',legalName:'',channel:'',account:'',error:''});},
+ open(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||this.data.agreementOpen)return;const sheet=String(e.currentTarget.dataset.sheet);if(sheet==='apply'&&this.data.qualificationPurchaseNeeded){this.qualifyPurchase();return;}if(sheet==='apply'&&!this.applicationConsent())return;if(['apply','payee','referrer'].includes(sheet))this.setData({sheet,preview:null,code:'',note:'',legalName:'',channel:'',account:'',error:''});},
  close(){if(!this.data.busy){this.cleanupQr();this.setData({sheet:'',selected:null,history:[],historyCursor:null,historyMore:false,historyLoading:false,assets:null,preview:null,legalName:'',channel:'',account:'',error:''});}},
  stop(){},back(){if(this.data.agreementOpen){this.closeAgreement();return;}if(this.data.busy)return;wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},
  async operate(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||!this.current())return;const action=String(e.currentTarget.dataset.action);let input:Record<string,unknown>;
