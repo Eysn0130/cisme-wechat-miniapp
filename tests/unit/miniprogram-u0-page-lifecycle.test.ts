@@ -73,7 +73,6 @@ describe("U0 native page lifecycle regressions", () => {
     const page = mountedPage(capturedPage!, { id: "conversation-a", messages: [{ id: "private-message" }],
       canReply: true, memberContext: { id: "private-member" }, contextOpen: true });
     page.load = vi.fn(async () => page.setData({ loading: false, error: "" }));
-    page.loadAiStatus = vi.fn(async () => {});
     page.startPolling = vi.fn();
     page.measureActions = vi.fn();
     await page.onShow();
@@ -382,41 +381,6 @@ describe("U0 native page lifecycle regressions", () => {
     expect(page.data.messages).toEqual([]);
     expect(page.data.input).toBe("B 的新草稿");
     expect(page.data.sending).toBe(false);
-  });
-
-  it("does not let a late AI suggestion overwrite text typed while it was pending", async () => {
-    let resolveSuggestion!: (value: unknown) => void;
-    requestMock.mockImplementationOnce(() => new Promise((resolve) => { resolveSuggestion = resolve; }));
-    await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
-    const page = mountedPage(capturedPage!, { id: "conversation-1", pageAlive: true, visible: true, aiProviderAvailable: true, assignedToMe: true, busy: false, input: "", ...selectedOperatorQuestion() }, { lifecycleEpoch: 1, inputRevision: 0 });
-
-    const pending = page.suggest();
-    // The disabled editor rejects input during generation; a newer owned draft
-    // revision must still win if another restoration flow updates the draft.
-    page.inputRevision += 1;
-    page.setData({ input: "人工正在输入" });
-    resolveSuggestion({ text: "迟到的建议" });
-    await pending;
-
-    expect(page.data.input).toBe("人工正在输入");
-  });
-
-  it("drops an operator suggestion that returns after the task changed sessions", async () => {
-    let resolveSuggestion!: (value: unknown) => void;
-    requestMock.mockImplementationOnce(() => new Promise((resolve) => { resolveSuggestion = resolve; }));
-    await vi.importActual("../../apps/miniprogram/pages/management-support-chat/index");
-    const page = mountedPage(capturedPage!, { id: "conversation-a", pageAlive: true, visible: true, aiProviderAvailable: true, assignedToMe: true, busy: false, input: "", ...selectedOperatorQuestion() }, { lifecycleEpoch: 4, inputRevision: 0 });
-
-    const pending = page.suggest();
-    page.onHide();
-    session = "operator-b";
-    page.data.visible = true;
-    page.setData({ input: "B 会话的空白草稿", busy: false });
-    resolveSuggestion({ text: "A 会话的迟到建议" });
-    await pending;
-
-    expect(page.data.input).toBe("B 会话的空白草稿");
-    expect(page.data.busy).toBe(false);
   });
 
   it("keeps the operator new-message notice across later empty polls while history is being read", async () => {

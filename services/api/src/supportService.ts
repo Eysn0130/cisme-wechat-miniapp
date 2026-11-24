@@ -115,6 +115,7 @@ function requestHash(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 const newTopicOperation = supportNewTopicOperation;
+const dismissQueueOperation = 'support.queue.dismiss';
 
 function checkedTopicContext(row:ConversationRow,receipts:readonly {response_body:unknown}[]){
   const next=Number(row.next_sequence);
@@ -906,7 +907,9 @@ export class SupportService {
         profile_revision:number|null;avatar_revision:string|null;avatar_data_url:string|null;handler_display_name:string|null};
       const result=await client.query<QueueRow>(`WITH ranked AS (SELECT c.*,
         CASE c.status WHEN 'waiting_human' THEN 0 WHEN 'human_active' THEN 1 WHEN 'ai_active' THEN 2 ELSE 3 END AS rank,
-        CASE WHEN c.team_unread_count>0 THEN 0 ELSE 1 END AS unread_rank FROM support_conversation c),
+        CASE WHEN c.team_unread_count>0 THEN 0 ELSE 1 END AS unread_rank FROM support_conversation c
+        WHERE NOT EXISTS (SELECT 1 FROM idempotency_operation dismissed WHERE dismissed.principal_id=$6
+          AND dismissed.operation=$7 AND dismissed.idempotency_key=c.id::text || ':' || (c.next_sequence-1)::text)),
        page AS (SELECT * FROM ranked WHERE $1::int IS NULL OR rank>$1 OR (rank=$1 AND unread_rank>$2) OR
         (rank=$1 AND unread_rank=$2 AND updated_at<$3::timestamptz) OR
         (rank=$1 AND unread_rank=$2 AND updated_at=$3::timestamptz AND id<$4::uuid)
@@ -922,7 +925,7 @@ export class SupportService {
             THEN split_part(page.current_handler_principal_id,':',2)::uuid END
         LEFT JOIN member handler ON handler.id=w.member_id
         ORDER BY page.rank,page.unread_rank,page.updated_at DESC,page.id DESC`,
-        [after?.rank??null,after?.unreadRank??null,after?.at??null,after?.id??null,pageLimit+1]);
+        [after?.rank??null,after?.unreadRank??null,after?.at??null,after?.id??null,pageLimit+1,`member:${operator}`,dismissQueueOperation]);
       const page=result.rows.slice(0,pageLimit);
       if(!page.length)return {items:[],nextCursor:null};
       const ids=page.map(row=>row.id);
@@ -954,6 +957,22 @@ export class SupportService {
           handlerDisplayName:row.handler_display_name,lastMessage:preview?.body??'暂无消息',lastSenderType:preview?.sender_type??null};
       });
       return {items,nextCursor:result.rows.length>pageLimit?encodeQueueCursor(page[pageLimit-1]!):null};
+    });
+  }
+  async dismissFromQueue(memberId:string|undefined,id:string,input:{expectedVersion?:unknown}) {
+    const operator=await this.operator(memberId,'support.read');
+    const expected=version(input.expectedVersion);
+    return transaction(this.pool,async client=>{
+      await this.authority.requireWithClient(client,operator,'support.read');
+      const row=await this.findById(client,uuid(id,'SUPPORT_CONVERSATION_INVALID'),true);
+      if(row.version!==expected)throw new DomainError('VERSION_CONFLICT','有新的会话变化，请核对后再移除',409);
+      // The receipt is scoped to the employee and the last message present
+      // during confirmation. Any later message restores the row in this view.
+      const key=`${row.id}:${Number(row.next_sequence)-1}`;
+      const result={conversationId:row.id,dismissed:true};
+      await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
+        VALUES($1,$2,$3,$3,$4,200,$5) ON CONFLICT DO NOTHING`,[`member:${operator}`,dismissQueueOperation,key,requestHash({key}),result]);
+      return result;
     });
   }
   async operatorMessages(memberId: string | undefined, principalId: string | undefined, id: string, query: { after?: unknown; before?: unknown; limit?: unknown }) {

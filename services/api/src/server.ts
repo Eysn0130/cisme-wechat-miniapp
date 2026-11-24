@@ -786,6 +786,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   });
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/claim", async request => support.claim(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/return-to-queue", async request => support.returnToQueue(request.memberId,request.principalId,request.params.conversationId,(request.body??{}) as {expectedVersion?:unknown},request.id));
+  app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/dismiss", async (request, reply) => {
+    reply.header('Cache-Control','private, no-store');
+    return support.dismissFromQueue(request.memberId,request.params.conversationId,(request.body??{}) as {expectedVersion?:unknown});
+  });
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.reply(request.memberId, request.principalId, request.params.conversationId,
     (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/read", async request => support.markTeamRead(request.memberId, request.params.conversationId, (request.body ?? {}) as {lastSeenSequence?:unknown}));

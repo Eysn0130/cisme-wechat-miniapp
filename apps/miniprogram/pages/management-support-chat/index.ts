@@ -92,8 +92,6 @@ Page({
     returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""} as ReturnForm,
     freightOptions:['商家承担','用户承担'],
     returnAttempt:null as {key:string;caseId:string;payload:Record<string,unknown>}|null,
-    aiStatus: "PROVIDER INTEGRATION PENDING",
-    aiProviderAvailable: false, aiDraftBusy: false,
     input: "",
     sendAttempt: null as SendAttempt | null,
     pendingMessage: null as Message | null,
@@ -143,7 +141,7 @@ Page({
       this.inputRevision += 1;
       this.clearSensitiveThread();
     }
-    this.setData({ loading: true, busy: false, aiDraftBusy: false, accessDenied: false, statusLabel: "正在加载", statusTone: "neutral" });
+    this.setData({ loading: true, busy: false, accessDenied: false, statusLabel: "正在加载", statusTone: "neutral" });
     try {
       const authority = await authorityProjection(this);
       if (!this.owns(epoch, ownerToken)) return;
@@ -166,7 +164,7 @@ Page({
       const recovered = takeSupportRecovery<OperatorRecovery>(ownerToken, this.readRevision, `operator:${this.data.id}`);
       if (canReply && recovered) { this.pendingRecovery = recovered; this.recoveryOwner = ownerToken; this.recoveryRevision = this.readRevision; }
       void this.loadOwnIdentity();
-      await Promise.all([this.load(), this.loadAiStatus()]);
+      await this.load();
       if (this.owns(epoch, ownerToken) && !this.data.error && this.data.conversation) this.restoreRecovery();
       if(canManageAftersale&&this.owns(epoch,ownerToken))void this.loadAftersales();
       if (this.owns(epoch, ownerToken)) this.startPolling();
@@ -416,6 +414,17 @@ Page({
       composerCapped: false, composerLineCount: 1, error: "" });
     wx.nextTick(() => this.measureActions());
   },
+  async openOriginalIssue() {
+    const epoch = this.lifecycleEpoch, token = sessionToken();
+    if (!this.owns(epoch, token) || !this.data.assignedToMe || !this.data.canReply
+      || this.data.conversation?.status !== "human_active" || !this.data.humanRequest?.anchorKnown) return;
+    try {
+      await wx.showModal({ title: "人工申请的原问题", content: this.data.humanIssueSummary || "请查看更早的消息。",
+        showCancel: false, confirmText: "知道了" });
+    } catch {
+      if (this.owns(epoch, token)) wx.showToast({ title: "暂时无法打开原问题", icon: "none" });
+    }
+  },
   present(messages: readonly RawMessage[], conversation?: Conversation | null, presence?: Presence, memberDisplayName?: string): Message[] {
     const activeConversation = conversation === undefined ? this.data.conversation : conversation;
     const activePresence = presence ?? this.data.presence ?? emptyPresence;
@@ -461,9 +470,10 @@ Page({
   },
   measureActions() {
     if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
+    const epoch = this.lifecycleEpoch;
     wx.createSelectorQuery().select(".operator-actions").boundingClientRect((rect) => {
-      if (!this.data.pageAlive || !rect || typeof rect.height !== "number") return;
-      const height = Math.max(112, Math.ceil(rect.height));
+      if (!this.data.pageAlive || epoch !== this.lifecycleEpoch || !rect || typeof rect.height !== "number") return;
+      const height = Math.ceil(rect.height);
       this.setData({ threadBottomStyle: `bottom:${height}px`, newMessageBottomStyle: `bottom:${height + 12}px` });
     }).exec();
   },
@@ -516,16 +526,6 @@ Page({
     }));
   },
 
-  async loadAiStatus() {
-    const epoch = this.lifecycleEpoch;
-    const ownerToken = sessionToken();
-    try {
-      const status = await pageRead<any>(this,{ path: "/v1/management/support/ai/status", cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: status.status || "PROVIDER INTEGRATION PENDING", aiProviderAvailable: status.providerAvailable === true });
-    } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ aiStatus: "PROVIDER INTEGRATION PENDING", aiProviderAvailable: false });
-    }
-  },
   async load() {
     if (!this.data.id) {
       this.setData({ loading: false, statusLabel: "", statusTone: "neutral", error: "未找到这次会话，请返回客服列表重新进入。" });
@@ -865,28 +865,6 @@ Page({
       pendingMessage: null
     });
     void this.publishPresence(true, Boolean(input.trim()), !input.trim());
-  },
-  async suggest() {
-    if (!this.data.aiProviderAvailable || !this.data.assignedToMe || this.data.busy || this.data.sendAttempt || !this.data.replyTarget || this.data.replyTargetNeedsRefresh) return;
-    const draftRevision = this.inputRevision;
-    const epoch = this.lifecycleEpoch;
-    const ownerToken = sessionToken();
-    const contextVersion = this.data.contextVersion;
-    const replyTarget = this.data.replyTarget;
-    this.setData({ busy: true, aiDraftBusy: true, error: "" });
-    try {
-      const draft = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/suggested-reply`, method: "POST", data: { replyToMessageId: replyTarget.id,
-        expectedHumanRequestGeneration: replyTarget.generation, contextVersion: replyTarget.contextVersion }, cacheTags: ["support"] });
-      if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.inputRevision === draftRevision && this.data.replyTarget?.id === replyTarget.id) {
-        this.inputRevision += 1;
-        const input = String(draft.text || "");
-        this.setData({ input, composerSendEnabled: Boolean(input.trim() && this.data.replyTarget), sendAttempt: null });
-      }
-    } catch {
-      if (this.owns(epoch, ownerToken)) this.setData({ error: "AI 建议回复不可用，请继续人工处理。草稿不会自动发送。" });
-    } finally {
-      if (this.owns(epoch, ownerToken)) this.setData({ busy: false, aiDraftBusy: false });
-    }
   },
   pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {
     const raw = {

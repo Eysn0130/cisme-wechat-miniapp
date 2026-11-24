@@ -13,7 +13,7 @@ function deferred(){let resolve!:(value:any)=>void,reject!:(value:any)=>void;con
 beforeEach(async()=>{
  vi.resetModules();vi.useFakeTimers();m.token='synthetic-operator';m.request.mockReset().mockResolvedValue({});m.read.mockReset().mockResolvedValue(page());
  let definition:any;vi.stubGlobal('Page',(value:any)=>definition=value);vi.stubGlobal('getApp',()=>({globalData:{sessionToken:m.token}}));
- vi.stubGlobal('wx',{nextTick:(fn:()=>void)=>fn(),showToast:vi.fn()});
+ vi.stubGlobal('wx',{nextTick:(fn:()=>void)=>fn(),showToast:vi.fn(),showModal:vi.fn().mockResolvedValue({confirm:true})});
  await import('../../apps/miniprogram/pages/management-support-chat/index');
  p={...definition,data:structuredClone(definition.data),setData(patch:any){Object.assign(this.data,structuredClone(patch));}};
  Object.assign(p.data,{id:conversation.id,pageAlive:true,visible:true,loading:false,conversation,messages:[message(1),message(2)],syncCursor:2,maxSeenSequence:2,input:'retired draft',olderCursor:1,replyTarget:{id:'synthetic-1',sequence:1,summary:'synthetic chat',generation:0,contextVersion:0}});
@@ -187,18 +187,16 @@ describe('operator replies bind an explicit question',()=>{
   const selecting=select('synthetic-3');p.data.humanRequest={...humanRequest,generation:2};modal.resolve({confirm:true});await selecting;
   expect(p.data.replyTarget.id).toBe('synthetic-1');expect(p.data.input).toBe('old answer');
  });
- it('binds an AI reply draft to the selected question and both generations',async()=>{
-  await loadHuman();p.data.aiProviderAvailable=true;await select('synthetic-3');
-  m.request.mockImplementation(async input=>input.path.endsWith('/suggested-reply')?{text:'draft for selected question'}:{});
-  await p.suggest();expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:expect.stringContaining('/suggested-reply'),data:{replyToMessageId:'synthetic-3',expectedHumanRequestGeneration:1,contextVersion:0}}));
-  expect(p.data.input).toBe('draft for selected question');expect(p.data.replyTarget.id).toBe('synthetic-3');
+ it('shows the original issue on demand without changing the selected reply or its draft',async()=>{
+  await loadHuman();await select('synthetic-3');p.updateInput({detail:{value:'current reply'}});
+  const target=p.data.replyTarget;
+  await p.openOriginalIssue();
+  expect(wx.showModal).toHaveBeenCalledWith(expect.objectContaining({title:'人工申请的原问题',content:p.data.humanIssueSummary,showCancel:false}));
+  expect(p.data.replyTarget).toEqual(target);expect(p.data.input).toBe('current reply');
+  expect(m.request.mock.calls.some(([input])=>input.path.endsWith('/messages'))).toBe(false);
  });
- it('shows AI drafting progress, keeps the selected question and never auto-sends the draft',async()=>{
-  await loadHuman();p.data.aiProviderAvailable=true;await select('synthetic-3');const response=deferred();
-  m.request.mockImplementation(input=>input.path.endsWith('/suggested-reply')?response.promise:Promise.resolve({}));
-  const writing=p.suggest();expect(p.data.aiDraftBusy).toBe(true);expect(p.data.busy).toBe(true);
-  response.resolve({text:'请先告诉我今天实际使用的产品。'});await writing;
-  expect(p.data.aiDraftBusy).toBe(false);expect(p.data.busy).toBe(false);expect(p.data.input).toBe('请先告诉我今天实际使用的产品。');
-  expect(p.data.replyTarget.id).toBe('synthetic-3');expect(m.request.mock.calls.some(([input])=>input.path.endsWith('/messages'))).toBe(false);
+ it('does not open an original issue after the employee loses the visible page',async()=>{
+  await loadHuman();p.onHide();await p.openOriginalIssue();
+  expect(wx.showModal).not.toHaveBeenCalled();
  });
 });

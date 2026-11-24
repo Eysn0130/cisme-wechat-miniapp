@@ -28,7 +28,7 @@
 ## Modern Web Guidance 使用时机
 
 - 开始新增或修改 Web 界面、HTML/CSS 布局与动效或浏览器端 JavaScript 时，先读 `modern-web-guidance` Skill，用 `search` 查找对应能力并 `retrieve` 相关指南，再按项目目标浏览器核对兼容性及降级方案。纯后端、基础设施、测试或文案改动无需加载。
-- 原生小程序的 WXML/WXSS、客户端 TypeScript 和 `wx.*` 以微信原生能力为准。仅在比较可移植的 WebView CSS 或实现 Web 原型时参考指南，并用微信开发者工具核对 WXSS 和渲染行为。 [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance)
+- 用户明确要求用 Modern Web Guidance 复核原生界面时，按滚动、弹窗、表单、手势和布局等实际问题逐项检索。先判断原则是否适用，再使用 WXML/WXSS、原生组件和 `wx.*` 落地。以微信开发者工具和可取得的真机证据确认触控、键盘、安全区与失败恢复。 [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance)
 
 ## 界面文案与组件一致性
 

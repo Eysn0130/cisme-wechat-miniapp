@@ -2783,6 +2783,15 @@ paths:
       parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExpectedVersion'}}}}
       responses: {'200': {description: Audited waiting_human assignment release}, '403': {description: Handler or supervisory capability required}, '409': {description: Assignment or version changed}}
+  /v1/management/support/conversations/{conversationId}/dismiss:
+    post:
+      tags: [Support, Authority]
+      operationId: dismissSupportConversationFromWorkbench
+      security: [{session: []}]
+      description: Requires support.read. Removes the observed row from the current employee's workbench until a later message. Conversation history and assignment are preserved.
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ExpectedVersion'}}}}
+      responses: {'200': {description: Employee-scoped dismissal receipt}, '403': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}}
   /v1/management/support/conversations/{conversationId}/read:
     post:
       tags: [Support, Authority]

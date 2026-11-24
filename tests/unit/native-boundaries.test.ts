@@ -229,13 +229,13 @@ describe("native mini program boundary", () => {
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back","openRewards","openFulfillment","clearDates","load","open","loadMore"],
-      "management-order-detail": ["back", "back", "load", "reconcile", "loadCarriers", "submitShipment", "load", "reconcileExternalRefund"],
+      "management-order-detail": ["back", "back", "load", "retryShipment", "reconcile", "loadCarriers", "submitShipment", "load", "reconcileExternalRefund"],
       aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit", "list", "clearAttention", "retry", "retry", "submit", "reconcile", "selectStage", "open", "next", "copyOrder", "openOrder", "prepareAction", "openFinance", "openChat", "closeAction", "submitPrepared"],
       "management-fulfillment": ["back", "retry", "retry", "next", "exportExcel", "chooseXlsx", "submit", "reconcileBatch", "newBatch", "openImportOrder"],
       "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "executeCorrection", "submit", "closeDetail"],
       "management-finance": ["back", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "openOrder", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],
-      "management-support": ["back", "retry", "open", "retry"],
-      "management-support-chat": ["back", "openContext", "loadOlder", "selectReplyTarget", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "suggest", "send", "returnToQueue", "resolve", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
+      "management-support": ["back", "dismiss", "open"],
+      "management-support-chat": ["back", "openContext", "loadOlder", "selectReplyTarget", "previewImage", "openOrder", "retrySend", "retry", "jumpToLatest", "openAftersales", "claim", "returnToQueue", "resolve", "openOriginalIssue", "send", "closeContext", "approveReturn", "selectReturnCase", "openManageAftersale", "sendReturnInstruction", "closeAftersales"],
       "management-points": ["back","load","retryCommand","selectState","choose","more","openOffer","openOffer","reviewSuggestion","reviewSuggestion","approve","togglePolicy","openPolicy","feature","close","fulfill","propose","close","choosePromotion","choosePromotion","saveOffer"],
       "points": ["back","openRules","openLedger","load","openTask","openCommunity","openShop","openInvite","load","selectSource","loadMore","recoverGift","recoverGift","recoverGift","chooseGift","load","giftAction","giftAction","giftAction","openSupport","load","closeRules","closeGift","changeGiftQuantity","changeGiftQuantity","chooseAddress","load","openAddresses","redeemGift","closeSuggestion","submitSuggestion"],
       post: ["replyComment", "deleteComment", "likeComment", "loginToViewComments", "back", "load", "openAuthor", "toggleFollow", "loadSocial", "copySource", "retryEditorialComments", "expandReplies", "loadMoreEditorialComments", "expandReplies", "load", "backToCommunity", "loadSocial", "cancelReply", "sendComment", "startComment", "toggleLike", "toggleSave", "retryShare", "sendComment", "toggleLike", "toggleSave", "showComments", "retryShare", "load", "editOwn", "deleteOwn", "closeEditorialBlocks", "loadEditorialBlocks", "unblockEditorialAuthor", "loadMoreEditorialBlocks"],
@@ -319,7 +319,15 @@ describe("native mini program boundary", () => {
     expect(operatorMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="true"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
     expect(operatorMarkup).not.toContain('bindtap="openImageSheet"');
     expect(operatorMarkup).not.toContain('bindtap="openAttachmentSheet"');
-    expect(operatorStyles).toMatch(/\.operator-input\s*\{[^}]*min-height:\s*224rpx;[^}]*max-height:\s*344rpx;[^}]*padding:\s*22rpx 22rpx 104rpx;/s);
+    expect(operatorMarkup).not.toContain('AI 帮写');
+    expect(operatorMarkup).toMatch(/class="operator-compose__head"[\s\S]*?bindtap="returnToQueue"[\s\S]*?bindtap="resolve"[\s\S]*?<textarea/);
+    const queueMarkup = await readFile(resolve("apps/miniprogram/pages/management-support/index.wxml"), "utf8");
+    for (const markup of [memberMarkup, operatorMarkup, queueMarkup]) {
+      const lists = markup.match(/<scroll-view\b[^>]*>/g) ?? [];
+      expect(lists.length).toBeGreaterThan(0);
+      for (const list of lists) expect(list).toContain('scroll-y enhanced show-scrollbar="{{false}}"');
+    }
+    expect(operatorStyles).toMatch(/\.operator-input\s*\{[^}]*min-height:\s*168rpx;[^}]*max-height:\s*344rpx;[^}]*padding:\s*16rpx 22rpx 104rpx;/s);
     expect(operatorStyles).toMatch(/\.operator-compose__tools\s*\{[^}]*position:\s*absolute;[^}]*right:\s*10rpx;[^}]*bottom:\s*10rpx;/s);
   });
 

@@ -77,6 +77,29 @@ describe.sequential('canonical support message sender profiles', () => {
     expect(claimed.status).toBe('human_active');
   });
 
+  it('dismisses the observed workbench row only for the current employee until a new message',async()=>{
+    const member=await identity('synthetic-dismissal-member');
+    const send=(body:string,key:string)=>app.inject({method:'POST',url:'/v1/me/support/messages',headers:auth(member),payload:{body,clientMessageId:key}});
+    const firstMessage=(await send('需要了解物流','operator-dismiss-first')).json();
+    const conversation=firstMessage.conversation;
+    const queue=(person:any)=>app.inject({method:'GET',url:'/v1/management/support/conversations',headers:auth(person)});
+    const hasRow=async(person:any)=>(await queue(person)).json().items.some((row:any)=>row.id===conversation.id);
+    const dismiss=(person:any,expectedVersion:number)=>app.inject({method:'POST',url:`/v1/management/support/conversations/${conversation.id}/dismiss`,headers:auth(person),payload:{expectedVersion}});
+    expect(await hasRow(first)).toBe(true);
+    expect((await dismiss(member,conversation.version)).statusCode).toBe(403);
+    expect((await dismiss(first,conversation.version-1)).statusCode).toBe(409);
+    const removed=await dismiss(first,conversation.version);
+    expect(removed.statusCode).toBe(200); expect(removed.json()).toEqual({conversationId:conversation.id,dismissed:true});
+    expect((await dismiss(first,conversation.version)).json()).toEqual(removed.json());
+    expect(await hasRow(first)).toBe(false); expect(await hasRow(second)).toBe(true);
+    const memberPage=await app.inject({method:'GET',url:'/v1/me/support/messages',headers:auth(member)});
+    expect(memberPage.json().messages.some((row:any)=>row.id===firstMessage.message.id)).toBe(true);
+    expect(memberPage.json().conversation.status).toBe(conversation.status);
+    expect((await send('补充一条想咨询','operator-dismiss-second')).statusCode).toBe(200);
+    expect(await hasRow(first)).toBe(true);
+    expect((await dismiss(first,conversation.version)).statusCode).toBe(409);
+  });
+
   it('keeps the issue and verified identities when an assigned employee returns it for another employee',async()=>{
     const member=await identity('synthetic-returning-member');
     const avatar=await profile(member,'synthetic-returning-member-photo');

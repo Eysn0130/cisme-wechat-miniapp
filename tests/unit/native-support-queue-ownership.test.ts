@@ -10,7 +10,7 @@ const deferred = () => {
 };
 const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
 const grant = { version: 1, managementAvailable: true, capabilities: ["support.read"] };
-const row = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", memberDisplayName: "合成会员", lastMessage: "合成咨询", status: "waiting_human", updatedAt: "2026-09-21T00:00:00Z" };
+const row = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", memberDisplayName: "合成会员", lastMessage: "合成咨询", status: "waiting_human", version: 1, updatedAt: "2026-09-21T00:00:00Z" };
 let definition: any, page: any, read: ReturnType<typeof deferred>, authority: ReturnType<typeof deferred>;
 let aborts: Map<string, ReturnType<typeof vi.fn>>;
 const instantiate = () => ({ ...definition, data: structuredClone(definition.data), setData(patch: any) { Object.assign(this.data, patch); } });
@@ -18,7 +18,7 @@ beforeEach(async () => {
   vi.resetModules(); vi.clearAllMocks(); vi.useFakeTimers(); m.token = "operator-a";
   read = deferred(); authority = deferred(); aborts = new Map();
   (globalThis as any).getApp = () => ({ globalData: { sessionToken: m.token } });
-  (globalThis as any).wx = { showToast: vi.fn(), navigateBack: vi.fn(), navigateTo: vi.fn(), switchTab: vi.fn(), redirectTo: vi.fn() };
+  (globalThis as any).wx = { showToast: vi.fn(), showModal: vi.fn(), navigateBack: vi.fn(), navigateTo: vi.fn(), switchTab: vi.fn(), redirectTo: vi.fn() };
   (globalThis as any).Page = (value: any) => { definition = value; };
   m.request.mockImplementation((options: any) => {
     const abort = vi.fn(); aborts.set(options.path, abort); options.registerAbort?.(abort);
@@ -39,8 +39,6 @@ describe("support queue read ownership", () => {
     expect(page.data.items).toEqual([]);
     expect(page.data.coreReady).toBe(false);
     expect(page.timer).toBeNull();
-    page.retry();
-    expect(m.resumeAuthentication).toHaveBeenCalledOnce();
     expect(m.request).not.toHaveBeenCalled();
   });
   it("cancels its pending GET on hide without accepting its late response", async () => {
@@ -81,11 +79,11 @@ describe("support queue read ownership", () => {
     expect(page.data.items).toEqual([]); expect(page.data.nextCursor).toBeNull();
     expect(page.data.loadingMore).toBe(false); expect(page.timer).toBeNull();
   });
-  it("keeps a failed refresh snapshot read-only until an explicit retry succeeds", async () => {
+  it("keeps a failed snapshot read-only until the automatic retry succeeds", async () => {
     await ready(); read = deferred(); void page.load(true); read.reject({ status: 503 }); await flush();
     expect(page.data.items[0].id).toBe(row.id); expect(page.data.error).not.toBe("");
     page.open({ currentTarget: { dataset: { id: row.id } } }); expect(wx.navigateTo).not.toHaveBeenCalled();
-    read = deferred(); void page.load(); await flush(); read.resolve({ items: [row], nextCursor: null }); await flush();
+    read = deferred(); await vi.advanceTimersByTimeAsync(12_000); read.resolve({ items: [row], nextCursor: null }); await flush();
     page.open({ currentTarget: { dataset: { id: row.id } } }); expect(wx.navigateTo).toHaveBeenCalledOnce();
   });
   it("does not overlap slow polling reads", async () => {
@@ -108,4 +106,26 @@ describe("support queue read ownership", () => {
     read = deferred(); void page.loadMore(); read.resolve({ items: [row, { ...row, id: "second" }], nextCursor: null }); await flush();
     expect(page.data.items.map((item: any) => item.id)).toEqual([row.id, "second"]);
   });
+  it("ignores vertical drags, reveals delete on left swipe, and waits for confirmation", async () => {
+    await ready();
+    const target={dataset:{id:row.id}};
+    const begin=()=>page.swipeStart({currentTarget:target,touches:[{clientX:220,clientY:180}]});
+    const end=(clientX:number,clientY:number)=>page.swipeEnd({currentTarget:target,changedTouches:[{clientX,clientY}]});
+    begin();end(212,110);expect(page.data.swipedId).toBe("");
+    begin();end(135,179);expect(page.data.swipedId).toBe(row.id);
+    expect(m.request.mock.calls.some(([o])=>o.method==="POST")).toBe(false);
+    vi.mocked(wx.showModal).mockResolvedValueOnce({confirm:false,cancel:true,content:""});
+    await page.dismiss({currentTarget:target});
+    expect(m.request.mock.calls.some(([o])=>o.method==="POST")).toBe(false);
+    await flush();
+    begin();end(130,180);
+    const receipt=deferred();m.request.mockImplementation(options=>options.method==="POST"?receipt.promise:read.promise);
+    vi.mocked(wx.showModal).mockResolvedValueOnce({confirm:true,cancel:false,content:""});
+    read=deferred();const removing=page.dismiss({currentTarget:target});await flush();
+    expect(m.request).toHaveBeenCalledWith(expect.objectContaining({method:"POST",data:{expectedVersion:1}}));
+    receipt.resolve({conversationId:row.id,dismissed:true});await removing;
+    read.resolve({items:[],nextCursor:null});await flush();
+    expect(page.data.items).toEqual([]);
+  });
+
 });
