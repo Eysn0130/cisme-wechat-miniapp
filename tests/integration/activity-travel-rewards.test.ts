@@ -1,5 +1,6 @@
 import {beforeAll,afterAll,describe,it,expect} from 'vitest';
 import {randomUUID,generateKeyPairSync,createCipheriv,randomBytes,sign} from 'node:crypto';
+import jpeg from 'jpeg-js';
 import {loadConfig} from '@cisme/config';
 import {testPool,resetDatabase,TEST_DATABASE_URL} from '@cisme/testkit';
 import {createApp} from '../../services/api/src/server';
@@ -15,11 +16,27 @@ import {fulfillmentWorkbook} from '../../services/api/src/fulfillmentWorkbook';
 import {collectRewardPortableData} from '../../services/api/src/rewardPrivacy';
 import {VerifiedRefundInbox} from '../../services/api/src/verifiedRefundInbox';
 import {MemberAdministration} from '../../services/api/src/memberAdministration';
-const pool=testPool(),config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'reward-integration-session',ADMIN_API_TOKEN:'legacy-test',UPLOAD_TOKEN_SECRET:'reward-test-upload',OBJECT_STORAGE_DRIVER:'api_gateway',CONTACT_ENCRYPTION_KEY:'11'.repeat(32),CONTACT_HASH_KEY:'22'.repeat(32),CONTACT_KEY_VERSION:'reward-test-v1',COMMERCE_ORDER_FLOW_ENABLED:'true'});
+const pool=testPool(),config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'reward-integration-session',ADMIN_API_TOKEN:'legacy-test',UPLOAD_TOKEN_SECRET:'reward-test-upload',OBJECT_STORAGE_DRIVER:'api_gateway',CONTACT_ENCRYPTION_KEY:'11'.repeat(32),CONTACT_HASH_KEY:'22'.repeat(32),CONTACT_KEY_VERSION:'reward-test-v1',COMMERCE_ORDER_FLOW_ENABLED:'true',WECHAT_APP_ID:'wx0000000000000001',WECHAT_APP_SECRET:'synthetic-no-network'});
 let app:Awaited<ReturnType<typeof createApp>>,rewards:ActivityRewardService,operator:any,product:any,activity:any;
 const auth=(p:any)=>({authorization:`Bearer ${p.sessionToken}`}),key=()=>`reward-test-${randomUUID()}`;
 let actorAddress=0;
 const person=async()=>{const r=await app.inject({method:'POST',url:'/v1/identity/dev',remoteAddress:`192.0.2.${++actorAddress}`,payload:{externalUserId:key(),displayName:'隔离奖励会员',consents:[{documentType:'privacy',version:'v1'},{documentType:'terms',version:'v1'}]}});expect(r.statusCode,r.body).toBe(200);return r.json();};
+async function confirmWechatMember() {
+  const consents = ['privacy', 'terms'].map(documentType => ({ documentType, version: 'v1' }));
+  for (const { documentType, version } of consents) await pool.query(
+    'INSERT INTO legal_document(document_type,version,title,body,operator_name,contact,active) VALUES($1,$2,$3,$3,$3,$4,true)',
+    [documentType, version, '隔离奖励测试', 'test@example.invalid']);
+  const displayName = '隔离微信新会员';
+  const login = await app.inject({ method: 'POST', url: '/v1/identity/wechat', remoteAddress: `192.0.2.${++actorAddress}`,
+    payload: { code: 'synthetic-reward-code', displayName, consents } });
+  expect(login.statusCode, login.body).toBe(200);
+  const member = login.json();
+  const avatarDataUrl = 'data:image/jpeg;base64,' + jpeg.encode({ data: Buffer.alloc(16 * 16 * 4, 180), width: 16, height: 16 }, 80).data.toString('base64');
+  const profile = await app.inject({ method: 'PUT', url: '/v1/me/profile', headers: auth(member),
+    payload: { displayName, avatarDataUrl, expectedVersion: 0 } });
+  expect(profile.statusCode, profile.body).toBe(200);
+  return member;
+}
 async function address(p:any){const r=await app.inject({method:'POST',url:'/v1/me/addresses',headers:{...auth(p),'idempotency-key':key()},payload:{recipientName:'隔离收件人',phone:'13800000001',province:'上海市',city:'上海市',district:'浦东新区',detail:'隔离测试路1号',postalCode:'200000',nationalCode:'310115',provinceCode:'310000',cityCode:'310100',districtCode:'310115',label:'home',isDefault:true}});expect(r.statusCode,r.body).toBe(200);return r.json();}
 async function survey(p:any){const service=new CareOnboardingService(pool,config),v=await service.get(p.memberId);const answers=Object.fromEntries(careQuestions.map(q=>[q.id,q.sensitive?{status:'not_authorized',values:[]}:{status:'answered',values:[q.options[0]!.value]}]));return (await service.save(p.memberId,key(),{questionnaireVersion:v.questionnaireVersion,expectedVersion:v.profile?.version??0,currentQuestion:10,answers,consentChoice:'declined',consentVersion:v.sensitiveConsent.version},true)).profile!;}
 async function issue(p:any,now?:Date){const r=await rewards.issue(operator.memberId,activity.id,key(),{batchId:'isolated-batch',awards:[{sourceRecordId:key(),memberId:p.memberId}]},now);return r.items[0]!.voucherId;}
@@ -27,7 +44,8 @@ async function ready(){const p=await person(),v=await issue(p),a=await address(p
 const quote=(x:Awaited<ReturnType<typeof ready>>,bundleCode='moisture')=>rewards.quote(x.p.memberId,key(),{voucherId:x.v,bundleCode,addressId:x.a.id,addressVersion:x.a.version,surveyVersion:x.s.version});
 async function claim(x:Awaited<ReturnType<typeof ready>>,bundleCode='moisture'){const q=await quote(x,bundleCode);return rewards.claim(x.p.memberId,key(),{quoteId:q.id});}
 beforeAll(async()=>{
- await resetDatabase(pool);app=await createApp({config,pool,storage:createApiGatewayStorage(config)});operator=await person();
+ await resetDatabase(pool);app=await createApp({config,pool,storage:createApiGatewayStorage(config),
+  wechatIdentityFetcher:async()=>new Response(JSON.stringify({openid:key(),session_key:'synthetic-reward-session'}))});operator=await person();
  for(const capability of ['commerce.product.manage','commerce.qualification.manage','commerce.inventory.manage','commerce.order.read','commerce.fulfillment.manage','member.manage'])await pool.query("INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source) VALUES($1,$2,'fixture','活动旅行套隔离回归','test','integration_fixture')",[operator.memberId,capability]);
  const call=async(url:string,payload:any)=>{const r=await app.inject({method:'POST',url,headers:{...auth(operator),'idempotency-key':key()},payload});expect(r.statusCode,r.body).toBe(200);return r.json();};
  const created=await call('/v1/management/catalog/products',{code:'synthetic-reward-fullsize',name:'隔离正装',subtitle:'活动券验证',description:'隔离合成商品',imagePath:'/assets/icons/spray-bottle-plum.svg',sourceKind:'synthetic_test',sku:{code:'SYNTH_REWARD_198',label:'隔离正装规格',priceCents:19800}});
@@ -65,7 +83,8 @@ describe('TRV-SHARE public invitations and two bundle stock',()=>{
   expect((await rewards.mine(officer.memberId)).vouchers).toHaveLength(0);
   const visit=await app.inject({method:'POST',url:`/v1/officer-shares/${share.officerShareId}/visits`,payload:{visitKey:key()}});expect(visit.statusCode,visit.body).toBe(200);
   expect(visit.json()).toMatchObject({productCode:null,visitToken:expect.any(String)});
-  const joined=await person();const bind=async(p:any,token:string)=>app.inject({method:'POST',url:'/v1/me/sharing-officer/commands',headers:{...auth(p),'idempotency-key':key()},payload:{action:'bind_visit',input:{visitToken:token}}});
+  const joined=await confirmWechatMember();
+  const bind=async(p:any,token:string)=>app.inject({method:'POST',url:'/v1/me/sharing-officer/commands',headers:{...auth(p),'idempotency-key':key()},payload:{action:'bind_visit',input:{visitToken:token}}});
   expect((await bind(joined,visit.json().visitToken)).statusCode).toBe(200);
   expect((await pool.query('SELECT officer_id,expires_at FROM sharing_customer_relation WHERE buyer_id=$1',[joined.memberId])).rows[0]).toEqual({officer_id:officer.memberId,expires_at:null});
   const oldVisit=await app.inject({method:'POST',url:`/v1/officer-shares/${share.officerShareId}/visits`,payload:{visitKey:key()}});expect((await bind(existing,oldVisit.json().visitToken)).statusCode).toBe(200);
