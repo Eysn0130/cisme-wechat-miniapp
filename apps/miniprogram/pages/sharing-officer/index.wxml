@@ -57,8 +57,13 @@
        <view class="officer-qualification__mark-row" aria-hidden="true">
         <view class="officer-qualification__rule"/>
         <view class="officer-qualification__seal officer-review__seal">
-         <image class="officer-qualification__pearl" src="/assets/cisme/onboarding-pearl-seal-v1.png" mode="aspectFit"/>
-         <view wx:if="{{reviewMotion&&!reviewApproved}}" class="officer-review__orbit"><view class="officer-review__glow"/></view>
+         <view class="officer-review__material">
+          <image class="officer-review__pearl" src="/pages/sharing-officer/assets/review-pearl.webp" mode="aspectFit"/>
+          <block wx:if="{{reviewMotion&&!reviewApproved}}">
+           <view class="officer-review__inner-light"/>
+           <view class="officer-review__orbit"><view class="officer-review__glow"/></view>
+          </block>
+         </view>
          <view wx:if="{{reviewApproved}}" class="officer-qualification__glint"><view class="officer-qualification__shine"/></view>
          <image class="officer-review__icon officer-review__clock" src="/assets/icons/clock-plum.svg" mode="aspectFit"/>
          <image wx:if="{{reviewApproved}}" class="officer-review__icon officer-review__check" src="/assets/icons/check-plum.svg" mode="aspectFit"/>
