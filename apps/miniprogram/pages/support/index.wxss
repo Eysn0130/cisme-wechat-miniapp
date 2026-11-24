@@ -1,3 +1,5 @@
+@import "../../styles/support-chat-layout.wxss";
+
 .support-shell {
   min-height: 100vh;
   background:
@@ -57,10 +59,10 @@
 }
 
 .support-thread {
-  position: fixed;
-  top: var(--cisme-topbar-height, calc(env(safe-area-inset-top) + 44px));
+  position: absolute;
+  top: 0;
   right: 3rpx;
-  bottom: calc(env(safe-area-inset-bottom) + 132rpx);
+  bottom: 0;
   left: 0;
   width: auto;
 }
@@ -465,10 +467,10 @@
 }
 
 .new-message {
-  position: fixed;
+  position: absolute;
   z-index: 31;
   right: 24rpx;
-  bottom: calc(env(safe-area-inset-bottom) + 154rpx);
+  bottom: 12px;
   min-height: 44px;
   padding: 0 24rpx;
   border: 0;
@@ -480,12 +482,10 @@
 }
 
 .support-composer {
-  position: fixed;
+  position: relative;
   z-index: 30;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  padding: 14rpx 20rpx calc(env(safe-area-inset-bottom) + 14rpx);
+  flex: none;
+  padding: 14rpx 20rpx calc(var(--cisme-chat-safe-bottom) + 14rpx);
   background: transparent;
 }
 
@@ -510,9 +510,9 @@
 .support-input {
   display: block;
   width: 100%;
-  min-height: 224rpx;
-  max-height: 344rpx;
-  padding: 22rpx 22rpx 104rpx;
+  min-height: 120rpx;
+  max-height: 240rpx;
+  padding: 22rpx 22rpx 0;
   overflow-y: auto;
   border: 0;
   color: #352a3a;
@@ -522,7 +522,7 @@
 }
 
 .support-input--capped {
-  height: 344rpx;
+  height: 240rpx;
 }
 
 .support-input__placeholder {
@@ -532,11 +532,6 @@
 }
 
 .support-composer__tools {
-  position: absolute;
-  right: 10rpx;
-  bottom: 10rpx;
-  display: flex;
-  align-items: center;
   gap: 4rpx;
 }
 

@@ -8,7 +8,9 @@
     </view>
   </view>
 
-  <scroll-view class="support-thread" style="{{threadBottomStyle}}" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
+  <view class="support-chat-layout {{keyboardHeight ? 'support-chat-layout--with-keyboard' : ''}}" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px' : ''}}">
+  <view class="support-chat-history">
+  <scroll-view class="support-thread" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
     <view class="support-thread__content">
     <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在加载聊天记录…</view>
     <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
@@ -75,7 +77,8 @@
     </view>
   </scroll-view>
 
-  <button wx:if="{{newMessagesBelowCount > 0}}" class="new-message" style="{{newMessageBottomStyle}}" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
+  <button wx:if="{{newMessagesBelowCount > 0}}" class="new-message" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
+  </view>
 
   <view class="support-composer {{composerFocused ? 'support-composer--focused' : ''}}">
     <view wx:if="{{!closedRights}}" class="support-composer__actions">
@@ -92,13 +95,14 @@
         </view>
         <view wx:if="{{selectedOrder}}" class="support-draft-order"><image class="support-draft__image" src="{{selectedOrder.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-draft__content"><strong>{{selectedOrder.productName}}</strong><text>订单尾号 {{selectedOrder.orderNumberTail}} · {{selectedOrder.statusLabel}}</text></view><button wx:if="{{!closedRights}}" bindtap="removeOrder" aria-label="移除订单"><image class="support-draft__remove-icon" src="/assets/icons/close-plum.svg" mode="aspectFit"/></button></view>
       </view>
-      <textarea class="support-input {{composerCapped ? 'support-input--capped' : ''}}" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="true" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{newTopicAttempt?'请先确认新对话':sendAttempt?'请先核对上条消息':'输入你的问题…'}}" placeholder-class="support-input__placeholder" disabled="{{sending||sendAttempt||newTopicBusy||newTopicAttempt}}"/>
-      <view class="support-composer__tools">
+      <textarea class="support-input {{composerCapped ? 'support-input--capped' : ''}}" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{newTopicAttempt?'请先确认新对话':sendAttempt?'请先核对上条消息':'输入你的问题…'}}" placeholder-class="support-input__placeholder" disabled="{{sending||sendAttempt||newTopicBusy||newTopicAttempt}}"/>
+      <view class="support-composer__tools support-chat-tools">
         <button wx:if="{{!closedRights}}" class="support-tool {{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="openImageSheet" disabled="{{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}" aria-label="添加图片或拍照"><image src="/assets/icons/composer-image-plum.svg"/></button>
         <button wx:if="{{!closedRights}}" class="support-tool {{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="openAttachmentSheet" disabled="{{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}" aria-label="关联订单附件"><image src="/assets/icons/composer-paperclip-plum.svg"/></button>
         <button class="support-tool support-tool--send {{!composerSendEnabled || sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}} {{composerSendEnabled && !sending && !sendAttempt && !uploadBusy && !newTopicBusy && !newTopicAttempt ? 'support-tool--send-active' : 'support-tool--send-disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}" aria-label="{{sending ? '正在发送消息' : sendAttempt ? '请先核对上条消息' : '发送消息'}}"><image src="{{composerSendEnabled && !sending && !sendAttempt && !uploadBusy && !newTopicBusy && !newTopicAttempt ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
       </view>
     </view>
+  </view>
   </view>
 
   <view wx:if="{{attachmentSheetOpen}}" class="support-sheet-mask" catchtap="closeAttachmentSheet" catchtouchmove="stopPropagation">

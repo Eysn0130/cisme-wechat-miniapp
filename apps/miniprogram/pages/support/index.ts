@@ -91,16 +91,14 @@ Page({
     olderCursor: null as number | null, historyStartLoaded: false, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
     pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false, helpNavigating: false,
-    atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
-    newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)", composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
+    atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
     attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
     selectedImage: null as SelectedImage | null, uploadBusy: false
   },
   onLoad(options:Record<string,string>) { this.data.pageAlive = true;
     const orderId=options.orderId??'';
     this.linkedOrderId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)?orderId:''; },
-  onReady() { this.measureComposer(); },
-  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); this.scheduleComposerMeasure(); },
+  onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     const previousRevision = this.readRevision;
     this.readRevision=commerceContextRevision();
@@ -160,7 +158,6 @@ Page({
       void this.poll();
     } else void this.load();
     if(this.linkedOrderId)void this.loadLinkedOrder();
-    wx.nextTick(() => this.measureComposer());
   },
   onHide() {
     this.newTopicRevision += 1;
@@ -219,7 +216,6 @@ Page({
     this.setData({input:recovered.input,selectedImage:recovered.selectedImage,selectedOrder:recovered.selectedOrder,
       sendAttempt:recovered.attempt,composerSendEnabled:recovered.attempt?false:memberComposerCanSend(recovered.input,recovered.selectedImage,recovered.selectedOrder)});
     if(recovered.attempt)this.setData({pendingMessage:this.pendingFrom(recovered.attempt,'unknown'),error:'发送结果尚未确认，内容已保留，请核对原消息。',errorAction:''});
-    this.scheduleComposerMeasure();
   },
   stopAiReplyWait() { this.aiWaitRevision += 1; if (this.data.aiReplyWaiting) this.setData({ aiReplyWaiting: false }); },
   currentConversation(incoming: Conversation | null | undefined) { return newestSupportConversation(this.data.conversation, incoming); },
@@ -280,7 +276,6 @@ Page({
         currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:nativeCatalogImage(order.lines[0]?.image),
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
       this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
-      this.scheduleComposerMeasure();
     }catch{if(current())this.setComposerState({error:this.data.closedRights?'订单暂时无法同步，请返回历史订单重试。':'关联订单暂时无法同步，可在下方选择订单。',errorAction:'sync'});}
   },
   clearPresenceTimer() { if (this.presenceTimer) clearTimeout(this.presenceTimer); this.presenceTimer = null; },
@@ -371,53 +366,30 @@ Page({
     this.setComposerState({ ...messagePatch, syncCursor: state.syncCursor, maxSeenSequence: state.maxSeenSequence, readCursor: state.readCursor, ...patch });
     if (Object.keys(messagePatch).length) this.data.messages = messages;
   },
-  composerControlKey() {
-    if (this.data.closedRights) return "";
-    const status = this.data.conversation?.status;
-    const human = status === "waiting_human" || status === "human_active";
-    const topic = this.data.newTopicAttempt || this.data.historyLoaded && !this.data.loading && (this.data.newTopicAvailable && (!status || status === "ai_active" || status === "resolved"))
-      ? this.data.newTopicBusy ? ":topic-busy" : this.data.newTopicAttempt ? ":topic-retry" : ":topic" : "";
-    if (human) return status + topic;
-    if (!this.data.loading && this.data.errorAction !== "handoff" && (!status || status === "ai_active" || status === "resolved"))
-      return (this.data.handoffBusy ? "handoff-busy" : "handoff") + topic;
-    return topic;
-  },
   setComposerState(patch: Record<string, unknown>) {
-    const before = this.composerControlKey();
     const scopeChanged = "conversation" in patch && (patch.conversation as Conversation | null)?.id !== this.data.conversation?.id
       || "contextVersion" in patch && patch.contextVersion !== this.data.contextVersion
       || "contextStartSequence" in patch && patch.contextStartSequence !== this.data.contextStartSequence;
     if (scopeChanged && !("historyStartLoaded" in patch)) patch = { ...patch, historyStartLoaded: false };
     this.setData(patch);
-    if (before !== this.composerControlKey()) this.scheduleComposerMeasure();
-  },
-  scheduleComposerMeasure() {
-    const epoch = this.lifecycleEpoch, ownerToken = sessionToken();
-    wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureComposer(); });
-  },
-  measureComposer() {
-    if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
-    const epoch = this.lifecycleEpoch, ownerToken = sessionToken();
-    wx.createSelectorQuery().select(".support-composer").boundingClientRect((rect) => {
-      if (!this.owns(epoch, ownerToken) || !rect || typeof rect.height !== "number") return;
-      const height = Math.max(112, Math.ceil(rect.height));
-      this.setData({ threadBottomStyle: `bottom:${height}px`, newMessageBottomStyle: `bottom:${height + 12}px` });
-    }).exec();
   },
   onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
     const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
     const composerCapped = lineCount > 6;
     if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
-    wx.nextTick(() => this.measureComposer());
   },
   onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
-    const keyboardHeight = Number(event.detail.height) || 0;
+    if (!this.data.visible || !this.data.composerFocused) return;
+    const keyboardHeight = Math.max(0, Number(event.detail.height) || 0);
     if (keyboardHeight === this.data.keyboardHeight) return;
     this.setData({ keyboardHeight });
-    wx.nextTick(() => this.measureComposer());
   },
-  onComposerFocus() { this.lastActivityAt = Date.now(); this.setData({ composerFocused: true }); },
-  onComposerBlur() { this.setData({ composerFocused: false }); void this.publishPresence(true, false, true); },
+  onComposerFocus(event: WechatMiniprogram.TextareaFocus) {
+    if (!this.data.visible) return;
+    this.lastActivityAt = Date.now();
+    this.setData({ composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
+  },
+  onComposerBlur() { this.setData({ composerFocused: false, keyboardHeight: 0 }); void this.publishPresence(true, false, true); },
   activePolling() { return this.data.presence.operatorTyping || Date.now() - this.lastActivityAt < 30_000; },
   startPolling() { this.pollFailures = 0; this.schedulePoll(); },
   schedulePoll() {
@@ -677,7 +649,6 @@ Page({
         if (this.owns(epoch, ownerToken) && this.data.error) this.setData({ error: "消息已收到，对话暂未同步，请刷新查看。", errorAction: "sync" });
       }
       await this.markRead();
-      wx.nextTick(() => this.measureComposer());
     } catch (error) {
       if (this.owns(epoch, ownerToken) && this.data.sendAttempt?.id === sendAttempt.id) {
         if ((error as {code?:string})?.code === "SUPPORT_CONTEXT_CHANGED") {
@@ -691,7 +662,6 @@ Page({
           this.setComposerState({ sendAttempt: null, pendingMessage: null, composerSendEnabled: selected ? false : memberComposerCanSend(this.data.input, null, this.data.selectedOrder),
             ...(selected ? { selectedImage: { ...selected, mediaId: "", status: "failed", error: "图片已失效，请重传或移除。" } } : {}),
             error: "图片已失效，消息未发送。文字已保留，请重传或移除图片。", errorAction: "" });
-          this.scheduleComposerMeasure();
         } else this.setComposerState({ error: "发送结果尚未确认，内容已保留，请重试。", errorAction: "", pendingMessage: this.pendingFrom(sendAttempt, "unknown") });
       }
     } finally {
@@ -756,7 +726,6 @@ Page({
       this.inputRevision += 1;
       const candidate: SelectedImage = { localPath, size, mimeType, status: "uploading", progress: 0, mediaId: "", error: "" };
       this.setData({ selectedImage: candidate, composerSendEnabled: false });
-      wx.nextTick(() => this.measureComposer());
       await this.uploadImage(candidate);
     } catch (error) { if (current() && !isCancellation(error)) this.setComposerState({ error: "无法读取所选图片，请检查微信隐私权限后重试。", errorAction: "" }); }
     finally { this.choosingImage = false; }
@@ -796,7 +765,7 @@ Page({
         this.setComposerState({ selectedImage: failed, composerSendEnabled: false, error: failed.error, errorAction: "" });
       }
     } finally {
-      if (current()) { this.uploadAbort = null; this.setData({ uploadBusy: false }); wx.nextTick(() => this.measureComposer()); }
+      if (current()) { this.uploadAbort = null; this.setData({ uploadBusy: false }); }
     }
   },
   retryImageUpload() { if(!this.data.sendAttempt)void this.uploadImage(); },
@@ -808,7 +777,6 @@ Page({
     if (mediaId) void request({ path: `/v1/me/support/media/${mediaId}`, method: "DELETE", data: {}, cacheTags: ["support"] }).catch(() => {});
     this.inputRevision += 1;
     this.setData({ selectedImage: null, uploadBusy: false, composerSendEnabled: memberComposerCanSend(this.data.input, null, this.data.selectedOrder) });
-    wx.nextTick(() => this.measureComposer());
   },
   async openOrderPicker() {
     if (!this.data.pageAlive || !this.data.visible || this.data.closedRights || this.data.sending || this.data.sendAttempt) return;
@@ -857,13 +825,11 @@ Page({
     this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderDismissed = true;
     this.closeOrderPicker();
     this.setData({ selectedOrder: selected, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, selected) });
-    wx.nextTick(() => this.measureComposer());
   },
   removeOrder() {
     if(this.data.closedRights||this.data.sendAttempt||this.data.sending||this.data.newTopicBusy||this.data.newTopicAttempt)return;
     this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderDismissed = true;
     this.setData({ selectedOrder: null, composerSendEnabled: memberComposerCanSend(this.data.input, this.data.selectedImage, null) });
-    wx.nextTick(() => this.measureComposer());
   },
   openOrder(event: WechatMiniprogram.TouchEvent) { const id = String(event.currentTarget.dataset.id ?? ""); if (id) wx.navigateTo({ url: `/pages/order-detail/index?id=${encodeURIComponent(id)}` }); },
   downloadMedia(messages: readonly RawMessage[]) {
@@ -933,7 +899,6 @@ Page({
     takeSupportDraft(sessionToken(), this.linkedOrderId || GENERAL_SUPPORT_SCOPE);
     this.setData({ input: "", selectedImage: null, selectedOrder: null, composerSendEnabled: false,
       composerCapped: false, composerLineCount: 1, attachmentSheetOpen: false, orderPickerOpen: false });
-    this.scheduleComposerMeasure();
   },
   async startNewTopic() {
     if (!this.data.pageAlive || !this.data.visible || this.data.closedRights || this.data.newTopicBusy || this.data.sending

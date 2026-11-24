@@ -1,0 +1,28 @@
+.support-chat-layout {
+  --cisme-chat-safe-bottom: env(safe-area-inset-bottom);
+  position: fixed;
+  top: var(--cisme-topbar-height, calc(env(safe-area-inset-top) + 44px));
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.support-chat-layout--with-keyboard {
+  --cisme-chat-safe-bottom: 0px;
+}
+
+.support-chat-history {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.support-chat-tools {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  min-height: 104rpx;
+  padding: 0 10rpx 10rpx;
+}

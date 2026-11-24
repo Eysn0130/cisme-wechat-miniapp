@@ -311,12 +311,12 @@ describe("native mini program boundary", () => {
     expect(memberMarkup).toContain('/assets/icons/composer-image-plum.svg');
     expect(memberMarkup).toContain('/assets/icons/composer-paperclip-plum.svg');
     expect(memberMarkup).toContain('/assets/icons/composer-send-white.svg');
-    expect(memberMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="true"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
+    expect(memberMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="\{\{false\}\}"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
     expect(memberMarkup).toContain('bindkeyboardheightchange="onKeyboardHeightChange"');
-    expect(memberStyles).toMatch(/\.support-input\s*\{[^}]*min-height:\s*224rpx;[^}]*max-height:\s*344rpx;[^}]*padding:\s*22rpx 22rpx 104rpx;/s);
-    expect(memberStyles).toMatch(/\.support-composer__tools\s*\{[^}]*position:\s*absolute;[^}]*right:\s*10rpx;[^}]*bottom:\s*10rpx;/s);
+    expect(memberStyles).toMatch(/\.support-input\s*\{[^}]*min-height:\s*120rpx;[^}]*max-height:\s*240rpx;[^}]*padding:\s*22rpx 22rpx 0;/s);
+    expect(memberMarkup).toMatch(/<textarea[^>]*\/>\s*<view class="support-composer__tools support-chat-tools"/);
 
-    expect(operatorMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="true"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
+    expect(operatorMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="\{\{false\}\}"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
     expect(operatorMarkup).not.toContain('bindtap="openImageSheet"');
     expect(operatorMarkup).not.toContain('bindtap="openAttachmentSheet"');
     expect(operatorMarkup).not.toContain('AI 帮写');
@@ -327,8 +327,8 @@ describe("native mini program boundary", () => {
       expect(lists.length).toBeGreaterThan(0);
       for (const list of lists) expect(list).toContain('scroll-y enhanced show-scrollbar="{{false}}"');
     }
-    expect(operatorStyles).toMatch(/\.operator-input\s*\{[^}]*min-height:\s*168rpx;[^}]*max-height:\s*344rpx;[^}]*padding:\s*16rpx 22rpx 104rpx;/s);
-    expect(operatorStyles).toMatch(/\.operator-compose__tools\s*\{[^}]*position:\s*absolute;[^}]*right:\s*10rpx;[^}]*bottom:\s*10rpx;/s);
+    expect(operatorStyles).toMatch(/\.operator-input\s*\{[^}]*min-height:\s*64rpx;[^}]*max-height:\s*240rpx;[^}]*padding:\s*16rpx 22rpx 0;/s);
+    expect(operatorMarkup).toMatch(/<textarea[^>]*\/>\s*<view class="operator-compose__tools support-chat-tools"/);
   });
 
   it("pins accepted native button geometry and truthful busy/unknown labels", async () => {

@@ -111,19 +111,15 @@ Page({
     keyboardHeight: 0,
     composerCapped: false,
     composerLineCount: 1,
-    composerSendEnabled: false,
-    threadBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 244rpx)",
-    newMessageBottomStyle: "bottom:calc(env(safe-area-inset-bottom) + 266rpx)"
+    composerSendEnabled: false
   },
 
   onLoad(query: Record<string, string | undefined>) {
     this.data.pageAlive = true;
     this.setData({ id: query.id || "" });
   },
-  onReady() { this.measureActions(); },
   onResize() {
     this.setData({ chromeStyle: currentChromeStyle() });
-    this.measureActions();
   },
   async onShow() {
     this.stopPolling();
@@ -141,7 +137,8 @@ Page({
       this.inputRevision += 1;
       this.clearSensitiveThread();
     }
-    this.setData({ loading: true, busy: false, accessDenied: false, statusLabel: "正在加载", statusTone: "neutral" });
+    this.setData({ loading: true, busy: false, accessDenied: false,
+      ...(!this.data.conversation ? { statusLabel: "正在加载", statusTone: "neutral" } : {}) });
     try {
       const authority = await authorityProjection(this);
       if (!this.owns(epoch, ownerToken)) return;
@@ -164,11 +161,11 @@ Page({
       const recovered = takeSupportRecovery<OperatorRecovery>(ownerToken, this.readRevision, `operator:${this.data.id}`);
       if (canReply && recovered) { this.pendingRecovery = recovered; this.recoveryOwner = ownerToken; this.recoveryRevision = this.readRevision; }
       void this.loadOwnIdentity();
-      await this.load();
+      if (this.data.conversation && !this.pollInFlight) await this.poll(true);
+      else await this.load();
       if (this.owns(epoch, ownerToken) && !this.data.error && this.data.conversation) this.restoreRecovery();
       if(canManageAftersale&&this.owns(epoch,ownerToken))void this.loadAftersales();
       if (this.owns(epoch, ownerToken)) this.startPolling();
-      wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
     } catch (error) {
       if (!this.rejectRead(error, epoch, ownerToken) && this.owns(epoch, ownerToken)) {
         this.clearSensitiveThread();
@@ -288,7 +285,6 @@ Page({
       replyTargetNeedsRefresh:changed&&!saved.attempt,composerSendEnabled:!saved.attempt&&!changed&&this.data.canReply&&this.data.assignedToMe&&Boolean(saved.input.trim()&&saved.replyTarget),
       ...(saved.attempt?{pendingMessage:this.pendingFrom(saved.attempt,'unknown'),error:"回复是否发送成功还未确认，请核对原回复。"}
         :changed?{error:"人工事项已变化，原草稿已保留，请刷新后核对回复对象。"}:{})});
-    wx.nextTick(()=>this.measureActions());
   },
   identityPage(page: any) {
     const epoch = this.lifecycleEpoch, token = sessionToken();
@@ -412,7 +408,6 @@ Page({
     this.setData({ replyTarget: { id, sequence: message.sequence, summary: this.questionSummary(message),
       generation: this.data.humanRequest?.generation ?? 0, contextVersion: this.data.contextVersion }, input: "", composerSendEnabled: false,
       composerCapped: false, composerLineCount: 1, error: "" });
-    wx.nextTick(() => this.measureActions());
   },
   async openOriginalIssue() {
     const epoch = this.lifecycleEpoch, token = sessionToken();
@@ -450,7 +445,6 @@ Page({
     return { statusLabel: presence.memberOnline ? "处理中 · 会员在线" : "处理中 · 会员未在线", statusTone: presence.memberOnline ? "online" : "neutral", presence };
   },
   applyThreadState(state: SupportThreadState<Message>, patch: Record<string, unknown> = {}) {
-    const beforeLayout = this.actionsLayoutKey();
     const conversation = (patch.conversation as Conversation | undefined) ?? this.data.conversation;
     const presence = (patch.presence as Presence | undefined) ?? this.data.presence;
     const memberDisplayName = (patch.memberDisplayName as string | undefined) ?? this.data.memberDisplayName;
@@ -458,44 +452,26 @@ Page({
     const messagePatch = supportMessageSetDataPatch(this.data.messages, messages);
     this.setData({ ...messagePatch, syncCursor: state.syncCursor, maxSeenSequence: state.maxSeenSequence, readCursor: state.readCursor, ...patch });
     if (Object.keys(messagePatch).length) this.data.messages = messages;
-    if (beforeLayout !== this.actionsLayoutKey()) {
-      const epoch = this.lifecycleEpoch, token = sessionToken();
-      wx.nextTick(() => { if (this.owns(epoch, token)) this.measureActions(); });
-    }
-  },
-  actionsLayoutKey() {
-    return JSON.stringify([this.data.loading, this.data.conversation?.status, this.data.assignedToMe,
-      this.data.canReply, this.data.canReturnToQueue, this.data.humanIssueSummary, this.data.humanRequest?.anchorMessageId,
-      this.data.replyTarget?.id, this.data.replyTarget?.summary, this.data.replyTargetNeedsRefresh]);
-  },
-  measureActions() {
-    if (!this.data.pageAlive || typeof wx.createSelectorQuery !== "function") return;
-    const epoch = this.lifecycleEpoch;
-    wx.createSelectorQuery().select(".operator-actions").boundingClientRect((rect) => {
-      if (!this.data.pageAlive || epoch !== this.lifecycleEpoch || !rect || typeof rect.height !== "number") return;
-      const height = Math.ceil(rect.height);
-      this.setData({ threadBottomStyle: `bottom:${height}px`, newMessageBottomStyle: `bottom:${height + 12}px` });
-    }).exec();
   },
   onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
     const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
     const composerCapped = lineCount > 6;
     if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
-    wx.nextTick(() => this.measureActions());
   },
   onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
-    const keyboardHeight = Number(event.detail.height) || 0;
+    if (!this.data.visible || !this.data.composerFocused) return;
+    const keyboardHeight = Math.max(0, Number(event.detail.height) || 0);
     if (keyboardHeight === this.data.keyboardHeight) return;
     this.setData({ keyboardHeight });
-    wx.nextTick(() => this.measureActions());
   },
-  onComposerFocus() {
+  onComposerFocus(event: WechatMiniprogram.TextareaFocus) {
+    if (!this.data.visible) return;
     this.lastActivityAt = Date.now();
-    this.setData({ composerFocused: true });
+    this.setData({ composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
     void this.publishPresence(true, Boolean(this.data.input.trim()));
   },
   onComposerBlur() {
-    this.setData({ composerFocused: false });
+    this.setData({ composerFocused: false, keyboardHeight: 0 });
     void this.publishPresence(true, false, true);
   },
   activePolling() {
@@ -533,7 +509,8 @@ Page({
     }
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
-    this.setData({ loading: true, error: "", statusLabel: "正在加载", statusTone: "neutral" });
+    this.setData({ loading: true, error: "",
+      ...(!this.data.conversation ? { statusLabel: "正在加载", statusTone: "neutral" } : {}) });
     try {
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
@@ -651,8 +628,8 @@ Page({
       ?'本案或权限已变化。请先刷新核对，原请求记录会保留。':'提交结果未核实；可用原请求重试，避免重复发送。'});
     }finally{if(this.owns(epoch,token))this.setData({busy:false});}
   },
-  async poll() {
-    if (this.pollInFlight || !this.data.pageAlive || !this.data.visible || this.data.loading || this.data.busy || !this.data.conversation) {
+  async poll(revalidating = false) {
+    if (this.pollInFlight || !this.data.pageAlive || !this.data.visible || (this.data.loading && !revalidating) || this.data.busy || !this.data.conversation) {
       this.schedulePoll();
       return;
     }
@@ -706,11 +683,12 @@ Page({
     } catch (error) {
       if (!this.rejectRead(error, epoch, ownerToken)) {
         this.pollFailures += 1;
-        if (this.owns(epoch, ownerToken) && this.pollFailures >= 2 && !this.data.error)
+        if (this.owns(epoch, ownerToken) && (revalidating || this.pollFailures >= 2) && !this.data.error)
           this.setData({ error: "消息暂时无法更新，请检查网络后刷新。" });
       }
     } finally {
       this.pollInFlight = false;
+      if (revalidating && this.owns(epoch, ownerToken)) this.setData({ loading: false });
       this.schedulePoll();
     }
   },
@@ -926,7 +904,6 @@ Page({
       });
       if (clearDraft) this.inputRevision += 1;
       await this.markRead();
-      wx.nextTick(() => this.measureActions());
     } catch (error) {
       if (this.owns(epoch, ownerToken) && contextVersion === this.data.contextVersion && this.data.sendAttempt?.id === sendAttempt.id) {
         if ((error as {code?:string})?.code === "SUPPORT_ASSIGNMENT_REQUIRED") {
@@ -978,7 +955,6 @@ Page({
       this.inputRevision += 1;
       this.setData({ conversation, assignedToMe: false, humanRequest: null, humanIssueSummary: "", replyTarget: null, replyTargetNeedsRefresh: false,
         input: "", sendAttempt: null, pendingMessage: null, composerCapped: false, composerLineCount: 1, composerSendEnabled: false, ...this.headerPatch(conversation, emptyPresence, false) });
-      wx.nextTick(() => { if (this.owns(epoch, ownerToken)) this.measureActions(); });
     } catch (error) {
       if (this.owns(epoch, ownerToken)) this.setData({ error: !submitted ? "确认窗口暂时无法打开，人工接待和草稿已保留，请重试。"
         : (error as {code?:string})?.code === "AFTERSALE_CASE_ACTIVE"

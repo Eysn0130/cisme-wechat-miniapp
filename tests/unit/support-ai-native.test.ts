@@ -12,9 +12,6 @@ let definition:any,p:any;
 const conversation={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',status:'ai_active',version:3,memberReadSequence:0,teamReadSequence:0};
 const message=(senderType:string,sequence:number)=>({id:`synthetic-${senderType}-${sequence}`,sequence,senderType,body:senderType==='user'?'护理如何保存？':'完成四步后填写感受并保存。',contentType:'text',createdAt:'2026-10-30T00:00:00Z',attachments:[],orderCard:null,deliveryState:'server_accepted'});
 function deferred(){let resolve!:(v:any)=>void,reject!:(v:any)=>void;const promise=new Promise<any>((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};}
-function captureComposerMeasurements(){
- const ticks:Array<()=>void>=[];(globalThis as any).wx.nextTick=(callback:()=>void)=>ticks.push(callback);p.measureComposer=vi.fn();return ticks;
-}
 const welcomeView=readFileSync(new URL('../../apps/miniprogram/pages/support/index.wxml',import.meta.url),'utf8');
 const welcomeConditions=[...welcomeView.matchAll(/<view wx:if="\{\{([^}]+)\}\}"[^>]*\bsupport-welcome-message\b/g)].map(match=>match[1]!);
 function welcomeCount(){
@@ -43,41 +40,28 @@ beforeEach(async()=>{
 });
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 describe('native AI and human support collaboration receipts',()=>{
- it('measures an asynchronously attached route order after its owned card renders',async()=>{
-  p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const ticks=captureComposerMeasurements(),response=deferred();m.read.mockReturnValueOnce(response.promise);
-  const loading=p.loadLinkedOrder();expect(ticks).toHaveLength(0);
+ it('attaches an asynchronously loaded order to the live composer',async()=>{
+  p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const response=deferred();m.read.mockReturnValueOnce(response.promise);
+  const loading=p.loadLinkedOrder();expect(p.data.selectedOrder).toBeNull();
   response.resolve({id:p.linkedOrderId,orderNumber:'SYNTHETIC-0001',status:'pending_payment',currency:'CNY',totalCents:100,lines:[]});await loading;
-  expect(p.data.selectedOrder?.id).toBe(p.linkedOrderId);expect(ticks).toHaveLength(1);expect(p.measureComposer).not.toHaveBeenCalled();
-  ticks.shift()!();expect(p.measureComposer).toHaveBeenCalledOnce();
+  expect(p.data.selectedOrder?.id).toBe(p.linkedOrderId);expect(p.data.composerSendEnabled).toBe(true);
  });
- it.each(['hidden','account'])('does not attach or measure a route order returned after %s ownership changes',async(change)=>{
-  p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const ticks=captureComposerMeasurements(),response=deferred();m.read.mockReturnValueOnce(response.promise);
+ it.each(['hidden','account'])('does not attach a route order returned after %s ownership changes',async(change)=>{
+  p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const response=deferred();m.read.mockReturnValueOnce(response.promise);
   const loading=p.loadLinkedOrder();if(change==='hidden'){p.data.visible=false;p.lifecycleEpoch++;}else m.token='synthetic-other';
   response.resolve({id:p.linkedOrderId,orderNumber:'SYNTHETIC-0001',status:'pending_payment',currency:'CNY',totalCents:100,lines:[]});await loading;
-  expect(p.data.selectedOrder).toBeNull();expect(ticks).toHaveLength(0);expect(p.measureComposer).not.toHaveBeenCalled();
+  expect(p.data.selectedOrder).toBeNull();
  });
- it('measures a newly loaded composer action after render and skips unchanged polls',async()=>{
-  Object.assign(p.data,{loading:true,conversation:null,supportAiAvailable:false});const ticks=captureComposerMeasurements(),response=deferred();m.read.mockReturnValueOnce(response.promise);
-  const loading=p.load();expect(ticks).toHaveLength(0);
-  response.resolve({conversation,messages:[],latestCursor:0,supportAiAvailable:true});await loading;
-  expect(ticks).toHaveLength(1);expect(p.measureComposer).not.toHaveBeenCalled();ticks.shift()!();expect(p.measureComposer).toHaveBeenCalledOnce();
-  await p.poll();expect(ticks).toHaveLength(0);
+ it('keeps the human wait visible when AI availability or the queue version changes',async()=>{
+  const waiting={...conversation,status:'waiting_human',version:4};p.data.conversation=waiting;
+  for(const [version,supportAiAvailable] of [[4,false],[5,false],[6,true]]){
+   m.read.mockResolvedValueOnce({conversation:{...waiting,version},messages:[],latestCursor:0,supportAiAvailable});await p.poll();
+   expect(p.data.conversation).toMatchObject({status:'waiting_human',version});
+  }
  });
- it('keeps queue actions stable when AI availability or queue version changes',async()=>{
-  const waiting={...conversation,status:'waiting_human',version:4};p.data.conversation=waiting;const ticks=captureComposerMeasurements();
-  m.read.mockResolvedValueOnce({conversation:waiting,messages:[],latestCursor:0,supportAiAvailable:false});await p.poll();
-  expect(ticks).toHaveLength(0);
-  m.read.mockResolvedValueOnce({conversation:{...waiting,version:5},messages:[],latestCursor:0,supportAiAvailable:false});await p.poll();expect(ticks).toHaveLength(0);
-  m.read.mockResolvedValueOnce({conversation:{...waiting,version:6},messages:[],latestCursor:0,supportAiAvailable:true});await p.poll();expect(ticks).toHaveLength(0);
- });
- it('measures the restored contact action after an initial load error',async()=>{
-  Object.assign(p.data,{loading:true,conversation:null,supportAiAvailable:false});const ticks=captureComposerMeasurements();m.read.mockRejectedValueOnce(new Error('synthetic read failure'));
-  await p.load();expect(p.data.errorAction).toBe('sync');expect(ticks).toHaveLength(1);expect(p.measureComposer).not.toHaveBeenCalled();ticks.shift()!();expect(p.measureComposer).toHaveBeenCalledOnce();
- });
- it('remeasures the composer when a pending AI receipt hides its contact action',async()=>{
-  const schedule=vi.spyOn(p,'scheduleComposerMeasure');
+ it('does not show the original contact action when a pending AI receipt offers handoff',async()=>{
   m.request.mockImplementation(async input=>input.path==='/v1/me/support/messages'?{conversation,message:message('user',1),aiStatus:'pending',aiMessages:[]}:{});
-  await p.send();expect(p.data.errorAction).toBe('handoff');expect(schedule).toHaveBeenCalledOnce();
+  await p.send();expect(p.data.errorAction).toBe('handoff');
  });
  it('unlocks editing after the server rejects an expired image without discarding the text',async()=>{
   p.data.selectedImage={status:'ready',mediaId:'expired',localPath:'wxfile://test.jpg',size:100,mimeType:'image/jpeg'};
@@ -92,10 +76,16 @@ describe('native AI and human support collaboration receipts',()=>{
   p.removeImage();
   expect(p.data).toMatchObject({input:'护理如何保存？',selectedImage:null,composerSendEnabled:true});
  });
- it.each(['hidden','account'])('defers resize measurement and discards its callback after %s ownership changes',async(change)=>{
-  const ticks=captureComposerMeasurements();p.onResize();expect(ticks).toHaveLength(1);expect(p.measureComposer).not.toHaveBeenCalled();
-  if(change==='hidden'){p.data.visible=false;p.lifecycleEpoch++;}else m.token='synthetic-other';
-  ticks.shift()!();expect(p.measureComposer).not.toHaveBeenCalled();
+ it('preserves the text when the native keyboard changes height or closes',()=>{
+  const input=p.data.input;
+  p.onComposerFocus({detail:{height:280}});
+  p.onKeyboardHeightChange({detail:{height:280}});
+  expect(p.data).toMatchObject({composerFocused:true,keyboardHeight:280,input});
+  p.onKeyboardHeightChange({detail:{height:320}});
+  expect(p.data.keyboardHeight).toBe(320);
+  p.onComposerBlur();
+  p.onKeyboardHeightChange({detail:{height:280}});
+  expect(p.data).toMatchObject({composerFocused:false,keyboardHeight:0,input});
  });
  it('reads an empty thread repeatedly without posting a greeting or creating a local message',async()=>{
   p.data.conversation=null;m.read.mockResolvedValue({conversation:null,messages:[],latestCursor:0,supportAiAvailable:true});

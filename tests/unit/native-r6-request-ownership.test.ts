@@ -32,7 +32,7 @@ const order = { id: orderId, orderNumber: 'ORDER1234', status: 'paid', totalCent
 async function support() {
   await import('../../apps/miniprogram/pages/support/index');
   const page = instantiate(); Object.assign(page.data, { pageAlive: true, visible: true });
-  page.measureComposer = vi.fn(); page.publishPresence = vi.fn(); page.append = vi.fn();
+  page.publishPresence = vi.fn(); page.append = vi.fn();
   page.markRead = vi.fn(); page.startPolling = vi.fn(); return page;
 }
 async function checkout() {
@@ -152,14 +152,13 @@ describe('support order actions keep identity, route and user choice aligned', (
     expect(page.data.messages).toEqual([]);
     expect(page.load).toHaveBeenCalledOnce();
   });
-  it('ignores an old composer measurement after hide and show', async () => {
-    const page = await support(); let measure!: (rect: any) => void;
-    (wx as any).createSelectorQuery = () => ({ select: () => ({ boundingClientRect(callback: any) { measure = callback; return { exec() {} }; } }) });
-    page.measureComposer = definition.measureComposer;
-    page.measureComposer(); const stale = measure; page.onHide(); page.onShow();
-    const before = page.data.threadBottomStyle;
-    stale({ height: 400 });
-    expect(page.data.threadBottomStyle).toBe(before);
+  it('clears the keyboard inset on hide and ignores a late keyboard notification', async () => {
+    const page = await support();
+    page.onComposerFocus({detail:{height:280}});
+    expect(page.data.keyboardHeight).toBe(280);
+    page.onHide(); page.onShow();
+    page.onKeyboardHeightChange({detail:{height:320}});
+    expect(page.data.keyboardHeight).toBe(0);
   });
   it('marks an interrupted write as unknown while preserving its original attempt', async () => {
     const page = await support(), response = deferred(); page.data.input = '请协助查看';
