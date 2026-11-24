@@ -49,6 +49,7 @@ describe('approved live catalog knowledge', () => {
     expect(answer).toContain('¥198.00');
     expect(answer).toContain('商城当前暂不可下单');
     expect(answer).not.toContain('620');
+    expect(catalogAnswer(published,'小紫瓶有货吗，能下单吗？')?.match(/暂不可下单/g)).toHaveLength(1);
     expect(catalogAnswer(published,'小紫瓶620毫升什么价格？')).toMatch(/^商城当前资料未能确认这个规格/);
     expect(catalogAnswer(published,'小紫瓶有赠品吗？')).toContain('以商城和结算页显示为准');
     expect(catalogAnswer(published,'商城积分规则是什么？')).toBeNull();

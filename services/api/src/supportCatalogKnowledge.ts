@@ -89,7 +89,7 @@ export function catalogAnswer(source:ApprovedKnowledgeSource,question:string):st
     compact(variant.label).length>=2&&query.includes(compact(variant.label)));
   const variants=(requested.length?requested:product.variants).slice(0,2).map(variant=>{
     const price=wantsPrice?displayPrice(variant):'';
-    const stock=wantsStock?(variant.inStock?(variant.purchaseEnabled?'有货':'显示有货，暂不可下单'):'暂时缺货'):'';
+    const stock=wantsStock?(variant.inStock?(variant.purchaseEnabled||snapshot.checkoutEnabled===false?'有货':'显示有货，暂不可下单'):'暂时缺货'):'';
     const label=variant.label.trim();
     const detail=label.startsWith(product.name)?label.slice(product.name.length).trim():label;
     return [text(detail||measurements(label).join(' / ')||'当前款',24),price,stock].filter(Boolean).join(' ');
