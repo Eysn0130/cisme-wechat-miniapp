@@ -20,10 +20,10 @@ const wallet={memberId:owner,canApply:true,canShare:false,officer:null,policy:{e
 const agreement={title:'产品分享官合作协议',version:'V2.0',digest:'a'.repeat(64),effectiveOn:'2026-11-24',sections:[{heading:'第一条',paragraphs:[{kind:'paragraph',text:'合成协议内容'}]}]};
 const applyButton={currentTarget:{dataset:{sheet:'apply'}}},applyAction={currentTarget:{dataset:{action:'apply'}}};
 function scrollToEnd(p:any,attempt=p.data.agreementAttempt){p.agreementEnd({currentTarget:{dataset:{attempt}}});}
-async function mount(kind:'consumer'|'admin'){
+async function mount(kind:'consumer'|'admin',query:Record<string,string>={}){
  (globalThis as any).Page=(d:any)=>{page={...d,data:structuredClone(d.data),setData(v:any){Object.assign(this.data,v);}};};
  if(kind==='consumer')await import('../../apps/miniprogram/pages/sharing-officer/index');else await import('../../apps/miniprogram/pages/management-sharing/index');
- page.onLoad({});return page;
+ page.onLoad(query);return page;
 }
 beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token='owner-session';m.context=0;m.pending=null;m.reducedMotion=false;
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token,apiBaseUrl:'https://staging-api.cisme.cn'}});
@@ -136,6 +136,33 @@ it('does not let a late wallet read repopulate another session or a hidden page'
 });
 it('keeps a rejected former officer’s existing money history accessible',async()=>{
  m.read.mockResolvedValue({...wallet,officer:{state:'rejected',version:4},metrics:{...wallet.metrics,orderCount:1}});const p=await mount('consumer');p.onShow();await flush();expect(p.data.hasDashboard).toBe(true);
+});
+it('opens an applicant in the pending management queue and sends one verified approval',async()=>{
+ const applicant='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+ const row={memberId:applicant,displayName:'合成申请人',state:'pending',version:1,agreementVersion:'V2.0'};
+ const projection={memberId:owner,scope:{manage:true},policy:wallet.policy,items:[row]};
+ m.read.mockResolvedValue(projection);
+ const p=await mount('admin',{filter:'pending'});
+ p.onShow();await flush();
+ expect(p.data.filter).toBe('pending');
+ expect(m.read.mock.calls[0]?.[1]).toContain('&filter=pending');
+ p.selectOfficer({currentTarget:{dataset:{id:applicant}}});
+ const approve={currentTarget:{dataset:{state:'active',label:'同意申请'}}};
+ p.setData({scope:{manage:false}});
+ p.chooseDecision(approve);
+ expect(p.data.sheet).toBe('officer');
+ p.setData({scope:{manage:true}});
+ p.chooseDecision(approve);
+ expect(p.data.sheet).toBe('decision');
+ p.setData({verificationReference:' KYC-SYNTHETIC-001 ',reason:'公司人工核验通过'});
+ m.command.mockResolvedValue({state:'active',version:2});
+ m.read.mockResolvedValue({...projection,items:[]});
+ await p.operate({currentTarget:{dataset:{action:'officer_state'}}});
+ expect(m.command).toHaveBeenCalledExactlyOnceWith(owner,'officer_state',{
+  memberId:applicant,state:'active',expectedVersion:1,verificationReference:'KYC-SYNTHETIC-001',reason:'公司人工核验通过'
+ },true);
+ expect(p.data.items).toEqual([]);
+ expect(wx.showToast).toHaveBeenCalledWith({title:'分享官已开通',icon:'none'});
 });
 it('clears private finance and payee data when the management page hides',async()=>{
  m.read.mockResolvedValue({memberId:owner,scope:{finance:true,manage:true},policy:wallet.policy,items:[{memberId:owner,displayName:'合成分享官',state:'active'}],hasMore:false,nextCursor:null});

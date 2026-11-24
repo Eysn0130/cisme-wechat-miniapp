@@ -1,2 +1,7 @@
 @import '../../styles/sharing-officer.wxss';
+.officer-review-name{color:var(--cisme-ink);font-size:18px;font-weight:600;line-height:1.4;min-width:0;overflow-wrap:anywhere}
+.officer-review-summary>.officer-muted{display:block;margin:6px 0 12px}
+.officer-review-state{flex:none;padding:4px 9px;border-radius:99px;background:var(--cisme-lilac);color:var(--cisme-plum);font-size:var(--cisme-text-small)}
+.officer-review-actions{display:flex;flex-direction:column;align-items:stretch;gap:4px;margin:18px 0 3px}
+.officer-review-actions .action-text{align-self:center;min-height:var(--cisme-hit-target)}
 .officer-picker{min-height:44px;display:flex;align-items:center}.officer-month{width:220rpx;height:48px;font-size:16px;color:var(--cisme-ink);font-variant-numeric:tabular-nums}.officer-private{display:flex;flex-direction:column;gap:14rpx;background:#efe7f3;padding:28rpx;border-radius:20rpx;font-size:14px;margin:20rpx 0 32rpx;word-break:break-all}.officer-audit{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16rpx;font-size:13px;padding:22rpx 0;border-bottom:1rpx solid #e8e0ed}.officer-audit .officer-muted{width:100%;word-break:break-all}

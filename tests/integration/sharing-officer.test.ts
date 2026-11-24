@@ -276,10 +276,15 @@ it('requires the active agreement and manual identity decision, binds only after
    const application=await expectOk(command(applicant,'apply',{agreement},false,key));
    expect(application).toMatchObject({state:'pending',version:1,agreement:{version:'V2.0',effectiveOn:'2026-01-01',digest:document.digest,acceptedAt:expect.any(String)}});
    expect(await expectOk(command(applicant,'apply',{agreement},false,key))).toEqual(application);
+   const queueUrl='/v1/management/sharing-officer?section=officers&filter=pending&memberId='+applicant.memberId;
+   expect((await app.inject({method:'GET',url:queueUrl,headers:auth(applicant)})).statusCode).toBe(403);
+   const readQueue=()=>expectOk(app.inject({method:'GET',url:queueUrl,headers:auth(manager)}));
+   expect((await readQueue()).items).toEqual([expect.objectContaining({memberId:applicant.memberId,state:'pending',version:1,agreementVersion:'V2.0'})]);
    const approval={memberId:applicant.memberId,expectedVersion:1,state:'active',reason:'合成核验通过'};
    expect((await command(manager,'officer_state',approval,true)).statusCode).toBe(422);
    const verificationReference='KYC-SYNTHETIC-'+codes.length;
    await expectOk(command(manager,'officer_state',{...approval,verificationReference},true));
+   expect((await readQueue()).items).toEqual([]);
    expect((await service.mine(applicant.memberId)).policy).toMatchObject({basisPoints:3000});
    const evidence=await pool.query('SELECT agreement_digest,verified_at,verification_reference FROM sharing_v2_application WHERE member_id=$1',[applicant.memberId]);
    expect(evidence.rows).toEqual([{agreement_digest:document.digest,verified_at:expect.any(Date),verification_reference:verificationReference}]);
