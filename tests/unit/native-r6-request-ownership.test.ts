@@ -11,7 +11,8 @@ vi.mock('../../apps/miniprogram/services/api', () => ({
   uploadAuthorized: vi.fn(), resumeAuthentication: vi.fn(), setSessionToken: vi.fn()
 }));
 vi.mock('../../apps/miniprogram/services/page-requests', () => ({ pageRead: vi.fn(), cancelPageReads: vi.fn() }));
-vi.mock('../../apps/miniprogram/services/commerce-command-store', () => ({ commerceContextRevision: () => m.revision }));
+vi.mock('../../apps/miniprogram/services/commerce-command-store', async importOriginal =>
+  ({ ...await importOriginal<object>(), commerceContextRevision: () => m.revision }));
 vi.mock('../../apps/miniprogram/services/layout', () => ({ currentChromeStyle: () => '' }));
 vi.mock('../../apps/miniprogram/services/commerce', () => ({ catalogDetail: m.catalog, centsToYuan: (v: number) => (v / 100).toFixed(2) }));
 vi.mock('../../apps/miniprogram/services/orders', () => ({ myOrders: m.orders, myOrder: m.order,
@@ -200,13 +201,13 @@ describe('checkout revalidation cannot race a purchase', () => {
     const page = await checkout(); page.data.busy = true; await page.load(); expect(m.catalog).not.toHaveBeenCalled();
   });
   it('discards the older refresh response', async () => {
-    const page = await checkout(), old = deferred(); page.data.quote = null;
+    const page = await checkout(), old = deferred(); page.data.quote = null;page.data.requestedSkuId='';
     m.catalog.mockReturnValueOnce(old.promise).mockResolvedValueOnce({ variants: [{ id: 'new', active: true, availableQuantity: 3, priceCents: 2000 }] });
     m.addresses.mockResolvedValue({ enabled: true, addresses: [{ id: 'address', version: 1 }] });
     m.runtime.mockResolvedValue({ version: 2, scope: 'formal_commerce', currency: 'CNY', orderFlowEnabled: true,
       paymentAvailable: true, paymentOnboarding: 'READY', formalMoneyOperationsAvailable: true, formalRecoveryAvailable: true,
       isolatedMoneyOperationsAvailable: false, isolatedTransferAvailable: false, isolatedCreditCheckoutAvailable: false });
-    const first = page.load(); await page.load();
+    const first = page.load();await vi.waitFor(()=>expect(m.catalog).toHaveBeenCalledOnce());await page.load();
     old.resolve({ variants: [{ id: 'old', active: true, availableQuantity: 8, priceCents: 1000 }] }); await first;
     expect(page.data.selectedSku.id).toBe('new');
   });

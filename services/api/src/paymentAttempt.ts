@@ -12,6 +12,67 @@ type Attempt={id:string;order_id:string;out_trade_no:string;member_id:string;pay
   request_lease_until:Date|null;request_lease_token:string|null;first_dispatch_started_at:Date|null};
 type OrderAttempt=Attempt & {order_status:string;order_version:number;product_name:string|null};
 
+function queryBoundPayment(channel:WechatPayV3Client,row:Attempt){
+  const binding={appId:row.app_id,merchantId:row.merchant_id,outTradeNo:row.out_trade_no,
+    totalCents:Number(row.amount_cents),currency:'CNY' as const,payerOpenid:row.payer_openid};
+  return channel.queryByMerchantOrderNumber(row.out_trade_no)
+    .then(channelOrder=>assertPaymentQueryBinding(channelOrder,binding));
+}
+
+/** The channel must confirm the original number is closed before expiry can
+ * release its inventory. Lost or inconsistent responses leave the order held. */
+export async function reconcileExpiredPaymentAttempts(pool:pg.Pool,channel:WechatPayV3Client,
+  inbox:Pick<VerifiedPaymentInbox,'receiveQueried'>,binding:{appId:string;merchantId:string},limit=4){
+  for(let index=0;index<limit;index++){
+    const row=await transaction(pool,async client=>{
+      const candidate=(await client.query<{id:string}>(`
+        SELECT p.id FROM commerce_payment_attempt p JOIN commerce_order o ON o.id=p.order_id
+        WHERE o.status='pending_payment' AND o.transaction_source_kind='verified_commerce'
+          AND p.app_id=$1 AND p.merchant_id=$2 AND p.out_trade_no=o.order_number AND p.member_id=o.member_id
+          AND p.state IN ('unknown','prepay_ready') AND p.first_dispatch_started_at IS NOT NULL
+          AND GREATEST(p.expires_at,o.expires_at)<=clock_timestamp()
+          AND p.updated_at<=clock_timestamp()-interval '5 minutes'
+          AND (p.request_lease_until IS NULL OR p.request_lease_until<=clock_timestamp())
+          AND NOT EXISTS(SELECT 1 FROM commission_payment_inbox f WHERE f.order_id=o.id)
+        ORDER BY p.updated_at,p.id LIMIT 1 FOR UPDATE OF o SKIP LOCKED`,[binding.appId,binding.merchantId])).rows[0];
+      if(!candidate)return null;
+      return (await client.query<Attempt>(`UPDATE commerce_payment_attempt SET state='unknown',
+        request_lease_token=gen_random_uuid(),request_lease_until=clock_timestamp()+interval '2 minutes',updated_at=clock_timestamp()
+        WHERE id=$1 AND state IN ('unknown','prepay_ready')
+          AND (request_lease_until IS NULL OR request_lease_until<=clock_timestamp())
+        RETURNING *`,[candidate.id])).rows[0]??null;
+    },'READ COMMITTED',1);
+    if(!row)break;
+    try{
+      let observed=await queryBoundPayment(channel,row);
+      if(observed.trade_state==='NOTPAY'){
+        // A lost close response may still have closed the order or raced a payment.
+        await channel.closeByMerchantOrderNumber(row.out_trade_no).catch(()=>{});
+        observed=await queryBoundPayment(channel,row);
+      }
+      if(observed.trade_state==='SUCCESS')await inbox.receiveQueried(channel,row.out_trade_no);
+      if(observed.trade_state==='CLOSED')await transaction(pool,async client=>{
+        const order=await client.query(`SELECT 1 FROM commerce_order WHERE id=$1 AND status='pending_payment' FOR UPDATE`,[row.order_id]);
+        if(!order.rowCount)return;
+        const closed=await client.query(`UPDATE commerce_payment_attempt p SET state='closed',request_lease_until=NULL,updated_at=clock_timestamp()
+          WHERE p.id=$1 AND p.request_lease_token=$2 AND p.state IN ('unknown','prepay_ready')
+            AND NOT EXISTS(SELECT 1 FROM commission_payment_inbox f WHERE f.order_id=p.order_id)
+          RETURNING p.id`,[row.id,row.request_lease_token]);
+        if(closed.rowCount)await client.query(`INSERT INTO audit_log
+          (principal_id,action,object_type,object_id,before_state,after_state,trace_id)
+          VALUES('worker:order-expiry','commerce.payment_intent.channel_closed','commerce_payment_attempt',$1,$2,$3,$4)`,
+          [row.order_id,{state:row.state},{state:'closed'},`payment-expiry:${row.request_lease_token}`]);
+      },'READ COMMITTED',1);
+    }catch(error){
+      // A signed missing order after the dispatch fence is inconclusive.
+      if(!(error instanceof DomainError&&error.code==='WECHAT_PAY_ORDER_NOT_FOUND'))throw error;
+    }finally{
+      await pool.query(`UPDATE commerce_payment_attempt SET request_lease_until=NULL
+        WHERE id=$1 AND request_lease_token=$2 AND state IN ('unknown','prepay_ready')`,[row.id,row.request_lease_token]);
+    }
+  }
+}
+
 /** Test-environment orchestration over the same signed WeChat APIv3 wire
  * contract. No route can instantiate this without an isolated loopback channel. */
 export class PaymentAttemptService{
@@ -38,9 +99,7 @@ export class PaymentAttemptService{
   }
 
   private async queryAttempt(row:Attempt){
-    return assertPaymentQueryBinding(await this.channel.queryByMerchantOrderNumber(row.out_trade_no),{
-      appId:row.app_id,merchantId:row.merchant_id,outTradeNo:row.out_trade_no,
-      totalCents:Number(row.amount_cents),currency:'CNY',payerOpenid:row.payer_openid});
+    return queryBoundPayment(this.channel,row);
   }
 
   private async audit(client:DbClient|pg.Pool,actor:string,action:string,orderId:string,

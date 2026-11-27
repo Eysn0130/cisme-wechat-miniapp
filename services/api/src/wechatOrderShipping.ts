@@ -169,18 +169,18 @@ export class WechatOrderShippingClient {
     validateShippingBinding(binding); this.authorize('shipping.upload', binding);
   }
 
-  private async call(path: 'get_order' | 'upload_shipping_info', payload: unknown,
-    binding: ShippingBinding): Promise<JsonObject> {
-    const capability = path === 'get_order' ? 'shipping.query' : 'shipping.upload';
+  private async tokenFor(capability:ShippingCapability,binding:ShippingBinding):Promise<string>{
     this.authorize(capability, binding);
     let token: string;
     try { token = await this.accessToken(); } catch { fail('WECHAT_SHIPPING_TOKEN_UNAVAILABLE', 503); }
     if (!text(token, 4096)) fail('WECHAT_SHIPPING_TOKEN_UNAVAILABLE', 503);
-    // Recheck a revocable/expiring grant after token acquisition, before send.
-    this.authorize(capability, binding);
+    return token;
+  }
+  private async send(path:'get_order'|'upload_shipping_info',payloadJson:string,binding:ShippingBinding,token:string):Promise<JsonObject>{
+    this.authorize(path==='get_order'?'shipping.query':'shipping.upload',binding);
     try {
       const response = await this.fetcher(`https://api.weixin.qq.com/wxa/sec/order/${path}?access_token=${encodeURIComponent(token)}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body:payloadJson,
           redirect: 'error', signal: dependencySignal(15000) });
       if (!response.ok) fail('WECHAT_SHIPPING_PROVIDER_HTTP_ERROR', 502);
       const body = await boundedWechatJson<JsonObject>(response);
@@ -193,19 +193,22 @@ export class WechatOrderShippingClient {
       fail(path === 'get_order' ? 'WECHAT_SHIPPING_QUERY_UNAVAILABLE' : 'WECHAT_SHIPPING_UPLOAD_OUTCOME_UNKNOWN', 503);
     }
   }
+  private async readOrder(binding:ShippingBinding){
+    const token=await this.tokenFor('shipping.query',binding);
+    return this.send('get_order',JSON.stringify({transaction_id:binding.transactionId,merchant_id:binding.merchantId,
+      merchant_trade_no:binding.merchantOrderNumber}),binding,token);
+  }
 
   async query(binding: ShippingBinding, parcel: UnifiedParcel): Promise<ShippingObservation> {
     validateShippingBinding(binding); validateParcel(parcel);
-    const body = await this.call('get_order', { transaction_id: binding.transactionId,
-      merchant_id: binding.merchantId, merchant_trade_no: binding.merchantOrderNumber }, binding);
+    const body = await this.readOrder(binding);
     return shippingObservation(body.order, binding, parcel);
   }
 
   /** Isolated, query-only receipt verification. It never calls uploadOnce. */
   async queryOrder(binding: ShippingBinding): Promise<ReceiptObservation> {
     validateShippingBinding(binding);
-    const body = await this.call('get_order', { transaction_id: binding.transactionId,
-      merchant_id: binding.merchantId, merchant_trade_no: binding.merchantOrderNumber }, binding);
+    const body = await this.readOrder(binding);
     const observation=receiptObservation(body.order, binding);
     this.authorize('shipping.query', binding);
     return observation;
@@ -215,9 +218,18 @@ export class WechatOrderShippingClient {
    * calling; all retries after this point must QUERY, including after a crash.
    * Re-uploading can consume WeChat's single permitted re-shipping opportunity. */
   async uploadOnce(binding: ShippingBinding, parcel: UnifiedParcel, persistedUploadTime: string): Promise<{ acknowledged: true }> {
-    const payload = unifiedShippingPayload(binding, parcel, persistedUploadTime);
-    await this.call('upload_shipping_info', payload, binding);
-    return { acknowledged: true }; // Never interpret this as received/delivered.
+    const upload=await this.prepareUpload(binding,parcel,persistedUploadTime);
+    return upload();
+  }
+
+  /** Resolve fallible local preparation before the one-time dispatch fence. */
+  async prepareUpload(binding:ShippingBinding,parcel:UnifiedParcel,time:string){
+    const body=JSON.stringify(unifiedShippingPayload(binding,parcel,time));
+    const token=await this.tokenFor('shipping.upload',binding);
+    return async()=>{
+      await this.send('upload_shipping_info',body,binding,token);
+      return {acknowledged:true as const};
+    };
   }
 }
 

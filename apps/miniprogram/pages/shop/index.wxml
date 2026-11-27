@@ -19,7 +19,7 @@
     </view>
     <view wx:if="{{error}}" class="shop-sync shop-sync--error" aria-live="polite"><text>{{error}}</text><button bindtap="load">重试</button></view>
     <button wx:for="{{items}}" wx:key="id" class="shop-card {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="{{item.name}}，{{item.qualifier}} {{item.displayPrice}} 元，查看商品">
-      <image class="shop-card__image" src="{{item.image}}" mode="aspectFit" aria-label="{{item.name}}与赠品，小程序3倍积分、运费险及7天无理由退货信息"/>
+      <image class="shop-card__image" src="{{item.image}}" mode="aspectFit" aria-label="{{item.name}}与赠品"/>
       <view class="shop-card__caption"><text class="shop-card__name">{{item.name}}</text><text class="shop-card__subline">{{item.subtitle}}</text><view class="shop-card__bottom"><view class="shop-card__price"><text class="shop-card__qualifier">{{item.qualifier}}</text><text class="shop-card__yen">¥</text><text class="shop-card__amount">{{item.displayPrice}}</text></view><view class="shop-card__open"><text>查看商品</text><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></view></view></view>
     </button>
   </view>

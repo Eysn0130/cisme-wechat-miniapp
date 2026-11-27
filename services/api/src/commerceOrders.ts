@@ -13,6 +13,8 @@ import { receiptView } from './wechatReceipt.js';
 import { releaseReservedCreditForCheckout, reserveCreditForCheckout } from "./shoppingCredit.js";
 import {quoteMemberPoints,reserveMemberPoints,settleOrderPoints,pointDay} from './pointsLedger.js';
 import {quotePurchaseCoupon,reservePurchaseCoupon,settlePurchaseCoupon} from './rewardLedger.js';
+const confirmedRefundTotal=`i.payer_refund_cents+COALESCE((SELECT sum(a.amount_cents)
+  FROM commission_credit_refund_allocation a WHERE a.refund_intent_id=i.id),0)`;
 
 type OrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 type QuoteRow = {
@@ -243,6 +245,7 @@ export class CommerceOrderService {
 
   private async orderView(client: DbClient | pg.Pool, row: OrderRow, audience: "member" | "management" = "member") {
     const refundedCents=(await this.refundedTotals(client,[row.id])).get(row.id)??0;
+    const aftersale=row.status==='paid'?(await this.openAftersales(client,[row.id])).get(row.id):undefined;
     const lines = await client.query<OrderLineRow>("SELECT * FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number", [row.id]);
     const address = await client.query<OrderAddressRow>("SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1", [row.id]);
     const addressPayload = address.rows[0] ? this.addresses.openOrderSnapshot(row.member_id, row.id, address.rows[0].encrypted_payload, address.rows[0].payload_hmac, address.rows[0].key_version) : null;
@@ -252,6 +255,7 @@ export class CommerceOrderService {
       province: addressPayload.province, city: addressPayload.city, district: addressPayload.district
     };
     return { id: row.id, orderNumber: row.order_number, status: row.status, refundedCents, currency: row.currency, subtotalCents: money(row.subtotal_cents),
+      ...(aftersale?{aftersale}:{}),
       ...(row.coupon_id?{couponId:row.coupon_id,couponDiscountCents:row.coupon_discount_cents}:{}),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),
@@ -289,7 +293,7 @@ export class CommerceOrderService {
   }
 
   private async listPage(client: DbClient, owner: string | null, limit: number, cursor: { at: string; id: string } | null,filter?:{stage:string;from:string|null;through:string|null;scope:string}) {
-    const refundSql="COALESCE((SELECT sum(i.refund_cents) FROM commission_refund_intent i WHERE i.order_id=o.id AND i.state='succeeded'),0)";
+    const refundSql=`COALESCE((SELECT sum(${confirmedRefundTotal}) FROM commission_refund_intent i WHERE i.order_id=o.id AND i.state='succeeded'),0)`;
     const stages:Record<string,string>={all:'true',pending_payment:"o.status='pending_payment'",unshipped:`o.status='paid' AND ${refundSql}<o.total_cents AND NOT EXISTS(SELECT 1 FROM commerce_shipment s WHERE s.order_id=o.id)`,
       shipped:`o.status='paid' AND EXISTS(SELECT 1 FROM commerce_shipment s WHERE s.order_id=o.id AND s.receipt_confirmed_at IS NULL)`,completed:`EXISTS(SELECT 1 FROM commerce_shipment s WHERE s.order_id=o.id AND s.receipt_confirmed_at IS NOT NULL)`,refunded:`${refundSql}>0`,closed:"o.status IN ('cancelled','expired')"};
     const predicate=stages[filter?.stage??'all']!+" AND ($4::date IS NULL OR o.created_at>=($4::date::timestamp AT TIME ZONE 'Asia/Shanghai')) AND ($5::date IS NULL OR o.created_at<(($5::date+1)::timestamp AT TIME ZONE 'Asia/Shanghai'))";
@@ -316,19 +320,38 @@ export class CommerceOrderService {
         FROM commerce_wechat_receipt_observation WHERE order_id=ANY($1::uuid[]) AND observed_at IS NOT NULL`,[ids]):{rows:[]};
     const byReceipt=new Map(observed.rows.map(item=>[item.order_id,item]));
     const refunded=await this.refundedTotals(client,ids);
+    const aftersales=await this.openAftersales(client,rows.filter(row=>row.status==='paid').map(row=>row.id));
     const fulfillment=ids.length?(await client.query<{order_id:string;receipt_confirmed_at:Date|null;delivery_method:string}>(
       'SELECT order_id,receipt_confirmed_at,delivery_method FROM commerce_shipment WHERE order_id=ANY($1::uuid[])',[ids])).rows:[];
     const shipping=new Map(fulfillment.map(row=>[row.order_id,{fulfillmentState:row.receipt_confirmed_at?'completed':'shipped',shipmentDeliveryMethod:row.delivery_method}]));
     const total=!owner?(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_order o WHERE ${predicate.replaceAll('$4','$1').replaceAll('$5','$2')}`, [filter?.from??null,filter?.through??null])).rows[0]!.n:null;
-    return { totalCount:total,items: rows.map(row => ({...this.orderSummaryView(row, byOrder.get(row.id) ?? [],byReceipt.get(row.id),refunded.get(row.id)??0),
-      ...(shipping.get(row.id)??{fulfillmentState:'unshipped'})})), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!,filter?.scope) : null };
+    return { totalCount:total,items: rows.map(row => {
+      const aftersale=aftersales.get(row.id);
+      return {...this.orderSummaryView(row,byOrder.get(row.id)??[],byReceipt.get(row.id),refunded.get(row.id)??0),
+        ...(shipping.get(row.id)??{fulfillmentState:'unshipped'}),...(aftersale?{aftersale}:{})};
+    }), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!,filter?.scope) : null };
+  }
+
+  private async openAftersales(client:DbClient|pg.Pool,orderIds:string[]){
+    const rows=orderIds.length?(await client.query<{order_id:string;id:string;phase:'returning'|'refund_review'|'refunding'|'refund_attention'}>(`SELECT DISTINCT ON (c.order_id) c.order_id,c.id,
+      CASE WHEN r.state='rejected' OR i.state IN ('closed','abnormal') OR i.submission_quarantined_at IS NOT NULL
+        OR EXISTS(SELECT 1 FROM commission_refund_inbox f WHERE f.refund_intent_id=i.id AND f.state='exception' AND f.quarantined_at IS NOT NULL)
+        THEN 'refund_attention'
+        WHEN c.kind='return_refund' AND c.state NOT IN ('quality_checked','refund_exception_approved','refund_pending') THEN 'returning'
+        WHEN r.state IS DISTINCT FROM 'approved' THEN 'refund_review'
+        ELSE 'refunding' END AS phase
+      FROM commerce_aftersale_case c LEFT JOIN commerce_refund_request r ON r.id=c.refund_request_id
+      LEFT JOIN commission_refund_intent i ON i.request_id=r.id
+      WHERE c.order_id=ANY($1::uuid[]) AND c.state NOT IN ('cancelled','rejected')
+        AND NOT (c.state='refund_pending' AND COALESCE(i.state='succeeded',false))
+      ORDER BY c.order_id,c.created_at DESC,c.id DESC`,[orderIds])).rows:[];
+    return new Map(rows.map(row=>[row.order_id,{caseId:row.id,phase:row.phase}]));
   }
 
   private async refundedTotals(client:DbClient|pg.Pool,orderIds:string[]){
     if(!orderIds.length)return new Map<string,number>();
     const rows=(await client.query<{order_id:string;amount:string}>(`SELECT i.order_id,
-      sum(i.payer_refund_cents+COALESCE((SELECT sum(a.amount_cents)
-        FROM commission_credit_refund_allocation a WHERE a.refund_intent_id=i.id),0))::text AS amount
+      sum(${confirmedRefundTotal})::text AS amount
       FROM commission_refund_intent i WHERE i.order_id=ANY($1::uuid[]) AND i.state='succeeded'
       GROUP BY i.order_id`,[orderIds])).rows;
     return new Map(rows.map(row=>[row.order_id,money(row.amount)]));
@@ -553,12 +576,27 @@ export class CommerceOrderService {
   }
 }
 
-export async function expirePendingOrders(pool: pg.Pool, now = new Date(), limit = 50): Promise<number> {
+const expiredPaymentClosable=`(p.state='closed' OR (p.state IN ('prepared','unknown') AND p.first_dispatch_started_at IS NULL
+  AND p.prepay_id IS NULL AND (p.request_lease_until IS NULL OR p.request_lease_until<=clock_timestamp())))`;
+
+export async function expirePendingOrders(pool: pg.Pool, now = new Date(), limit = 50, verified = false): Promise<number> {
   return transaction(pool,async client=>{
-    const orders=await client.query<OrderRow>(`SELECT * FROM commerce_order WHERE status='pending_payment'
-      AND transaction_source_kind='synthetic_nonproduction' AND expires_at<=$1
-      ORDER BY expires_at,id LIMIT $2 FOR UPDATE SKIP LOCKED`,[now,limit]);
+    const orders=await client.query<OrderRow>(`SELECT o.* FROM commerce_order o WHERE o.status='pending_payment'
+      AND o.transaction_source_kind=$3 AND o.expires_at<=$1
+      ${verified?`AND EXISTS(SELECT 1 FROM commerce_payment_attempt p WHERE p.order_id=o.id AND ${expiredPaymentClosable})
+        AND NOT EXISTS(SELECT 1 FROM commission_payment_inbox f WHERE f.order_id=o.id)`:''}
+      ORDER BY o.expires_at,o.id LIMIT $2 FOR UPDATE OF o SKIP LOCKED`,[now,limit,verified?'verified_commerce':'synthetic_nonproduction']);
+    let expired=0;
     for(const order of orders.rows){
+      if(verified){
+        const closable=(await client.query<{id:string;state:string}>(`SELECT p.id,p.state FROM commerce_payment_attempt p
+          WHERE p.order_id=$1 AND ${expiredPaymentClosable}
+            AND NOT EXISTS(SELECT 1 FROM commission_payment_inbox f WHERE f.order_id=$1) FOR UPDATE`,[order.id])).rows[0];
+        if(!closable)continue;
+        if(closable.state!=='closed')await client.query(`UPDATE commerce_payment_attempt SET state='closed',
+          request_lease_until=NULL,updated_at=clock_timestamp() WHERE id=$1`,[closable.id]);
+        if(money(order.credit_tender_cents)>0)await releaseReservedCreditForCheckout(client,order.id,Number(order.credit_tender_cents),'worker:order-expiry');
+      }
       await settleOrderPoints(client,order.id,'release',now);
       await settlePurchaseCoupon(client,order.id,'release',now);
       const reservations=await client.query<{id:string;sku_id:string;quantity:number}>("SELECT id,sku_id,quantity FROM commerce_inventory_reservation WHERE order_id=$1 AND status='active' FOR UPDATE",[order.id]);
@@ -577,7 +615,8 @@ export async function expirePendingOrders(pool: pg.Pool, now = new Date(), limit
         [order.id,{status:order.status,version:order.version},{status:"expired",version:nextVersion}]);
       await enqueue(client,{eventType:"commerce.order.expired.v1",aggregateType:"commerce_order",aggregateId:order.id,aggregateVersion:nextVersion,
         businessKey:`commerce-order:${order.id}:v${nextVersion}`,payload:{orderId:order.id,status:"expired",reasonCode:"PAYMENT_WINDOW_EXPIRED"},occurredAt:now});
+      expired++;
     }
-    return orders.rows.length;
+    return expired;
   },"READ COMMITTED",1);
 }

@@ -3,6 +3,7 @@ import type pg from 'pg';
 import { DomainError } from '@cisme/domain';
 import { requireActiveMemberWithClient } from './authority.js';
 import { transaction, type DbClient } from './db.js';
+import { applyVerifiedCourierReceipt } from './shipmentReceipt.js';
 import { validateShippingBinding, type ReceiptObservation, type ShippingBinding,
   type WechatOrderShippingClient } from './wechatOrderShipping.js';
 
@@ -24,8 +25,7 @@ export function receiptView(state:number|null,inComplaint:boolean|null,observedA
     observedAt:observedAt?.toISOString()??null,canOpenComponent:status==='shipped'&&inComplaint===false};
 }
 
-/** Reads only get_order. No shipping executor, payment, refund or worker path is
- * reachable through this class. A query may replace its own projection only. */
+/** Queries get_order and projects eligible receipt facts without touching the provider's order. */
 export class WechatReceiptService {
   constructor(private readonly pool:pg.Pool,private readonly appId:string,private readonly merchantId:string,
     private readonly channel:Pick<WechatOrderShippingClient,'queryOrder'>){}
@@ -73,6 +73,7 @@ export class WechatReceiptService {
     // and after token retrieval. This is the only outbound operation here.
     const observed:ReceiptObservation=await this.channel.queryOrder(source.binding);
     return transaction(this.pool,async client=>{
+      await client.query('SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE',[orderId]);
       const current=await this.source(client,actor,orderId);
       if(current.orderVersion!==source.orderVersion||current.shipmentVersion!==source.shipmentVersion
         ||current.shipmentId!==source.shipmentId||current.paymentInboxId!==source.paymentInboxId
@@ -87,6 +88,7 @@ export class WechatReceiptService {
         RETURNING platform_order_state,in_complaint,observed_at,version`,
         [orderId,queryId,observed.platformOrderState,observed.inComplaint,source.shipmentId,source.paymentInboxId])).rows[0];
       if(!row)fail('WECHAT_RECEIPT_NEWER_QUERY_EXISTS',409);
+      if([3,4].includes(observed.platformOrderState))await applyVerifiedCourierReceipt(client,orderId,queryId);
       const result=receiptView(row.platform_order_state,row.in_complaint,row.observed_at);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
         VALUES($1,'commerce.wechat_receipt.queried','commerce_order',$2,$3,$4)`,

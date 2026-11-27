@@ -57,7 +57,10 @@ export class RefundCommandService{
     const orderId=id(orderIdInput),requestKey=key(idempotencyKey),amount=cents(input.amountCents),why=reason(input.reason);
     const fingerprint=hash({orderId,amount,why});
 
-      await requireActiveMemberWithClient(client,memberId);
+      if(aftersaleCaseId){
+        const owner=(await client.query(`SELECT id FROM member WHERE id=$1 AND status IN ('active','deleted') FOR SHARE`,[memberId])).rows[0];
+        if(!owner)throw new DomainError('MEMBER_NOT_ACTIVE','原订单账号当前无法处理退款',403);
+      }else await requireActiveMemberWithClient(client,memberId);
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`refund-request:${memberId}:${requestKey}`]);
       const replay=(await client.query<RequestRow>(`SELECT * FROM commerce_refund_request
         WHERE requested_by_member_id=$1 AND idempotency_key=$2`,[memberId,requestKey])).rows[0];
@@ -90,7 +93,7 @@ export class RefundCommandService{
       const activeCase=(await client.query<{id:string}>(`SELECT c.id FROM commerce_aftersale_case c
         LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
         WHERE c.order_id=$1 AND c.state NOT IN ('rejected','cancelled')
-          AND NOT (c.state='refund_pending' AND i.state='succeeded')`,[orderId])).rows[0];
+          AND NOT (c.state='refund_pending' AND COALESCE(i.state='succeeded',false))`,[orderId])).rows[0];
       if(activeCase && activeCase.id!==aftersaleCaseId)
         throw new DomainError('AFTERSALE_ACTIVE_CASE','本单已有售后案件，请在原案件中继续退款',409);
       const existing=(await client.query<{reserved:string}>(`SELECT COALESCE(sum(amount_cents),0)::text AS reserved
@@ -127,6 +130,9 @@ export class RefundCommandService{
       throw new DomainError("VERSION_INVALID","退款申请版本无效",422);
     const fingerprint=hash({requestId,decision,why,expectedVersion});
       await this.authority.requireWithClient(client,approver,"commerce.refund.approve");
+      const linked=(await client.query<{order_id:string}>(`SELECT order_id FROM commerce_refund_request WHERE id=$1`,[requestId])).rows[0];
+      if(!linked)throw new DomainError("REFUND_REQUEST_NOT_FOUND","退款申请不存在",404);
+      const order=(await client.query(`SELECT * FROM commerce_order WHERE id=$1 FOR UPDATE`,[linked.order_id])).rows[0];
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`refund-decision:${approver}:${decisionKey}`]);
       const used=(await client.query<RequestRow>(`SELECT * FROM commerce_refund_request
         WHERE decided_by_member_id=$1 AND decision_key=$2`,[approver,decisionKey])).rows[0];
@@ -145,7 +151,6 @@ export class RefundCommandService{
         throw new DomainError("REFUND_REQUEST_ALREADY_DECIDED","退款申请已处理",409);
       }
       if(request.version!==expectedVersion)throw new DomainError("VERSION_CONFLICT","退款申请版本已变化",409);
-      const order=(await client.query(`SELECT * FROM commerce_order WHERE id=$1 FOR UPDATE`,[request.order_id])).rows[0];
       if(!order||order.status!=="paid"||order.transaction_source_kind!=="verified_commerce")
         throw new DomainError("REFUND_ORDER_CHANGED","订单支付状态已变化",409);
       const beneficiary=(await client.query<{referrer_member_id:string}>(
@@ -172,7 +177,7 @@ export class RefundCommandService{
         const prior=(await client.query(`SELECT i.line_allocation,i.payer_refund_cents,i.eligible_merchandise_refund_cents,
           i.shipping_cash_refund_cents,r.amount_cents AS gross_refund_cents FROM commission_refund_intent i
           LEFT JOIN commerce_refund_request r ON r.id=i.request_id
-          WHERE i.order_id=$1 AND i.state<>'closed' FOR UPDATE OF i`,[order.id])).rows;
+          WHERE i.order_id=$1 AND i.state<>'closed'`,[order.id])).rows;
         const occupied=new Map<string,number>();let totalReserved=0,grossReserved=0,shippingReserved=0,eligibleReserved=0;
         for(const existing of prior){
           totalReserved+=Number(existing.payer_refund_cents);

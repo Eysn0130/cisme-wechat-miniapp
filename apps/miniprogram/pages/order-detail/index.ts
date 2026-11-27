@@ -7,6 +7,7 @@ import { cancelPageReads, pageRead } from "../../services/page-requests";
 import { cancelRuntimeRead, initialRuntimeView, runtimeActions, runtimeReadOwner, runtimeView, validateRuntime } from "../../services/commerce-runtime";
 import { historicalCommerceClosed, historicalCommerceToken, request, requireHistoricalCommerceAccess } from "../../services/api";
 import { centsToYuan } from "../../services/commerce";
+import { aftersaleLabels } from '../../services/order-aftersale';
 import { nativeCatalogImage } from "../../services/catalog";
 import { clientOperationKey, myOrder, myShipment, myTracking, myLogisticsView, confirmMyReceipt, queryMyWechatReceipt, type OrderShipment, type OrderTracking, orderRuntimeStatus, type CommerceOrder, type MemberOrderAddress } from "../../services/orders";
 import { beginWechatReceiptReturn, clearWechatReceiptReturn, takeWechatReceiptReturn } from "../../services/wechat-receipt-return";
@@ -27,6 +28,7 @@ const refundLabels:Record<string,string>={requested:"申请已收到",rejected:"
 const orderIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type SheetCase={id:string;orderId:string;state:string;kind:string;reason:string;claimBasis:string;requestedAt:string;supportConversationId:string|null;returnDestination:any;refund:any;resolved:boolean};
 type SheetAvailable={lineId:string;remainingQuantity:number;selectedQuantity:number;productName:string;skuLabel:string};
+type SheetAvailability={lines:Array<{lineId:string;remainingQuantity:number}>;requiresWholeOrder?:boolean};
 type SheetMessage={id:string;sequence:number;senderType:string;body:string;createdAt:string;deliveryState:string;orderCard:any;returnInstruction:any};
 type SheetShown=ReturnType<typeof presentSupportMessages<SheetMessage>>[number];
 type SheetConversation={id:string;teamReadSequence?:number};
@@ -46,11 +48,11 @@ Page({
   launchAftersale:false,
   sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,sheetValidationError:false,
   data:{rewardOwner:'',recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
-    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string;shippedLabel:string;noCourier:boolean})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
+    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string;key:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string;shippedLabel:string;noCourier:boolean})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
     qualificationPurchase:false,qualificationMoment:false,qualificationReduced:false,
-    supportSheetOpen:false,sheetLoading:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[] as SheetAvailable[],sheetConsulting:false,sheetPreviousCase:null as SheetCase|null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
+    supportSheetOpen:false,sheetLoading:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetWholeOrder:false,sheetAvailable:[] as SheetAvailable[],sheetConsulting:false,sheetPreviousCase:null as SheetCase|null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
     sheetConversation:null as SheetConversation|null,sheetContextVersion:0,sheetContextStartSequence:0,sheetKindIndex:1,sheetKindOptions:['仅退款','退货退款'],
     sheetBasisIndex:0,sheetBasisOptions:['请选择问题类型','七日无理由','商品问题','错发','漏发','物流问题','其他'],
     sheetReason:"",sheetSubmitting:false,sheetAttempt:null as {key:string;payload:Record<string,unknown>}|null,
@@ -97,7 +99,7 @@ Page({
     try{return await wx.showModal(options);}catch{return {confirm:false};}finally{this.confirmationPending=false;}
   },
   onUnload(){this.onHide();this.data.pageAlive=false;this.data.epoch+=1;},
-  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:order.status==="paid"&&(order.refundedCents??0)>0?(order.refundedCents!>=order.totalCents?"已退款":"部分退款"):(labels[order.status]??order.status),totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),couponDiscountYuan:centsToYuan(order.couponDiscountCents??0),pointsDiscountYuan:centsToYuan(order.memberDiscountCents-(order.couponDiscountCents??0)),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,image:nativeCatalogImage(line.image),unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
+  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:order.aftersale?aftersaleLabels[order.aftersale.phase]:order.status==="paid"&&(order.refundedCents??0)>0?(order.refundedCents!>=order.totalCents?"已退款":"部分退款"):(labels[order.status]??order.status),totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),couponDiscountYuan:centsToYuan(order.couponDiscountCents??0),pointsDiscountYuan:centsToYuan(order.memberDiscountCents-(order.couponDiscountCents??0)),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,image:nativeCatalogImage(line.image),unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===historicalCommerceToken()&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;this.receiptQueryAttempt+=1;this.trackingAttempt+=1;
@@ -290,11 +292,11 @@ Page({
       if(!current())return;
       if(typeof plugin?.openWaybillTracking!=='function')throw Error('Logistics plugin unavailable');
       await plugin.openWaybillTracking({waybillToken:result.waybillToken});
-    }catch(error){if(current())this.setData({trackingError:errorTitle(error,'暂时无法打开物流详情，可以复制运单号查询或联系客服。')});}
+    }catch{if(current())this.setData({trackingError:'暂时无法打开微信物流，可查看轨迹或复制运单号。'});}
     finally{if(current())this.setData({trackingLoading:false});}
   },
   async loadTracking(){
-    if(!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id||this.data.shipment.noCourier)return;
+    if(this.data.closedRights||!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id||this.data.shipment.noCourier)return;
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken(),
       shipmentId=this.data.shipment.id,attempt=++this.trackingAttempt;
     const current=()=>this.readCurrent(epoch,token,readEpoch)&&attempt===this.trackingAttempt&&this.data.shipment?.id===shipmentId;
@@ -304,7 +306,7 @@ Page({
       if(row.orderId!==this.data.id||row.shipmentId!==shipmentId||row.source!=="wechat_logistics"||!Number.isFinite(Date.parse(row.observedAt))
         ||!Array.isArray(row.events)||row.events.length>100||row.events.some(e=>!Number.isFinite(Date.parse(e.time))||typeof e.message!=="string"||e.message.length>2000))throw Error("Invalid tracking");
       this.setData({tracking:{...row,observedLabel:new Date(row.observedAt).toLocaleString("zh-CN",{hour12:false}),
-        events:row.events.map(e=>({...e,timeLabel:new Date(e.time).toLocaleString("zh-CN",{hour12:false})}))},trackingLoading:false});
+        events:row.events.map((event,index)=>({...event,key:`${event.time}:${index}`,timeLabel:new Date(event.time).toLocaleString("zh-CN",{hour12:false})}))},trackingLoading:false});
     }catch{if(current())this.setData({tracking:null,trackingLoading:false,trackingError:"暂时无法提供物流轨迹。已记录的运单仍可查看，请稍后重试或联系客服。"});}
   },
   async confirmReceipt(){
@@ -491,15 +493,15 @@ Page({
       sheetRequestedLabel:Number.isFinite(at)?new Date(at).toLocaleString('zh-CN',{hour12:false}):'',
       ...(selected&&this.data.sheetAttempt?{sheetAttempt:null}:{})});
   },
-  applySheetAvailability(rows:Array<{lineId:string;remainingQuantity:number}>){
+  applySheetAvailability(rows:SheetAvailability['lines'],requiresWholeOrder=false){
     const order=this.data.order,prior=new Map(this.data.sheetAvailable.map(line=>[line.lineId,line.selectedQuantity]));
     if(!order||rows.length!==order.lines.length||new Set(rows.map(row=>row.lineId)).size!==rows.length||
       rows.some(row=>!order.lines.some(line=>line.id===row.lineId)||!Number.isSafeInteger(row.remainingQuantity)||row.remainingQuantity<0)){
       this.setData({sheetLinesReady:false,sheetError:'商品可申请数量暂未核实，请重试。'});return;}
     this.setData({sheetAvailable:rows.map(row=>{const source=order.lines.find(line=>line.id===row.lineId)!;
       return {...row,productName:source.productName,skuLabel:source.skuLabel,
-        selectedQuantity:Math.min(row.remainingQuantity,prior.get(row.lineId)??row.remainingQuantity)};}),
-      sheetHasRemaining:rows.some(row=>row.remainingQuantity>0),sheetLinesReady:true});
+        selectedQuantity:requiresWholeOrder?row.remainingQuantity:Math.min(row.remainingQuantity,prior.get(row.lineId)??row.remainingQuantity)};}),
+      sheetHasRemaining:rows.some(row=>row.remainingQuantity>0),sheetWholeOrder:requiresWholeOrder,sheetLinesReady:true});
   },
   async pollSupportSheet(){if(!this.data.supportSheetOpen||!this.canAct()||this.data.sheetLoading||this.data.sheetSending||this.sheetPollInFlight){this.scheduleSheetPoll();return;}
     const epoch=this.data.epoch,token=historicalCommerceToken(),cursor=this.sheetCursor,generation=this.sheetReadEpoch;
@@ -510,10 +512,10 @@ Page({
         pageRead<SheetPage>(this,
           {path:`/v1/me/support/messages?after=${cursor}&limit=50`,cacheTags:['support']}),
         pageRead<{items:SheetCase[]}>(this,{path:`/v1/me/aftersales?orderId=${this.data.id}&limit=20`}),
-        pageRead<{lines:Array<{lineId:string;remainingQuantity:number}>}>(this,{path:`/v1/me/orders/${this.data.id}/aftersales/availability`})]);
+        pageRead<SheetAvailability>(this,{path:`/v1/me/orders/${this.data.id}/aftersales/availability`})]);
       if(!this.sheetReadCurrent(epoch,token,generation))return;
       if(cases.status==='fulfilled')this.applySheetCases(cases.value.items??[]);
-      if(availability.status==='fulfilled')this.applySheetAvailability(availability.value.lines??[]);
+      if(availability.status==='fulfilled')this.applySheetAvailability(availability.value.lines??[],availability.value.requiresWholeOrder===true);
       if(messages.status==='fulfilled'){
         const page=messages.value;
         const topic=this.sheetTopic(page);
@@ -540,10 +542,10 @@ Page({
     const [cases,messages,availability]=await Promise.allSettled([
       pageRead<{items:SheetCase[]}>(this,{path:`/v1/me/aftersales?orderId=${this.data.id}&limit=20`}),
       pageRead<SheetPage>(this,{path:'/v1/me/support/messages?limit=30',cacheTags:['support']}),
-      pageRead<{lines:Array<{lineId:string;remainingQuantity:number}>}>(this,{path:`/v1/me/orders/${this.data.id}/aftersales/availability`})]);
+      pageRead<SheetAvailability>(this,{path:`/v1/me/orders/${this.data.id}/aftersales/availability`})]);
     if(!this.sheetReadCurrent(epoch,token,generation))return;
     if(cases.status==='fulfilled')this.applySheetCases(cases.value.items??[]);
-    if(availability.status==='fulfilled')this.applySheetAvailability(availability.value.lines??[]);
+    if(availability.status==='fulfilled')this.applySheetAvailability(availability.value.lines??[],availability.value.requiresWholeOrder===true);
     if(messages.status==='fulfilled'){
       const page=messages.value,topic=this.sheetTopic(page);
       if(!topic.stale){
@@ -589,7 +591,7 @@ Page({
     const value=Number(event.detail.value);this.sheetValidationError=false;this.setData({sheetKindIndex:this.data.sheetBasisIndex===1?1:value,sheetError:''});},
   chooseSheetBasis(event:WechatMiniprogram.PickerChange){if(this.data.sheetSubmitting||this.data.sheetAttempt)return;
     const value=Number(event.detail.value);this.sheetValidationError=false;this.setData({sheetBasisIndex:value,sheetKindIndex:value===1?1:this.data.sheetKindIndex,sheetError:''});},
-  chooseSheetQuantity(event:WechatMiniprogram.TouchEvent){if(this.data.sheetSubmitting||this.data.sheetAttempt||!this.data.sheetLinesReady)return;
+  chooseSheetQuantity(event:WechatMiniprogram.TouchEvent){if(this.data.sheetSubmitting||this.data.sheetAttempt||this.data.sheetWholeOrder||!this.data.sheetLinesReady)return;
     const id=String(event.currentTarget.dataset.id??''),delta=Number(event.currentTarget.dataset.delta);
     if(![-1,1].includes(delta)||!this.data.sheetAvailable.some(line=>line.lineId===id))return;
     this.sheetValidationError=false;this.setData({sheetAvailable:this.data.sheetAvailable.map(line=>line.lineId===id?
@@ -609,9 +611,11 @@ Page({
     }
     const attempt=this.data.sheetAttempt!,epoch=this.data.epoch,token=historicalCommerceToken();
     this.sheetValidationError=false;this.setData({sheetSubmitting:true,sheetError:''});
-    try{const row=await request<SheetCase>({path:`/v1/me/orders/${this.data.id}/aftersales`,method:'POST',idempotencyKey:attempt.key,data:attempt.payload,cacheTags:['support']});
+    try{const row=await request<SheetCase>({path:`/v1/me/orders/${this.data.id}/aftersales`,method:'POST',idempotencyKey:attempt.key,data:attempt.payload,cacheTags:['support','orders']});
       if(!this.sheetCurrent(epoch,token))return;
-      this.setData({sheetCase:row,sheetAttempt:null,sheetReason:'',sheetError:''});await this.loadSupportSheet();
+      const aftersale={caseId:row.id,phase:row.kind==='return_refund'?'returning':'refund_review'} as const;
+      this.setData({sheetCase:row,sheetAttempt:null,sheetReason:'',sheetError:'',order:{...this.data.order!,aftersale,statusLabel:aftersaleLabels[aftersale.phase]}});
+      await this.loadSupportSheet();
     }catch(error){if(this.sheetCurrent(epoch,token)){
       const code=(error as {code?:string})?.code;
       // Background case/message polling must not erase a submission result

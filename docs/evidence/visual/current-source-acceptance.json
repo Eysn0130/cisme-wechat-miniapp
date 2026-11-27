@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "942d7b8b27fc1659aefad15e0b12ee45ba67039a2c03e783b402ad594148b9af",
+  "packageSourceSha256": "c42c6fb8151b1ea815bc23860546fbf5b579ea2d9a0dcc797054d850f58c2e9d",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 单笔快递发货由服务器记录交寄时间，无需物流支持同城配送或用户自提。完整状态、字号和真机矩阵仍待验。",
+  "note": "2026-11-27 在自动记录交寄时间和无需物流体验包基础上，接入原订单退款及购物中断恢复。完整状态、字号和真机矩阵仍待验。",
   "previousSourceRecord": {
-    "packageSourceSha256": "a15c51f1233c25200ae6c5291508ca4499d278d3a53bcd33f66ae361ec632dde",
-    "scope": "0.1.66 guest catalog, SKU choice and checkout return were verified in official DevTools before the handoff changes."
+    "packageSourceSha256": "942d7b8b27fc1659aefad15e0b12ee45ba67039a2c03e783b402ad594148b9af",
+    "scope": "0.1.67 courier and no-courier handoff were verified with synthetic facts in official DevTools before these commerce changes."
   },
   "pendingSourceRebind": false
 }

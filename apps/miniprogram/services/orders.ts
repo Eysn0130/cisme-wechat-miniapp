@@ -1,5 +1,6 @@
 import { request } from "./api";
 import { pageRead } from "./page-requests";
+import type { OrderAftersale } from './order-aftersale';
 
 export type PendingOrderStatus = "pending_payment" | "cancelled" | "expired" | "paid";
 export interface CheckoutAddress {
@@ -63,6 +64,7 @@ export interface MemberOrderAddress {
 export interface ManagementOrderAddress { recipientNameMasked: string; phoneMasked: string; province: string; city: string; district: string }
 export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAddress> {
   refundedCents?:number;
+  aftersale?:OrderAftersale;
   couponId?:string;couponDiscountCents?:number;
   shoppingPointsMultiplier?:number;pointsSpent?:number;
   fulfillmentPolicy?:FulfillmentPolicy|null;

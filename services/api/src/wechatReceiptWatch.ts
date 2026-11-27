@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { transaction, type DbClient } from './db.js';
 import { receiptView } from './wechatReceipt.js';
+import { applyVerifiedCourierReceipt } from './shipmentReceipt.js';
 import { validateShippingBinding, type ReceiptObservation, type ShippingBinding,
   type WechatOrderShippingClient } from './wechatOrderShipping.js';
 
@@ -12,9 +13,7 @@ type Claim = {source:Source;queryId:string;leaseToken:string};
 const nextHours=(state:number)=>state===2?12:24;
 const retryMinutes=(failures:number)=>Math.min(1440,5*2**Math.min(failures-1,8));
 
-/** A bounded read-only observation lane for orders whose shipping upload was
- * already verified. It never confirms a local receipt, settles money or calls
- * uploadOnce. Leases and query IDs fence late responses across workers/users. */
+/** Bounded read-only WeChat queries for verified shipments. Leases and query IDs fence late responses. */
 export class WechatReceiptWatch {
   constructor(private readonly pool:pg.Pool,private readonly appId:string,private readonly merchantId:string,
     private readonly channel:Pick<WechatOrderShippingClient,'queryOrder'>){}
@@ -98,6 +97,7 @@ export class WechatReceiptWatch {
   private async finish(claim:Claim,observed:ReceiptObservation):Promise<boolean>{
     return transaction(this.pool,async client=>{
       const {source,queryId,leaseToken}=claim;
+      await client.query('SELECT id FROM commerce_order WHERE id=$1 FOR UPDATE',[source.orderId]);
       const result=await this.source(client,source.orderId);
       const current=result.status==='ready'?result.source:null;
       const valid=current&&current.owner===source.owner&&current.orderVersion===source.orderVersion
@@ -126,6 +126,7 @@ export class WechatReceiptWatch {
         RETURNING observed_at,version`,[source.orderId,queryId,leaseToken,observed.platformOrderState,
         observed.inComplaint,terminal?'complete':'active',nextHours(observed.platformOrderState)])).rows[0];
       if(!updated)return false;
+      if([3,4].includes(observed.platformOrderState))await applyVerifiedCourierReceipt(client,source.orderId,queryId);
       if(previous.platform_order_state!==observed.platformOrderState||previous.in_complaint!==observed.inComplaint){
         const view=receiptView(observed.platformOrderState,observed.inComplaint,updated.observed_at);
         await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)

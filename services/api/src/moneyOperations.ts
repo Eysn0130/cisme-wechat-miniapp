@@ -29,9 +29,9 @@ export class MoneyOperationsService{
       UNION ALL SELECT id,'refund_inbox',refund_intent_id,exception_code,attempt_count,received_at,
         quarantined_at IS NOT NULL
         FROM commission_refund_inbox WHERE state='exception'
-      UNION ALL SELECT id,'refund_submission',id,submission_last_error_code,submission_attempt_count,created_at,
+      UNION ALL SELECT id,'refund_submission',id,CASE WHEN state='abnormal' THEN 'WECHAT_REFUND_ABNORMAL' ELSE submission_last_error_code END,submission_attempt_count,created_at,
         state='prepared'
-        FROM commission_refund_intent WHERE submission_quarantined_at IS NOT NULL
+        FROM commission_refund_intent WHERE state='abnormal' OR submission_quarantined_at IS NOT NULL
       UNION ALL SELECT id,'transfer',id,last_error_code,attempt_count,created_at,
         quarantined_at IS NOT NULL
         FROM commission_settlement_request WHERE quarantined_at IS NOT NULL

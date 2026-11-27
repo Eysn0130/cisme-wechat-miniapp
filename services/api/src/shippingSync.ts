@@ -21,7 +21,7 @@ function view(row: Row) { return { id: row.id, orderId: row.order_id, state: row
 export class ShippingSyncService {
   constructor(private readonly pool: pg.Pool, private readonly authority: AuthorityService,
     private readonly options: Options, private readonly channel: Pick<WechatOrderShippingClient, 'query' | 'uploadOnce'>
-      & Partial<Pick<WechatOrderShippingClient,'authorizeUpload'>>) {}
+      & Partial<Pick<WechatOrderShippingClient,'authorizeUpload'|'prepareUpload'>>) {}
 
   private gate() {
     if (!this.options.enabled) fail('SHIPPING_SYNC_DISABLED', 503);
@@ -212,6 +212,9 @@ export class ShippingSyncService {
         return finish(next.state, observation.decision.toUpperCase(), observation.platformOrderState);
       }
       this.channel.authorizeUpload?.(binding); // A query-only grant must not consume dispatch.
+      const uploadTime=claim.upload_time.toISOString();
+      const upload=await this.channel.prepareUpload?.(binding,parcel,uploadTime)
+        ?? (()=>this.channel.uploadOnce(binding,parcel,uploadTime));
       const dispatch = await transaction(this.pool, async client => {
         await this.authority.requireWithClient(client, claim.created_by_member_id, 'commerce.fulfillment.manage');
         await this.binding(client, claim.order_id); // Refund/order recheck immediately before dispatch.
@@ -221,7 +224,7 @@ export class ShippingSyncService {
       });
       if (!dispatch.rowCount) return 'stale_claim';
       try {
-        await this.channel.uploadOnce(binding, parcel, claim.upload_time.toISOString());
+        await upload();
         return finish('verifying', 'UPLOAD_ACKNOWLEDGED_QUERY_REQUIRED');
       } catch { return finish('verifying', 'UPLOAD_OUTCOME_UNKNOWN_QUERY_REQUIRED'); }
     } catch {

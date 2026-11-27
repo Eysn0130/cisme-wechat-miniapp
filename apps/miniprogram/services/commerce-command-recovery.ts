@@ -1,21 +1,22 @@
 import { request } from "./api";
 import { pageRead } from "./page-requests";
-import { clientOperationKey } from "./orders";
+import { clientOperationKey,createPendingOrder } from "./orders";
 import { commerceContextRevision, commerceUuid, commandSlot, forgetCommerceCommand, normalizeCommandPayload, putCommerceCommand, readCommerceCommands,
   type CommerceCommandKind, type CommandPayload, type StoredCommerceCommand } from "./commerce-command-store";
 
 export type RecoveryScope = { group: "commission" } | { group: "order"; objectId: string };
 export interface RecoveryView { key: string; kind: CommerceCommandKind; label: string; retryable: boolean; recorded: boolean }
 interface Receipt { version: 1; memberId: string; kind: CommerceCommandKind; status: "recorded" | "not_observed";
-  record: null | { id: string; state: string; orderId?: string; amountCents?: number } }
+  record: null | { id: string; state: string; orderId?: string; amountCents?: number; productCode?: string } }
 const active = new Set<string>();
 const labels: Record<CommerceCommandKind, string> = { refund: "退款申请", settlement: "结算意向", credit: "权益转换",
-  "credit-cancel": "权益撤销", cancel: "取消订单", "cancel-verified": "取消订单",'points-gift':'积分礼品兑换' };
+  "credit-cancel": "权益撤销", cancel: "取消订单", "cancel-verified": "取消订单",'points-gift':'积分礼品兑换','checkout-order':'提交订单' };
 const states: Record<CommerceCommandKind, readonly string[]> = {
   refund: ["requested", "approved", "rejected"],
   settlement: ["requested", "reserved", "unknown", "processing", "succeeded", "failed", "cancelled", "rejected"],
   credit: ["available", "cancelled"], "credit-cancel": ["cancelled"], cancel: ["cancelled"], "cancel-verified": ["cancelled"],
-  'points-gift':['placed','shipped','received','cancelled','return_requested','returned']
+  'points-gift':['placed','shipped','received','cancelled','return_requested','returned'],
+  'checkout-order':['pending_payment','paid','cancelled','expired']
 };
 const changed = () => ({ code: "COMMERCE_RECOVERY_CONTEXT", title: "页面或登录状态已变化，请回到原页面核对操作结果。" });
 const unresolved = () => ({ code: "COMMERCE_RECOVERY_PENDING", title: "上一笔操作尚未核实。请先核对或重试原操作，不要修改金额后另行提交。" });
@@ -51,12 +52,56 @@ async function receipt(command: StoredCommerceCommand, page?: object): Promise<R
   if (!value || value.version !== 1 || value.memberId !== command.ownerId || value.kind !== command.kind ||
     !["recorded", "not_observed"].includes(value.status) || value.status === "not_observed" && value.record !== null ||
     value.status === "recorded" && (!value.record || !commerceUuid.test(value.record.id) || !states[command.kind].includes(value.record.state) ||
+      command.kind === "checkout-order" && !/^[a-z0-9][a-z0-9-]{2,63}$/.test(value.record.productCode??"") ||
       command.kind === "refund" && value.record.orderId !== command.objectId ||
       command.payload?.amountCents !== undefined && value.record.amountCents !== command.payload.amountCents ||
       ["cancel", "cancel-verified", "credit-cancel"].includes(command.kind) && (value.record.id !== command.objectId || value.record.state !== "cancelled"))) {
     throw { code: "COMMERCE_RECOVERY_RECEIPT", title: "暂时无法确认原操作结果，请稍后查询，勿重复提交。" };
   }
   return value;
+}
+
+const retryAfterQuoteChange=['QUOTE_EXPIRED','QUOTE_STALE','QUOTE_NOT_FOUND','DELIVERY_ADDRESS_CHANGED','DELIVERY_ADDRESS_NOT_FOUND',
+  'CATALOG_SKU_NOT_FOUND','CATALOG_PRODUCT_NOT_SELLABLE','INVENTORY_NOT_AVAILABLE','COUPON_CHANGED','COUPON_NOT_ELIGIBLE',
+  'COMMERCE_QUOTE_POLICY_CHANGED','POINTS_OFFER_CHANGED','POINTS_DISCOUNT_UNAVAILABLE','POINTS_INSUFFICIENT'];
+export function checkoutQuoteRejected(error:unknown){
+  return retryAfterQuoteChange.includes((error as {code?:string})?.code??'');
+}
+const ownCheckout=(rows:StoredCommerceCommand[],context:{ownerId:string;environment:string})=>rows.find(row=>
+  row.kind==='checkout-order'&&row.ownerId===context.ownerId&&row.environment===context.environment);
+
+export async function pendingCheckoutQuote(page:object,current:()=>boolean):Promise<string|null>{
+  const rows=readCommerceCommands();
+  if(!rows.some(row=>row.kind==='checkout-order'&&row.environment===environment()))return null;
+  const context=await owner(page,current);
+  return ownCheckout(rows,context)?.objectId??null;
+}
+
+export async function submitCheckoutOrder(quoteId:string,current:()=>boolean){
+  const context=await owner(undefined,current);
+  const previous=ownCheckout(readCommerceCommands(),context);
+  if(previous&&previous.objectId!==quoteId)throw unresolved();
+  const command:StoredCommerceCommand=previous??{version:1,ownerId:context.ownerId,environment:context.environment,
+    kind:'checkout-order',objectId:quoteId,key:clientOperationKey('pending-order'),payload:{},createdAt:Date.now(),dispatched:true};
+  const slot=commandSlot(command);
+  if(active.has(slot))throw unresolved();
+  active.add(slot);
+  try{
+    if(previous){
+      const result=await receipt(previous);context.check();
+      if(result.record){forgetCommerceCommand(previous);return {id:result.record.id,productCode:result.record.productCode??null};}
+    }else putCommerceCommand(command);
+    context.check();
+    try{
+      const order=await createPendingOrder(quoteId,command.key);
+      if(!commerceUuid.test(order.id))throw unresolved();
+      forgetCommerceCommand(command);context.check();
+      return {id:order.id,productCode:order.lines[0]?.productCode??null};
+    }catch(error){
+      if(checkoutQuoteRejected(error))forgetCommerceCommand(command);
+      throw error;
+    }
+  }finally{active.delete(slot);}
 }
 export async function readCommerceRecovery(page: object, scope: RecoveryScope, current: () => boolean): Promise<RecoveryView[]> {
   const context = await owner(page, current);

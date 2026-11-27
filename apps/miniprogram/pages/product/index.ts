@@ -65,10 +65,12 @@ Page({
   present(raw:any,materials:ReturnType<typeof approvedCommerceContent>,previousSku:string,previousQuantity:number){
     const item=commercePresentation(raw,materials);
     if(!item){this.setData({item:null,catalog:null,errorKind:"missing",errorTitle:"这件商品暂不可用",error:"请返回商城选择商品。"});return;}
-    const selectedSku=item.variants.find((s:any)=>s.id===previousSku&&s.active)??item.variants.find((s:any)=>s.active&&s.inStock)??item.variants.find((s:any)=>s.active)??null;
+    const previous=item.variants.find(s=>s.id===previousSku&&s.active&&s.purchaseEnabled);
+    const selectedSku=previous??item.variants.find(s=>s.active&&s.purchaseEnabled)??item.variants.find(s=>s.active)??null;
     const quantity=Math.max(1,Math.min(previousQuantity,99,Math.max(1,selectedSku?.availableQuantity??1)));
     const gallery=materials?.gallery??[{src:nativeCatalogImage(raw?.image),label:item.name,width:1254,height:1254}];
-    this.setData({item,catalog:{items:[item]},gallery,details:materials?.details??[],selectedSku,quantity,...(!selectedSku?{selected:false}:{}),errorKind:"none"});
+    const selected=this.data.selected&&Boolean(previous)&&quantity===previousQuantity;
+    this.setData({item,catalog:{items:[item]},gallery,details:materials?.details??[],selectedSku,quantity,selected,errorKind:"none"});
   },
   galleryChange(event:WechatMiniprogram.CustomEvent<{current:number}>){this.setData({galleryIndex:event.detail.current});},
   selectGallery(event:WechatMiniprogram.TouchEvent){this.setData({galleryIndex:Number(event.currentTarget.dataset.index)||0});},
@@ -82,7 +84,7 @@ Page({
   decrease(){if(this.data.draftQuantity>1)this.setData({draftQuantity:this.data.draftQuantity-1});},
   increase(){const maximum=Math.min(99,this.data.draftSku?.availableQuantity??0);if(this.data.draftQuantity<maximum)this.setData({draftQuantity:this.data.draftQuantity+1});},
   confirmSku(){if(!this.data.draftSku?.active||!this.data.draftSku.inStock)return;this.setData({selectedSku:this.data.draftSku,quantity:this.data.draftQuantity,selected:true,sheetOpen:false});},
-  buy(){if(this.data.selected)this.openCheckout();else this.openSku();},
+  buy(){if(this.data.selected&&this.data.selectedSku?.purchaseEnabled)this.openCheckout();else this.openSku();},
   openCheckout(){
     const sku=this.data.selectedSku;
     if(this.data.loading||this.data.navigating||!this.data.item?.catalogBound||!this.data.item.purchaseEnabled||!sku?.purchaseEnabled)return;
