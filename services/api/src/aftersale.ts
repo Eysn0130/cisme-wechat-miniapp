@@ -153,12 +153,15 @@ export class AftersaleService{
     const restocked=row.quality_result==='sellable'?(await client.query<{quantity:number}>(`
       SELECT COALESCE(sum(delta),0)::integer AS quantity FROM catalog_inventory_adjustment
       WHERE adjusted_by='system:aftersale-restock' AND idempotency_key LIKE $1`,[`return:${row.id}:%`])).rows[0]?.quantity??0:0;
+    const rejectionReason=row.state==='rejected'?(await client.query<{note:string}>(`SELECT note FROM commerce_aftersale_event
+      WHERE case_id=$1 AND action='reject' ORDER BY case_version DESC LIMIT 1`,[row.id])).rows[0]?.note:undefined;
     return {id:row.id,orderId:row.order_id,orderNumber:order?.order_number??'',
       fulfillment:{state:order?.has_shipment?'shipped':'unshipped',canRefundWithoutReturn:unshippedRefundEligible(row,order)},
       ...(operator?{canReview:row.member_id!==operator,canStartRefund:row.member_id!==operator&&!partialBeforeDispatch&&refundEligible(row,order),
         ...(partialBeforeDispatch?{partialBeforeDispatch:true}:{}),
         refundApprovalAllowed:row.member_id!==operator&&row.exception_approved_by!==operator&&!order?.refund_beneficiary}:{}),
       kind:row.kind,state:row.state,reason:row.reason,claimBasis:row.claim_basis,
+      ...(rejectionReason?{rejectionReason}:{}),
       supportConversationId:row.support_conversation_id,requestedAt:row.created_at,lines:row.lines,
       amountCents:Number(row.amount_cents),version:row.version,returnDestination:row.return_destination?((d:any)=>({version:d.version,recipientName:d.recipientName,phone:d.phone,region:d.region??'',address:d.address,freightPayer:d.freightPayer??'to_be_confirmed',instructions:d.instructions??''}))(row.return_destination):null,
       returnCarrier:row.return_carrier,returnTracking:row.return_tracking,
@@ -198,8 +201,8 @@ export class AftersaleService{
         JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
         WHERE c.order_id=$1 AND i.state='succeeded'`,[orderId])).rows.flatMap(row=>row.lines);
       const used=new Map<string,number>();for(const item of prior)used.set(item.lineId,(used.get(item.lineId)??0)+Number(item.quantity));
-      const requiresWholeOrder=this.wholeRefundBeforeDispatch&&!await this.shipped(client,orderId);
-      return {orderId,...(requiresWholeOrder?{requiresWholeOrder:true}:{}),
+      const shipped=await this.shipped(client,orderId),requiresWholeOrder=this.wholeRefundBeforeDispatch&&!shipped;
+      return {orderId,fulfillmentState:shipped?'shipped':'unshipped',...(requiresWholeOrder?{requiresWholeOrder:true}:{}),
         lines:lines.map(line=>({lineId:line.id,remainingQuantity:Math.max(0,line.quantity-(used.get(line.id)??0))}))};
     });
   }

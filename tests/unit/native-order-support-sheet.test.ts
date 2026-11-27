@@ -9,7 +9,7 @@ vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceC
 let definition:any;
 const orderId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const lineId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
-const record={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',orderId,state:'requested',kind:'return_refund',reason:'',claimBasis:'no_reason',requestedAt:'2026-09-23T10:00:00Z',supportConversationId:null,returnDestination:null,refund:null,resolved:false};
+const record={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',orderId,state:'requested',kind:'return_refund',reason:'',claimBasis:'no_reason',requestedAt:'2026-09-23T10:00:00Z',amountCents:29800,supportConversationId:null,returnDestination:null,refund:null,resolved:false};
 const messages={messages:[],latestCursor:0,conversation:null};
 const availability={lines:[{lineId,remainingQuantity:2}]};
 const supportConversation={id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',teamReadSequence:0};
@@ -76,13 +76,51 @@ describe('order support sheet owns reads and reflects current cases',()=>{
  });
  it('updates the case while polling instead of deriving progress from chat text',async()=>{
   const p=await page();await p.loadSupportSheet();
-  expect(p.data.sheetCaseShortId).toBe(record.id.slice(-6));
+  expect(p.data.sheetCaseAmount).toBe('298.00');
   m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,state:'awaiting_instruction'}])));
   await p.pollSupportSheet();expect(p.data.sheetCase.state).toBe('awaiting_instruction');expect(p.data.sheetCaseLabel).toBe('客服正在准备退货信息');
  });
  it.each(['cancelled','rejected'])('does not let an old %s case block a new request',async state=>{
   const p=await page();m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,state}])));
   await p.loadSupportSheet();expect(p.data.sheetCase).toBeNull();expect(p.data.sheetPreviousCase.state).toBe(state);expect(p.data.sheetCasesReady).toBe(true);
+ });
+ it('keeps only this order’s conversation messages on both initial read and refresh',async()=>{
+  const p=await page();
+  const initial=[
+    {...supportMessage(1),orderCard:{orderId:'other-order'}},
+    {...supportMessage(2),relatedOrderId:orderId,aftersaleCard:{id:record.id}},
+    {...supportMessage(3),relatedOrderId:orderId,returnInstruction:{caseId:record.id}},
+    {...supportMessage(4),relatedOrderId:orderId,senderType:'admin'},
+    supportMessage(5)
+  ];
+  let pageMessages=initial;
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
+    {conversation:supportConversation,contextVersion:1,messages:pageMessages,latestCursor:pageMessages.at(-1)!.sequence}:reply(input)));
+  await p.loadSupportSheet();
+  expect(p.data.sheetMessages.map((message:any)=>message.sequence)).toEqual([4]);
+  pageMessages=[{...supportMessage(6),orderCard:{orderId}},{...supportMessage(7),relatedOrderId:'other-order'}];
+  await p.pollSupportSheet();
+  expect(p.data.sheetMessages.map((message:any)=>message.sequence)).toEqual([4,6]);
+  expect(p.sheetCursor).toBe(7);
+ });
+ it('opens the rejected case and waits for an explicit new application before selecting a refund method',async()=>{
+  const p=await page();
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/availability')?
+    {...availability,orderId,fulfillmentState:'unshipped',requiresWholeOrder:true}:
+    reply(input,[{...record,state:'rejected',rejectionReason:'请补充外盒照片'}])));
+  await p.loadSupportSheet();
+  expect(p.data.sheetPreviousCase.rejectionReason).toBe('请补充外盒照片');
+  p.openFullAftersale();
+  expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/aftersale/index?caseId=${record.id}`}));
+  p.data.navigating=false;
+  p.chooseSheetBasis({detail:{value:'2'}});p.data.sheetReason='瓶口渗漏';
+  await p.submitSheetAftersale();
+  expect(m.write).not.toHaveBeenCalled();
+  p.startSheetReapply();
+  p.chooseSheetBasis({detail:{value:'2'}});p.data.sheetReason='瓶口渗漏';
+  m.write.mockResolvedValue({...record,kind:'refund_only'});
+  await p.submitSheetAftersale();
+  expect(m.write).toHaveBeenCalledWith(expect.objectContaining({data:{kind:'refund_only',claimBasis:'quality',reason:'瓶口渗漏',lines:[{lineId,quantity:2}]}}));
  });
  it('ignores a read from the previous open after close and reopen on the same page',async()=>{
   const p=await page(),old=deferred();m.read.mockImplementationOnce(()=>old.promise);
@@ -285,7 +323,7 @@ describe('order support sheet owns reads and reflects current cases',()=>{
  it('uses native enter/leave, keyboard-aware height, one composer, and current-case addresses in WXML',()=>{
   const wxml=readFileSync('apps/miniprogram/pages/order-detail/index.wxml','utf8');
   expect(wxml).toContain('<page-container');expect(wxml).toContain('show="{{supportSheetOpen}}"');
-  expect(wxml).toContain('bindbeforeleave="onSupportSheetLeave"');expect(wxml).toContain('overlay-style="background:rgba(30,20,36,.48)"');expect(wxml).toContain('custom-style="height:{{sheetHeight}};');
+  expect(wxml).toContain('bindbeforeleave="onSupportSheetLeave"');expect(wxml).toContain('overlay-style="background:rgba(30,20,36,.48)"');expect(wxml).toContain('? sheetChatHeight : sheetHeight}};');
   expect(wxml).toContain('bottom:{{sheetKeyboardHeight}}px');expect(wxml).toContain('height:calc(100% - {{sheetKeyboardHeight}}px);transform:translateY({{sheetKeyboardHeight}}px)');
   expect(wxml).toContain('!sheetCase && !sheetConsulting');expect(wxml).toContain('sheetCase || sheetConsulting');
   expect(wxml).toContain('sheetCase.returnDestination.address');expect(wxml).not.toContain('{{item.returnInstruction.address}}');

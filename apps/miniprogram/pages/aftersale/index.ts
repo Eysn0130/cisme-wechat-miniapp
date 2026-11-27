@@ -29,7 +29,8 @@ Page({
   kindOptions:['仅退款','退货退款'],basisOptions:['请选择问题类型','七日无理由','商品问题','错发','漏发','物流问题','其他'],
   qualityOptions:['请选择质检结果','可售','不可售'],routeOutcomeIndex:0,routeOutcomeOptions:['请选择实际处理结果','已联系承运商','已协调转寄','已妥善收到'],available:[] as {action:string;label:string}[],needsReconcile:false,reconciliationReady:false,locked:false},
  onLoad(options:Record<string,string>){this.selection=/^[0-9a-f-]{36}$/i.test(options.caseId??'')?options.caseId!:'';
-  this.requestedAction=options.mode==='management'&&['request_refund','approve_pending_refund','approve_return','reject'].includes(options.action??'')?options.action!:'';
+  const actions=options.mode==='management'?['request_refund','approve_pending_refund','approve_return','reject']:['ship_return','provide_info'];
+  this.requestedAction=actions.includes(options.action??'')?options.action!:'';
   this.attention=options.mode==='management'&&Object.prototype.hasOwnProperty.call(attentionLabels,options.attention??'')?options.attention!:'';
   this.setData({management:options.mode==='management',orderId:/^[0-9a-f-]{36}$/i.test(options.orderId??'')?options.orderId!:'',attentionLabel:attentionLabels[this.attention]??''});},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
@@ -76,12 +77,12 @@ Page({
    if(row.state==='return_in_transit'&&this.data.capabilities.includes('commerce.return.receive'))out.push('receive_return');
    if(row.state==='return_received'&&this.data.capabilities.includes('commerce.return.inspect'))out.push('inspect_return');
   }else{
-   if(['requested','need_info','awaiting_instruction','awaiting_return'].includes(row.state)&&row.shippedInstructionVersion==null)out.push('cancel');
    if(row.state==='need_info')out.push('provide_info');
    if(row.state==='awaiting_return'){
-    if(row.shippedInstructionVersion==null&&Number(row.returnDestination?.version)>1)out.push('report_old_route');
     out.push('ship_return');
+    if(row.shippedInstructionVersion==null&&Number(row.returnDestination?.version)>1)out.push('report_old_route');
    }
+   if(['requested','need_info','awaiting_instruction','awaiting_return'].includes(row.state)&&row.shippedInstructionVersion==null)out.push('cancel');
   }
   return [...new Set(out)].map(action=>({action,label:this.data.management?
     (action==='request_refund'&&refundApprovalAction(row,this.data.capabilities)!=='request_refund'?'提交退款复核':managementActions[action]??actions[action]!)
@@ -138,11 +139,16 @@ Page({
    else if((e as any)?.status===404&&this.selection){this.selection='';this.setData({selected:null,items:[],coreReady:false,error:'这条记录已更新，请刷新'});}
    else this.setData({error:'售后记录暂未更新，请重试。',coreReady:preserve});
   }}finally{if(this.visible&&epoch===this.epoch){
-   this.setData({loading:false});
+   const showBuyerAction=!this.data.management&&Boolean(this.data.selected)&&!this.data.error
+     &&this.data.available.some(item=>item.action===this.requestedAction);
+   this.setData({loading:false},showBuyerAction?()=>{
+     if(this.current(epoch,token))wx.pageScrollTo({selector:'#buyer-aftersale-action',duration:0});
+   }:undefined);
    if(!this.current(epoch,token))this.deny();
    else{
     if(this.data.selected&&this.requestedAction&&!this.data.error){
-     const action=this.requestedAction;this.requestedAction='';this.activateAction(action);
+     const action=this.requestedAction;this.requestedAction='';
+     if(this.data.management)this.activateAction(action);
     }
     this.timer=setInterval(()=>void this.recheck(),6000);
    }
@@ -177,7 +183,7 @@ Page({
    const refundAction=action==='request_refund'||action==='approve_pending_refund';
    const directApproval=refundApprovalAction(row,this.data.capabilities)===action;
    if(action==='approve_pending_refund'&&!directApproval)return;
-   const required=!this.data.management||['request_info','reject','approve_refund_without_return'].includes(action);
+   const required=['provide_info','request_info','reject','approve_refund_without_return'].includes(action);
    const entered=this.data.note.trim(),why=entered||(!required?(managementActions[action]??actions[action]??''):'');
    if(Array.from(why).length<3){this.setData({notice:'请填写至少 3 字的说明。'});return;}
    if(action==='send_return_instruction'&&(!this.data.recipientName.trim()||!this.data.returnPhone.trim()||!this.data.returnRegion.trim()||this.data.returnAddress.trim().length<5||!this.data.freightIndex)){this.setData({notice:'请填写收件信息并选择运费承担方。'});return;}
@@ -187,6 +193,7 @@ Page({
     this.setData({notice:'请选择无法寄回的情形，并填写可核对的物流或客服记录编号。'});return;}
    if(action==='resolve_old_route'&&!this.data.routeOutcomeIndex){this.setData({notice:'请选择实际处理结果。'});return;}
    if(['ship_return','report_old_route'].includes(action)&&!this.data.shipmentInstruction){this.setData({notice:'请先选择实际寄件时使用的退货指引。'});return;}
+   if(action==='ship_return'&&(!this.data.carrier.trim()||!/^[A-Za-z0-9-]{6,64}$/.test(this.data.tracking.trim()))){this.setData({notice:'请填写快递公司和正确的运单号。'});return;}
    if(action==='report_old_route'&&this.data.shipmentInstruction!.version>=Number(row?.returnDestination?.version??0)){
     this.setData({notice:'请选择已使用的旧版有效退货指引；当前版本无需人工改址协助。'});return;}
    const data:Record<string,unknown>={action,expectedVersion:row.version,note:why,...(action==='send_return_instruction'?{recipientName:this.data.recipientName.trim(),phone:this.data.returnPhone.trim(),region:this.data.returnRegion.trim(),address:this.data.returnAddress.trim(),instructions:this.data.returnInstructions.trim(),freightPayer:this.data.freightIndex===1?'merchant':'member'}:{}),...(action==='request_refund'&&directApproval?{approveRefund:true}:{}),...(['ship_return','report_old_route'].includes(action)?{instructionVersion:this.data.shipmentInstruction!.version}:{}),...(action==='ship_return'?{carrier:this.data.carrier.trim(),tracking:this.data.tracking.trim()}:{}),...(action==='inspect_return'?{qualityResult:this.data.qualityIndex===2?'unsellable':'sellable'}:{}),

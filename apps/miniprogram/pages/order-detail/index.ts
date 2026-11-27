@@ -26,20 +26,34 @@ type RefundRow={id:string;orderId:string;amountCents:number;state:string;refundS
 type RefundPage={items:RefundRow[];totalCount:number;nextCursor:string|null};
 const refundLabels:Record<string,string>={requested:"申请已收到",rejected:"申请未通过",approved:"退款处理中",prepared:"退款处理中",succeeded:"已退款",closed:"退款已关闭",abnormal:"退款需客服协助"};
 const orderIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-type SheetCase={id:string;orderId:string;state:string;kind:string;reason:string;claimBasis:string;requestedAt:string;supportConversationId:string|null;returnDestination:any;refund:any;resolved:boolean};
-type SheetAvailable={lineId:string;remainingQuantity:number;selectedQuantity:number;productName:string;skuLabel:string};
-type SheetAvailability={lines:Array<{lineId:string;remainingQuantity:number}>;requiresWholeOrder?:boolean};
-type SheetMessage={id:string;sequence:number;senderType:string;body:string;createdAt:string;deliveryState:string;orderCard:any;returnInstruction:any};
+type SheetCaseLine={lineId:string;productName:string;skuLabel:string;quantity:number};
+type SheetCase={id:string;orderId:string;state:string;kind:string;version:number;rejectionReason?:string;
+  amountCents?:number;lines?:SheetCaseLine[];supportConversationId:string|null;returnDestination:any;refund:any;resolved:boolean};
+type SheetAvailable={lineId:string;remainingQuantity:number;selectedQuantity:number;productName:string;skuLabel:string;image?:string};
+type SheetAvailability={orderId?:string;lines:Array<{lineId:string;remainingQuantity:number}>;requiresWholeOrder?:boolean;fulfillmentState?:'shipped'|'unshipped'};
+type SheetMessage={id:string;sequence:number;senderType:string;body:string;createdAt:string;deliveryState:string;
+  relatedOrderId?:string;aftersaleCard?:unknown;aftersaleDecision?:{caseId:string;version:number};
+  orderCard?:{orderId:string}|null;returnInstruction?:{caseId:string}|null};
 type SheetShown=ReturnType<typeof presentSupportMessages<SheetMessage>>[number];
 type SheetConversation={id:string;teamReadSequence?:number};
 type SheetPage={messages:SheetMessage[];latestCursor:number;conversation:SheetConversation|null;contextStartSequence?:number;contextVersion?:number};
 type SheetSendAttempt={key:string;body:string;expectedConversationId?:string|null;contextVersion?:number};
 const errorTitle=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
+const sheetReasons=['','no_reason','quality','wrong_item','missing_item','delivery_issue','other'];
+function sheetApplicationKind(fulfillment:SheetAvailability['fulfillmentState'],basis:string,kindIndex:number){
+  if(basis==='no_reason')return 'return_refund';
+  if(fulfillment==='unshipped'||fulfillment==='shipped'&&['missing_item','delivery_issue'].includes(basis))return 'refund_only';
+  if(fulfillment==='shipped')return 'return_refund';
+  return kindIndex===1?'return_refund':'refund_only';
+}
 function refundCents(value:string){const match=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exec(value.trim());
   return match?Number(match[1])*100+Number((match[2]??"").padEnd(2,"0")):NaN;}
-function supportSheetHeight(){
-  try{return wx.getWindowInfo().windowHeight<=640?'86vh':'78vh';}
-  catch{return '78vh';}
+function supportSheetSizes(){
+  try{
+    const {windowHeight,statusBarHeight}=wx.getWindowInfo();
+    const available=windowHeight-Math.max(52,(statusBarHeight??0)+40);
+    return {sheetHeight:windowHeight<=640?'86vh':'68vh',sheetChatHeight:`${Math.round(Math.min(available,windowHeight*.9))}px`};
+  }catch{return {sheetHeight:'68vh',sheetChatHeight:'88vh'};}
 }
 Page({
   lastSessionToken:"",lastSessionRevision:-1,
@@ -52,25 +66,28 @@ Page({
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
     qualificationPurchase:false,qualificationMoment:false,qualificationReduced:false,
-    supportSheetOpen:false,sheetLoading:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetWholeOrder:false,sheetAvailable:[] as SheetAvailable[],sheetConsulting:false,sheetPreviousCase:null as SheetCase|null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
+    supportSheetOpen:false,sheetLoading:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetWholeOrder:false,
+    sheetFulfillment:'' as SheetAvailability['fulfillmentState']|'',sheetApplicationLabel:'',sheetAvailable:[] as SheetAvailable[],
+    sheetConsulting:false,sheetReapplying:false,sheetPreviousCase:null as SheetCase|null,sheetCaseLabel:"",
+    sheetCaseAmount:"",sheetError:"",sheetCase:null as SheetCase|null,sheetMessages:[] as SheetShown[],
     sheetConversation:null as SheetConversation|null,sheetContextVersion:0,sheetContextStartSequence:0,sheetKindIndex:1,sheetKindOptions:['仅退款','退货退款'],
     sheetBasisIndex:0,sheetBasisOptions:['请选择问题类型','七日无理由','商品问题','错发','漏发','物流问题','其他'],
     sheetReason:"",sheetSubmitting:false,sheetAttempt:null as {key:string;payload:Record<string,unknown>}|null,
-    sheetInput:"",sheetSending:false,sheetSendAttempt:null as SheetSendAttempt|null,sheetKeyboardHeight:0,sheetHeight:'78vh'},
+    sheetInput:"",sheetSending:false,sheetSendAttempt:null as SheetSendAttempt|null,sheetKeyboardHeight:0,sheetHeight:'68vh',sheetChatHeight:'88vh'},
   qualificationKey:'',
   qualificationAttempt:0,
   checkingQualification:false,
   qualificationTimer:null as ReturnType<typeof setTimeout>|null,
   paymentFollowupTimer:null as ReturnType<typeof setTimeout>|null,
   paymentFollowupPending:false,
-  onResize(){this.setData({chromeStyle:currentChromeStyle(),sheetHeight:supportSheetHeight()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
+  onResize(){this.setData({chromeStyle:currentChromeStyle(),...supportSheetSizes()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
     this.qualificationKey=query.sharingQualification??'';
     this.merchantOrderNumber=query.outTradeNo??query.merchant_trade_no??"";
     this.launchAftersale=query.aftersale==='1';
     const merchantPresent=query.outTradeNo!==undefined||query.merchant_trade_no!==undefined;
     const merchantEntry=Boolean(this.merchantOrderNumber)&&/^CM[0-9]{8}[A-Z0-9]{12}$/.test(this.merchantOrderNumber)&&query.id===undefined
       &&!(query.outTradeNo&&query.merchant_trade_no&&query.outTradeNo!==query.merchant_trade_no);
-    this.setData({id:merchantEntry?'':id,invalidId:!merchantEntry&&(!orderIdPattern.test(id)||merchantPresent),sheetHeight:supportSheetHeight()});},
+    this.setData({id:merchantEntry?'':id,invalidId:!merchantEntry&&(!orderIdPattern.test(id)||merchantPresent),...supportSheetSizes()});},
   onShow(){this.setData({rewardOwner:currentCreditOwner()});this.data.pageAlive=true;this.data.visible=true;this.setData({navigating:false,closedRights:historicalCommerceClosed()});this.syncSession();
     if(!requireHistoricalCommerceAccess())return;
     this.setData({qualificationPurchase:!this.data.closedRights&&!!qualificationOrderOwner(this.qualificationKey,this.data.id)});
@@ -89,7 +106,7 @@ Page({
     if(changed&&this.merchantOrderNumber)this.setData({id:''});
     if(changed){clearWechatReceiptReturn();this.wechatReturn=null;this.receiptQueryAttempt+=1;this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
-    if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.sheetValidationError=false;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetAvailable:[],sheetConsulting:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseShortId:"",sheetRequestedLabel:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetContextVersion:0,sheetContextStartSequence:0,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
+    if(changed){this.stopSheetPoll();this.sheetReadEpoch+=1;this.sheetValidationError=false;this.setData({supportSheetOpen:false,sheetCasesReady:false,sheetLinesReady:false,sheetHasRemaining:false,sheetWholeOrder:false,sheetFulfillment:'',sheetApplicationLabel:'',sheetAvailable:[],sheetConsulting:false,sheetReapplying:false,sheetPreviousCase:null,sheetCaseLabel:"",sheetCaseAmount:"",sheetLoading:false,sheetSubmitting:false,sheetSending:false,sheetCase:null,sheetMessages:[],sheetConversation:null,sheetContextVersion:0,sheetContextStartSequence:0,sheetBasisIndex:0,sheetKindIndex:1,sheetReason:"",sheetAttempt:null,sheetInput:"",sheetSendAttempt:null,sheetError:""});}
     },
   confirmationPending:false,
   trackingAttempt:0,
@@ -484,26 +501,39 @@ Page({
     this.sheetCursor=0;this.setData({sheetMessages:[],...(!keepAttempt?{sheetInput:'',sheetSendAttempt:null,sheetSending:false}:{})});
   },
   applySheetCases(items:SheetCase[]){
-    const selected=items.find(item=>!['cancelled','rejected'].includes(item.state)&&!item.resolved)??null;
-    const stateLabels:Record<string,string>={requested:'申请已收到',need_info:'请补充信息',awaiting_instruction:'客服正在准备退货信息',
-      awaiting_return:'请按指引寄回',return_in_transit:'退货运输中',return_received:'退货已收到',quality_checked:'正在处理退款',
-      refund_exception_approved:'无需寄回，正在处理退款',refund_pending:'退款处理中'};
-    const label=!selected?'':selected.resolved?(selected.refund?.executionKind==='local_credit'?'购物权益已退回':'已退款'):selected.refund?.reviewState==='rejected'?'退款申请未通过':
-      ['closed','abnormal'].includes(selected.refund?.channelState)?'退款需客服协助':stateLabels[selected.state]??'进度暂未更新';
-    const at=selected?Date.parse(selected.requestedAt):NaN;
-    this.setData({sheetCase:selected,sheetPreviousCase:selected?null:items[0]??null,sheetCasesReady:true,sheetCaseLabel:label,sheetCaseShortId:selected?.id.slice(-6)??'',
-      sheetRequestedLabel:Number.isFinite(at)?new Date(at).toLocaleString('zh-CN',{hour12:false}):'',
-      ...(selected&&this.data.sheetAttempt?{sheetAttempt:null}:{})});
+    const owned=items.filter(item=>item.orderId===this.data.id);
+    const selected=owned.find(item=>!['cancelled','rejected'].includes(item.state)&&!item.resolved)??null;
+    const previous=selected?null:owned[0]??null;
+    const current=selected??previous;
+    const stateLabels:Record<string,string>={requested:'申请已提交',need_info:'请补充信息',awaiting_instruction:'客服正在准备退货信息',
+      awaiting_return:'请按指引寄回',return_in_transit:'退货运输中',return_received:'退货已收到',quality_checked:'质检已完成',
+      refund_exception_approved:'无需寄回，待处理退款',refund_pending:'退款处理中',rejected:'申请未通过',cancelled:'申请已撤回'};
+    const label=!current?'':current.resolved?(current.refund?.executionKind==='local_credit'?'购物权益已退回':'已退款'):
+      current.refund?.reviewState==='rejected'?'退款复核未通过':current.refund?.reviewState==='requested'?'待退款审核':
+      ['closed','abnormal'].includes(current.refund?.channelState)?'退款需客服协助':stateLabels[current.state]??'进度暂未更新';
+    const amount=current?.amountCents;
+    this.setData({sheetCase:selected,sheetPreviousCase:previous,sheetCasesReady:true,sheetCaseLabel:label,
+      sheetCaseAmount:amount!==undefined&&Number.isSafeInteger(amount)?centsToYuan(amount):'',
+      ...(selected?{sheetReapplying:false,sheetAttempt:null}:{})});
   },
-  applySheetAvailability(rows:SheetAvailability['lines'],requiresWholeOrder=false){
+  applySheetAvailability(availability:SheetAvailability){
+    const {lines:rows,requiresWholeOrder=false,fulfillmentState}=availability;
     const order=this.data.order,prior=new Map(this.data.sheetAvailable.map(line=>[line.lineId,line.selectedQuantity]));
-    if(!order||rows.length!==order.lines.length||new Set(rows.map(row=>row.lineId)).size!==rows.length||
+    if(!order||availability.orderId&&availability.orderId!==this.data.id||!Array.isArray(rows)||rows.length!==order.lines.length||new Set(rows.map(row=>row.lineId)).size!==rows.length||
       rows.some(row=>!order.lines.some(line=>line.id===row.lineId)||!Number.isSafeInteger(row.remainingQuantity)||row.remainingQuantity<0)){
       this.setData({sheetLinesReady:false,sheetError:'商品可申请数量暂未核实，请重试。'});return;}
     this.setData({sheetAvailable:rows.map(row=>{const source=order.lines.find(line=>line.id===row.lineId)!;
       return {...row,productName:source.productName,skuLabel:source.skuLabel,
+        ...(source.image?{image:source.image}:{}),
         selectedQuantity:requiresWholeOrder?row.remainingQuantity:Math.min(row.remainingQuantity,prior.get(row.lineId)??row.remainingQuantity)};}),
-      sheetHasRemaining:rows.some(row=>row.remainingQuantity>0),sheetWholeOrder:requiresWholeOrder,sheetLinesReady:true});
+      sheetHasRemaining:rows.some(row=>row.remainingQuantity>0),sheetWholeOrder:requiresWholeOrder,sheetLinesReady:true,
+      sheetFulfillment:fulfillmentState??'',
+      sheetApplicationLabel:fulfillmentState==='unshipped'?'未发货 · 无需寄回':fulfillmentState?
+        (sheetApplicationKind(fulfillmentState,sheetReasons[this.data.sheetBasisIndex]??'',this.data.sheetKindIndex)==='refund_only'?'仅退款':'退货退款'):''});
+  },
+  sheetRelevantMessage(message:SheetMessage){
+    if(message.aftersaleCard||message.returnInstruction)return false;
+    return (message.relatedOrderId??message.orderCard?.orderId)===this.data.id;
   },
   async pollSupportSheet(){if(!this.data.supportSheetOpen||!this.canAct()||this.data.sheetLoading||this.data.sheetSending||this.sheetPollInFlight){this.scheduleSheetPoll();return;}
     const epoch=this.data.epoch,token=historicalCommerceToken(),cursor=this.sheetCursor,generation=this.sheetReadEpoch;
@@ -517,14 +547,14 @@ Page({
         pageRead<SheetAvailability>(this,{path:`/v1/me/orders/${this.data.id}/aftersales/availability`})]);
       if(!this.sheetReadCurrent(epoch,token,generation))return;
       if(cases.status==='fulfilled')this.applySheetCases(cases.value.items??[]);
-      if(availability.status==='fulfilled')this.applySheetAvailability(availability.value.lines??[],availability.value.requiresWholeOrder===true);
+      if(availability.status==='fulfilled')this.applySheetAvailability(availability.value);
       if(messages.status==='fulfilled'){
         const page=messages.value;
         const topic=this.sheetTopic(page);
         if(!topic.stale){
           if(topic.changed)this.clearRetiredSheetTopic(topic.contextVersion,page.conversation?.id);
           const state=mergeSyncPage<SheetShown>(topic.changed?createSupportThreadState<SheetShown>([],topic.contextStartSequence):{messages:this.data.sheetMessages,syncCursor:this.sheetCursor,maxSeenSequence:this.sheetCursor,readCursor:0},
-            presentSupportMessages((page.messages??[]).filter(item=>item.sequence>topic.contextStartSequence),{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}),page.latestCursor??cursor);
+            presentSupportMessages((page.messages??[]).filter(item=>item.sequence>topic.contextStartSequence&&this.sheetRelevantMessage(item)),{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}),page.latestCursor??cursor);
           this.sheetCursor=state.syncCursor;this.setData({sheetMessages:presentSupportMessages(state.messages,{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0}).slice(-30),sheetConversation:page.conversation,
             sheetContextVersion:topic.contextVersion,sheetContextStartSequence:topic.contextStartSequence});
         }
@@ -547,14 +577,14 @@ Page({
       pageRead<SheetAvailability>(this,{path:`/v1/me/orders/${this.data.id}/aftersales/availability`})]);
     if(!this.sheetReadCurrent(epoch,token,generation))return;
     if(cases.status==='fulfilled')this.applySheetCases(cases.value.items??[]);
-    if(availability.status==='fulfilled')this.applySheetAvailability(availability.value.lines??[],availability.value.requiresWholeOrder===true);
+    if(availability.status==='fulfilled')this.applySheetAvailability(availability.value);
     if(messages.status==='fulfilled'){
       const page=messages.value,topic=this.sheetTopic(page);
       if(!topic.stale){
         if(topic.changed)this.clearRetiredSheetTopic(topic.contextVersion,page.conversation?.id);
         this.sheetCursor=page.latestCursor??0;
         this.setData({sheetConversation:page.conversation,sheetContextVersion:topic.contextVersion,sheetContextStartSequence:topic.contextStartSequence,
-          sheetMessages:presentSupportMessages((page.messages??[]).filter(item=>item.sequence>topic.contextStartSequence),{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0})});
+          sheetMessages:presentSupportMessages((page.messages??[]).filter(item=>item.sequence>topic.contextStartSequence&&this.sheetRelevantMessage(item)),{ownSenderType:'user',counterpartyReadSequence:page.conversation?.teamReadSequence??0})});
       }
     }
     this.setData({sheetLoading:false,sheetError:cases.status==='rejected'?'售后记录暂未加载，请重试。':availability.status==='rejected'||!this.data.sheetLinesReady?'商品可申请数量暂未加载，请重试。':messages.status==='rejected'?'消息暂未更新，仍可提交售后申请。':''});
@@ -572,6 +602,13 @@ Page({
   },
   toggleSheetConsulting(){if(this.data.sheetSubmitting||this.data.sheetSending||this.data.sheetAttempt||this.data.sheetSendAttempt)return;
     this.setData({sheetConsulting:!this.data.sheetConsulting});},
+  startSheetReapply(){
+    if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||!this.data.sheetCasesReady||!this.data.sheetLinesReady||
+      !this.data.sheetPreviousCase||this.data.sheetCase||!this.data.sheetHasRemaining||this.data.sheetSubmitting||this.data.sheetAttempt)return;
+    this.sheetValidationError=false;
+    this.setData({sheetReapplying:true,sheetConsulting:false,sheetBasisIndex:0,sheetReason:'',sheetError:'',
+      sheetApplicationLabel:this.data.sheetFulfillment==='unshipped'?'未发货 · 无需寄回':this.data.sheetFulfillment==='shipped'?'退货退款':''});
+  },
   stopPropagation(){},
   expandSupport(){if(!this.canAct()||this.data.navigating||this.data.sheetSending)return;this.stopSheetPoll();
     const handoff=this.data.sheetSendAttempt?null:this.data.sheetInput;
@@ -588,11 +625,19 @@ Page({
       this.setData({navigating:false,...(draft?{sheetInput:draft}:{})});this.scheduleSheetPoll();
     }});},
   openFullAftersale(){if(!this.canAct()||this.data.navigating)return;this.stopSheetPoll();this.setData({navigating:true});
-    const caseId=this.data.sheetCase?.id;wx.navigateTo({url:caseId?`/pages/aftersale/index?caseId=${caseId}`:`/pages/aftersale/index?orderId=${this.data.id}`,fail:()=>{this.setData({navigating:false});this.scheduleSheetPoll();}});},
+    const row=this.data.sheetCase??this.data.sheetPreviousCase;
+    const action=row?.state==='awaiting_return'&&row.returnDestination?'ship_return':row?.state==='need_info'?'provide_info':'';
+    const url=row?`/pages/aftersale/index?caseId=${row.id}${action?'&action='+action:''}`:`/pages/aftersale/index?orderId=${this.data.id}`;
+    wx.navigateTo({url,fail:()=>{this.setData({navigating:false});this.scheduleSheetPoll();}});},
   chooseSheetKind(event:WechatMiniprogram.PickerChange){if(this.data.sheetSubmitting||this.data.sheetAttempt)return;
     const value=Number(event.detail.value);this.sheetValidationError=false;this.setData({sheetKindIndex:this.data.sheetBasisIndex===1?1:value,sheetError:''});},
   chooseSheetBasis(event:WechatMiniprogram.PickerChange){if(this.data.sheetSubmitting||this.data.sheetAttempt)return;
-    const value=Number(event.detail.value);this.sheetValidationError=false;this.setData({sheetBasisIndex:value,sheetKindIndex:value===1?1:this.data.sheetKindIndex,sheetError:''});},
+    const value=Number(event.detail.value);
+    if(!Number.isInteger(value)||value<0||value>=sheetReasons.length)return;
+    const fulfillment=this.data.sheetFulfillment||undefined;
+    this.sheetValidationError=false;this.setData({sheetBasisIndex:value,sheetKindIndex:value===1?1:this.data.sheetKindIndex,sheetError:'',
+      sheetApplicationLabel:fulfillment==='unshipped'?'未发货 · 无需寄回':fulfillment?
+        (sheetApplicationKind(fulfillment,sheetReasons[value]!,this.data.sheetKindIndex)==='refund_only'?'仅退款':'退货退款'):''});},
   chooseSheetQuantity(event:WechatMiniprogram.TouchEvent){if(this.data.sheetSubmitting||this.data.sheetAttempt||this.data.sheetWholeOrder||!this.data.sheetLinesReady)return;
     const id=String(event.currentTarget.dataset.id??''),delta=Number(event.currentTarget.dataset.delta);
     if(![-1,1].includes(delta)||!this.data.sheetAvailable.some(line=>line.lineId===id))return;
@@ -601,14 +646,15 @@ Page({
   editSheetReason(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSubmitting&&!this.data.sheetAttempt){this.sheetValidationError=false;this.setData({sheetReason:event.detail.value,sheetError:''});}},
   editSheetInput(event:WechatMiniprogram.TextareaInput){if(!this.data.sheetSending&&!this.data.sheetSendAttempt)this.setData({sheetInput:event.detail.value});},
   onSheetKeyboardHeightChange(event:WechatMiniprogram.TextareaKeyboardHeightChange){const height=Number(event.detail.height);this.setData({sheetKeyboardHeight:this.data.supportSheetOpen&&Number.isFinite(height)?Math.max(0,height):0});},
-  async submitSheetAftersale(){if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||this.data.sheetSubmitting||!this.data.sheetCasesReady||!this.data.sheetLinesReady||!this.data.sheetHasRemaining||this.data.sheetCase)return;
-    const bases=['','no_reason','quality','wrong_item','missing_item','delivery_issue','other'];
+  async submitSheetAftersale(){if(!this.sheetCurrent(this.data.epoch,historicalCommerceToken())||this.data.sheetSubmitting||!this.data.sheetCasesReady||!this.data.sheetLinesReady||!this.data.sheetHasRemaining||this.data.sheetCase||
+    this.data.sheetPreviousCase&&!this.data.sheetReapplying&&!this.data.sheetAttempt)return;
     if(!this.data.sheetAttempt){
       if(!this.data.sheetBasisIndex){this.sheetValidationError=true;this.setData({sheetError:'请选择售后问题类型。'});return;}
       if(this.data.sheetBasisIndex!==1&&Array.from(this.data.sheetReason.trim()).length<3){this.sheetValidationError=true;this.setData({sheetError:'请简要说明问题；无理由退货可留空。'});return;}
       const lines=this.data.sheetAvailable.filter(line=>line.selectedQuantity>0).map(line=>({lineId:line.lineId,quantity:line.selectedQuantity}));
       if(!lines.length){this.sheetValidationError=true;this.setData({sheetError:'请选择本次申请的商品数量。'});return;}
-      const payload={kind:this.data.sheetKindIndex===1?'return_refund':'refund_only',claimBasis:bases[this.data.sheetBasisIndex],reason:this.data.sheetReason.trim(),lines};
+      const claimBasis=sheetReasons[this.data.sheetBasisIndex]!;
+      const payload={kind:sheetApplicationKind(this.data.sheetFulfillment||undefined,claimBasis,this.data.sheetKindIndex),claimBasis,reason:this.data.sheetReason.trim(),lines};
       this.setData({sheetAttempt:{key:clientOperationKey('aftersale'),payload}});
     }
     const attempt=this.data.sheetAttempt!,epoch=this.data.epoch,token=historicalCommerceToken();
@@ -616,7 +662,10 @@ Page({
     try{const row=await request<SheetCase>({path:`/v1/me/orders/${this.data.id}/aftersales`,method:'POST',idempotencyKey:attempt.key,data:attempt.payload,cacheTags:['support','orders']});
       if(!this.sheetCurrent(epoch,token))return;
       const aftersale={caseId:row.id,phase:row.kind==='return_refund'?'returning':'refund_review'} as const;
-      this.setData({sheetCase:row,sheetAttempt:null,sheetReason:'',sheetError:'',order:{...this.data.order!,aftersale,statusLabel:aftersaleLabels[aftersale.phase]}});
+      if(row.orderId!==this.data.id||!orderIdPattern.test(row.id))throw Error('AFTERSALE_RECEIPT_MISMATCH');
+      this.applySheetCases([row]);
+      this.setData({sheetReason:'',sheetError:'',sheetAttempt:null,sheetReapplying:false,
+        ...(this.data.sheetCase?{order:{...this.data.order!,aftersale,statusLabel:aftersaleLabels[aftersale.phase]}}:{})});
       await this.loadSupportSheet();
     }catch(error){if(this.sheetCurrent(epoch,token)){
       const code=(error as {code?:string})?.code;

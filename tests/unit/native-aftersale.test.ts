@@ -45,11 +45,11 @@ it('registers the version actually used for an old valid return address and clea
  m.request.mockResolvedValueOnce(detail);
  await p.load();expect(p.data.shipmentInstruction.version).toBe(2);
  p.chooseShipmentInstruction({detail:{value:'1'}});expect(p.data.shipmentInstruction.version).toBe(1);
- p.data.note='已按旧址寄出';p.data.carrier='合成物流';p.data.tracking='SYNTHETIC123456';
+ p.data.carrier='合成物流';p.data.tracking='SYNTHETIC123456';
  m.request.mockResolvedValueOnce({...detail,state:'return_in_transit',version:7});
  await p.submit({currentTarget:{dataset:{action:'ship_return'}}});
  const write=m.request.mock.calls.map(([input])=>input).find(input=>input.method==='POST');
- expect(write.data).toMatchObject({action:'ship_return',instructionVersion:1,carrier:'合成物流',tracking:'SYNTHETIC123456'});
+ expect(write.data).toMatchObject({action:'ship_return',instructionVersion:1,carrier:'合成物流',tracking:'SYNTHETIC123456',note:'登记退货运单'});
  p.onHide();expect(p.data.shipmentInstruction).toBeNull();
 });
 it('offers direct approval only from server shipping facts and current money capability',async()=>{

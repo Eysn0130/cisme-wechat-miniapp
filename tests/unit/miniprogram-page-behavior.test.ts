@@ -801,7 +801,7 @@ describe("mini-program page behavior", () => {
     expect(sent).toMatchObject({method:"POST",data:{body:"核对原订单退款",linkedOrderId:orderId}});
     expect(sent.data).not.toHaveProperty("mediaIds");
     expect(requestMock.mock.calls.some(([options])=>["/v1/me/support/presence","/v1/me/support/read"].includes(options.path))).toBe(false);
-    context.openImageSheet();expect(context.data.attachmentSheetOpen).toBe(false);
+    context.openAttachmentSheet();expect(context.data.attachmentSheetOpen).toBe(false);
     const direct=mountedPage(capturedPage!);direct.onLoad({});direct.onShow();
     expect(wxMock.redirectTo).toHaveBeenCalledWith({url:"/pages/privacy-rights/index"});
   });

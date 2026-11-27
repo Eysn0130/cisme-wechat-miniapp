@@ -1883,6 +1883,15 @@ it('delivers a same-order operator message and refusal once, then clears unread 
   const inbox=await app.inject({url:'/v1/me/support/messages',headers:auth(owner.sessionToken)});
   const received=inbox.json();
   expect(received.messages.filter((message:{body:string})=>message.body.includes(reason))).toHaveLength(1);
+  expect(received.messages).toContainEqual(expect.objectContaining({
+    senderType:'system',relatedOrderId:order.id,
+    aftersaleCard:expect.objectContaining({id:row.id,orderId:order.id,kind:'return_refund',amountCents:10000,
+      lines:[expect.objectContaining({lineId:expect.any(String),productName:'HTTP fixture',quantity:1})]})
+  }));
+  expect(received.messages).toContainEqual(expect.objectContaining({body:expect.stringContaining(reason),relatedOrderId:order.id,
+    aftersaleDecision:{caseId:row.id,version:2}}));
+  const rejectedCase=await app.inject({url:`/v1/me/aftersales?orderId=${order.id}`,headers:auth(owner.sessionToken)});
+  expect(rejectedCase.json().items).toContainEqual(expect.objectContaining({id:row.id,state:'rejected',rejectionReason:reason}));
   expect(received.messages).toContainEqual(expect.objectContaining({body:reply.body,orderCard:expect.objectContaining({orderId:order.id})}));
   expect((await summary()).json().unreadCount).toBe(3);
   const read=await aftersalePost(owner,'/v1/me/support/read',{lastSeenSequence:received.latestCursor},'case-contact-read');

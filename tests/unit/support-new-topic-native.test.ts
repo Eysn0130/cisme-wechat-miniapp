@@ -70,7 +70,7 @@ describe('native support new AI topic',()=>{
  it('keeps the same command and draft after an unknown result, blocking accidental sends until retry',async()=>{
   p.data.input='draft';m.request.mockRejectedValueOnce(new Error('synthetic network loss'));await p.startNewTopic();
   const attempt=structuredClone(p.data.newTopicAttempt);expect(attempt.requestId).toBeTruthy();expect(p.data.input).toBe('draft');
-  await p.send();await p.requestHuman();p.prepareAttachmentSheet('image');expect(m.request).toHaveBeenCalledOnce();expect(p.data.attachmentSheetOpen).toBe(false);
+  await p.send();await p.requestHuman();p.openAttachmentSheet();expect(m.request).toHaveBeenCalledOnce();expect(p.data.attachmentSheetOpen).toBe(false);
   m.request.mockResolvedValueOnce(page());await p.startNewTopic();
   expect(m.request.mock.calls[1]![0].data).toEqual(attempt);expect(wx.showModal).toHaveBeenCalledOnce();expect(p.data.input).toBe('');expect(p.data.newTopicAttempt).toBeNull();
  });

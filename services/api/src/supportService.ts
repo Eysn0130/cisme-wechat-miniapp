@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
-import type { Capability, CommerceOrderStatus, SupportConversationStatus, SupportMessageContentType, SupportMessageView, SupportPresenceView, UploadAuthorization } from "@cisme/contracts";
+import type { Capability, CommerceOrderStatus, SupportAftersaleCard, SupportConversationStatus, SupportMessageContentType, SupportMessageView, SupportPresenceView, UploadAuthorization } from "@cisme/contracts";
 import { DomainError } from "@cisme/domain";
 import { AuthorityService } from "./authority.js";
 import { readSnapshot, transaction, type DbClient } from "./db.js";
@@ -25,7 +25,7 @@ type ConversationRow = {
 type OrderCard = { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
 type MessageRow = { id: string; conversation_id:string; sequence: string; sender_type: "user" | "ai" | "admin" | "system"; sender_principal_id: string | null; body: string; attachment_refs: string[];
   content_type: SupportMessageContentType; linked_order_id: string | null; order_snapshot: OrderCard | null;
-  linked_case_id:string|null;return_instruction_snapshot:Omit<NonNullable<SupportMessageView['returnInstruction']>,'caseId'>|null;created_at: Date;reply_to_message_id?:string|null };
+  linked_case_id:string|null;client_message_id?:string;return_instruction_snapshot:Omit<NonNullable<SupportMessageView['returnInstruction']>,'caseId'>|null;created_at: Date;reply_to_message_id?:string|null };
 type MediaRow = { id: string; mime_type: "image/jpeg" | "image/png" | "image/webp"; size_bytes: string | number };
 type ReplyTargetInput={replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown};
 type HumanContext={generation:number;status:'waiting_human'|'human_active';anchorQuestion:string|null;anchorKnown:boolean;anchorMessageId:string|null;anchorSequence:number|null};
@@ -91,7 +91,15 @@ function contentType(body: string, images: readonly string[], orderId: string | 
   return "text";
 }
 function messageColumns(): string {
-  return "id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at,reply_to_message_id";
+  return "id,conversation_id,sequence,sender_type,sender_principal_id,body,attachment_refs,content_type,linked_order_id,order_snapshot,linked_case_id,return_instruction_snapshot,created_at,reply_to_message_id,client_message_id";
+}
+function referencedAftersale(row:MessageRow){
+  if(row.sender_type!=='system'||row.sender_principal_id!=='system:aftersale')return null;
+  if(row.linked_case_id)return {id:row.linked_case_id,request:false,decisionVersion:null};
+  const key=/^aftersale-(request|decision|old-route):([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?::v([1-9][0-9]*))?$/.exec(row.client_message_id??'');
+  if(!key)return null;
+  const version=key[1]==='decision'?Number(key[3]):NaN;
+  return {id:key[2]!,request:key[1]==='request',decisionVersion:Number.isSafeInteger(version)?version:null};
 }
 function replyExcerpt(target: Pick<MessageRow, "body" | "content_type">): string {
   const characters = Array.from(target.body.replace(/\s+/g, " ").trim());
@@ -523,22 +531,38 @@ export class SupportService {
       WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id,boundary,pageLimit + 1]);
     const hasOlder = after === null && result.rows.length > pageLimit;
     const pageRows = hasOlder ? result.rows.slice(result.rows.length - pageLimit) : result.rows;
+    const caseLinks=new Map(pageRows.map(message=>[message.id,referencedAftersale(message)]));
+    const caseIds=[...new Set([...caseLinks.values()].flatMap(link=>link?[link.id]:[]))];
+    const cases=caseIds.length?(await client.query<Omit<SupportAftersaleCard,'requestedAt'|'amountCents'>&{requestedAt:Date;amountCents:string}>(`SELECT c.id,c.order_id AS "orderId",
+      right(o.order_number,4) AS "orderNumberTail",c.kind,c.created_at AS "requestedAt",
+      c.amount_cents::text AS "amountCents",
+      COALESCE((SELECT jsonb_agg(jsonb_build_object('lineId',line->>'lineId','productName',line->>'productName','skuLabel',line->>'skuLabel','quantity',line->'quantity'))
+        FROM jsonb_array_elements(c.lines) AS line),'[]'::jsonb) AS lines
+      FROM commerce_aftersale_case c JOIN commerce_order o ON o.id=c.order_id AND o.member_id=c.member_id
+      WHERE c.id=ANY($1::uuid[]) AND c.member_id=$2 AND (c.support_conversation_id=$3 OR c.support_conversation_id IS NULL)`,
+      [caseIds,row.member_id,row.id])).rows:[];
+    const casesById=new Map(cases.map(item=>[item.id,{...item,requestedAt:item.requestedAt.toISOString(),amountCents:Number(item.amountCents)}]));
     const identityPage = await supportIdentities(client, row, pageRows, this.authority.environment);
     const media = await this.mediaMap(client, pageRows);
     const replyIds=pageRows.flatMap(message=>message.reply_to_message_id?[message.reply_to_message_id]:[]);
-    const targets = replyIds.length ? (await client.query<Pick<MessageRow,"id" | "sequence" | "body" | "content_type">>(
-      `SELECT id,sequence,body,content_type FROM support_message
+    const targets = replyIds.length ? (await client.query<Pick<MessageRow,"id" | "sequence" | "body" | "content_type" | "linked_order_id">>(
+      `SELECT id,sequence,body,content_type,linked_order_id FROM support_message
        WHERE id=ANY($1::uuid[]) AND conversation_id=$2 AND sequence>$3 AND sender_type='user'`, [replyIds,row.id,boundary])).rows : [];
     const byId = new Map(targets.map(target => [target.id, target]));
     const messages = pageRows.map(messageRow => {
       const target = byId.get(messageRow.reply_to_message_id ?? "");
       const original = target && Number(target.sequence) < Number(messageRow.sequence) ? target : undefined;
       const excerpt = original && messageRow.sender_type === "admin" ? replyExcerpt(original) : "";
+      const link=caseLinks.get(messageRow.id),caseCard=link?casesById.get(link.id):undefined;
+      const relatedOrderId=messageRow.linked_order_id??caseCard?.orderId??original?.linked_order_id;
       return { ...view({...messageRow,reply_to_message_id:original?.id ?? null}, {
         counterpartyReadSequence: Number(perspective === "member" ? row.team_last_read_sequence : row.member_last_read_sequence),
         previewPrefix: perspective === "member" ? "/v1/me/support/media" : `/v1/management/support/conversations/${row.id}/media`,
         media
-      }), ...(excerpt ? {replyExcerpt: excerpt} : {}), sender: identityPage.sender(messageRow) };
+      }), ...(excerpt ? {replyExcerpt: excerpt} : {}), ...(relatedOrderId?{relatedOrderId}:{}),
+      ...(link?.request&&caseCard?{aftersaleCard:caseCard}:{}),
+      ...(link?.decisionVersion&&caseCard?{aftersaleDecision:{caseId:caseCard.id,version:link.decisionVersion}}:{}),
+      sender: identityPage.sender(messageRow) };
     });
     const olderCursor:number|null=hasOlder?messages[0]!.sequence:null;
     const presence = await this.presence(row,new Date(),client);
