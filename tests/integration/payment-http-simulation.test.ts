@@ -2371,7 +2371,7 @@ it.each([
  const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
  const claim=await service.request(owner.memberId,order.id,`direct-claim-${scenario}`,{kind,reason:'合成未发货退款'});
  expect(claim.fulfillment).toEqual({state:'unshipped',canRefundWithoutReturn:true});
- for(const capability of ['commerce.aftersale.review','commerce.refund.approve','support.read','support.reply'])
+ for(const capability of ['commerce.aftersale.review','commerce.refund.approve','support.read','support.reply','support.assign'])
    await aftersaleGrant(administrator,capability);
  expect(await service.detail(administrator.memberId,claim.id,true)).toMatchObject({canReview:true,canStartRefund:true,refundApprovalAllowed:true});
  const contact=await aftersalePost(administrator,`/v1/management/aftersales/${claim.id}/contact`,{},`direct-contact-${scenario}`);
@@ -2395,6 +2395,19 @@ it.each([
  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);expect((await service.detail(owner.memberId,claim.id)).resolved).toBe(true);
  const closed=await service.list(administrator.memberId,{stage:'closed'},true);expect(closed.items.some(row=>row.id===claim.id)).toBe(true);
  const active=await service.list(administrator.memberId,{stage:'refunds'},true);expect(active.items.some(row=>row.id===claim.id)).toBe(false);
+ const waiting=await app.inject({url:'/v1/me/support/messages',headers:auth(owner.sessionToken)});
+ expect(waiting.json()).toMatchObject({conversation:{id:claim.supportConversationId,status:'waiting_human'},aftersale:{caseId:claim.id,active:false}});
+ const claimed=await app.inject({method:'POST',url:`/v1/management/support/conversations/${claim.supportConversationId}/claim`,
+   headers:auth(administrator.sessionToken),payload:{expectedVersion:waiting.json().conversation.version}});
+ expect(claimed.statusCode,claimed.body).toBe(200);
+ const assigned=await app.inject({url:'/v1/me/support/messages',headers:auth(owner.sessionToken)});
+ expect(assigned.json()).toMatchObject({conversation:{status:'human_active'},aftersale:{caseId:claim.id,active:false}});
+ const consultation=await app.inject({method:'POST',url:'/v1/me/support/new-topic',headers:auth(owner.sessionToken),
+   payload:{conversationId:claim.supportConversationId,expectedVersion:assigned.json().conversation.version,requestId:randomUUID(),consultationCaseId:claim.id}});
+ expect(consultation.statusCode,consultation.body).toBe(200);
+ expect(consultation.json()).toMatchObject({conversation:{status:'human_active'},aftersale:{caseId:claim.id,active:false},messages:[]});
+ const resumed=await app.inject({url:`/v1/me/support/messages?aftersaleCaseId=${claim.id}`,headers:auth(owner.sessionToken)});
+ expect(resumed.json().messages).toEqual(expect.arrayContaining([expect.objectContaining({body:expect.stringContaining('已同意退款')})]));
 });
 it('allows the owner administrator to decide an existing linked request and preserves independent standalone review',async()=>{
  const owner=await directBuyer('pending-self');

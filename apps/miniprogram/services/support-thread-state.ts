@@ -215,6 +215,20 @@ export function presentSupportMessages<TMessage extends SupportSequenceMessage>(
   });
 }
 
+const orderStatusLabels = new Map([
+  ["pending_payment", "待支付"],
+  ["paid", "已付款"],
+  ["shipped", "已发货"],
+  ["delivered", "已签收"],
+  ["completed", "已完成"],
+  ["cancelled", "已取消"],
+  ["expired", "已超时"]
+]);
+
+export function supportOrderStatusLabel(status: string): string {
+  return orderStatusLabels.get(status) ?? "状态待更新";
+}
+
 export function supportHeaderPresentation(input: SupportHeaderInput): { tone: SupportHeaderTone; label: string } {
   if (input.status === "ai_active") return { tone: "ai", label: "CISME AI 客服" };
   if (input.status === "waiting_human") return { tone: "waiting", label: "等待人工客服" };

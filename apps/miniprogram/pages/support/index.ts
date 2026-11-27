@@ -9,6 +9,7 @@ import { nativeCatalogImage } from "../../services/catalog";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import { openSupportHelp, supportHelpLabel } from "../../services/support-help";
+import { setSupportComposerLayout, updateSupportComposerLines } from "../../services/support-composer-layout";
 import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt, stageSupportRecovery, takeSupportRecovery } from "../../services/support-draft-handoff";
 import {
   createSupportThreadState,
@@ -20,6 +21,7 @@ import {
   readableSequence,
   supportHeaderPresentation,
   supportMessageSetDataPatch,
+  supportOrderStatusLabel,
   supportPollDelay,
   withReadCursor,
   type PresentedSupportMessage,
@@ -52,7 +54,6 @@ type TopicMetadata = { contextStartSequence?: unknown; contextVersion?: unknown;
 type AiCapabilities = { supportAiAvailable?: unknown; supportAiCanRespond?: unknown };
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
-const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", paid:"已付款", shipped:"已发货", delivered:"已签收", completed:"已完成", cancelled: "已取消", expired: "已超时" };
 function sessionToken(): string { return historicalCommerceToken(); }
 function isCancellation(error: unknown): boolean { return /cancel|abort/i.test(String((error as {errMsg?:string})?.errMsg ?? (error as {code?:string})?.code ?? error)); }
 function newTopicRequestId(): string { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => { const n = Math.floor(Math.random() * 16); return (char === 'x' ? n : n & 3 | 8).toString(16); }); }
@@ -92,6 +93,7 @@ Page({
   orderPickerToken: "",
   lastScrollTop: 0,
   bottomScrollTop: 0,
+  composerLayoutRevision: 0,
   lastActivityAt: 0,
   lastPresenceSentAt: 0,
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
@@ -318,7 +320,7 @@ Page({
     const current=()=>this.owns(epoch,token)&&attempt===this.linkedOrderAttempt&&revision===this.orderSelectionRevision&&!this.linkedOrderDismissed;
     try{const order=await myOrder(id,this);if(!current()||order.id!==id||this.data.selectedOrder)return;
       const selected:OrderChoice={id,orderNumberTail:order.orderNumber.slice(-4),status:order.status,
-        statusLabel:orderStatusLabels[order.status]??"状态待更新",totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
+        statusLabel:supportOrderStatusLabel(order.status),totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
         currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:nativeCatalogImage(order.lines[0]?.image),
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
       this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
@@ -386,7 +388,7 @@ Page({
     catch { complete(); wx.showToast({ title: "页面暂时无法打开", icon: "none" }); }
   },
   headerPatch(conversation: Conversation | null, presence: Presence, aiAvailable?: boolean) {
-    if(this.consultationCaseId&&this.data.aftersale?.active!==false)return (aiAvailable??this.data.supportAiAvailable)
+    if(this.consultationCaseId)return (aiAvailable??this.data.supportAiAvailable)
       ?{statusLabel:"CISME AI 客服",statusTone:"ai",presence:{...presence,operatorTyping:false}}
       :{statusLabel:"欢迎留言",statusTone:"neutral",presence:{...presence,operatorTyping:false}};
     if (!conversation) return (aiAvailable ?? this.data.supportAiAvailable) && !this.data.closedRights
@@ -427,22 +429,30 @@ Page({
     this.setData(patch);
   },
   onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
-    const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
-    const composerCapped = lineCount > 4;
-    if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
+    updateSupportComposerLines(this, event.detail.lineCount);
   },
   onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
     if (!this.data.visible || !this.data.composerFocused) return;
     const keyboardHeight = Math.max(0, Number(event.detail.height) || 0);
     if (keyboardHeight === this.data.keyboardHeight) return;
-    this.setData({ keyboardHeight });
+    setSupportComposerLayout(this, { keyboardHeight });
   },
   onComposerFocus(event: WechatMiniprogram.TextareaFocus) {
     if (!this.data.visible) return;
     this.lastActivityAt = Date.now();
-    this.setData({ composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
+    setSupportComposerLayout(this, { composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
   },
-  onComposerBlur() { this.setData({ composerFocused: false, keyboardHeight: 0 }); void this.publishPresence(true, false, true); },
+  onComposerBlur() {
+    if (!this.data.composerFocused && !this.data.keyboardHeight) return;
+    setSupportComposerLayout(this, { composerFocused: false, keyboardHeight: 0 });
+    this.clearPresenceTimer();
+    if (this.data.visible) void this.publishPresence(true, false, true);
+  },
+  dismissComposerKeyboard() {
+    if (!this.data.composerFocused && !this.data.keyboardHeight) return;
+    this.onComposerBlur();
+    if (typeof wx.hideKeyboard === "function") wx.hideKeyboard({ fail: () => {} });
+  },
   activePolling() { return this.data.presence.operatorTyping || Date.now() - this.lastActivityAt < 30_000; },
   startPolling() { this.pollFailures = 0; this.schedulePoll(); },
   schedulePoll() {
@@ -456,7 +466,7 @@ Page({
       const card=item.aftersaleCard;
       return {...item,attachments:(item.attachments??[]).map(attachment=>({...attachment,
         ...(localImage?.mediaId===attachment.id?{localPath:localImage.localPath}:{})})),
-        orderCard:item.orderCard?{...item.orderCard,statusLabel:orderStatusLabels[item.orderCard.status]??"状态待更新",totalYuan:centsToYuan(item.orderCard.totalCents)}:null,
+        orderCard:item.orderCard?{...item.orderCard,statusLabel:supportOrderStatusLabel(item.orderCard.status),totalYuan:centsToYuan(item.orderCard.totalCents)}:null,
         ...(card?{aftersaleCard:{...card,amountLabel:centsToYuan(card.amountCents),lines:card.lines.slice(0,2),moreLines:Math.max(0,card.lines.length-2)}}:{})};
     });
   },
@@ -628,7 +638,7 @@ Page({
       return;
     }
     this.lastPresenceSentAt = Date.now();
-    try { await request({ path: "/v1/me/support/presence", method: "POST", data: { online, typing }, cacheTags: ["support"] }); } catch {}
+    try { await request({ path: "/v1/me/support/presence", method: "POST", data: { online, typing: typing && this.data.composerFocused && !this.consultationCaseId }, cacheTags: ["support"] }); } catch {}
   },
   sendSignature(body: string, mediaIds: string[], linkedOrderId: string | null) { return JSON.stringify([body, mediaIds, linkedOrderId]); },
   pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {
@@ -743,8 +753,8 @@ Page({
   openAttachmentSheet() {
     if(this.data.closedRights)return;
     if (this.data.sending || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage || this.data.newTopicBusy || this.data.newTopicAttempt) return;
-    if (typeof wx.hideKeyboard === "function") wx.hideKeyboard();
-    this.setData({ attachmentSheetOpen: true, composerFocused: false });
+    this.dismissComposerKeyboard();
+    this.setData({ attachmentSheetOpen: true });
   },
   closeAttachmentSheet() { this.setData({ attachmentSheetOpen: false }); },
   stopPropagation() {},
@@ -854,7 +864,7 @@ Page({
       const page = await myOrders();
       if (!current()) return;
       const choices = page.items.map((order: CommerceOrderSummary): OrderChoice => ({ id: order.id, orderNumberTail: order.orderNumber.slice(-4), status: order.status,
-        statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents, currency: order.currency,
+        statusLabel: supportOrderStatusLabel(order.status), totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents, currency: order.currency,
         productName: order.lines[0]?.productName ?? "订单商品", productImage: nativeCatalogImage(order.lines[0]?.image),
         itemSummary: order.lines.map((line) => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；") }));
       this.setData({ orderChoices: choices, orderPickerNextCursor: page.nextCursor ?? null, orderPickerLoading: false });
@@ -872,7 +882,7 @@ Page({
       const seen = new Set(this.data.orderChoices.map(order => order.id));
       const choices = page.items.filter(order => !seen.has(order.id)).map((order: CommerceOrderSummary): OrderChoice => ({
         id: order.id, orderNumberTail: order.orderNumber.slice(-4), status: order.status,
-        statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents,
+        statusLabel: supportOrderStatusLabel(order.status), totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents,
         currency: order.currency, productName: order.lines[0]?.productName ?? "订单商品", productImage: nativeCatalogImage(order.lines[0]?.image),
         itemSummary: order.lines.map(line => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")
       }));
@@ -973,7 +983,7 @@ Page({
     const previous = this.data.newTopicAttempt;
     const status = this.data.conversation?.status;
     const card = this.data.aftersale;
-    const caseId = this.consultationCaseId || (card?.active ? card.caseId : "");
+    const caseId = this.consultationCaseId || card?.caseId || "";
     if (!previous && !caseId && (status === "waiting_human" || status === "human_active")) {
       const epoch = this.lifecycleEpoch, token = sessionToken();
       try { await wx.showModal({ title: "人工事项处理中", content: "人工申请会继续保留，你可以直接咨询其他问题。人工事项结束后可开启新对话。", showCancel: false, confirmText: "知道了" }); }

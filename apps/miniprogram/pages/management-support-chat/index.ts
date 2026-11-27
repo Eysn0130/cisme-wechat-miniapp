@@ -9,6 +9,7 @@ import { downloadPrivateMedia, request, retainMemberSnapshot } from "../../servi
 import { centsToYuan } from "../../services/commerce";
 import { clientOperationKey } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
+import { setSupportComposerLayout, updateSupportComposerLines } from "../../services/support-composer-layout";
 import {
   createSupportThreadState,
   mergeAcknowledgement,
@@ -18,6 +19,7 @@ import {
   presentSupportMessages,
   readableSequence,
   supportMessageSetDataPatch,
+  supportOrderStatusLabel,
   supportPollDelay,
   withReadCursor,
   type PresentedSupportMessage,
@@ -45,7 +47,6 @@ type AftersalePreview = {id:string;label:string;orderNumberTail:string;summary:s
 type ReturnForm = {recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string};
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
-const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", cancelled: "已取消", expired: "已超时" };
 function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
 
 Page({
@@ -64,6 +65,7 @@ Page({
   inputRevision: 0,
   lastScrollTop: 0,
   bottomScrollTop: 0,
+  composerLayoutRevision: 0,
   lastActivityAt: 0,
   lastPresenceSentAt: 0,
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
@@ -475,25 +477,30 @@ Page({
     if (Object.keys(messagePatch).length) this.data.messages = messages;
   },
   onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
-    const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
-    const composerCapped = lineCount > 6;
-    if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
+    updateSupportComposerLines(this, event.detail.lineCount);
   },
   onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
     if (!this.data.visible || !this.data.composerFocused) return;
     const keyboardHeight = Math.max(0, Number(event.detail.height) || 0);
     if (keyboardHeight === this.data.keyboardHeight) return;
-    this.setData({ keyboardHeight });
+    setSupportComposerLayout(this, { keyboardHeight });
   },
   onComposerFocus(event: WechatMiniprogram.TextareaFocus) {
     if (!this.data.visible) return;
     this.lastActivityAt = Date.now();
-    this.setData({ composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
+    setSupportComposerLayout(this, { composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
     void this.publishPresence(true, Boolean(this.data.input.trim()));
   },
   onComposerBlur() {
-    this.setData({ composerFocused: false, keyboardHeight: 0 });
-    void this.publishPresence(true, false, true);
+    if (!this.data.composerFocused && !this.data.keyboardHeight) return;
+    setSupportComposerLayout(this, { composerFocused: false, keyboardHeight: 0 });
+    this.clearPresenceTimer();
+    if (this.data.visible) void this.publishPresence(true, false, true);
+  },
+  dismissComposerKeyboard() {
+    if (!this.data.composerFocused && !this.data.keyboardHeight) return;
+    this.onComposerBlur();
+    if (typeof wx.hideKeyboard === "function") wx.hideKeyboard({ fail: () => {} });
   },
   activePolling() {
     return this.data.presence.memberTyping || Date.now() - this.lastActivityAt < 30_000;
@@ -517,7 +524,7 @@ Page({
       attachments: item.attachments ?? [],
       orderCard: item.orderCard ? {
         ...item.orderCard,
-        statusLabel: orderStatusLabels[item.orderCard.status] ?? item.orderCard.status,
+        statusLabel: supportOrderStatusLabel(item.orderCard.status),
         totalYuan: centsToYuan(item.orderCard.totalCents)
       } : null
     }));
@@ -847,7 +854,7 @@ Page({
     }
     this.lastPresenceSentAt = Date.now();
     try {
-      await request({ path: `/v1/management/support/conversations/${this.data.id}/presence`, method: "POST", data: { online, typing }, cacheTags: ["support"] });
+      await request({ path: `/v1/management/support/conversations/${this.data.id}/presence`, method: "POST", data: { online, typing: typing && this.data.composerFocused }, cacheTags: ["support"] });
     } catch {}
   },
 

@@ -212,15 +212,17 @@ export class SupportService {
   }
 
   private async casePreview(client:DbClient,row:ConversationRow,caseId?:string){
+    const receivingHumanSupport=row.status==='waiting_human'||row.status==='human_active';
     const result=await client.query<CasePreview>(`SELECT c.id AS "caseId",c.order_id AS "orderId",
       right(o.order_number,4) AS "orderNumberTail",coalesce(c.lines->0->>'productName','') AS "productName",c.kind,
       (c.state NOT IN ('rejected','cancelled') AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded')) AS active
       FROM commerce_aftersale_case c JOIN commerce_order o ON o.id=c.order_id AND o.member_id=c.member_id
       LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
       WHERE c.member_id=$1 AND (c.support_conversation_id=$2 OR c.support_conversation_id IS NULL)
-        AND ($3::uuid IS NOT NULL AND c.id=$3 OR $3::uuid IS NULL AND c.state NOT IN ('rejected','cancelled')
-          AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded'))
-      ORDER BY c.created_at DESC,c.id DESC LIMIT 1`,[row.member_id,row.id,caseId??null]);
+        AND ($3::uuid IS NOT NULL AND c.id=$3 OR $3::uuid IS NULL AND (
+          c.state NOT IN ('rejected','cancelled') AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded')
+          OR $4::boolean AND c.support_conversation_id=$2))
+      ORDER BY active DESC,c.created_at DESC,c.id DESC LIMIT 1`,[row.member_id,row.id,caseId??null,receivingHumanSupport]);
     return result.rows[0]??null;
   }
 
