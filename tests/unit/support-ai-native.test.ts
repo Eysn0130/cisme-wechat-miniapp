@@ -60,6 +60,37 @@ describe('native AI and human support collaboration receipts',()=>{
   await p.load();
   expect(p.data.anchor).toBe('support-3');
  });
+ it('discloses one return instruction at a time and clears the disclosure with the topic',async()=>{
+  const caseId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const instruction={caseId,version:1,recipientName:'测试收件人',phone:'',region:'',address:'',freightPayer:'merchant',instructions:''};
+  const first={...message('system',1),returnInstruction:instruction};
+  const second={...message('system',2),returnInstruction:{...instruction,version:2}};
+  const chat=message('admin',3);
+  m.read.mockResolvedValue(historyPage({messages:[first,second,chat],latestCursor:3}));
+  await p.load();
+  const tap=(id:string)=>p.toggleReturnInstruction({currentTarget:{dataset:{id}}});
+  expect(p.data.expandedReturnMessageId).toBe('');
+  tap(first.id);
+  expect(p.data.expandedReturnMessageId).toBe(first.id);
+  tap(chat.id);
+  expect(p.data.expandedReturnMessageId).toBe(first.id);
+  tap(second.id);
+  expect(p.data.expandedReturnMessageId).toBe(second.id);
+  tap(second.id);
+  expect(p.data.expandedReturnMessageId).toBe('');
+  tap(second.id);
+  p.clearRetiredTopic();
+  expect(p.data.expandedReturnMessageId).toBe('');
+ });
+ it('condenses a verified aftersale decision and preserves the reason and original chat text',async()=>{
+  const body='订单尾号 0001\n本次售后申请未通过。\n原因：请补充商品外盒照片。\n如需协助，请在此会话联系人工客服。';
+  const decision={...message('system',1),body,aftersaleDecision:{caseId:conversation.id,version:2}};
+  const ordinary={...message('admin',2),body};
+  m.read.mockResolvedValue(historyPage({messages:[decision,ordinary],latestCursor:2}));
+  await p.load();
+  expect(p.data.messages[0]).toMatchObject({body,displayBody:'售后未通过 · 请补充商品外盒照片。'});
+  expect(p.data.messages[1].displayBody).toBe(body);
+ });
  it.each(['hidden','account'])('does not attach a route order returned after %s ownership changes',async(change)=>{
   p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const response=deferred();m.read.mockReturnValueOnce(response.promise);
   const loading=p.loadLinkedOrder();if(change==='hidden'){p.data.visible=false;p.lifecycleEpoch++;}else m.token='synthetic-other';
