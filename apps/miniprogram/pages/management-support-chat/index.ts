@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { SupportIdentityCache, supportOwnIdentity, type SupportSender } from '../../services/support-identity';
 import { stageSupportRecovery, takeSupportRecovery } from '../../services/support-draft-handoff';
 import { defaultMemberAvatar } from '../../services/member-avatar';
@@ -50,6 +51,7 @@ const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnli
 function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
 
 Page({
+  dismissNativeKeyboardOnTap,
   identityCache: null as SupportIdentityCache | null,
   pendingRecovery: null as OperatorRecovery | null,
   recoveryOwner: "",

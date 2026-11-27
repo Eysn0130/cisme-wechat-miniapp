@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {requireMemberAccess,request,registerPrivateExport} from '../../services/api';
 import {authorityProjection} from '../../services/authority';
 import {currentChromeStyle} from '../../services/layout';
@@ -19,6 +20,7 @@ const empty={...reviewEmpty,officerGroups:[] as OfficerDay[],memberId:'',scope:n
 function moneyInput(value:string){const m=/^(\d{1,9})(?:\.(\d{1,2}))?$/.exec(value.trim());return m?Number(m[1])*100+Number((m[2]??'').padEnd(2,'0')):NaN;}
 function viewRow(r:any){return {...r,label:officerLabels[r.state]||'',date:officerDate((r.state==='pending'?r.updatedAt:null)||r.paidAt||r.appliedAt||r.createdAt),gross:officerMoney(r.grossCents),tax:officerMoney(r.taxCents),net:officerMoney(r.netCents),cash:officerMoney(r.cashMerchandiseCents),recovery:officerMoney(r.outstandingRecoveryCents)};}
 Page({
+  dismissNativeKeyboardOnTap,
  alive:false,visible:false,epoch:0,reviewAttempt:0,customerAttempt:0,session:'',context:0,target:{memberId:'',batchId:'',lineId:'',tab:''},openedTarget:false,files:[] as Array<()=>void>,
  data:{...empty,targetMemberId:'',chromeStyle:currentChromeStyle(),loading:true,busy:false,tab:'officers',batchId:'',batchPeriod:'',filter:'all',filterIndex:0,filters:officerFilters.map(filter=>filter.label),customerFilters:customerFilters.map(filter=>filter.label),period:'',afterMemberId:'',continuePrepare:false,decisionState:'',decisionLabel:'',durations:['永久','按天'],priorities:['首次推荐','最近一次推荐']},
  onLoad(q:Record<string,string|undefined>={}){this.alive=true;this.target={memberId:q.memberId||'',batchId:q.batchId||'',lineId:q.lineId||'',tab:q.tab||''};

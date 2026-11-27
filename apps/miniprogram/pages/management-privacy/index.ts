@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { authorityProjection, hasCapability } from "../../services/authority";
 import {beijingDateLabel} from "../../services/business-time";
 import { currentChromeStyle } from "../../services/layout";
@@ -12,6 +13,7 @@ const executionStates:Record<string,string>={planned:"待执行",approved:"待�
 const editable=new Set(["received","verifying","reviewing","responded"]);
 function displayRow(row:PrivacyRow):PrivacyRow{const target=/^(昵称|微信号)：([^\r\n]+)$/.exec((row.latestMemberReply?.body||row.message).trim());return {...row,kindLabel:kinds[row.kind]||"其他请求",statusLabel:row.status==="responded"?(row.waitingOn==="member"?"待用户补充":"已回复待处理"):states[row.status]||"待核验",dueLabel:beijingDateLabel(row.due_at),executionLabel:row.execution?(executionStates[row.execution.status]||"待核对"):"",editable:editable.has(row.status),correctionLabel:target?`${target[1]}：${target[2]!.trim()}`:""};}
 Page({
+  dismissNativeKeyboardOnTap,
  target:{memberId:'',requestId:''},lastToken:"",lastRevision:-1,epoch:0,visible:false,readPending:false,timer:null as ReturnType<typeof setInterval>|null,
  data:{chromeStyle:currentChromeStyle(),items:[] as PrivacyRow[],nextCursor:null as string|null,moreBusy:false,moreError:"",selected:null as PrivacyRow|null,response:"",statusIndex:0,statusOptions:["处理中","回复进度","请用户补充"],loading:true,busy:false,coreReady:false,error:"",actionError:"",notice:""},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},

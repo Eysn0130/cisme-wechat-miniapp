@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {officerRewardOffers,prepareOfficerRewardShare,type OfficerRewardOffers} from '../../services/rewards';
 import {prepareRewardDetailImages} from '../../services/reward-images';
 import {clientOperationKey} from '../../services/orders';
@@ -29,6 +30,7 @@ function settlementRow(r:any){return {...r,date:officerDate(r.paidAt||r.createdA
 const giftClear={giftActivities:[] as OfficerRewardOffers['activities'],giftActivityId:'',giftActivityTitle:'',giftActivityIndex:0,giftBundles:[] as any[],giftShare:null as any,giftShareBusy:false,giftError:'',giftAvailable:false,detailBusy:false};
 const cleared={...giftClear,memberId:'',wallet:null as any,metrics:{} as Record<string,string>,items:[] as any[],products:[] as any[],productCursor:null as string|null,moreProducts:false,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,preview:null as any,assets:null as any,share:null as any,sheet:'',selected:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,orderLineId:'',sourcePeriod:'',note:'',legalName:'',channel:'',account:'',code:'',error:'',agreement:null as AgreementDocument|null,agreementChecked:false,qualificationMotion:'' as QualificationMotion,qualificationPurchaseNeeded:false,qualificationOpening:false,reviewMotion:false,reviewApproved:false,...agreementReset};
 Page({
+  dismissNativeKeyboardOnTap,
  alive:false,visible:false,epoch:0,session:'',context:0,qrPath:'',
  qualificationKey:'',
  reviewTimer:null as ReturnType<typeof setTimeout>|null,

@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { requireCapability } from "../../services/authority";
 import { centsToYuan } from "../../services/commerce";
 import { managementOrder, managementShipment, shipmentCarriers, type ShipmentCarrier, dispatchShipment, reconcileShipment, clientOperationKey, orderLineSummary, type CommerceOrder, type ManagementOrderAddress, type NoCourierDelivery, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
@@ -34,6 +35,7 @@ function chooseNoCourierDelivery():Promise<NoCourierDelivery|null>{
   fail:error=>{if(error.errMsg.includes("cancel"))resolve(null);else reject(error);}}));
 }
 Page({
+  dismissNativeKeyboardOnTap,
  lastReadToken:"",
  capabilities:[] as string[],
  refreshTimer:null as ReturnType<typeof setInterval>|null,

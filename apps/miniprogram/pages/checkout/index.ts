@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {flushOfficerVisits} from '../../services/officer-attribution';
 import {validateRuntime} from "../../services/commerce-runtime";
 import {nativeCatalogImage} from "../../services/catalog";
@@ -47,6 +48,7 @@ function creditCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
   return parts?Number(parts[1])*100+Number((parts[2]??"").padEnd(2,"0")):NaN;}
 
 Page({
+  dismissNativeKeyboardOnTap,
   countdownTimer: null as ReturnType<typeof setInterval> | null,
   requestEpoch: 0,
   loadAttempt: 0,

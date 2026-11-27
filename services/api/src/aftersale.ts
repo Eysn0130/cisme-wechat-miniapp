@@ -137,8 +137,8 @@ export class AftersaleService{
       payload:{conversationId:conversation.id,messageId:message.id,senderType:'system',sequence:Number(conversation.next_sequence)},occurredAt:message.created_at});
   }
   private async view(client:DbClient,row:CaseRow,operator?:string){
-    const refund=row.refund_request_id?(await client.query(`SELECT r.state,r.version AS review_version,i.state AS refund_state,
-      i.submission_state,i.execution_kind,
+    const refund=row.refund_request_id?(await client.query(`SELECT r.state,r.version AS review_version,r.decided_at,i.state AS refund_state,
+      i.submission_state,i.execution_kind,i.finalized_at,
       (i.submission_quarantined_at IS NOT NULL OR EXISTS(SELECT 1 FROM commission_refund_inbox f
         WHERE f.refund_intent_id=i.id AND f.state='exception' AND f.quarantined_at IS NOT NULL)) AS requires_attention
       FROM commerce_refund_request r
@@ -175,6 +175,8 @@ export class AftersaleService{
         approvedAt:row.exception_approved_at}:null,
       refundRequestId:row.refund_request_id,refund:refund?{reviewState:refund.state,channelState:refund.refund_state??null,
         submissionState:refund.submission_state??null,executionKind:refund.execution_kind??null,requiresAttention:refund.requires_attention,
+        approvedAt:refund.state==='approved'?refund.decided_at??null:null,
+        completedAt:refund.refund_state==='succeeded'?refund.finalized_at??null:null,
         ...(operator?{reviewVersion:refund.review_version}:{})}:null,
       resolved:refund?.refund_state==='succeeded',
       inventoryStatus:restocked>0?'restocked':'separate_ledger_required',...(restocked>0?{restockedQuantity:restocked}:{}),
@@ -345,6 +347,9 @@ export class AftersaleService{
       await this.authority.requireWithClient(client,memberId,'support.reply');
       const row=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE id=$1 FOR UPDATE',[caseId])).rows[0];
       if(!row)fail('AFTERSALE_NOT_FOUND','售后记录不存在',404);
+      if(row.refund_request_id&&(await client.query(
+        "SELECT 1 FROM commission_refund_intent WHERE request_id=$1 AND state='succeeded'",[row.refund_request_id])).rowCount)
+        fail('AFTERSALE_CASE_CLOSED','这笔售后已经办结');
       const conversation=await this.caseConversation(client,row.member_id);
       if(row.support_conversation_id&&row.support_conversation_id!==conversation.id)
         fail('AFTERSALE_SUPPORT_LINK_REQUIRED','原客服会话不可用，请刷新后重试');
@@ -410,6 +415,8 @@ export class AftersaleService{
         'SELECT status,transaction_source_kind FROM commerce_order WHERE id=$1 FOR UPDATE',[pointer.order_id])).rows[0];
       const row=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE id=$1 FOR UPDATE',[caseId])).rows[0]!;
       if(context){
+        // Refund completion and support commands use this lock before the chat row.
+        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${row.member_id}`]);
         const linked=(await client.query<{status:string;current_handler_principal_id:string|null}>(
           'SELECT status,current_handler_principal_id FROM support_conversation WHERE id=$1 AND member_id=$2 FOR UPDATE',
           [context.conversationId,row.member_id])).rows[0];

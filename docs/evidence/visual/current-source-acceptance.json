@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "53cbabd71b6a473bce840ccb359cf6eaff3cd09463c3c79467e77c6b6d0663da",
+  "packageSourceSha256": "b24ce3a760bc6086eec088f04450bb114e05db34b3aa24224642c647285260f6",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 当前包包含会员和坐席共用的聊天输入布局、坐席接管按钮和已完成售后仍在接待时的新对话入口。完整路由、字号和真机范围独立取证，历史验收沿用原来源。",
+  "note": "2026-11-27 当前包包含退款确认后的售后办结、订单售后进度页和全局原生文本键盘交互。完整路由、字号和真机范围独立取证，历史验收沿用原来源。",
   "previousSourceRecord": {
-    "packageSourceSha256": "88469454ab0c1a0b006307ec89ac0542b4dbb7407fcff4aa46554ad7066d7625",
-    "scope": "Official DevTools used isolated fixtures to check the prior order detail, fulfillment entries and shared support interface."
+    "packageSourceSha256": "53cbabd71b6a473bce840ccb359cf6eaff3cd09463c3c79467e77c6b6d0663da",
+    "scope": "Official DevTools used isolated fixtures for the previous support chat composer and takeover button."
   },
   "pendingSourceRebind": false
 }

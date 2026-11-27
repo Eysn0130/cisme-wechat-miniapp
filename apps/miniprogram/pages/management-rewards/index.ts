@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess} from '../../services/api';
 import {currentChromeStyle,shouldReduceMotion} from '../../services/layout';
@@ -13,6 +14,7 @@ const exportState={exportKind:'',exportAfter:'',exportCount:0,exportDone:false};
 const empty={...exportState,manager:null as RewardManagement|null,detail:null as RewardClaim|null,products:[] as Array<CatalogProduct&{selected:boolean}>,productCursor:null as string|null,selectedProducts:[] as string[],pending:null as RewardPending|null,
  importEntries:[] as RewardShipmentEntry[],importName:'',importReady:0,importErrors:0,importRegistered:0,sheet:'',titleInput:'',codeInput:'',reasonInput:'',issueInput:'',batchInput:'',stockInput:'',stockCode:'',stockDirection:1,stockVersion:0,stockVersions:{} as Record<string,number>,share:null as RewardShare|null,trackingInput:'',carrierInput:'',memberId:'',error:''};
 Page({
+  dismissNativeKeyboardOnTap,
  alive:false,visible:false,epoch:0,detailAttempt:0,token:'',context:0,target:{memberId:'',voucherId:'',claimId:'',tab:''},openedTarget:false,exportFiles:[] as string[],
  data:{motionActive:true,reducedMotion:shouldReduceMotion(),...empty,from:'',through:'',fulfillTabs:[{id:'all',label:'全部'},{id:'placed',label:'待发货'},{id:'shipped',label:'已发货'},{id:'received',label:'已收货'},{id:'aftersale_requested',label:'售后中'},{id:'cancelled',label:'已取消'},{id:'closed',label:'已完成'}],exportKind:'',chromeStyle:currentChromeStyle(),loading:true,busy:false,activityId:'',activityIndex:0,activity:null as RewardActivity|null,tab:'activity',filter:'all',filterIndex:0,
   filters:[{code:'all',name:'全部'},{code:'unused',name:'待领取'},{code:'used',name:'已领取'},{code:'expired',name:'已过期'},{code:'revoked',name:'已撤销'}],exports:exportsList,exportIndex:0,exportAfter:'',nextCursor:null as string|null,hasMore:false,editingId:'',editingVersion:0,detailState:'',detailShippedDate:'',detailReceivedDate:'',stockLabel:'',targetMemberId:''},

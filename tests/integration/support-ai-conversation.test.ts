@@ -204,7 +204,7 @@ describe('persistent AI support and manual handoff',()=>{
  it('returns the committed member receipt on a subsequent database failure, and the identical retry recovers exactly one AI reply',async()=>{
   const original=pool.connect.bind(pool);let failed=false,memberCommitted=false;
   const observed=new Set<object>(),restores:Array<()=>void>=[];
-  const spy=vi.spyOn(pool,'connect').mockImplementation((async()=>{
+  const observeTransaction=async()=>{
    const client=await original();
    if(!observed.has(client)){
     observed.add(client);const query=client.query.bind(client);let wroteMemberMessage=false;
@@ -222,7 +222,10 @@ describe('persistent AI support and manual handoff',()=>{
     restores.push(()=>fault.mockRestore());
    }
    return client;
-  }) as any);
+  };
+  // Pool-level reads use the callback overload and are outside the injected transaction fault.
+  const spy=vi.spyOn(pool,'connect').mockImplementation(((callback?:unknown)=>
+   callback ? (original as (callback:unknown)=>void)(callback) : observeTransaction()) as any);
   let first:any;try{first=await send();}finally{spy.mockRestore();for(const restore of restores)restore();}
   expect(first).toMatchObject({replayed:false,aiStatus:'pending',aiMessages:[]});expect(first.message.body).toBe('如何记录护理？');expect(suggest).not.toHaveBeenCalled();
   const retry=await send();expect(retry).toMatchObject({replayed:true,message:{id:first.message.id},aiStatus:'replied'});expect(suggest).toHaveBeenCalledOnce();

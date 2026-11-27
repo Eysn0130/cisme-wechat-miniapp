@@ -5,6 +5,12 @@ export const aftersaleLabels:Record<OrderAftersale['phase'],string>={
   returning:'退货中',refund_review:'待退款审核',refunding:'退款中',refund_attention:'退款待处理'
 };
 
+export function aftersaleSpecification(productName: string, skuLabel: string): string {
+  const name = productName.trim();
+  const label = skuLabel.trim();
+  return name && label.startsWith(name) ? label.slice(name.length).replace(/^[\s·:：/—-]+/, "") : label;
+}
+
 export type RefundApprovalAction = 'request_refund'|'approve_pending_refund';
 export type ManagementAftersaleAction = RefundApprovalAction|'reject_pending_refund'|'approve_return'|'reject'|'request_info'|
   'send_return_instruction'|'receive_return'|'inspect_return'|'approve_refund_without_return'|'reopen_refund'|'resolve_old_route';

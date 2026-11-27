@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { commerceContextRevision } from "../../services/commerce-command-store";
 import { currentChromeStyle } from "../../services/layout";
 import { editUgcLocalImage, ugcImageEditCapabilities } from "../../services/ugc-image-edit";
@@ -62,7 +63,8 @@ Component({
       if(runtime.open&&(runtime.session!==session()||runtime.revision!==commerceContextRevision()||(runtime.route&&runtime.route!==route()))){this.invalidate();runtime.finished=true;this.setData({files:[],busy:false,error:""});return;}
       runtime.resume?.();runtime.resume=null;if(runtime.attached)this.syncVisibility();}
   },
-  methods:{
+  methods: {
+    dismissNativeKeyboardOnTap,
     holdOverlay(){},
     acquireNavigationChrome(){const runtime=state(this);if(typeof wx.setNavigationBarColor!=="function"||!this.current(runtime.generation))return;const token={};runtime.chromeToken=token;chromeOwner=token;
       try{wx.setNavigationBarColor({frontColor:"#ffffff",backgroundColor:"#101010"});}catch{if(chromeOwner===token)chromeOwner=null;runtime.chromeToken=null;}},

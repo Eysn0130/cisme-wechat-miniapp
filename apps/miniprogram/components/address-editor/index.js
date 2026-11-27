@@ -13,6 +13,7 @@ Component({
     canSaveAsNew: { type: Boolean, value: true }
   },
   methods: {
+    dismissNativeKeyboardOnTap(event) { getApp().dismissNativeKeyboardOnTap(event); },
     emitQuickInput(event) { this.triggerEvent("quickinput", { value: event.detail.value }); },
     emitField(event) { this.triggerEvent("fieldchange", { field: event.currentTarget.dataset.field, value: event.detail.value }); },
     emitRegion(event) { this.triggerEvent("regionchange", event.detail); },

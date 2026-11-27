@@ -1,24 +1,24 @@
 <page-meta root-font-size="system"/>
-<view class="support-shell" style="{{chromeStyle}}">
+<view capture-bind:tap="dismissNativeKeyboardOnTap" class="support-shell" style="{{chromeStyle}}">
   <view class="topbar support-topbar">
     <button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button>
     <view class="support-title">
-      <text class="topbar__title">{{closedRights?'历史订单客服':'CISME 客服'}}</text>
-      <view class="support-presence support-presence--{{statusTone}}">
-        <view wx:if="{{!consultationView && conversation.status === 'human_active' && identityAgentKey}}" class="support-handler-avatar-wrap"><view class="support-handler-avatar {{agentAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-handler-avatar--photo' : ''}}"><image src="{{agentAvatar}}" data-key="{{identityAgentKey}}" mode="aspectFill" binderror="onAvatarError" aria-hidden="true"/></view><identity-badge wx:if="{{agentBadge}}" kind="{{agentBadge}}" size="{{18}}"/></view>
+      <text class="topbar__title">{{closedRights?'历史订单客服':aftersaleView?'售后对话':'CISME 客服'}}</text>
+      <view class="support-presence support-presence--{{aftersaleView && aftersale.refundCompleted ? 'resolved' : statusTone}}">
+        <view wx:if="{{!consultationView && !(aftersaleView && aftersale.refundCompleted) && conversation.status === 'human_active' && identityAgentKey}}" class="support-handler-avatar-wrap"><view class="support-handler-avatar {{agentAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-handler-avatar--photo' : ''}}"><image src="{{agentAvatar}}" data-key="{{identityAgentKey}}" mode="aspectFill" binderror="onAvatarError" aria-hidden="true"/></view><identity-badge wx:if="{{agentBadge}}" kind="{{agentBadge}}" size="{{18}}"/></view>
         <text wx:else class="support-presence__dot" aria-hidden="true">●</text>
-        <text class="support-presence__label">{{!consultationView && conversation.status === 'human_active' && agentDisplayName ? agentDisplayName + ' · 接待中' : statusLabel}}</text>
+        <text class="support-presence__label">{{aftersaleView && aftersale.refundCompleted ? '已办结' : !consultationView && conversation.status === 'human_active' && agentDisplayName ? agentDisplayName + ' · 接待中' : statusLabel}}</text>
       </view>
     </view>
   </view>
 
-  <view class="support-chat-layout {{keyboardHeight ? 'support-chat-layout--with-keyboard' : ''}}" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px' : ''}}">
-  <button wx:if="{{consultationView && aftersale}}" class="support-case-resume {{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="resumeAftersale"
+  <view class="support-chat-layout {{keyboardHeight ? 'support-chat-layout--with-keyboard' : ''}} {{aftersaleView && aftersale.refundCompleted ? 'support-chat-layout--archive' : ''}}" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px' : ''}}">
+  <button wx:if="{{consultationView && aftersale.active}}" class="support-case-resume {{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="resumeAftersale"
     hover-class="support-text-action--pressed" disabled="{{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}"
     aria-label="返回订单尾号 {{aftersale.orderNumberTail}} 的售后对话">
     <image class="support-case-resume__icon" src="/assets/icons/package-plum.svg" aria-hidden="true"/>
     <view class="support-case-resume__copy">
-      <text class="support-case-resume__title">{{aftersale.active ? '售后处理中' : '售后对话'}}</text>
+      <text class="support-case-resume__title">售后处理中</text>
       <text class="support-case-resume__order">{{aftersale.productName ? aftersale.productName + ' · ' : ''}}尾号 {{aftersale.orderNumberTail}}</text>
     </view>
     <image class="support-case-resume__arrow" src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/>
@@ -28,21 +28,21 @@
     <view class="support-thread__content">
     <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在加载聊天记录…</view>
     <button wx:if="{{!loading && olderCursor !== null}}" class="text-button {{loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
-    <view wx:if="{{historyLoaded && historyStartLoaded && !closedRights}}" class="support-message support-message--{{supportAiAvailable ? 'ai' : 'admin'}} support-message--group-start support-welcome-message">
+    <view wx:if="{{historyLoaded && historyStartLoaded && !closedRights && !aftersaleView}}" class="support-message support-message--{{supportAiAvailable ? 'ai' : 'admin'}} support-message--group-start support-welcome-message">
       <view class="support-avatar-slot"><view class="support-avatar support-avatar--{{supportAiAvailable ? 'ai' : 'human'}}"><image src="{{supportAiAvailable ? '/assets/cisme/cisme-ai-avatar-v1.png' : '/assets/icons/chat-circle-plum.svg'}}" mode="aspectFit" aria-hidden="true"/></view></view>
       <view class="support-message__content"><text class="support-message__sender">{{supportAiAvailable ? 'CISME AI 客服' : 'CISME 客服'}}</text><view class="support-bubble">{{supportAiAvailable ? '可以问我护理和小程序使用问题。' : '请留下你要咨询的问题。'}}</view></view>
     </view>
 
-    <view wx:if="{{!closedRights && !consultationView && conversation && conversation.status === 'waiting_human'}}" class="support-queue-notice">人工客服 09:00–22:00（北京时间）</view>
+    <view wx:if="{{!closedRights && !consultationView && !(aftersaleView && aftersale.refundCompleted) && conversation && conversation.status === 'waiting_human'}}" class="support-queue-notice">人工客服 09:00–22:00（北京时间）</view>
 
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
       <view wx:if="{{item.senderType === 'system'}}" id="support-{{item.sequence}}" class="support-system">
         <button wx:if="{{item.aftersaleCard}}" class="support-aftersale-card" data-id="{{item.aftersaleCard.id}}" bindtap="openAftersaleCase">
-          <view class="support-aftersale-card__head"><strong>{{item.aftersaleCard.kind==='refund_only'?'退款申请':'退货退款申请'}}</strong><text>订单尾号 {{item.aftersaleCard.orderNumberTail}}</text></view>
-          <view wx:for="{{item.aftersaleCard.lines}}" wx:for-item="line" wx:key="lineId" class="support-aftersale-card__line"><text>{{line.productName}}</text><text class="support-aftersale-card__quantity">{{line.skuLabel}} × {{line.quantity}}</text></view>
+          <view class="support-aftersale-card__head"><strong>{{item.aftersaleCard.refundCompleted?'售后已办结':item.aftersaleCard.kind==='refund_only'?'退款申请':'退货退款申请'}}</strong><text>订单尾号 {{item.aftersaleCard.orderNumberTail}}</text></view>
+          <view wx:for="{{item.aftersaleCard.lines}}" wx:for-item="line" wx:key="lineId" class="support-aftersale-card__line"><text class="support-aftersale-card__product">{{line.productName}}</text><text class="support-aftersale-card__quantity">{{line.skuLabel ? line.skuLabel + ' · ' : ''}}{{line.quantity}} 件</text></view>
           <text wx:if="{{item.aftersaleCard.moreLines}}" class="support-aftersale-card__more">另 {{item.aftersaleCard.moreLines}} 项</text>
-          <view class="support-aftersale-card__foot"><strong>¥{{item.aftersaleCard.amountLabel}}</strong><text>查看进度</text><image src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/></view>
+          <view class="support-aftersale-card__foot"><strong>¥{{item.aftersaleCard.amountLabel}}</strong><text>{{item.aftersaleCard.refundCompleted?'查看售后':'查看进度'}}</text><image src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/></view>
         </button>
         <text wx:elif="{{!item.returnInstruction}}" class="support-system__notice">{{item.displayBody}}</text>
         <view wx:if="{{item.returnInstruction}}" class="return-card">
@@ -109,10 +109,10 @@
   <button wx:if="{{newMessagesBelowCount > 0}}" class="new-message" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
   </view>
 
-  <view class="support-composer">
+  <view wx:if="{{!aftersaleView || aftersale && !aftersale.refundCompleted}}" class="support-composer">
     <view wx:if="{{!closedRights && !keyboardHeight}}" class="support-composer__actions">
       <button wx:if="{{(!consultationView || aftersale.active === false) && !loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human {{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="requestHuman" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}"><text>{{handoffBusy ? '正在申请人工…' : '申请人工'}}</text></button>
-      <button wx:if="{{newTopicAttempt || historyLoaded && !loading && (consultationView || aftersale || newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'))}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启新对话' : '开启新对话'}}"><text>{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
+      <button wx:if="{{newTopicAttempt || historyLoaded && !loading && (aftersale.active || newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'))}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启新对话' : '开启新对话'}}"><text>{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
     </view>
     <view class="support-composer__surface {{composerFocused ? 'support-composer__surface--focused' : ''}}">
       <view wx:if="{{selectedImage || selectedOrder}}" class="support-draft-attachments">
@@ -124,7 +124,7 @@
         <view wx:if="{{selectedOrder}}" class="support-draft-order"><image class="support-draft__image" src="{{selectedOrder.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-draft__content"><strong>{{selectedOrder.productName}}</strong><text>订单尾号 {{selectedOrder.orderNumberTail}} · {{selectedOrder.statusLabel}}</text></view><button wx:if="{{!closedRights}}" bindtap="removeOrder" aria-label="移除订单"><image class="support-draft__remove-icon" src="/assets/icons/close-plum.svg" mode="aspectFit"/></button></view>
       </view>
       <view class="support-composer__controls {{composerLineCount > 1 ? 'support-composer__controls--multiline' : ''}}">
-        <textarea class="support-input {{composerCapped ? 'support-input--capped' : ''}}" aria-label="客服消息" value="{{input}}" focus="{{composerFocused}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" disable-default-padding="true" show-confirm-bar="{{false}}" confirm-type="return" placeholder="{{newTopicAttempt?'请先确认新对话':sendAttempt?'请先核对上条消息':'输入消息'}}" placeholder-class="support-input__placeholder" disabled="{{sending||sendAttempt||newTopicBusy||newTopicAttempt}}"/>
+        <textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" class="support-input {{composerCapped ? 'support-input--capped' : ''}}" aria-label="客服消息" value="{{input}}" focus="{{composerFocused}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" disable-default-padding="true" placeholder="{{newTopicAttempt?'请先确认新对话':sendAttempt?'请先核对上条消息':'输入消息'}}" placeholder-class="support-input__placeholder" disabled="{{sending||sendAttempt||newTopicBusy||newTopicAttempt}}"/>
         <view class="support-composer__tools">
         <button wx:if="{{!closedRights}}" class="support-tool {{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="openAttachmentSheet" disabled="{{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}" aria-label="添加附件"><image src="/assets/icons/composer-paperclip-plum.svg"/></button>
         <button class="support-tool support-tool--send {{!composerSendEnabled || sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}} {{composerSendEnabled && !sending && !sendAttempt && !uploadBusy && !newTopicBusy && !newTopicAttempt ? 'support-tool--send-active' : 'support-tool--send-disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}" aria-label="{{sending ? '正在发送消息' : sendAttempt ? '请先核对上条消息' : '发送消息'}}"><image src="{{composerSendEnabled && !sending && !sendAttempt && !uploadBusy && !newTopicBusy && !newTopicAttempt ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>

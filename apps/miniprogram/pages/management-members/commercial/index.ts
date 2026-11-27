@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../../services/native-keyboard";
 import{sectionTabValue}from'../../../services/section-tabs';
 import {beijingDateParts as rateDateParts,beijingDateLabel as dateLabel,beijingCivilInstant} from "../../../services/business-time";
 import { pageRead, cancelPageReads } from "../../../services/page-requests";
@@ -12,6 +13,7 @@ type GlobalRate={basisPoints:number|null;effectiveAt:string|null;serverTime:stri
 type RateForm={percent:string;date:string;time:string;reason:string};
 
 Page({
+  dismissNativeKeyboardOnTap,
   lastToken:"",lastRevision:-1,
   globalRateCommand:null as null|{key:string;basisPoints:number;effectiveAt:string;reason:string},
   rateDecisionCommand:null as null|{id:string;key:string;decision:"active"|"rejected";expectedVersion:number;reason:string},

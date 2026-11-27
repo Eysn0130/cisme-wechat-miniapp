@@ -14,7 +14,7 @@ beforeEach(async()=>{
  vi.resetModules();vi.useFakeTimers();m.token='synthetic-member';m.request.mockReset();m.read.mockReset();
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token}});
  let definition:any;(globalThis as any).Page=(value:any)=>{definition=value;};
- (globalThis as any).wx={showModal:vi.fn().mockResolvedValue({confirm:true}),nextTick:(fn:()=>void)=>fn(),showToast:vi.fn(),navigateTo:vi.fn(),getStorageSync:vi.fn()};
+ (globalThis as any).wx={showModal:vi.fn().mockResolvedValue({confirm:true}),nextTick:(fn:()=>void)=>fn(),showToast:vi.fn(),navigateTo:vi.fn(),redirectTo:vi.fn(),getStorageSync:vi.fn()};
  await import('../../apps/miniprogram/pages/support/index');
  p={...definition,data:structuredClone(definition.data),setData(update:any){Object.assign(this.data,structuredClone(update));}};
  Object.assign(p.data,{pageAlive:true,visible:true,loading:false,historyLoaded:true,conversation,supportAiAvailable:true,newTopicAvailable:true,messages:[msg(1),msg(2,'ai')],syncCursor:2,maxSeenSequence:2});
@@ -64,16 +64,17 @@ describe('native support new AI topic',()=>{
  it.each(['waiting_human','human_active'])('does not leave %s to start a fresh topic',async(status)=>{
   p.data.conversation={...conversation,status};await p.startNewTopic();expect(m.request).not.toHaveBeenCalled();expect(p.data.conversation.status).toBe(status);expect(wx.showModal).toHaveBeenCalledWith(expect.objectContaining({title:'人工事项处理中',showCancel:false,content:expect.stringContaining('人工申请会继续保留')}));
  });
- it.each([true,false])('opens a separate consultation from the linked aftersale (active: %s) and keeps the original draft',async(active)=>{
+ it('replaces the active aftersale with a consultation and keeps the original draft',async()=>{
   const aftersale={caseId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',orderId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-    orderNumberTail:'0001',productName:'测试商品',kind:'return_refund',active};
+    orderNumberTail:'0001',productName:'测试商品',kind:'return_refund',active:true};
   const assigned={...conversation,status:'human_active'};
   Object.assign(p.data,{aftersale,conversation:assigned,input:'正在编辑的订单消息',newTopicAvailable:false});
   m.request.mockResolvedValueOnce(page({aftersale,conversation:{...assigned,version:4}}));
   await p.startNewTopic();
   expect(wx.showModal).not.toHaveBeenCalled();
   expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:'/v1/me/support/new-topic',data:expect.objectContaining({consultationCaseId:aftersale.caseId})}));
-  expect(wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/support/index?consultationCaseId=${aftersale.caseId}`}));
+  expect(wx.redirectTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/support/index?consultationCaseId=${aftersale.caseId}`}));
+  expect(wx.navigateTo).not.toHaveBeenCalled();
   expect(p.data.input).toBe('正在编辑的订单消息');
   expect(p.data.messages).toHaveLength(2);
   expect(p.messagesPath()).toContain(`aftersaleCaseId=${aftersale.caseId}`);
@@ -89,9 +90,28 @@ describe('native support new AI topic',()=>{
   }));
   expect(p.data.consultationView).toBe(true);
   expect(p.messagesPath('after=3')).toContain(`consultationCaseId=${aftersale.caseId}&after=3`);
-  (globalThis as any).getCurrentPages=()=>[];
   p.resumeAftersale();
-  expect(wx.navigateTo).toHaveBeenLastCalledWith({url:`/pages/support/index?orderId=${aftersale.orderId}&caseId=${aftersale.caseId}&aftersaleView=1`});
+  expect(wx.redirectTo).toHaveBeenLastCalledWith(expect.objectContaining({url:`/pages/support/index?orderId=${aftersale.orderId}&caseId=${aftersale.caseId}&aftersaleView=1`}));
+ });
+ it('starts the normal new topic without a completed aftersale pin and keeps case history read-only',async()=>{
+  const aftersale={caseId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',orderId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    orderNumberTail:'0001',productName:'测试商品',kind:'return_refund',active:false,refundCompleted:true};
+  Object.assign(p.data,{aftersale,conversation:{...conversation,status:'resolved'}});
+  await p.startNewTopic();
+  const command=m.request.mock.calls.find(([request])=>request.path==='/v1/me/support/new-topic')?.[0];
+  expect(command?.data).not.toHaveProperty('consultationCaseId');
+  expect(p.data.aftersale).toBeNull();
+  expect(wx.redirectTo).not.toHaveBeenCalled();
+  p.onLoad({caseId:aftersale.caseId,orderId:aftersale.orderId,aftersaleView:'1'});
+  p.data.aftersale=aftersale;
+  p.data.input='已办结售后';
+  expect(p.isAftersaleArchive()).toBe(true);
+  m.request.mockClear();
+  await p.send();
+  await p.startNewTopic();
+  p.resumeAftersale();
+  expect(m.request).not.toHaveBeenCalled();
+  expect(wx.redirectTo).not.toHaveBeenCalled();
  });
  it.each(['sending','uploadBusy','handoffBusy','closedRights','sendAttempt'])('does not start during %s',async(key)=>{
   p.data[key]=key==='sendAttempt'?{id:'unconfirmed-original'}:true;await p.startNewTopic();expect(m.request).not.toHaveBeenCalled();

@@ -14,6 +14,7 @@ import {applySupportConversationReset,supportNewTopicOperation} from './supportC
 import { supportIdentities,supportSenderKey } from './supportIdentity.js';
 import {memberDisplayIdentities} from './displayIdentity.js';
 import {supportGuideForReply} from './supportKnowledgeRetrieval.js';
+import { reconcileRefundedAftersaleSupport } from "./supportAftersaleClosure.js";
 
 type ConversationRow = {
   id: string; member_id: string; status: SupportConversationStatus; priority: "normal" | "high" | "urgent";
@@ -31,7 +32,7 @@ type ReplyTargetInput={replyToMessageId?:unknown;expectedHumanRequestGeneration?
 type HumanContext={generation:number;status:'waiting_human'|'human_active';anchorQuestion:string|null;anchorKnown:boolean;anchorMessageId:string|null;anchorSequence:number|null};
 type TopicWindow={contextStartSequence:number;contextVersion:number};
 type CommittedQuestion={snapshot:ConversationRow;source:MessageRow;topic:TopicWindow};
-type CasePreview={caseId:string;orderId:string;orderNumberTail:string;productName:string;kind:string;active:boolean};
+type CasePreview={caseId:string;orderId:string;orderNumberTail:string;productName:string;kind:string;active:boolean;refundCompleted:boolean};
 type ConsultationReceipt={conversationId:string;caseId:string;contextStartSequence:number;caseThroughSequence:number;resultVersion:number};
 type CaseSlice={caseId:string;orderId:string;through:number;ordinaryBoundary:number;consultation:boolean};
 type MemberMessagesQuery={after?:unknown;before?:unknown;limit?:unknown;consultationCaseId?:string;aftersaleCaseId?:string};
@@ -101,7 +102,7 @@ function messageColumns(): string {
 function referencedAftersale(row:MessageRow){
   if(row.sender_type!=='system'||row.sender_principal_id!=='system:aftersale')return null;
   if(row.linked_case_id)return {id:row.linked_case_id,request:false,decisionVersion:null};
-  const key=/^aftersale-(request|decision|old-route):([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?::v([1-9][0-9]*))?$/.exec(row.client_message_id??'');
+  const key=/^aftersale-(request|decision|old-route|refunded):([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?::v([1-9][0-9]*))?$/.exec(row.client_message_id??'');
   if(!key)return null;
   const version=key[1]==='decision'?Number(key[3]):NaN;
   return {id:key[2]!,request:key[1]==='request',decisionVersion:Number.isSafeInteger(version)?version:null};
@@ -184,6 +185,7 @@ export class SupportService {
 
   private async reconcile(owner?:string){
     if(this.suppression?.suppressionEnabled())await this.suppression.replaySupportConversations(this.pool,owner);
+    if (owner) await reconcileRefundedAftersaleSupport(this.pool, owner);
   }
   private async reconcileLocked(client:DbClient,owner:string){
     if(this.suppression?.suppressionEnabled())for(const marker of await this.suppression.supportConversationResetMarkers(owner,client))
@@ -212,17 +214,16 @@ export class SupportService {
   }
 
   private async casePreview(client:DbClient,row:ConversationRow,caseId?:string){
-    const receivingHumanSupport=row.status==='waiting_human'||row.status==='human_active';
     const result=await client.query<CasePreview>(`SELECT c.id AS "caseId",c.order_id AS "orderId",
       right(o.order_number,4) AS "orderNumberTail",coalesce(c.lines->0->>'productName','') AS "productName",c.kind,
-      (c.state NOT IN ('rejected','cancelled') AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded')) AS active
+      (c.state NOT IN ('rejected','cancelled') AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded')) AS active,
+      i.state IS NOT DISTINCT FROM 'succeeded' AS "refundCompleted"
       FROM commerce_aftersale_case c JOIN commerce_order o ON o.id=c.order_id AND o.member_id=c.member_id
       LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
       WHERE c.member_id=$1 AND (c.support_conversation_id=$2 OR c.support_conversation_id IS NULL)
-        AND ($3::uuid IS NOT NULL AND c.id=$3 OR $3::uuid IS NULL AND (
-          c.state NOT IN ('rejected','cancelled') AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded')
-          OR $4::boolean AND c.support_conversation_id=$2))
-      ORDER BY active DESC,c.created_at DESC,c.id DESC LIMIT 1`,[row.member_id,row.id,caseId??null,receivingHumanSupport]);
+        AND ($3::uuid IS NOT NULL AND c.id=$3 OR $3::uuid IS NULL AND
+          c.state NOT IN ('rejected','cancelled') AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded'))
+      ORDER BY c.created_at DESC,c.id DESC LIMIT 1`,[row.member_id,row.id,caseId??null]);
     return result.rows[0]??null;
   }
 
@@ -605,10 +606,11 @@ export class SupportService {
     const caseIds=[...new Set([...caseLinks.values()].flatMap(link=>link?[link.id]:[]))];
     const cases=caseIds.length?(await client.query<Omit<SupportAftersaleCard,'requestedAt'|'amountCents'>&{requestedAt:Date;amountCents:string}>(`SELECT c.id,c.order_id AS "orderId",
       right(o.order_number,4) AS "orderNumberTail",c.kind,c.created_at AS "requestedAt",
-      c.amount_cents::text AS "amountCents",
+      c.amount_cents::text AS "amountCents", i.state IS NOT DISTINCT FROM 'succeeded' AS "refundCompleted",
       COALESCE((SELECT jsonb_agg(jsonb_build_object('lineId',line->>'lineId','productName',line->>'productName','skuLabel',line->>'skuLabel','quantity',line->'quantity'))
         FROM jsonb_array_elements(c.lines) AS line),'[]'::jsonb) AS lines
       FROM commerce_aftersale_case c JOIN commerce_order o ON o.id=c.order_id AND o.member_id=c.member_id
+      LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
       WHERE c.id=ANY($1::uuid[]) AND c.member_id=$2 AND (c.support_conversation_id=$3 OR c.support_conversation_id IS NULL)`,
       [caseIds,row.member_id,row.id])).rows:[];
     const casesById=new Map(cases.map(item=>[item.id,{...item,requestedAt:item.requestedAt.toISOString(),amountCents:Number(item.amountCents)}]));
@@ -666,7 +668,9 @@ export class SupportService {
       if(row.version!==expected)throw new DomainError('VERSION_CONFLICT','会话已变化，请刷新后重试',409);
       const boundary=Number(row.next_sequence)-1;
       if(caseId){
-        if(!await this.casePreview(client,row,caseId))throw new DomainError('AFTERSALE_NOT_FOUND','售后申请暂时无法读取',404);
+        const aftersale=await this.casePreview(client,row,caseId);
+        if(!aftersale)throw new DomainError('AFTERSALE_NOT_FOUND','售后申请暂时无法读取',404);
+        if(!aftersale.active)throw new DomainError('AFTERSALE_CASE_CLOSED','售后已办结，请重新开启普通对话',409);
         const previous=await this.latestConsultation(client,row,caseId);
         const base=await this.contextState(client,row);
         const response:ConsultationReceipt={conversationId:id,caseId,contextStartSequence:boundary,

@@ -2360,15 +2360,22 @@ it('shows only current capability-scoped management attention and clears it afte
 const directTarget={inject:(input:any)=>app.inject({...input,remoteAddress:'192.0.2.177'})} as FastifyInstance;
 async function directBuyer(suffix:string){const r=await directTarget.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'direct-refund-'+suffix,displayName:'合成独立退款会员',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}});expect(r.statusCode,r.body).toBe(200);const owner=r.json() as TestActor;await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter) VALUES($1,'wechat_miniprogram',$2,$3,'wechat')`,[owner.memberId,appId,'direct-'+owner.memberId]);return owner;}
 it.each([
- {kind:'refund_only',ownOrder:false},
- {kind:'return_refund',ownOrder:false},
- {kind:'return_refund',ownOrder:true}
-])('atomically approves an unshipped $kind (own order: $ownOrder) and waits for verified channel success',async ({kind,ownOrder})=>{
- const scenario=`${kind}-${ownOrder?'own':'staff'}`;
+ {kind:'refund_only',ownOrder:false,supportOrigin:'case'},
+ {kind:'return_refund',ownOrder:false,supportOrigin:'case'},
+ {kind:'return_refund',ownOrder:true,supportOrigin:'case'},
+ {kind:'refund_only',ownOrder:false,supportOrigin:'manual'},
+ {kind:'refund_only',ownOrder:false,supportOrigin:'legacy'}
+])('approves unshipped $kind (own order: $ownOrder, human conversation: $supportOrigin) and waits for verified channel success',async ({kind,ownOrder,supportOrigin})=>{
+ const scenario=`${kind}-${ownOrder?'own':'staff'}-${supportOrigin}`;
  const owner=await directBuyer(scenario);
  const administrator=ownOrder?owner:operator;
  const order=await aftersalePaidOrder(`direct-${scenario}`,owner,directTarget);
  const service=new AftersaleService(pool,new AuthorityService(pool,'test'));
+ if(supportOrigin==='manual'){
+   const handoff=await app.inject({method:'POST',url:'/v1/me/support/handoff',headers:auth(owner.sessionToken),payload:{}});
+   expect(handoff.statusCode,handoff.body).toBe(200);
+   expect(handoff.json().status).toBe('waiting_human');
+ }
  const claim=await service.request(owner.memberId,order.id,`direct-claim-${scenario}`,{kind,reason:'合成未发货退款'});
  expect(claim.fulfillment).toEqual({state:'unshipped',canRefundWithoutReturn:true});
  for(const capability of ['commerce.aftersale.review','commerce.refund.approve','support.read','support.reply','support.assign'])
@@ -2377,6 +2384,13 @@ it.each([
  const contact=await aftersalePost(administrator,`/v1/management/aftersales/${claim.id}/contact`,{},`direct-contact-${scenario}`);
  expect(contact.statusCode,contact.body).toBe(200);
  expect(contact.json()).toMatchObject({caseId:claim.id,conversationId:claim.supportConversationId});
+ const waiting=await app.inject({url:'/v1/me/support/messages',headers:auth(owner.sessionToken)});
+ expect(waiting.json()).toMatchObject({conversation:{id:claim.supportConversationId,status:'waiting_human'},aftersale:{caseId:claim.id,active:true,refundCompleted:false}});
+ if(supportOrigin!=='legacy'){
+   const claimed=await app.inject({method:'POST',url:`/v1/management/support/conversations/${claim.supportConversationId}/claim`,
+     headers:auth(administrator.sessionToken),payload:{expectedVersion:waiting.json().conversation.version}});
+   expect(claimed.statusCode,claimed.body).toBe(200);
+ }
  const url=`/v1/management/aftersales/${claim.id}/actions`,data={action:'request_refund',expectedVersion:1,note:'同意未发货订单退款',approveRefund:true};
  const before=channelRequestCount;
  const response=await aftersalePost(administrator,url,data,`direct-approval-${scenario}`);expect(response.statusCode,response.body).toBe(200);
@@ -2390,24 +2404,41 @@ it.each([
  expect((await pool.query('SELECT count(*)::int n FROM commerce_aftersale_return_instruction WHERE case_id=$1',[claim.id])).rows[0].n).toBe(0);
  const reviewed=(await pool.query('SELECT out_refund_no FROM commission_refund_intent WHERE request_id=$1',[result.refundRequestId])).rows[0];
  await refundCommands.processDue();expect((await service.detail(owner.memberId,claim.id)).resolved).toBe(false);
+ const readConversation=async()=>(await pool.query('SELECT status,current_handler_principal_id FROM support_conversation WHERE id=$1',[claim.supportConversationId])).rows[0];
+ const beforeConfirmation=await readConversation();
+ expect(beforeConfirmation.status).toBe(supportOrigin==='legacy'?'waiting_human':'human_active');
+ if(supportOrigin==='legacy'){
+   // Bypass only the new closure during worker processing, then reproduce a
+   // pre-upgrade waiting row with verified money and the original intake evidence.
+   await pool.query("UPDATE support_conversation SET status='resolved',resolved_at=clock_timestamp(),version=version+1 WHERE id=$1",[claim.supportConversationId]);
+ }
  const callback=refundCallback(reviewed.out_refund_no);
  expect((await app.inject({method:'POST',url:'/v1/payments/wechat/refund-callback',headers:{...callback.headers,'Content-Type':'application/json'},payload:callback.raw})).statusCode).toBe(204);
- await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);expect((await service.detail(owner.memberId,claim.id)).resolved).toBe(true);
+ await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+ expect(await service.detail(owner.memberId,claim.id)).toMatchObject({resolved:true,refund:{approvedAt:expect.any(Date),completedAt:expect.any(Date)}});
+ if(supportOrigin==='legacy')
+   await pool.query("UPDATE support_conversation SET status='waiting_human',resolved_at=NULL,version=version+1 WHERE id=$1",[claim.supportConversationId]);
+ expect((await readConversation()).status).toBe(supportOrigin==='case'?'resolved':supportOrigin==='legacy'?'waiting_human':'human_active');
  const closed=await service.list(administrator.memberId,{stage:'closed'},true);expect(closed.items.some(row=>row.id===claim.id)).toBe(true);
  const active=await service.list(administrator.memberId,{stage:'refunds'},true);expect(active.items.some(row=>row.id===claim.id)).toBe(false);
- const waiting=await app.inject({url:'/v1/me/support/messages',headers:auth(owner.sessionToken)});
- expect(waiting.json()).toMatchObject({conversation:{id:claim.supportConversationId,status:'waiting_human'},aftersale:{caseId:claim.id,active:false}});
- const claimed=await app.inject({method:'POST',url:`/v1/management/support/conversations/${claim.supportConversationId}/claim`,
-   headers:auth(administrator.sessionToken),payload:{expectedVersion:waiting.json().conversation.version}});
- expect(claimed.statusCode,claimed.body).toBe(200);
- const assigned=await app.inject({url:'/v1/me/support/messages',headers:auth(owner.sessionToken)});
- expect(assigned.json()).toMatchObject({conversation:{status:'human_active'},aftersale:{caseId:claim.id,active:false}});
+ const synced=await app.inject({url:'/v1/me/support/messages',headers:auth(owner.sessionToken)});
+ expect(synced.statusCode,synced.body).toBe(200);
+ const keepsAssignment=supportOrigin==='manual';
+ expect(synced.json()).toMatchObject({conversation:{id:claim.supportConversationId,status:keepsAssignment?'human_active':'resolved'},aftersale:null});
+ expect((await readConversation()).current_handler_principal_id).toBe(keepsAssignment?beforeConfirmation.current_handler_principal_id:null);
  const consultation=await app.inject({method:'POST',url:'/v1/me/support/new-topic',headers:auth(owner.sessionToken),
-   payload:{conversationId:claim.supportConversationId,expectedVersion:assigned.json().conversation.version,requestId:randomUUID(),consultationCaseId:claim.id}});
- expect(consultation.statusCode,consultation.body).toBe(200);
- expect(consultation.json()).toMatchObject({conversation:{status:'human_active'},aftersale:{caseId:claim.id,active:false},messages:[]});
+   payload:{conversationId:claim.supportConversationId,expectedVersion:synced.json().conversation.version,requestId:randomUUID(),consultationCaseId:claim.id}});
+ expect(consultation.statusCode,consultation.body).toBe(409);
+ expect(consultation.json().code).toBe('AFTERSALE_CASE_CLOSED');
  const resumed=await app.inject({url:`/v1/me/support/messages?aftersaleCaseId=${claim.id}`,headers:auth(owner.sessionToken)});
- expect(resumed.json().messages).toEqual(expect.arrayContaining([expect.objectContaining({body:expect.stringContaining('已同意退款')})]));
+ expect(resumed.json()).toMatchObject({aftersale:{caseId:claim.id,active:false,refundCompleted:true}});
+ expect(resumed.json().messages).toEqual(expect.arrayContaining([
+   expect.objectContaining({aftersaleCard:expect.objectContaining({id:claim.id,refundCompleted:true})}),
+   expect.objectContaining({body:expect.stringContaining('已同意退款')})
+ ]));
+ expect(resumed.json().messages.filter((message:{body:string})=>message.body.includes('售后已办结'))).toHaveLength(keepsAssignment?0:1);
+ const contactClosed=await aftersalePost(administrator,`/v1/management/aftersales/${claim.id}/contact`,{},`closed-contact-${scenario}`);
+ expect(contactClosed.statusCode,contactClosed.body).toBe(409);
 });
 it('allows the owner administrator to decide an existing linked request and preserves independent standalone review',async()=>{
  const owner=await directBuyer('pending-self');

@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import{sectionTabValue}from'../../services/section-tabs';
 import {beijingDateParts as rateDateParts,beijingDateLabel as dateLabel,beijingCivilInstant} from "../../services/business-time";
 import { request } from "../../services/api";
@@ -14,6 +15,7 @@ const money=(value:number)=>`¥${(value/100).toFixed(2)}`;
 const orderStatusLabel=(value:string|undefined)=>({paid:"已支付",pending_payment:"待支付",cancelled:"已取消",expired:"已超时"})[value??""]??"状态待核对";
 
 Page({
+  dismissNativeKeyboardOnTap,
   sectionCache:{} as Record<string,SectionPage>,
   rateCommand:null as null|{key:string;memberId:string;action:"override"|"inherit";basisPoints?:number;effectiveAt:string;reason:string},
   data:{chromeStyle:currentChromeStyle(),id:"",detail:null as MemberDetail|null,

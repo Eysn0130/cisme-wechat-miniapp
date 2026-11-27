@@ -1,5 +1,5 @@
 <import src="../../templates/recorded-commands.wxml"/>
-<view class="chrome-root" style="{{chromeStyle}}">
+<view capture-bind:tap="dismissNativeKeyboardOnTap" class="chrome-root" style="{{chromeStyle}}">
   <view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">商业会员与佣金</text></view>
   <view class="page page--stack commission-page">
     <view wx:if="{{loading}}" class="state">正在加载资格和佣金…</view>
@@ -30,7 +30,7 @@
         <view class="commission-muted">退款争议可能减少下单可用额。</view>
         <view class="commission-muted">购物权益与佣金、积分分别记录，使用时不重复计算佣金。</view>
         <button wx:if="{{isolatedCredit&&!creditFormVisible&&status.commission.availableCents>0}}" class="secondary commission-credit__action {{busy?'secondary--disabled':''}}" bindtap="showCreditForm" disabled="{{busy}}">自愿转换已释放佣金</button>
-        <view wx:if="{{isolatedCredit&&creditFormVisible}}" class="commission-form"><text>转换金额（元）</text><input type="digit" value="{{creditAmount}}" placeholder="例如 20.00" maxlength="11" bindinput="editCreditAmount"/><view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeCreditForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submitCredit" disabled="{{busy}}" loading="{{busy}}">确认测试转换</button></view></view>
+        <view wx:if="{{isolatedCredit&&creditFormVisible}}" class="commission-form"><text>转换金额（元）</text><input data-keyboard-field="input" hold-keyboard="{{false}}" type="digit" value="{{creditAmount}}" placeholder="例如 20.00" maxlength="11" bindinput="editCreditAmount"/><view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeCreditForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submitCredit" disabled="{{busy}}" loading="{{busy}}">确认测试转换</button></view></view>
         <view wx:if="{{creditActionStatus}}" class="state" aria-live="polite">{{creditActionStatus}}</view><view wx:if="{{creditActionError}}" class="state state--error" aria-live="assertive">{{creditActionError}}</view>
         <view class="commission-history"><strong>权益来源记录</strong><text wx:if="{{!creditLoading&&!creditError}}">共 {{creditTotal}} 项</text></view>
         <view wx:if="{{creditLoading}}" class="commission-muted">正在核对来源…</view><view wx:elif="{{!creditError&&creditRows.length===0}}" class="commission-muted">暂无转换记录。</view>
@@ -43,8 +43,8 @@
         <button wx:if="{{isolatedTransfer&&!formVisible&&status.commission.availableCents>0}}" class="primary" bindtap="showForm">登记结算意向</button>
         <text wx:if="{{!formVisible&&status.commission.availableCents===0}}" class="commission-muted">暂无可申请的已释放金额。</text>
         <view wx:if="{{isolatedTransfer&&formVisible}}" class="commission-form">
-          <text>申请金额（元）</text><input type="digit" value="{{amount}}" placeholder="例如 20.00" maxlength="11" bindinput="editAmount"/>
-          <text>申请依据</text><textarea value="{{reason}}" placeholder="填写本次测试申请的说明" maxlength="300" auto-height bindinput="editReason"/>
+          <text>申请金额（元）</text><input data-keyboard-field="input" hold-keyboard="{{false}}" type="digit" value="{{amount}}" placeholder="例如 20.00" maxlength="11" bindinput="editAmount"/>
+          <text>申请依据</text><textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" value="{{reason}}" placeholder="填写本次测试申请的说明" maxlength="300" auto-height bindinput="editReason"/>
           <view class="commission-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeForm" disabled="{{busy}}">取消</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submit" disabled="{{busy}}" loading="{{busy}}">登记意向</button></view>
         </view>
         <view wx:if="{{actionStatus}}" class="state">{{actionStatus}}</view>

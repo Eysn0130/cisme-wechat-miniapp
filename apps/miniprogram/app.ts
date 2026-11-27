@@ -7,6 +7,7 @@ import {flushOfficerVisits} from './services/officer-attribution';
 import { request } from "./services/api";
 import { confirmMemberEntry, memberEntryReady } from "./services/member-entry";
 import { hasCompleteLoginProfile, type SetupProfile } from "./services/member-setup";
+import { dismissNativeKeyboardOnTap, observeNativeKeyboard } from "./services/native-keyboard";
 
 function runtimeApiConfig(query: RemoteDebugQuery): { origin: string; remoteDebugMode: boolean; cloudFunction?: import("./release-config").CloudHttpTarget } {
   const { miniProgram } = wx.getAccountInfoSync();
@@ -22,6 +23,7 @@ function runtimeApiConfig(query: RemoteDebugQuery): { origin: string; remoteDebu
 const initialChrome = readChromeMetrics();
 
 App({
+  dismissNativeKeyboardOnTap,
   globalData: {
     sessionToken: "",
     privacyRightsToken: "",
@@ -33,6 +35,7 @@ App({
     chromeStyle: chromeStyle(initialChrome)
   },
   onLaunch(options) {
+    observeNativeKeyboard();
     clearPreviousAvatarFiles();
     pruneUgcBackups();
     const runtime = runtimeApiConfig(options.query ?? {});

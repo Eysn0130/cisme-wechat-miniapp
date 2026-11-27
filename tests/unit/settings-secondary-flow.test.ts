@@ -70,7 +70,7 @@ describe('settings personal data requests',()=>{
  });
  it('reports missing required content at the field and never submits it',async()=>{
   const p=await page('privacy-rights');p.data.authenticated=true;await p.submit();
-  expect(p.data.submitError).toContain('申请说明');expect(p.data.messageFocus).toBe(true);
+  expect(p.data.submitError).toContain('申请说明');expect(p.data.messageFocus).toBeUndefined();
   expect(api.request).not.toHaveBeenCalled();
  });
  it('retains the draft and actionable feedback on a failed submission',async()=>{

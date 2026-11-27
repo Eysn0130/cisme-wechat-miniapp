@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { requireGuestCommunityAccess } from "../../services/api";
 import { retainReadPresentation } from "../../services/read-presentation";
 import { cancelPageReads } from "../../services/page-requests";
@@ -13,6 +14,7 @@ const message=(error:unknown,fallback:string)=>(error as {title?:string})?.title
 const stories=new WeakMap<object,FeedCard[]>();
 
 Page({
+  dismissNativeKeyboardOnTap,
   readRevision:commerceContextRevision(),readVisible:true,lastSessionToken:"",bioAttempt:0,
   data:{chromeStyle:currentChromeStyle(),mine:false,authorId:"",author:null as CommunityAuthor|null,badgeIntro:false,
     feedColumns:projectFeedCards([]),nextCursor:null as string|null,

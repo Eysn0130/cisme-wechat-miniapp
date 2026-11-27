@@ -19,7 +19,7 @@ function welcomeCount(){
  return welcomeConditions.reduce((count,condition)=>{
   const tokens=condition.match(/[A-Za-z_][A-Za-z0-9_]*|&&|\|\||!|\(|\)/g)??[];
   expect(tokens.join('')).toBe(condition.replace(/\s/g,''));
-  const names=['historyLoaded','historyStartLoaded','closedRights','loading'];
+  const names=['historyLoaded','historyStartLoaded','closedRights','loading','aftersaleView'];
   for(const token of tokens)if(/^[A-Za-z_]/.test(token))expect(names).toContain(token);
   const values=Object.fromEntries(names.map(name=>[name,p.data[name]===true]));
   return count+Number(Boolean(runInNewContext(`(${condition})`,values,{timeout:100,contextCodeGeneration:{strings:false,wasm:false}})));

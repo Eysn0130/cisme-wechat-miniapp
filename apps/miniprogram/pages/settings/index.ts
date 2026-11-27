@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {confirmCreditOwner} from '../../services/points-feedback';
 import {birthdayPicker,birthdayMonthColumn,selectedBirthday} from '../../services/member-birthday';
 import { memberIdentity, publishMemberIdentity } from "../../services/member-identity";
@@ -50,6 +51,7 @@ function addressView(item: Omit<AddressView, "labelText" | "summary">): AddressV
 }
 
 Page({
+  dismissNativeKeyboardOnTap,
   openCareProfile(){if(this.data.leaving||this.data.workingConsentId||this.data.confirmingLogout||this.data.loggingOut||this.data.leavePromptOpen||this.data.profileBusy||this.data.avatarBusy||this.data.phoneBusy||this.data.addressBusy)return;this.setData({careProfileOpen:true});},
   closeCareProfile(){this.setData({careProfileOpen:false});},
   profileSessionToken: "",

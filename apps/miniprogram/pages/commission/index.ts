@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { loadRecordedCommands, type RecordedGroup } from "../../services/commerce-command-discovery";
 import type { CommerceCommandKind } from "../../services/commerce-command-store";
 import { commerceContextRevision } from "../../services/commerce-command-store";
@@ -29,6 +30,7 @@ function yuanToCents(value:string){const parts=/^(\d{1,8})(?:\.(\d{1,2}))?$/.exe
   return parts?Number(parts[1])*100+Number((parts[2]??"").padEnd(2,"0")):NaN;}
 
 Page({
+  dismissNativeKeyboardOnTap,
   lastSessionToken:"",lastSessionRevision:-1,
   data:{recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),status:null as MemberStatus|null,
     availableLabel:"",pendingLabel:"",heldLabel:"",settledLabel:"",recoveryLabel:"",

@@ -78,9 +78,10 @@ it('keeps user-facing progress and order copy free of obsolete development claim
 
 it('keeps aftersale touch targets at least 44 CSS pixels on narrow viewports', () => {
   const styles = readFileSync('apps/miniprogram/pages/aftersale/index.wxss', 'utf8');
-  for (const selector of ['.choice', 'input', '.primary,.secondary']) {
-    const body = styles.slice(styles.indexOf(`${selector}{`)).split('}')[0]!;
-    expect(body).toContain('min-height:44px');
-    expect(body).not.toContain('min-height:88rpx');
+  const base = readFileSync('apps/miniprogram/app.wxss', 'utf8');
+  expect(base).toMatch(/--cisme-hit-target:\s*44px/);
+  for (const selector of ['.choice', '.aftersale-shell input', '.buyer-case-choice', '.buyer-case-link']) {
+    const body = styles.slice(styles.indexOf(`${selector} {`)).split('}')[0]!;
+    expect(body).toMatch(/min-height:\s*var\(--cisme-hit-target\)/);
   }
 });

@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { authorityProjection, hasCapability, type AuthorityProjection } from "../../services/authority";
 import { retainMemberSnapshot } from "../../services/api";
 import { adjustInventory, createProduct, managementProduct, packagedCatalogImages, parseYuanToCents, publishProduct, qualifyProduct, updateProduct, type CatalogProduct } from "../../services/commerce";
@@ -16,6 +17,7 @@ function problem(error: unknown): string { const candidate = error as { title?: 
 function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
 
 Page({
+  dismissNativeKeyboardOnTap,
   dirty: false,
   lifecycleEpoch: 0,
   visible: false,

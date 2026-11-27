@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { SupportIdentityCache, supportOwnIdentity, type SupportSender } from '../../services/support-identity';
 import { defaultMemberAvatar } from '../../services/member-avatar';
 import { memberIdentity } from '../../services/member-identity';
@@ -7,6 +8,7 @@ import { downloadPrivateMedia, historicalCommerceClosed, historicalCommerceToken
 import { centsToYuan } from "../../services/commerce";
 import { nativeCatalogImage } from "../../services/catalog";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
+import { aftersaleSpecification } from "../../services/order-aftersale";
 import { currentChromeStyle } from "../../services/layout";
 import { openSupportHelp, supportHelpLabel } from "../../services/support-help";
 import { setSupportComposerLayout, updateSupportComposerLines } from "../../services/support-composer-layout";
@@ -31,7 +33,7 @@ import {
 type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath: string; localPath?: string };
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
 type AftersaleCard={id:string;orderId:string;orderNumberTail:string;kind:'refund_only'|'return_refund';amountCents:number;
-  lines:Array<{lineId:string;productName:string;skuLabel:string;quantity:number}>;amountLabel?:string;moreLines?:number};
+  refundCompleted?:boolean;lines:Array<{lineId:string;productName:string;skuLabel:string;quantity:number}>;amountLabel?:string;moreLines?:number};
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null;
   aftersaleCard?:AftersaleCard;
   aftersaleDecision?: { caseId: string; version: number };
@@ -47,7 +49,7 @@ type OrderChoice = { id: string; orderNumberTail: string; status: string; status
 type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null; expectedConversationId: string | null; contextVersion: number };
 type MemberRecovery = { attempt: SendAttempt | null; input: string; selectedImage: SelectedImage | null; selectedOrder: OrderChoice | null;
   conversationId: string | null; contextVersion: number };
-type CasePreview = { caseId: string; orderId: string; orderNumberTail: string; productName: string; kind: string; active: boolean };
+type CasePreview = { caseId: string; orderId: string; orderNumberTail: string; productName: string; kind: string; active: boolean; refundCompleted?: boolean };
 type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string; consultationCaseId?: string };
 type HandoffAttempt = { contextVersion: number; questionMessageId: string | null; expectedConversationId?: string };
 type TopicMetadata = { contextStartSequence?: unknown; contextVersion?: unknown; conversation?: Conversation | null };
@@ -70,6 +72,7 @@ function compactAftersaleNotice(body: string): string {
 }
 
 Page({
+  dismissNativeKeyboardOnTap,
   identityCache: null as SupportIdentityCache | null,
   pendingRecovery: null as MemberRecovery | null,
   linkedOrderId:"",
@@ -246,12 +249,14 @@ Page({
   },
   resumeAftersale(){
     const card=this.data.aftersale;
-    if(!card||!this.owns(this.lifecycleEpoch,sessionToken())||this.data.sending||this.data.sendAttempt
+    const epoch=this.lifecycleEpoch,token=sessionToken();
+    if(!card?.active||!this.owns(epoch,token)||this.data.sending||this.data.sendAttempt
       ||this.data.uploadBusy||this.data.newTopicBusy||this.data.newTopicAttempt)return;
-    const previous=getCurrentPages().slice(-2,-1)[0] as {route?:string;aftersaleViewId?:string}|undefined;
-    if(previous?.route==='pages/support/index'&&previous.aftersaleViewId===card.caseId){wx.navigateBack();return;}
-    wx.navigateTo({url:`/pages/support/index?orderId=${card.orderId}&caseId=${card.caseId}&aftersaleView=1`});
+    this.dismissComposerKeyboard();
+    wx.redirectTo({url:`/pages/support/index?orderId=${card.orderId}&caseId=${card.caseId}&aftersaleView=1`,
+      fail:()=>{if(this.owns(epoch,token))wx.showToast({title:"暂时无法打开售后对话",icon:"none"});}});
   },
+  isAftersaleArchive(){return Boolean(this.aftersaleViewId&&(!this.data.aftersale||this.data.aftersale.refundCompleted));},
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
   restoreRecovery(conversation: Conversation | null, contextVersion: number) {
     const recovered=this.pendingRecovery;
@@ -414,6 +419,7 @@ Page({
     return !status || status === "ai_active" || status === "resolved";
   },
   applyThreadState(state: SupportThreadState<Message>, patch: Record<string, unknown> = {}) {
+    if (this.aftersaleViewId && (patch.aftersale as CasePreview | undefined)?.refundCompleted) this.dismissComposerKeyboard();
     const conversation = (patch.conversation as Conversation | undefined) ?? this.data.conversation;
     const presence = (patch.presence as Presence | undefined) ?? this.data.presence;
     const messages = this.present(state.messages, conversation, presence);
@@ -467,7 +473,9 @@ Page({
       return {...item,attachments:(item.attachments??[]).map(attachment=>({...attachment,
         ...(localImage?.mediaId===attachment.id?{localPath:localImage.localPath}:{})})),
         orderCard:item.orderCard?{...item.orderCard,statusLabel:supportOrderStatusLabel(item.orderCard.status),totalYuan:centsToYuan(item.orderCard.totalCents)}:null,
-        ...(card?{aftersaleCard:{...card,amountLabel:centsToYuan(card.amountCents),lines:card.lines.slice(0,2),moreLines:Math.max(0,card.lines.length-2)}}:{})};
+        ...(card?{aftersaleCard:{...card,amountLabel:centsToYuan(card.amountCents),lines:card.lines.slice(0,2).map(line=>({
+          ...line,skuLabel:aftersaleSpecification(line.productName,line.skuLabel)
+        })),moreLines:Math.max(0,card.lines.length-2)}}:{})};
     });
   },
   async load() {
@@ -652,6 +660,7 @@ Page({
     return presentSupportMessages([raw], { ownSenderType: "user", counterpartyReadSequence: 0 })[0]! as Message;
   },
   async send() {
+    if (this.isAftersaleArchive()) return;
     const previous = this.data.sendAttempt;
     const body = previous?.body ?? this.data.input.trim();
     const mediaIds = previous?.mediaIds ?? (this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : []);
@@ -935,7 +944,7 @@ Page({
     wx.previewImage({ current, urls: attachments.map((attachment) => attachment.localPath!) });
   },
   async requestHuman() {
-    if(this.data.closedRights || this.data.newTopicBusy || this.data.newTopicAttempt)return;
+    if(this.data.closedRights || this.isAftersaleArchive() || this.data.newTopicBusy || this.data.newTopicAttempt)return;
     if (this.data.handoffBusy || this.data.conversation?.status === "waiting_human" || this.data.conversation?.status === "human_active") return;
     const epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
@@ -978,12 +987,12 @@ Page({
       composerCapped: false, composerLineCount: 1, attachmentSheetOpen: false, orderPickerOpen: false });
   },
   async startNewTopic() {
-    if (!this.data.pageAlive || !this.data.visible || this.data.closedRights || this.data.newTopicBusy || this.data.sending
+    if (!this.data.pageAlive || !this.data.visible || this.data.closedRights || this.isAftersaleArchive() || this.data.newTopicBusy || this.data.sending
       || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage || this.data.handoffBusy) return;
     const previous = this.data.newTopicAttempt;
     const status = this.data.conversation?.status;
     const card = this.data.aftersale;
-    const caseId = this.consultationCaseId || card?.caseId || "";
+    const caseId = card?.active ? card.caseId : "";
     if (!previous && !caseId && (status === "waiting_human" || status === "human_active")) {
       const epoch = this.lifecycleEpoch, token = sessionToken();
       try { await wx.showModal({ title: "人工事项处理中", content: "人工申请会继续保留，你可以直接咨询其他问题。人工事项结束后可开启新对话。", showCancel: false, confirmText: "知道了" }); }
@@ -1028,9 +1037,13 @@ Page({
         this.linkedOrderId=page.aftersale.orderId;
         this.setComposerState({conversation:this.currentConversation(page.conversation),contextStartSequence:0,newTopicAttempt:null,
           aftersaleView:true,aftersale:page.aftersale,error:"",errorAction:""});
-        wx.navigateTo({url:`/pages/support/index?consultationCaseId=${this.aftersaleViewId}`,
+        wx.redirectTo({url:`/pages/support/index?consultationCaseId=${this.aftersaleViewId}`,
           fail:()=>{if(this.owns(epoch,ownerToken))this.setData({newTopicAttempt:attempt,error:"新对话已开启，请重试打开。",errorAction:""});}});
         return;
+      }
+      if(!attempt.consultationCaseId&&this.consultationCaseId){
+        this.consultationCaseId="";
+        this.setComposerState({consultationView:false});
       }
       const conversation = this.currentConversation(page.conversation), boundary = this.topicBoundary(page, conversation), contextVersion = this.topicVersion(page, conversation);
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;

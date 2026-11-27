@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {confirmCreditOwner} from '../../services/points-feedback';
 import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess,retainMemberSnapshot,request} from '../../services/api';
@@ -35,6 +36,7 @@ function pointRuleRows(r:PointRules){if(r.taskVersion===2)return [
    {title:'使用与有效期',copy:`${r.pointsPerYuan} 积分可抵扣商品价1元，单笔最高 ${(r.discountBps/100).toFixed(0)}%，运费不抵扣；全部正常上架商品均可纯积分兑换。获得后 ${r.expiryMonths} 个自然月内有效，提前 ${r.reminderDays} 天在此提示。取消订单释放预占，已过期部分按原规则失效；实际退款退回原批次，已到期的退回积分延长 ${r.refundGraceDays} 天。不可提现或转让。`},
    {title:'异常和权益',copy:'新规则仅处理生效后的新事实，每笔奖励有唯一来源。已使用奖励被撤回后形成欠分，后续所得优先冲抵，欠分未清不能使用积分。规则变更提前公示，已到账积分按原权益保留，积分到账后可查看明细，异常可联系客服。'}];}
 Page({
+  dismissNativeKeyboardOnTap,
  token:'',context:0,visible:false,syncing:false,readFailures:0,connected:true,
  syncTimer:null as ReturnType<typeof setTimeout>|null,
  networkListener:null as ((result: {isConnected?:boolean;errMsg?:string})=>void)|null,
