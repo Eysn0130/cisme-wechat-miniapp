@@ -78,8 +78,10 @@ export class ShippingSyncService {
     if (!UUID.test(orderId) || !/^[A-Za-z0-9._:-]{8,200}$/.test(requestKey)
       || !/^[A-Za-z0-9._:-]{8,120}$/.test(evidenceReference)) fail('SHIPPING_REQUEST_INVALID', 422);
     // Normalize before HMAC/sealing so extra input keys cannot enter storage or network.
-    const normalized: UnifiedParcel = { trackingNumber: parcel.trackingNumber, carrierCode: parcel.carrierCode,
-      description: parcel.description, ...(parcel.receiverContactMasked ? { receiverContactMasked: parcel.receiverContactMasked } : {}) };
+    const normalized: UnifiedParcel = parcel.deliveryMethod !== undefined
+      ? { deliveryMethod: parcel.deliveryMethod, description: parcel.description }
+      : { trackingNumber: parcel.trackingNumber, carrierCode: parcel.carrierCode,
+        description: parcel.description, ...(parcel.receiverContactMasked ? { receiverContactMasked: parcel.receiverContactMasked } : {}) };
     const fingerprint = createHmac('sha256', Buffer.from(this.options.hashKey, 'hex'))
       .update(JSON.stringify({ orderId, parcel: normalized, evidenceReference })).digest('hex');
     {

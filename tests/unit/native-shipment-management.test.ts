@@ -7,14 +7,15 @@ vi.mock('../../apps/miniprogram/services/commerce',()=>({centsToYuan:(n:number)=
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 let definition:any,session='operator-a';
 const fixture={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',orderNumber:'SYNTHETIC',status:'paid',transactionSourceKind:'verified_commerce',version:4,createdAt:'2026-09-22T00:00:00Z',totalCents:100,creditTenderCents:0,cashPayableCents:100,lines:[],address:null};
-const form={carrierCode:'SF',carrierName:'合成承运商',trackingNumber:'SYNTHETIC123',evidenceReference:'synthetic-proof',date:'2026-09-22',time:'09:00'};
+const form={carrierCode:'SF',carrierName:'合成承运商',trackingNumber:'SYNTHETIC123',evidenceReference:'synthetic-proof'};
 function mount(){const page={...definition,data:{...definition.data,id:fixture.id,form:{...form}},setData(p:unknown){Object.assign(this.data,p);}};return page;}
 beforeEach(async()=>{
  vi.resetModules();for(const call of Object.values(calls))call.mockReset();session='operator-a';
  calls.authority.mockResolvedValue({capabilities:['commerce.order.read','commerce.fulfillment.manage']});calls.order.mockResolvedValue(fixture);
  calls.shipment.mockResolvedValue({orderId:fixture.id,logisticsState:'awaiting_dispatch'});calls.carriers.mockResolvedValue({carriers:[{id:'SF',name:'合成承运商'}]});
  (globalThis as any).Page=(p:unknown)=>{definition=p;};(globalThis as any).getApp=()=>({globalData:{sessionToken:session}});
- (globalThis as any).wx={showModal:vi.fn((options:any)=>options.success({confirm:true})),navigateBack:vi.fn()};
+ (globalThis as any).wx={showModal:vi.fn((options:any)=>options.success({confirm:true})),
+  showActionSheet:vi.fn((options:any)=>options.success({tapIndex:1})),navigateBack:vi.fn()};
  await import('../../apps/miniprogram/pages/management-order-detail/index');
 });
 it('keeps fulfillment unavailable for read-only operators and makes no shipment read',async()=>{
@@ -24,8 +25,10 @@ it('keeps fulfillment unavailable for read-only operators and makes no shipment 
 it('uses the existing atomic dispatch endpoint once under repeated clicks',async()=>{
  const page=mount();await page.onShow();page.data.form={...form};let finish!:(x:unknown)=>void;calls.dispatch.mockImplementation(()=>new Promise(r=>{finish=r;}));
  const first=page.submitShipment();await Promise.resolve();const second=page.submitShipment();await second;
- expect(calls.dispatch).toHaveBeenCalledTimes(1);expect(calls.dispatch.mock.calls[0]).toEqual([fixture.id,expect.objectContaining({expectedOrderVersion:4,trackingNumber:form.trackingNumber,shippedAt:'2026-09-22T01:00:00.000Z'}),'synthetic-shipment-key']);
- expect((wx.showModal as any).mock.calls[0][0].content).toContain('北京时间 2026-09-22 09:00');
+ expect(calls.dispatch).toHaveBeenCalledTimes(1);expect(calls.dispatch.mock.calls[0]).toEqual([fixture.id,{
+  expectedOrderVersion:4,trackingNumber:form.trackingNumber,carrierCode:form.carrierCode,carrierName:form.carrierName,
+  evidenceReference:'dispatch:synthetic-shipment-key'},'synthetic-shipment-key']);
+ expect((wx.showModal as any).mock.calls[0][0].content).toContain('自动记录当前交寄时间');
  calls.shipment.mockResolvedValue({id:'shipment',orderId:fixture.id,logisticsState:'shipped',wechatSyncState:'prepared'});finish({id:'shipment'});await first;
  expect(page.data.shipment.id).toBe('shipment');expect(page.data.syncLabel).toBe('等待微信同步');expect(page.data.form.trackingNumber).toBe('');
 });
@@ -40,7 +43,7 @@ it('interprets shipment time in Shanghai across UTC days and rejects invalid dat
 it('recovers an ambiguous submit through the authoritative shipment instead of dispatching again',async()=>{
  const page=mount();await page.onShow();page.data.form={...form};calls.dispatch.mockRejectedValue({status:504});
  calls.shipment.mockResolvedValue({id:'saved',orderId:fixture.id,logisticsState:'shipped',wechatSyncState:'verifying'});
- await page.submitShipment();await page.submitShipment();expect(calls.dispatch).toHaveBeenCalledTimes(1);expect(page.data.dispatchMessage).toContain('已核对到交寄记录');expect(page.pendingDispatch).toBeNull();
+ await page.submitShipment();await page.submitShipment();expect(calls.dispatch).toHaveBeenCalledTimes(1);expect(page.data.dispatchMessage).toContain('已核对到发货记录');expect(page.pendingDispatch).toBeNull();
 });
 it('discards mutation responses after page hide and never leaves old parcel details visible',async()=>{
  const page=mount();await page.onShow();page.data.form={...form};let finish!:(x:unknown)=>void;calls.dispatch.mockImplementation(()=>new Promise(r=>{finish=r;}));
@@ -58,9 +61,30 @@ it('does not submit invalid tracking data, cancelled confirmation or a changed i
 });
 
 it("releases an explicitly rejected input for correction while preserving ambiguous requests",async()=>{
- const page=mount();await page.onShow();page.data.form={...form};calls.dispatch.mockRejectedValue({status:422,code:"SHIPMENT_TIME_INVALID"});await page.submitShipment();
- expect(page.pendingDispatch).toBeNull();expect(page.data.dispatchMessage).toContain("支付成功时间与当前时间之间");
- page.shipmentInput({currentTarget:{dataset:{field:"time"}},detail:{value:"10:30"}});expect(page.data.form.time).toBe("10:30");
+ const page=mount();await page.onShow();page.data.form={...form};calls.dispatch.mockRejectedValue({status:422,code:"SHIPMENT_INPUT_INVALID"});await page.submitShipment();
+ expect(page.pendingDispatch).toBeNull();expect(page.data.dispatchMessage).toContain("发货信息未通过校验");
+ page.shipmentInput({currentTarget:{dataset:{field:"trackingNumber"}},detail:{value:"ACTUAL123"}});expect(page.data.form.trackingNumber).toBe("ACTUAL123");
+});
+
+it('registers the selected real handoff without courier fields and reuses an uncertain request',async()=>{
+ const page=mount();await page.onShow();calls.dispatch.mockRejectedValueOnce({status:504});
+ await page.submitWithoutLogistics();
+ expect((wx.showActionSheet as any).mock.calls[0][0].itemList).toEqual(['同城配送','用户自提']);
+ expect((wx.showModal as any).mock.calls[0][0]).toMatchObject({title:'确认买家已取货',content:expect.stringContaining('发货满 7 天')});
+ expect(calls.dispatch.mock.calls[0]).toEqual([fixture.id,{deliveryMethod:'pickup',evidenceReference:'dispatch:synthetic-shipment-key',expectedOrderVersion:4},'synthetic-shipment-key']);
+ expect(page.data.dispatchRecovery).toBe(true);
+ await page.submitWithoutLogistics();expect(calls.dispatch).toHaveBeenCalledTimes(1);
+ calls.shipment.mockResolvedValue({id:'saved',orderId:fixture.id,deliveryMethod:'pickup',logisticsState:'shipped',autoReceiptAt:'2026-11-27T06:00:00.000Z'});
+ await page.submitShipment();
+ expect(calls.dispatch.mock.calls[1]).toEqual(calls.dispatch.mock.calls[0]);
+ expect(wx.showModal).toHaveBeenCalledTimes(1);expect(page.data.shipmentLabel).toBe('已发货');
+});
+
+it('leaves the order unchanged when the handoff chooser is cancelled',async()=>{
+ const page=mount();await page.onShow();
+ (wx.showActionSheet as any).mockImplementation((options:any)=>options.fail({errMsg:'showActionSheet:fail cancel'}));
+ await page.submitWithoutLogistics();
+ expect(wx.showModal).not.toHaveBeenCalled();expect(calls.dispatch).not.toHaveBeenCalled();expect(page.data.dispatchBusy).toBe(false);
 });
 
 it('runs manual recovery as query-only and drops responses after operator revocation',async()=>{

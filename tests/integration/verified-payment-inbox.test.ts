@@ -1193,3 +1193,102 @@ it('preserves a previously verified false on UNKNOWN and fences concurrent contr
  const audit=(await pool.query("SELECT object_id,after_state FROM audit_log WHERE action='commerce.wechat_trade.clearance_recorded' AND after_state->>'appId'=$1",[isolatedApp])).rows;
  expect(audit).toEqual([{object_id:null,after_state:{appId:isolatedApp,reference:'platform-clearance-03'}}]);
 });
+
+it('records server-timed dispatch and confirms only eligible non-courier handoffs at the seven-day boundary',async()=>{
+  const {loadConfig}=await import('@cisme/config');
+  const {TEST_DATABASE_URL}=await import('@cisme/testkit');
+  const {fulfillmentRuntime}=await import('../../services/api/src/fulfillmentRuntime.js');
+  const {unifiedShippingPayload}=await import('../../services/api/src/wechatOrderShipping.js');
+  const {DeliveryAddressService}=await import('../../services/api/src/deliveryAddress.js');
+  const {AftersaleService}=await import('../../services/api/src/aftersale.js');
+  const actor=(await pool.query("INSERT INTO member(display_name) VALUES('Synthetic handoff operator') RETURNING id")).rows[0].id;
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commerce.fulfillment.manage','fixture','Synthetic handoff','test','integration_fixture')`,[actor]);
+  await pool.query('UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+20 WHERE sku_id=$1',[sku]);
+
+  const config=loadConfig({APP_ENV:'test',DATABASE_URL:TEST_DATABASE_URL,APP_SESSION_SECRET:'synthetic-handoff-session',
+    UPLOAD_TOKEN_SECRET:'synthetic-handoff-upload',CONTACT_ENCRYPTION_KEY:'71'.repeat(32),CONTACT_HASH_KEY:'72'.repeat(32),
+    COMMERCE_FULFILLMENT_ENABLED:'true',COMMERCE_FULFILLMENT_MERCHANT_ID:merchantId,WECHAT_APP_ID:appId});
+  const uploaded=new Set<string>();
+  const send=vi.fn((binding,parcel,time)=>{
+    expect(unifiedShippingPayload(binding,parcel,time)).toMatchObject({logistics_type:4,shipping_list:[{item_desc:'Verified fixture×1'}]});
+    uploaded.add(binding.merchantOrderNumber);
+    return Promise.resolve({acknowledged:true as const});
+  });
+  const {service,sync,runReceiptCycle}=fulfillmentRuntime(config,pool,{
+    query:async binding=>uploaded.has(binding.merchantOrderNumber)?{decision:'matched',platformOrderState:2,inComplaint:false}
+      :{decision:'not_uploaded',platformOrderState:1,inComplaint:false},
+    uploadOnce:send
+  })!;
+  const hour=60*60_000,now=Date.now();
+  async function paidOrder(suffix:string,ageHours=0){
+    const paidAt=new Date(now-ageHours*hour);
+    const order=await seedOrder(suffix,null,new Date(paidAt.getTime()-1000));
+    const signed=notification(order.number,`420000000000000${suffix}`,`EV-HANDOFF-${suffix}`,paidAt.toISOString());
+    const received=await processor.receive(signed.rawBody,signed.headers);
+    expect(await processor.processOne(received.inboxId)).toBe('applied');
+    const {version}=(await pool.query('SELECT version FROM commerce_order WHERE id=$1',[order.id])).rows[0];
+    return {...order,version};
+  }
+
+  const pickup=await paidOrder('HANDOFFPICK');
+  const draft={deliveryMethod:'pickup',evidenceReference:'fixture-handoff-pickup',expectedOrderVersion:pickup.version};
+  await expect(service.dispatch(actor,pickup.id,'handoff-pick-invalid',{...draft,trackingNumber:'SYNTHETIC01'})).rejects.toMatchObject({code:'SHIPMENT_INPUT_INVALID'});
+  await expect(service.dispatch(actor,pickup.id,'handoff-pick-time',{...draft,shippedAt:new Date(now).toISOString()})).rejects.toMatchObject({code:'SHIPMENT_INPUT_INVALID'});
+  const before=(await pool.query('SELECT clock_timestamp() AS instant')).rows[0].instant.getTime();
+  const recorded=await service.dispatch(actor,pickup.id,'handoff-pick-register',draft);
+  expect(await service.dispatch(actor,pickup.id,'handoff-pick-register',draft)).toEqual(recorded);
+  const detail=await service.detailMine(buyer,pickup.id);
+  expect(detail).toMatchObject({deliveryMethod:'pickup',carrierName:'用户自提',carrierCode:null,trackingNumber:null,
+    logisticsState:'shipped',receiptConfirmedAt:null,wechatSyncState:'prepared'});
+  if(!('shippedAt' in detail)||!detail.autoReceiptAt)throw Error('Pickup deadline missing');
+  expect(Date.parse(detail.shippedAt)).toBeGreaterThanOrEqual(before);
+  expect(Date.parse(detail.autoReceiptAt)-Date.parse(detail.shippedAt)).toBe(168*hour);
+  await expect(service.detailMine(referrer,pickup.id)).rejects.toMatchObject({code:'ORDER_NOT_FOUND'});
+  await expect(service.trackingMine(buyer,pickup.id)).rejects.toMatchObject({code:'LOGISTICS_NO_COURIER'});
+  const job=(await pool.query('SELECT shipping_sync_id FROM commerce_shipment WHERE id=$1',[recorded.id])).rows[0].shipping_sync_id;
+  expect(await sync.processOne(job)).toBe('verifying');
+  await pool.query('UPDATE commerce_shipping_sync SET next_attempt_at=clock_timestamp() WHERE id=$1',[job]);
+  expect(await sync.processOne(job)).toBe('synced');
+  expect(send).toHaveBeenCalledOnce();
+  expect((await runReceiptCycle()).autoConfirmed).toBe(0);
+
+  const express=await paidOrder('HANDOFFSEND');
+  const address=new DeliveryAddressService(pool,config).sealOrderSnapshot(buyer,express.id,{recipientName:'合成收件人',
+    phone:'13800000000',province:'上海市',city:'上海市',district:'浦东新区',detail:'合成地址',postalCode:'200000',
+    nationalCode:'310115',provinceCode:'310000',cityCode:'310100',districtCode:'310115'});
+  await pool.query(`INSERT INTO commerce_order_address(order_id,encrypted_payload,payload_hmac,key_version,source_address_id,source_address_version)
+    VALUES($1,$2,$3,$4,$5,1)`,[express.id,address.encryptedPayload,address.payloadHmac,address.keyVersion,addressId]);
+  await service.dispatch(actor,express.id,'handoff-send-register',{carrierCode:'SF',carrierName:'顺丰速运',trackingNumber:'SYNTHETIC123',
+    expectedOrderVersion:express.version,evidenceReference:'fixture-handoff-express'});
+  expect(await service.detailMine(buyer,express.id)).toMatchObject({deliveryMethod:'express',carrierCode:'SF',trackingNumber:'SYNTHETIC123',
+    shippedAt:expect.any(String),autoReceiptAt:null});
+
+  // Fixtures represent already recorded handoffs. Application commands cannot backdate these deliveries.
+  async function historical(suffix:string,ageHours:number,synced=true){
+    const order=await paidOrder(suffix,ageHours+1);
+    const proposal=await sync.prepare(actor,order.id,`handoff-history-${suffix}`,{deliveryMethod:'local_delivery',description:'Verified fixture×1'},'fixture-handoff-history');
+    if(synced){uploaded.add(order.number);expect(await sync.processOne(proposal.id)).toBe('synced');}
+    const {id}=(await pool.query(`INSERT INTO commerce_shipment(order_id,shipping_sync_id,carrier_name,delivery_method,shipped_at,created_by_member_id)
+      VALUES($1,$2,'同城配送','local_delivery',$3,$4) RETURNING id`,[order.id,proposal.id,new Date(now-ageHours*hour),actor])).rows[0];
+    await pool.query(`INSERT INTO commerce_shipment_line(shipment_id,order_line_id,quantity)
+      SELECT $1,id,quantity FROM commerce_order_line WHERE order_id=$2`,[id,order.id]);
+    return {...order,shipmentId:id};
+  }
+  const due=await historical('HANDOFFDUE',168);
+  const tooEarly=await historical('HANDOFFEARLY',167.99);
+  const pending=await historical('HANDOFFSYNC',169,false);
+  const held=await historical('HANDOFFHELD',169);
+  const cases=new AftersaleService(pool,new AuthorityService(pool,'test'));
+  const claim=await cases.request(buyer,held.id,'handoff-after-sale',{kind:'return_refund',reason:'合成订单需售后核对'});
+  const cycles=await Promise.all([runReceiptCycle(),runReceiptCycle()]);
+  expect(cycles.map(x=>x.autoConfirmed).sort()).toEqual([0,1]);
+  expect(await service.detailMine(buyer,due.id)).toMatchObject({receiptConfirmedAt:expect.any(String),deliveredAt:null,version:2,logisticsState:'shipped'});
+  const events=(await pool.query(`SELECT event_type,actor_principal_id FROM commerce_shipment_event WHERE shipment_id=$1`,[due.shipmentId])).rows;
+  expect(events).toEqual([{event_type:'receipt_confirmed',actor_principal_id:'system:automatic-receipt'}]);
+  for(const untouched of [pickup,express,tooEarly,pending,held])expect(await service.detailMine(buyer,untouched.id)).toMatchObject({receiptConfirmedAt:null});
+  await cases.act(buyer,claim.id,'handoff-after-sale-cancel',{action:'cancel',expectedVersion:1,note:'合成撤回后允许自动处理'});
+  expect((await runReceiptCycle()).autoConfirmed).toBe(1);
+  expect((await runReceiptCycle()).autoConfirmed).toBe(0);
+  await expect(pool.query("UPDATE commerce_shipment SET delivery_method='pickup',version=version+1 WHERE id=$1",[due.shipmentId])).rejects.toThrow('SHIPMENT_FACT_IMMUTABLE');
+});

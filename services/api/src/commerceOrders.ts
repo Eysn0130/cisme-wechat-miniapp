@@ -316,10 +316,12 @@ export class CommerceOrderService {
         FROM commerce_wechat_receipt_observation WHERE order_id=ANY($1::uuid[]) AND observed_at IS NOT NULL`,[ids]):{rows:[]};
     const byReceipt=new Map(observed.rows.map(item=>[item.order_id,item]));
     const refunded=await this.refundedTotals(client,ids);
-    const fulfillment=ids.length?(await client.query<{order_id:string;receipt_confirmed_at:Date|null}>('SELECT order_id,receipt_confirmed_at FROM commerce_shipment WHERE order_id=ANY($1::uuid[])',[ids])).rows:[];
-    const shipping=new Map(fulfillment.map(r=>[r.order_id,r.receipt_confirmed_at?'completed':'shipped']));
+    const fulfillment=ids.length?(await client.query<{order_id:string;receipt_confirmed_at:Date|null;delivery_method:string}>(
+      'SELECT order_id,receipt_confirmed_at,delivery_method FROM commerce_shipment WHERE order_id=ANY($1::uuid[])',[ids])).rows:[];
+    const shipping=new Map(fulfillment.map(row=>[row.order_id,{fulfillmentState:row.receipt_confirmed_at?'completed':'shipped',shipmentDeliveryMethod:row.delivery_method}]));
     const total=!owner?(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_order o WHERE ${predicate.replaceAll('$4','$1').replaceAll('$5','$2')}`, [filter?.from??null,filter?.through??null])).rows[0]!.n:null;
-    return { totalCount:total,items: rows.map(row => ({...this.orderSummaryView(row, byOrder.get(row.id) ?? [],byReceipt.get(row.id),refunded.get(row.id)??0),fulfillmentState:shipping.get(row.id)??'unshipped'})), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!,filter?.scope) : null };
+    return { totalCount:total,items: rows.map(row => ({...this.orderSummaryView(row, byOrder.get(row.id) ?? [],byReceipt.get(row.id),refunded.get(row.id)??0),
+      ...(shipping.get(row.id)??{fulfillmentState:'unshipped'})})), nextCursor: hasMore ? encodeCursor(rows[rows.length - 1]!,filter?.scope) : null };
   }
 
   private async refundedTotals(client:DbClient|pg.Pool,orderIds:string[]){
