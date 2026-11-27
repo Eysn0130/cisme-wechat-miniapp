@@ -59,8 +59,8 @@ Page({
   qualificationAttempt:0,
   checkingQualification:false,
   qualificationTimer:null as ReturnType<typeof setTimeout>|null,
-  qualificationPoll:null as ReturnType<typeof setTimeout>|null,
-  qualificationRecheckOnShow:false,
+  paymentFollowupTimer:null as ReturnType<typeof setTimeout>|null,
+  paymentFollowupPending:false,
   onResize(){this.setData({chromeStyle:currentChromeStyle(),sheetHeight:supportSheetHeight()});},onLoad(query:Record<string,string|undefined>){const id=query.id??"";
     this.qualificationKey=query.sharingQualification??'';
     this.merchantOrderNumber=query.outTradeNo??query.merchant_trade_no??"";
@@ -83,7 +83,7 @@ Page({
     }
     void this.load();},
   syncSession(){const token=historicalCommerceToken(),changed=token!==this.lastSessionToken||this.lastSessionRevision!==commerceContextRevision();
-    if(changed){this.stopQualificationMoment();this.qualificationRecheckOnShow=false;}
+    if(changed){this.stopQualificationMoment();this.stopPaymentFollowup();this.paymentFollowupPending=false;}
     if(changed&&this.merchantOrderNumber)this.setData({id:''});
     if(changed){clearWechatReceiptReturn();this.wechatReturn=null;this.receiptQueryAttempt+=1;this.lastSessionToken=token;this.lastSessionRevision=commerceContextRevision();this.data.epoch+=1;this.setData({recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[],...initialRuntimeView(),recoveryRows:[],recoveryLoading:false,recoveryError:"",busy:false,coreReady:false,isolatedPayment:false,paymentRecovery:false,order:null,tracking:null,trackingLoading:false,trackingError:"",shipment:null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,refunds:[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null,
       refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",cancelKey:"",actionError:"",actionStatus:""});}
@@ -102,6 +102,7 @@ Page({
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;this.receiptQueryAttempt+=1;this.trackingAttempt+=1;
     this.stopQualificationMoment();
+    this.stopPaymentFollowup();
     this.stopSheetPoll();this.sheetReadEpoch+=1;this.data.refreshOnShow=true;this.setData({isolatedPayment:false,paymentRecovery:false,receiptQueryLoading:false,trackingLoading:false,sheetKeyboardHeight:0});cancelPageReads(this);cancelRuntimeRead(this);},
   finishAction(epoch:number,token:string,refreshCore=false){if(!this.current(epoch,token))return;
     this.setData({busy:false});if(this.data.visible&&(refreshCore||this.data.refreshOnShow)){this.data.refreshOnShow=false;void this.load();}else if(this.data.visible)void this.loadRecovery();},
@@ -145,7 +146,7 @@ Page({
   async load(){
     this.syncSession();
     if(!this.data.visible||this.data.busy){this.data.refreshOnShow=true;return;}
-    this.data.refreshOnShow=false;cancelPageReads(this);cancelRuntimeRead(this);
+    this.data.refreshOnShow=false;this.stopPaymentFollowup();cancelPageReads(this);cancelRuntimeRead(this);
     // A reload invalidates the previous receipt read. Its late response can no
     // longer clear loading, so release that guard together with its attempt.
     this.receiptQueryAttempt+=1;
@@ -165,13 +166,13 @@ Page({
       if(!this.readCurrent(epoch,token,readEpoch))return;
       if(order.id!==this.data.id||!Number.isSafeInteger(order.version)||this.data.order&&order.version<this.data.order.version)throw new Error("Invalid or obsolete order projection");
       const qualificationPaid=this.data.qualificationPurchase&&order.status==='paid';
+      const paymentSettled=this.paymentFollowupPending&&order.status!=='pending_payment';
+      if(paymentSettled)this.paymentFollowupPending=false;
       this.setData({order:this.normalize(order),coreReady:true,loading:false,
-        ...(qualificationPaid?{actionStatus:'',actionError:''}:{})});
+        ...(qualificationPaid?{actionStatus:'',actionError:''}:
+          paymentSettled?{actionStatus:order.status==='paid'?'付款已确认。':'',actionError:''}:{})});
       if(this.data.qualificationPurchase)void this.confirmSharingQualification(order);
-      if(this.qualificationRecheckOnShow){
-        this.qualificationRecheckOnShow=false;
-        if(order.status==='pending_payment')this.waitForQualificationPayment();
-      }
+      this.waitForPaymentConfirmation();
       if(!this.data.closedRights){this.applyRuntime();void this.loadRecovery();this.refreshRecordedCommands();}
       void this.loadShipment();void this.loadRefunds(epoch,token);
       if(this.wechatReturn){const returned=this.wechatReturn;this.wechatReturn=null;void this.queryWechatReceipt(false,returned);}
@@ -184,8 +185,6 @@ Page({
     this.checkingQualification=false;
     if(this.qualificationTimer!==null)clearTimeout(this.qualificationTimer);
     this.qualificationTimer=null;
-    if(this.qualificationPoll!==null)clearTimeout(this.qualificationPoll);
-    this.qualificationPoll=null;
     if(this.data.qualificationMoment)this.setData({qualificationMoment:false});
   },
   async confirmSharingQualification(order:CommerceOrder<MemberOrderAddress>){
@@ -224,23 +223,28 @@ Page({
       if(this.qualificationAttempt===attempt)this.checkingQualification=false;
     }
   },
-  waitForQualificationPayment(remaining=4){
-    const id=this.data.id,key=this.qualificationKey,token=historicalCommerceToken(),revision=commerceContextRevision(),attempt=this.qualificationAttempt;
-    const waiting=()=>this.data.visible&&this.data.order?.status==='pending_payment'&&this.data.id===id&&
-      this.qualificationAttempt===attempt&&token===historicalCommerceToken()&&revision===commerceContextRevision()&&!!qualificationOrderOwner(key,id);
-    if(!remaining||this.qualificationPoll!==null||!waiting())return;
+  stopPaymentFollowup(){
+    if(this.paymentFollowupTimer!==null)clearTimeout(this.paymentFollowupTimer);
+    this.paymentFollowupTimer=null;
+  },
+  waitForPaymentConfirmation(remaining=4){
+    const {id,epoch}=this.data,token=historicalCommerceToken();
+    const waiting=()=>this.paymentFollowupPending&&this.data.visible&&this.data.id===id&&
+      this.data.order?.id===id&&this.data.order.status==='pending_payment'&&this.current(epoch,token);
+    if(!remaining||this.paymentFollowupTimer!==null||!waiting())return;
     const timer=setTimeout(async()=>{
       try{
-        if(!waiting())return;
+        if(this.paymentFollowupTimer!==timer||!waiting())return;
         const order=await myOrder(id,this);
-        if(!waiting())return;
+        if(this.paymentFollowupTimer!==timer||!waiting())return;
         if(order.id===id&&order.status!=='pending_payment'){void this.load();return;}
       }catch{
+        if(this.paymentFollowupTimer!==timer||!waiting())return;
         // The existing order controls remain available if reconciliation is slow.
-      }finally{if(this.qualificationPoll===timer)this.qualificationPoll=null;}
-      this.waitForQualificationPayment(remaining-1);
+      }finally{if(this.paymentFollowupTimer===timer)this.paymentFollowupTimer=null;}
+      this.waitForPaymentConfirmation(remaining-1);
     },remaining===4?700:1500);
-    this.qualificationPoll=timer;
+    this.paymentFollowupTimer=timer;
   },
   async loadShipment(){
     if(!this.canAct()||this.data.busy)return;
@@ -409,13 +413,16 @@ Page({
     try{const result=await request<{state:string;simulation:boolean;requestPayment?:WechatMiniprogram.RequestPaymentOption}>({
       path:`/v1/me/orders/${id}/payment-intent`,method:"POST",data:{}});
       if(!current())return;
-      if(result.state==="verified_pending"){this.setData({actionStatus:"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。"});this.waitForQualificationPayment();}
+      if(result.state==="verified_pending"){
+        this.paymentFollowupPending=true;
+        this.setData({actionStatus:"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。"});
+        this.waitForPaymentConfirmation();
+      }
       else if(result.simulation)this.setData({actionStatus:"测试支付已准备好，不会发起真实微信付款或扣款。"});
       else if(result.requestPayment&&!this.data.visible){this.setData({actionStatus:"付款信息已获取，请返回订单确认后再付款。"});return;}
       else if(result.requestPayment){
-        if(this.data.qualificationPurchase)this.qualificationRecheckOnShow=true;
-        try{await wx.requestPayment(result.requestPayment);}
-        catch{if(current()){this.qualificationRecheckOnShow=false;this.setData({actionError:"微信付款未确认，请按原单核对。"});}}
+        try{await wx.requestPayment(result.requestPayment);if(current())this.paymentFollowupPending=true;}
+        catch{if(current())this.setData({actionError:"微信付款未确认，请按原单核对。"});}
         // The cashier can return while the page is hidden. Keep the original order
         // check in this action, independently of the visible controls.
         await this.readPaymentResult(epoch,token,id);}
@@ -435,9 +442,10 @@ Page({
       if(!current())return;
       this.setData({actionStatus:result.state==="verified_pending"?"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。":
         result.state==="paid"?"付款已确认。":result.state==="notpay"?"渠道仍未确认付款。":"原单状态待确认，请稍后重查。"});
-      if(result.state==="paid")this.data.refreshOnShow=true;
-      if(result.state==="verified_pending")this.waitForQualificationPayment();
-    }catch(error){if(current())this.setData({actionError:errorTitle(error,"原单暂时无法核对，请稍后重试。")});}},
+      if(result.state==="paid"){this.paymentFollowupPending=false;this.data.refreshOnShow=true;}
+      if(result.state==="verified_pending")this.paymentFollowupPending=true;
+    }catch(error){if(current())this.setData({actionError:errorTitle(error,"原单暂时无法核对，请稍后重试。")});}
+    finally{if(current())this.waitForPaymentConfirmation();}},
   async cancel(){const order=this.data.order;if(this.data.closedRights||!this.canAct()||this.data.busy||order?.status!=="pending_payment"||
       order.transactionSourceKind==="verified_commerce"&&!this.data.isolatedPayment)return;
     const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id,version=order.version;

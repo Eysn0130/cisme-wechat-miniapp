@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "b9922bea2e104a1a37ec0172eff44a79ce17c3ce47eb1ecb89eef7428b68a69c",
+  "packageSourceSha256": "917a9a39ad360a99e2201f0471486ad32b3b07ff959fa56481dc2b452b75ba8b",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-26 binds payment callback follow-up, automatic points task and balance updates and the compact gift order. Existing scoped native evidence retains its recorded source. Full routes, OS accessibility and physical-device coverage remain pending.",
+  "note": "2026-11-27 includes bounded ordinary-order reads after the cashier returns or the provider confirms a pending settlement. Scoped DevTools checks covered checkout and delayed confirmation with isolated data. Full routes, OS accessibility and physical-device coverage remain pending.",
   "previousSourceRecord": {
     "packageSourceSha256": "7f56d3f01f1b9852f176aabb56ae4f8d699d29b5c0ca9ea3fd741127c548f638",
     "scope": "0.1.57 uploaded development candidate before loading-state tokens, upload stages and inaccessible aftersale routing; historical screenshots and phone evidence remain historical."

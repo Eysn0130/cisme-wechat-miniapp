@@ -17,9 +17,9 @@ describe("R4-A native commerce boundary",()=>{
     const detail=await readFile(resolve(root,"apps/miniprogram/pages/product/index.ts"),"utf8");expect(detail).toContain("catalogDetail(this.data.id,this)");expect(detail).not.toContain("catalog.items.find");
     const orderSources=await Promise.all(["services/orders.ts","pages/checkout/index.ts","pages/order-detail/index.ts"].map(path=>readFile(resolve(root,"apps/miniprogram",path),"utf8")));
     expect(orderSources.join("\n")).not.toContain("payment-success");
-    expect(orderSources[2]).toMatch(/else if\(result\.requestPayment\)\{[^{}]*try\{await wx\.requestPayment\(result\.requestPayment\);\}/);
     // Keep the native payment action pending until the authoritative server query settles.
     const nativePayment = orderSources[2]!.split('async preparePayment(){')[1]!.split('async recheckPayment(){')[0]!;
+    expect(nativePayment).toMatch(/else if\(result\.requestPayment\)\{\s*try\{\s*await wx\.requestPayment\(result\.requestPayment\);/);
     expect(nativePayment).toContain('await this.readPaymentResult(epoch,token,id);');
     expect(nativePayment).not.toContain('this.setData({busy:false})');
     expect(orderSources[2]).not.toMatch(/requestPayment[\s\S]*?setData\(\{[^}]*status:\s*["']paid/);
