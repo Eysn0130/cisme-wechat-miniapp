@@ -1,19 +1,30 @@
+import { request } from './api';
+
 export type OrderAftersale = {caseId:string;phase:'returning'|'refund_review'|'refunding'|'refund_attention'};
 export const aftersaleLabels:Record<OrderAftersale['phase'],string>={
   returning:'退货中',refund_review:'待退款审核',refunding:'退款中',refund_attention:'退款待处理'
 };
 
 export type RefundApprovalAction = 'request_refund'|'approve_pending_refund';
+export type OrderDecisionAction = RefundApprovalAction|'approve_return'|'reject';
 export type RefundReviewCase = {
   id:string;
   orderId:string;
+  state?:string;
+  kind?:string;
   canReview?:boolean;
   canStartRefund?:boolean;
   refundApprovalAllowed?:boolean;
-  fulfillment?:{canRefundWithoutReturn:boolean};
+  fulfillment?:{state?:string;canRefundWithoutReturn:boolean};
   refundRequestId?:string|null;
   refund?:{reviewState:string;reviewVersion?:number}|null;
 };
+
+export function aftersaleContact(caseId:string){
+  return request<{caseId:string;orderId:string;conversationId:string}>({
+    path:`/v1/management/aftersales/${encodeURIComponent(caseId)}/contact`,method:'POST',data:{},cacheTags:['support']
+  });
+}
 
 export function refundApprovalAction(row:RefundReviewCase,capabilities:readonly string[]):RefundApprovalAction|null{
   if(row.canReview===false||row.refundApprovalAllowed===false||!capabilities.includes('commerce.refund.approve'))return null;

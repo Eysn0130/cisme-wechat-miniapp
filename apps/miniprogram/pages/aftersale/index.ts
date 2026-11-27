@@ -6,7 +6,7 @@ import { clientOperationKey } from '../../services/orders';
 import { commerceContextRevision } from '../../services/commerce-command-store';
 import { centsToYuan } from '../../services/commerce';
 import { sectionTabValue } from '../../services/section-tabs';
-import { refundApprovalAction, type RefundReviewCase } from '../../services/order-aftersale';
+import { aftersaleContact, refundApprovalAction, type RefundReviewCase } from '../../services/order-aftersale';
 const caps:Capability[]=['commerce.aftersale.review','commerce.return.receive','commerce.return.inspect'];
 const labels:Record<string,string>={requested:'申请已收到',need_info:'请补充信息',awaiting_instruction:'待客服发送退货指引',awaiting_return:'请按本案指引寄回',return_in_transit:'退货运输中',return_received:'已收件，待质检',quality_checked:'已质检，待退款',refund_exception_approved:'无需寄回，待退款审批',refund_pending:'退款处理中',rejected:'申请未通过',cancelled:'已撤回'};
 const actions:Record<string,string>={cancel:'撤回申请',provide_info:'提交补充说明',report_old_route:'已按旧版指引寄出，联系客服协助',ship_return:'登记退货运单',request_info:'请用户补充说明',reject:'不予受理并说明',approve_return:'确认需寄回核对',approve_refund_without_return:'核对无需寄回例外',resolve_old_route:'记录旧地址处理结果',receive_return:'确认实际收到退货',inspect_return:'记录质检结果',request_refund:'提交退款审批',reopen_refund:'恢复原售后案件'};
@@ -29,7 +29,7 @@ Page({
   kindOptions:['仅退款','退货退款'],basisOptions:['请选择问题类型','七日无理由','商品问题','错发','漏发','物流问题','其他'],
   qualityOptions:['请选择质检结果','可售','不可售'],routeOutcomeIndex:0,routeOutcomeOptions:['请选择实际处理结果','已联系承运商','已协调转寄','已妥善收到'],available:[] as {action:string;label:string}[],needsReconcile:false,reconciliationReady:false,locked:false},
  onLoad(options:Record<string,string>){this.selection=/^[0-9a-f-]{36}$/i.test(options.caseId??'')?options.caseId!:'';
-  this.requestedAction=options.mode==='management'&&['request_refund','approve_pending_refund'].includes(options.action??'')?options.action!:'';
+  this.requestedAction=options.mode==='management'&&['request_refund','approve_pending_refund','approve_return','reject'].includes(options.action??'')?options.action!:'';
   this.attention=options.mode==='management'&&Object.prototype.hasOwnProperty.call(attentionLabels,options.attention??'')?options.attention!:'';
   this.setData({management:options.mode==='management',orderId:/^[0-9a-f-]{36}$/i.test(options.orderId??'')?options.orderId!:'',attentionLabel:attentionLabels[this.attention]??''});},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
@@ -93,7 +93,8 @@ Page({
    if(this.data.management){
     const a=await authorityProjection(this);if(!this.current(epoch,token))return;
     if(a.version!==1||!a.managementAvailable||!caps.some(c=>a.capabilities.includes(c)))throw {status:403};
-    this.setData({capabilities:a.capabilities,canOrder:a.capabilities.includes('commerce.order.read'),canChat:a.capabilities.includes('support.read'),canFinance:a.capabilities.includes('commerce.money.reconcile')});
+    this.setData({capabilities:a.capabilities,canOrder:a.capabilities.includes('commerce.order.read'),
+     canChat:(['support.read','support.reply','commerce.aftersale.review'] as const).every(capability=>a.capabilities.includes(capability)),canFinance:a.capabilities.includes('commerce.money.reconcile')});
     if(this.data.selected)this.setData({available:this.selectActions(this.data.selected)});
     if(this.data.actionId&&!this.data.available.some(item=>item.action===this.data.actionId))this.closeAction();
    }
@@ -117,19 +118,14 @@ Page({
   this.setData({loading:true,error:'',coreReady:preserve,...(!preserve?{items:[],selected:null,available:[]}:{}),qualityIndex:this.pending?this.data.qualityIndex:0});
   try{
    if(this.data.management){const a=await authorityProjection(this);if(!this.current(epoch,token))return;if(a.version!==1||!a.managementAvailable||!caps.some(c=>a.capabilities.includes(c)))throw {status:403};
-    this.setData({capabilities:a.capabilities,canOrder:a.capabilities.includes('commerce.order.read'),canChat:a.capabilities.includes('support.read'),canFinance:a.capabilities.includes('commerce.money.reconcile')});}
+    this.setData({capabilities:a.capabilities,canOrder:a.capabilities.includes('commerce.order.read'),
+     canChat:(['support.read','support.reply','commerce.aftersale.review'] as const).every(capability=>a.capabilities.includes(capability)),canFinance:a.capabilities.includes('commerce.money.reconcile')});}
    if(this.selection){const selected=await pageRead<Row>(this,{path:`${this.base()}/${this.selection}`});if(!this.current(epoch,token))return;
     const history=selected.returnInstructionHistory??[],recorded=history.findIndex(item=>item.version===selected.shippedInstructionVersion),
       shipmentIndex=recorded>=0?recorded:Math.min(this.data.shipmentIndex,Math.max(0,history.length-1));
     const available=this.selectActions(selected);
     this.setData({selected:this.normalize(selected),available,coreReady:true,reconciliationReady:true,shipmentIndex,
       shipmentOptions:history.map(item=>`第 ${item.version} 版 · ${item.region} ${item.address}`),shipmentInstruction:history[shipmentIndex]??null});
-    if(this.requestedAction){
-     const action=this.requestedAction;this.requestedAction='';
-     const entry=available.find((candidate:{action:string;label:string})=>candidate.action===action);
-     if(entry&&refundApprovalAction(selected,this.data.capabilities)===action)
-      this.setData({actionId:action,actionTitle:entry.label,actionDirectRefund:true,actionNoteRequired:false});
-    }
    }else{
     const page=await pageRead<{items:Row[];nextCursor:string|null;totalCount?:number}>(this,{path:`${this.base()}?limit=20${this.data.orderId?`&orderId=${this.data.orderId}`:''}${this.attention?`&attention=${this.attention}`:''}${this.data.management&&this.data.stage!=='all'?`&stage=${this.data.stage}`:''}${cursor?`&cursor=${encodeURIComponent(cursor)}`:''}`});
     if(!this.current(epoch,token))return;const seen=new Set(previous.map(row=>row.id));
@@ -141,7 +137,16 @@ Page({
    if([401,403].includes((e as any)?.status))this.deny();
    else if((e as any)?.status===404&&this.selection){this.selection='';this.setData({selected:null,items:[],coreReady:false,error:'这条记录已更新，请刷新'});}
    else this.setData({error:'售后记录暂未更新，请重试。',coreReady:preserve});
-  }}finally{if(this.visible&&epoch===this.epoch){this.setData({loading:false});if(!this.current(epoch,token))this.deny();else this.timer=setInterval(()=>void this.recheck(),6000);}}
+  }}finally{if(this.visible&&epoch===this.epoch){
+   this.setData({loading:false});
+   if(!this.current(epoch,token))this.deny();
+   else{
+    if(this.data.selected&&this.requestedAction&&!this.data.error){
+     const action=this.requestedAction;this.requestedAction='';this.activateAction(action);
+    }
+    this.timer=setInterval(()=>void this.recheck(),6000);
+   }
+  }}
  },
  open(e:WechatMiniprogram.TouchEvent){if(!this.canAct()||this.pending)return;const id=String(e.currentTarget.dataset.id??'');if(!this.data.items.some(r=>r.id===id))return;this.selection=id;this.setData({note:'',carrier:'',tracking:'',shipmentIndex:0,shipmentOptions:[],shipmentInstruction:null,qualityIndex:0,routeOutcomeIndex:0,exceptionIndex:0,exceptionEvidence:'',notice:''});void this.load();},
  list(){if(!this.canAct()||this.pending)return;this.selection='';this.setData({selected:null,available:[],actionId:'',note:'',carrier:'',tracking:'',shipmentIndex:0,shipmentOptions:[],shipmentInstruction:null,qualityIndex:0,routeOutcomeIndex:0,exceptionIndex:0,exceptionEvidence:''});void this.load();},
@@ -193,7 +198,7 @@ Page({
     action==='resolve_old_route'?`处理结果：${this.data.routeOutcomeOptions[this.data.routeOutcomeIndex]}。\n`:
     action==='approve_refund_without_return'?`例外：${this.data.exceptionOptions[this.data.exceptionIndex]}。\n依据：${this.data.exceptionEvidence.trim()}。\n此操作不等于已退款。\n`:'';
    const yes=await new Promise<boolean>(resolve=>wx.showModal({title:this.data.available.find(item=>item.action===action)?.label??actions[action]!,
-    content:refundAction?`订单 ${row.orderNumber||row.id}\n金额 ¥${centsToYuan(row.amountCents)}\n${directApproval?'同意后将提交原路退款，进度会自动更新。':'提交退款复核，核准后再原路退回。'}`:extra+(action==='reject'?`拒绝原因：${why}`:action==='send_return_instruction'?'收件信息将发送到本案客服会话，用户可按此地址寄回。':'确认记录本次处理结果？'),
+    content:refundAction?`订单 ${row.orderNumber||row.id}\n金额 ¥${centsToYuan(row.amountCents)}\n${directApproval?'同意后将提交原路退款，进度会自动更新。':'提交退款复核，核准后再原路退回。'}`:extra+(action==='reject'?`此原因将发送给用户。\n${why}`:action==='approve_return'?'将通知用户退货已获同意。请继续发送退货指引。':action==='send_return_instruction'?'收件信息将发送到本案客服会话，用户可按此地址寄回。':'确认记录本次处理结果？'),
     confirmText:'确认提交',success:r=>resolve(r.confirm),fail:()=>resolve(false)}));
    if(!this.current(epoch,token)){if(this.visible&&epoch===this.epoch)this.deny();return;}this.setData({busy:false});if(!yes)return;
    const pendingReview=action==='approve_pending_refund';
@@ -217,7 +222,8 @@ Page({
   if(this.current(epoch,token)){if(yes){this.pending=null;this.setData({needsReconcile:false,reconciliationReady:false,locked:false,note:'',carrier:'',tracking:'',qualityIndex:0,notice:''});}this.setData({busy:false});}
  },
  selectStage(e:WechatMiniprogram.TouchEvent){if(!this.canAct()||this.pending||this.data.actionId)return;const stage=sectionTabValue(e,'stage');if(!stages.some(item=>item.value===stage)||stage===this.data.stage)return;this.attention='';this.selection='';this.setData({stage,attentionLabel:'',items:[],selected:null,nextCursor:null,coreReady:false,notice:''});void this.load();},
- prepareAction(e:WechatMiniprogram.TouchEvent){if(!this.canAct()||this.pending||this.data.needsReconcile)return;const action=String(e.currentTarget.dataset.action??'');const allowed=this.data.available.find(item=>item.action===action);if(!allowed)return;
+ prepareAction(e:WechatMiniprogram.TouchEvent){this.activateAction(String(e.currentTarget.dataset.action??''));},
+ activateAction(action:string){if(!this.canAct()||this.pending||this.data.needsReconcile)return;const allowed=this.data.available.find(item=>item.action===action);if(!allowed)return;
   this.setData({actionId:action,actionTitle:allowed.label,actionDirectRefund:this.data.selected?refundApprovalAction(this.data.selected,this.data.capabilities)===action:false,actionNoteRequired:['request_info','reject','approve_refund_without_return'].includes(action),note:'',notice:'',qualityIndex:0,routeOutcomeIndex:0,exceptionIndex:0,exceptionEvidence:'',recipientName:'',returnPhone:'',returnRegion:'',returnAddress:'',returnInstructions:'',freightIndex:0});},
  closeAction(){if(this.data.busy||this.pending||this.data.locked)return;this.setData({actionId:'',note:'',notice:'',recipientName:'',returnPhone:'',returnRegion:'',returnAddress:'',returnInstructions:'',exceptionEvidence:''});},
  swallow(){},
@@ -227,10 +233,24 @@ Page({
  openFinance(){if(!this.canAct()||!this.data.canFinance||this.pending)return;wx.navigateTo({url:'/pages/management-finance/index?section=issues'});},
  copyOrder(){if(!this.canAct()||!this.data.selected?.orderNumber)return;wx.setClipboardData({data:this.data.selected.orderNumber});},
  retry(){void this.load();},next(){if(this.canAct()&&!this.pending){this.selection='';void this.load(true);}},
- openChat(){const conversationId=this.data.selected?.supportConversationId;
-  if(!conversationId||!this.canAct()||this.data.management&&!this.data.canChat)return;
-  wx.navigateTo({url:this.data.management?`/pages/management-support-chat/index?id=${conversationId}`:
-    historicalCommerceClosed()?`/pages/order-detail/index?id=${this.data.selected!.orderId}&aftersale=1`:`/pages/support/index?orderId=${this.data.selected!.orderId}`});
+ async openChat(){
+  const selection=this.data.selected;
+  if(!selection||!this.canAct()||this.pending)return;
+  if(!this.data.management){
+   if(!selection.supportConversationId)return;
+   wx.navigateTo({url:historicalCommerceClosed()?`/pages/order-detail/index?id=${selection.orderId}&aftersale=1`:`/pages/support/index?orderId=${selection.orderId}`});
+   return;
+  }
+  if(!this.data.canChat||selection.canReview===false)return;
+  const epoch=this.epoch,token=this.token;this.setData({busy:true,notice:''});
+  try{
+   const contact=await aftersaleContact(selection.id);
+   if(!this.current(epoch,token))return;
+   if(contact.caseId!==selection.id||contact.orderId!==selection.orderId||!/^[0-9a-f-]{36}$/i.test(contact.conversationId))throw Error('Invalid support link');
+   wx.navigateTo({url:`/pages/management-support-chat/index?id=${contact.conversationId}&caseId=${selection.id}`,
+    fail:()=>{if(this.current(epoch,token))this.setData({notice:'暂时无法打开客服会话，请重试。'});}});
+  }catch(error){if(this.current(epoch,token))this.setData({notice:(error as {title?:string}).title??'暂时无法打开客服会话，请重试。'});}
+  finally{if(this.current(epoch,token))this.setData({busy:false});}
  },
  back(){if(this.data.busy)return;wx.navigateBack({fail:()=>wx.redirectTo({url:this.data.management?'/pages/management/index':'/pages/orders/index'})});}
 });

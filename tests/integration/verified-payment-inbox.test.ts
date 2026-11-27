@@ -724,12 +724,18 @@ it('commits local shipment and WeChat intent together without network I/O; recei
   await expect(service.dispatch(actor,order.id,'local-shipment-invalid',{...input,trackingNumber:'=CMD()'})).rejects.toMatchObject({code:'SHIPMENT_INPUT_INVALID'});
   const {AftersaleService}=await import('../../services/api/src/aftersale.js');
   const cases=new AftersaleService(pool,authority);
+  expect(await service.detailManagement(actor,order.id)).toMatchObject({logisticsState:'awaiting_dispatch'});
   const claim=await cases.request(buyer,order.id,'local-shipment-aftersale',{kind:'refund_only',reason:'合成发货竞争售后'});
   expect(await service.managementList(actor,{state:'awaiting_dispatch',orderNumber:order.number})).toMatchObject({items:[]});
+  expect(await service.detailManagement(actor,order.id)).toMatchObject({logisticsState:'not_ready',holdReason:'aftersale'});
+  expect(await service.detailMine(buyer,order.id)).toMatchObject({logisticsState:'not_ready',holdReason:'aftersale'});
   await expect(service.dispatch(actor,order.id,'local-case-held-dispatch',input)).rejects.toMatchObject({code:'SHIPMENT_AFTERSALE_REVIEW_REQUIRED'});
+  await expect(service.dispatch(actor,order.id,'local-case-held-no-courier',{deliveryMethod:'pickup',
+    evidenceReference:input.evidenceReference,expectedOrderVersion:input.expectedOrderVersion})).rejects.toMatchObject({code:'SHIPMENT_AFTERSALE_REVIEW_REQUIRED'});
   await expect(sync.prepare(actor,order.id,'local-case-held-sync',{carrierCode:'SF',trackingNumber:'SF123456789001',description:'合成包裹'},'synthetic-case-hold')).rejects.toMatchObject({code:'SHIPPING_AFTERSALE_REVIEW_REQUIRED'});
   await cases.act(buyer,claim.id,'local-shipment-case-cancel',{action:'cancel',expectedVersion:1,note:'合成案件撤回后允许重新核验'});
   expect(await service.managementList(actor,{state:'awaiting_dispatch',orderNumber:order.number})).toMatchObject({items:[{id:order.id}]});
+  expect(await service.detailManagement(actor,order.id)).toMatchObject({logisticsState:'awaiting_dispatch'});
 
   const held=await seedOrder('LOCALHOLD01',null,await dbNow());
   const heldPaid=notification(held.number,'420000000000000LOCALHOLD01','EV-LOCAL-HOLD-01',(await dbNow()).toISOString());

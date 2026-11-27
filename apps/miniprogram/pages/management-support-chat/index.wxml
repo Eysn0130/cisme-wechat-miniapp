@@ -79,8 +79,8 @@
 
   <view wx:if="{{!loading || conversation}}" class="operator-actions {{composerFocused ? 'operator-actions--focused' : ''}}">
     <view wx:if="{{conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active' && !(assignedToMe && canReply))}}" class="operator-human-issue" aria-live="polite">
-      <text class="operator-human-issue__title">原问题</text>
-      <text class="operator-human-issue__summary">{{humanIssueSummary || (humanRequest && humanRequest.anchorKnown ? '请查看更早消息' : '请向会员确认')}}</text>
+      <text class="operator-human-issue__title">{{replyTarget.aftersale ? '售后' : '原问题'}}</text>
+      <text class="operator-human-issue__summary">{{replyTarget.aftersale ? replyTarget.summary : humanIssueSummary || (humanRequest && humanRequest.anchorKnown ? '请查看更早消息' : '请向会员确认')}}</text>
     </view>
     <button wx:if="{{canManageAftersale}}" class="operator-aftersale-entry {{loading||busy?'control--disabled':''}}" bindtap="openAftersales" disabled="{{loading || busy}}">本会话售后</button>
     <button wx:if="{{conversation && conversation.status === 'waiting_human' && canAssign && canReply}}" class="operator-claim {{loading || busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{loading || busy || sendAttempt}}">接管会话</button>
@@ -92,7 +92,7 @@
     <view wx:if="{{conversation && conversation.status === 'human_active' && (canReturnToQueue || (assignedToMe && canReply))}}">
       <view class="operator-compose__head">
         <view class="operator-reply-target" aria-live="polite">
-          <text wx:if="{{assignedToMe && canReply && replyTarget && !replyTargetNeedsRefresh}}" class="operator-reply-target__label">引用</text>
+          <text wx:if="{{assignedToMe && canReply && replyTarget && !replyTargetNeedsRefresh}}" class="operator-reply-target__label">{{replyTarget.aftersale ? '售后' : '引用'}}</text>
           <text class="operator-reply-target__summary">{{assignedToMe && canReply ? (replyTargetNeedsRefresh ? '请刷新后确认回复问题' : replyTarget ? replyTarget.summary : '点选要回复的消息') : (assignedToMe ? '当前账号暂无回复权限' : '其他客服接待中')}}</text>
         </view>
         <view class="operator-compose__commands">
@@ -103,7 +103,7 @@
       <view wx:if="{{assignedToMe && canReply}}" class="operator-compose {{composerFocused ? 'operator-compose--focused' : ''}}">
         <textarea class="operator-input {{composerCapped ? 'operator-input--capped' : ''}}" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{sendAttempt ? '请先核对上条回复' : replyTarget ? '以人工客服身份回复' : '先选择要回复的问题'}}" placeholder-class="operator-input__placeholder" disabled="{{loading || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}"/>
         <view class="operator-compose__tools support-chat-tools">
-          <button wx:if="{{humanRequest && humanRequest.anchorKnown && (!replyTarget || replyTargetNeedsRefresh || replyTarget.id !== humanRequest.anchorMessageId)}}" hover-class="operator-text-action--pressed" class="operator-original operator-text-action" bindtap="openOriginalIssue">查看原问题</button>
+          <button wx:if="{{!replyTarget.aftersale && humanRequest && humanRequest.anchorKnown && (!replyTarget || replyTargetNeedsRefresh || replyTarget.id !== humanRequest.anchorMessageId)}}" hover-class="operator-text-action--pressed" class="operator-original operator-text-action" bindtap="openOriginalIssue">查看原问题</button>
           <button class="operator-send {{loading || !composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh ? 'control--disabled' : ''}} {{composerSendEnabled && !loading && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? 'operator-send--active' : 'operator-send--disabled'}}" bindtap="send" disabled="{{loading || !composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}" aria-label="{{busy ? '正在发送回复' : '发送回复'}}"><image src="{{composerSendEnabled && !loading && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
         </view>
       </view>

@@ -76,6 +76,7 @@ type CaseRow={id:string;order_id:string;member_id:string;kind:string;state:strin
   return_tracking:string|null;shipped_instruction_version:number|null;quality_result:string|null;refund_request_id:string|null;created_at:Date;updated_at:Date;
   route_review_outcome:string|null;route_reviewed_at:Date|null;
   exception_kind:string|null;exception_evidence_reference:string|null;exception_approved_by:string|null;exception_approved_at:Date|null};
+type CaseConversation={id:string;status:string;next_sequence:string};
 function unshippedRefundEligible(row:CaseRow,order:{status:string;transaction_source_kind:string;has_shipment:boolean}|undefined){
   return Boolean(order?.status==='paid'&&order.transaction_source_kind==='verified_commerce'&&!order.has_shipment
     &&['requested','need_info','awaiting_instruction','awaiting_return'].includes(row.state)
@@ -110,6 +111,30 @@ export class AftersaleService{
       catch(error){if(!(error instanceof DomainError)||error.code!=='CAPABILITY_REQUIRED')throw error;}
     }
     fail('CAPABILITY_REQUIRED','当前账号没有售后处理权限',403);
+  }
+  private async caseConversation(client:DbClient,owner:string){
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
+    return (await client.query<CaseConversation>(
+      'SELECT id,status,next_sequence FROM support_conversation WHERE member_id=$1 FOR UPDATE',[owner])).rows[0]
+      ??(await client.query<CaseConversation>(`INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human')
+        RETURNING id,status,next_sequence`,[owner])).rows[0]!;
+  }
+  private async notifyDecision(client:DbClient,conversationId:string,row:CaseRow,body:string){
+    const conversation=(await client.query<CaseConversation>(
+      'SELECT id,status,next_sequence FROM support_conversation WHERE id=$1 AND member_id=$2 FOR UPDATE',
+      [conversationId,row.member_id])).rows[0];
+    if(!conversation)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','原客服会话不可用，请刷新后重试');
+    const order=(await client.query<{order_number:string}>('SELECT order_number FROM commerce_order WHERE id=$1',[row.order_id])).rows[0]!;
+    const message=(await client.query<{id:string;created_at:Date}>(`INSERT INTO support_message
+      (conversation_id,sequence,sender_type,sender_principal_id,body,content_type,retention_purpose,client_message_id)
+      VALUES($1,$2,'system','system:aftersale',$3,'system','transaction',$4) RETURNING id,created_at`,
+      [conversation.id,conversation.next_sequence,`订单尾号 ${order.order_number.slice(-4)}\n${body}`,`aftersale-decision:${row.id}:v${row.version}`])).rows[0]!;
+    const updated=(await client.query<{version:number}>(`UPDATE support_conversation SET next_sequence=next_sequence+1,
+      member_unread_count=member_unread_count+1,version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING version`,
+      [conversation.id])).rows[0]!;
+    await enqueue(client,{eventType:'support.message.created.v1',aggregateType:'support_conversation',aggregateId:conversation.id,
+      aggregateVersion:updated.version,businessKey:`support-message:${message.id}`,
+      payload:{conversationId:conversation.id,messageId:message.id,senderType:'system',sequence:Number(conversation.next_sequence)},occurredAt:message.created_at});
   }
   private async view(client:DbClient,row:CaseRow,operator?:string){
     const refund=row.refund_request_id?(await client.query(`SELECT r.state,r.version AS review_version,i.state AS refund_state,
@@ -248,11 +273,7 @@ export class AftersaleService{
         shippingRefundCents:index===0?allocation.shippingRefundCents:0}));
       // The case, support association, message and durable notification event
       // commit together. A later delivery/transport failure cannot erase the case.
-      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${memberId}`]);
-      let conversation=(await client.query<{id:string;status:string;next_sequence:string;version:number}>(
-        'SELECT id,status,next_sequence,version FROM support_conversation WHERE member_id=$1 FOR UPDATE',[memberId])).rows[0];
-      if(!conversation)conversation=(await client.query<{id:string;status:string;next_sequence:string;version:number}>(
-        "INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING id,status,next_sequence,version",[memberId])).rows[0]!;
+      const conversation=await this.caseConversation(client,memberId);
       const row=(await client.query<CaseRow>(`INSERT INTO commerce_aftersale_case(order_id,member_id,kind,reason,lines,amount_cents,idempotency_key,request_hash,claim_basis,support_conversation_id)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,[orderId,memberId,kind,why,JSON.stringify(claimLines),allocation.amountCents,k,fingerprint,claimBasis,conversation.id])).rows[0]!;
       await this.event(client,row,memberId,'request',why||'七日无理由退货申请',null,k,fingerprint);
@@ -311,17 +332,42 @@ export class AftersaleService{
           instructions:item.instructions,issuedAt:item.issued_at}))};
     },'REPEATABLE READ');
   }
-  async forConversation(memberId:string|undefined,conversationInput:string){
+  async contact(memberId:string|undefined,caseInput:string,traceId:string){
     if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
-    const conversationId=id(conversationInput);
+    const caseId=id(caseInput);
+    return transaction(this.pool,async client=>{
+      await this.management(client,memberId,'commerce.aftersale.review');
+      await this.authority.requireWithClient(client,memberId,'support.read');
+      await this.authority.requireWithClient(client,memberId,'support.reply');
+      const row=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE id=$1 FOR UPDATE',[caseId])).rows[0];
+      if(!row)fail('AFTERSALE_NOT_FOUND','售后记录不存在',404);
+      if(row.member_id===memberId)fail('AFTERSALE_SELF_REVIEW_FORBIDDEN','不能处理自己的售后案件',403);
+      const conversation=await this.caseConversation(client,row.member_id);
+      if(row.support_conversation_id&&row.support_conversation_id!==conversation.id)
+        fail('AFTERSALE_SUPPORT_LINK_REQUIRED','原客服会话不可用，请刷新后重试');
+      if(conversation.status==='resolved'||conversation.status==='ai_active'){
+        await this.authority.requireWithClient(client,memberId,'support.assign');
+        await client.query(`UPDATE support_conversation SET status='waiting_human',current_handler_principal_id=NULL,
+          resolved_at=NULL,version=version+1,updated_at=clock_timestamp() WHERE id=$1`,[conversation.id]);
+        await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,before_state,after_state,trace_id)
+          VALUES($1,'support.conversation.reopen_for_aftersale','support_conversation',$2,$3,$4,$5)`,
+          [`member:${memberId}`,conversation.id,{status:conversation.status},{status:'waiting_human',caseId},traceId]);
+      }
+      return {caseId,orderId:row.order_id,conversationId:conversation.id};
+    });
+  }
+  async forConversation(memberId:string|undefined,conversationInput:string,caseInput?:string){
+    if(!memberId)fail('AUTH_REQUIRED','请先登录后继续',401);
+    const conversationId=id(conversationInput),caseId=caseInput===undefined?null:id(caseInput);
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,memberId,'support.read');
       await this.authority.requireWithClient(client,memberId,'commerce.aftersale.review');
       const rows=(await client.query<CaseRow>(`SELECT c.* FROM commerce_aftersale_case c
         JOIN support_conversation s ON s.member_id=c.member_id
         WHERE s.id=$1 AND (c.support_conversation_id=s.id OR c.support_conversation_id IS NULL)
-        ORDER BY c.created_at DESC,c.id DESC LIMIT 20`,[conversationId])).rows;
-      return {items:await Promise.all(rows.map(row=>this.view(client,row)))};
+        AND ($2::uuid IS NULL OR c.id=$2)
+        ORDER BY c.created_at DESC,c.id DESC LIMIT 20`,[conversationId,caseId])).rows;
+      return {items:await Promise.all(rows.map(row=>this.view(client,row,caseId?memberId:undefined)))};
     },'REPEATABLE READ');
   }
   async act(memberId:string|undefined,caseInput:string,kInput:string,input:Record<string,unknown>,management=false,refund?:RefundCommandService,
@@ -440,14 +486,13 @@ export class AftersaleService{
         }
       }
       if(!state)fail('AFTERSALE_STATE_CONFLICT','当前案件状态不允许此操作，请刷新核对');
+      const decisionMessage=action==='approve_return'?'已同意退货。请收到退货指引后再寄回商品。'
+        :action==='reject'?`本次售后申请未通过。\n原因：${why}\n如需协助，请在此会话联系人工客服。`
+        :action==='request_info'?`请补充本次售后的信息。\n${why}`
+        :action==='request_refund'&&input.approveRefund===true?'已同意退款，请在订单详情查看退款进度。':null;
       let supportConversationId=row.support_conversation_id??context?.conversationId??null;
-      if(!supportConversationId&&action==='send_return_instruction'){
-        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${row.member_id}`]);
-        supportConversationId=(await client.query<{id:string}>(
-          'SELECT id FROM support_conversation WHERE member_id=$1',[row.member_id])).rows[0]?.id??null;
-        if(!supportConversationId)supportConversationId=(await client.query<{id:string}>(
-          "INSERT INTO support_conversation(member_id,status) VALUES($1,'waiting_human') RETURNING id",[row.member_id])).rows[0]!.id;
-      }
+      if(!supportConversationId&&(action==='send_return_instruction'||decisionMessage))
+        supportConversationId=(await this.caseConversation(client,row.member_id)).id;
       const changed=(await client.query<CaseRow>(`UPDATE commerce_aftersale_case SET state=$2,version=version+1,updated_at=clock_timestamp(),
         return_destination=$3,return_carrier=COALESCE($4,return_carrier),return_tracking=COALESCE($5,return_tracking),
         quality_result=COALESCE($6,quality_result),refund_request_id=$7,support_conversation_id=$8,
@@ -465,6 +510,7 @@ export class AftersaleService{
       }
       if(action==='inspect_return'&&quality==='sellable')
         await this.restockInspectedReturn(client,changed,memberId);
+      if(decisionMessage&&supportConversationId)await this.notifyDecision(client,supportConversationId,changed,decisionMessage);
       if(action==='send_return_instruction'&&instruction){
         if(!supportConversationId)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','请先关联原客服会话后发送退货指引');
         const snapshot=destination as typeof instruction&{version:number};

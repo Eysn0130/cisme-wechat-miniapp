@@ -2745,7 +2745,7 @@ paths:
       tags: [Support, Authority]
       operationId: operatorReplySupport
       security: [{session: []}]
-      description: Requires support.reply and caller ownership of the human_active conversation. AI has no write path here.
+      description: Requires support.reply and caller ownership of the human_active conversation. An explicit aftersaleCaseId additionally requires support.read and commerce.aftersale.review, verifies the case belongs to this conversation, and attaches the original order. A case reply and a quoted member message are mutually exclusive.
       parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupportOperatorMessageInput'}}}}
       responses: {'200': {description: Persisted audited reply or exact retry}, '403': {description: support.reply required}, '409': {description: Claim required or idempotency conflict}}
@@ -2755,7 +2755,7 @@ paths:
       operationId: operatorConversationAftersales
       security: [{session: []}]
       description: Requires support.read and commerce.aftersale.review. Returns only cases linked to this member conversation.
-      parameters: [{$ref: '#/components/parameters/SupportConversationId'}]
+      parameters: [{$ref: '#/components/parameters/SupportConversationId'}, {name: caseId, in: query, schema: {$ref: '#/components/schemas/Uuid'}}]
       responses: {'200': {description: Bounded linked case list}, '403': {description: Both capabilities required}}
   /v1/management/support/conversations/{conversationId}/aftersales/{caseId}/actions:
     post:
@@ -3326,6 +3326,17 @@ paths:
         '409': {description: State, version or idempotency conflict}
         '422': {description: Invalid bounded input}
         '503': {description: Return destination or money authorization unavailable}
+  /v1/management/aftersales/{caseId}/contact:
+    post:
+      tags: [Support, Authority, Commerce]
+      operationId: contactManagedAftersaleMember
+      summary: Open the case member's support conversation without reassigning an active handler
+      security: [{session: []}]
+      parameters: [{in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}]
+      responses:
+        '200': {description: Verified caseId, orderId and conversationId}
+        '403': {description: Review and support permissions required. Reopening also requires support.assign.}
+        '404': {description: Case unavailable}
   /v1/management/aftersales/{caseId}/actions:
     post:
       operationId: actManagedAftersale
@@ -5125,7 +5136,7 @@ components:
         linkedOrderId: {$ref: '#/components/schemas/Uuid'}
         expectedConversationId: {$ref: '#/components/schemas/Uuid', description: Caller-owned durable conversation read before composing; required after a clear command.}
         contextVersion: {type: integer, minimum: 0, description: Generation read before composing and frozen with the clientMessageId. Zero before the first reset; required after any reset, including an empty one. Retired or missing generations are rejected without reinserting cleared text.}
-    SupportOperatorMessageInput: {type: object, additionalProperties: false, required: [body, clientMessageId], properties: {body: {type: string, minLength: 1, maxLength: 4000}, clientMessageId: {type: string, minLength: 8, maxLength: 200, pattern: '^[A-Za-z0-9._:-]+$'}}}
+    SupportOperatorMessageInput: {type: object, additionalProperties: false, required: [body, clientMessageId], properties: {body: {type: string, minLength: 1, maxLength: 4000}, clientMessageId: {type: string, minLength: 8, maxLength: 200, pattern: '^[A-Za-z0-9._:-]+$'}, replyToMessageId: {type: [string, 'null'], format: uuid}, aftersaleCaseId: {$ref: '#/components/schemas/Uuid'}, expectedHumanRequestGeneration: {type: integer, minimum: 0}, contextVersion: {type: integer, minimum: 0}}}
     SupportPresenceInput: {type: object, additionalProperties: false, required: [online, typing], properties: {online: {type: boolean}, typing: {type: boolean, description: A short-lived signal; false on send, blur or page hide.}}}
     SupportMediaAuthorizeInput: {type: object, additionalProperties: false, required: [mimeType, maxBytes], properties: {mimeType: {type: string, enum: [image/jpeg, image/png, image/webp]}, maxBytes: {type: integer, minimum: 1, maximum: 5242880}}}
     SupportPresenceView: {type: object, required: [serverTime, agentDisplayName, operatorOnline, operatorTyping, memberOnline, memberTyping], properties: {serverTime: {type: string, format: date-time}, agentDisplayName: {type: string, minLength: 1, maxLength: 40}, operatorOnline: {type: boolean}, operatorTyping: {type: boolean}, memberOnline: {type: boolean}, memberTyping: {type: boolean}}}

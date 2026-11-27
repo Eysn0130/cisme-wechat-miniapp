@@ -775,8 +775,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     reply.header('Cache-Control','private, no-store');
     return support.operatorMessages(request.memberId,request.principalId,request.params.conversationId,request.query);
   });
-  app.get<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/aftersales", async request =>
-    aftersales.forConversation(request.memberId,request.params.conversationId));
+  app.get<{Params:{conversationId:string};Querystring:{caseId?:string}}>("/v1/management/support/conversations/:conversationId/aftersales", async request =>
+    aftersales.forConversation(request.memberId,request.params.conversationId,request.query.caseId));
   app.post<{Params:{conversationId:string;caseId:string}}>("/v1/management/support/conversations/:conversationId/aftersales/:caseId/actions", async request =>{
     const input=(request.body??{}) as Record<string,unknown>;
     if(input.action!=='approve_return'&&input.action!=='send_return_instruction'&&input.action!=='approve_refund_without_return')
@@ -791,7 +791,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return support.dismissFromQueue(request.memberId,request.params.conversationId,(request.body??{}) as {expectedVersion?:unknown});
   });
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/messages", async request => support.reply(request.memberId, request.principalId, request.params.conversationId,
-    (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown}, request.id));
+    (request.body ?? {}) as {body?:unknown;clientMessageId?:unknown;replyToMessageId?:unknown;aftersaleCaseId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown}, request.id));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/read", async request => support.markTeamRead(request.memberId, request.params.conversationId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
   app.post<{Params:{conversationId:string}}>("/v1/management/support/conversations/:conversationId/presence", async request => support.touchOperatorPresence(request.memberId, request.principalId, request.params.conversationId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));
   app.get<{Params:{conversationId:string;mediaId:string}}>("/v1/management/support/conversations/:conversationId/media/:mediaId", async (request, reply) => {
@@ -961,6 +961,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     aftersales.list(request.memberId,request.query,true));
   app.get<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId",async request=>
     aftersales.detail(request.memberId,request.params.caseId,true));
+  app.post<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId/contact",async request=>
+    aftersales.contact(request.memberId,request.params.caseId,request.id));
   app.post<{Params:{caseId:string}}>("/v1/management/aftersales/:caseId/actions",async request=>{
     const input=(request.body??{}) as Record<string,unknown>;
     if(input.approveRefund===true)refundRequired('approve');

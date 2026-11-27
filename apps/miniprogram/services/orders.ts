@@ -17,6 +17,7 @@ export interface OrderShipment {
   orderId:string; id?:string; version?:number; carrierName?:string; trackingNumber?:string|null;
   deliveryMethod?:"express"|NoCourierDelivery;
   logisticsState:"not_ready"|"awaiting_dispatch"|"shipped"|"delivered"|"exception";
+  holdReason?:"aftersale"|"refund";
   shippedAt?:string; deliveredAt?:string|null; receiptConfirmedAt?:string|null; autoReceiptAt?:string|null; wechatSyncState?:string;
   logisticsMessageState?:'queued'|'retry'|'dispatching'|'registered'|'unknown'|'review'|'cancelled'|null;
   wechatReceipt?: (WechatReceiptState&{observedLabel?:string;displayLabel?:string})|null;
@@ -65,6 +66,7 @@ export interface ManagementOrderAddress { recipientNameMasked: string; phoneMask
 export interface CommerceOrder<TAddress = MemberOrderAddress | ManagementOrderAddress> {
   refundedCents?:number;
   aftersale?:OrderAftersale;
+  aftersaleCaseId?:string;
   couponId?:string;couponDiscountCents?:number;
   shoppingPointsMultiplier?:number;pointsSpent?:number;
   fulfillmentPolicy?:FulfillmentPolicy|null;

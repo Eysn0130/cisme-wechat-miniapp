@@ -261,7 +261,9 @@ Page({
       const order=this.data.order;
       const noCourier=row.deliveryMethod==='local_delivery'||row.deliveryMethod==='pickup';
       const stateLabel=noCourier&&row.receiptConfirmedAt?"已收货"
-        :!row.id&&(order?.refundedCents??0)>0?"退款后暂停发货"
+        :!row.id&&!order?.aftersale&&(order?.refundedCents??0)>0?"退款后暂停发货"
+        :row.holdReason==='aftersale'?"售后处理中，暂停发货"
+        :row.holdReason==='refund'?"退款处理中，暂停发货"
         :!row.id&&order?.status==='cancelled'?"订单已取消":!row.id&&order?.status==='expired'?"订单已关闭":labels[row.logisticsState]!;
       const shippedLabel=row.shippedAt&&Number.isFinite(Date.parse(row.shippedAt))
         ?new Date(row.shippedAt).toLocaleString('zh-CN',{hour12:false,timeZone:'Asia/Shanghai'}):'';

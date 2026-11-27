@@ -1,13 +1,17 @@
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 const requireCapabilityMock=vi.hoisted(()=>vi.fn());
 const managementOrderMock=vi.hoisted(()=>vi.fn());
 const managementOrdersMock=vi.hoisted(()=>vi.fn());
+const managementShipmentMock=vi.hoisted(()=>vi.fn());
+const shipmentCarriersMock=vi.hoisted(()=>vi.fn());
+const dispatchShipmentMock=vi.hoisted(()=>vi.fn());
 const managementCatalogMock=vi.hoisted(()=>vi.fn());
 const requestMock=vi.hoisted(()=>vi.fn());
 vi.mock("../../apps/miniprogram/services/authority",()=>({requireCapability:requireCapabilityMock,authorityProjection:()=>requireCapabilityMock("commerce.order.read"),hasCapability:(projection:any,capability:string)=>Boolean(projection?.capabilities.includes(capability))}));
 vi.mock("../../apps/miniprogram/services/orders",()=>({managementOrder:managementOrderMock,
-  managementOrders:managementOrdersMock}));
+  managementOrders:managementOrdersMock,managementShipment:managementShipmentMock,
+  shipmentCarriers:shipmentCarriersMock,dispatchShipment:dispatchShipmentMock}));
 vi.mock("../../apps/miniprogram/services/commerce",()=>({centsToYuan:(n:number)=>(n/100).toFixed(2),
   managementCatalog:managementCatalogMock}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
@@ -19,12 +23,13 @@ let definition:PageDefinition|null=null,session="operator-a";
 function mount(overrides:Record<string,unknown>={}){
   const page:Record<string,any>={data:{...definition!.data,...overrides},
     setData(patch:Record<string,unknown>){Object.assign(this.data,patch);}};
-  for(const [name,value] of Object.entries(definition!))if(typeof value==="function")page[name]=value;
+  for(const [name,value] of Object.entries(definition!))if(name!=="data")page[name]=value;
   return page;
 }
 beforeEach(async()=>{
   vi.resetModules();requireCapabilityMock.mockReset();managementOrderMock.mockReset();managementOrdersMock.mockReset();
-  managementCatalogMock.mockReset();
+  vi.useFakeTimers();managementCatalogMock.mockReset();managementShipmentMock.mockReset();
+  shipmentCarriersMock.mockReset();dispatchShipmentMock.mockReset();
   requestMock.mockReset();
   session="operator-a";definition=null;
   (globalThis as any).getApp=()=>({globalData:{sessionToken:session}});
@@ -32,11 +37,19 @@ beforeEach(async()=>{
   (globalThis as any).wx={showToast:vi.fn(),navigateTo:vi.fn(),navigateBack:vi.fn(),redirectTo:vi.fn(),switchTab:vi.fn()};
   await vi.importActual("../../apps/miniprogram/pages/management-order-detail/index");
 });
+afterEach(()=>vi.useRealTimers());
 
+const orderId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const caseId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const conversationId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const paid={id:orderId,version:3,address:null,lines:[],createdAt:'2026-11-26T16:00:00Z',status:'paid',
+  totalCents:29800,creditTenderCents:0,cashPayableCents:29800,transactionSourceKind:'verified_commerce',refundedCents:0};
+const returning={...paid,aftersale:{caseId,phase:'returning'}};
+const capabilities=["commerce.order.read","commerce.fulfillment.manage","commerce.aftersale.review",
+  "commerce.refund.approve","support.read","support.reply"];
 
 it('opens the linked refund case with the eligible review action without submitting it',()=>{
- const page=mount({order:{aftersale:{caseId}},canOpenAftersale:true,refundAction:'request_refund'});
+ const page=mount({order:{aftersale:{caseId}},canOpenAftersale:true,decision:'request_refund'});
  page.lastReadToken=session;
  page.openAftersale();
  expect(wx.navigateTo).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
@@ -45,7 +58,7 @@ it('opens the linked refund case with the eligible review action without submitt
 });
 
 it('prevents navigation into a stale or unauthorized refund case',()=>{
- const page=mount({order:{aftersale:{caseId}},canOpenAftersale:false,refundAction:'request_refund'});
+ const page=mount({order:{aftersale:{caseId}},canOpenAftersale:false,decision:'request_refund'});
  page.lastReadToken=session;
  page.openAftersale();
  page.data.canOpenAftersale=true;session='operator-b';page.openAftersale();
@@ -82,10 +95,57 @@ it("ignores an old account's delayed order response after the new account reload
     createdAt:new Date().toISOString(),status:"paid",totalCents:100,creditTenderCents:0,cashPayableCents:100});
   await first;
   expect(page.data.order).toBeNull();
-  resolveNew({id:"visible-order-b",address:null,lines:[],createdAt:new Date().toISOString(),
+  resolveNew({id:orderId,address:null,lines:[],createdAt:new Date().toISOString(),
     status:"paid",totalCents:100,creditTenderCents:0,cashPayableCents:100});
   await second;
-  expect(page.data.order.id).toBe("visible-order-b");
+  expect(page.data.order.id).toBe(orderId);
+});
+
+it("blocks both dispatch modes on an already open order as soon as its aftersale is observed",async()=>{
+  requireCapabilityMock.mockResolvedValue({capabilities});
+  managementOrderMock.mockResolvedValueOnce(paid).mockResolvedValue(returning);
+  managementShipmentMock.mockResolvedValue({orderId,logisticsState:'awaiting_dispatch'});
+  shipmentCarriersMock.mockResolvedValue({carriers:[{id:'SF',name:'顺丰速运'}]});
+  requestMock.mockResolvedValue({id:caseId,orderId,canReview:true,canStartRefund:true,state:'requested',kind:'refund_only'});
+  const page=mount({id:orderId});
+  await page.onShow();
+  expect(page.data.canDispatch).toBe(true);
+  await page.recheckOrder();
+  expect(page.data).toMatchObject({canDispatch:false,decision:'request_refund',decisionLabel:'同意退款',canReject:true,canContact:true});
+  await page.submitShipment();
+  await page.submitWithoutLogistics();
+  expect(dispatchShipmentMock).not.toHaveBeenCalled();
+  expect(shipmentCarriersMock).toHaveBeenCalledOnce();
+});
+
+it("opens rejection and the verified case conversation while keeping shipped history available",async()=>{
+  requireCapabilityMock.mockResolvedValue({capabilities});
+  managementOrderMock.mockResolvedValue(returning);
+  managementShipmentMock.mockResolvedValue({orderId,id:'original-parcel',logisticsState:'shipped',wechatSyncState:'manual_review'});
+  requestMock.mockResolvedValueOnce({id:caseId,orderId,canReview:true,canStartRefund:false,state:'requested',
+    kind:'return_refund',fulfillment:{state:'shipped',canRefundWithoutReturn:false}})
+    .mockResolvedValueOnce({caseId,orderId,conversationId});
+  const page=mount({id:orderId});
+  await page.onShow();
+  expect(page.data).toMatchObject({shipment:{id:'original-parcel'},canDispatch:false,decisionLabel:'同意退货'});
+  page.openAftersale({currentTarget:{dataset:{action:'reject'}}});
+  expect(wx.navigateTo).toHaveBeenLastCalledWith(expect.objectContaining({
+    url:`/pages/aftersale/index?mode=management&caseId=${caseId}&action=reject`}));
+  page.data.navigating=false;
+  await page.contactBuyer();
+  expect(requestMock).toHaveBeenLastCalledWith(expect.objectContaining({path:`/v1/management/aftersales/${caseId}/contact`,method:'POST'}));
+  expect(wx.navigateTo).toHaveBeenLastCalledWith(expect.objectContaining({
+    url:`/pages/management-support-chat/index?id=${conversationId}&caseId=${caseId}`}));
+});
+
+it("keeps a settled refund out of dispatch without labeling the case as still in progress",async()=>{
+  requireCapabilityMock.mockResolvedValue({capabilities});
+  managementOrderMock.mockResolvedValue({...paid,refundedCents:paid.totalCents,aftersaleCaseId:caseId});
+  managementShipmentMock.mockResolvedValue({orderId,logisticsState:'not_ready',holdReason:'aftersale'});
+  requestMock.mockResolvedValue({id:caseId,orderId,state:'refund_pending',canStartRefund:false});
+  const page=mount({id:orderId});
+  await page.onShow();
+  expect(page.data).toMatchObject({order:{statusLabel:'已退款'},shipmentLabel:'退款后暂停发货',canDispatch:false,decision:''});
 });
 
 it("clears the order queue before a new operator's authority check and drops delayed pages",async()=>{

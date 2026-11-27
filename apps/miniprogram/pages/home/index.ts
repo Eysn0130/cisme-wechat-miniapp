@@ -24,6 +24,7 @@ interface CareView { id: string; version: number; phase: string; startedOn: stri
 interface MemberView { id?: string; profile_revision?: number; display_name: string; completed_at?:string|null }
 
 let daypartTimer: ReturnType<typeof setInterval> | null = null;
+const supportReads=new WeakMap<object,number>();
 let careSessionCloseTimer: ReturnType<typeof setTimeout> | null = null;
 const careSessionExitMs = 300;
 
@@ -137,6 +138,7 @@ function dailyHomeProjection(state: { usageReady: boolean; usageLoading: boolean
 }
 
 Page({
+  supportTimer:null as ReturnType<typeof setInterval>|null,
   shareOwner:'',shareContext:-1,shareAttempt:0,
   data: {
     shareId:'',officerShareId:'',onboardingRequired:false,onboardingOpen:false,memberId:'',giftOpen:false,giftLoading:false,giftError:'',giftInvite:'',giftVoucher:null as RewardVoucher|null,
@@ -239,6 +241,8 @@ Page({
     if (identity) this.setData({ view: homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
     this.syncDailyHomeView();
     this.startDaypartClock();
+    this.stopSupportClock();
+    if(sharingToken)this.supportTimer=setInterval(()=>this.refreshSupport(),10_000);
     void Promise.resolve(this.load(retainMemberSnapshot(this))).then(ready=>{if(pendingRewardInvitationToken()&&(!getApp<IAppOption>().globalData.sessionToken||ready&&!this.data.onboardingRequired))void this.resumeOnboardingDestination();});
   },
   onHide() {
@@ -247,6 +251,7 @@ Page({
     writeOwners.delete(this);
     this.data.loadAttempt += 1;
     this.stopDaypartClock();
+    this.stopSupportClock();
     this.getTabBar?.()?.setPresentation?.("care-sheet", false);
     this.getTabBar?.()?.setPresentation?.('care-onboarding',false);this.getTabBar?.()?.setPresentation?.('care-gift',false);
     if (this.data.sessionClosing) this.finishCareSessionClose();
@@ -255,6 +260,7 @@ Page({
     homeMemberNames.delete(this);homeGiftOwners.delete(this);
     this.data.loadAttempt += 1;
     this.stopDaypartClock();
+    this.stopSupportClock();
     this.clearCareSessionCloseTimer();
     wx.disableAlertBeforeUnload();
   },
@@ -263,6 +269,17 @@ Page({
     daypartTimer = setInterval(() => this.refreshDaypart(), 60_000);
   },
   stopDaypartClock() { if (daypartTimer) clearInterval(daypartTimer); daypartTimer = null; },
+  stopSupportClock(){if(this.supportTimer!==null)clearInterval(this.supportTimer);this.supportTimer=null;},
+  refreshSupport(){
+    const token=getApp<IAppOption>().globalData.sessionToken,attempt=this.data.loadAttempt;
+    if(!this.data.pageVisible)return;
+    if(!token||snapshotOwners.get(this)!==token||this.data.loadContextRevision!==commerceContextRevision()){
+      this.setData({supportUnread:null,supportState:"unknown"});
+      if(!token)this.stopSupportClock();
+      return;
+    }
+    void this.loadSupport(attempt,token);
+  },
   refreshDaypart() {
     if (!this.data.pageAlive || this.data.loading) return;
     this.setData({ view: this.data.needsAuthentication ? visitorView(this.data.selectedProtocolIndex) : homeView(this.data.care, homeDisplayName(this), this.data.selectedProtocolIndex, new Date(), this.data.sessionCompletedCodes) });
@@ -282,16 +299,18 @@ Page({
     this.getTabBar?.()?.setPresentation?.('care-onboarding',false);
   },
   async loadSupport(attempt: number, token: string) {
-    this.setData({ supportState: "loading" });
+    if(!token||!this.data.pageVisible||!this.isCurrentLoad(attempt,token)||supportReads.get(this)===attempt)return;
+    supportReads.set(this,attempt);
+    if(this.data.supportUnread===null)this.setData({ supportState: "loading" });
     try {
       const support = await pageRead<{ unreadCount: number }>(this, { path: "/v1/me/support/summary", authMode: "optional", cacheTags: ["support"] });
       if (!Number.isSafeInteger(support.unreadCount) || support.unreadCount < 0) throw new Error("INVALID_UNREAD_COUNT");
       if (this.isCurrentLoad(attempt, token)) this.setData({ supportUnread: support.unreadCount, supportState: "ready" });
       else this.restoreGuestIfExpired(attempt);
     } catch {
-      if (this.isCurrentLoad(attempt, token)) this.setData({ supportUnread: null, supportState: "error" });
+      if (this.isCurrentLoad(attempt, token)) this.setData({ supportState: "error" });
       else this.restoreGuestIfExpired(attempt);
-    }
+    }finally{if(supportReads.get(this)===attempt)supportReads.delete(this);}
   },
   async load(preserveSnapshot = false): Promise<boolean> {
     cancelPageReads(this);
