@@ -17,14 +17,21 @@ beforeEach(async()=>{
  m.request.mockImplementation(async({path}:any)=>{if(path.startsWith('/v1/me/points?'))return wallet();if(path==='/v1/me/points/club')return club();if(path==='/v1/me/points/gifts')return {enabled:true,items:[]};if(path==='/v1/me/points/redemptions')return {items:[],nextCursor:null};if(path==='/v1/me/profile')return {id:member};throw Error('Unexpected synthetic route '+path);});
  await import('../../apps/miniprogram/pages/points/index');page={...definition,data:structuredClone(definition.data),setData(p:any){Object.assign(this.data,p)}};
 });
-afterEach(()=>vi.unstubAllGlobals());
+afterEach(()=>{page.onUnload();vi.useRealTimers();vi.unstubAllGlobals();});
 it('renders authoritative buckets and real count, then retains them through revalidation',async()=>{
  page.onShow();await flush();expect(page.data.points).toMatchObject({totalCount:63,projection:{available:900,reserved:20}});
  const original=page.data.points;let resolve!:(v:unknown)=>void;const pending=new Promise(r=>resolve=r);m.request.mockImplementation(({path}:any)=>path.startsWith('/v1/me/points?')?pending:Promise.resolve(path.endsWith('/club')?club():{items:[],nextCursor:null}));
  page.onHide();page.onShow();await flush();expect(page.data.points).toEqual(original);resolve(wallet());await flush();expect(page.data.loading).toBe(false);
 });
-it('does not fabricate zero on a failed or malformed balance and still offers retry',async()=>{
- m.request.mockImplementation(async({path}:any)=>path.startsWith('/v1/me/points?')?{...wallet(),projection:{available:'broken'}}:path.endsWith('/club')?club():{items:[],nextCursor:null});page.onShow();await flush();expect(page.data.points).toBeNull();expect(page.data.error).toContain('重新查询');
+it('keeps a malformed balance unavailable until automatic recovery returns a valid snapshot',async()=>{
+ vi.useFakeTimers();
+ let malformed=true;
+ m.request.mockImplementation(async({path}:any)=>path.startsWith('/v1/me/points?')?(malformed?{...wallet(),projection:{available:'broken'}}:wallet()):path.endsWith('/club')?club():{items:[],nextCursor:null});
+ page.onShow();await flush();
+ expect(page.data.points).toBeNull();expect(page.data.error).toBe('积分暂时无法更新。');
+ malformed=false;
+ await vi.advanceTimersByTimeAsync(2_000);
+ expect(page.data.points).toMatchObject({projection:{available:900}});expect(page.data.error).toBe('');
 });
 it('clears private state on account change and ignores a response after hiding',async()=>{
  page.onShow();await flush();page.setData({giftSelected:{name:'上一位礼品'},club:club()});m.token='';m.retain=false;page.onShow();expect(page.data).toMatchObject({points:null,club:null,giftSelected:null});
@@ -33,7 +40,7 @@ it('clears private state on account change and ignores a response after hiding',
 it('keeps daily care, birthday and onboarding editors out of the points wallet',async()=>{
  page.onShow();await flush();expect(page.openCheckin).toBeUndefined();expect(page.writeBirthday).toBeUndefined();expect(page.openCareProfile).toBeUndefined();
  const {readFileSync}=await import('node:fs');const markup=readFileSync('apps/miniprogram/pages/points/index.wxml','utf8');
- for(const removed of ['查看或补充今日记录','记录今日使用','记下生日','care-onboarding','birthdayRanges'])expect(markup).not.toContain(removed);
+ for(const removed of ['查看或补充今日记录','记录今日使用','记下生日','care-onboarding','birthdayRanges','积分奖励待处理','重新查询积分','bindtap="load"'])expect(markup).not.toContain(removed);
  expect(page.data.sections.map((s:any)=>s.label)).toEqual(['赚积分','积分明细','积分兑换']);
 });
 it('protects a saved redemption recovery command from a different canonical member',async()=>{

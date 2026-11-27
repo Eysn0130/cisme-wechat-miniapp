@@ -1,4 +1,5 @@
 import {request} from './api';
+import {pageRead} from './page-requests';
 export type PointRules=Record<'daily'|'note'|'streak7'|'streak30'|'post'|'featured'|'comment'|'questionnaire'|'firstOrder'|'inviteSponsor'|'inviteFriend'|'postWeeklyLimit'|'commentDailyLimit'|'expiryMonths'|'reminderDays'|'discountBps'|'pointsPerYuan'|'refundGraceDays'|'birthdayMultiplier',number>&Partial<Record<'taskVersion'|'firstPost'|'originalPost'|'originalMonthlyLimit'|'experiencePost'|'experienceMonthlyLimit'|'share'|'shareDailyLimit'|'suggestion'|'suggestionMonthlyLimit'|'profile'|'commentMinHan'|'postMinHan'|'experienceMinHan'|'memberDay'|'dailyShoppingMultiplier'|'shoppingPointsPerYuan'|'awardOnPayment'|'inviteExclusive'|'shareOrder'|'shareOrderWindowDays',number>>;
 export type PointBalances={available:number;frozen:number;debt:number;reserved:number;version:number};
 export type PointEntry={id:string;entry_type:string;available_delta:number;frozen_delta:number;debt_delta:number;reserved_delta?:number;used_delta?:number;expired_delta?:number;
@@ -30,13 +31,24 @@ export function parsePointsSnapshot(v:any):PointsSnapshot{
  return {...v,projection:parsePointBalances(v.projection),entries:v.entries.map(presentPointEntry),totalCount:pointInteger(v.totalCount),lifetimeEarned:pointInteger(v.lifetimeEarned),used:pointInteger(v.used),expired:pointInteger(v.expired),
   expiring:{...v.expiring,points:pointInteger(v.expiring?.points),withinDays:pointInteger(v.expiring?.withinDays)}};
 }
-export async function readMyPoints(source='all',cursor:string|null=null){return parsePointsSnapshot(await request({path:`/v1/me/points?limit=20&source=${encodeURIComponent(source)}${cursor?'&cursor='+encodeURIComponent(cursor):''}`,cacheTags:['points']}));}
-export async function readPointsClub(){const value=await request<PointsClub>({path:'/v1/me/points/club',cacheTags:['points','member','care']});
+export async function readMyPoints(source='all',cursor:string|null=null,page?:object){
+ const options={path:`/v1/me/points?limit=20&source=${encodeURIComponent(source)}${cursor?'&cursor='+encodeURIComponent(cursor):''}`,cacheTags:['points']};
+ return parsePointsSnapshot(await (page?pageRead(page,options):request(options)));
+}
+export async function readPointsClub(page?:object){
+ const options={path:'/v1/me/points/club',cacheTags:['points','member','care']};
+ const value=await (page?pageRead<PointsClub>(page,options):request<PointsClub>(options));
  if(!value||typeof value.memberId!=='string'||typeof value.enabled!=='boolean'||!/^\d{4}-\d{2}-\d{2}$/.test(value.serverDay)||!Array.isArray(value.badges)||!Number.isSafeInteger(value.streak)||value.streak<0||!Number.isSafeInteger(value.pendingRewardSources)||value.pendingRewardSources<0||value.enabled&&!value.policy)throw Error('POINTS_CLUB_PAYLOAD_INVALID');
  const fields=['daily','note','streak7','streak30','post','featured','comment','questionnaire','firstOrder','inviteSponsor','inviteFriend','postWeeklyLimit','commentDailyLimit','expiryMonths','reminderDays','discountBps','pointsPerYuan','refundGraceDays','birthdayMultiplier'] as const;
  for(const policy of [value.policy,...(value.upcomingPolicies??[])])if(policy&&(typeof policy.version!=='string'||!policy.rules||fields.some(k=>!Number.isSafeInteger(policy.rules[k])||policy.rules[k]<0)))throw Error('POINTS_RULES_PAYLOAD_INVALID');
  return value;
 }
-export function readPointsGifts(){return request<{enabled:boolean;items:PointsGift[]}>({path:'/v1/me/points/gifts',cacheTags:['points','catalog']});}
-export function readMyRedemptions(cursor:string|null=null){return request<{items:PointsRedemption[];nextCursor:string|null}>({path:'/v1/me/points/redemptions'+(cursor?'?cursor='+encodeURIComponent(cursor):''),cacheTags:['points','orders']});}
+export function readPointsGifts(page?:object):Promise<{enabled:boolean;items:PointsGift[]}>{
+ const options={path:'/v1/me/points/gifts',cacheTags:['points','catalog']};
+ return page?pageRead(page,options):request(options);
+}
+export function readMyRedemptions(cursor:string|null=null,page?:object):Promise<{items:PointsRedemption[];nextCursor:string|null}>{
+ const options={path:'/v1/me/points/redemptions'+(cursor?'?cursor='+encodeURIComponent(cursor):''),cacheTags:['points','orders']};
+ return page?pageRead(page,options):request(options);
+}
 export const redemptionLabels:Record<string,string>={placed:'待发货',shipped:'已发货',received:'已收货',cancelled:'已取消',return_requested:'退货处理中',returned:'已退回积分'};
