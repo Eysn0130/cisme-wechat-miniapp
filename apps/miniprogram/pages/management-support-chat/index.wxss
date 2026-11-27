@@ -8,14 +8,22 @@
 }
 
 .operator-topbar {
-  --operator-header-inset: var(--cisme-nav-side, 112rpx);
-  padding-left: var(--operator-header-inset);
-  padding-right: var(--operator-header-inset);
   background: rgba(248, 244, 249, .94);
 }
 
-.operator-topbar--with-info {
-  padding-left: max(var(--operator-header-inset), 108px);
+.operator-heading {
+  --operator-title-line: 1.375rem;
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.operator-menu-slot {
+  position: relative;
+  flex: none;
+  width: var(--cisme-hit-target);
+  height: var(--operator-title-line);
 }
 
 .operator-title {
@@ -28,7 +36,8 @@
 
 .operator-title .topbar__title {
   max-width: 100%;
-  font-size: 17px;
+  font-size: 1.0625rem;
+  line-height: var(--operator-title-line);
 }
 
 .operator-status {
@@ -68,11 +77,17 @@
 
 .operator-more {
   position: absolute;
-  top: var(--cisme-back-top, var(--cisme-menu-top, env(safe-area-inset-top)));
-  left: 60px;
-  width: 44px;
-  height: 44px;
+  top: 50%;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--cisme-hit-target);
+  height: var(--cisme-hit-target);
+  min-height: var(--cisme-hit-target);
+  margin: 0;
   padding: 0;
+  transform: translateY(-50%);
   color: #56306f;
   background: transparent;
   font-size: 30rpx;

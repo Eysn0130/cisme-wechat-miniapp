@@ -1,14 +1,18 @@
 <page-meta root-font-size="system"/>
 <view class="operator-shell" style="{{chromeStyle}}">
-  <view class="topbar operator-topbar {{conversation && (canViewContext || canManageAftersale && (aftersaleCases.length || aftersaleError) || canReturnToQueue && !sendAttempt || assignedToMe && canReply && conversation.status === 'human_active' && (!caseContact && humanRequest.anchorKnown || !sendAttempt && (!caseContact || replyTarget.aftersale && !contactCaseUnavailable))) ? 'operator-topbar--with-info' : ''}}">
+  <view class="topbar operator-topbar">
     <button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button>
-    <view class="operator-title">
-      <text class="topbar__title">{{memberDisplayName}}</text>
-      <view wx:if="{{statusLabel}}" class="operator-status operator-status--{{statusTone}}" aria-label="{{statusLabel}}">
-        <text class="operator-status__dot">●</text><text class="operator-status__label">{{statusLabel}}</text>
+    <view class="operator-heading">
+      <view wx:if="{{conversation && (canViewContext || canManageAftersale && (aftersaleCases.length || aftersaleError) || canReturnToQueue && !sendAttempt || assignedToMe && canReply && conversation.status === 'human_active' && (!caseContact && humanRequest.anchorKnown || !sendAttempt && (!caseContact || replyTarget.aftersale && !contactCaseUnavailable)))}}" class="operator-menu-slot">
+        <button class="operator-more {{loading || busy ? 'control--disabled' : ''}}" bindtap="openConversationMenu" disabled="{{loading || busy}}" aria-label="会话操作">···</button>
+      </view>
+      <view class="operator-title">
+        <text class="topbar__title">{{memberDisplayName}}</text>
+        <view wx:if="{{statusLabel}}" class="operator-status operator-status--{{statusTone}}" aria-label="{{statusLabel}}">
+          <text class="operator-status__dot">●</text><text class="operator-status__label">{{statusLabel}}</text>
+        </view>
       </view>
     </view>
-    <button wx:if="{{conversation && (canViewContext || canManageAftersale && (aftersaleCases.length || aftersaleError) || canReturnToQueue && !sendAttempt || assignedToMe && canReply && conversation.status === 'human_active' && (!caseContact && humanRequest.anchorKnown || !sendAttempt && (!caseContact || replyTarget.aftersale && !contactCaseUnavailable)))}}" class="operator-more {{loading || busy ? 'control--disabled' : ''}}" bindtap="openConversationMenu" disabled="{{loading || busy}}" aria-label="会话操作">···</button>
   </view>
 
   <view class="support-chat-layout {{keyboardHeight ? 'support-chat-layout--with-keyboard' : ''}}" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px' : ''}}">
