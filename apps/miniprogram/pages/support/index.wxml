@@ -138,7 +138,7 @@
     <view class="support-sheet" catchtap="stopPropagation"><view class="support-sheet__handle"></view><strong class="support-sheet__title">添加附件</strong><view class="support-sheet__options">
       <button data-source="album" bindtap="chooseImage"><image src="/assets/icons/composer-image-plum.svg"/><text>相册</text></button>
       <button data-source="camera" bindtap="chooseImage"><image src="/assets/icons/camera-plum.svg"/><text>拍照</text></button>
-      <button bindtap="openOrderPicker"><image src="/assets/icons/package-plum.svg"/><text>订单</text></button>
+      <button wx:if="{{!aftersaleView}}" bindtap="openOrderPicker"><image src="/assets/icons/package-plum.svg"/><text>订单</text></button>
     </view><button class="support-sheet__cancel" bindtap="closeAttachmentSheet">取消</button></view>
   </view>
 

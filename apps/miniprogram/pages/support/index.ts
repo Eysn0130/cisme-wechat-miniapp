@@ -106,7 +106,7 @@ Page({
     expandedReturnMessageId: "",
     olderCursor: null as number | null, historyStartLoaded: false, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
-    consultationView: false, aftersale: null as CasePreview | null,
+    consultationView: false, aftersaleView: false, aftersale: null as CasePreview | null,
     pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false, helpNavigating: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
     attachmentSheetOpen: false, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
@@ -120,7 +120,7 @@ Page({
     this.aftersaleViewId=options.aftersaleView==='1'?this.linkedCaseId:'';
     const consultation=options.consultationCaseId??'';
     this.consultationCaseId=!this.linkedOrderId&&uuid.test(consultation)?consultation:'';
-    this.setData({consultationView:Boolean(this.consultationCaseId)}); },
+    this.setData({consultationView:Boolean(this.consultationCaseId),aftersaleView:Boolean(this.aftersaleViewId)}); },
   supportDraftScope() { return this.consultationCaseId ? `consultation:${this.consultationCaseId}` : this.linkedOrderId || GENERAL_SUPPORT_SCOPE; },
   messagesPath(query = "") {
     const scope = this.consultationCaseId ? `consultationCaseId=${this.consultationCaseId}` : this.aftersaleViewId ? `aftersaleCaseId=${this.aftersaleViewId}` : "";
@@ -188,7 +188,7 @@ Page({
       this.downloadMedia(this.data.messages);
       void this.poll();
     } else void this.load();
-    if(this.linkedOrderId)void this.loadLinkedOrder();
+    if(this.linkedOrderId&&!this.aftersaleViewId)void this.loadLinkedOrder();
   },
   onHide() {
     this.newTopicRevision += 1;
@@ -1017,7 +1017,7 @@ Page({
         this.aftersaleViewId=attempt.consultationCaseId;
         this.linkedOrderId=page.aftersale.orderId;
         this.setComposerState({conversation:this.currentConversation(page.conversation),contextStartSequence:0,newTopicAttempt:null,
-          aftersale:page.aftersale,error:"",errorAction:""});
+          aftersaleView:true,aftersale:page.aftersale,error:"",errorAction:""});
         wx.navigateTo({url:`/pages/support/index?consultationCaseId=${this.aftersaleViewId}`,
           fail:()=>{if(this.owns(epoch,ownerToken))this.setData({newTopicAttempt:attempt,error:"新对话已开启，请重试打开。",errorAction:""});}});
         return;
@@ -1049,7 +1049,7 @@ Page({
       if (this.owns(epoch, ownerToken)) this.startPolling();
     }
   },
-  retry() { void this.load(); if(this.linkedOrderId&&!this.linkedOrderDismissed)void this.loadLinkedOrder(); },
+  retry() { void this.load(); if(this.linkedOrderId&&!this.aftersaleViewId&&!this.linkedOrderDismissed)void this.loadLinkedOrder(); },
   back() { wx.navigateBack({ fail: () => this.data.closedRights
     ?wx.redirectTo({url:'/pages/orders/index'}):wx.switchTab({ url: "/pages/profile/index" }) }); }
 });
