@@ -18,7 +18,7 @@ export async function closeRefundedAftersaleSupport(client: DbClient, owner: str
         (SELECT max(occurred_at) FROM outbox_event WHERE aggregate_id=$1 AND aggregate_type='support_conversation'
           AND event_type='support.conversation.resolved.v1'),
         (SELECT max(created_at) FROM audit_log WHERE object_id=$1 AND object_type='support_conversation'
-          AND action='support.conversation.resume_ai'), '-infinity'::timestamptz
+          AND action IN ('support.conversation.resolve','support.conversation.resume_ai')), '-infinity'::timestamptz
       ) AS at
     ), intake AS (
       SELECT c.id,c.refund_request_id,o.order_number,

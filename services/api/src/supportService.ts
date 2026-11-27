@@ -185,7 +185,6 @@ export class SupportService {
 
   private async reconcile(owner?:string){
     if(this.suppression?.suppressionEnabled())await this.suppression.replaySupportConversations(this.pool,owner);
-    if (owner) await reconcileRefundedAftersaleSupport(this.pool, owner);
   }
   private async reconcileLocked(client:DbClient,owner:string){
     if(this.suppression?.suppressionEnabled())for(const marker of await this.suppression.supportConversationResetMarkers(owner,client))
@@ -558,6 +557,7 @@ export class SupportService {
   async summary(memberId: string | undefined) {
     const owner = required(memberId, "AUTH_REQUIRED");
     await this.reconcile(owner);
+    await reconcileRefundedAftersaleSupport(this.pool, owner);
     const row = await this.findForMember(this.pool, owner);
     return row ? { conversation: conversation(row), unreadCount: row.member_unread_count,supportAiCanRespond:this.automaticAiAvailable() } : { conversation: null, unreadCount: 0,supportAiCanRespond:this.automaticAiAvailable() };
   }
@@ -569,6 +569,7 @@ export class SupportService {
     const requestedCase=query.consultationCaseId??query.aftersaleCaseId;
     const caseId=requestedCase===undefined?undefined:uuid(requestedCase,'AFTERSALE_ID_INVALID').toLowerCase();
     await this.reconcile(owner);
+    if (ordinary) await reconcileRefundedAftersaleSupport(this.pool, owner);
     return readSnapshot(this.pool,async client=>{
       const row = await this.findForMember(client, owner);
       const metadata={supportAiAvailable:this.automaticAiAvailable(),supportAiCanRespond:ordinary&&this.automaticAiAvailable(),newTopicAvailable:ordinary&&this.suppression?.suppressionEnabled()===true};
@@ -1122,7 +1123,9 @@ export class SupportService {
   }
   async operatorMessages(memberId: string | undefined, principalId: string | undefined, id: string, query: { after?: unknown; before?: unknown; limit?: unknown }) {
     const operator=await this.operator(memberId, "support.read"),principal=required(principalId,"AUTH_REQUIRED");
-    await this.reconcile((await this.findById(this.pool,id)).member_id);
+    const { member_id: owner } = await this.findById(this.pool,id);
+    await this.reconcile(owner);
+    await reconcileRefundedAftersaleSupport(this.pool, owner);
     return readSnapshot(this.pool,async client=>{
       if(!await this.authority.has(operator,'support.read',client))throw new DomainError('CAPABILITY_REQUIRED','客服权限已变化',403);
       const row=await this.findById(client,id),context=await this.contextState(client,row);
