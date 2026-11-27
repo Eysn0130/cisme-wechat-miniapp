@@ -16,7 +16,16 @@
  <block wx:if="{{section === 'earn'}}">
   <text wx:if="{{club && !club.enabled}}" class="club-copy">新积分活动尚未生效，历史余额和记录仍可查询。</text>
   <view wx:if="{{club.pendingRewardSources > 0}}" class="club-notice" aria-live="polite">{{club.pendingRewardSources}} 项积分奖励待处理<button class="club-text {{loading || busy ? 'control--disabled' : ''}}" bindtap="load" disabled="{{loading || busy}}">刷新</button></view>
-  <view wx:if="{{taskRows.length}}" class="guide-tasks"><view wx:for="{{taskRows}}" wx:key="id" class="guide-task"><view class="guide-task__head"><text class="guide-task__title">{{item.title}}</text><text class="guide-task__points">+{{item.amount}}<text>积分</text></text></view><text class="guide-task__condition">{{item.condition}}</text><view class="guide-task__foot"><text class="guide-task__state {{item.state === 'completed' || item.state === 'limit' ? 'guide-task__state--complete' : ''}}">{{item.state === 'completed' ? '已完成' : item.state === 'limit' ? (item.bucket.length === 7 ? '本月次数已达上限' : '今日次数已达上限') : item.state === 'pending' ? (item.id === 'suggestion' ? '审核中' : '待到账') : item.state === 'login' ? '登录后查看进度' : item.limit > 1 ? item.count + ' / ' + item.limit : '未完成'}}</text><button class="guide-task__action {{navigating || busy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openTask" disabled="{{navigating || busy}}">{{item.state === 'login' ? '去登录' : item.state === 'pending' ? (item.id === 'suggestion' ? '查看进度' : '核对积分') : item.state === 'completed' || item.state === 'limit' ? '去看看' : '前往完成'}} <text>›</text></button></view></view></view>
+  <view wx:if="{{taskRows.length}}" class="guide-tasks">
+   <view wx:for="{{taskRows}}" wx:key="id" class="guide-task">
+    <view class="guide-task__head"><text class="guide-task__title">{{item.title}}</text><text class="guide-task__points">+{{item.amount}}<text>积分</text></text></view>
+    <text class="guide-task__condition">{{item.condition}}</text>
+    <view class="guide-task__foot">
+     <text class="guide-task__state {{item.complete ? 'guide-task__state--complete' : ''}}" aria-live="polite">{{item.statusLabel}}</text>
+     <button class="guide-task__action {{navigating || busy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openTask" disabled="{{navigating || busy}}">{{item.actionLabel}} <text aria-hidden="true">›</text></button>
+    </view>
+   </view>
+  </view>
   <view wx:elif="{{club.enabled}}" class="club-tasks"><button class="club-task" bindtap="openCommunity"><text class="club-task-title">分享与交流</text><text>去社区</text></button><button class="club-task {{navigating ? 'control--disabled' : ''}}" bindtap="openShop" disabled="{{navigating}}"><text class="club-task-title">购物积分</text><text>去选购</text></button><button class="club-task" bindtap="openInvite"><text class="club-task-title">邀请好友</text><text>去邀请</text></button></view>
   <view wx:if="{{clubError}}" class="club-error">{{clubError}}<button class="club-text" bindtap="load">重新加载活动</button></view>
  </block>
@@ -44,6 +53,6 @@
 </view>
 </view>
 
-<points-celebration owner="{{club.memberId || ''}}" auto-receipts="{{true}}" enabled="{{!loading && !rulesOpen && !giftSelected && !suggestionOpen}}"/>
+<points-celebration owner="{{club.memberId || ''}}" auto-receipts="{{true}}" enabled="{{!loading && !rulesOpen && !giftSelected && !suggestionOpen}}" bindfinished="refreshAfterCredit"/>
 
 <view wx:if="{{suggestionOpen}}" class="club-modal" catchtouchmove="stopPropagation" aria-role="dialog" aria-modal="true" aria-label="改进建议"><view class="club-modal-mask" bindtap="closeSuggestion"/><view class="club-sheet club-sheet--suggestion {{suggestions.length?'club-sheet--suggestion-history':''}}"><view class="club-sheet-head"><text class="club-title">让这里更好一点</text><button class="club-close {{suggestionBusy ? 'control--disabled' : ''}}" bindtap="closeSuggestion" disabled="{{suggestionBusy}}" aria-label="关闭改进建议">×</button></view><scroll-view class="club-sheet-scroll" scroll-y enhanced><view class="club-sheet-content"><textarea class="suggestion-input" value="{{suggestionBody}}" bindinput="editSuggestion" placeholder="你希望怎样改进？（至少15个汉字）" placeholder-class="suggestion-placeholder" cursor-spacing="24" maxlength="2000" disabled="{{suggestionBusy || suggestionKey}}" aria-label="至少15个汉字的具体建议"/><text wx:if="{{suggestionError}}" class="club-error" aria-live="assertive">{{suggestionError}}</text><button class="club-primary {{suggestionBusy ? 'control--disabled' : ''}}" bindtap="submitSuggestion" disabled="{{suggestionBusy}}">{{suggestionKey ? '重试原提交' : '提交建议'}}</button><view wx:for="{{suggestions}}" wx:key="id" class="suggestion-history"><view class="guide-task__head"><text>{{item.state === 'pending' ? '审核中' : item.state === 'approved' ? '已采纳' : '暂未采纳'}}</text></view><text>{{item.body}}</text><text wx:if="{{item.reason}}" class="club-copy">{{item.reason}}</text></view></view></scroll-view></view></view>
