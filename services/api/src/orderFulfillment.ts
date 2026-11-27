@@ -7,31 +7,45 @@ import { transaction, type DbClient } from './db.js';
 import { DeliveryAddressService } from './deliveryAddress.js';
 import { ShippingSyncService } from './shippingSync.js';
 import type { WechatLogisticsClient, LogisticsBinding } from './wechatLogistics.js';
-import { validateShippingBinding } from './wechatOrderShipping.js';
+import { validateShippingBinding, type NoCourierDelivery, type UnifiedParcel } from './wechatOrderShipping.js';
 import { receiptView } from './wechatReceipt.js';
 
-type Dispatch = { carrierCode: string; carrierName: string; trackingNumber: string;
-  shippedAt: string; evidenceReference: string; expectedOrderVersion: number };
+type DispatchEvidence = { evidenceReference: string; expectedOrderVersion: number };
+type Dispatch = DispatchEvidence & ({ deliveryMethod?: undefined; carrierCode: string; carrierName: string;
+  trackingNumber: string; shippedAt?: string } | { deliveryMethod: NoCourierDelivery });
 type Shipment = { id: string; order_id: string; shipping_sync_id: string; carrier_name: string;
+  delivery_method: 'express'|NoCourierDelivery;
   logistics_state: 'shipped'|'delivered'|'exception'; version: number; shipped_at: Date;
   delivered_at: Date|null; receipt_confirmed_at: Date|null };
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const key=/^[A-Za-z0-9._:-]{8,100}$/;
+const autoReceiptHours=7*24;
+const deliveryNames={local_delivery:'同城配送',pickup:'用户自提'};
+const shipmentRefundHold=`EXISTS(SELECT 1 FROM commission_refund_intent WHERE order_id=o.id AND state<>'closed') OR
+  EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
+    WHERE r.order_id=o.id AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed'))))`;
+const shipmentAftersaleHold=`EXISTS(SELECT 1 FROM commerce_aftersale_case WHERE order_id=o.id AND state NOT IN ('cancelled','rejected'))`;
 const digest=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 function fail(code:string,status=409):never{throw new DomainError(code,'履约信息或状态需要核对，请刷新原订单后重试',status);}
-function dispatchInput(raw: Record<string,unknown>): Dispatch {
+function dispatchInput(raw: Record<string,unknown>, mode: 'single'|'batch' = 'single'): Dispatch {
+  if(typeof raw.evidenceReference!=='string' || !/^[A-Za-z0-9._:-]{8,120}$/.test(raw.evidenceReference)
+    || !Number.isSafeInteger(raw.expectedOrderVersion) || Number(raw.expectedOrderVersion)<1)fail('SHIPMENT_INPUT_INVALID',422);
+  const evidence={evidenceReference:raw.evidenceReference,expectedOrderVersion:Number(raw.expectedOrderVersion)};
+  if(mode==='single' && (raw.deliveryMethod==='local_delivery' || raw.deliveryMethod==='pickup')){
+    if(Object.keys(raw).some(key=>!['deliveryMethod','evidenceReference','expectedOrderVersion'].includes(key)))fail('SHIPMENT_INPUT_INVALID',422);
+    return {deliveryMethod:raw.deliveryMethod,...evidence};
+  }
   const allowed=['carrierCode','carrierName','trackingNumber','shippedAt','evidenceReference','expectedOrderVersion'];
   if(Object.keys(raw).some(k=>!allowed.includes(k)) || typeof raw.carrierCode!=='string'
     || !/^[A-Z0-9_]{2,32}$/.test(raw.carrierCode) || typeof raw.trackingNumber!=='string'
     || !/^[A-Za-z0-9-]{6,64}$/.test(raw.trackingNumber) || typeof raw.carrierName!=='string'
     || !raw.carrierName.trim() || Array.from(raw.carrierName).length>80
-    || /[\u0000-\u001f\u007f]/.test(raw.carrierName) || typeof raw.evidenceReference!=='string'
-    || !/^[A-Za-z0-9._:-]{8,120}$/.test(raw.evidenceReference)
-    || !Number.isSafeInteger(raw.expectedOrderVersion) || Number(raw.expectedOrderVersion)<1
-    || typeof raw.shippedAt!=='string' || !Number.isFinite(Date.parse(raw.shippedAt))
-    || new Date(raw.shippedAt).toISOString()!==raw.shippedAt) fail('SHIPMENT_INPUT_INVALID',422);
+    || /[\u0000-\u001f\u007f]/.test(raw.carrierName))fail('SHIPMENT_INPUT_INVALID',422);
+  const shippedAt=typeof raw.shippedAt==='string'?raw.shippedAt:undefined;
+  if((raw.shippedAt!==undefined || mode==='batch') && (!shippedAt || !Number.isFinite(Date.parse(shippedAt))
+    || new Date(shippedAt).toISOString()!==shippedAt))fail('SHIPMENT_INPUT_INVALID',422);
   return {carrierCode:raw.carrierCode,carrierName:raw.carrierName.trim(),trackingNumber:raw.trackingNumber,
-    shippedAt:raw.shippedAt,evidenceReference:raw.evidenceReference,expectedOrderVersion:Number(raw.expectedOrderVersion)};
+    ...(shippedAt?{shippedAt}:{}),...evidence};
 }
 
 /** Local physical facts first; WeChat synchronization is an independent durable
@@ -57,9 +71,10 @@ export class OrderFulfillmentService {
       FROM commerce_wechat_receipt_observation WHERE order_id=$1`,[row.order_id])).rows[0];
     const message=(await client.query(`SELECT response_body->>'state' AS state FROM idempotency_operation
       WHERE operation='commerce.logistics.message' AND idempotency_key=$1 AND business_key=$2`,[row.id,row.order_id])).rows[0]?.state;
-    return {id:row.id,orderId:row.order_id,carrierCode:parcel.carrierCode,carrierName:row.carrier_name,
-      trackingNumber:parcel.trackingNumber,logisticsState:row.logistics_state,version:row.version,
+    return {id:row.id,orderId:row.order_id,deliveryMethod:row.delivery_method,carrierCode:parcel.carrierCode??null,carrierName:row.carrier_name,
+      trackingNumber:parcel.trackingNumber??null,logisticsState:row.logistics_state,version:row.version,
       shippedAt:row.shipped_at.toISOString(),deliveredAt:row.delivered_at?.toISOString()??null,
+      autoReceiptAt:row.delivery_method==='express'?null:new Date(row.shipped_at.getTime()+autoReceiptHours*3_600_000).toISOString(),
       receiptConfirmedAt:row.receipt_confirmed_at?.toISOString()??null,wechatSyncState:sync.state,
       logisticsMessageState:['queued','retry','dispatching','registered','unknown','review','cancelled'].includes(message)?message:null,
       wechatReceipt:platform?.observed_at?receiptView(platform.platform_order_state,platform.in_complaint,platform.observed_at):null};
@@ -84,38 +99,45 @@ export class OrderFulfillmentService {
       if(order.version!==input.expectedOrderVersion)fail('VERSION_CONFLICT');
       // Refund commands lock this same order row. R0 cannot safely dispatch a
       // partly refunded or unresolved order; operator review must settle it first.
-      const hold=(await client.query(`SELECT
-        EXISTS(SELECT 1 FROM commission_refund_intent WHERE order_id=$1 AND state<>'closed') OR
-        EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-          WHERE r.order_id=$1 AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed')))) AS blocked`,[orderId])).rows[0].blocked;
-      if(hold)fail('SHIPMENT_REFUND_REVIEW_REQUIRED');
-      if((await client.query("SELECT 1 FROM commerce_aftersale_case WHERE order_id=$1 AND state NOT IN ('cancelled','rejected')",[orderId])).rowCount)
-        fail('SHIPMENT_AFTERSALE_REVIEW_REQUIRED');
+      const hold=(await client.query(`SELECT (${shipmentRefundHold}) AS refund, ${shipmentAftersaleHold} AS aftersale
+        FROM commerce_order o WHERE o.id=$1`,[orderId])).rows[0];
+      if(hold.refund)fail('SHIPMENT_REFUND_REVIEW_REQUIRED');
+      if(hold.aftersale)fail('SHIPMENT_AFTERSALE_REVIEW_REQUIRED');
 
-      if(Date.parse(input.shippedAt)<new Date(order.paid_at).getTime()||Date.parse(input.shippedAt)>new Date(order.server_time).getTime())fail('SHIPMENT_TIME_INVALID',422);
+      const deliveryMethod=input.deliveryMethod??'express';
+      const shippedAt=(!input.deliveryMethod && input.shippedAt) || new Date(order.server_time).toISOString();
+      if(Date.parse(shippedAt)<new Date(order.paid_at).getTime()||Date.parse(shippedAt)>new Date(order.server_time).getTime())fail('SHIPMENT_TIME_INVALID',422);
       if((await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1',[orderId])).rowCount)fail('ORDER_ALREADY_SHIPPED');
       const lines=(await client.query('SELECT id,product_name,quantity FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number',[orderId])).rows;
       if(!lines.length)fail('SHIPMENT_LINES_REQUIRED');
-      const address=(await client.query('SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1',[orderId])).rows[0];
-      if(!address)fail('SHIPMENT_ADDRESS_REQUIRED');
-      const opened=this.addresses.openOrderSnapshot(order.member_id,orderId,address.encrypted_payload,address.payload_hmac,address.key_version);
       const description=Array.from(lines.map(l=>`${l.product_name}×${l.quantity}`).join('；')).slice(0,120).join('');
-      const proposal=await this.sync.prepareWithClient(client,actor,orderId,requestKey,{carrierCode:input.carrierCode,
-        trackingNumber:input.trackingNumber,description,...(input.carrierCode==='SF'?{receiverContactMasked:`****${opened.phone.slice(-4)}`}:{})},input.evidenceReference);
+      let parcel:UnifiedParcel,carrierName:string;
+      if(input.deliveryMethod){
+        parcel={deliveryMethod:input.deliveryMethod,description};
+        carrierName=deliveryNames[input.deliveryMethod];
+      }else{
+        const address=(await client.query('SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1',[orderId])).rows[0];
+        if(!address)fail('SHIPMENT_ADDRESS_REQUIRED');
+        const opened=this.addresses.openOrderSnapshot(order.member_id,orderId,address.encrypted_payload,address.payload_hmac,address.key_version);
+        parcel={carrierCode:input.carrierCode,trackingNumber:input.trackingNumber,description,
+          ...(input.carrierCode==='SF'?{receiverContactMasked:`****${opened.phone.slice(-4)}`}:{})};
+        carrierName=input.carrierName;
+      }
+      const proposal=await this.sync.prepareWithClient(client,actor,orderId,requestKey,parcel,input.evidenceReference);
       const row=(await client.query<Shipment>(`INSERT INTO commerce_shipment(order_id,shipping_sync_id,carrier_name,
-        shipped_at,created_by_member_id) VALUES($1,$2,$3,$4,$5) RETURNING *`,
-        [orderId,proposal.id,input.carrierName,input.shippedAt,actor])).rows[0]!;
+        shipped_at,created_by_member_id,delivery_method) VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
+        [orderId,proposal.id,carrierName,shippedAt,actor,deliveryMethod])).rows[0]!;
       await client.query(`INSERT INTO commerce_shipment_line(shipment_id,order_line_id,quantity)
         SELECT $1,id,quantity FROM commerce_order_line WHERE order_id=$2`,[row.id,orderId]);
       await client.query(`INSERT INTO commerce_shipment_event(shipment_id,event_key,event_type,actor_principal_id,evidence_reference,occurred_at)
-        VALUES($1,$2,'shipped',$3,$4,$5)`,[row.id,`shipment:${row.id}`,`member:${actor}`,input.evidenceReference,input.shippedAt]);
-      await this.messages?.enqueue(client,order.member_id,orderId,row.id);
+        VALUES($1,$2,'shipped',$3,$4,$5)`,[row.id,`shipment:${row.id}`,`member:${actor}`,input.evidenceReference,shippedAt]);
+      if(deliveryMethod==='express')await this.messages?.enqueue(client,order.member_id,orderId,row.id);
       const result={id:row.id,orderId,version:1,logisticsState:'shipped',wechatSyncState:proposal.state};
       await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
         VALUES($1,'commerce.shipment.dispatch',$2,$3,$4,200,$5)`,[`member:${actor}`,requestKey,`shipment:${row.id}`,fingerprint,result]);
       await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
         VALUES($1,'commerce.shipment.dispatch','commerce_shipment',$2,$3,$4)`,[`member:${actor}`,row.id,
-          {orderId,lineCount:lines.length,quantity:lines.reduce((n,l)=>n+Number(l.quantity),0),wechatSyncState:proposal.state},`shipment:${row.id}`]);
+          {orderId,deliveryMethod,lineCount:lines.length,quantity:lines.reduce((n,l)=>n+Number(l.quantity),0),wechatSyncState:proposal.state},`shipment:${row.id}`]);
       await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
       return result;
     },'SERIALIZABLE');
@@ -138,6 +160,7 @@ export class OrderFulfillmentService {
       if(!order)fail('ORDER_NOT_FOUND',404);
       const row=(await client.query<Shipment>('SELECT * FROM commerce_shipment WHERE order_id=$1',[orderId])).rows[0];
       if(!row)fail('SHIPMENT_NOT_FOUND',404);
+      if(row.delivery_method!=='express')fail('LOGISTICS_NO_COURIER',404);
       const payments=(await client.query(`SELECT p.app_id,p.merchant_id,p.payer_openid,p.out_trade_no,
         i.provider_transaction_id,i.payer_total_cents FROM commerce_payment_attempt p
         JOIN commission_payment_inbox i ON i.order_id=p.order_id AND i.app_id=p.app_id AND i.merchant_id=p.merchant_id
@@ -147,7 +170,9 @@ export class OrderFulfillmentService {
       const binding:LogisticsBinding={appId:paid.app_id,merchantId:paid.merchant_id,merchantOrderNumber:paid.out_trade_no,
         transactionId:paid.provider_transaction_id,payerOpenid:paid.payer_openid,payerTotalCents:Number(paid.payer_total_cents)};
       validateShippingBinding(binding);
-      return {owner,shipmentId:row.id,binding,parcel:await this.sync.parcelWithClient(client,row.shipping_sync_id)};
+      const parcel=await this.sync.parcelWithClient(client,row.shipping_sync_id);
+      if(parcel.deliveryMethod)fail('LOGISTICS_NO_COURIER',404);
+      return {owner,shipmentId:row.id,binding,parcel};
     });
     if(!this.logistics)fail('LOGISTICS_NOT_ENABLED',503);
     // No transaction/authority lock is held over this provider call.
@@ -247,7 +272,7 @@ export class OrderFulfillmentService {
       const [orderNumber,carrierCode,carrierName,trackingNumber,shippedAt,...extra]=line.split('\t').map(v=>v.trim());
       if(extra.length||!orderNumber||!/^[A-Za-z0-9_*-]{1,32}$/.test(orderNumber)||seen.has(orderNumber))fail('SHIPMENT_IMPORT_DUPLICATE_OR_INVALID',422);
       seen.add(orderNumber);
-      return {orderNumber,input:dispatchInput({carrierCode,carrierName,trackingNumber,shippedAt,expectedOrderVersion:1,evidenceReference:`batch:${batchKey}`})};
+      return {orderNumber,input:dispatchInput({carrierCode,carrierName,trackingNumber,shippedAt,expectedOrderVersion:1,evidenceReference:`batch:${batchKey}`},'batch')};
     });
     const fingerprint=digest(parsed);
     const plan=await transaction(this.pool,async client=>{
@@ -280,7 +305,7 @@ export class OrderFulfillmentService {
       if(seen.has(entry.orderId))fail('SHIPMENT_BATCH_DUPLICATE_ORDER',422);
       seen.add(entry.orderId);
       const {orderId,...raw}=entry;
-      return {orderId,input:dispatchInput(raw)};
+      return {orderId,input:dispatchInput(raw,'batch')};
     });
     // Every row has its own durable key and atomic local transaction. A partial
     // result must be shown per row, never labelled an all-or-nothing batch.
@@ -291,6 +316,38 @@ export class OrderFulfillmentService {
     }
     return {results};
   }
+  private async recordReceipt(client:DbClient,row:Shipment,principal:string,evidence:string){
+    const eventKey=`receipt:${row.id}`;
+    await client.query(`INSERT INTO commerce_shipment_event(shipment_id,event_key,event_type,actor_principal_id,evidence_reference,occurred_at)
+      VALUES($1,$2,'receipt_confirmed',$3,$4,$5)`,[row.id,eventKey,principal,evidence,row.receipt_confirmed_at]);
+    await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
+      VALUES($1,'commerce.shipment.receipt','commerce_shipment',$2,$3,$4)`,[principal,row.id,{version:row.version},eventKey]);
+  }
+
+  async confirmDueNoCourierReceipts(){
+    this.gate();
+    const eligible=`s.order_id=o.id AND y.id=s.shipping_sync_id AND y.order_id=o.id AND y.state='synced'
+      AND o.status='paid' AND o.transaction_source_kind='verified_commerce'
+      AND s.delivery_method IN ('local_delivery','pickup') AND s.logistics_state='shipped'
+      AND s.receipt_confirmed_at IS NULL AND s.shipped_at<=statement_timestamp()-make_interval(hours=>$1::int)
+      AND NOT (${shipmentRefundHold}) AND NOT (${shipmentAftersaleHold})
+      AND NOT EXISTS(SELECT 1 FROM commission_payment_composition_observation WHERE order_id=o.id)
+      AND NOT EXISTS(SELECT 1 FROM commerce_wechat_receipt_observation w WHERE w.order_id=o.id
+        AND (w.in_complaint OR w.platform_order_state IN (1,5)))`;
+    return transaction(this.pool,async client=>{
+      const {rows}=await client.query<{id:string}>(`SELECT o.id FROM commerce_shipment s,commerce_order o,commerce_shipping_sync y
+        WHERE ${eligible} ORDER BY s.shipped_at,s.id LIMIT 10 FOR UPDATE OF o SKIP LOCKED`,[autoReceiptHours]);
+      if(!rows.length)return 0;
+      // Use a fresh snapshot with the order locks held, just as refund and after-sales commands do.
+      const completed=(await client.query<Shipment>(`UPDATE commerce_shipment s
+        SET receipt_confirmed_at=clock_timestamp(),version=s.version+1
+        FROM commerce_order o,commerce_shipping_sync y
+        WHERE ${eligible} AND o.id=ANY($2::uuid[]) RETURNING s.*`,[autoReceiptHours,rows.map(row=>row.id)])).rows;
+      for(const row of completed)await this.recordReceipt(client,row,'system:automatic-receipt',`auto-receipt:${row.id}`);
+      return completed.length;
+    });
+  }
+
   async confirmReceipt(actor:string|undefined,orderId:string,requestKey:string,expectedVersion:number){
     this.gate();if(!uuid.test(orderId)||!key.test(requestKey)||!Number.isSafeInteger(expectedVersion)||expectedVersion<1)fail('SHIPMENT_CONFIRM_INPUT_INVALID',422);
     return transaction(this.pool,async client=>{
@@ -308,13 +365,10 @@ export class OrderFulfillmentService {
       if(row.receipt_confirmed_at)fail('RECEIPT_ALREADY_CONFIRMED');
       const updated=(await client.query<Shipment>(`UPDATE commerce_shipment SET receipt_confirmed_at=clock_timestamp(),version=version+1
         WHERE id=$1 RETURNING *`,[row.id])).rows[0]!;
-      await client.query(`INSERT INTO commerce_shipment_event(shipment_id,event_key,event_type,actor_principal_id,evidence_reference,occurred_at)
-        VALUES($1,$2,'receipt_confirmed',$3,$4,$5)`,[row.id,`receipt:${row.id}`,`member:${owner}`,`explicit-receipt:${row.id}`,updated.receipt_confirmed_at]);
+      await this.recordReceipt(client,updated,`member:${owner}`,`explicit-receipt:${row.id}`);
       const result={id:row.id,orderId,version:updated.version,receiptConfirmedAt:updated.receipt_confirmed_at!.toISOString()};
       await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
         VALUES($1,'commerce.shipment.receipt',$2,$3,$4,200,$5)`,[`member:${owner}`,requestKey,`receipt:${row.id}`,fingerprint,result]);
-      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
-        VALUES($1,'commerce.shipment.receipt','commerce_shipment',$2,$3,$4)`,[`member:${owner}`,row.id,{version:updated.version},`receipt:${row.id}`]);
       return result; // No carrier delivery, refund, commission release or WeChat receipt is fabricated.
     },'SERIALIZABLE');
   }

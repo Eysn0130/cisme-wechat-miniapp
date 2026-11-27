@@ -21,7 +21,7 @@ describe('WeChat shipping protocol: PRD §8.2 / WX-PAY-MAKE-01', () => {
     expect(payload).toMatchObject({ order_key: { order_number_type: 2, transaction_id: binding.transactionId },
       logistics_type: 1, delivery_mode: 1, upload_time: uploadTime, payer: { openid: binding.payerOpenid } });
     expect(payload.shipping_list).toHaveLength(1);
-    expect(payload.shipping_list[0]?.contact?.receiver_contact).toBe('****1234');
+    expect(payload.shipping_list[0]).toMatchObject({contact:{receiver_contact:'****1234'}});
     for (const receiverContactMasked of ['13800131234', '****123', '****1234\n']) {
       expect(() => unifiedShippingPayload(binding, { ...parcel, receiverContactMasked }, uploadTime)).toThrow();
     }
@@ -29,6 +29,18 @@ describe('WeChat shipping protocol: PRD §8.2 / WX-PAY-MAKE-01', () => {
     expect(() => unifiedShippingPayload(binding, withoutContact, uploadTime)).toThrow();
     expect(() => unifiedShippingPayload(binding, { ...parcel, description: '字'.repeat(121) }, uploadTime)).toThrow();
     expect(() => unifiedShippingPayload(binding, parcel, '2026-02-30T00:00:00.000Z')).toThrow();
+  });
+
+  it.each([['local_delivery',2],['pickup',4]] as const)('uses the actual non-courier method %s without a waybill', (deliveryMethod,logisticsType) => {
+    const handoff={deliveryMethod,description:parcel.description};
+    expect(unifiedShippingPayload(binding,handoff,uploadTime)).toMatchObject({logistics_type:logisticsType,delivery_mode:1});
+    expect(unifiedShippingPayload(binding,handoff,uploadTime).shipping_list).toEqual([{item_desc:parcel.description}]);
+    const shipping={delivery_mode:1,logistics_type:logisticsType,finish_shipping:true,finish_shipping_count:1,goods_desc:parcel.description};
+    expect(shippingObservation(observed({shipping}),binding,handoff).decision).toBe('matched');
+    expect(shippingObservation(observed({shipping:{...shipping,shipping_list:[{goods_desc:parcel.description}]} }),binding,handoff).decision).toBe('matched');
+    expect(shippingObservation(observed({shipping:{...shipping,logistics_type:3}}),binding,handoff).decision).toBe('conflict');
+    expect(shippingObservation(observed({shipping:{...shipping,shipping_list:[{tracking_no:'OTHER0001'}]}}),binding,handoff).decision).toBe('conflict');
+    expect(shippingObservation(observed({shipping,in_complaint:true}),binding,handoff).decision).toBe('conflict');
   });
 
   it.each(['transaction_id', 'merchant_id', 'merchant_trade_no', 'openid', 'paid_amount'])

@@ -5,6 +5,14 @@ import { centsToYuan } from "../../services/commerce";
 import { orderLineSummary, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已付款"};
+function orderStatusLabel(item:CommerceOrderSummary){
+  if(item.status==='paid'){
+    if(item.refundedCents)return item.refundedCents>=item.totalCents?'已退款':'部分退款';
+    if(item.shipmentDeliveryMethod==='local_delivery'||item.shipmentDeliveryMethod==='pickup')
+      return item.fulfillmentState==='completed'?'已收货':'已发货';
+  }
+  return labels[item.status]??'状态更新中';
+}
 Page({
   lastToken:"",lastRevision:-1,
   data:{hasSnapshot:false,chromeStyle:currentChromeStyle(),closedRights:false,items:[] as any[],nextCursor:null as string|null,loading:true,refreshing:false,loadingMore:false,navigating:false,error:"",pageAlive:true,visible:true,coreReady:false,loadAttempt:0},
@@ -19,7 +27,7 @@ Page({
   onUnload(){this.onHide();this.data.pageAlive=false;},
   current(attempt:number,token:string){return this.data.pageAlive&&this.data.visible&&this.data.loadAttempt===attempt&&this.lastToken===token&&token===historicalCommerceToken()&&this.lastRevision===commerceContextRevision();},
   canOpen(){return this.data.coreReady&&this.current(this.data.loadAttempt,this.lastToken)&&!this.data.navigating;},
-  normalize(items:CommerceOrderSummary[]){return items.map(item=>({...item,statusLabel:item.status==="paid"&&(item.refundedCents??0)>0?(item.refundedCents!>=item.totalCents?"已退款":"部分退款"):(labels[item.status]??"状态更新中"),totalYuan:centsToYuan(item.totalCents),createdLabel:new Date(item.createdAt).toLocaleString("zh-CN",{hour12:false}),summary:item.lines.map(orderLineSummary).join("；")}));},
+  normalize(items:CommerceOrderSummary[]){return items.map(item=>({...item,statusLabel:orderStatusLabel(item),totalYuan:centsToYuan(item.totalCents),createdLabel:new Date(item.createdAt).toLocaleString("zh-CN",{hour12:false}),summary:item.lines.map(orderLineSummary).join("；")}));},
   async load(event?:WechatMiniprogram.TouchEvent){
     if(!this.data.visible||!this.data.pageAlive)return;
     if(event?.type)clearAuthenticationRedirectSuppression();this.syncSession();

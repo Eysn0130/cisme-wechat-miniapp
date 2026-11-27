@@ -77,6 +77,11 @@ Page({
  },
  async reconcileBatch(){if(!this.canAct()||!this.data.batchPending||this.data.loadedFilter!==this.filter())return;const epoch=this.epoch,token=this.lastToken;this.setData({busy:true});try{const approved=await new Promise<boolean>(resolve=>wx.showModal({title:"结束未确认批次",content:"请先逐单核对发货记录。结束本批只会清除本页的重试记录，不会撤销已保存的发货信息，也不代表微信同步成功。核对完成后再开始下一批。",confirmText:"已核对",success:r=>resolve(r.confirm),fail:()=>resolve(false)}));if(approved&&this.current(epoch,token)){this.batchKey="";this.frozenRows="";this.setData({rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,confirmed:false,results:[],batchPending:false,batchLocked:false,notice:"上批重试记录已清除，已保存的订单信息不变。"});}}finally{if(this.current(epoch,token))this.setData({busy:false});}},
  newBatch(){if(!this.canAct())return;if(this.data.batchPending){this.setData({notice:"上批结果未确认，请先用原内容重试并核对逐行结果。"});return;}this.batchKey="";this.frozenRows="";this.setData({rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,confirmed:false,results:[],notice:"",batchLocked:false,batchPending:false});},
- openImportOrder(e:WechatMiniprogram.TouchEvent){if(!this.canAct()||!this.data.canOrders)return;const id=String(e.currentTarget.dataset.id??'');if(!this.data.results.some(r=>r.orderId===id))return;wx.navigateTo({url:`/pages/management-order-detail/index?id=${encodeURIComponent(id)}`});},
+ openOrder(e:WechatMiniprogram.TouchEvent){
+  if(!this.canAct()||!this.data.canOrders||this.data.busy)return;
+  const id=String(e.currentTarget.dataset.id??'');
+  if(!this.data.items.some(row=>row.id===id)&&!this.data.results.some(row=>row.orderId===id))return;
+  wx.navigateTo({url:`/pages/management-order-detail/index?id=${encodeURIComponent(id)}`});
+ },
  retry(){void this.load();},next(){void this.load(true);},back(){wx.navigateBack({fail:()=>wx.redirectTo({url:"/pages/management/index"})});}
 });

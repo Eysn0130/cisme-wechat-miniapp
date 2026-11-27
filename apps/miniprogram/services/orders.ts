@@ -11,10 +11,12 @@ export interface FulfillmentPolicy {
   version:string; shippingPromise:string; dispatchPromise:string; returnsPromise:string;
   returnFreight:{noReason:string;qualityWrongMissingTransport:string};
 }
+export type NoCourierDelivery = "local_delivery" | "pickup";
 export interface OrderShipment {
-  orderId:string; id?:string; version?:number; carrierName?:string; trackingNumber?:string;
+  orderId:string; id?:string; version?:number; carrierName?:string; trackingNumber?:string|null;
+  deliveryMethod?:"express"|NoCourierDelivery;
   logisticsState:"not_ready"|"awaiting_dispatch"|"shipped"|"delivered"|"exception";
-  shippedAt?:string; deliveredAt?:string|null; receiptConfirmedAt?:string|null; wechatSyncState?:string;
+  shippedAt?:string; deliveredAt?:string|null; receiptConfirmedAt?:string|null; autoReceiptAt?:string|null; wechatSyncState?:string;
   logisticsMessageState?:'queued'|'retry'|'dispatching'|'registered'|'unknown'|'review'|'cancelled'|null;
   wechatReceipt?: (WechatReceiptState&{observedLabel?:string;displayLabel?:string})|null;
 }
@@ -75,7 +77,8 @@ export function orderLineSummary(line: {productName:string;skuLabel:string;quant
   const product = line.productName?.trim() || variant;
   return `${product}${variant && variant !== product ? " · "+variant : ""} × ${line.quantity}`;
 }
-export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null;fulfillmentState?:string; wechatReceipt?:WechatReceiptState|null };
+export type CommerceOrderSummary = Omit<CommerceOrder, "address"> & { address: null;fulfillmentState?:string;
+  shipmentDeliveryMethod?:OrderShipment["deliveryMethod"]|null; wechatReceipt?:WechatReceiptState|null };
 export interface CommerceOrderPage {totalCount?:number|null;
   items: CommerceOrderSummary[]; nextCursor: string | null;
 }
@@ -132,7 +135,10 @@ export function managementOrder(id: string): Promise<CommerceOrder<ManagementOrd
 export function managementShipment(id:string):Promise<OrderShipment>{
   return request({path:`/v1/management/commerce/orders/${encodeURIComponent(id)}/shipment`,cacheTags:["orders","authority"]});
 }
-export interface ShipmentDispatchInput{carrierCode:string;carrierName:string;trackingNumber:string;shippedAt:string;evidenceReference:string;expectedOrderVersion:number}
+export type ShipmentDispatchInput = {evidenceReference:string;expectedOrderVersion:number} & (
+  {deliveryMethod?:undefined;carrierCode:string;carrierName:string;trackingNumber:string;shippedAt?:string}
+  | {deliveryMethod:NoCourierDelivery}
+);
 export function dispatchShipment(id:string,input:ShipmentDispatchInput,idempotencyKey:string){
   return request({path:`/v1/management/commerce/orders/${encodeURIComponent(id)}/shipment`,method:"POST",data:input,idempotencyKey,cacheTags:["orders","authority"]});
 }

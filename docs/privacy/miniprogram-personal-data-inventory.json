@@ -860,7 +860,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "d3ca529fa898855e74a17ce8238ee79aafdd3e246418c1c11629831144d68e2e",
+  "migrationSetSha256": "f3e49cf009bd47483cb34c95fb1e9b2de9383a650e08f2f0b7637be2820bfabd",
   "egressSignatureSha256": "51385a8246d036be461cc5496918b981d47f9d77cb0361131ed2d02e0cbec0e7",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -917,6 +917,12 @@
     "retention": "未新增自动删除或期限，保留法律留置；生产完整主体导出/删除仍未完成",
     "approval": "首发经营规则由用户任务回复批准，不等于整体生产隐私批准",
     "importReplay": "commerce.shipment.import_plan 在既有 idempotency_operation 中只保存原订单ID/版本及内容摘要；不存导入明文；重试沿用原版本。"
+  },
+  "noCourierFulfillmentReview20261127": {
+    "purpose": "登记实际同城配送及用户自提，满 7 天后记录小程序收货",
+    "field": "commerce_shipment.delivery_method 仅记录快递、同城配送或自提，沿用原订单及发货记录的可见范围和留存规则。自动确认沿用原收货字段、事件和审计，以系统身份标记。",
+    "recipient": "微信 api.weixin.qq.com 小程序订单发货管理",
+    "data": "与原发货请求相同的交易绑定、商品描述、上传时间及新增配送方式。无需物流时不读取地址密文、不发送运单和手机号，也不登记快递轨迹或物流消息。"
   },
   "logisticsReadReview20260922": {
     "source": "services/api/src/wechatLogistics.ts",

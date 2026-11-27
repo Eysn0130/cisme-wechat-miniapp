@@ -1,9 +1,63 @@
-<view class="management-ui management-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">订单详情</text></view><view class="page page--stack management-order-detail"><view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在读取最新订单与权限…"><view class="page-read-loading__indicator"/></view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">重试</button></view><block wx:if="{{order}}"><text class="eyebrow">{{order.orderNumber}}</text><view class="page-title">{{order.statusLabel}}</view><text class="subtitle">{{order.createdLabel}} · 北京时间</text><view wx:if="{{canDispatch}}" class="admin-detail-card shipment-card"><view class="shipment-admin__heading"><strong>发货与物流</strong><text wx:if="{{shipment && !shipmentLoading}}" class="shipment-admin__status">{{shipmentLabel}}</text></view>
-<text wx:if="{{shipmentLoading}}">正在读取交寄记录…</text>
-<view wx:if="{{shipmentError}}" class="shipment-admin__error" aria-live="polite"><text>{{shipmentError}}</text><button class="text-button action-text {{shipmentLoading || dispatchBusy ? 'control--disabled' : ''}}" bindtap="retryShipment" disabled="{{shipmentLoading || dispatchBusy}}">重试</button></view>
-<block wx:if="{{shipment && !shipmentLoading}}">
-<view wx:if="{{shipment.id}}" class="shipment-admin__waybill">
-  <text>{{shipment.carrierName}}</text><text class="shipment-admin__number" user-select>{{shipment.trackingNumber}}</text>
-  <text wx:if="{{shippedLabel}}">北京时间 {{shippedLabel}} 交寄</text>
-</view>
-<text wx:if="{{shipment.id}}">{{syncLabel}}</text><text wx:if="{{shipment.id&&messageLabel}}">{{messageLabel}}</text><text wx:if="{{shipment.wechatReceipt}}">{{shipment.wechatReceipt.label}}</text><text wx:if="{{shipment.receiptConfirmedAt}}">本店已记录收货，微信状态待核对</text><block wx:if="{{shipment.wechatSyncState==='manual_review'}}"><text>微信同步需要人工核对；交寄记录已保留，请勿重新发货。</text><label><text>人工核对记录编号</text><input data-field="evidenceReference" bindinput="shipmentInput" value="{{form.evidenceReference}}" maxlength="120" disabled="{{dispatchBusy}}" aria-label="人工核对记录编号" placeholder="工单或运营核对记录编号"/></label><button class="primary-button {{dispatchBusy?'control--disabled':''}}" bindtap="reconcile" disabled="{{dispatchBusy}}" loading="{{dispatchBusy}}">重新查询微信结果</button></block><block wx:if="{{shipment.logisticsState==='awaiting_dispatch' && !order.refundedCents && order.status==='paid' && order.transactionSourceKind==='verified_commerce'}}"><label><text>快递公司</text><picker wx:if="{{carriers.length}}" range="{{carrierLabels}}" value="{{carrierIndex}}" bindchange="selectCarrier" disabled="{{dispatchBusy || dispatchRecovery}}" aria-label="选择快递公司"><view class="shipment-picker-field">{{form.carrierName || '请选择快递公司'}}<text>⌄</text></view></picker><view wx:elif="{{carriersLoading}}" class="shipment-picker-field" aria-role="status">正在读取快递公司…</view></label><view wx:if="{{carriersError}}" class="shipment-carrier-error"><text>{{carriersError}}</text><button class="text-button {{carriersLoading || dispatchBusy ? 'control--disabled' : ''}}" bindtap="loadCarriers" disabled="{{carriersLoading || dispatchBusy}}">重试</button></view><block wx:if="{{!carriers.length && !carriersLoading}}"><label><text>快递公司名称</text><input data-field="carrierName" bindinput="shipmentInput" value="{{form.carrierName}}" maxlength="80" disabled="{{dispatchBusy || dispatchRecovery}}" aria-label="快递公司名称" placeholder="填写实际承运商"/></label><label><text>快递公司编码</text><input data-field="carrierCode" bindinput="shipmentInput" value="{{form.carrierCode}}" maxlength="32" disabled="{{dispatchBusy || dispatchRecovery}}" aria-label="微信快递公司编码" placeholder="例如 SF，须与实际承运商一致"/></label></block><label><text>运单号</text><input data-field="trackingNumber" bindinput="shipmentInput" value="{{form.trackingNumber}}" maxlength="64" type="text" disabled="{{dispatchBusy || dispatchRecovery}}" aria-label="真实运单号" placeholder="包裹实际运单号"/></label><text class="shipment-time-label">交寄时间（北京时间）</text><view class="shipment-pickers"><picker mode="date" value="{{form.date}}" bindchange="shipmentDate" disabled="{{dispatchBusy || dispatchRecovery}}" aria-label="实际交寄日期"><view class="shipment-picker-field">{{form.date || '选择日期'}}</view></picker><picker mode="time" value="{{form.time}}" bindchange="shipmentTime" disabled="{{dispatchBusy || dispatchRecovery}}" aria-label="实际交寄时间，北京时间"><view class="shipment-picker-field">{{form.time || '选择时间'}}</view></picker></view><button class="primary-button shipment-submit {{dispatchBusy||shipmentLoading?'control--disabled':''}}" bindtap="submitShipment" disabled="{{dispatchBusy || shipmentLoading}}" loading="{{dispatchBusy}}">{{dispatchRecovery ? '按原运单重试' : '核对并登记发货'}}</button></block></block><text wx:if="{{dispatchMessage}}" aria-live="polite">{{dispatchMessage}}</text><button class="text-button {{dispatchBusy?'text-button--disabled':''}}" bindtap="load" disabled="{{dispatchBusy}}">刷新核对原订单</button></view><view wx:if="{{canReconcileRefund && order.status==='paid' && order.transactionSourceKind==='verified_commerce'}}" class="refund-reconcile"><button class="text-button {{refundBusy||dispatchBusy?'text-button--disabled':''}}" bindtap="reconcileExternalRefund" disabled="{{refundBusy || dispatchBusy}}" loading="{{refundBusy}}">核对平台退款</button><text wx:if="{{refundMessage}}" class="refund-reconcile__message" aria-live="polite">{{refundMessage}}</text></view><view class="admin-detail-card"><strong>商品与金额</strong><view wx:for="{{order.lines}}" wx:key="id" class="admin-line"><text>{{item.productName}} · {{item.skuLabel}} × {{item.quantity}}</text><strong>¥{{item.totalYuan}}</strong></view><view class="admin-total"><text>商品与运费合计</text><strong>¥{{order.totalYuan}}</strong></view><view wx:if="{{order.creditTenderCents>0}}" class="admin-total"><text>购物权益抵扣</text><strong>− ¥{{order.creditYuan}}</strong></view><view wx:if="{{order.creditTenderCents>0}}" class="admin-total"><text>现金部分</text><strong>¥{{order.cashYuan}}</strong></view></view><view class="admin-detail-card"><strong>脱敏收货信息</strong><block wx:if="{{order.address}}"><text>{{order.address.recipientNameMasked}} · {{order.address.phoneMasked}}</text><text>{{order.addressSummary}}</text></block><text wx:else>收货信息暂时无法读取</text></view><view class="privacy-note"><image src="/assets/icons/lock-key-plum.svg"/></view></block></view></view>
+<view class="management-ui management-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">订单详情</text></view><view class="page page--stack management-order-detail"><view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在读取最新订单与权限…"><view class="page-read-loading__indicator"/></view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">重试</button></view><block wx:if="{{order}}"><text class="eyebrow">{{order.orderNumber}}</text><view class="page-title">{{order.statusLabel}}</view><text class="subtitle">{{order.createdLabel}} · 北京时间</text><view wx:if="{{canDispatch}}" class="admin-detail-card shipment-card">
+  <view class="shipment-admin__heading">
+    <strong>发货与物流</strong>
+    <text wx:if="{{shipment && !shipmentLoading}}" class="shipment-admin__status">{{shipmentLabel}}</text>
+  </view>
+  <text wx:if="{{shipmentLoading}}">正在读取发货记录…</text>
+  <view wx:if="{{shipmentError}}" class="shipment-admin__error" aria-live="polite">
+    <text>{{shipmentError}}</text>
+    <button class="text-button action-text {{shipmentLoading || dispatchBusy ? 'control--disabled' : ''}}" bindtap="retryShipment" disabled="{{shipmentLoading || dispatchBusy}}">重试</button>
+  </view>
+  <block wx:if="{{shipment && !shipmentLoading}}">
+    <view wx:if="{{shipment.id}}" class="shipment-admin__waybill">
+      <text>{{shipment.carrierName}}</text>
+      <text wx:if="{{shipment.trackingNumber}}" class="shipment-admin__number" user-select>{{shipment.trackingNumber}}</text>
+      <text wx:if="{{shippedLabel}}">北京时间 {{shippedLabel}} {{shipment.autoReceiptAt ? '登记发货' : '交寄'}}</text>
+    </view>
+    <text wx:if="{{shipment.id}}">{{syncLabel}}</text>
+    <text wx:if="{{shipment.id && messageLabel}}">{{messageLabel}}</text>
+    <text wx:if="{{shipment.wechatReceipt}}">{{shipment.wechatReceipt.label}}</text>
+    <text wx:if="{{shipment.receiptConfirmedAt && !shipment.autoReceiptAt}}">本店已记录收货，微信状态待核对</text>
+    <block wx:if="{{shipment.wechatSyncState==='manual_review'}}">
+      <text>微信同步需要人工核对，发货记录已保存。</text>
+      <label>
+        <text>人工核对记录编号</text>
+        <input data-field="evidenceReference" bindinput="shipmentInput" value="{{form.evidenceReference}}" maxlength="120" disabled="{{dispatchBusy}}" aria-label="人工核对记录编号" placeholder="工单或运营核对记录编号"/>
+      </label>
+      <button class="primary-button {{dispatchBusy ? 'control--disabled' : ''}}" bindtap="reconcile" disabled="{{dispatchBusy}}" loading="{{dispatchBusy}}">重新查询微信结果</button>
+    </block>
+    <block wx:if="{{shipment.logisticsState==='awaiting_dispatch' && !order.refundedCents && order.status==='paid' && order.transactionSourceKind==='verified_commerce'}}">
+      <block wx:if="{{!dispatchRecovery}}">
+        <label>
+          <text>快递公司</text>
+          <picker wx:if="{{carriers.length}}" range="{{carrierLabels}}" value="{{carrierIndex}}" bindchange="selectCarrier" disabled="{{dispatchBusy || refundBusy}}" aria-label="选择快递公司">
+            <view class="shipment-picker-field">{{form.carrierName || '请选择快递公司'}}<text>⌄</text></view>
+          </picker>
+          <view wx:elif="{{carriersLoading}}" class="shipment-picker-field" aria-role="status">正在读取快递公司…</view>
+        </label>
+        <view wx:if="{{carriersError}}" class="shipment-carrier-error">
+          <text>{{carriersError}}</text>
+          <button class="text-button {{carriersLoading || dispatchBusy ? 'control--disabled' : ''}}" bindtap="loadCarriers" disabled="{{carriersLoading || dispatchBusy}}">重试</button>
+        </view>
+        <block wx:if="{{!carriers.length && !carriersLoading}}">
+          <label>
+            <text>快递公司名称</text>
+            <input data-field="carrierName" bindinput="shipmentInput" value="{{form.carrierName}}" maxlength="80" disabled="{{dispatchBusy || refundBusy}}" aria-label="快递公司名称" placeholder="填写实际承运商"/>
+          </label>
+          <label>
+            <text>快递公司编码</text>
+            <input data-field="carrierCode" bindinput="shipmentInput" value="{{form.carrierCode}}" maxlength="32" disabled="{{dispatchBusy || refundBusy}}" aria-label="微信快递公司编码" placeholder="填写实际承运商编码"/>
+          </label>
+        </block>
+        <label>
+          <text>运单号</text>
+          <input data-field="trackingNumber" bindinput="shipmentInput" value="{{form.trackingNumber}}" maxlength="64" type="text" disabled="{{dispatchBusy || refundBusy}}" aria-label="真实运单号" placeholder="包裹实际运单号"/>
+        </label>
+      </block>
+      <button class="primary-button shipment-submit {{dispatchBusy || refundBusy ? 'control--disabled' : ''}}" bindtap="submitShipment" disabled="{{dispatchBusy || refundBusy}}" loading="{{dispatchBusy}}">{{dispatchRecovery ? '重试原发货登记' : '确认快递发货'}}</button>
+      <button wx:if="{{!dispatchRecovery}}" class="secondary {{dispatchBusy || refundBusy ? 'control--disabled' : ''}}" bindtap="submitWithoutLogistics" disabled="{{dispatchBusy || refundBusy}}">无需物流</button>
+    </block>
+  </block>
+  <text wx:if="{{dispatchMessage}}" aria-live="polite">{{dispatchMessage}}</text>
+  <button class="text-button {{dispatchBusy ? 'text-button--disabled' : ''}}" bindtap="load" disabled="{{dispatchBusy}}">刷新核对原订单</button>
+</view><view wx:if="{{canReconcileRefund && order.status==='paid' && order.transactionSourceKind==='verified_commerce'}}" class="refund-reconcile"><button class="text-button {{refundBusy||dispatchBusy?'text-button--disabled':''}}" bindtap="reconcileExternalRefund" disabled="{{refundBusy || dispatchBusy}}" loading="{{refundBusy}}">核对平台退款</button><text wx:if="{{refundMessage}}" class="refund-reconcile__message" aria-live="polite">{{refundMessage}}</text></view><view class="admin-detail-card"><strong>商品与金额</strong><view wx:for="{{order.lines}}" wx:key="id" class="admin-line"><text>{{item.productName}} · {{item.skuLabel}} × {{item.quantity}}</text><strong>¥{{item.totalYuan}}</strong></view><view class="admin-total"><text>商品与运费合计</text><strong>¥{{order.totalYuan}}</strong></view><view wx:if="{{order.creditTenderCents>0}}" class="admin-total"><text>购物权益抵扣</text><strong>− ¥{{order.creditYuan}}</strong></view><view wx:if="{{order.creditTenderCents>0}}" class="admin-total"><text>现金部分</text><strong>¥{{order.cashYuan}}</strong></view></view><view class="admin-detail-card"><strong>脱敏收货信息</strong><block wx:if="{{order.address}}"><text>{{order.address.recipientNameMasked}} · {{order.address.phoneMasked}}</text><text>{{order.addressSummary}}</text></block><text wx:else>收货信息暂时无法读取</text></view><view class="privacy-note"><image src="/assets/icons/lock-key-plum.svg"/></view></block></view></view>

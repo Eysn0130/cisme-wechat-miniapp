@@ -46,7 +46,7 @@ Page({
   launchAftersale:false,
   sheetTimer:null as ReturnType<typeof setTimeout>|null,sheetFailures:0,sheetCursor:0,sheetReadEpoch:0,sheetPollInFlight:false,sheetValidationError:false,
   data:{rewardOwner:'',recordedHistoryOpen:false,fulfillmentOpen:false,recordedGroups:[] as RecordedGroup[],...initialRuntimeView(),closedRights:false,recoveryRows:[] as RecoveryView[],recoveryLoading:false,recoveryError:"",coreReady:false,visible:true,readEpoch:0,runtimeEpoch:0,refreshOnShow:false,chromeStyle:currentChromeStyle(),id:"",order:null as (CommerceOrder<MemberOrderAddress>&Record<string,unknown>)|null,
-    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string;shippedLabel:string})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
+    tracking:null as (Omit<OrderTracking,"events">&{observedLabel:string;events:Array<OrderTracking["events"][number]&{timeLabel:string}>})|null,trackingLoading:false,trackingError:"",shipment:null as (OrderShipment&{stateLabel:string;shippedLabel:string;noCourier:boolean})|null,shipmentLoading:false,shipmentError:"",receiptQueryLoading:false,receiptQueryError:"",receiptKey:"",receiptVersion:0,isolatedPayment:false,paymentRecovery:false,refunds:[] as RefundRow[],refundTotal:0,refundCountLabel:"尚未读取退款记录",refundCursor:null as string|null,refundLoading:false,refundMoreLoading:false,refundError:"",
     refundFormVisible:false,refundAmount:"",refundReason:"",refundKey:"",actionStatus:"",actionError:"",
     loading:true,busy:false,navigating:false,error:"",invalidId:false,cancelKey:"",pageAlive:true,epoch:0,
     qualificationPurchase:false,qualificationMoment:false,qualificationReduced:false,
@@ -257,11 +257,13 @@ Page({
       const labels:Record<string,string>={not_ready:"付款后安排发货",awaiting_dispatch:"待发货",shipped:"已发货",delivered:"快递已签收",exception:"物流异常，请联系客服"};
       if(row.orderId!==this.data.id||!labels[row.logisticsState]||row.id&&(!Number.isSafeInteger(row.version)||row.version!<1))throw new Error("Invalid shipment");
       const order=this.data.order;
-      const stateLabel=!row.id&&(order?.refundedCents??0)>0?"退款后暂停发货"
+      const noCourier=row.deliveryMethod==='local_delivery'||row.deliveryMethod==='pickup';
+      const stateLabel=noCourier&&row.receiptConfirmedAt?"已收货"
+        :!row.id&&(order?.refundedCents??0)>0?"退款后暂停发货"
         :!row.id&&order?.status==='cancelled'?"订单已取消":!row.id&&order?.status==='expired'?"订单已关闭":labels[row.logisticsState]!;
       const shippedLabel=row.shippedAt&&Number.isFinite(Date.parse(row.shippedAt))
         ?new Date(row.shippedAt).toLocaleString('zh-CN',{hour12:false,timeZone:'Asia/Shanghai'}):'';
-      this.setData({shipment:{...row,stateLabel,shippedLabel,wechatReceipt:row.wechatReceipt?
+      this.setData({shipment:{...row,stateLabel,shippedLabel,noCourier,wechatReceipt:row.wechatReceipt?
         {...row.wechatReceipt,displayLabel:receiptLabels[row.wechatReceipt.status]??"微信记录：需人工核对",observedLabel:row.wechatReceipt.observedAt?
           new Date(row.wechatReceipt.observedAt).toLocaleString('zh-CN',{hour12:false}):''}:null},shipmentLoading:false,
         ...(row.receiptConfirmedAt?{receiptKey:"",receiptVersion:0}:{})});
@@ -274,7 +276,7 @@ Page({
     catch{if(this.readCurrent(epoch,token,readEpoch))wx.showToast({title:'复制未完成，请长按运单号',icon:'none'});}
   },
   async openLogistics(){
-    if(this.data.closedRights||!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id
+    if(this.data.closedRights||!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id||this.data.shipment.noCourier
       ||this.data.order?.transactionSourceKind!=='verified_commerce')return;
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken(),shipmentId=this.data.shipment.id,attempt=++this.trackingAttempt;
     const current=()=>this.readCurrent(epoch,token,readEpoch)&&attempt===this.trackingAttempt&&this.data.shipment?.id===shipmentId;
@@ -292,7 +294,7 @@ Page({
     finally{if(current())this.setData({trackingLoading:false});}
   },
   async loadTracking(){
-    if(!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id)return;
+    if(!this.canAct()||this.data.busy||this.data.shipmentLoading||this.data.trackingLoading||!this.data.shipment?.id||this.data.shipment.noCourier)return;
     const epoch=this.data.epoch,readEpoch=this.data.readEpoch,token=historicalCommerceToken(),
       shipmentId=this.data.shipment.id,attempt=++this.trackingAttempt;
     const current=()=>this.readCurrent(epoch,token,readEpoch)&&attempt===this.trackingAttempt&&this.data.shipment?.id===shipmentId;

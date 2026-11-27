@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "bf66ea87342268b2bcb999bc636ceacc36d714b11e7595bd5255f71ae95b4f1c",
+  "migrationSetSha256": "73e41a1d2fd00aaf62602f906677a3f6f6113ad318fc2fbdbfc9ad2e3b07b8b1",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -1336,7 +1336,7 @@
       "actorColumns": [
         "created_by_member_id"
       ],
-      "specialHandling": "order_id identifies buyer; created_by_member_id is operator, not the buyer. Receipt fact is independent of carrier state and refund/commission eligibility.",
+      "specialHandling": "order_id identifies the buyer. created_by_member_id identifies the operator. The shipment method and local receipt describe fulfillment. The receipt stays distinct from carrier state, WeChat settlement and refund eligibility.",
       "exportFields": [],
       "excludedFields": [
         "id",
@@ -1349,7 +1349,8 @@
         "delivered_at",
         "receipt_confirmed_at",
         "created_by_member_id",
-        "created_at"
+        "created_at",
+        "delivery_method"
       ],
       "syntheticErasureFields": [],
       "productionErasure": "DISABLED",

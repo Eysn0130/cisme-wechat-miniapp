@@ -9,7 +9,11 @@
    <input aria-label="精确订单号" placeholder="输入精确订单号（可选）" value="{{orderNumber}}" maxlength="32" bindinput="onNumber" disabled="{{busy}}"/>
    <button class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="retry" disabled="{{busy}}">查询订单</button>
    <view wx:if="{{!items.length}}" class="state">当前筛选没有订单。</view>
-   <view wx:for="{{items}}" wx:key="id" class="order"><text class="order-number">{{item.orderNumber}}</text><text>{{item.items}}</text><text class="muted">{{item.stateLabel}} · {{item.carrierName || '尚未登记快递'}}{{item.receiptConfirmedAt?' · 用户已确认收货':''}}</text></view>
+   <view wx:for="{{items}}" wx:key="id" class="order">
+     <text class="order-number">{{item.orderNumber}}</text><text>{{item.items}}</text>
+     <text class="muted">{{item.receiptConfirmedAt ? '已收货' : item.stateLabel}}{{item.carrierName ? ' · ' + item.carrierName : ''}}</text>
+     <button wx:if="{{canOrders}}" class="text-button {{busy ? 'control--disabled' : ''}}" bindtap="openOrder" data-id="{{item.id}}" disabled="{{busy}}">{{item.logisticsState==='awaiting_dispatch' ? '去发货' : '查看订单'}}</button>
+   </view>
    <button wx:if="{{nextCursor}}" bindtap="next" disabled="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">下一页</button>
    <button bindtap="exportExcel" disabled="{{busy}}" loading="{{busy}}" class="secondary {{busy ? 'control--disabled' : ''}}">导出拣货表</button>
    <text class="hint">每批最多500单</text>
@@ -24,7 +28,7 @@
    <button class="primary {{busy || !confirmed ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || !confirmed}}" loading="{{busy}}">{{batchPending?'重试原批次':'确认登记物流'}}</button>
    <button wx:if="{{batchPending}}" class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="reconcileBatch" disabled="{{busy}}">核对后结束上批</button>
    <button class="secondary {{busy || batchPending ? 'control--disabled' : ''}}" bindtap="newBatch" disabled="{{busy || batchPending}}">开始另一批</button>
-   <view wx:for="{{results}}" wx:key="orderId" class="order"><text>{{item.orderNumber || item.orderId}}</text><text>{{item.resultLabel || (item.status==='accepted'?'已登记，请另行核对微信同步':'请打开订单核对后重试')}}</text><button wx:if="{{canOrders}}" class="text-button {{busy ? 'control--disabled' : ''}}" bindtap="openImportOrder" data-id="{{item.orderId}}" disabled="{{busy}}">查看订单</button></view>
+   <view wx:for="{{results}}" wx:key="orderId" class="order"><text>{{item.orderNumber || item.orderId}}</text><text>{{item.resultLabel || (item.status==='accepted'?'已登记，请另行核对微信同步':'请打开订单核对后重试')}}</text><button wx:if="{{canOrders}}" class="text-button {{busy ? 'control--disabled' : ''}}" bindtap="openOrder" data-id="{{item.orderId}}" disabled="{{busy}}">查看订单</button></view>
   </view>
   <view wx:if="{{notice}}" class="state" aria-live="polite">{{notice}}</view>
  </view>

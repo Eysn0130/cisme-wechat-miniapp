@@ -3019,7 +3019,7 @@ paths:
       operationId: myShipment
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/OrderId'}]
-      responses: {'200': {description: Owner-only physical shipment, local receipt and separately observed WeChat receipt state}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
+      responses: {'200': {description: 'Owner-only shipment, local receipt and separate WeChat observation. Local delivery and pickup return null carrierCode and trackingNumber, with autoReceiptAt set to the earliest automatic confirmation time.'}, '404': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/me/orders/{orderId}/shipment/logistics-view:
     post:
       tags: [Commerce]
@@ -3069,7 +3069,7 @@ paths:
       tags: [Commerce]
       operationId: dispatchShipment
       security: [{session: []}]
-      description: R0 single parcel for all order lines. Current fulfillment authority, paid bound order, immutable dispatch evidence and independent sync job commit together without network I/O.
+      description: Registers actual handoff of all order lines. Single courier dispatch uses server time when shippedAt is absent. Completed local delivery or pickup uses server time and carries no waybill. Authority, verified payment, immutable dispatch evidence and the independent WeChat sync job commit together.
       parameters: [{$ref: '#/components/parameters/OrderId'}, {$ref: '#/components/parameters/IdempotencyKey'}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/ShipmentDispatchInput'}}}}
       responses: {'200': {description: Local shipped fact and durable WeChat pending sync or exact replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
@@ -3207,8 +3207,9 @@ paths:
                   maxItems: 25
                   items:
                     allOf:
-                      - {$ref: '#/components/schemas/ShipmentDispatchInput'}
-                      - {type: object, required: [orderId], properties: {orderId: {type: string, format: uuid}}}
+                      - {$ref: '#/components/schemas/CourierShipmentDispatchInput'}
+                      - {type: object, required: [orderId, shippedAt], properties: {orderId: {type: string, format: uuid}}}
+                    unevaluatedProperties: false
       responses: {'200': {description: Per-row results; retries preserve the same keys}, '403': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/me/orders/{orderId}/aftersales/availability:
     get:
@@ -5050,13 +5051,24 @@ components:
         current: {type: boolean, description: False acknowledges a superseded operation without restoring old answers}
         appliedVersion: {type: integer, minimum: 1}
     ShipmentDispatchInput:
+      oneOf:
+        - allOf: [{$ref: '#/components/schemas/CourierShipmentDispatchInput'}]
+          unevaluatedProperties: false
+        - type: object
+          additionalProperties: false
+          required: [deliveryMethod, evidenceReference, expectedOrderVersion]
+          properties:
+            deliveryMethod: {type: string, enum: [local_delivery, pickup]}
+            evidenceReference: {type: string, minLength: 8, maxLength: 120}
+            expectedOrderVersion: {type: integer, minimum: 1}
+    CourierShipmentDispatchInput:
       type: object
-      required: [carrierCode, carrierName, trackingNumber, shippedAt, evidenceReference, expectedOrderVersion]
+      required: [carrierCode, carrierName, trackingNumber, evidenceReference, expectedOrderVersion]
       properties:
         carrierCode: {type: string, pattern: '^[A-Z0-9_]{2,32}$'}
         carrierName: {type: string, minLength: 1, maxLength: 80}
         trackingNumber: {type: string, pattern: '^[A-Za-z0-9-]{6,64}$'}
-        shippedAt: {type: string, format: date-time}
+        shippedAt: {type: string, format: date-time, description: Optional for single dispatch. Batch imports supply actual historical handoff time.}
         evidenceReference: {type: string, minLength: 8, maxLength: 120}
         expectedOrderVersion: {type: integer, minimum: 1}
 

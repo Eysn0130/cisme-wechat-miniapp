@@ -116,9 +116,10 @@ export function fulfillmentRuntime(config:AppConfig,pool:pg.Pool,
     return {processed:rows.length,status:'processed'};
   };
   const runReceiptCycle=async()=>{
-    if(!receiptWatch)return {processed:0,status:'not_configured'};
-    if(!testChannel){try{authorize('shipping.query');}catch{return {processed:0,status:'not_authorized'};}}
-    return receiptWatch.runCycle();
+    const autoConfirmed=await service.confirmDueNoCourierReceipts();
+    if(!receiptWatch)return {autoConfirmed,processed:0,status:'not_configured'};
+    if(!testChannel){try{authorize('shipping.query');}catch{return {autoConfirmed,processed:0,status:'not_authorized'};}}
+    return {autoConfirmed,...await receiptWatch.runCycle()};
   };
   const runMessageCycle=async()=>messages?messages.runCycle():{processed:0,states:{}};
   return {service,receipt,sync,logisticsView,messages,trade,runCycle,runReceiptCycle,runMessageCycle,runTradeCycle};

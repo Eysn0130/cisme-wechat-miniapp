@@ -17,8 +17,9 @@ export class PaidParcelSource {
     const order=(await client.query(`SELECT id,order_number,status,transaction_source_kind FROM commerce_order WHERE id=$1 AND member_id=$2`,[orderId,owner])).rows[0];
     if(!order)fail('ORDER_NOT_FOUND',404);
     if(order.status!=='paid'||order.transaction_source_kind!=='verified_commerce')fail('LOGISTICS_PAYMENT_BINDING_REQUIRED');
-    const shipment=(await client.query('SELECT id,shipping_sync_id FROM commerce_shipment WHERE order_id=$1',[orderId])).rows[0];
+    const shipment=(await client.query('SELECT id,shipping_sync_id,delivery_method FROM commerce_shipment WHERE order_id=$1',[orderId])).rows[0];
     if(!shipment)fail('SHIPMENT_NOT_FOUND',404);
+    if(shipment.delivery_method!=='express')fail('LOGISTICS_NO_COURIER',404);
     const payments=(await client.query(`SELECT p.app_id,p.merchant_id,p.payer_openid,p.out_trade_no,
       i.provider_transaction_id,i.payer_total_cents FROM commerce_payment_attempt p
       JOIN commission_payment_inbox i ON i.order_id=p.order_id AND i.app_id=p.app_id AND i.merchant_id=p.merchant_id
@@ -28,10 +29,11 @@ export class PaidParcelSource {
     const paid=payments[0],binding={appId:paid.app_id,merchantId:paid.merchant_id,merchantOrderNumber:paid.out_trade_no,
       transactionId:paid.provider_transaction_id,payerOpenid:paid.payer_openid,payerTotalCents:Number(paid.payer_total_cents)};
     validateShippingBinding(binding);
+    const parcel=await this.sync.parcelWithClient(client,shipment.shipping_sync_id);
+    if(parcel.deliveryMethod)fail('LOGISTICS_NO_COURIER',404);
     const address=(await client.query('SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1',[orderId])).rows[0];
     if(!address)fail('SHIPMENT_ADDRESS_REQUIRED');
     const opened=this.addresses.openOrderSnapshot(owner,orderId,address.encrypted_payload,address.payload_hmac,address.key_version);
-    const parcel=await this.sync.parcelWithClient(client,shipment.shipping_sync_id);
     const lines=(await client.query('SELECT product_code,product_name FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number',[orderId])).rows;
     if(!lines.length||lines.length>10)fail('LOGISTICS_GOODS_REQUIRED');
     return {owner,shipmentId:shipment.id,registration:{binding,carrierCode:parcel.carrierCode,trackingNumber:parcel.trackingNumber,

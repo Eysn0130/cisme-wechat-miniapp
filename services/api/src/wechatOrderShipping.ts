@@ -8,10 +8,15 @@ export type ShippingBinding = Readonly<{
   merchantId: string; merchantOrderNumber: string; transactionId: string;
   payerOpenid: string; payerTotalCents: number;
 }>;
+export type NoCourierDelivery = 'local_delivery' | 'pickup';
 export type UnifiedParcel = Readonly<{
-  trackingNumber: string; carrierCode: string; description: string;
+  deliveryMethod?: undefined; trackingNumber: string; carrierCode: string; description: string;
   receiverContactMasked?: string;
+}> | Readonly<{
+  deliveryMethod: NoCourierDelivery; description: string;
+  trackingNumber?: never; carrierCode?: never; receiverContactMasked?: never;
 }>;
+const logisticsTypes = { local_delivery: 2, pickup: 4 } as const;
 export type ShippingObservation = {
   decision: 'matched' | 'not_uploaded' | 'conflict';
   platformOrderState: number;
@@ -39,8 +44,15 @@ export function validateShippingBinding(binding: ShippingBinding): void {
     fail('WECHAT_SHIPPING_BINDING_INVALID');
 }
 function validateParcel(parcel: UnifiedParcel): void {
-  if (!text(parcel.trackingNumber, 128) || !text(parcel.carrierCode, 128)
-    || !text(parcel.description, 480) || Array.from(parcel.description).length > 120)
+  if (!text(parcel.description, 480) || Array.from(parcel.description).length > 120)
+    fail('WECHAT_SHIPPING_PARCEL_INVALID');
+  if (parcel.deliveryMethod !== undefined) {
+    if ((parcel.deliveryMethod !== 'local_delivery' && parcel.deliveryMethod !== 'pickup')
+      || parcel.trackingNumber !== undefined || parcel.carrierCode !== undefined || parcel.receiverContactMasked !== undefined)
+      fail('WECHAT_SHIPPING_PARCEL_INVALID');
+    return;
+  }
+  if (!text(parcel.trackingNumber, 128) || !text(parcel.carrierCode, 128))
     fail('WECHAT_SHIPPING_PARCEL_INVALID');
   if (parcel.receiverContactMasked !== undefined
     && (!/^\*{4}\d{4}$/.test(parcel.receiverContactMasked))) fail('WECHAT_SHIPPING_CONTACT_NOT_MASKED');
@@ -53,8 +65,9 @@ export function unifiedShippingPayload(binding: ShippingBinding, parcel: Unified
     fail('WECHAT_SHIPPING_UPLOAD_TIME_INVALID');
   return {
     order_key: { order_number_type: 2, transaction_id: binding.transactionId },
-    logistics_type: 1, delivery_mode: 1,
-    shipping_list: [{ tracking_no: parcel.trackingNumber, express_company: parcel.carrierCode,
+    logistics_type: parcel.deliveryMethod ? logisticsTypes[parcel.deliveryMethod] : 1, delivery_mode: 1,
+    shipping_list: [parcel.deliveryMethod ? { item_desc: parcel.description } : {
+      tracking_no: parcel.trackingNumber, express_company: parcel.carrierCode,
       item_desc: parcel.description, ...(parcel.receiverContactMasked
         ? { contact: { receiver_contact: parcel.receiverContactMasked } } : {}) }],
     upload_time: uploadTime, payer: { openid: binding.payerOpenid }
@@ -78,10 +91,23 @@ export function shippingObservation(raw: unknown, binding: ShippingBinding, parc
   const parcels = shipping.shipping_list;
   if (order.order_state === 1 && shipping.finish_shipping === false && shipping.finish_shipping_count === 0
     && Array.isArray(parcels) && parcels.length === 0) return { ...result, decision: 'not_uploaded' };
-  if (shipping.delivery_mode !== 1 || shipping.logistics_type !== 1 || shipping.finish_shipping !== true
+  const logisticsType = parcel.deliveryMethod ? logisticsTypes[parcel.deliveryMethod] : 1;
+  if (shipping.delivery_mode !== 1 || shipping.logistics_type !== logisticsType || shipping.finish_shipping !== true
     || !Number.isInteger(shipping.finish_shipping_count) || Number(shipping.finish_shipping_count) < 1
-    || Number(shipping.finish_shipping_count) > 2 || !Array.isArray(parcels) || parcels.length !== 1
-    || order.order_state === 1) return { ...result, decision: 'conflict' };
+    || Number(shipping.finish_shipping_count) > 2 || order.order_state === 1) return { ...result, decision: 'conflict' };
+  if (parcel.deliveryMethod) {
+    // Non-courier uploads may be returned with the goods description and no waybill entry.
+    if ((shipping.goods_desc !== undefined && shipping.goods_desc !== '' && shipping.goods_desc !== parcel.description)
+      || (parcels !== undefined && (!Array.isArray(parcels) || parcels.length > 1)))
+      return { ...result, decision: 'conflict' };
+    const uploaded = Array.isArray(parcels) && parcels.length ? object(parcels[0]) : {};
+    const recorded = (value: unknown) => value !== undefined && value !== '';
+    if (recorded(uploaded.tracking_no) || recorded(uploaded.express_company)
+      || (recorded(uploaded.goods_desc) && uploaded.goods_desc !== parcel.description))
+      return { ...result, decision: 'conflict' };
+    return { ...result, decision: 'matched' };
+  }
+  if (!Array.isArray(parcels) || parcels.length !== 1) return { ...result, decision: 'conflict' };
   const uploaded = object(parcels[0]);
   if (uploaded.tracking_no !== parcel.trackingNumber || uploaded.express_company !== parcel.carrierCode
     || (uploaded.goods_desc !== undefined && uploaded.goods_desc !== parcel.description))
