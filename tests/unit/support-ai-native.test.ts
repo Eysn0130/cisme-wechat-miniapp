@@ -32,9 +32,9 @@ beforeEach(async()=>{
  vi.resetModules();vi.useFakeTimers();m.token='synthetic-member';m.retain=true;m.closed=false;m.request.mockReset();m.read.mockReset();
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token}});
  (globalThis as any).Page=(value:any)=>{definition=value;};
- (globalThis as any).wx={showModal:vi.fn().mockResolvedValue({confirm:true}),nextTick:(fn:()=>void)=>fn(),showToast:vi.fn(),navigateTo:vi.fn(),getStorageSync:vi.fn()};
+ (globalThis as any).wx={showModal:vi.fn().mockResolvedValue({confirm:true}),nextTick:(fn:()=>void)=>fn(),showToast:vi.fn(),navigateTo:vi.fn(),getStorageSync:vi.fn(),hideKeyboard:vi.fn()};
  await import('../../apps/miniprogram/pages/support/index');
- p={...definition,data:structuredClone(definition.data),setData(update:any){Object.assign(this.data,structuredClone(update));}};
+ p={...definition,data:structuredClone(definition.data),setData(update:any,rendered?:()=>void){Object.assign(this.data,structuredClone(update));rendered?.();}};
  Object.assign(p.data,{pageAlive:true,visible:true,loading:false,input:'护理如何保存？',composerSendEnabled:true,conversation,supportAiAvailable:true});
  m.request.mockResolvedValue({});m.read.mockResolvedValue({conversation,messages:[],latestCursor:0,supportAiAvailable:true});
 });
@@ -121,16 +121,26 @@ describe('native AI and human support collaboration receipts',()=>{
   p.removeImage();
   expect(p.data).toMatchObject({input:'护理如何保存？',selectedImage:null,composerSendEnabled:true});
  });
- it('preserves the text when the native keyboard changes height or closes',()=>{
+ it('keeps the latest message visible and preserves the draft when the chat is tapped to dismiss the keyboard',()=>{
   const input=p.data.input;
+  p.bottomScrollTop=402;
   p.onComposerFocus({detail:{height:280}});
   p.onKeyboardHeightChange({detail:{height:280}});
-  expect(p.data).toMatchObject({composerFocused:true,keyboardHeight:280,input});
+  expect(p.data).toMatchObject({composerFocused:true,keyboardHeight:280,input,anchor:'support-chat-end'});
+  expect(p.bottomScrollTop).toBe(0);
   p.onKeyboardHeightChange({detail:{height:320}});
   expect(p.data.keyboardHeight).toBe(320);
-  p.onComposerBlur();
+  p.dismissComposerKeyboard();
   p.onKeyboardHeightChange({detail:{height:280}});
-  expect(p.data).toMatchObject({composerFocused:false,keyboardHeight:0,input});
+  expect(wx.hideKeyboard).toHaveBeenCalledOnce();
+  expect(p.data).toMatchObject({composerFocused:false,keyboardHeight:0,input,anchor:'support-chat-end'});
+ });
+ it('keeps the reading position while the keyboard opens over earlier messages',()=>{
+  Object.assign(p.data,{atBottom:false,anchor:'support-2'});
+  p.onComposerFocus({detail:{height:280}});
+  p.onComposerLineChange({detail:{lineCount:5}});
+  p.dismissComposerKeyboard();
+  expect(p.data).toMatchObject({atBottom:false,anchor:'support-2',keyboardHeight:0,composerCapped:true});
  });
  it('reads an empty thread repeatedly without posting a greeting or creating a local message',async()=>{
   p.data.conversation=null;m.read.mockResolvedValue({conversation:null,messages:[],latestCursor:0,supportAiAvailable:true});

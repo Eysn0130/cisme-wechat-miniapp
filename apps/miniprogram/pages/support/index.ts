@@ -9,6 +9,7 @@ import { nativeCatalogImage } from "../../services/catalog";
 import { myOrder, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import { openSupportHelp, supportHelpLabel } from "../../services/support-help";
+import { setSupportComposerLayout, updateSupportComposerLines } from "../../services/support-composer-layout";
 import { GENERAL_SUPPORT_SCOPE, stageSupportDraft, takeSupportDraft, stageSupportSendAttempt, takeSupportSendAttempt, stageSupportRecovery, takeSupportRecovery } from "../../services/support-draft-handoff";
 import {
   createSupportThreadState,
@@ -92,6 +93,7 @@ Page({
   orderPickerToken: "",
   lastScrollTop: 0,
   bottomScrollTop: 0,
+  composerLayoutRevision: 0,
   lastActivityAt: 0,
   lastPresenceSentAt: 0,
   presenceTimer: null as ReturnType<typeof setTimeout> | null,
@@ -386,7 +388,7 @@ Page({
     catch { complete(); wx.showToast({ title: "页面暂时无法打开", icon: "none" }); }
   },
   headerPatch(conversation: Conversation | null, presence: Presence, aiAvailable?: boolean) {
-    if(this.consultationCaseId&&this.data.aftersale?.active!==false)return (aiAvailable??this.data.supportAiAvailable)
+    if(this.consultationCaseId)return (aiAvailable??this.data.supportAiAvailable)
       ?{statusLabel:"CISME AI 客服",statusTone:"ai",presence:{...presence,operatorTyping:false}}
       :{statusLabel:"欢迎留言",statusTone:"neutral",presence:{...presence,operatorTyping:false}};
     if (!conversation) return (aiAvailable ?? this.data.supportAiAvailable) && !this.data.closedRights
@@ -427,22 +429,30 @@ Page({
     this.setData(patch);
   },
   onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
-    const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
-    const composerCapped = lineCount > 4;
-    if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
+    updateSupportComposerLines(this, event.detail.lineCount);
   },
   onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
     if (!this.data.visible || !this.data.composerFocused) return;
     const keyboardHeight = Math.max(0, Number(event.detail.height) || 0);
     if (keyboardHeight === this.data.keyboardHeight) return;
-    this.setData({ keyboardHeight });
+    setSupportComposerLayout(this, { keyboardHeight });
   },
   onComposerFocus(event: WechatMiniprogram.TextareaFocus) {
     if (!this.data.visible) return;
     this.lastActivityAt = Date.now();
-    this.setData({ composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
+    setSupportComposerLayout(this, { composerFocused: true, keyboardHeight: Math.max(0, Number(event.detail.height) || 0) });
   },
-  onComposerBlur() { this.setData({ composerFocused: false, keyboardHeight: 0 }); void this.publishPresence(true, false, true); },
+  onComposerBlur() {
+    if (!this.data.composerFocused && !this.data.keyboardHeight) return;
+    setSupportComposerLayout(this, { composerFocused: false, keyboardHeight: 0 });
+    this.clearPresenceTimer();
+    if (this.data.visible) void this.publishPresence(true, false, true);
+  },
+  dismissComposerKeyboard() {
+    if (!this.data.composerFocused && !this.data.keyboardHeight) return;
+    this.onComposerBlur();
+    if (typeof wx.hideKeyboard === "function") wx.hideKeyboard({ fail: () => {} });
+  },
   activePolling() { return this.data.presence.operatorTyping || Date.now() - this.lastActivityAt < 30_000; },
   startPolling() { this.pollFailures = 0; this.schedulePoll(); },
   schedulePoll() {
@@ -628,7 +638,7 @@ Page({
       return;
     }
     this.lastPresenceSentAt = Date.now();
-    try { await request({ path: "/v1/me/support/presence", method: "POST", data: { online, typing }, cacheTags: ["support"] }); } catch {}
+    try { await request({ path: "/v1/me/support/presence", method: "POST", data: { online, typing: typing && this.data.composerFocused }, cacheTags: ["support"] }); } catch {}
   },
   sendSignature(body: string, mediaIds: string[], linkedOrderId: string | null) { return JSON.stringify([body, mediaIds, linkedOrderId]); },
   pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {
@@ -743,8 +753,8 @@ Page({
   openAttachmentSheet() {
     if(this.data.closedRights)return;
     if (this.data.sending || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage || this.data.newTopicBusy || this.data.newTopicAttempt) return;
-    if (typeof wx.hideKeyboard === "function") wx.hideKeyboard();
-    this.setData({ attachmentSheetOpen: true, composerFocused: false });
+    this.dismissComposerKeyboard();
+    this.setData({ attachmentSheetOpen: true });
   },
   closeAttachmentSheet() { this.setData({ attachmentSheetOpen: false }); },
   stopPropagation() {},
@@ -973,7 +983,7 @@ Page({
     const previous = this.data.newTopicAttempt;
     const status = this.data.conversation?.status;
     const card = this.data.aftersale;
-    const caseId = this.consultationCaseId || (card?.active ? card.caseId : "");
+    const caseId = this.consultationCaseId || card?.caseId || "";
     if (!previous && !caseId && (status === "waiting_human" || status === "human_active")) {
       const epoch = this.lifecycleEpoch, token = sessionToken();
       try { await wx.showModal({ title: "人工事项处理中", content: "人工申请会继续保留，你可以直接咨询其他问题。人工事项结束后可开启新对话。", showCancel: false, confirmText: "知道了" }); }

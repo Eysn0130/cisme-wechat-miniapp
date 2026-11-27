@@ -16,7 +16,7 @@
   </view>
 
   <view class="support-chat-layout {{keyboardHeight ? 'support-chat-layout--with-keyboard' : ''}}" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px' : ''}}">
-  <view class="support-chat-history">
+  <view class="support-chat-history" bindtap="dismissComposerKeyboard">
   <scroll-view class="operator-thread" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
     <view class="operator-thread__content">
     <view wx:if="{{loading && !conversation}}" class="operator-state" aria-live="polite">正在加载聊天记录…</view>
@@ -95,7 +95,7 @@
       <view class="operator-typing__body"><view class="operator-typing__dots"><view class="operator-typing__dot"></view><view class="operator-typing__dot operator-typing__dot--two"></view><view class="operator-typing__dot operator-typing__dot--three"></view></view><text class="operator-typing__copy">{{memberDisplayName}}正在输入…</text></view>
     </view>
     <view wx:if="{{error}}" class="operator-error" aria-live="assertive"><text>{{error}}</text><button bindtap="retry">刷新</button></view>
-      <view class="operator-end"></view>
+      <view id="support-chat-end" class="operator-end" aria-hidden="true"></view>
     </view>
   </scroll-view>
 
@@ -108,8 +108,8 @@
         <text class="operator-reply-target__label">引用</text><text class="operator-reply-target__summary">{{replyTarget.summary}}</text>
       </view>
       <view class="support-composer__controls {{composerLineCount > 1 ? 'support-composer__controls--multiline' : ''}}">
-        <textarea class="operator-input support-input {{composerCapped ? 'support-input--capped' : ''}}" aria-label="回复消息" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{sendAttempt ? '请先核对上条回复' : replyTargetNeedsRefresh ? '刷新后回复' : replyTarget ? '输入消息' : '选择消息后回复'}}" placeholder-class="support-input__placeholder" disabled="{{loading || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}"/>
-        <view class="support-composer__tools support-chat-tools">
+        <textarea class="operator-input support-input {{composerCapped ? 'support-input--capped' : ''}}" aria-label="回复消息" value="{{input}}" focus="{{composerFocused}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" disable-default-padding="true" show-confirm-bar="{{false}}" confirm-type="return" placeholder="{{sendAttempt ? '请先核对上条回复' : replyTargetNeedsRefresh ? '刷新后回复' : replyTarget ? '输入消息' : '选择消息后回复'}}" placeholder-class="support-input__placeholder" disabled="{{loading || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}"/>
+        <view class="support-composer__tools">
           <button class="support-tool support-tool--send {{loading || !composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh ? 'control--disabled' : ''}} {{composerSendEnabled && !loading && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? 'support-tool--send-active' : 'support-tool--send-disabled'}}" bindtap="send" disabled="{{loading || !composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}" aria-label="{{busy ? '正在发送回复' : '发送回复'}}"><image src="{{composerSendEnabled && !loading && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
         </view>
       </view>
@@ -117,7 +117,7 @@
   </view>
   <view wx:elif="{{conversation.status === 'waiting_human' && canAssign && canReply || input && !assignedToMe}}" class="support-composer">
     <view wx:if="{{input && !assignedToMe}}" class="operator-draft-notice">未发送的草稿已保留，接管后可继续编辑</view>
-    <button wx:if="{{conversation.status === 'waiting_human' && canAssign && canReply}}" class="operator-claim {{loading || busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{loading || busy || sendAttempt}}">接管会话</button>
+    <button wx:if="{{conversation.status === 'waiting_human' && canAssign && canReply}}" class="primary support-primary operator-claim {{loading || busy || sendAttempt ? 'primary--disabled' : ''}}" bindtap="claim" disabled="{{loading || busy || sendAttempt}}"><text class="action-label">接管会话</text></button>
   </view>
   </view>
 
@@ -130,7 +130,7 @@
       <view class="context-row"><small>会员状态</small><text>{{memberContext.memberStatus === 'active' ? '正常' : memberContext.memberStatus}}</text></view>
       <view class="context-row"><small>手机号</small><text>{{memberContext.maskedPhone || '未绑定'}}</text></view>
       <view class="context-row"><small>加入时间</small><text>{{memberContext.memberSince}}</text></view>
-      <button class="context-done" bindtap="closeContext">完成</button>
+      <button class="primary support-primary context-done" bindtap="closeContext"><text class="action-label">完成</text></button>
     </view>
   </view>
   <view wx:if="{{aftersaleOpen && !loading}}" class="context-mask" catchtap="closeAftersales" catchtouchmove="stopPropagation">
@@ -153,9 +153,9 @@
         <textarea aria-label="详细地址" placeholder="详细地址" maxlength="300" value="{{returnForm.address}}" data-field="address" bindinput="editReturnField" disabled="{{busy||returnAttempt}}"/>
         <picker range="{{freightOptions}}" bindchange="chooseFreight" disabled="{{busy||returnAttempt}}"><view class="choice">运费：{{returnForm.freightPayer==='merchant'?'商家承担':returnForm.freightPayer==='member'?'用户承担':'请选择承担方'}}</view></picker>
         <textarea aria-label="寄回说明" placeholder="必要的寄回说明（选填）" maxlength="500" value="{{returnForm.instructions}}" data-field="instructions" bindinput="editReturnField" disabled="{{busy||returnAttempt}}"/>
-        <button class="context-done {{busy?'control--disabled':''}}" bindtap="sendReturnInstruction" disabled="{{busy}}">{{returnAttempt?'重试发送':'确认并发送退货指引'}}</button>
+        <button class="primary support-primary context-done {{busy?'primary--disabled':''}}" bindtap="sendReturnInstruction" disabled="{{busy}}"><text class="action-label">{{returnAttempt?'重试发送':'确认并发送退货指引'}}</text></button>
       </view>
-      <button class="context-done {{busy?'control--disabled':''}}" bindtap="closeAftersales" disabled="{{busy}}">关闭</button>
+      <button class="primary support-primary context-done {{busy?'primary--disabled':''}}" bindtap="closeAftersales" disabled="{{busy}}"><text class="action-label">关闭</text></button>
     </scroll-view>
   </view>
 </view>

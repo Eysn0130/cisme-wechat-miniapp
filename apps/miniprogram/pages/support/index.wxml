@@ -23,7 +23,7 @@
     </view>
     <image class="support-case-resume__arrow" src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/>
   </button>
-  <view class="support-chat-history">
+  <view class="support-chat-history" bindtap="dismissComposerKeyboard">
   <scroll-view class="support-thread" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
     <view class="support-thread__content">
     <view wx:if="{{loading}}" class="support-state" aria-live="polite">正在加载聊天记录…</view>
@@ -102,17 +102,17 @@
       <view class="support-typing__body"><view class="support-typing__dots" aria-hidden="true"><view class="support-typing__dot"></view><view class="support-typing__dot support-typing__dot--two"></view><view class="support-typing__dot support-typing__dot--three"></view></view><text class="support-typing__copy">{{aiReplyWaiting ? '正在思考…' : presence.agentDisplayName + '正在输入…'}}</text></view>
     </view>
     <view wx:if="{{error}}" class="support-error" aria-live="assertive"><text>{{error}}</text><button wx:if="{{errorAction === 'sync'}}" bindtap="retry">重试</button><button wx:elif="{{errorAction === 'handoff'}}" class="{{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="retryHandoff" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}">{{handoffFailed ? '重试申请' : '申请人工'}}</button></view>
-      <view class="support-thread__end"></view>
+      <view id="support-chat-end" class="support-thread__end" aria-hidden="true"></view>
     </view>
   </scroll-view>
 
   <button wx:if="{{newMessagesBelowCount > 0}}" class="new-message" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
   </view>
 
-  <view class="support-composer {{composerFocused ? 'support-composer--focused' : ''}}">
-    <view wx:if="{{!closedRights}}" class="support-composer__actions">
+  <view class="support-composer">
+    <view wx:if="{{!closedRights && !keyboardHeight}}" class="support-composer__actions">
       <button wx:if="{{(!consultationView || aftersale.active === false) && !loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human {{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="requestHuman" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}"><text>{{handoffBusy ? '正在申请人工…' : '申请人工'}}</text></button>
-      <button wx:if="{{newTopicAttempt || historyLoaded && !loading && (consultationView || aftersale.active || newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'))}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启新对话' : '开启新对话'}}"><text>{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
+      <button wx:if="{{newTopicAttempt || historyLoaded && !loading && (consultationView || aftersale || newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'))}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启新对话' : '开启新对话'}}"><text>{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
     </view>
     <view class="support-composer__surface {{composerFocused ? 'support-composer__surface--focused' : ''}}">
       <view wx:if="{{selectedImage || selectedOrder}}" class="support-draft-attachments">
@@ -124,8 +124,8 @@
         <view wx:if="{{selectedOrder}}" class="support-draft-order"><image class="support-draft__image" src="{{selectedOrder.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-draft__content"><strong>{{selectedOrder.productName}}</strong><text>订单尾号 {{selectedOrder.orderNumberTail}} · {{selectedOrder.statusLabel}}</text></view><button wx:if="{{!closedRights}}" bindtap="removeOrder" aria-label="移除订单"><image class="support-draft__remove-icon" src="/assets/icons/close-plum.svg" mode="aspectFit"/></button></view>
       </view>
       <view class="support-composer__controls {{composerLineCount > 1 ? 'support-composer__controls--multiline' : ''}}">
-        <textarea class="support-input {{composerCapped ? 'support-input--capped' : ''}}" aria-label="客服消息" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{newTopicAttempt?'请先确认新对话':sendAttempt?'请先核对上条消息':'输入消息'}}" placeholder-class="support-input__placeholder" disabled="{{sending||sendAttempt||newTopicBusy||newTopicAttempt}}"/>
-        <view class="support-composer__tools support-chat-tools">
+        <textarea class="support-input {{composerCapped ? 'support-input--capped' : ''}}" aria-label="客服消息" value="{{input}}" focus="{{composerFocused}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" disable-default-padding="true" show-confirm-bar="{{false}}" confirm-type="return" placeholder="{{newTopicAttempt?'请先确认新对话':sendAttempt?'请先核对上条消息':'输入消息'}}" placeholder-class="support-input__placeholder" disabled="{{sending||sendAttempt||newTopicBusy||newTopicAttempt}}"/>
+        <view class="support-composer__tools">
         <button wx:if="{{!closedRights}}" class="support-tool {{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="openAttachmentSheet" disabled="{{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}" aria-label="添加附件"><image src="/assets/icons/composer-paperclip-plum.svg"/></button>
         <button class="support-tool support-tool--send {{!composerSendEnabled || sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}} {{composerSendEnabled && !sending && !sendAttempt && !uploadBusy && !newTopicBusy && !newTopicAttempt ? 'support-tool--send-active' : 'support-tool--send-disabled'}}" bindtap="send" disabled="{{!composerSendEnabled || sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}" aria-label="{{sending ? '正在发送消息' : sendAttempt ? '请先核对上条消息' : '发送消息'}}"><image src="{{composerSendEnabled && !sending && !sendAttempt && !uploadBusy && !newTopicBusy && !newTopicAttempt ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
         </view>

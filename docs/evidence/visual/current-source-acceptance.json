@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "a0f8fe022473e46c486ec661039731aa0109cc3fe7f0115e04203f47203fdd86",
+  "packageSourceSha256": "867587f4f1fbfc46ac21dfc03aafbd0607fdb5fd415141589bf1780baa756258",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 当前包包含护理页客服的新对话与售后卡片往返。完整路由、字号、真机和实际退款验收另行取证，历史验收沿用原来源。",
+  "note": "2026-11-27 当前包包含会员和坐席共用的聊天输入布局、坐席接管按钮和已完成售后仍在接待时的新对话入口。完整路由、字号和真机范围独立取证，历史验收沿用原来源。",
   "previousSourceRecord": {
     "packageSourceSha256": "88469454ab0c1a0b006307ec89ac0542b4dbb7407fcff4aa46554ad7066d7625",
     "scope": "Official DevTools used isolated fixtures to check the prior order detail, fulfillment entries and shared support interface."

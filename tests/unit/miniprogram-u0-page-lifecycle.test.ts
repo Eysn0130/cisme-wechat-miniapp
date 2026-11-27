@@ -422,7 +422,7 @@ describe("U0 native page lifecycle regressions", () => {
     requestMock.mockResolvedValue({ accepted: true });
     await vi.importActual("../../apps/miniprogram/pages/support/index");
     const page = mountedPage(capturedPage!, {
-      pageAlive: true, visible: true, conversation: { id: "conversation-1", status: "human_active", version: 2 },
+      pageAlive: true, visible: true, composerFocused: true, conversation: { id: "conversation-1", status: "human_active", version: 2 },
       presence: { agentDisplayName: "小熹", operatorOnline: true, operatorTyping: false, memberOnline: true, memberTyping: false }, input: ""
     }, { lifecycleEpoch: 2, lastPresenceSentAt: 0, presenceTimer: null, pollTimer: null, mediaDownloads: [], uploadAttempt: 0, inputRevision: 0 });
 
@@ -599,8 +599,8 @@ describe("U0 native page lifecycle regressions", () => {
     expect(page.data.composerSendEnabled).toBe(false);
     page.updateInput({ detail: { value: "人工回复" } });
     expect(page.data.composerSendEnabled).toBe(true);
-    page.onComposerLineChange({ detail: { lineCount: 7 } });
-    expect(page.data).toMatchObject({ composerLineCount: 7, composerCapped: true });
+    page.onComposerLineChange({ detail: { lineCount: 5 } });
+    expect(page.data).toMatchObject({ composerLineCount: 5, composerCapped: true });
     page.onComposerLineChange({ detail: { lineCount: 1 } });
     expect(page.data).toMatchObject({ composerLineCount: 1, composerCapped: false });
   });

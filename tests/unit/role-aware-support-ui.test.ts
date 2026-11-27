@@ -57,7 +57,7 @@ describe("role-aware native support UX",()=>{
   expect(actionStart).toBeGreaterThan(0);expect(actionStart).toBeLessThan(surfaceStart);
   const actions=view.slice(actionStart,surfaceStart);expect(actions).toContain('bindtap="requestHuman"');expect(actions).not.toContain('resumeAi');expect(actions).not.toContain('support-action-pill');
   expect(view.slice(0,view.indexOf('support-chat-layout'))).toContain("agentDisplayName + ' · 接待中' : statusLabel");
-  const textarea=view.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toContain('confirm-type="done"');expect(textarea).not.toContain('bindconfirm');expect(textarea).not.toContain('confirm-hold="true"');
+  const textarea=view.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toContain('confirm-type="return"');expect(textarea).not.toContain('bindconfirm');expect(textarea).not.toContain('confirm-hold="true"');
   expect(view.match(/bindtap="send"/g)).toHaveLength(1);
   expect(view).not.toContain('support-ai-notice');expect(view).not.toContain('AI 可能出错，请勿发敏感信息。');expect(view).not.toContain('DeepSeek');
   expect(style).toMatch(/\.support-human\s*\{[^}]*min-width:\s*44px;[^}]*min-height:\s*44px;/s);

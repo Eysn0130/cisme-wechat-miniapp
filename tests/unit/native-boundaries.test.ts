@@ -151,6 +151,7 @@ describe("native mini program boundary", () => {
       "management-rewards/index.wxml": 7,
       "sharing-officer/index.wxml": 10,
       "management-sharing/index.wxml": 7,
+      "management-support-chat/index.wxml": 3,
     });
 
     const normalize = (expression: string) => expression.replace(/\s+/g, "");
@@ -313,14 +314,20 @@ describe("native mini program boundary", () => {
     expect(memberMarkup).toContain('/assets/icons/composer-image-plum.svg');
     expect(memberMarkup).toContain('/assets/icons/composer-paperclip-plum.svg');
     expect(memberMarkup).toContain('/assets/icons/composer-send-white.svg');
-    expect(memberMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="\{\{false\}\}"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
-    expect(memberMarkup).toContain('bindkeyboardheightchange="onKeyboardHeightChange"');
     expect(sharedComposer).toMatch(/\.support-input\s*\{[^}]*min-height:\s*var\(--cisme-hit-target\);[^}]*max-height:\s*calc\(6rem \+ 20px\);/s);
     for (const styles of [memberStyles,operatorStyles]) expect(styles).toContain('@import "../../styles/support-chat-layout.wxss"');
-    for (const markup of [memberMarkup,operatorMarkup])
-      expect(markup).toMatch(/<view class="support-composer__controls [^"]*">\s*<textarea[^>]*\/>\s*<view class="support-composer__tools support-chat-tools"/);
+    for (const markup of [memberMarkup,operatorMarkup]) {
+      expect(markup).toMatch(/<view class="support-composer__controls [^"]*">\s*<textarea[^>]*\/>\s*<view class="support-composer__tools"/);
+      const composer = markup.match(/<textarea[^>]*\bsupport-input\b[^>]*\/>/)?.[0];
+      expect(composer).toMatch(/auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="\{\{false\}\}"[^>]*disable-default-padding="true"/);
+      expect(composer).toContain('bindkeyboardheightchange="onKeyboardHeightChange"');
+      expect(composer).toContain('show-confirm-bar="{{false}}"');
+      expect(composer).toContain('focus="{{composerFocused}}"');
+      expect(composer).not.toContain('hold-keyboard="true"');
+      expect(markup).toContain('class="support-chat-history" bindtap="dismissComposerKeyboard"');
+    }
 
-    expect(operatorMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="\{\{false\}\}"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
+    expect(operatorMarkup).toMatch(/class="primary support-primary operator-claim [^>]+>\s*<text class="action-label">接管会话<\/text>/);
     expect(operatorMarkup).not.toContain('bindtap="openImageSheet"');
     expect(operatorMarkup).not.toContain('bindtap="openAttachmentSheet"');
     expect(operatorMarkup).not.toContain('AI 帮写');

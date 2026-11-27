@@ -1,5 +1,6 @@
 .support-chat-layout {
   --cisme-chat-safe-bottom: env(safe-area-inset-bottom);
+  --cisme-chat-composer-gap: 14rpx;
   position: fixed;
   top: var(--cisme-topbar-height, calc(env(safe-area-inset-top) + 44px));
   right: 0;
@@ -11,20 +12,13 @@
 
 .support-chat-layout--with-keyboard {
   --cisme-chat-safe-bottom: 0px;
+  --cisme-chat-composer-gap: 8rpx;
 }
 
 .support-chat-history {
   position: relative;
   flex: 1;
   min-height: 0;
-}
-
-.support-chat-tools {
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-  min-height: 104rpx;
-  padding: 0 10rpx 10rpx;
 }
 
 .support-chat-quote {
@@ -47,12 +41,19 @@
   position: relative;
   z-index: 30;
   flex: none;
-  padding: 14rpx 20rpx calc(var(--cisme-chat-safe-bottom) + 14rpx);
+  padding: 14rpx 20rpx calc(var(--cisme-chat-safe-bottom) + var(--cisme-chat-composer-gap));
   background: transparent;
 }
 
-.support-composer--focused {
-  background: transparent;
+.primary.support-primary {
+  padding: 8px 24rpx;
+  border: 0;
+  background: var(--cisme-plum);
+  box-shadow: none;
+}
+
+.support-composer .primary.support-primary {
+  margin-top: 0;
 }
 
 .support-composer__surface {
@@ -109,11 +110,12 @@
 }
 
 .support-composer__tools {
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 4rpx;
   flex: none;
   min-height: var(--cisme-hit-target);
-  padding: 0;
 }
 
 .support-tool {
