@@ -40,3 +40,24 @@ it("protects all newly introduced shared modules in the actual native project", 
   for (const name of ["following-feed", "read-presentation", "retired-task-proof"])
     await expect(readFile(join(root, "services", `${name}.ts`), "utf8")).resolves.toBeTruthy();
 });
+
+it("checks image existence and subpackage access for literal WXML sources", async () => {
+  const root = await fixture({
+    setting: { ignoreUploadUnusedFiles: false }, packOptions: { include: [{ type: "folder", value: "services" }] }
+  });
+  for (const directory of ["pages/rewards", "pages/checkout", "assets"]) await mkdir(join(root, directory), { recursive: true });
+  await writeFile(join(root, "app.json"), JSON.stringify({ subPackages: [{ root: "pages/rewards", pages: [] }, { root: "pages/checkout", pages: [] }] }));
+  await writeFile(join(root, "pages/checkout/pair.png"), "fixture");
+  await writeFile(join(root, "pages/rewards/pair.png"), "fixture");
+  await writeFile(join(root, "assets/logo.svg"), "<svg/>");
+  await writeFile(join(root, "pages/rewards/index.wxml"), `
+    <image src="{{useDefault ? '/assets/logo.svg' : './pair.png'}}" />
+    <image src="/pages/checkout/pair.png" />
+    <image src="./missing.png" />
+    <image src="https://api.cisme.cn/assets/photo.jpg" />`);
+
+  expect((await inspectMiniProgramPackage(root)).errors).toEqual([
+    "IMAGE_IN_ANOTHER_SUBPACKAGE:pages/rewards/index.wxml:/pages/checkout/pair.png",
+    "IMAGE_FILE_MISSING:pages/rewards/index.wxml:./missing.png"
+  ]);
+});

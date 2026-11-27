@@ -8,8 +8,8 @@ import {pendingReward,prepareReward,forgetReward,type RewardPending} from '../..
 import {rewardDetailPhotos,prepareRewardDetailImages} from '../../../../services/reward-images';
 type Runtime={alive:boolean;visible:boolean;epoch:number;token:string;context:number;voucher:string;reading:number|null};
 const bundleDetails={
- moisture:{title:'净润洗护礼遇',benefit:'温和净洗 · 柔顺有光',shampoo:'净润洗发露',conditioner:'柔光强韧护发乳',image:rewardDetailPhotos.moisture,pair:"/pages/checkout/assets/travel-moisture-pair-v3.webp"},
- dandruff:{title:'净屑洗护礼遇',benefit:'控油净屑 · 洗后清爽',shampoo:'控油净屑洗发水',conditioner:'柔光强韧护发乳',image:rewardDetailPhotos.dandruff,pair:"/pages/checkout/assets/travel-dandruff-pair-v3.webp"}
+ moisture:{title:'净润洗护礼遇',benefit:'温和净洗 · 柔顺有光',shampoo:'净润洗发露',conditioner:'柔光强韧护发乳',image:rewardDetailPhotos.moisture,pair:"/pages/checkout/assets/travel-moisture-pair-v3.png"},
+ dandruff:{title:'净屑洗护礼遇',benefit:'控油净屑 · 洗后清爽',shampoo:'控油净屑洗发水',conditioner:'柔光强韧护发乳',image:rewardDetailPhotos.dandruff,pair:"/pages/checkout/assets/travel-dandruff-pair-v3.png"}
 };
 const states=new WeakMap<object,Runtime>();
 const empty={selection:null as RewardSelection|null,memberId:'',addresses:[] as CheckoutAddress[],selectedAddressId:'',selectedBundle:'' as RewardBundleCode|'',selectedItem:null as RewardBundle|null,draftBundle:'' as RewardBundleCode|'',bundleSheetOpen:true,

@@ -1,7 +1,7 @@
 <view wx:if="{{showing}}" class="reward-moment {{reducedMotion?'reward-moment--still':''}} reward-moment--{{phase}}" catchtouchmove="stop">
  <view class="reward-moment__shade"/>
  <view class="reward-moment__card reward-moment__card--{{mode}}" aria-role="dialog" aria-modal="true" aria-label="{{mode==='redeemed'?'旅行洗护礼遇领取成功':'旅行洗护礼遇券已到账'}}">
-  <image class="reward-moment__surface" src="/assets/cisme/travel-ticket-surface-v1.webp" mode="scaleToFill" aria-hidden="true"/>
+  <image class="reward-moment__surface" src="/assets/cisme/travel-ticket-surface-v1.png" mode="scaleToFill" aria-hidden="true"/>
   <view wx:if="{{!reducedMotion}}" class="reward-moment__sheen" aria-hidden="true"/>
   <scroll-view class="reward-moment__scroll" scroll-y enhanced show-scrollbar="{{false}}">
    <view class="reward-moment__content">
@@ -9,7 +9,7 @@
     <text class="reward-moment__title" aria-live="polite">{{mode==='redeemed'?'礼遇已领取':'旅行洗护礼遇'}}</text>
     <text class="reward-moment__copy">{{mode==='redeemed'?'这份洗护，属于你了。':'这一份，送给你。'}}</text>
     <view class="reward-moment__products {{mode==='redeemed'?'reward-moment__products--single':''}}" aria-hidden="true">
-     <image wx:if="{{mode!=='redeemed'||bundle==='moisture'||bundle==='dandruff'}}" class="reward-moment__bottles {{mode==='redeemed'?(bundle==='dandruff'?'reward-moment__bottles--dandruff':'reward-moment__bottles--moisture'):''}}" src="/assets/cisme/travel-ticket-products-v1.webp" mode="aspectFit"/>
+     <image wx:if="{{mode!=='redeemed'||bundle==='moisture'||bundle==='dandruff'}}" class="reward-moment__bottles {{mode==='redeemed'?(bundle==='dandruff'?'reward-moment__bottles--dandruff':'reward-moment__bottles--moisture'):''}}" src="/assets/cisme/travel-ticket-products-v1.png" mode="aspectFit"/>
      <image wx:else class="reward-moment__fallback" src="{{image}}" mode="aspectFit"/>
     </view>
     <view wx:if="{{mode==='offer'}}" class="reward-moment__labels"><view><text class="reward-moment__set">净润洗护套</text><text class="reward-moment__spec">100mL + 100mL</text></view><view><text class="reward-moment__set">净屑洗护套</text><text class="reward-moment__spec">50mL + 100mL</text></view></view>

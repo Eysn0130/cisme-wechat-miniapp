@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "b24ce3a760bc6086eec088f04450bb114e05db34b3aa24224642c647285260f6",
+  "packageSourceSha256": "5b77bbc7fa8fe5d18c62167390b45befaae6f96bee3329be74dbcac2bad5269d",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 当前包包含退款确认后的售后办结、订单售后进度页和全局原生文本键盘交互。完整路由、字号和真机范围独立取证，历史验收沿用原来源。",
+  "note": "2026-11-27 当前包修复分享官资格与礼遇素材、活动奖励和历史领取订单图片。原生包门禁校验 WXML 静态图片文件与分包访问范围。完整路由、字号和真机范围独立取证。",
   "previousSourceRecord": {
-    "packageSourceSha256": "53cbabd71b6a473bce840ccb359cf6eaff3cd09463c3c79467e77c6b6d0663da",
-    "scope": "Official DevTools used isolated fixtures for the previous support chat composer and takeover button."
+    "packageSourceSha256": "b24ce3a760bc6086eec088f04450bb114e05db34b3aa24224642c647285260f6",
+    "scope": "Official DevTools used isolated fixtures for refund completion, after-sales history and native keyboard interaction."
   },
   "pendingSourceRebind": false
 }

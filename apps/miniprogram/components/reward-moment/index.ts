@@ -3,7 +3,7 @@ import {commerceContextRevision} from '../../services/commerce-command-store';
 type Runtime={visible:boolean;alive:boolean;timers:Array<ReturnType<typeof setTimeout>>;token:string;context:number;owner:string;reference:string;mode:string;done:boolean};
 const runtime=new WeakMap<object,Runtime>();
 let materialWarmed=false;
-function warm(){if(materialWarmed||typeof wx.getImageInfo!=='function')return;materialWarmed=true;for(const src of ['/assets/cisme/travel-ticket-surface-v1.webp','/assets/cisme/travel-ticket-products-v1.webp'])wx.getImageInfo({src,fail:()=>{materialWarmed=false;}});}
+function warm(){if(materialWarmed||typeof wx.getImageInfo!=='function')return;materialWarmed=true;for(const src of ['/assets/cisme/travel-ticket-surface-v1.png','/assets/cisme/travel-ticket-products-v1.png'])wx.getImageInfo({src,fail:()=>{materialWarmed=false;}});}
 function stop(c:any){const r=runtime.get(c);if(!r)return;for(const timer of r.timers)clearTimeout(timer);r.timers=[];if(c.data.showing)c.setData({showing:false});}
 function active(c:any,r:Runtime|undefined):r is Runtime{return Boolean(r&&r.alive&&r.visible&&!r.done&&c.properties.open&&r.owner===c.properties.owner&&r.reference===c.properties.reference&&r.mode===c.properties.mode&&r.token===getApp<IAppOption>().globalData.sessionToken&&r.context===commerceContextRevision());}
 Component({

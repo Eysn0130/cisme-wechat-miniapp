@@ -159,7 +159,7 @@ Page({
   if(!this.data.wallet?.canShare){this.setData({...giftClear});return;}
   const result=await officerRewardOffers(this);if(!this.current(epoch)||result.memberId!==this.data.memberId)return;
   const activity=result.activities.find(a=>a.id===this.data.giftActivityId)??result.activities[0];
-  this.setData({giftActivities:result.activities,giftActivityId:activity?.id??'',giftActivityTitle:activity?.title??'',giftActivityIndex:Math.max(0,result.activities.findIndex(a=>a.id===activity?.id)),giftShare:null,giftBundles:(activity?.bundles??[]).map(b=>({...b,photo:`/pages/sharing-officer/assets/travel-${b.code}-pair-v3.webp`,benefit:b.code==='moisture'?'温和净洗 · 柔顺有光':'控油净屑 · 洗后清爽'})),giftAvailable:activity?.bundles.some(b=>b.available)??false});
+  this.setData({giftActivities:result.activities,giftActivityId:activity?.id??'',giftActivityTitle:activity?.title??'',giftActivityIndex:Math.max(0,result.activities.findIndex(a=>a.id===activity?.id)),giftShare:null,giftBundles:(activity?.bundles??[]).map(b=>({...b,photo:`/pages/sharing-officer/assets/travel-${b.code}-pair-v3.png`,benefit:b.code==='moisture'?'温和净洗 · 柔顺有光':'控油净屑 · 洗后清爽'})),giftAvailable:activity?.bundles.some(b=>b.available)??false});
   if(this.data.giftAvailable)await this.prepareGiftShare(epoch);
  },
  async chooseGiftActivity(e:WechatMiniprogram.PickerChange){if(!this.current()||this.data.loading||this.data.giftShareBusy)return;const a=this.data.giftActivities[Number(e.detail.value)];if(!a||a.id===this.data.giftActivityId)return;this.setData({giftActivityId:a.id,giftShare:null,giftError:''});await this.load();},
