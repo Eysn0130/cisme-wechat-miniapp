@@ -11,10 +11,15 @@ const deliveryLabels:Record<string,string>={awaiting_dispatch:"待发货",not_re
 const orderIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const inlineActions = ['request_refund','approve_pending_refund','approve_return','reject','reject_pending_refund'];
 const primaryActions = ['approve_pending_refund','request_refund','approve_return','send_return_instruction','receive_return','inspect_return','reopen_refund','resolve_old_route'];
+const caseHeadlines:Record<string,string> = {
+ need_info:"待补充资料",awaiting_instruction:"待发送退货地址",awaiting_return:"待买家寄回",
+ return_in_transit:"退货运输中",return_received:"退货待质检",quality_checked:"退款待处理",
+ refund_exception_approved:"退款待处理"
+};
 type DecisionAttempt = {key:string;caseId:string;subjectId:string;version:number;path:string;data:Record<string,unknown>;success:string;uncertain:boolean};
 const emptyAftersale = {
  decision:"" as ManagementAftersaleAction|"",decisionLabel:"",decisionInline:false,
- canReject:false,rejectAction:"",rejectLabel:"",canContact:false,caseType:"",caseAmount:"",caseItems:"",caseReason:"",caseHint:"",caseError:""
+ canReject:false,rejectAction:"",rejectLabel:"",canContact:false,caseType:"",caseHeadline:"",caseAmount:"",caseItems:"",caseReason:"",caseHint:"",caseError:""
 };
 const emptyForm=()=>({carrierCode:"",carrierName:"",trackingNumber:"",evidenceReference:""});
 const noCourierOptions=[{method:"local_delivery",label:"同城配送"},{method:"pickup",label:"用户自提"}] as const;
@@ -114,7 +119,10 @@ Page({
    this.setData({
     decision:primary?.action??"",decisionLabel:primary?.label??"",decisionInline:inlineActions.includes(primary?.action??""),
     canReject:Boolean(rejection),rejectAction:rejection?.action??"",rejectLabel:rejection?.label??"",
-    caseType:row.kind==='return_refund'&&row.fulfillment?.state==='shipped'?'退货退款':'退款申请',
+    caseType:row.kind==='return_refund'&&row.fulfillment?.state==='shipped'?'退货申请':'退款申请',
+    caseHeadline:active?(row.state==='requested'
+     ?(row.kind==='return_refund'&&row.fulfillment?.state==='shipped'?"退货待处理":"退款待处理")
+     :caseHeadlines[row.state??""]??""):"",
     caseAmount:centsToYuan(row.amountCents??-1),caseItems:wholeOrder?"":caseLines.map(orderLineSummary).join("、"),caseReason:row.reason??"",
     caseHint:active&&row.canReview===false?"请由另一位售后管理员处理此申请。"
       :active&&row.refund?.reviewState==='requested'&&!primary?"待具备退款权限的管理员审批。"

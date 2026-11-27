@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "86aac543d65919d02938e10d3572d98649b4b3f2f4520f9a289b77b6eb22d937",
+  "packageSourceSha256": "712fa4b296f763bb88358275679685267c1fae739b8576ffc2e561064ba78855",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 微信开发者工具使用隔离数据核对了选定商城布局、原订单的退款和退货入口、客服会话恢复。游客访问体验目录只走公开读取。完整状态、字号、真实退款和真机矩阵仍待验。",
+  "note": "2026-11-27 本轮微信开发者工具验收范围包括选定的商城和管理订单详情、退款退货操作，以及客服售后资料折叠、订单关联恢复与共用输入条。完整状态、字号、真实退款和真机矩阵仍待验。",
   "previousSourceRecord": {
     "packageSourceSha256": "88469454ab0c1a0b006307ec89ac0542b4dbb7407fcff4aa46554ad7066d7625",
     "scope": "Official DevTools used isolated fixtures to check the prior order detail, fulfillment entries and shared support interface."

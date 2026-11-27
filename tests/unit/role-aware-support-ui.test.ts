@@ -20,13 +20,14 @@ describe("role-aware native support UX",()=>{
   for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("?after=");expect(logic).toContain("?before=");expect(logic).toContain("mergeSyncPage");expect(logic).toContain("pollInFlight");expect(logic).not.toContain("setInterval");}
   expect(state).toContain("Only a response from the synchronization endpoint may advance");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("retainMemberSnapshot(this)");
- expect(state).toContain("CISME AI 客服");expect(userView).toContain("{{item.senderLabel}}");expect(userView).toContain("handoffBusy ? '正在申请人工…' : '申请人工'");expect(operatorView).toContain("接管会话");expect(operatorView).toContain("结束本次服务");
+ expect(state).toContain("CISME AI 客服");expect(userView).toContain("{{item.senderLabel}}");expect(userView).toContain("handoffBusy ? '正在申请人工…' : '申请人工'");expect(operatorView).toContain("接管会话");
+  expect(operatorView).toContain('bindtap="openConversationMenu"');expect(operatorLogic).toContain('label:"结束会话"');
   expect(operatorLogic).toContain("wx.showModal");expect(operatorLogic).toContain("member.support_view");
   expect(userLogic).toContain("const sendAttempt = previous ??");expect(userLogic).toContain("linkedOrderId = previous ? previous.linkedOrderId");expect(operatorLogic).toContain("const sendAttempt = previous ??");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("sendAttempt.id");
  });
  it('keeps one local topic-head welcome separate from real messages, thinking and human request status',async()=>{
-  const [view,style]=await Promise.all([read('apps/miniprogram/pages/support/index.wxml'),read('apps/miniprogram/pages/support/index.wxss')]);
+  const [view,style,composer]=await Promise.all([read('apps/miniprogram/pages/support/index.wxml'),read('apps/miniprogram/pages/support/index.wxss'),read('apps/miniprogram/styles/support-chat-layout.wxss')]);
   expect(view.startsWith('<page-meta root-font-size="system"/>')).toBe(true);
   const welcome=view.match(/<view wx:if="([^"]+)" class="support-message[^"\n]*support-welcome-message"/);
   expect(welcome?.[1]).toContain('historyLoaded');expect(welcome?.[1]).toContain('historyStartLoaded');expect(welcome?.[1]).toContain('!closedRights');
@@ -41,7 +42,7 @@ describe("role-aware native support UX",()=>{
   expect(style).toContain('min-height: 44px');expect(style).toContain('@media (prefers-reduced-motion: reduce)');
   const chatFonts={'.support-bubble':'.875rem','.support-message__sender':'.75rem','.support-message__meta':'.6875rem','.support-input':'.875rem','.support-human':'.75rem','.support-system__notice':'.8125rem','.support-presence':'.75rem'};
   for(const [selector,size] of Object.entries(chatFonts)){
-    const declaration=style.split(`${selector} {`)[1]?.split('}')[0];
+    const declaration=(selector==='.support-input'?composer:style).split(`${selector} {`)[1]?.split('}')[0];
     expect(declaration,selector).toMatch(new RegExp(`font-size:\\s*${size.replace('.','\\.')}\\s*;`));
   }
   expect(style).not.toContain('.support-bubble--welcome');

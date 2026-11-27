@@ -34,7 +34,7 @@ describe('operator support generation isolation',()=>{
   await p.onShow();
   expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([3]);
   expect(p.data).toMatchObject({conversation:{id:conversation.id},accessDenied:false,replyTarget:null,composerSendEnabled:false});
-  expect(p.data.contactCaseError).toContain('关联原订单');
+  expect(p.data.contactCaseUnavailable).toBe(true);
  });
  it('rebuilds the same conversation ID and clears old bubbles, draft, cursor and typing',async()=>{
   p.data.presence.memberTyping=true;p.data.pendingMessage=message(3);p.data.anchor='retired';p.data.newMessagesBelowCount=2;
@@ -128,6 +128,15 @@ describe('operator reads crossing a confirmed newer assignment',()=>{
  });
 });
 describe('operator replies bind an explicit question',()=>{
+ it('offers the authorized handoff and close commands from a single conversation menu',async()=>{
+   await loadHuman();
+   p.setData({canReturnToQueue:true,canViewContext:true});
+   p.returnToQueue=vi.fn();
+   (wx as any).showActionSheet=vi.fn().mockResolvedValue({tapIndex:2});
+   await p.openConversationMenu();
+   expect(wx.showActionSheet).toHaveBeenCalledWith({itemList:['会员信息','查看原问题','交回会话','结束会话']});
+   expect(p.returnToQueue).toHaveBeenCalledOnce();
+ });
  it('shows the authorized original summary before claim even when the source is outside the loaded page',async()=>{
   const summary='请核对原订单的退款金额';
   await loadHuman({conversation:{...activeConversation,status:'waiting_human'},assignedToMe:false,

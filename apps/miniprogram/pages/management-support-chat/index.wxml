@@ -1,5 +1,6 @@
+<page-meta root-font-size="system"/>
 <view class="operator-shell" style="{{chromeStyle}}">
-  <view class="topbar operator-topbar {{canViewContext ? 'operator-topbar--with-info' : ''}}">
+  <view class="topbar operator-topbar {{conversation && (canViewContext || canManageAftersale && (aftersaleCases.length || aftersaleError) || canReturnToQueue && !sendAttempt || assignedToMe && canReply && conversation.status === 'human_active' && (!caseContact && humanRequest.anchorKnown || !sendAttempt && (!caseContact || replyTarget.aftersale && !contactCaseUnavailable))) ? 'operator-topbar--with-info' : ''}}">
     <button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button>
     <view class="operator-title">
       <text class="topbar__title">{{memberDisplayName}}</text>
@@ -7,7 +8,7 @@
         <text class="operator-status__dot">●</text><text class="operator-status__label">{{statusLabel}}</text>
       </view>
     </view>
-    <button wx:if="{{canViewContext}}" class="operator-more {{loading || busy ? 'control--disabled' : ''}}" bindtap="openContext" disabled="{{loading || busy}}" aria-label="查看必要用户信息">···</button>
+    <button wx:if="{{conversation && (canViewContext || canManageAftersale && (aftersaleCases.length || aftersaleError) || canReturnToQueue && !sendAttempt || assignedToMe && canReply && conversation.status === 'human_active' && (!caseContact && humanRequest.anchorKnown || !sendAttempt && (!caseContact || replyTarget.aftersale && !contactCaseUnavailable)))}}" class="operator-more {{loading || busy ? 'control--disabled' : ''}}" bindtap="openConversationMenu" disabled="{{loading || busy}}" aria-label="会话操作">···</button>
   </view>
 
   <view class="support-chat-layout {{keyboardHeight ? 'support-chat-layout--with-keyboard' : ''}}" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px' : ''}}">
@@ -17,19 +18,24 @@
     <view wx:if="{{loading && !conversation}}" class="operator-state" aria-live="polite">正在加载聊天记录…</view>
     <button wx:if="{{olderCursor !== null}}" class="text-button {{loading || loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loading || loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
 
-    <view wx:if="{{aftersalePreview}}" class="operator-case-preview">
-      <view class="operator-case-preview__top">
-        <text class="operator-case-preview__title">{{aftersalePreview.label}}</text>
-        <button class="text-button operator-case-preview__open" data-id="{{aftersalePreview.id}}" bindtap="openManageAftersale">查看售后</button>
+    <view wx:if="{{aftersalePreview || contactCaseUnavailable}}" class="operator-case-preview">
+      <view class="operator-case-preview__row">
+        <button wx:if="{{aftersalePreview}}" class="operator-case-preview__toggle" bindtap="toggleAftersalePreview" aria-expanded="{{aftersaleExpanded}}">
+          <text class="operator-case-preview__title">{{aftersalePreview.label}}</text>
+          <text class="operator-case-preview__control">{{aftersaleExpanded ? '收起' : '展开'}}</text>
+        </button>
+        <button wx:if="{{contactCaseUnavailable}}" class="text-button operator-case-preview__link" bindtap="retry">重新关联</button>
       </view>
-      <view class="operator-case-preview__top">
-        <text wx:if="{{aftersalePreview.orderNumberTail}}" class="operator-case-preview__order">订单尾号 {{aftersalePreview.orderNumberTail}}</text>
-        <text wx:if="{{aftersalePreview.amount}}" class="operator-case-preview__amount">¥{{aftersalePreview.amount}}</text>
+      <view wx:if="{{aftersaleExpanded && aftersalePreview}}">
+        <view class="operator-case-preview__facts">
+          <text wx:if="{{aftersalePreview.orderNumberTail}}" class="operator-case-preview__order">订单尾号 {{aftersalePreview.orderNumberTail}}</text>
+          <text wx:if="{{aftersalePreview.amount}}" class="operator-case-preview__amount">¥{{aftersalePreview.amount}}</text>
+        </view>
+        <text wx:if="{{aftersalePreview.summary}}" class="operator-case-preview__body">{{aftersalePreview.summary}}</text>
+        <text wx:if="{{aftersalePreview.reason}}" class="operator-case-preview__body">{{aftersalePreview.reason}}</text>
+        <button class="text-button operator-case-preview__link" data-id="{{aftersalePreview.id}}" bindtap="openManageAftersale">查看售后</button>
       </view>
-      <text wx:if="{{aftersalePreview.summary}}" class="operator-case-preview__body">{{aftersalePreview.summary}}</text>
-      <text wx:if="{{aftersalePreview.reason}}" class="operator-case-preview__body">{{aftersalePreview.reason}}</text>
     </view>
-    <view wx:if="{{contactCaseError}}" class="operator-error" aria-live="polite"><text>{{contactCaseError}}</text><button bindtap="retry">刷新</button></view>
     <view wx:if="{{conversation && !loading && !error && !messages.length}}" class="operator-state" aria-live="polite">当前对话暂无消息</view>
 
     <block wx:for="{{messages}}" wx:key="id">
@@ -92,37 +98,22 @@
   <button wx:if="{{newMessagesBelowCount > 0}}" class="operator-new-message" bindtap="jumpToLatest" aria-label="查看 {{newMessagesBelowCount}} 条新消息">↓ {{newMessagesBelowCount}} 条新消息</button>
   </view>
 
-  <view wx:if="{{!loading || conversation}}" class="operator-actions {{composerFocused ? 'operator-actions--focused' : ''}}">
-    <view wx:if="{{conversation && (humanIssueSummary || replyTarget.aftersale || humanRequest.anchorKnown) && (conversation.status === 'waiting_human' || conversation.status === 'human_active' && !(assignedToMe && canReply))}}" class="operator-human-issue" aria-live="polite">
-      <text class="operator-human-issue__title">{{replyTarget.aftersale ? '售后' : '原问题'}}</text>
-      <text class="operator-human-issue__summary">{{replyTarget.aftersale ? replyTarget.summary : humanIssueSummary || (humanRequest && humanRequest.anchorKnown ? '请查看更早消息' : '请向会员确认')}}</text>
+  <view wx:if="{{conversation.status === 'human_active' && assignedToMe && canReply && (!caseContact || !contactCaseUnavailable && (replyTarget.aftersale || sendAttempt))}}" class="support-composer">
+    <view class="support-composer__surface {{composerFocused ? 'support-composer__surface--focused' : ''}}">
+      <view wx:if="{{replyTarget && !replyTarget.aftersale && !replyTargetNeedsRefresh}}" class="operator-reply-target" aria-live="polite">
+        <text class="operator-reply-target__label">引用</text><text class="operator-reply-target__summary">{{replyTarget.summary}}</text>
+      </view>
+      <view class="support-composer__controls {{composerLineCount > 1 ? 'support-composer__controls--multiline' : ''}}">
+        <textarea class="operator-input support-input {{composerCapped ? 'support-input--capped' : ''}}" aria-label="回复消息" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{sendAttempt ? '请先核对上条回复' : replyTargetNeedsRefresh ? '刷新后回复' : replyTarget ? '输入消息' : '选择消息后回复'}}" placeholder-class="support-input__placeholder" disabled="{{loading || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}"/>
+        <view class="support-composer__tools support-chat-tools">
+          <button class="support-tool support-tool--send {{loading || !composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh ? 'control--disabled' : ''}} {{composerSendEnabled && !loading && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? 'support-tool--send-active' : 'support-tool--send-disabled'}}" bindtap="send" disabled="{{loading || !composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}" aria-label="{{busy ? '正在发送回复' : '发送回复'}}"><image src="{{composerSendEnabled && !loading && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
+        </view>
+      </view>
     </view>
-    <button wx:if="{{canManageAftersale && (aftersaleCases.length > 1 || !aftersalePreview && aftersaleCases.length || aftersaleError)}}" class="operator-aftersale-entry {{loading||busy?'control--disabled':''}}" bindtap="openAftersales" disabled="{{loading || busy}}">本会话售后</button>
-    <button wx:if="{{conversation && conversation.status === 'waiting_human' && canAssign && canReply}}" class="operator-claim {{loading || busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{loading || busy || sendAttempt}}">接管会话</button>
-    <view wx:elif="{{conversation && conversation.status === 'waiting_human' && (!canAssign || !canReply)}}" class="operator-owned">等待有接待权限的客服接管</view>
-    <view wx:elif="{{conversation && conversation.status === 'human_active' && !assignedToMe && !canReturnToQueue}}" class="operator-owned">这次会话正由其他客服处理</view>
-    <view wx:elif="{{conversation && conversation.status === 'resolved'}}" class="operator-owned">本次服务已结束，等待会员再次发起</view>
+  </view>
+  <view wx:elif="{{conversation.status === 'waiting_human' && canAssign && canReply || input && !assignedToMe}}" class="support-composer">
     <view wx:if="{{input && !assignedToMe}}" class="operator-draft-notice">未发送的草稿已保留，接管后可继续编辑</view>
-    <view wx:if="{{assignedToMe && conversation.status === 'human_active' && !canReply && !canReturnToQueue}}" class="operator-owned">当前账号暂无回复权限，请联系管理员</view>
-    <view wx:if="{{conversation && conversation.status === 'human_active' && (canReturnToQueue || assignedToMe && canReply && (!caseContact || !contactCaseError && (replyTarget.aftersale || sendAttempt)))}}">
-      <view class="operator-compose__head">
-        <view wx:if="{{!caseContact || !contactCaseError && replyTarget.aftersale}}" class="operator-reply-target" aria-live="polite">
-          <text wx:if="{{assignedToMe && canReply && replyTarget && !replyTargetNeedsRefresh}}" class="operator-reply-target__label">{{replyTarget.aftersale ? '售后' : '引用'}}</text>
-          <text class="operator-reply-target__summary">{{assignedToMe && canReply ? (replyTargetNeedsRefresh ? '请刷新后确认回复问题' : replyTarget ? replyTarget.summary : '点选要回复的消息') : (assignedToMe ? '当前账号暂无回复权限' : '其他客服接待中')}}</text>
-        </view>
-        <view class="operator-compose__commands">
-          <button wx:if="{{canReturnToQueue}}" hover-class="operator-text-action--pressed" class="operator-return operator-text-action {{loading || busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="returnToQueue" disabled="{{loading || busy || sendAttempt}}" aria-label="交回待接待"><text>交回</text></button>
-          <button wx:if="{{assignedToMe && canReply && (!caseContact || !contactCaseError && (replyTarget.aftersale || sendAttempt))}}" hover-class="operator-text-action--pressed" class="operator-resolve operator-text-action {{loading || busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="resolve" disabled="{{loading || busy || sendAttempt}}" aria-label="{{sendAttempt ? '请先核对上条回复，再结束人工事项' : '结束本次服务'}}"><text>结束</text></button>
-        </view>
-      </view>
-      <view wx:if="{{assignedToMe && canReply && (!caseContact || !contactCaseError && (replyTarget.aftersale || sendAttempt))}}" class="operator-compose {{composerFocused ? 'operator-compose--focused' : ''}}">
-        <textarea class="operator-input {{composerCapped ? 'operator-input--capped' : ''}}" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{sendAttempt ? '请先核对上条回复' : replyTarget ? '以人工客服身份回复' : '先选择要回复的问题'}}" placeholder-class="operator-input__placeholder" disabled="{{loading || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}"/>
-        <view class="operator-compose__tools support-chat-tools">
-          <button wx:if="{{!caseContact && !replyTarget.aftersale && humanRequest && humanRequest.anchorKnown && (!replyTarget || replyTargetNeedsRefresh || replyTarget.id !== humanRequest.anchorMessageId)}}" hover-class="operator-text-action--pressed" class="operator-original operator-text-action" bindtap="openOriginalIssue">查看原问题</button>
-          <button class="operator-send {{loading || !composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh ? 'control--disabled' : ''}} {{composerSendEnabled && !loading && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? 'operator-send--active' : 'operator-send--disabled'}}" bindtap="send" disabled="{{loading || !composerSendEnabled || busy || sendAttempt || !replyTarget || replyTargetNeedsRefresh}}" aria-label="{{busy ? '正在发送回复' : '发送回复'}}"><image src="{{composerSendEnabled && !loading && !busy && !sendAttempt && replyTarget && !replyTargetNeedsRefresh ? '/assets/icons/composer-send-white.svg' : '/assets/icons/composer-send-muted.svg'}}"/></button>
-        </view>
-      </view>
-    </view>
+    <button wx:if="{{conversation.status === 'waiting_human' && canAssign && canReply}}" class="operator-claim {{loading || busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{loading || busy || sendAttempt}}">接管会话</button>
   </view>
   </view>
 

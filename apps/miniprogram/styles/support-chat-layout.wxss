@@ -42,3 +42,121 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.support-composer {
+  position: relative;
+  z-index: 30;
+  flex: none;
+  padding: 14rpx 20rpx calc(var(--cisme-chat-safe-bottom) + 14rpx);
+  background: transparent;
+}
+
+.support-composer--focused {
+  background: transparent;
+}
+
+.support-composer__surface {
+  position: relative;
+  overflow: hidden;
+  border: 1rpx solid rgba(78, 47, 91, .13);
+  border-radius: 30rpx;
+  background: #fff;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.support-composer__surface--focused {
+  border-color: rgba(86, 48, 111, .44);
+  box-shadow: 0 0 0 4rpx rgba(86, 48, 111, .075);
+}
+
+.support-composer__controls {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 6rpx 10rpx 6rpx 24rpx;
+}
+
+.support-composer__controls--multiline {
+  align-items: flex-end;
+}
+
+.support-input {
+  display: block;
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  min-height: var(--cisme-hit-target);
+  max-height: calc(6rem + 20px);
+  box-sizing: border-box;
+  padding: 10px 0;
+  overflow-y: auto;
+  border: 0;
+  color: #352a3a;
+  background: transparent;
+  font-size: .875rem;
+  line-height: 1.5rem;
+}
+
+.support-input--capped {
+  height: calc(6rem + 20px);
+}
+
+.support-input__placeholder {
+  color: var(--cisme-muted);
+  font-size: .875rem;
+  font-weight: 400;
+  line-height: 1.5rem;
+}
+
+.support-composer__tools {
+  align-items: center;
+  gap: 4rpx;
+  flex: none;
+  min-height: var(--cisme-hit-target);
+  padding: 0;
+}
+
+.support-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  transition: opacity 120ms ease, transform 120ms ease, background-color 160ms ease;
+}
+
+.support-tool image {
+  width: 22px;
+  height: 22px;
+}
+
+.support-tool:active {
+  background: #f1e9f3;
+  transform: scale(.96);
+}
+
+.support-tool--disabled {
+  opacity: .38;
+}
+
+.support-tool--send {
+  margin-left: 4rpx;
+}
+
+.support-tool--send-active {
+  background: #56306f;
+  box-shadow: 0 6rpx 16rpx rgba(70, 38, 91, .18);
+}
+
+.support-tool--send-active:active {
+  background: #432458;
+}
+
+.support-tool--send-disabled {
+  background: #eee8f0;
+}

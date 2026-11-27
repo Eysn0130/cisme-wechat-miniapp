@@ -95,7 +95,7 @@ Page({
     accessDenied: false,
     canViewContext: false,
     canManageAftersale:false,aftersaleCases:[] as AftersaleCase[],aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
-    aftersalePreview:null as AftersalePreview|null,caseContact:false,contactCaseError:"",
+    aftersalePreview:null as AftersalePreview|null,aftersaleExpanded:false,caseContact:false,contactCaseUnavailable:false,
     returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""} as ReturnForm,
     freightOptions:['商家承担','用户承担'],
     returnAttempt:null as {key:string;caseId:string;payload:Record<string,unknown>}|null,
@@ -166,7 +166,7 @@ Page({
       }
       this.setData({ canAssign, canReply, canViewContext,canManageAftersale,
         ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}),
-        ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],aftersalePreview:null,returnFormCaseId:"",returnAttempt:null}:{}) });
+        ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],aftersalePreview:null,aftersaleExpanded:false,returnFormCaseId:"",returnAttempt:null}:{}) });
       const recovered = takeSupportRecovery<OperatorRecovery>(ownerToken, this.readRevision, this.recoveryKey());
       if (canReply && recovered) { this.pendingRecovery = recovered; this.recoveryOwner = ownerToken; this.recoveryRevision = this.readRevision; }
       const contactRead=this.contactCaseId?this.loadContactCase(epoch,ownerToken):null;
@@ -257,7 +257,7 @@ Page({
       canReply: false,
       canReturnToQueue: false,
       canViewContext: false,
-      canManageAftersale:false,aftersaleCases:[],aftersalePreview:null,contactCaseError:"",aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
+      canManageAftersale:false,aftersaleCases:[],aftersalePreview:null,aftersaleExpanded:false,contactCaseUnavailable:false,aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
       returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""},returnAttempt:null,
       input: "",
       sendAttempt: null,
@@ -585,17 +585,17 @@ Page({
         orderNumberTail:current.orderNumber?.slice(-4)??"",summary:current.lines?.map(item=>`${item.productName} × ${item.quantity}`).join("、")??"",
         amount:centsToYuan(current.amountCents??-1),reason:current.reason??""
       }:null;
-      this.setData({aftersaleCases:page.items,aftersalePreview,aftersaleError:""});
+      this.setData({aftersaleCases:page.items,aftersalePreview,aftersaleError:"",
+        aftersaleExpanded:Boolean(aftersalePreview&&this.data.aftersalePreview?.id===aftersalePreview.id&&this.data.aftersaleExpanded)});
     }catch(error){if(this.owns(epoch,token)){
-      if([401,403].includes((error as {status?:number})?.status??0))this.setData({canManageAftersale:false,aftersaleCases:[],aftersalePreview:null,aftersaleOpen:false,returnFormCaseId:"",returnAttempt:null});
+      if([401,403].includes((error as {status?:number})?.status??0))this.setData({canManageAftersale:false,aftersaleCases:[],aftersalePreview:null,aftersaleExpanded:false,aftersaleOpen:false,returnFormCaseId:"",returnAttempt:null});
       else this.setData({aftersaleError:"售后记录暂时无法核对，请稍后刷新。"});
     }}
   },
   async loadContactCase(epoch:number,token:string){
     this.contactCase=null;
-    this.setData({contactCaseError:"",composerSendEnabled:false});
+    this.setData({contactCaseUnavailable:false,composerSendEnabled:false});
     if(!this.data.canManageAftersale||!this.data.canReply){
-      this.setData({contactCaseError:"当前账号暂无本单的回复权限。"});
       return;
     }
     try{
@@ -604,12 +604,36 @@ Page({
       });
       if(!this.owns(epoch,token))return;
       const row=page.items.find(item=>item.id===this.contactCaseId&&item.canReview!==false&&item.orderNumber);
-      if(!row){this.setData({contactCaseError:"暂时无法关联原订单，请从订单详情重新进入。"});return;}
+      if(!row){this.setData({contactCaseUnavailable:true});return;}
       this.contactCase=row;
       if(this.data.conversation)this.setData(this.replyContextPatch({humanRequest:this.data.humanRequest},this.data.messages,this.data.contextVersion));
     }catch{
-      if(this.owns(epoch,token))this.setData({contactCaseError:"暂时无法关联原订单，请刷新后重试。"});
+      if(this.owns(epoch,token))this.setData({contactCaseUnavailable:true});
     }
+  },
+  toggleAftersalePreview(){
+    if(this.data.aftersalePreview)this.setData({aftersaleExpanded:!this.data.aftersaleExpanded});
+  },
+  async openConversationMenu(){
+    const epoch=this.lifecycleEpoch,token=sessionToken(),conversation=this.data.conversation;
+    if(!conversation||!this.owns(epoch,token)||this.data.loading||this.data.busy)return;
+    const actions:Array<{label:string;run:()=>void|Promise<void>}>=[];
+    const canHandle=this.data.assignedToMe&&this.data.canReply&&conversation.status==="human_active";
+    if(this.data.canViewContext)actions.push({label:"会员信息",run:()=>this.openContext()});
+    if(this.data.canManageAftersale&&(this.data.aftersaleCases.length||this.data.aftersaleError))
+      actions.push({label:"售后记录",run:()=>this.openAftersales()});
+    if(canHandle&&!this.contactCaseId&&this.data.humanRequest?.anchorKnown)
+      actions.push({label:"查看原问题",run:()=>this.openOriginalIssue()});
+    if(this.data.canReturnToQueue&&!this.data.sendAttempt)
+      actions.push({label:"交回会话",run:()=>this.returnToQueue()});
+    if(canHandle&&!this.data.sendAttempt&&(!this.contactCaseId||this.contactCase))
+      actions.push({label:"结束会话",run:()=>this.resolve()});
+    if(!actions.length)return;
+    try{
+      const result=await wx.showActionSheet({itemList:actions.map(action=>action.label)});
+      if(this.owns(epoch,token)&&this.data.conversation?.id===conversation.id)
+        await actions[result.tapIndex]?.run();
+    }catch{/* The operator may dismiss the native action sheet. */}
   },
   openAftersales(){if(this.data.canManageAftersale&&!this.data.busy){this.setData({aftersaleOpen:true,contextOpen:false});void this.loadAftersales();}},
   closeAftersales(){if(!this.data.busy)this.setData({aftersaleOpen:false});},
