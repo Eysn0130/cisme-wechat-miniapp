@@ -25,8 +25,8 @@ export const nativeRouteAccess: Readonly<Record<string, NativeRouteAccess>> = {
   "/pages/rewards/index": "member",
   "/pages/management-rewards/index": "member",
   "/pages/post/index": "public",
-  "/pages/shop/index": "member",
-  "/pages/product/index": "member",
+  "/pages/shop/index": "public",
+  "/pages/product/index": "public",
   "/pages/checkout/index": "member",
   "/pages/orders/index": "member",
   "/pages/order-detail/index": "member",
@@ -62,8 +62,8 @@ export function nativeRoutePath(url: string): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-/** Guests can read community pages and reach login, agreements and data rights.
- * Other areas require identity and confirmed avatar/nickname on Account. */
+/** Guests can browse the community and catalog, and open Account and legal pages.
+ * Member actions remain protected, including checkout and personal orders. */
 export function guestCommunityRouteAllowed(url:string):boolean {
   return nativeRouteAccess[nativeRoutePath(url)] === "public";
 }
