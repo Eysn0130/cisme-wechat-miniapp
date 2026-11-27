@@ -3,8 +3,8 @@ import { centsToYuan } from "../../services/commerce";
 import { managementOrder, managementShipment, shipmentCarriers, type ShipmentCarrier, dispatchShipment, reconcileShipment, clientOperationKey, orderLineSummary, type CommerceOrder, type ManagementOrderAddress, type NoCourierDelivery, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import {cancelPageReads, pageRead} from "../../services/page-requests";
-import { request } from "../../services/api";
-import { aftersaleContact, aftersaleLabels, managementAftersaleActions, pendingRefundDecision, refundApprovalAction, type ManagementAftersaleAction, type RefundReviewCase } from "../../services/order-aftersale";
+import { downloadPrivateMedia, request } from "../../services/api";
+import { aftersaleContact, aftersaleLabels, managementAftersaleActions, orderSupportImageIds, pendingRefundDecision, refundApprovalAction, type ManagementAftersaleAction, type OrderSupportImagePage, type RefundReviewCase } from "../../services/order-aftersale";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"支付已核验"};
 const syncLabels:Record<string,string>={prepared:"等待微信同步",dispatching:"正在提交微信",verifying:"微信结果核对中",synced:"微信已确认",manual_review:"微信同步待人工核对"};
 const deliveryLabels:Record<string,string>={awaiting_dispatch:"待发货",not_ready:"尚不满足发货条件",shipped:"已交寄",delivered:"已签收",exception:"物流异常"};
@@ -17,6 +17,11 @@ const caseHeadlines:Record<string,string> = {
  refund_exception_approved:"退款待处理"
 };
 type DecisionAttempt = {key:string;caseId:string;subjectId:string;version:number;path:string;data:Record<string,unknown>;success:string;uncertain:boolean};
+type CaseImage = {id:string;localPath:string;failed:boolean};
+type CaseImageRead = {
+ caseId:string;conversationId:string;generation:string;before:number|null;
+ jobs:Map<string,()=>void>;
+};
 const emptyAftersale = {
  decision:"" as ManagementAftersaleAction|"",decisionLabel:"",decisionInline:false,
  canReject:false,rejectAction:"",rejectLabel:"",canContact:false,caseType:"",caseHeadline:"",caseAmount:"",caseItems:"",caseReason:"",caseHint:"",caseError:""
@@ -35,8 +40,10 @@ Page({
  refreshInFlight:false,
  pendingDispatch:null as {key:string;input:ShipmentDispatchInput}|null,
  caseSnapshot:null as RefundReviewCase|null,
+ caseImageRead:null as CaseImageRead|null,
  pendingDecision:null as DecisionAttempt|null,
  data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",shippedLabel:"",syncLabel:"",messageLabel:"",canReadShipment:false,canDispatch:false,canOpenAftersale:false,...emptyAftersale,
+  caseImages:[] as CaseImage[],caseImagesBusy:false,caseImagesMore:false,caseImagesError:false,
   decisionBusy:false,decisionRetry:false,decisionFeedback:"",shipmentLoading:false,shipmentError:"",carriers:[] as ShipmentCarrier[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onLoad(query:Record<string,string|undefined>){const id=query.id??"";this.setData({id,invalidId:!orderIdPattern.test(id)});},
@@ -48,6 +55,7 @@ Page({
   if(this.refreshTimer!==null)clearInterval(this.refreshTimer);
   this.refreshTimer=null;this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;this.capabilities=[];cancelPageReads(this);
   this.caseSnapshot=null;
+  this.resetCaseImages();
   this.setData({carriers:[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",order:null,shipment:null,
    canReadShipment:false,canDispatch:false,canOpenAftersale:false,...emptyAftersale,decisionBusy:false,decisionRetry:false,decisionFeedback:"",
    form:emptyForm(),dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",shipmentError:""});
@@ -61,6 +69,7 @@ Page({
   if(this.lastReadToken!==token)this.pendingDecision=null;
   this.lastReadToken=token;
   this.pendingDispatch=null;this.capabilities=[];this.caseSnapshot=null;
+  this.resetCaseImages();
   this.setData({order:null,shipment:null,canReadShipment:false,canDispatch:false,canOpenAftersale:false,...emptyAftersale,
    decisionRetry:false,decisionFeedback:"",form:emptyForm(),loading:true,error:"",shipmentError:"",dispatchRecovery:false,dispatchMessage:""});
   if(this.data.invalidId){if(this.current(epoch,token))this.setData({loading:false,error:"请从订单列表选择一笔订单。"});return;}
@@ -132,14 +141,85 @@ Page({
     canContact:canReview&&this.capabilities.includes('support.read')&&this.capabilities.includes('support.reply'),
     decisionRetry:Boolean(this.pendingDecision),caseError:""
    });
+   const conversationId=row.supportConversationId??"";
+   if(canReview&&this.capabilities.includes('support.read')&&orderIdPattern.test(conversationId)){
+    if(this.caseImageRead?.caseId!==row.id||this.caseImageRead.conversationId!==conversationId){
+     this.resetCaseImages();
+     this.caseImageRead={caseId:row.id,conversationId,generation:"",before:null,jobs:new Map()};
+    }
+    void this.loadCaseImages();
+   }else if(this.caseImageRead)this.resetCaseImages();
   }catch(error){
    if(this.current(epoch,token)){
     const denied=[401,403].includes((error as {status?:number}).status??0);
     this.caseSnapshot=null;
+    this.resetCaseImages();
     this.setData({...emptyAftersale,canOpenAftersale:!denied,decisionRetry:false,
      caseError:denied?"当前账号没有售后处理权限。":"售后操作暂时无法核对，请刷新。"});
    }
   }
+ },
+ resetCaseImages(){
+  this.caseImageRead?.jobs.forEach(abort=>abort());
+  this.caseImageRead=null;
+  this.setData({caseImages:[],caseImagesBusy:false,caseImagesMore:false,caseImagesError:false});
+ },
+ async loadCaseImages(older=false){
+  const scope=this.caseImageRead,epoch=this.data.epoch,token=this.lastReadToken;
+  if(!scope||this.data.caseImagesBusy||this.caseSnapshot?.id!==scope.caseId||!this.current(epoch,token))return;
+  const before=older?scope.before:null;
+  if(older&&!before)return;
+  const owns=()=>this.current(epoch,token)&&this.caseImageRead===scope&&this.caseSnapshot?.id===scope.caseId;
+  this.setData({caseImagesBusy:true,caseImagesError:false});
+  try{
+   const page=await pageRead<OrderSupportImagePage>(this,{
+    path:`/v1/management/support/conversations/${scope.conversationId}/messages?limit=40${before?`&before=${before}`:""}`,
+    cacheTags:["support"]
+   });
+   if(!owns())return;
+   const ids=orderSupportImageIds(page,this.data.id,scope.conversationId);
+   const generation=`${page.contextVersion}:${page.contextStartSequence}`;
+   const changed=Boolean(scope.generation&&scope.generation!==generation);
+   const known=changed?[]:this.data.caseImages;
+   if(changed){scope.jobs.forEach(abort=>abort());scope.jobs.clear();}
+   if(!scope.generation||changed||older)scope.before=page.olderCursor;
+   scope.generation=generation;
+   const existing=new Set(known.map(image=>image.id));
+   const additions=ids.filter(id=>!existing.has(id)).map(id=>({id,localPath:"",failed:false}));
+   this.setData({caseImages:older?[...additions,...known]:[...known,...additions],caseImagesMore:Boolean(scope.before)});
+   for(const image of additions)this.loadCaseImage(image.id);
+  }catch(error){
+   if(!owns())return;
+   if([401,403,404].includes((error as {status?:number}).status??0))this.resetCaseImages();
+   else this.setData({caseImagesError:true});
+  }finally{
+   if(owns())this.setData({caseImagesBusy:false});
+  }
+ },
+ moreCaseImages(){return this.loadCaseImages(true);},
+ retryCaseImages(){return this.loadCaseImages();},
+ loadCaseImage(id:string){
+  const scope=this.caseImageRead,epoch=this.data.epoch,token=this.lastReadToken;
+  if(!scope||!this.current(epoch,token)||scope.jobs.has(id)||!this.data.caseImages.some(image=>image.id===id))return;
+  const generation=scope.generation;
+  const job=downloadPrivateMedia(`/v1/management/support/conversations/${scope.conversationId}/media/${id}`);
+  scope.jobs.set(id,job.abort);
+  const update=(localPath:string,failed:boolean)=>{
+   if(!this.current(epoch,token)||this.caseImageRead!==scope||scope.generation!==generation)return;
+   const index=this.data.caseImages.findIndex(image=>image.id===id);
+   if(index>=0)this.setData({[`caseImages[${index}]`]:{id,localPath,failed}});
+  };
+  void job.promise.then(path=>update(path,false)).catch(()=>update("",true))
+   .finally(()=>{if(scope.jobs.get(id)===job.abort)scope.jobs.delete(id);});
+ },
+ previewCaseImage(event:WechatMiniprogram.TouchEvent){
+  const id=String(event.currentTarget.dataset.id??"");
+  if(!this.caseImageRead||!this.current(this.data.epoch,this.lastReadToken))return;
+  const image=this.data.caseImages.find(item=>item.id===id);
+  if(image?.failed){this.loadCaseImage(id);return;}
+  if(image?.localPath)wx.previewImage({
+   current:image.localPath,urls:this.data.caseImages.flatMap(item=>item.localPath?[item.localPath]:[])
+  });
  },
  async decideAftersale(event:WechatMiniprogram.TouchEvent){
   const row=this.caseSnapshot,epoch=this.data.epoch,token=this.lastReadToken;

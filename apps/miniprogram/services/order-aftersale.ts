@@ -15,6 +15,7 @@ export type RefundReviewCase = {
   kind?:string;
   version?:number;
   orderNumber?:string;
+  supportConversationId?:string|null;
   reason?:string;
   amountCents?:number;
   lines?:Array<{lineId:string;productName:string;skuLabel:string;quantity:number}>;
@@ -31,6 +32,35 @@ export type RefundReviewCase = {
   returnDestination?:{version:number}|null;
   routeReviewOutcome?:string|null;
 };
+
+type SupportImage = {id:string;mimeType:string;previewPath:string};
+export type OrderSupportImagePage = {
+  conversation:{id:string};
+  contextVersion:number;
+  contextStartSequence:number;
+  olderCursor:number|null;
+  messages:Array<{
+    sequence:number;senderType:string;relatedOrderId?:string;
+    attachments?:SupportImage[];
+  }>;
+};
+
+export function orderSupportImageIds(page:OrderSupportImagePage,orderId:string,conversationId:string):string[] {
+  if(page.conversation?.id!==conversationId||!Number.isSafeInteger(page.contextVersion)||page.contextVersion<0
+    ||!Number.isSafeInteger(page.contextStartSequence)||page.contextStartSequence<0
+    ||(page.olderCursor!==null&&(!Number.isSafeInteger(page.olderCursor)||page.olderCursor<=page.contextStartSequence)))
+    throw Error("Invalid support image page");
+  const ids=new Set<string>();
+  const prefix=`/v1/management/support/conversations/${conversationId}/media/`;
+  for(const message of page.messages){
+    if(message.senderType!=="user"||message.relatedOrderId!==orderId||message.sequence<=page.contextStartSequence)continue;
+    for(const image of message.attachments??[]){
+      if(/^image\//.test(image.mimeType)&&/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(image.id)
+        &&image.previewPath===prefix+image.id)ids.add(image.id);
+    }
+  }
+  return [...ids];
+}
 
 export function aftersaleContact(caseId:string){
   return request<{caseId:string;orderId:string;conversationId:string}>({

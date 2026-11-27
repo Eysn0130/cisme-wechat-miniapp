@@ -194,6 +194,25 @@ it("requires a rejection reason and sends it on the same order",async()=>{
   }));
 });
 
+it("accepts only buyer images explicitly linked to the original order in the active conversation",async()=>{
+  const {orderSupportImageIds}=await import("../../apps/miniprogram/services/order-aftersale");
+  const matching='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const unrelated='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const image=(id:string)=>({id,mimeType:'image/jpeg',previewPath:`/v1/management/support/conversations/${conversationId}/media/${id}`});
+  const page={
+    conversation:{id:conversationId},contextVersion:2,contextStartSequence:4,olderCursor:null,
+    messages:[
+      {sequence:4,senderType:'user',relatedOrderId:orderId,attachments:[image(unrelated)]},
+      {sequence:5,senderType:'user',relatedOrderId:'another-order',attachments:[image(unrelated)]},
+      {sequence:6,senderType:'admin',relatedOrderId:orderId,attachments:[image(unrelated)]},
+      {sequence:7,senderType:'user',relatedOrderId:orderId,
+        attachments:[image(matching),image(matching),{...image(unrelated),previewPath:'/v1/other-path'}]}
+    ]
+  };
+  expect(orderSupportImageIds(page,orderId,conversationId)).toEqual([matching]);
+  expect(()=>orderSupportImageIds(page,orderId,unrelated)).toThrow('Invalid support image page');
+});
+
 it("keeps a settled refund out of dispatch without labeling the case as still in progress",async()=>{
   requireCapabilityMock.mockResolvedValue({capabilities});
   managementOrderMock.mockResolvedValue({...paid,refundedCents:paid.totalCents,aftersaleCaseId:caseId});

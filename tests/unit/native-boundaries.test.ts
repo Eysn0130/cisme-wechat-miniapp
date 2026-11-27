@@ -229,7 +229,7 @@ describe("native mini program boundary", () => {
       "management-catalog": ["back", "create", "load", "open", "loadMore"],
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back","openAftersale","openRewards","openFulfillment","clearDates","load","open","loadMore"],
-      "management-order-detail": ["back", "back", "load", "contactBuyer", "decideAftersale", "openAftersale", "decideAftersale", "decideAftersale", "openAftersale", "load", "retryShipment", "reconcile", "loadCarriers", "submitShipment", "submitWithoutLogistics", "load"],
+      "management-order-detail": ["back", "back", "load", "previewCaseImage", "retryCaseImages", "moreCaseImages", "decideAftersale", "openAftersale", "decideAftersale", "decideAftersale", "contactBuyer", "openAftersale", "load", "retryShipment", "reconcile", "loadCarriers", "submitShipment", "submitWithoutLogistics", "load"],
       aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit", "list", "clearAttention", "retry", "retry", "submit", "reconcile", "selectStage", "open", "next", "copyOrder", "openOrder", "prepareAction", "openFinance", "openChat", "closeAction", "submitPrepared"],
       "management-fulfillment": ["back", "retry", "retry", "openOrder", "next", "exportExcel", "chooseXlsx", "submit", "reconcileBatch", "newBatch", "openOrder"],
       "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "executeCorrection", "submit", "closeDetail"],

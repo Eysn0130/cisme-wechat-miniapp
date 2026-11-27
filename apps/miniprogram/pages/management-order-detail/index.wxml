@@ -9,26 +9,44 @@
   </view>
 </view>
 <view wx:if="{{order.aftersale || order.aftersaleCaseId}}" class="order-aftersale manage-order-review">
-  <view class="order-aftersale__heading">
-    <text class="manage-order-section__title">{{caseReason ? '申请原因' : caseType || '售后'}}</text>
-    <button wx:if="{{canContact}}" class="text-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" bindtap="contactBuyer" disabled="{{navigating || dispatchBusy || decisionBusy}}">联系用户</button>
+  <view class="order-aftersale__record">
+    <view class="order-aftersale__heading">
+      <text class="manage-order-section__title">{{caseReason ? '申请原因' : caseType || '售后'}}</text>
+    </view>
+    <text wx:if="{{canOpenAftersale && !caseType && !caseError}}" class="order-aftersale__hint">正在读取售后…</text>
+    <text wx:if="{{caseItems}}" class="order-aftersale__reason">{{caseItems}}</text>
+    <text wx:if="{{caseReason}}" class="order-aftersale__reason">{{caseReason}}</text>
+    <view wx:if="{{caseImages.length || caseImagesMore || caseImagesError}}" class="order-aftersale__photos">
+      <text wx:if="{{caseImages.length}}" class="order-aftersale__hint">本单图片</text>
+      <view wx:if="{{caseImages.length}}" class="order-aftersale__thumbnails">
+        <button wx:for="{{caseImages}}" wx:key="id" class="order-aftersale__thumbnail {{!item.localPath && !item.failed ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="previewCaseImage" disabled="{{!item.localPath && !item.failed}}" aria-label="{{item.failed ? '重新加载图片' : '查看图片 ' + (index + 1)}}">
+          <image wx:if="{{item.localPath}}" src="{{item.localPath}}" mode="aspectFill" aria-hidden="true"/>
+          <text wx:elif="{{item.failed}}">重试</text>
+          <image wx:else class="order-aftersale__placeholder" src="/assets/icons/images-plum.svg" mode="aspectFit" aria-hidden="true"/>
+        </button>
+      </view>
+      <button wx:if="{{caseImagesError}}" class="text-button {{caseImagesBusy ? 'control--disabled' : ''}}" bindtap="retryCaseImages" disabled="{{caseImagesBusy}}">重新加载图片</button>
+      <button wx:elif="{{caseImagesMore}}" class="text-button {{caseImagesBusy ? 'control--disabled' : ''}}" bindtap="moreCaseImages" disabled="{{caseImagesBusy}}">更早图片</button>
+    </view>
   </view>
-  <text wx:if="{{canOpenAftersale && !caseType && !caseError}}" class="order-aftersale__hint">正在读取售后…</text>
-  <text wx:if="{{caseItems}}" class="order-aftersale__reason">{{caseItems}}</text>
-  <text wx:if="{{caseReason}}" class="order-aftersale__reason">{{caseReason}}</text>
-  <view wx:if="{{!decisionRetry && (decision || canReject)}}" class="order-aftersale__actions">
-    <button wx:if="{{decision && decisionInline}}" class="primary-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" data-action="{{decision}}" bindtap="decideAftersale" disabled="{{navigating || dispatchBusy || decisionBusy}}" loading="{{decisionBusy}}">{{decisionLabel}}</button>
-    <button wx:elif="{{decision}}" class="primary-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" data-action="{{decision}}" bindtap="openAftersale" disabled="{{navigating || dispatchBusy || decisionBusy}}">{{decisionLabel}}</button>
-    <button wx:if="{{canReject}}" class="text-button order-aftersale__reject {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" data-action="{{rejectAction}}" bindtap="decideAftersale" disabled="{{navigating || dispatchBusy || decisionBusy}}">{{rejectLabel}}</button>
+  <view class="order-aftersale__controls">
+    <view wx:if="{{!decisionRetry && (decision || canReject)}}" class="order-aftersale__actions">
+      <button wx:if="{{decision && decisionInline}}" class="primary-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" data-action="{{decision}}" bindtap="decideAftersale" disabled="{{navigating || dispatchBusy || decisionBusy}}" loading="{{decisionBusy}}">{{decisionLabel}}</button>
+      <button wx:elif="{{decision}}" class="primary-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" data-action="{{decision}}" bindtap="openAftersale" disabled="{{navigating || dispatchBusy || decisionBusy}}">{{decisionLabel}}</button>
+      <button wx:if="{{canReject}}" class="text-button order-aftersale__reject {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" data-action="{{rejectAction}}" bindtap="decideAftersale" disabled="{{navigating || dispatchBusy || decisionBusy}}">{{rejectLabel}}</button>
+    </view>
+    <text wx:if="{{decisionFeedback || caseHint}}" class="order-aftersale__hint" aria-live="polite">{{decisionFeedback || caseHint}}</text>
+    <button wx:if="{{decisionRetry}}" class="text-button {{decisionBusy || navigating ? 'control--disabled' : ''}}" bindtap="decideAftersale" disabled="{{decisionBusy || navigating}}" loading="{{decisionBusy}}">重试原操作</button>
+    <view class="order-aftersale__footer">
+      <text wx:if="{{order.aftersale}}" class="order-aftersale__hint">本单发货暂停</text>
+      <view class="order-aftersale__links">
+        <button wx:if="{{canContact}}" class="text-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" bindtap="contactBuyer" disabled="{{navigating || dispatchBusy || decisionBusy}}">联系用户</button>
+        <button wx:if="{{canOpenAftersale}}" class="text-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" data-action="" bindtap="openAftersale" disabled="{{navigating || dispatchBusy || decisionBusy}}">售后进度</button>
+      </view>
+    </view>
+    <text wx:if="{{caseError}}" class="order-aftersale__hint" aria-live="polite">{{caseError}}</text>
+    <button wx:if="{{caseError}}" class="text-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" bindtap="load" disabled="{{navigating || dispatchBusy || decisionBusy}}">刷新</button>
   </view>
-  <text wx:if="{{decisionFeedback || caseHint}}" class="order-aftersale__hint" aria-live="polite">{{decisionFeedback || caseHint}}</text>
-  <button wx:if="{{decisionRetry}}" class="text-button {{decisionBusy || navigating ? 'control--disabled' : ''}}" bindtap="decideAftersale" disabled="{{decisionBusy || navigating}}" loading="{{decisionBusy}}">重试原操作</button>
-  <view class="order-aftersale__footer">
-    <text wx:if="{{order.aftersale}}" class="order-aftersale__hint">本单发货暂停</text>
-    <button wx:if="{{canOpenAftersale}}" class="text-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" data-action="" bindtap="openAftersale" disabled="{{navigating || dispatchBusy || decisionBusy}}">售后进度</button>
-  </view>
-  <text wx:if="{{caseError}}" class="order-aftersale__hint" aria-live="polite">{{caseError}}</text>
-  <button wx:if="{{caseError}}" class="text-button {{navigating || dispatchBusy || decisionBusy ? 'control--disabled' : ''}}" bindtap="load" disabled="{{navigating || dispatchBusy || decisionBusy}}">刷新</button>
 </view>
 <view wx:if="{{canReadShipment && (!order.aftersale || shipment.id)}}" class="admin-detail-card shipment-card">
   <view class="shipment-admin__heading">

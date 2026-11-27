@@ -1038,7 +1038,7 @@ Page({
     } catch (error) {
       if (this.owns(epoch, ownerToken)) this.setData({ error: !submitted ? "确认窗口暂时无法打开，人工接待和草稿已保留，请重试。"
         : (error as {code?:string})?.code === "AFTERSALE_CASE_ACTIVE"
-          ? this.data.canManageAftersale ? "本会话有待处理售后，请先通过“本会话售后”处理。" : "本会话有待处理售后，请联系有售后权限的同事处理。"
+          ? this.data.canManageAftersale ? "本会话有待处理售后，请先处理售后记录。" : "本会话有待处理售后，请联系有售后权限的同事处理。"
           : "结束结果或会话状态待确认，请刷新后核对。" });
     } finally {
       if (submitted && this.owns(epoch, ownerToken)) this.setData({ busy: false });
