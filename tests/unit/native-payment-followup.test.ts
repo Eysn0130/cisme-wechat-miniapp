@@ -76,6 +76,45 @@ describe("native payment follow-up ownership", () => {
     core.resolve({ ...order, status: "pending_payment", version: 3 }); await flush();
     expect(page.data.order.version).toBe(3); expect(page.data.coreReady).toBe(true);
   });
+  it.each([false, true])("checks the original order when the native callback arrives while hidden (cancelled: %s)", async nativeCancelled => {
+    const query = await prepare(), native = deferred();
+    vi.mocked(wx.requestPayment).mockReturnValueOnce(native.promise);
+    const payment = page.preparePayment(); await flush();
+    expect(wx.requestPayment).toHaveBeenCalledTimes(1);
+    page.onHide();
+    if (nativeCancelled) native.reject(new Error("synthetic native cancel")); else native.resolve({});
+    await flush();
+    const busyWhileHidden = page.data.busy;
+    const queries = () => mocks.request.mock.calls.filter(([options]) => options.path.endsWith("/payment-intent") && options.method !== "POST");
+    const queriesBeforeReturn = queries().length;
+
+    core = deferred(); page.onShow(); await flush();
+    const coreReadsWhileChecking = mocks.request.mock.calls.filter(([options]) => options.path === corePath()).length;
+    query.resolve({ state: nativeCancelled ? "notpay" : "paid" });
+    await payment; await flush();
+    core.resolve({ ...order, status: nativeCancelled ? "pending_payment" : "paid", version: 3 });
+    await flush();
+    expect(busyWhileHidden).toBe(true);
+    expect(queriesBeforeReturn).toBe(1);
+    expect(coreReadsWhileChecking).toBe(1);
+    expect(queries()).toHaveLength(1);
+    expect(page.data.order.status).toBe(nativeCancelled ? "pending_payment" : "paid");
+    expect(page.data.busy).toBe(false);
+  });
+  it("does not query the previous account's order when the native callback arrives after a session change", async () => {
+    const query = await prepare(), native = deferred();
+    vi.mocked(wx.requestPayment).mockReturnValueOnce(native.promise);
+    const payment = page.preparePayment(); await flush();
+    expect(wx.requestPayment).toHaveBeenCalledTimes(1);
+    page.onHide();
+    mocks.token = "member-b";
+    core = deferred(); auxiliary = deferred(); page.onShow();
+    native.resolve({}); query.resolve({ state: "paid" });
+    await payment; await flush();
+    expect(mocks.request.mock.calls.filter(([o]) => o.path.endsWith("/payment-intent") && o.method !== "POST")).toHaveLength(0);
+    expect(page.data.order).toBeNull();
+    expect(page.data.actionStatus).toBe("");
+  });
   it("cannot let the old query overwrite a newly signed-in account", async () => {
     const query = await prepare(), first = page.preparePayment(); await flush();
     mocks.token = "member-b"; core = deferred(); auxiliary = deferred(); page.onShow();

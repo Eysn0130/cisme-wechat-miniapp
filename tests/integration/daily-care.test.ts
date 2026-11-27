@@ -156,6 +156,9 @@ describe('real daily care HTTP/database persistence, identity and recovery',()=>
     expect(deleted.json()).toMatchObject({record:{id:saved.id,version:2,operationId:key,deleted:true},current:true,replayed:false});
     expect((await get(a)).json()).toMatchObject({items:[],today:null,totalCount:0});
     expect((await pool.query('SELECT 1 FROM daily_care_record WHERE id=$1',[saved.id])).rowCount).toBe(1);
+    const edit={...body,careDay:saved.careDay};
+    expect((await change(a,saved.id,'PUT',{...edit,expectedVersion:1})).json().code).toBe('VERSION_CONFLICT');
+    expect((await change(a,saved.id,'PUT',{...edit,expectedVersion:2})).json().code).toBe('DAILY_CARE_RECORD_DELETED');
     const restoreKey=randomUUID(),restored=await change(a,saved.id,'POST',{expectedVersion:2},restoreKey,true);
     expect(restored.statusCode,restored.body).toBe(200);expect(restored.json()).toMatchObject({record:{id:saved.id,version:3,operationId:restoreKey,deleted:false},current:true});
     expect((await change(a,saved.id,'DELETE',{expectedVersion:1},key)).json()).toEqual({...deleted.json(),replayed:true,current:false});

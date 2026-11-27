@@ -416,23 +416,28 @@ Page({
         if(this.data.qualificationPurchase)this.qualificationRecheckOnShow=true;
         try{await wx.requestPayment(result.requestPayment);}
         catch{if(current()){this.qualificationRecheckOnShow=false;this.setData({actionError:"微信付款未确认，请按原单核对。"});}}
-        // The intent action must not release busy while its authoritative follow-up is pending.
-        if(current()){this.setData({busy:false});await this.recheckPayment();}}
+        // The cashier can return while the page is hidden. Keep the original order
+        // check in this action, independently of the visible controls.
+        await this.readPaymentResult(epoch,token,id);}
     }catch(error){if(current())this.setData({actionError:errorTitle(error,"暂时无法发起付款，请核对原订单后重试。")});}
     finally{this.finishAction(epoch,token);}},
   async recheckPayment(){const order=this.data.order;
     if(!this.canAct()||this.data.busy||!order||order.status!=="pending_payment"||!this.data.paymentRecovery)return;
     const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id;
+    this.setData({busy:true});
+    try{await this.readPaymentResult(epoch,token,id);}
+    finally{this.finishAction(epoch,token);}},
+  async readPaymentResult(epoch:number,token:string,id:string){
     const current=()=>this.current(epoch,token)&&this.data.order?.id===id;
-    this.setData({busy:true,actionError:""});
+    if(!current())return;
+    this.setData({actionError:""});
     try{const result=await request<{state:string}>({path:`/v1/me/orders/${id}/payment-intent`});
       if(!current())return;
       this.setData({actionStatus:result.state==="verified_pending"?"已收到支付渠道的结果，订单仍在核对中；暂未确认付款完成。":
         result.state==="paid"?"付款已确认。":result.state==="notpay"?"渠道仍未确认付款。":"原单状态待确认，请稍后重查。"});
-      if(result.state==="paid"){this.setData({busy:false});void this.load();}
+      if(result.state==="paid")this.data.refreshOnShow=true;
       if(result.state==="verified_pending")this.waitForQualificationPayment();
-    }catch(error){if(current())this.setData({actionError:errorTitle(error,"原单暂时无法核对，请稍后重试。")});}
-    finally{this.finishAction(epoch,token);}},
+    }catch(error){if(current())this.setData({actionError:errorTitle(error,"原单暂时无法核对，请稍后重试。")});}},
   async cancel(){const order=this.data.order;if(this.data.closedRights||!this.canAct()||this.data.busy||order?.status!=="pending_payment"||
       order.transactionSourceKind==="verified_commerce"&&!this.data.isolatedPayment)return;
     const epoch=this.data.epoch,token=historicalCommerceToken(),id=order.id,version=order.version;

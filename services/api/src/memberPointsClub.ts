@@ -112,7 +112,7 @@ export class MemberPointsClub{
         serverDay:day,today:today?{id:today.id,operationId:today.operation_id,products:today.products,note:openPointsNote(this.config,today),version:today.version}:null,
         todayRewards:(await careDayRewards(c,id,[day])).get(day)!,
         checkedIn:attending,streak:await streakFor(c,id,streakDay),badges,pendingRewardSources:pending,questionnaireCompleted:Boolean(questionnaire?.completed_at),
-        tasks:p?await pointsTaskStatus(c,id,p,now):[],birthday:profile?.birthday_month_day??null,birthdayChangeAfter:profile?.birthday_change_after??null,...await memberPointsExtras(c,id,now)};
+        tasks:p?await pointsTaskStatus(c,id,p,now,streakDay):[],birthday:profile?.birthday_month_day??null,birthdayChangeAfter:profile?.birthday_change_after??null,...await memberPointsExtras(c,id,now)};
     });
   }
   async checkin(memberId:string|undefined,keyInput:string,input:unknown,now=new Date()){

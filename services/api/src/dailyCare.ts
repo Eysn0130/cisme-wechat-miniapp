@@ -171,8 +171,9 @@ export class DailyCareService {
     return transaction(this.pool,async client=>{
       const owner=await activeMember(client,memberId);await this.sync(client,owner);
       const replay=await this.replay(client,owner,key,'update',{...details,careDay:day,expectedVersion:expected},id);if(replay)return replay;
-      const row=await rowFor(client,owner,id);usable(row);if(row.deleted_at)fail('DAILY_CARE_RECORD_DELETED','这条记录已删除，请先核对');
+      const row=await rowFor(client,owner,id);usable(row);
       if(row.version!==expected)fail('VERSION_CONFLICT','这条记录已更新，请重新加载后再试');
+      if(row.deleted_at)fail('DAILY_CARE_RECORD_DELETED','这条记录已删除，请先核对');
       if(day!==dailyCareServerDay(now)||row.care_day!==day)fail('DAILY_CARE_DAY_CHANGED','日期已更新，请核对今天的记录后再保存');
       const next=(await client.query<Row>(`UPDATE daily_care_record SET version=version+1,completed_at=$3,updated_at=$3,latest_operation_id=$4,
         step_codes=$5,self_assessment=$6 WHERE id=$1 AND member_id=$2 RETURNING *,care_day::text AS care_day`,[id,owner,now,key,details.stepCodes,details.selfAssessment])).rows[0]!;
