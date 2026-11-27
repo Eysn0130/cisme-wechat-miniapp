@@ -11,7 +11,7 @@ import { aftersaleLabels } from '../../services/order-aftersale';
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已付款"};
 Page({
   lastToken:"",lastRevision:-1,
-  data:{stage:'all',from:'',through:'',totalCount:null as number|null,canRewards:false,stages:[{id:'all',label:'全部'},{id:'pending_payment',label:'待付款'},{id:'unshipped',label:'待发货'},{id:'shipped',label:'已发货'},{id:'completed',label:'已完成'},{id:'refunded',label:'退款'},{id:'closed',label:'已关闭'}],hasSnapshot:false,chromeStyle:currentChromeStyle(),items:[] as any[],nextCursor:null as string|null,loading:true,refreshing:false,loadingMore:false,navigating:false,error:"",pageAlive:true,visible:true,coreReady:false,loadAttempt:0},
+  data:{stage:'all',from:'',through:'',totalCount:null as number|null,canRewards:false,canAftersale:false,stages:[{id:'all',label:'全部'},{id:'pending_payment',label:'待付款'},{id:'unshipped',label:'待发货'},{id:'shipped',label:'已发货'},{id:'completed',label:'已完成'},{id:'refunded',label:'已退款'},{id:'closed',label:'已关闭'}],hasSnapshot:false,chromeStyle:currentChromeStyle(),items:[] as any[],nextCursor:null as string|null,loading:true,refreshing:false,loadingMore:false,navigating:false,error:"",pageAlive:true,visible:true,coreReady:false,loadAttempt:0},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
   syncSession(){const token=getApp<IAppOption>().globalData.sessionToken,revision=commerceContextRevision();
     if(token!==this.lastToken||revision!==this.lastRevision){cancelPageReads(this);this.data.loadAttempt+=1;this.lastToken=token;this.lastRevision=revision;
@@ -37,7 +37,8 @@ Page({
       const authority=await authorityProjection(this);
       if(!this.current(attempt,token))return;
       if(authority.version!==1||authority.managementAvailable!==true||!Array.isArray(authority.capabilities)||!authority.capabilities.includes("commerce.order.read"))throw {status:403,title:"当前账号没有订单查看权限。"};
-      this.setData({canRewards:authority.capabilities.includes('commerce.fulfillment.manage')});const page=await managementOrders(undefined,this,{stage:this.data.stage,from:this.data.from,through:this.data.through});if(!this.current(attempt,token))return;
+      this.setData({canRewards:authority.capabilities.includes('commerce.fulfillment.manage'),
+        canAftersale:authority.capabilities.some(capability=>['commerce.aftersale.review','commerce.return.receive','commerce.return.inspect'].includes(capability))});const page=await managementOrders(undefined,this,{stage:this.data.stage,from:this.data.from,through:this.data.through});if(!this.current(attempt,token))return;
       this.setData({totalCount:page.totalCount??null,items:this.normalize(page.items),nextCursor:page.nextCursor,hasSnapshot:true,loading:false,refreshing:false,coreReady:true});
     }catch(error){if(this.current(attempt,token)){
       const denied=[401,403,404].includes((error as {status?:number})?.status??0);
@@ -55,6 +56,11 @@ Page({
   selectStage(event:WechatMiniprogram.TouchEvent){const stage=sectionTabValue(event,'stage');if(this.data.navigating||!this.data.stages.some(x=>x.id===stage)||stage===this.data.stage)return;this.setData({stage,hasSnapshot:false,items:[],nextCursor:null,totalCount:null});void this.load();},
   selectDate(event:WechatMiniprogram.CustomEvent<{value:string}>){const field=String(event.currentTarget.dataset.field);if(this.data.navigating||!['from','through'].includes(field))return;const from=field==='from'?event.detail.value:this.data.from,through=field==='through'?event.detail.value:this.data.through;if(from&&through&&from>through){wx.showToast({title:'结束日期不能早于开始日期',icon:'none'});return;}this.setData({from,through,hasSnapshot:false,items:[],nextCursor:null,totalCount:null});void this.load();},
   clearDates(){if(this.data.navigating||!this.data.from&&!this.data.through)return;this.setData({from:'',through:'',hasSnapshot:false,items:[],nextCursor:null,totalCount:null});void this.load();},
+  openAftersale(){
+    if(!this.data.canAftersale||!this.canOpen())return;
+    this.setData({navigating:true});
+    wx.navigateTo({url:"/pages/aftersale/index?mode=management",fail:()=>this.setData({navigating:false})});
+  },
   openFulfillment(){if(!this.data.canRewards||!this.canOpen())return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-fulfillment/index",fail:()=>this.setData({navigating:false})});},
   openRewards(){if(!this.data.canRewards||!this.canOpen())return;this.setData({navigating:true});wx.navigateTo({url:'/pages/management-rewards/index?tab=fulfill',fail:()=>this.setData({navigating:false})});},
   open(event:WechatMiniprogram.TouchEvent){if(!this.canOpen())return;const id=String(event.currentTarget.dataset.id??"");if(!this.data.items.some(item=>item.id===id))return;

@@ -342,7 +342,7 @@ describe("native tab return presentation while real read paths revalidate", () =
 
   it.each([
     ["points", "/v1/me/points?limit=20&source=all", ".points-hero", {}],
-    ["shop", "/v1/catalog?limit=20", ".shop-hero", {}],
+    ["shop", "/v1/catalog?limit=20", ".shop-catalog", {}],
     ["product", "/v1/catalog/synthetic-product", ".product-gallery", { id: "synthetic-product" }],
     ["community-author", `/v1/community/authors/${authorId}?limit=20`, ".author-head", { authorId, editorialSource: true }],
     ["invite", "/v1/me", ".invite-card", {}],

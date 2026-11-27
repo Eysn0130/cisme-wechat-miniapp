@@ -11,7 +11,7 @@ const requestMock=vi.hoisted(()=>vi.fn());
 vi.mock("../../apps/miniprogram/services/authority",()=>({requireCapability:requireCapabilityMock,authorityProjection:()=>requireCapabilityMock("commerce.order.read"),hasCapability:(projection:any,capability:string)=>Boolean(projection?.capabilities.includes(capability))}));
 vi.mock("../../apps/miniprogram/services/orders",()=>({managementOrder:managementOrderMock,
   managementOrders:managementOrdersMock,managementShipment:managementShipmentMock,
-  shipmentCarriers:shipmentCarriersMock,dispatchShipment:dispatchShipmentMock}));
+  shipmentCarriers:shipmentCarriersMock,dispatchShipment:dispatchShipmentMock,clientOperationKey:()=>"test-aftersale-key"}));
 vi.mock("../../apps/miniprogram/services/commerce",()=>({centsToYuan:(n:number)=>(n/100).toFixed(2),
   managementCatalog:managementCatalogMock}));
 vi.mock("../../apps/miniprogram/services/layout",()=>({currentChromeStyle:()=>""}));
@@ -34,7 +34,7 @@ beforeEach(async()=>{
   session="operator-a";definition=null;
   (globalThis as any).getApp=()=>({globalData:{sessionToken:session}});
   (globalThis as any).Page=(page:PageDefinition)=>{definition=page;};
-  (globalThis as any).wx={showToast:vi.fn(),navigateTo:vi.fn(),navigateBack:vi.fn(),redirectTo:vi.fn(),switchTab:vi.fn()};
+  (globalThis as any).wx={showToast:vi.fn(),showModal:vi.fn(),navigateTo:vi.fn(),navigateBack:vi.fn(),redirectTo:vi.fn(),switchTab:vi.fn()};
   await vi.importActual("../../apps/miniprogram/pages/management-order-detail/index");
 });
 afterEach(()=>vi.useRealTimers());
@@ -136,6 +136,81 @@ it("opens rejection and the verified case conversation while keeping shipped his
   expect(requestMock).toHaveBeenLastCalledWith(expect.objectContaining({path:`/v1/management/aftersales/${caseId}/contact`,method:'POST'}));
   expect(wx.navigateTo).toHaveBeenLastCalledWith(expect.objectContaining({
     url:`/pages/management-support-chat/index?id=${conversationId}&caseId=${caseId}`}));
+});
+
+it("approves the original unshipped order and retries an uncertain response with the same command",async()=>{
+  requireCapabilityMock.mockResolvedValue({capabilities});
+  managementOrderMock.mockResolvedValue(returning);
+  managementShipmentMock.mockResolvedValue({orderId,logisticsState:'awaiting_dispatch',holdReason:'aftersale'});
+  let row={id:caseId,orderId,version:1,state:'requested',kind:'return_refund',amountCents:29800,
+    canReview:true,canStartRefund:true,fulfillment:{state:'unshipped',canRefundWithoutReturn:true}};
+  let writes=0;
+  requestMock.mockImplementation(async (input)=>{
+    if(input.method!=='POST')return row;
+    if(++writes===1)throw {code:'NETWORK_TIMEOUT'};
+    row={...row,version:2,state:'refund_pending',canStartRefund:false};
+    managementOrderMock.mockResolvedValue({...returning,version:4,aftersale:{caseId,phase:'refunding'}});
+    return row;
+  });
+  vi.mocked(wx.showModal).mockResolvedValue({confirm:true,cancel:false,content:''});
+  const page=mount({id:orderId});
+  await page.onShow();
+  await page.decideAftersale({currentTarget:{dataset:{action:'request_refund'}}});
+  expect(wx.showModal).toHaveBeenCalledWith(expect.objectContaining({title:'同意退款',content:expect.stringContaining('¥298.00')}));
+  expect(page.data).toMatchObject({decisionRetry:true,canDispatch:false});
+  await page.decideAftersale({currentTarget:{dataset:{action:'reject'}}});
+  expect(writes).toBe(1);
+  await page.decideAftersale({currentTarget:{dataset:{}}});
+  const commands=requestMock.mock.calls.map(([input])=>input).filter(input=>input.method==='POST');
+  expect(commands).toHaveLength(2);
+  expect(commands[0]).toMatchObject({
+    path:`/v1/management/aftersales/${caseId}/actions`,idempotencyKey:'test-aftersale-key',
+    data:{action:'request_refund',expectedVersion:1,approveRefund:true}
+  });
+  expect(commands[1]).toEqual(commands[0]);
+  expect(page.data).toMatchObject({decisionRetry:false,decisionFeedback:'已同意退款，等待渠道确认。',order:{statusLabel:'退款中'}});
+});
+
+it("requires a rejection reason and sends it on the same order",async()=>{
+  requireCapabilityMock.mockResolvedValue({capabilities});
+  managementOrderMock.mockResolvedValue(returning);
+  managementShipmentMock.mockResolvedValue({orderId,logisticsState:'awaiting_dispatch',holdReason:'aftersale'});
+  const row={id:caseId,orderId,version:7,state:'requested',kind:'return_refund',canReview:true,canStartRefund:true,
+    amountCents:29800,fulfillment:{state:'unshipped',canRefundWithoutReturn:true}};
+  requestMock.mockImplementation(async (input)=>input.method==='POST'?{...row,version:8,state:'rejected'}:row);
+  vi.mocked(wx.showModal).mockResolvedValueOnce({confirm:true,cancel:false,content:' '})
+    .mockResolvedValueOnce({confirm:true,cancel:false,content:'请补发包装照片'});
+  const page=mount({id:orderId});
+  await page.onShow();
+  const click={currentTarget:{dataset:{action:'reject'}}};
+  await page.decideAftersale(click);
+  expect(page.data.decisionFeedback).toContain('填写');
+  expect(requestMock.mock.calls.some(([input])=>input.method==='POST')).toBe(false);
+  await page.decideAftersale(click);
+  expect(wx.showModal).toHaveBeenLastCalledWith(expect.objectContaining({title:'拒绝退款',editable:true}));
+  expect(requestMock).toHaveBeenCalledWith(expect.objectContaining({
+    path:`/v1/management/aftersales/${caseId}/actions`,
+    data:{action:'reject',expectedVersion:7,note:'请补发包装照片'}
+  }));
+});
+
+it("accepts only buyer images explicitly linked to the original order in the active conversation",async()=>{
+  const {orderSupportImageIds}=await import("../../apps/miniprogram/services/order-aftersale");
+  const matching='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const unrelated='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const image=(id:string)=>({id,mimeType:'image/jpeg',previewPath:`/v1/management/support/conversations/${conversationId}/media/${id}`});
+  const page={
+    conversation:{id:conversationId},contextVersion:2,contextStartSequence:4,olderCursor:null,
+    messages:[
+      {sequence:4,senderType:'user',relatedOrderId:orderId,attachments:[image(unrelated)]},
+      {sequence:5,senderType:'user',relatedOrderId:'another-order',attachments:[image(unrelated)]},
+      {sequence:6,senderType:'admin',relatedOrderId:orderId,attachments:[image(unrelated)]},
+      {sequence:7,senderType:'user',relatedOrderId:orderId,
+        attachments:[image(matching),image(matching),{...image(unrelated),previewPath:'/v1/other-path'}]}
+    ]
+  };
+  expect(orderSupportImageIds(page,orderId,conversationId)).toEqual([matching]);
+  expect(()=>orderSupportImageIds(page,orderId,unrelated)).toThrow('Invalid support image page');
 });
 
 it("keeps a settled refund out of dispatch without labeling the case as still in progress",async()=>{

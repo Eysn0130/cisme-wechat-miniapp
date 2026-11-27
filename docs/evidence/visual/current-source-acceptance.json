@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "88469454ab0c1a0b006307ec89ac0542b4dbb7407fcff4aa46554ad7066d7625",
+  "packageSourceSha256": "4a62ac9d025bce98fac6a0fc01ba4b439716e28021e8791954fde832a4b134ef",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 微信开发者工具在 390×844 视口用隔离数据核对了进度优先的订单详情、首屏售后入口、无需物流、物流回退、收货信息缺失时的客服、待付款操作区，以及共享客服的退货指引折叠、原售后跳转和输入对齐。完整状态、字号和真机矩阵仍待验。",
+  "note": "2026-11-27 本轮微信开发者工具验收范围包括选定商城、管理订单退款退货操作、本单客服图片预览，以及客服售后资料折叠、恢复与共用输入条。完整状态、字号、真实退款和真机矩阵仍待验。",
   "previousSourceRecord": {
-    "packageSourceSha256": "44d8f991dc644289f22351792cc8ae7a8c58255a30301cb59229134d82180f4c",
-    "scope": "Official DevTools exercised the larger aftersale note, simulated keyboard inset, shared support entry from the order and Care, and same-case progress using isolated fixtures."
+    "packageSourceSha256": "88469454ab0c1a0b006307ec89ac0542b4dbb7407fcff4aa46554ad7066d7625",
+    "scope": "Official DevTools used isolated fixtures to check the prior order detail, fulfillment entries and shared support interface."
   },
   "pendingSourceRebind": false
 }

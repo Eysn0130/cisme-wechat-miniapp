@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-const m=vi.hoisted(()=>({token:'synthetic-operator',request:vi.fn(),read:vi.fn()}));
+const m=vi.hoisted(()=>({token:'synthetic-operator',request:vi.fn(),read:vi.fn(),authority:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/api',()=>({request:m.request,retainMemberSnapshot:()=>true,downloadPrivateMedia:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/page-requests',()=>({pageRead:m.read,cancelPageReads:vi.fn()}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>''}));
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>0}));
-vi.mock('../../apps/miniprogram/services/authority',()=>({authorityProjection:vi.fn(),hasCapability:()=>true}));
+vi.mock('../../apps/miniprogram/services/authority',()=>({authorityProjection:m.authority,hasCapability:()=>true}));
 let p:any;
 const conversation={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',status:'resolved',version:3};
 const message=(sequence:number)=>({id:`synthetic-${sequence}`,sequence,senderType:'user',body:'synthetic chat',contentType:'text',createdAt:'2026-10-31T00:00:00Z',attachments:[],orderCard:null});
 const page=(extra:any={})=>({conversation:{...conversation,status:'ai_active',version:4},contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2,olderCursor:null,assignedToMe:false,...extra});
 function deferred(){let resolve!:(value:any)=>void,reject!:(value:any)=>void;const promise=new Promise<any>((yes,no)=>{resolve=yes;reject=no;});return{resolve,reject,promise};}
 beforeEach(async()=>{
- vi.resetModules();vi.useFakeTimers();m.token='synthetic-operator';m.request.mockReset().mockResolvedValue({});m.read.mockReset().mockResolvedValue(page());
+ vi.resetModules();vi.useFakeTimers();m.token='synthetic-operator';m.request.mockReset().mockResolvedValue({});m.read.mockReset().mockResolvedValue(page());m.authority.mockReset();
  let definition:any;vi.stubGlobal('Page',(value:any)=>definition=value);vi.stubGlobal('getApp',()=>({globalData:{sessionToken:m.token}}));
  vi.stubGlobal('wx',{nextTick:(fn:()=>void)=>fn(),showToast:vi.fn(),showModal:vi.fn().mockResolvedValue({confirm:true})});
  await import('../../apps/miniprogram/pages/management-support-chat/index');
@@ -20,6 +20,22 @@ beforeEach(async()=>{
 });
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();vi.unstubAllGlobals();});
 describe('operator support generation isolation',()=>{
+ it('keeps the current conversation visible when the linked sale case is temporarily unavailable',async()=>{
+  const caseId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  p.onLoad({id:conversation.id,caseId});
+  p.loadOwnIdentity=vi.fn();
+  Object.assign(p.data,{conversation:null,messages:[]});
+  m.authority.mockResolvedValue({version:1,managementAvailable:true});
+  m.read.mockImplementation(async (_owner,{path})=>{
+    if(path.endsWith(`?caseId=${caseId}`))throw {status:503};
+    if(path.endsWith('/aftersales'))return {items:[]};
+    return page({messages:[message(1),message(3)],latestCursor:3});
+  });
+  await p.onShow();
+  expect(p.data.messages.map((item:any)=>item.sequence)).toEqual([3]);
+  expect(p.data).toMatchObject({conversation:{id:conversation.id},accessDenied:false,replyTarget:null,composerSendEnabled:false});
+  expect(p.data.contactCaseUnavailable).toBe(true);
+ });
  it('rebuilds the same conversation ID and clears old bubbles, draft, cursor and typing',async()=>{
   p.data.presence.memberTyping=true;p.data.pendingMessage=message(3);p.data.anchor='retired';p.data.newMessagesBelowCount=2;
   await p.poll();expect(p.data.contextVersion).toBe(4);expect(p.data.messages).toEqual([]);expect(p.data.input).toBe('');
@@ -112,6 +128,15 @@ describe('operator reads crossing a confirmed newer assignment',()=>{
  });
 });
 describe('operator replies bind an explicit question',()=>{
+ it('offers the authorized handoff and close commands from a single conversation menu',async()=>{
+   await loadHuman();
+   p.setData({canReturnToQueue:true,canViewContext:true});
+   p.returnToQueue=vi.fn();
+   (wx as any).showActionSheet=vi.fn().mockResolvedValue({tapIndex:2});
+   await p.openConversationMenu();
+   expect(wx.showActionSheet).toHaveBeenCalledWith({itemList:['会员信息','查看原问题','交回会话','结束会话']});
+   expect(p.returnToQueue).toHaveBeenCalledOnce();
+ });
  it('shows the authorized original summary before claim even when the source is outside the loaded page',async()=>{
   const summary='请核对原订单的退款金额';
   await loadHuman({conversation:{...activeConversation,status:'waiting_human'},assignedToMe:false,
