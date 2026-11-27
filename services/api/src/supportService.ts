@@ -29,7 +29,12 @@ type MessageRow = { id: string; conversation_id:string; sequence: string; sender
 type MediaRow = { id: string; mime_type: "image/jpeg" | "image/png" | "image/webp"; size_bytes: string | number };
 type ReplyTargetInput={replyToMessageId?:unknown;expectedHumanRequestGeneration?:unknown;contextVersion?:unknown};
 type HumanContext={generation:number;status:'waiting_human'|'human_active';anchorQuestion:string|null;anchorKnown:boolean;anchorMessageId:string|null;anchorSequence:number|null};
-type CommittedQuestion={snapshot:ConversationRow;source:MessageRow;topic:{contextStartSequence:number;contextVersion:number}};
+type TopicWindow={contextStartSequence:number;contextVersion:number};
+type CommittedQuestion={snapshot:ConversationRow;source:MessageRow;topic:TopicWindow};
+type CasePreview={caseId:string;orderId:string;orderNumberTail:string;productName:string;kind:string;active:boolean};
+type ConsultationReceipt={conversationId:string;caseId:string;contextStartSequence:number;caseThroughSequence:number;resultVersion:number};
+type CaseSlice={caseId:string;orderId:string;through:number;ordinaryBoundary:number;consultation:boolean};
+type MemberMessagesQuery={after?:unknown;before?:unknown;limit?:unknown;consultationCaseId?:string;aftersaleCaseId?:string};
 
 function required(value: string | undefined, code: string): string {
   if (!value) throw new DomainError(code, "Authenticated principal required", 401);
@@ -129,7 +134,18 @@ function requestHash(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
 const newTopicOperation = supportNewTopicOperation;
+const consultationOperation = 'support.conversation.new_consultation';
 const dismissQueueOperation = 'support.queue.dismiss';
+
+// Historical case notifications use the system message key instead of a case FK.
+function caseMessageMatch(caseParam:string,orderParam:string){
+  return `(COALESCE(linked_case_id=${caseParam}::uuid,false) OR COALESCE(linked_order_id=${orderParam}::uuid,false)
+    OR (sender_principal_id IS NOT DISTINCT FROM 'system:aftersale' AND COALESCE(split_part(client_message_id,':',2)=${caseParam}::uuid::text,false))
+    OR (sender_principal_id IS NOT DISTINCT FROM 'system:support' AND
+      COALESCE(client_message_id LIKE 'support-claim-%' OR client_message_id LIKE 'support-return-%',false))
+    OR EXISTS (SELECT 1 FROM support_message original WHERE original.id=support_message.reply_to_message_id
+      AND original.conversation_id=support_message.conversation_id AND original.linked_order_id=${orderParam}::uuid))`;
+}
 
 function checkedTopicContext(row:ConversationRow,receipts:readonly {response_body:unknown}[]){
   const next=Number(row.next_sequence);
@@ -173,8 +189,8 @@ export class SupportService {
     if(this.suppression?.suppressionEnabled())for(const marker of await this.suppression.supportConversationResetMarkers(owner,client))
       await applySupportConversationReset(client,marker);
   }
-  private async requireCurrentContext(client:DbClient,row:ConversationRow,input:{expectedConversationId?:unknown;contextVersion?:unknown}){
-    const context=await this.contextState(client,row);
+  private async requireCurrentContext(client:DbClient,row:ConversationRow,input:{expectedConversationId?:unknown;contextVersion?:unknown},consultationCaseId?:string){
+    const context=await this.memberTopic(client,row,consultationCaseId);
     if((context.contextVersion>0&&(input.expectedConversationId===undefined||input.contextVersion===undefined))||
       input.expectedConversationId!==undefined&&input.expectedConversationId!==row.id||
       input.contextVersion!==undefined&&(!Number.isSafeInteger(input.contextVersion)||input.contextVersion!==context.contextVersion))
@@ -195,20 +211,54 @@ export class SupportService {
     return (await this.contextState(client,row)).contextStartSequence;
   }
 
+  private async casePreview(client:DbClient,row:ConversationRow,caseId?:string){
+    const result=await client.query<CasePreview>(`SELECT c.id AS "caseId",c.order_id AS "orderId",
+      right(o.order_number,4) AS "orderNumberTail",coalesce(c.lines->0->>'productName','') AS "productName",c.kind,
+      (c.state NOT IN ('rejected','cancelled') AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded')) AS active
+      FROM commerce_aftersale_case c JOIN commerce_order o ON o.id=c.order_id AND o.member_id=c.member_id
+      LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
+      WHERE c.member_id=$1 AND (c.support_conversation_id=$2 OR c.support_conversation_id IS NULL)
+        AND ($3::uuid IS NOT NULL AND c.id=$3 OR $3::uuid IS NULL AND c.state NOT IN ('rejected','cancelled')
+          AND NOT (c.state='refund_pending' AND i.state IS NOT DISTINCT FROM 'succeeded'))
+      ORDER BY c.created_at DESC,c.id DESC LIMIT 1`,[row.member_id,row.id,caseId??null]);
+    return result.rows[0]??null;
+  }
+
+  private async latestConsultation(client:DbClient|pg.Pool,row:ConversationRow,caseId:string){
+    const receipt=(await client.query<{response_body:ConsultationReceipt}>(`SELECT response_body FROM idempotency_operation
+      WHERE principal_id=$1 AND operation=$2 AND response_body->>'conversationId'=$3 AND response_body->>'caseId'=$4
+      ORDER BY (response_body->>'resultVersion')::integer DESC LIMIT 1`,[`member:${row.member_id}`,consultationOperation,row.id,caseId])).rows[0];
+    if(!receipt)return null;
+    checkedTopicContext(row,[receipt]);
+    const opened=receipt.response_body;
+    if(!Number.isSafeInteger(opened.caseThroughSequence)||opened.caseThroughSequence<0||opened.caseThroughSequence>opened.contextStartSequence)
+      throw new DomainError('SUPPORT_TOPIC_RECEIPT_INVALID','会话状态暂时无法核对，请稍后重试',503);
+    return opened;
+  }
+
+  private async memberTopic(client:DbClient|pg.Pool,row:ConversationRow,consultationCaseId?:string):Promise<TopicWindow>{
+    const base=await this.contextState(client,row);
+    if(!consultationCaseId)return base;
+    const opened=await this.latestConsultation(client,row,consultationCaseId);
+    if(!opened||opened.resultVersion<base.contextVersion)
+      throw new DomainError('SUPPORT_CONTEXT_CHANGED','会话已更新，请重新开启新对话',409);
+    return {contextStartSequence:opened.contextStartSequence,contextVersion:opened.resultVersion};
+  }
+
   private async modelMessages(client:DbClient|pg.Pool,row:ConversationRow):Promise<MessageRow[]> {
     const boundary=await this.contextBoundary(client,row);
     return (await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
       WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence DESC LIMIT 50`,[row.id,boundary])).rows.reverse();
   }
 
-  private async currentTopicState(owner:string) {
+  private async currentTopicState(owner:string,consultationCaseId?:string) {
     await this.reconcile(owner);
     return readSnapshot(this.pool,async client=>{
       const row=await this.findForMember(client,owner);
       if(!row)throw new DomainError('SUPPORT_CONVERSATION_NOT_FOUND','会话状态暂时无法核对，请刷新后重试',503);
-      const topic=await this.contextState(client,row);
+      const topic=await this.memberTopic(client,row,consultationCaseId);
       return {conversation:conversation(row),...topic,newTopicAvailable:this.suppression?.suppressionEnabled()===true,
-        supportAiCanRespond:this.automaticAiAvailable(),humanRequest:this.humanView(await this.humanContext(client,row,topic))};
+        supportAiCanRespond:this.automaticAiAvailable(),humanRequest:consultationCaseId?null:this.humanView(await this.humanContext(client,row,topic))};
     });
   }
 
@@ -239,7 +289,7 @@ export class SupportService {
 
   /** Each AI receipt belongs to one user question and topic, independently of
    * unrelated human messages. Only the commit transaction allocates sequence. */
-  private async automaticReply(owner:string,id:string,messageId:string,traceId:string,committedQuestion:CommittedQuestion|null=null) {
+  private async automaticReply(owner:string,id:string,messageId:string,traceId:string,committedQuestion:CommittedQuestion|null=null,consultationCaseId?:string) {
     for(let attempt=0;attempt<2;attempt++){
       await this.reconcile(owner);
       // With no external model work, the just-committed source is sufficient
@@ -253,7 +303,7 @@ export class SupportService {
         const snapshot=await this.findForMember(client,owner);
         if(!snapshot||snapshot.id!==id)return null;
         if(!(await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner])).rowCount)return null;
-        const topic=await this.contextState(client,snapshot);
+        const topic=await this.memberTopic(client,snapshot,consultationCaseId);
         const source=(await client.query<MessageRow&{prior_reply_id:string|null;answered_by_human:boolean}>(`SELECT ${messageColumns().split(',').map(column=>`source.${column}`).join(',')},
           (SELECT prior.id FROM support_message prior WHERE prior.conversation_id=source.conversation_id AND prior.client_message_id=$4
             AND prior.sender_type IN ('ai','system') LIMIT 1) AS prior_reply_id,
@@ -266,8 +316,9 @@ export class SupportService {
         if(prior)return {snapshot,topic,source,prior,human:null,messages:[] as MessageRow[],answeredByHuman:false};
         const answeredByHuman=source.answered_by_human;
         const messages=this.automaticAiAvailable()&&source.content_type==='text'&&!answeredByHuman
-          ?(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND sequence>$2 AND sequence<=$3 ORDER BY sequence DESC LIMIT 50`,[id,topic.contextStartSequence,source.sequence])).rows.reverse():[];
-        return {snapshot,topic,source,prior:null,human:await this.humanContext(client,snapshot,topic),messages,answeredByHuman};
+          ?(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND sequence>$2 AND sequence<=$3
+            AND (NOT $4::boolean OR retention_purpose='ordinary') ORDER BY sequence DESC LIMIT 50`,[id,topic.contextStartSequence,source.sequence,Boolean(consultationCaseId)])).rows.reverse():[];
+        return {snapshot,topic,source,prior:null,human:consultationCaseId?null:await this.humanContext(client,snapshot,topic),messages,answeredByHuman};
       });
       if(!context)return {};
       if(context.prior)return {conversation:conversation(context.snapshot),aiMessages:[await this.messageView(this.pool,context.prior,context.snapshot,'member')],aiStatus:context.prior.sender_type==='ai'?'replied':'handoff_suggested'};
@@ -295,13 +346,13 @@ export class SupportService {
         if(!(await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner])).rowCount)return {done:{}};
         const row=await this.findForMember(client,owner,true);
         if(!row||row.id!==id)return {done:{}};
-        const topic=await this.contextState(client,row);
+        const topic=await this.memberTopic(client,row,consultationCaseId);
         if(topic.contextVersion!==context.topic.contextVersion||topic.contextStartSequence!==context.topic.contextStartSequence)return {done:{}};
         const retained=(await client.query('SELECT id FROM support_message WHERE id=$1 AND conversation_id=$2 AND sequence>$3',[messageId,id,topic.contextStartSequence])).rowCount;
         if(!retained)return {done:{}};
         const existing=(await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message WHERE conversation_id=$1 AND client_message_id=$2 AND sender_type IN ('ai','system')`,[id,`ai-reply:${messageId}`])).rows[0];
         if(existing)return {done:{conversation:conversation(row),aiMessages:[await this.messageView(client,existing,row,'member')],aiStatus:existing.sender_type==='ai'?'replied':'handoff_suggested'}};
-        const currentHuman=await this.humanContext(client,row,topic);
+        const currentHuman=consultationCaseId?null:await this.humanContext(client,row,topic);
         if((row.human_request_generation??0)!==(snapshot.human_request_generation??0)||this.humanKey(currentHuman)!==this.humanKey(human))return {retry:true};
         const answered=(await client.query(`SELECT id FROM support_message WHERE conversation_id=$1 AND sender_type='admin' AND reply_to_message_id=$2 LIMIT 1`,[id,messageId])).rowCount;
         if(answered)return {done:{conversation:conversation(row),aiStatus:'answered_by_human',aiMessages:[]}};
@@ -322,7 +373,11 @@ export class SupportService {
           :(['SUPPORT_AI_HUMAN_CONTEXT_REQUIRED','SUPPORT_AI_HANDOFF_REQUIRED','SUPPORT_AI_UNGROUNDED'].includes(failure)
             ?'目前没有足够资料确认这件事。可以点「申请人工」继续核对。':'暂时无法获取 AI 回复。可以稍后再问，或点「申请人工」。');
         const sequence=Number(row.next_sequence),replyId=randomUUID();
-        if(isAi&&row.status!=='ai_active')await client.query("SELECT set_config('cisme.support_ai_reply',$1,true)",[`${id}:${messageId}:${topic.contextVersion}:${row.human_request_generation??0}`]);
+        if(isAi&&row.status!=='ai_active'){
+          // The sender trigger verifies the ordinary generation. Consultation has its own checked window.
+          const shared=consultationCaseId?await this.contextState(client,row):topic;
+          await client.query("SELECT set_config('cisme.support_ai_reply',$1,true)",[`${id}:${messageId}:${shared.contextVersion}:${row.human_request_generation??0}`]);
+        }
         const inserted=(await client.query<MessageRow>(`INSERT INTO support_message
           (id,conversation_id,sequence,sender_type,sender_principal_id,body,content_type,client_message_id,retention_purpose,reply_to_message_id)
           SELECT $1,$2,$3,$4,$5,$6,$7,$8,retention_purpose,id FROM support_message WHERE id=$9 RETURNING ${messageColumns()}`,
@@ -504,31 +559,44 @@ export class SupportService {
     return row ? { conversation: conversation(row), unreadCount: row.member_unread_count,supportAiCanRespond:this.automaticAiAvailable() } : { conversation: null, unreadCount: 0,supportAiCanRespond:this.automaticAiAvailable() };
   }
 
-  async messagesForMember(memberId: string | undefined, query: { after?: unknown; before?: unknown; limit?: unknown },ordinary=true) {
+  async messagesForMember(memberId: string | undefined, query: MemberMessagesQuery,ordinary=true) {
     const owner = required(memberId, "AUTH_REQUIRED");
+    if((query.consultationCaseId||query.aftersaleCaseId)&&!ordinary||query.consultationCaseId&&query.aftersaleCaseId)
+      throw new DomainError('SUPPORT_VIEW_INVALID','当前会话入口无效',422);
+    const requestedCase=query.consultationCaseId??query.aftersaleCaseId;
+    const caseId=requestedCase===undefined?undefined:uuid(requestedCase,'AFTERSALE_ID_INVALID').toLowerCase();
     await this.reconcile(owner);
     return readSnapshot(this.pool,async client=>{
       const row = await this.findForMember(client, owner);
       const metadata={supportAiAvailable:this.automaticAiAvailable(),supportAiCanRespond:ordinary&&this.automaticAiAvailable(),newTopicAvailable:ordinary&&this.suppression?.suppressionEnabled()===true};
-      if (!row) return { conversation: null, messages: [], latestCursor: 0, olderCursor: null,contextStartSequence:0,contextVersion:0,humanRequest:null,...metadata };
-      const context=ordinary?await this.contextState(client,row):{contextStartSequence:0,contextVersion:0};
-      return {...await this.messagePage(row, query, "member",client,context.contextStartSequence),...context,...metadata,
-        humanRequest:this.humanView(await this.humanContext(client,row,context))};
+      if (!row) return { conversation: null, messages: [], latestCursor: 0, olderCursor: null,contextStartSequence:0,contextVersion:0,humanRequest:null,aftersale:null,...metadata };
+      const consultation=Boolean(query.consultationCaseId);
+      const aftersale=ordinary?await this.casePreview(client,row,caseId):null;
+      if(caseId&&!aftersale)throw new DomainError('AFTERSALE_NOT_FOUND','售后申请暂时无法读取',404);
+      const context=ordinary?await this.memberTopic(client,row,consultation?caseId:undefined):{contextStartSequence:0,contextVersion:0};
+      const recorded=query.aftersaleCaseId&&aftersale?await this.latestConsultation(client,row,aftersale.caseId):null;
+      const slice=caseId&&aftersale?{caseId,orderId:aftersale.orderId,through:recorded?.caseThroughSequence??0,ordinaryBoundary:context.contextStartSequence,consultation}:undefined;
+      // A case can contain transaction messages older than a standard AI reset.
+      const boundary=query.aftersaleCaseId?0:context.contextStartSequence;
+      return {...await this.messagePage(row,query,"member",client,boundary,slice),...context,...metadata,
+        contextStartSequence:boundary,aftersale,
+        humanRequest:consultation?null:this.humanView(await this.humanContext(client,row,context))};
     });
   }
 
-  private async messagePage(row: ConversationRow, query: { after?: unknown; before?: unknown; limit?: unknown }, perspective: "member" | "operator",client:DbClient|pg.Pool=this.pool,boundary=0) {
+  private async messagePage(row: ConversationRow, query: { after?: unknown; before?: unknown; limit?: unknown }, perspective: "member" | "operator",client:DbClient|pg.Pool=this.pool,boundary=0,slice?:CaseSlice) {
     const pageLimit = limit(query.limit);
     const after = cursor(query.after);
     const before = cursor(query.before);
     if (after !== null && before !== null) throw new DomainError("CURSOR_INVALID", "Use either after or before, not both", 422);
-    let result: pg.QueryResult<MessageRow>;
-    if (after !== null) result = await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
-      WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence ASC LIMIT $3`, [row.id, Math.max(after,boundary), pageLimit]);
-    else if (before !== null) result = await client.query<MessageRow>(`SELECT * FROM (SELECT ${messageColumns()} FROM support_message
-      WHERE conversation_id=$1 AND sequence<$2 AND sequence>$4 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id, before, pageLimit + 1,boundary]);
-    else result = await client.query<MessageRow>(`SELECT * FROM (SELECT ${messageColumns()} FROM support_message
-      WHERE conversation_id=$1 AND sequence>$2 ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`, [row.id,boundary,pageLimit + 1]);
+    const match=slice?caseMessageMatch('$5','$6'):'';
+    const filter=slice?(slice.consultation?`AND NOT ${match}`:`AND (sequence<=$7 AND sequence>$8 OR ${match})`):'';
+    const where=`conversation_id=$1 AND sequence>$4 AND ($2::bigint IS NULL OR sequence${after===null?'<':'>'}$2) ${filter}`;
+    const values=[row.id,after??before,after===null?pageLimit+1:pageLimit,boundary,
+      ...(slice?[slice.caseId,slice.orderId,...(slice.consultation?[]:[slice.through,slice.ordinaryBoundary])]:[])];
+    const selected=`SELECT ${messageColumns()} FROM support_message WHERE ${where}`;
+    const result=await client.query<MessageRow>(after!==null?`${selected} ORDER BY sequence ASC LIMIT $3`:
+      `SELECT * FROM (${selected} ORDER BY sequence DESC LIMIT $3) recent ORDER BY sequence ASC`,values);
     const hasOlder = after === null && result.rows.length > pageLimit;
     const pageRows = hasOlder ? result.rows.slice(result.rows.length - pageLimit) : result.rows;
     const caseLinks=new Map(pageRows.map(message=>[message.id,referencedAftersale(message)]));
@@ -572,11 +640,13 @@ export class SupportService {
       latestCursor: messages.at(-1)?.sequence ?? Number(row.next_sequence) - 1, olderCursor };
   }
 
-  async startNewTopic(memberId:string|undefined,principalId:string|undefined,input:{conversationId?:unknown;expectedVersion?:unknown;requestId?:unknown},traceId:string) {
+  async startNewTopic(memberId:string|undefined,principalId:string|undefined,input:{conversationId?:unknown;expectedVersion?:unknown;requestId?:unknown;consultationCaseId?:unknown},traceId:string) {
     const owner=required(memberId,'AUTH_REQUIRED'),actor=required(principalId,'AUTH_REQUIRED');
     const id=uuid(input.conversationId,'SUPPORT_CONVERSATION_INVALID').toLowerCase();
     const expected=version(input.expectedVersion),key=uuid(input.requestId,'SUPPORT_TOPIC_REQUEST_INVALID').toLowerCase();
-    const principal=`member:${owner}`,hash=requestHash({conversationId:id,expectedVersion:expected});
+    const caseId=input.consultationCaseId===undefined?undefined:uuid(input.consultationCaseId,'AFTERSALE_ID_INVALID').toLowerCase();
+    const operation=caseId?consultationOperation:newTopicOperation;
+    const principal=`member:${owner}`,hash=requestHash({conversationId:id,expectedVersion:expected,...(caseId?{caseId}:{})});
     await this.reconcile(owner);
     const replayed=await transaction(this.pool,async client=>{
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`support-member:${owner}`]);
@@ -586,15 +656,27 @@ export class SupportService {
       const row=await this.findForMember(client,owner,true);
       if(!row||row.id!==id)throw new DomainError('SUPPORT_CONVERSATION_NOT_FOUND','当前会话不存在，请刷新后重试',404);
       const prior=(await client.query<{request_hash:string}>(`SELECT request_hash FROM idempotency_operation
-        WHERE principal_id=$1 AND operation=$2 AND idempotency_key=$3`,[principal,newTopicOperation,key])).rows[0];
+        WHERE principal_id=$1 AND operation=$2 AND idempotency_key=$3`,[principal,operation,key])).rows[0];
       if(prior){
         if(prior.request_hash!==hash)throw new DomainError('IDEMPOTENCY_CONFLICT','请求编号已用于另一项操作',409);
         return true;
       }
       if(row.version!==expected)throw new DomainError('VERSION_CONFLICT','会话已变化，请刷新后重试',409);
+      const boundary=Number(row.next_sequence)-1;
+      if(caseId){
+        if(!await this.casePreview(client,row,caseId))throw new DomainError('AFTERSALE_NOT_FOUND','售后申请暂时无法读取',404);
+        const previous=await this.latestConsultation(client,row,caseId);
+        const base=await this.contextState(client,row);
+        const response:ConsultationReceipt={conversationId:id,caseId,contextStartSequence:boundary,
+          caseThroughSequence:previous&&previous.resultVersion>=base.contextVersion?previous.caseThroughSequence:boundary,resultVersion:expected+1};
+        await client.query('UPDATE support_conversation SET version=version+1,updated_at=clock_timestamp() WHERE id=$1',[row.id]);
+        await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
+          VALUES($1,$2,$3,$4,$5,200,$6)`,[principal,operation,key,`support-consultation:${id}:v${expected}`,hash,response]);
+        await this.audit(client,actor,operation,row.id,{version:row.version},response,traceId);
+        return false;
+      }
       if(row.status==='waiting_human'||row.status==='human_active')throw new DomainError('SUPPORT_HUMAN_CONVERSATION_ACTIVE','正在等待或接待人工客服，请在当前会话继续沟通',409);
       await this.contextState(client,row);
-      const boundary=Number(row.next_sequence)-1;
       if(!this.suppression?.suppressionEnabled())throw new DomainError('SUPPORT_NEW_CONVERSATION_UNAVAILABLE','新对话暂不可用，请稍后重试',503);
       const member=(await client.query<{created_at:Date;reset_at:string}>(`SELECT created_at,
         to_char(clock_timestamp() AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS reset_at FROM member WHERE id=$1`,[owner])).rows[0]!;
@@ -607,15 +689,17 @@ export class SupportService {
     });
     // The command receipt is immutable, but the HTTP view must be current: a
     // later handoff/new topic must never be overwritten by an old replay.
-    return {...await this.messagesForMember(owner,{}),replayed};
+    return {...await this.messagesForMember(owner,caseId?{consultationCaseId:caseId}:{}),replayed};
   }
 
-  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown;expectedConversationId?:unknown;contextVersion?:unknown }, traceId: string, historicalOrder=false) {
+  async sendMember(memberId: string | undefined, principalId: string | undefined, input: { body?: unknown; clientMessageId?: unknown; mediaIds?: unknown; linkedOrderId?: unknown;expectedConversationId?:unknown;contextVersion?:unknown;consultationCaseId?:unknown }, traceId: string, historicalOrder=false) {
     const owner = required(memberId, "AUTH_REQUIRED");
     const principal = required(principalId, "AUTH_REQUIRED");
     const body = textBody(input.body, true); const messageKey = clientMessageId(input.clientMessageId);
     const images = mediaIds(input.mediaIds);
     const linkedOrderId = input.linkedOrderId === undefined || input.linkedOrderId === null || input.linkedOrderId === "" ? null : uuid(input.linkedOrderId, "SUPPORT_ORDER_INVALID");
+    const consultationCaseId=input.consultationCaseId===undefined?undefined:uuid(input.consultationCaseId,'AFTERSALE_ID_INVALID').toLowerCase();
+    if(consultationCaseId&&historicalOrder)throw new DomainError('SUPPORT_VIEW_INVALID','当前会话入口无效',422);
     const messageContentType = contentType(body, images, linkedOrderId);
     await this.reconcile(owner);
     let committedQuestion:CommittedQuestion|null=null;
@@ -629,11 +713,15 @@ export class SupportService {
         const created = await client.query<ConversationRow>(`INSERT INTO support_conversation(member_id,status)
           VALUES($1,$2) RETURNING *`, [owner,historicalOrder?'waiting_human':'ai_active']); row = created.rows[0]!;
       }
-      const topic=!historicalOrder?await this.requireCurrentContext(client,row,input):null;
+      const topic=!historicalOrder?await this.requireCurrentContext(client,row,input,consultationCaseId):null;
+      if(consultationCaseId&&linkedOrderId&&(await this.casePreview(client,row,consultationCaseId))?.orderId===linkedOrderId)
+        throw new DomainError('SUPPORT_WRONG_CASE_CONTEXT','请打开顶部售后卡片，继续这笔订单的对话',409);
       const duplicate = await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='user' AND sender_principal_id=$2 AND client_message_id=$3`, [row.id, principal, messageKey]);
       if (duplicate.rows[0]) {
         const prior = duplicate.rows[0];
+        if(consultationCaseId&&topic&&Number(prior.sequence)<=topic.contextStartSequence)
+          throw new DomainError('SUPPORT_CONTEXT_CHANGED','原消息属于之前的咨询，请重新输入',409);
         if (prior.body !== body || JSON.stringify(prior.attachment_refs ?? []) !== JSON.stringify(images) || prior.linked_order_id !== linkedOrderId) {
           throw new DomainError("IDEMPOTENCY_CONFLICT", "clientMessageId was reused with different support content", 409);
         }
@@ -647,7 +735,7 @@ export class SupportService {
         if (media.rowCount !== images.length) throw new DomainError("SUPPORT_MEDIA_NOT_FOUND", "A support image is unavailable or belongs to another conversation", 404);
       }
       const sequence = Number(row.next_sequence); const messageId = randomUUID();
-      const bindHuman=Boolean(!historicalOrder&&topic&&(row.human_request_generation??0)>0&&row.human_request_anchor_sequence===null
+      const bindHuman=Boolean(!historicalOrder&&!consultationCaseId&&topic&&(row.human_request_generation??0)>0&&row.human_request_anchor_sequence===null
         &&row.human_request_context_version===topic.contextVersion&&(row.status==='waiting_human'||row.status==='human_active'));
       if(bindHuman)await client.query("SELECT set_config('cisme.support_human_anchor_bind',$1,true)",
         [`${row.id}:${owner}:${row.human_request_generation}:${sequence}:${topic!.contextVersion}`]);
@@ -678,14 +766,14 @@ export class SupportService {
       try{
         // Replaying a committed member receipt also recovers a reply interrupted
         // between commits, but never regenerates an earlier topic's answer.
-        acknowledged={...result,...await this.automaticReply(owner,result.conversation.id,result.message.id,traceId,result.replayed?null:committedQuestion)};
+        acknowledged={...result,...await this.automaticReply(owner,result.conversation.id,result.message.id,traceId,result.replayed?null:committedQuestion,consultationCaseId)};
       }catch{
         acknowledged={...result,aiStatus:'pending',aiMessages:[]};
       }
     }
     if(historicalOrder)return {...acknowledged,supportAiCanRespond:false};
     try{
-      const current=await this.currentTopicState(owner);
+      const current=await this.currentTopicState(owner,consultationCaseId);
       return {...acknowledged,acknowledgedConversationId:result.conversation.id,...current,supportAiCanRespond:this.automaticAiAvailable(),
         aiMessages:current.conversation.id===result.conversation.id
           ?(acknowledged.aiMessages??[]).filter(message=>message.sequence>current.contextStartSequence):[]};
@@ -696,15 +784,16 @@ export class SupportService {
     }
   }
 
-  async requestHuman(memberId: string | undefined, principalId: string | undefined,input:{expectedConversationId?:unknown;contextVersion?:unknown;questionMessageId?:unknown}={}) {
+  async requestHuman(memberId: string | undefined, principalId: string | undefined,input:{expectedConversationId?:unknown;contextVersion?:unknown;questionMessageId?:unknown;consultationCaseId?:unknown}={}) {
     const owner = required(memberId, "AUTH_REQUIRED"); required(principalId, "AUTH_REQUIRED");
+    const caseId=input.consultationCaseId===undefined?undefined:uuid(input.consultationCaseId,'AFTERSALE_ID_INVALID').toLowerCase();
     await this.reconcile(owner);
     return transaction(this.pool, async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [`support-member:${owner}`]);
       await this.reconcileLocked(client,owner);
       let row = await this.findForMember(client, owner, true);
-      if(row)await this.requireCurrentContext(client,row,input);
-      else if(input.expectedConversationId!==undefined||input.contextVersion!==undefined&&input.contextVersion!==0)
+      const window=row?await this.requireCurrentContext(client,row,input,caseId):null;
+      if(!row&&(caseId||input.expectedConversationId!==undefined||input.contextVersion!==undefined&&input.contextVersion!==0))
         throw new DomainError('SUPPORT_CONTEXT_CHANGED','会话已更新，请刷新后重试',409);
       if (!row) {
         if(input.questionMessageId!==undefined&&input.questionMessageId!==null)throw new DomainError('SUPPORT_HANDOFF_QUESTION_INVALID','请选择当前聊天中已确认的用户问题',409);
@@ -712,10 +801,11 @@ export class SupportService {
       }
       else if (row.status === "human_active" || row.status === "waiting_human") return conversation(row);
       else {
-        const topic=await this.contextState(client,row),generation=(row.human_request_generation??0)+1;
+        const topic=caseId?await this.contextState(client,row):window!,generation=(row.human_request_generation??0)+1;
         const explicitId=input.questionMessageId===undefined||input.questionMessageId===null?null:uuid(input.questionMessageId,'SUPPORT_HANDOFF_QUESTION_INVALID');
         const anchor=input.questionMessageId===null?null:(await client.query<{sequence:string}>(`SELECT sequence FROM support_message
-          WHERE conversation_id=$1 AND sender_type='user' AND sequence>$2 AND ($3::uuid IS NULL OR id=$3) ORDER BY sequence DESC LIMIT 1`,[row.id,topic.contextStartSequence,explicitId])).rows[0]?.sequence??null;
+          WHERE conversation_id=$1 AND sender_type='user' AND sequence>$2 AND ($3::uuid IS NULL OR id=$3)
+          AND (NOT $4::boolean OR retention_purpose='ordinary') ORDER BY sequence DESC LIMIT 1`,[row.id,window!.contextStartSequence,explicitId,Boolean(caseId)])).rows[0]?.sequence??null;
         if(explicitId&&!anchor)throw new DomainError('SUPPORT_HANDOFF_QUESTION_INVALID','请选择当前聊天中已确认的用户问题',409);
         await client.query("SELECT set_config('cisme.support_human_request_transition',$1,true)",
           [`${row.id}:${owner}:${row.human_request_generation??0}:${generation}:${topic.contextVersion}:${anchor??0}`]);
@@ -759,16 +849,25 @@ export class SupportService {
     });
   }
 
-  async markMemberRead(memberId: string | undefined, input: { lastSeenSequence?: unknown }) {
+  async markMemberRead(memberId: string | undefined, input: { lastSeenSequence?: unknown; consultationCaseId?:unknown }) {
     const owner = required(memberId, "AUTH_REQUIRED"); const seen = cursor(input.lastSeenSequence);
     if (seen === null) throw new DomainError("CURSOR_INVALID", "lastSeenSequence is required", 422);
+    const caseId=input.consultationCaseId===undefined?undefined:uuid(input.consultationCaseId,'AFTERSALE_ID_INVALID').toLowerCase();
     await this.reconcile(owner);
     return transaction(this.pool, async (client) => {
       await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`support-member:${owner}`]);
       await this.reconcileLocked(client,owner);
       const row = await this.findForMember(client, owner, true);
       if (!row) return null;
-      const effectiveSeen = Math.max(await this.contextBoundary(client,row),Number(row.member_last_read_sequence), Math.min(seen, Number(row.next_sequence) - 1));
+      let effectiveSeen = Math.max(await this.contextBoundary(client,row),Number(row.member_last_read_sequence), Math.min(seen, Number(row.next_sequence) - 1));
+      if(caseId){
+        const paused=await this.casePreview(client,row,caseId);
+        if(!paused)throw new DomainError('AFTERSALE_NOT_FOUND','售后申请暂时无法读取',404);
+        const held=(await client.query<{sequence:string}>(`SELECT sequence FROM support_message WHERE conversation_id=$1 AND sequence>$2
+          AND sequence<=$3 AND sender_type IN ('ai','admin','system') AND ${caseMessageMatch('$4','$5')}
+          ORDER BY sequence LIMIT 1`,[row.id,Number(row.member_last_read_sequence),effectiveSeen,caseId,paused.orderId])).rows[0];
+        if(held)effectiveSeen=Number(held.sequence)-1;
+      }
       const unread = await client.query<{count:number}>(`SELECT count(*)::int AS count FROM support_message
         WHERE conversation_id=$1 AND sequence>$2 AND sender_type IN ('ai','admin','system')`, [row.id, effectiveSeen]);
       const updated = await client.query<ConversationRow>(`UPDATE support_conversation
@@ -1111,8 +1210,8 @@ export class SupportService {
         await this.authority.requireWithClient(client,operator,'support.read');
         await this.authority.requireWithClient(client,operator,'commerce.aftersale.review');
         const linked=(await client.query<{order_id:string}>(`SELECT order_id FROM commerce_aftersale_case
-          WHERE id=$1 AND member_id=$2 AND member_id<>$3 AND (support_conversation_id=$4 OR support_conversation_id IS NULL)`,
-          [caseId,row.member_id,operator,id])).rows[0];
+          WHERE id=$1 AND member_id=$2 AND (support_conversation_id=$3 OR support_conversation_id IS NULL)`,
+          [caseId,row.member_id,id])).rows[0];
         if(!linked)throw new DomainError('AFTERSALE_SUPPORT_LINK_REQUIRED','请选择当前会话的售后案件',403);
         caseOrder=await this.orderCard(client,row.member_id,linked.order_id);
       }

@@ -5,14 +5,24 @@
     <view class="support-title">
       <text class="topbar__title">{{closedRights?'历史订单客服':'CISME 客服'}}</text>
       <view class="support-presence support-presence--{{statusTone}}">
-        <view wx:if="{{conversation.status === 'human_active' && identityAgentKey}}" class="support-handler-avatar-wrap"><view class="support-handler-avatar {{agentAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-handler-avatar--photo' : ''}}"><image src="{{agentAvatar}}" data-key="{{identityAgentKey}}" mode="aspectFill" binderror="onAvatarError" aria-hidden="true"/></view><identity-badge wx:if="{{agentBadge}}" kind="{{agentBadge}}" size="{{18}}"/></view>
+        <view wx:if="{{!consultationView && conversation.status === 'human_active' && identityAgentKey}}" class="support-handler-avatar-wrap"><view class="support-handler-avatar {{agentAvatar !== '/assets/icons/user-circle-plum.svg' ? 'support-handler-avatar--photo' : ''}}"><image src="{{agentAvatar}}" data-key="{{identityAgentKey}}" mode="aspectFill" binderror="onAvatarError" aria-hidden="true"/></view><identity-badge wx:if="{{agentBadge}}" kind="{{agentBadge}}" size="{{18}}"/></view>
         <text wx:else class="support-presence__dot" aria-hidden="true">●</text>
-        <text class="support-presence__label">{{conversation.status === 'human_active' && agentDisplayName ? agentDisplayName + ' · 接待中' : statusLabel}}</text>
+        <text class="support-presence__label">{{!consultationView && conversation.status === 'human_active' && agentDisplayName ? agentDisplayName + ' · 接待中' : statusLabel}}</text>
       </view>
     </view>
   </view>
 
   <view class="support-chat-layout {{keyboardHeight ? 'support-chat-layout--with-keyboard' : ''}}" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px' : ''}}">
+  <button wx:if="{{consultationView && aftersale}}" class="support-case-resume" bindtap="resumeAftersale"
+    hover-class="support-text-action--pressed" disabled="{{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}"
+    aria-label="返回订单尾号 {{aftersale.orderNumberTail}} 的售后对话">
+    <image class="support-case-resume__icon" src="/assets/icons/package-plum.svg" aria-hidden="true"/>
+    <view class="support-case-resume__copy">
+      <text class="support-case-resume__title">{{aftersale.active ? '售后处理中' : '售后对话'}}</text>
+      <text class="support-case-resume__order">{{aftersale.productName ? aftersale.productName + ' · ' : ''}}尾号 {{aftersale.orderNumberTail}}</text>
+    </view>
+    <image class="support-case-resume__arrow" src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/>
+  </button>
   <view class="support-chat-history">
   <scroll-view class="support-thread" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{anchor}}" bindscroll="onThreadScroll" bindscrolltolower="onThreadBottom" lower-threshold="36">
     <view class="support-thread__content">
@@ -23,7 +33,7 @@
       <view class="support-message__content"><text class="support-message__sender">{{supportAiAvailable ? 'CISME AI 客服' : 'CISME 客服'}}</text><view class="support-bubble">{{supportAiAvailable ? '可以问我护理和小程序使用问题。' : '请留下你要咨询的问题。'}}</view></view>
     </view>
 
-    <view wx:if="{{!closedRights && conversation && conversation.status === 'waiting_human'}}" class="support-queue-notice">人工客服 09:00–22:00（北京时间）</view>
+    <view wx:if="{{!closedRights && !consultationView && conversation && conversation.status === 'waiting_human'}}" class="support-queue-notice">人工客服 09:00–22:00（北京时间）</view>
 
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="support-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
@@ -101,8 +111,8 @@
 
   <view class="support-composer {{composerFocused ? 'support-composer--focused' : ''}}">
     <view wx:if="{{!closedRights}}" class="support-composer__actions">
-      <button wx:if="{{!loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human {{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="requestHuman" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}"><text>{{handoffBusy ? '正在申请人工…' : '申请人工'}}</text></button>
-      <button wx:if="{{newTopicAttempt || historyLoaded && !loading && newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启 AI 新对话' : '清空之前聊天并开始新对话'}}"><text>{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
+      <button wx:if="{{(!consultationView || aftersale.active === false) && !loading && errorAction !== 'handoff' && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved')}}" class="support-human {{handoffBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="requestHuman" disabled="{{handoffBusy || newTopicBusy || newTopicAttempt}}"><text>{{handoffBusy ? '正在申请人工…' : '申请人工'}}</text></button>
+      <button wx:if="{{newTopicAttempt || historyLoaded && !loading && (consultationView || aftersale.active || newTopicAvailable && (!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'))}}" class="support-human support-topic {{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy ? 'control--disabled' : ''}}" hover-class="support-text-action--pressed" bindtap="startNewTopic" disabled="{{newTopicBusy || sending || sendAttempt || uploadBusy || handoffBusy}}" aria-label="{{newTopicAttempt ? '重试开启新对话' : '开启新对话'}}"><text>{{newTopicBusy ? '正在开启…' : newTopicAttempt ? '重试新对话' : '新对话'}}</text></button>
     </view>
     <view class="support-composer__surface {{composerFocused ? 'support-composer__surface--focused' : ''}}">
       <view wx:if="{{selectedImage || selectedOrder}}" class="support-draft-attachments">

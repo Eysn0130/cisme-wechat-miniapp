@@ -75,6 +75,37 @@
   height: 30rpx;
 }
 
+.support-case-resume {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 18rpx;
+  width: auto;
+  min-height: 48px;
+  margin: 14rpx 26rpx 0;
+  padding: 12rpx 20rpx;
+  border: 1rpx solid var(--cisme-line);
+  border-radius: 24rpx;
+  background: #fff;
+  color: var(--cisme-ink);
+  text-align: left;
+  line-height: 1.35;
+}
+
+.support-case-resume::after { border: 0; }
+.support-case-resume__icon { width: 34rpx; height: 34rpx; flex: none; }
+.support-case-resume__copy { flex: 1; min-width: 0; }
+.support-case-resume__title { display: block; font-size: var(--cisme-text-action); font-weight: 600; }
+.support-case-resume__order {
+  display: block;
+  overflow: hidden;
+  color: var(--cisme-muted);
+  font-size: var(--cisme-text-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.support-case-resume__arrow { width: 24rpx; height: 24rpx; flex: none; }
+
 .support-state,
 .support-picker-state {
   padding: 34rpx 24rpx;

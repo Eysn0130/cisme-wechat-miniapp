@@ -1,5 +1,5 @@
 import {afterAll,beforeAll,beforeEach,describe,expect,it,vi} from 'vitest';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import type {FastifyInstance} from 'fastify';
 import {loadConfig} from '@cisme/config';
 import {TEST_DATABASE_URL,resetDatabase,testPool} from '@cisme/testkit';
@@ -143,6 +143,53 @@ describe('persistent AI support and manual handoff',()=>{
   expect(result).toMatchObject({conversation:{status:historical?'waiting_human':'ai_active'},message:{contentType:'mixed',orderCard:{orderId}}});
   if(!historical)expect(result).toMatchObject({aiStatus:'handoff_suggested',handoffSuggested:true,aiMessages:[{senderType:'system'}]});
   expect(suggest).not.toHaveBeenCalled();expect(await handoffEvents(result.conversation.id)).toBe(0);
+ });
+ it('keeps an assigned order conversation and unread case replies available alongside a fresh consultation',async()=>{
+  const orderId=await ownedOrder();
+  const original=await support.sendMember(user.memberId,user.principalId,{body:'本单外盒有破损',linkedOrderId:orderId,
+    clientMessageId:'synthetic-case-before-consultation'},'synthetic');
+  const waiting=await support.requestHuman(user.memberId,user.principalId);
+  const assigned=await support.claim(operator.memberId,operator.principalId,waiting.id,{expectedVersion:waiting.version},'synthetic');
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'commerce.aftersale.review','synthetic','Consultation test','test','integration_fixture') ON CONFLICT DO NOTHING`,[operator.memberId]);
+  const caseId=(await pool.query<{id:string}>(`INSERT INTO commerce_aftersale_case
+    (order_id,member_id,kind,reason,lines,amount_cents,idempotency_key,request_hash,support_conversation_id)
+    VALUES($1,$2,'return_refund','订单包装破损','[{"productName":"合成客服订单"}]',10000,'consultation-linked-case',repeat('a',64),$3) RETURNING id`,
+    [orderId,user.memberId,waiting.id])).rows[0]!.id;
+  const originalView=await support.messagesForMember(user.memberId,{});
+  expect(originalView.aftersale).toMatchObject({caseId,orderId,active:true});
+  await support.markMemberRead(user.memberId,{lastSeenSequence:originalView.latestCursor});
+  const command={conversationId:waiting.id,expectedVersion:assigned.version,requestId:randomUUID(),consultationCaseId:caseId};
+  const fresh=await support.startNewTopic(user.memberId,user.principalId,command,'synthetic');
+  expect(fresh).toMatchObject({conversation:{id:assigned.id,status:'human_active'},aftersale:{caseId},messages:[],humanRequest:null});
+  expect(await support.startNewTopic(user.memberId,user.principalId,command,'synthetic')).toMatchObject({replayed:true,contextVersion:fresh.contextVersion});
+  expect(await handoffEvents(waiting.id)).toBe(1);
+
+  const caseReply=await support.reply(operator.memberId,operator.principalId,waiting.id,{body:'请补充订单包装照片',
+    clientMessageId:'synthetic-case-after-consultation',aftersaleCaseId:caseId,expectedHumanRequestGeneration:1,contextVersion:0},'synthetic');
+  const input={body:'如何记录护理感受？',clientMessageId:'synthetic-separate-consultation',expectedConversationId:waiting.id,
+    contextVersion:fresh.contextVersion,consultationCaseId:caseId};
+  const result=await support.sendMember(user.memberId,user.principalId,input,'synthetic');
+  expect(result).toMatchObject({aiStatus:'replied',aiMessages:[{senderType:'ai',body:reply.text}]});
+  expect(suggest.mock.calls.at(-1)?.[0].conversation).toMatchObject({messages:[{body:input.body}]});
+  expect(suggest.mock.calls.at(-1)?.[0].conversation).not.toHaveProperty('humanRequest');
+  const consult=await support.messagesForMember(user.memberId,{consultationCaseId:caseId});
+  expect(consult.messages.map(message=>message.body)).toEqual([input.body,reply.text]);
+  const read=await support.markMemberRead(user.memberId,{lastSeenSequence:consult.latestCursor,consultationCaseId:caseId});
+  expect(read?.memberReadSequence).toBeLessThan(caseReply.message.sequence);
+  const resumed=await support.messagesForMember(user.memberId,{aftersaleCaseId:caseId});
+  expect(resumed.messages.map(message=>message.id)).toContain(original.message.id);
+  expect(resumed.messages.map(message=>message.id)).toContain(caseReply.message.id);
+  expect(resumed.messages.map(message=>message.id)).not.toContain(result.message.id);
+  expect((await support.operatorMessages(operator.memberId,operator.principalId,waiting.id,{})).assignedToMe).toBe(true);
+
+  const reopened=await support.startNewTopic(user.memberId,user.principalId,
+    {...command,expectedVersion:consult.conversation!.version,requestId:randomUUID()},'synthetic');
+  expect(reopened).toMatchObject({messages:[],aftersale:{caseId}});
+  await expect(support.sendMember(user.memberId,user.principalId,input,'synthetic')).rejects.toMatchObject({code:'SUPPORT_CONTEXT_CHANGED'});
+  const foreign=await identity(`synthetic-other-consultation-${serial}`);
+  await support.sendMember(foreign.memberId,foreign.principalId,{body:'独立聊天',clientMessageId:'other-case-scope'},'synthetic');
+  await expect(support.messagesForMember(foreign.memberId,{aftersaleCaseId:caseId})).rejects.toMatchObject({code:'AFTERSALE_NOT_FOUND'});
  });
  it('keeps waiting human routing intact while answering and preserves the legacy explicit cancellation version guard',async()=>{
   const waiting=await support.requestHuman(user.memberId,user.principalId);

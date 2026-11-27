@@ -64,6 +64,27 @@ describe('native support new AI topic',()=>{
  it.each(['waiting_human','human_active'])('does not leave %s to start a fresh topic',async(status)=>{
   p.data.conversation={...conversation,status};await p.startNewTopic();expect(m.request).not.toHaveBeenCalled();expect(p.data.conversation.status).toBe(status);expect(wx.showModal).toHaveBeenCalledWith(expect.objectContaining({title:'人工事项处理中',showCancel:false,content:expect.stringContaining('人工申请会继续保留')}));
  });
+ it('opens a separate consultation from the active aftersale and keeps the original draft',async()=>{
+  const aftersale={caseId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',orderId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    orderNumberTail:'0001',productName:'测试商品',kind:'return_refund',active:true};
+  const assigned={...conversation,status:'human_active'};
+  Object.assign(p.data,{aftersale,conversation:assigned,input:'正在编辑的订单消息',newTopicAvailable:false});
+  m.request.mockResolvedValueOnce(page({aftersale,conversation:{...assigned,version:4}}));
+  await p.startNewTopic();
+  expect(wx.showModal).not.toHaveBeenCalled();
+  expect(m.request).toHaveBeenCalledWith(expect.objectContaining({path:'/v1/me/support/new-topic',data:expect.objectContaining({consultationCaseId:aftersale.caseId})}));
+  expect(wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/support/index?consultationCaseId=${aftersale.caseId}`}));
+  expect(p.data.input).toBe('正在编辑的订单消息');
+  expect(p.data.messages).toHaveLength(2);
+  expect(p.messagesPath()).toContain(`aftersaleCaseId=${aftersale.caseId}`);
+
+  p.onLoad({consultationCaseId:aftersale.caseId});
+  expect(p.data.consultationView).toBe(true);
+  expect(p.messagesPath('after=3')).toContain(`consultationCaseId=${aftersale.caseId}&after=3`);
+  (globalThis as any).getCurrentPages=()=>[];
+  p.resumeAftersale();
+  expect(wx.navigateTo).toHaveBeenLastCalledWith({url:`/pages/support/index?orderId=${aftersale.orderId}&caseId=${aftersale.caseId}&aftersaleView=1`});
+ });
  it.each(['sending','uploadBusy','handoffBusy','closedRights','sendAttempt'])('does not start during %s',async(key)=>{
   p.data[key]=key==='sendAttempt'?{id:'unconfirmed-original'}:true;await p.startNewTopic();expect(m.request).not.toHaveBeenCalled();
  });
