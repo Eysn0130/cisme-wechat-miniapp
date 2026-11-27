@@ -33,7 +33,7 @@
       <text wx:if="{{item.amountLabel}}" class="finance-amount">¥{{item.amountLabel}}</text>
       <text wx:if="{{item.reason}}" class="finance-copy">{{item.reason}}</text>
       <text wx:if="{{item.sourceReference}}" class="finance-copy">凭据 {{item.sourceReference}} · 签收 {{item.deliveredAt}}</text>
-      <text wx:if="{{item.code}}" class="finance-copy">{{item.code}} · 已尝试 {{item.attempts}} 次</text>
+      <text wx:if="{{item.code}}" class="finance-copy">{{item.issueLabel}} · 已尝试 {{item.attempts}} 次</text>
       <text class="finance-id">{{item.orderId||item.memberId||item.relatedId||item.id}}</text>
       <view wx:if="{{section!=='issues'&&section!=='bills'&&(!formalMode||moneyEnabled)}}" class="finance-actions">
         <button wx:if="{{canReadOrders && item.orderId}}" class="finance-action {{busy || navigating?'control--disabled':''}}" data-id="{{item.orderId}}" bindtap="openOrder" disabled="{{busy || navigating}}">订单详情</button>

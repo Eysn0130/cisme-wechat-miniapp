@@ -32,7 +32,7 @@ export type RefundReviewCase = {
   refundApprovalAllowed?:boolean;
   fulfillment?:{state?:string;canRefundWithoutReturn:boolean};
   refundRequestId?:string|null;
-  refund?:{reviewState:string;reviewVersion?:number;channelState?:string|null}|null;
+  refund?:{reviewState:string;reviewVersion?:number;channelState?:string|null;requiresAttention?:boolean}|null;
   returnTracking?:string|null;
   shippedInstructionVersion?:number|null;
   returnDestination?:{version:number}|null;

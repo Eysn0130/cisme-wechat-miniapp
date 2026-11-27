@@ -2,6 +2,7 @@ import { createDecipheriv, createHash, randomBytes, sign, verify } from "node:cr
 import { DomainError } from "@cisme/domain";
 
 type HeaderMap=Record<string,string|undefined>;
+const refundPath="/v3/refund/domestic/refunds";
 type Resource={algorithm?:unknown;ciphertext?:unknown;associated_data?:unknown;nonce?:unknown;original_type?:unknown};
 type Notification={id?:unknown;event_type?:unknown;resource_type?:unknown;resource?:Resource};
 export type PaymentTransaction={appid?:unknown;mchid?:unknown;out_trade_no?:unknown;transaction_id?:unknown;
@@ -233,8 +234,18 @@ export class WechatPayV3Client{
       try{code=(JSON.parse(raw.toString("utf8")) as {code?:unknown}).code;}catch{/* fail closed */}
       if(method==="GET"&&response.status===404&&code==="ORDER_NOT_EXIST")
         throw new DomainError("WECHAT_PAY_ORDER_NOT_FOUND","原商户订单号在渠道中不存在",404);
-      if(method==="GET"&&response.status===404&&code==="RESOURCE_NOT_EXISTS")
+      if(method==="GET"&&path.startsWith(refundPath+"/")&&response.status===404&&code==="RESOURCE_NOT_EXISTS")
         throw new DomainError("WECHAT_REFUND_NOT_FOUND","原商户退款单号在渠道中不存在",404);
+      if(method==="POST"&&path===refundPath){
+        if(response.status===403&&code==="NOT_ENOUGH")
+          throw new DomainError("WECHAT_REFUND_BALANCE_INSUFFICIENT","微信支付商户基本账户余额不足",409);
+        if(response.status===403&&code==="USER_ACCOUNT_ABNORMAL")
+          throw new DomainError("WECHAT_REFUND_ACCOUNT_ABNORMAL","微信支付反馈原付款账户异常",409);
+        if((response.status===400&&(code==="INVALID_REQUEST"||code==="PARAM_ERROR"))||
+           (response.status===401&&code==="SIGN_ERROR")||(response.status===403&&code==="NO_AUTH")||
+           (response.status===404&&(code==="RESOURCE_NOT_EXISTS"||code==="MCH_NOT_EXISTS")))
+          throw new DomainError("WECHAT_REFUND_REQUEST_REJECTED","微信支付拒绝受理，请核对退款参数和商户权限",409);
+      }
       if(method==="GET"&&response.status===404&&code==="NOT_FOUND"&&
         path.startsWith("/v3/fund-app/mch-transfer/transfer-bills/out-bill-no/"))
         throw new DomainError("WECHAT_TRANSFER_NOT_FOUND","原商户转账单号在渠道中不存在",404);
@@ -291,19 +302,24 @@ export class WechatPayV3Client{
   }
   async queryRefundByMerchantRefundNumberWithEvidence(binding:RefundBinding){
     if(!/^[A-Za-z0-9_-]{8,64}$/.test(binding.outRefundNo))reject("商户退款单号无效");
-    const path=`/v3/refund/domestic/refunds/${encodeURIComponent(binding.outRefundNo)}`;
+    const path=`${refundPath}/${encodeURIComponent(binding.outRefundNo)}`;
     const {raw}=await this.request("GET",path);
     const result=JSON.parse(raw.toString("utf8")) as RefundQueryResult;
     return {fact:assertRefundQueryBinding(result,binding),result,
       rawSha256:createHash("sha256").update(raw).digest("hex")};
   }
   async createRefund(binding:RefundBinding,reason:string,notifyUrl:string){
-    if(!/^https:\/\/[^?#]+$/.test(notifyUrl)||reason.length<3||reason.length>80)
+    if(!/^https:\/\/[^?#]+$/.test(notifyUrl)||Array.from(reason).length<3)
       reject("退款申请参数无效");
+    let channelReason="";
+    for(const character of reason){
+      if(Buffer.byteLength(channelReason+character)>80)break;
+      channelReason+=character;
+    }
     const body=JSON.stringify({transaction_id:binding.providerTransactionId,
-      out_refund_no:binding.outRefundNo,reason,notify_url:notifyUrl,
+      out_refund_no:binding.outRefundNo,reason:channelReason,notify_url:notifyUrl,
       amount:{refund:binding.refundCents,total:binding.totalCents,currency:"CNY"}});
-    const {raw}=await this.request("POST","/v3/refund/domestic/refunds",body);
+    const {raw}=await this.request("POST",refundPath,body);
     let result:RefundQueryResult;
     try{result=JSON.parse(raw.toString("utf8")) as RefundQueryResult;}catch{reject("退款受理响应无效");}
     return {fact:assertRefundQueryBinding(result,binding),result,

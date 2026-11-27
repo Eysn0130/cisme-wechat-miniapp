@@ -15,7 +15,7 @@ type Row={id:string;orderId?:string;memberId?:string;requestedByMemberId?:string
   amountCents?:number;reason?:string;sourceReference?:string;evidenceSha256?:string;
   deliveredAt?:string;version?:number;kind?:string;relatedId?:string;code?:string;
   billDate?:string;billType?:string;rowCount?:number;matchedCount?:number;exceptionCount?:number;
-  attempts?:number;canRedrive?:boolean;createdAt?:string;amountLabel?:string;dateLabel?:string;kindLabel?:string};
+  attempts?:number;canRedrive?:boolean;createdAt?:string;amountLabel?:string;dateLabel?:string;kindLabel?:string;issueLabel?:string};
 type PageResult={items:Row[];totalCount:number;nextCursor:string|null};
 const sections:[Section,string,Parameters<typeof hasCapability>[1]][]=[
   ["refund","退款申请","commerce.refund.approve"],
@@ -32,6 +32,12 @@ const paths:Record<Section,string>={refund:"/v1/management/refund-requests/pendi
 const kindNames:Record<string,string>={payment_inbox:"支付记录",refund_inbox:"退款记录",
   refund_submission:"退款提交",transfer:"转账查单",transfer_callback:"转账回调",
   trade_bill:"账单差异"};
+const refundIssueLabels:Record<string,string>={
+  REFUND_ORIGINAL_QUERY_REQUIRED:"待核对微信原退款单",
+  WECHAT_REFUND_BALANCE_INSUFFICIENT:"微信支付商户基本账户余额不足",
+  WECHAT_REFUND_ACCOUNT_ABNORMAL:"原付款账户异常",
+  WECHAT_REFUND_REQUEST_REJECTED:"微信支付未受理退款申请"
+};
 const yesterdayShanghai=()=>new Date(Date.now()+8*60*60*1000-24*60*60*1000).toISOString().slice(0,10);
 const lastCycleMonth=()=>{const shanghai=new Date(Date.now()+8*60*60*1000).toISOString();
   return new Date(Date.UTC(Number(shanghai.slice(0,4)),Number(shanghai.slice(5,7))-1,0))
@@ -42,7 +48,7 @@ const timeLabel=(value?:string)=>value?new Date(value).toLocaleString("zh-CN",{
   year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Shanghai"})+"（北京时间）":"";
 const format=(row:Row):Row=>({...row,amountLabel:typeof row.amountCents==="number"
   ?(row.amountCents/100).toFixed(2):"",dateLabel:timeLabel(row.createdAt),
-  kindLabel:kindNames[row.kind??""]??"待核对"});
+  kindLabel:kindNames[row.kind??""]??"待核对",issueLabel:refundIssueLabels[row.code??""]??row.code??""});
 
 Page({
   actorToken:"",actorContext:-1,
@@ -236,7 +242,7 @@ Page({
     const current=()=>this.data.alive&&this.data.epoch===epoch&&this.data.section==="issues"&&
       token===getApp<IAppOption>().globalData.sessionToken&&this.actorContext===commerceContextRevision()&&this.data.items.some(row=>row.id===id);
     const answer=await wx.showModal({title:action==="redrive"?"重试原任务？":"按原单号查渠道？",
-      content:`${item.kindLabel} · ${item.code}。状态必须由渠道核验，不能手工改为成功。`,
+      content:`${item.kindLabel} · ${item.issueLabel}。${action==="redrive"&&item.kind==="refund_submission"?"会使用同一退款单号核对并重试。":"以微信支付回查结果为准。"}`,
       editable:action==="redrive",placeholderText:"输入至少 8 字的重试依据",confirmText:action==="redrive"?"确认重试":"确认查单"});
     if(!answer.confirm||!current())return;
     const reason=String(answer.content??"").trim();
@@ -257,8 +263,12 @@ Page({
     try{if(!current())return;
       await request({path,method:"POST",data});
       if(current()){this.setData({busy:false,actionStatus:"已按原单核对或安排重试，请查看最新状态。"});await this.load();}
-    }catch(error){if(current())this.setData({busy:false,
-      actionError:(error as {title?:string}).title||"操作未完成，请核对后重试。"});}
+    }catch(error){if(current()){
+      const problem=error as {code?:string;title?:string};
+      const missingRefund=item.kind==="refund_submission"&&problem.code==="WECHAT_REFUND_NOT_FOUND";
+      this.setData({busy:false,actionError:missingRefund?"微信支付暂未查到这笔退款。请在当前任务核对后重试。":
+        problem.title||"操作未完成，请核对后重试。"});
+    }}
     finally{if(this.data.alive&&this.data.epoch===epoch)this.setData({busy:false});}
   },
   chooseBillDate(event:{detail:{value:string}}){

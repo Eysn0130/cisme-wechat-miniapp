@@ -34,7 +34,7 @@ const platformPublic=platform.publicKey.export({type:"spki",format:"pem"}).toStr
 const appId="wx4eac2d4fb11d299b",merchantId="1234567890",apiV3Key="0123456789abcdef0123456789abcdef";
 const serial="PUB_KEY_ID_3000000001";
 const channelOrders=new Map<string,{appid:string;mchid:string;openid:string;amount:number;
-  state:"NOTPAY"|"SUCCESS"|"CLOSED";description:string;prepayId:string;transactionId:string;paidAt:string}>();
+  state:"NOTPAY"|"SUCCESS"|"REFUND"|"CLOSED";description:string;prepayId:string;transactionId:string;paidAt:string}>();
 const channelRefunds=new Map<string,{outTradeNo:string;transactionId:string;amount:number;total:number;
   status:"PROCESSING"|"SUCCESS"|"CLOSED"|"ABNORMAL";refundId:string;succeededAt:string;acceptedAt:string}>();
 const channelTransfers=new Map<string,{openid:string;amount:number;state:"WAIT_USER_CONFIRM"|"SUCCESS"|"FAIL";
@@ -45,6 +45,7 @@ let channelRequestCount=0;
 let recheckAdmissionObservation:{target:string;visible:boolean[]}|undefined;
 let corruptBillHash=false;
 let loseNextRefundResponse=false;
+let rejectNextRefundForBalance=false;
 let loseNextCloseResponse=false;
 let loseNextTransferResponse=false;
 let server:ReturnType<typeof createServer>,app:FastifyInstance,baseUrl:string;
@@ -127,10 +128,12 @@ async function channelHandler(request:IncomingMessage,response:ServerResponse){
     response.writeHead(204,signedHeaders(Buffer.alloc(0)));response.end();return;
   }
   if(method==="POST"&&path==="/v3/refund/domestic/refunds"){
-    const input=JSON.parse(raw.toString("utf8")) as {transaction_id:string;out_refund_no:string;
+    const input=JSON.parse(raw.toString("utf8")) as {transaction_id:string;out_refund_no:string;reason:string;
       amount:{refund:number;total:number}};
     const payment=[...channelOrders.entries()].find(([,order])=>order.transactionId===input.transaction_id&&order.state==="SUCCESS");
     if(!payment||payment[1].amount!==input.amount.total){sendSigned(response,404,{code:"RESOURCE_NOT_EXISTS"});return;}
+    if(Buffer.byteLength(input.reason)>80){sendSigned(response,400,{code:"PARAM_ERROR"});return;}
+    if(rejectNextRefundForBalance){rejectNextRefundForBalance=false;sendSigned(response,403,{code:"NOT_ENOUGH"});return;}
     let refund=channelRefunds.get(input.out_refund_no);
     if(!refund){refund={outTradeNo:payment[0],transactionId:input.transaction_id,amount:input.amount.refund,
       total:input.amount.total,status:"PROCESSING",refundId:`ref-${randomBytes(12).toString("hex")}`,
@@ -1251,7 +1254,7 @@ it("retains a committed may-have-sent fact across restart, lease takeover and re
   expect(channelTransfers.has(reserved.out_bill_no)).toBe(false);
 });
 
-it("does not reissue payment or refund after a committed dispatch boundary and temporary NOT_FOUND",async()=>{
+it("does not reissue an unknown payment or a missing refund if the original payment already shows a refund",async()=>{
   await pool.query(`UPDATE catalog_inventory_level SET stock_on_hand=stock_on_hand+2,
     version=version+1,updated_by='fixture' WHERE sku_id=$1`,[skuId]);
   const payment=await createOrder("n03-payment-crash");
@@ -1285,6 +1288,7 @@ it("does not reissue payment or refund after a committed dispatch boundary and t
   await pool.query(`UPDATE commission_refund_intent SET submission_state='unknown',
     first_dispatch_started_at=clock_timestamp(),submission_attempt_count=8,
     submission_quarantined_at=clock_timestamp() WHERE id=$1`,[intent.id]);
+  channelOrders.get(paidOrder.orderNumber)!.state="REFUND";
   await refundCommands.redrive(operator.memberId,intent.id,
     {expectedAttempts:8,reason:"隔离退款原单人工核对后重驱"});
   const freshRefund=new RefundCommandService(pool,new AuthorityService(pool,"test"),
@@ -1297,6 +1301,43 @@ it("does not reissue payment or refund after a committed dispatch boundary and t
     FROM commission_refund_intent WHERE id=$1`,[intent.id])).rows[0];
   expect(history.first_dispatch_started_at).toBeTruthy();
   expect(history.submission_attempt_count).toBe(1);
+});
+
+it("surfaces a signed balance refusal and resumes the same approved refund when the original payment is verified",async()=>{
+  const owner=(await app.inject({method:"POST",url:"/v1/identity/dev",payload:{externalUserId:"synthetic-original-refund-owner",
+    displayName:"合成原退款买家",consents:[{documentType:"privacy",version:"test"},{documentType:"terms",version:"test"}]}})).json<TestActor>();
+  await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+    VALUES($1,'wechat_miniprogram',$2,'synthetic-original-refund-openid','wechat')`,[owner.memberId,appId]);
+  const order=await aftersalePaidOrder("refund-original-confirmed",owner);
+  const requested=await app.inject({method:"POST",url:`/v1/me/orders/${order.id}/refund-requests`,
+    headers:{...auth(owner.sessionToken),"idempotency-key":"confirmed-refund-request-0001"},
+    payload:{amountCents:10000,reason:"长中文退款原因".repeat(10)}});
+  expect(requested.statusCode,requested.body).toBe(200);
+  const approved=await app.inject({method:"POST",url:`/v1/management/refund-requests/${requested.json().id}/decision`,
+    headers:{...auth(operator.sessionToken),"idempotency-key":"confirmed-refund-approve-0001"},
+    payload:{decision:"approve",expectedVersion:1,reason:"审批原路全额退款"}});
+  expect(approved.statusCode,approved.body).toBe(200);
+  const intent=approved.json().intent as {id:string;outRefundNo:string};
+  rejectNextRefundForBalance=true;
+  expect(await refundCommands.processDue()).toContainEqual({id:intent.id,state:"quarantined"});
+  expect(channelRefunds.has(intent.outRefundNo)).toBe(false);
+  const before=(await pool.query(`SELECT first_dispatch_started_at, submission_attempt_count, submission_last_error_code
+    FROM commission_refund_intent WHERE id=$1`,[intent.id])).rows[0];
+  expect(before).toMatchObject({first_dispatch_started_at:expect.any(Date),submission_attempt_count:1,
+    submission_last_error_code:"WECHAT_REFUND_BALANCE_INSUFFICIENT"});
+  await refundCommands.redrive(operator.memberId,intent.id,
+    {expectedAttempts:1,reason:"商户资金条件恢复后核对原单"});
+  const attempts=await Promise.all([refundCommands.processDue(),refundCommands.processDue()]);
+  expect(attempts.flat().filter(result=>result.id===intent.id)).toEqual([{id:intent.id,state:"accepted_processing"}]);
+  const observed=channelRefunds.get(intent.outRefundNo);
+  expect(observed).toMatchObject({outTradeNo:order.orderNumber,amount:10000,status:"PROCESSING"});
+  const received=refundCallback(intent.outRefundNo);
+  expect((await app.inject({method:"POST",url:"/v1/payments/wechat/refund-callback",
+    headers:{...received.headers,"Content-Type":"application/json"},payload:received.raw})).statusCode).toBe(204);
+  await runMoneyWorkerCycle(paymentInbox,refundInbox,refundCommands);
+  const stored=(await pool.query(`SELECT state, first_dispatch_started_at, submission_quarantined_at
+    FROM commission_refund_intent WHERE order_id=$1`,[order.id])).rows;
+  expect(stored).toEqual([{state:"succeeded",first_dispatch_started_at:before.first_dispatch_started_at,submission_quarantined_at:null}]);
 });
 
 it("downloads a hash-checked trade bill, imports once, and exposes amount conflicts without posting money",async()=>{
