@@ -457,18 +457,18 @@ describe("U0 native page lifecycle regressions", () => {
     expect(page.data.attachmentSheetOpen).toBe(true);
   });
 
-  it("keeps the member composer at three-line minimum and caps growth after six lines", async () => {
+  it("caps the compact member composer after four lines and shrinks again when edited", async () => {
     await vi.importActual("../../apps/miniprogram/pages/support/index");
     const page = mountedPage(capturedPage!, { composerLineCount: 1, composerCapped: false });
 
     page.onComposerLineChange({ detail: { lineCount: 3 } });
     expect(page.data).toMatchObject({ composerLineCount: 3, composerCapped: false });
 
-    page.onComposerLineChange({ detail: { lineCount: 6 } });
-    expect(page.data).toMatchObject({ composerLineCount: 6, composerCapped: false });
+    page.onComposerLineChange({ detail: { lineCount: 4 } });
+    expect(page.data).toMatchObject({ composerLineCount: 4, composerCapped: false });
 
-    page.onComposerLineChange({ detail: { lineCount: 7 } });
-    expect(page.data).toMatchObject({ composerLineCount: 7, composerCapped: true });
+    page.onComposerLineChange({ detail: { lineCount: 5 } });
+    expect(page.data).toMatchObject({ composerLineCount: 5, composerCapped: true });
 
     page.onComposerLineChange({ detail: { lineCount: 2 } });
     expect(page.data).toMatchObject({ composerLineCount: 2, composerCapped: false });

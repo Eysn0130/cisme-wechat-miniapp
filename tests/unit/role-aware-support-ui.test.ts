@@ -33,13 +33,13 @@ describe("role-aware native support UX",()=>{
   for(const transient of ['messages.length','pendingMessage','error','conversation.status','loading'])expect(welcome?.[1]).not.toContain(transient);
   expect(view.match(/class="support-message[^"\n]*support-welcome-message/g)).toHaveLength(1);
   expect(view.indexOf('support-welcome-message')).toBeLessThan(view.indexOf('<block wx:for="{{messages}}"'));
-  expect(view).toContain('你好呀，我是 CISME AI 客服 😊 护理或使用小程序有疑问，都可以问我～');
-  expect(view).toContain('你好呀 😊 有问题可以留言，也可以申请人工客服。');expect(view).toContain('正在思考…');
+  expect(view).toContain('可以问我护理和小程序使用问题。');
+  expect(view).toContain('请留下你要咨询的问题。');expect(view).toContain('正在思考…');
   expect(view).toContain("handoffFailed ? '重试申请' : '申请人工'");expect(view).not.toContain('重新提交');
   expect(view).toContain("!conversation || conversation.status === 'ai_active' || conversation.status === 'resolved'");
   expect(view.match(/人工客服 09:00–22:00/g)).toHaveLength(1);expect(view).toContain("conversation.status === 'waiting_human'");
   expect(style).toContain('min-height: 44px');expect(style).toContain('@media (prefers-reduced-motion: reduce)');
-  const chatFonts={'.support-bubble':'.875rem','.support-message__sender':'.75rem','.support-message__meta':'.6875rem','.support-input':'.875rem','.support-human':'.75rem','.support-system text':'.8125rem','.support-presence':'.75rem'};
+  const chatFonts={'.support-bubble':'.875rem','.support-message__sender':'.75rem','.support-message__meta':'.6875rem','.support-input':'.875rem','.support-human':'.75rem','.support-system__notice':'.8125rem','.support-presence':'.75rem'};
   for(const [selector,size] of Object.entries(chatFonts)){
     const declaration=style.split(`${selector} {`)[1]?.split('}')[0];
     expect(declaration,selector).toMatch(new RegExp(`font-size:\\s*${size.replace('.','\\.')}\\s*;`));
@@ -50,7 +50,8 @@ describe("role-aware native support UX",()=>{
   const [view,style]=await Promise.all([read('apps/miniprogram/pages/support/index.wxml'),read('apps/miniprogram/pages/support/index.wxss')]);
   const actionStart=view.indexOf('class="support-composer__actions"'),surfaceStart=view.indexOf('class="support-composer__surface ');
   expect(actionStart).toBeGreaterThan(0);expect(actionStart).toBeLessThan(surfaceStart);
-  const actions=view.slice(actionStart,surfaceStart);expect(actions).toContain('bindtap="requestHuman"');expect(actions).not.toContain('resumeAi');expect(actions).toContain('人工已申请');expect(actions).toContain('人工接待中');expect(actions).not.toContain('support-action-pill');
+  const actions=view.slice(actionStart,surfaceStart);expect(actions).toContain('bindtap="requestHuman"');expect(actions).not.toContain('resumeAi');expect(actions).not.toContain('support-action-pill');
+  expect(view.slice(0,view.indexOf('support-chat-layout'))).toContain("agentDisplayName + ' · 接待中' : statusLabel");
   const textarea=view.match(/<textarea\b[^>]*\/>/)?.[0];expect(textarea).toContain('confirm-type="done"');expect(textarea).not.toContain('bindconfirm');expect(textarea).not.toContain('confirm-hold="true"');
   expect(view.match(/bindtap="send"/g)).toHaveLength(1);
   expect(view).not.toContain('support-ai-notice');expect(view).not.toContain('AI 可能出错，请勿发敏感信息。');expect(view).not.toContain('DeepSeek');
@@ -60,7 +61,7 @@ describe("role-aware native support UX",()=>{
  it("uses owned secure image and order references without adding WebSocket or AI framework dependencies",async()=>{
   const [app,user,userView,operator,operatorView,lock]=await Promise.all([read("apps/miniprogram/app.json"),read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/support/index.wxml"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.wxml"),read("package-lock.json")]);
   expect(app).not.toContain("connectSocket");expect(user).toContain("wx.chooseMedia");expect(user).toContain("/v1/me/support/media/authorize");expect(user).toContain("linkedOrderId");
-  expect(userView).toContain("图片");expect(userView).toContain("拍照");expect(userView).toContain("选择订单");expect(operator).toContain("downloadPrivateMedia");expect(operatorView).toContain("operator-order-card");
+  expect(userView).toContain("相册");expect(userView).toContain("拍照");expect(userView).toContain("选择订单");expect(operator).toContain("downloadPrivateMedia");expect(operatorView).toContain("operator-order-card");
   expect(lock).not.toContain("@langchain/langgraph");
  });
 });

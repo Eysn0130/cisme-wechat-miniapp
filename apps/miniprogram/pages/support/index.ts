@@ -28,7 +28,10 @@ import {
 
 type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath: string; localPath?: string };
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
+type AftersaleCard={id:string;orderId:string;orderNumberTail:string;kind:'refund_only'|'return_refund';amountCents:number;
+  lines:Array<{lineId:string;productName:string;skuLabel:string;quantity:number}>;amountLabel?:string;moreLines?:number};
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null;
+  aftersaleCard?:AftersaleCard;
   replyToMessageId?: string | null; sender?: SupportSender; avatarPath?: string;
   helpAction?: unknown;
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
@@ -92,7 +95,7 @@ Page({
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
     pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false, helpNavigating: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
-    attachmentSheetOpen: false, attachmentSheetMode: "image" as "image" | "attachment", orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
+    attachmentSheetOpen: false, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
     selectedImage: null as SelectedImage | null, uploadBusy: false
   },
   onLoad(options:Record<string,string>) { this.data.pageAlive = true;
@@ -128,7 +131,7 @@ Page({
         historyLoaded: false, historyStartLoaded: false, supportAiAvailable: false, supportAiCanRespond: null, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false, handoffAttempt: null,
         contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicAttempt: null,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
-        attachmentSheetOpen: false, attachmentSheetMode: "image", orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
+        attachmentSheetOpen: false, orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
         composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
     }
     if(closedRights&&!this.linkedOrderId){this.data.visible=false;wx.redirectTo({url:'/pages/privacy-rights/index'});return;}
@@ -201,8 +204,10 @@ Page({
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); this.choosingImage = false; this.nativePickerReturn?.(); this.nativePickerReturn = null; },
   openAftersaleCase(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??'');
-    if(!this.data.visible||!this.data.messages.some(item=>item.returnInstruction?.caseId===id))return;
-    wx.navigateTo({url:`/pages/aftersale/index?caseId=${id}`});
+    if(!this.owns(this.lifecycleEpoch,sessionToken())||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)
+      ||!this.data.messages.some(item=>item.returnInstruction?.caseId===id||item.aftersaleCard?.id===id))return;
+    const goToShipment=event.currentTarget.dataset.shipment===true&&this.data.messages.some(item=>item.returnInstruction?.caseId===id);
+    wx.navigateTo({url:`/pages/aftersale/index?caseId=${id}${goToShipment?'&action=ship_return':''}`});
   },
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
   restoreRecovery(conversation: Conversation | null, contextVersion: number) {
@@ -375,7 +380,7 @@ Page({
   },
   onComposerLineChange(event: WechatMiniprogram.TextareaLineChange) {
     const lineCount = Math.max(1, Number(event.detail.lineCount) || 1);
-    const composerCapped = lineCount > 6;
+    const composerCapped = lineCount > 4;
     if (lineCount !== this.data.composerLineCount || composerCapped !== this.data.composerCapped) this.setData({ composerLineCount: lineCount, composerCapped });
   },
   onKeyboardHeightChange(event: WechatMiniprogram.TextareaKeyboardHeightChange) {
@@ -399,8 +404,13 @@ Page({
   },
   stopPolling() { if (this.pollTimer) clearTimeout(this.pollTimer); this.pollTimer = null; },
   normalize(messages: RawMessage[], localImage?: SelectedImage | null) {
-    return messages.map((item) => ({ ...item, attachments: (item.attachments ?? []).map((attachment) => ({ ...attachment,
-      ...(localImage?.mediaId === attachment.id ? { localPath: localImage.localPath } : {}) })), orderCard: item.orderCard ? { ...item.orderCard, statusLabel: orderStatusLabels[item.orderCard.status] ?? "状态待更新", totalYuan: centsToYuan(item.orderCard.totalCents) } : null }));
+    return messages.map((item) => {
+      const card=item.aftersaleCard;
+      return {...item,attachments:(item.attachments??[]).map(attachment=>({...attachment,
+        ...(localImage?.mediaId===attachment.id?{localPath:localImage.localPath}:{})})),
+        orderCard:item.orderCard?{...item.orderCard,statusLabel:orderStatusLabels[item.orderCard.status]??"状态待更新",totalYuan:centsToYuan(item.orderCard.totalCents)}:null,
+        ...(card?{aftersaleCard:{...card,amountLabel:centsToYuan(card.amountCents),lines:card.lines.slice(0,2),moreLines:Math.max(0,card.lines.length-2)}}:{})};
+    });
   },
   async load() {
     const epoch = this.lifecycleEpoch;
@@ -672,14 +682,12 @@ Page({
     }
   },
   retrySend() { void this.send(); },
-  prepareAttachmentSheet(attachmentSheetMode: "image" | "attachment") {
+  openAttachmentSheet() {
     if(this.data.closedRights)return;
     if (this.data.sending || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage || this.data.newTopicBusy || this.data.newTopicAttempt) return;
     if (typeof wx.hideKeyboard === "function") wx.hideKeyboard();
-    this.setData({ attachmentSheetOpen: true, attachmentSheetMode, composerFocused: false });
+    this.setData({ attachmentSheetOpen: true, composerFocused: false });
   },
-  openImageSheet() { this.prepareAttachmentSheet("image"); },
-  openAttachmentSheet() { this.prepareAttachmentSheet("attachment"); },
   closeAttachmentSheet() { this.setData({ attachmentSheetOpen: false }); },
   stopPropagation() {},
   mimeForPath(path: string): string | null { const lower = path.toLowerCase(); return /\.(jpg|jpeg)$/.test(lower) ? "image/jpeg" : lower.endsWith(".png") ? "image/png" : lower.endsWith(".webp") ? "image/webp" : null; },

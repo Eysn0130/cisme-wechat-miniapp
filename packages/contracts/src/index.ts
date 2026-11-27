@@ -213,6 +213,15 @@ export interface SupportSenderIdentityView {
   redacted?: boolean;
   identityBadge?: Exclude<MemberDisplayIdentity, "member">;
 }
+export interface SupportAftersaleCard {
+  id: string;
+  orderId: string;
+  orderNumberTail: string;
+  kind: 'refund_only' | 'return_refund';
+  requestedAt: string;
+  amountCents: number;
+  lines: Array<{lineId:string;productName:string;skuLabel:string;quantity:number}>;
+}
 export interface SupportMessageView {
   id: string;
   replyToMessageId?: string | null;
@@ -226,6 +235,9 @@ export interface SupportMessageView {
   contentType: SupportMessageContentType;
   attachments: Array<{ id: string; mimeType: "image/jpeg" | "image/png" | "image/webp"; sizeBytes: number; previewPath: string }>;
   orderCard: null | { orderId: string; orderNumberTail: string; status: CommerceOrderStatus; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string };
+  relatedOrderId?: string;
+  aftersaleCard?: SupportAftersaleCard;
+  aftersaleDecision?: {caseId:string;version:number};
   returnInstruction: null | { caseId: string; version: number; recipientName: string; phone: string; region: string; address: string; freightPayer: string; instructions: string };
   deliveryState: "server_accepted" | "read";
   createdAt: string;

@@ -243,7 +243,7 @@ describe("native mini program boundary", () => {
       "product": ["back", "previewGallery", "selectGallery", "load", "openSku", "previewDetail", "load", "back", "openSupport", "buy", "closeSku", "selectSku", "decrease", "increase", "confirmSku"],
       "checkout": ["back", "retryLoad", "selectSku", "decrease", "increase", "editAddresses", "selectAddress", "retryLoad", "openCoupons", "loadCoupons", "confirmOrder", "requestQuote", "refreshQuote", "confirmOrder", "closeCoupons", "chooseCoupon", "chooseCoupon", "loadCoupons", "back", "retryLoad"],
       orders: ["back", "load", "open", "openShop", "loadMore"],
-      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "copySheetReturnInstruction", "openFullAftersale", "openFullAftersale", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadSupportSheet", "loadShipment", "copyWaybill", "openLogistics", "loadTracking", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "recheckPayment", "preparePayment", "cancel", "toggleRecordedHistory"],
+      "order-detail": ["back", "back", "load", "retryRuntime", "resolveRecovery", "loadRecovery", "expandSupport", "closeSupportSheet", "openFullAftersale", "copySheetReturnInstruction", "startSheetReapply", "chooseSheetQuantity", "chooseSheetQuantity", "loadSupportSheet", "submitSheetAftersale", "toggleSheetConsulting", "sendSheetMessage", "loadShipment", "copyWaybill", "openLogistics", "loadTracking", "confirmWechatReceipt", "refreshWechatReceipt", "confirmReceipt", "openAftersale", "showRefundForm", "closeRefundForm", "submitRefund", "retryRefunds", "loadMoreRefunds", "recheckPayment", "preparePayment", "cancel", "toggleRecordedHistory"],
       "profile": ["openAccount", "openAccount", "openSettings", "openPoints", "load", "openSupport", "openOrders", "openSharingOfficer", "openMyReferrer", "openInvite", "openCommission", "retryAuxiliary", "openManagement", "openRewards", "openCommunityActivity", "openSettings"],
       progress: ["returnToCommunity"],
       records: ["backRecords", "retryUsageRecords", "retryUsageRecords", "selectUsageDay", "retryUsageDate", "openUsageRecord", "goHome", "authenticate", "retryLoad", "closeUsageDetail", "adjustUsageToday", "openUsagePoints"],
@@ -251,7 +251,7 @@ describe("native mini program boundary", () => {
       settings: ["back", "copyMemberId", "openAccount", "openCareProfile", "openAddresses", "chooseAvatar", "removeAvatar", "clearBirthday", "saveProfile", "unbindPhone", "reloadProfile", "newAddress", "loadAddresses", "discardRecoveredAddressDraft", "restoreAddressDraft", "newAddress", "editAddress", "setDefaultAddress", "deleteAddress", "revoke", "openLegal", "openPrivacyRights", "openMemberManagement", "logout", "reauthenticate", "load"],
       shop: ["openOrders", "openProduct", "load", "openProduct"],
       submit: ["returnToCommunity"],
-      support: ["back", "loadOlder", "openAftersaleCase", "openHelp", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "requestHuman", "startNewTopic", "retryImageUpload", "removeImage", "removeOrder", "openImageSheet", "openAttachmentSheet", "send", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
+      support: ["back", "loadOlder", "openAftersaleCase", "openAftersaleCase", "openHelp", "previewImage", "openOrder", "retrySend", "retry", "retryHandoff", "jumpToLatest", "requestHuman", "startNewTopic", "retryImageUpload", "removeImage", "removeOrder", "openAttachmentSheet", "send", "chooseImage", "chooseImage", "openOrderPicker", "closeAttachmentSheet", "selectOrder", "loadMoreOrders", "openOrderPicker", "closeOrderPicker"],
       "checkout/components/reward-checkout": ["load", "retryPending", "cancelPending", "openBundleSheet", "editAddresses", "selectAddress", "editSurvey", "viewClaim", "support", "viewCompleted", "confirm", "closeBundleSheet", "load", "previewBundle", "previewBundle", "chooseBundle", "support", "confirmBundle"],
       "rewards": ["back", "load", "openWallet", "retryPending", "cancelPending", "openVoucher", "openClaim", "support", "support", "openClaim", "loadMoreClaims", "useCoupon", "copyTracking", "openCoupons", "cancelClaim", "openReturn", "support", "receive", "closeRules", "support", "closeReturn", "submitReturn", "closeProducts", "openCouponProduct", "support"],
       "management-rewards": ["back","retryLoad","reconcile","openIssue","openConfig","openConfig","openStock","openRevoke","loadMore","export","clearDates","openExportMenu","openBulk","exportNext","openDetail","loadMore","closeSheet","reconcile","loadProducts","saveConfig","saveConfig","saveConfig","stockDirection","stockDirection","saveStock","@share","revoke","export","chooseBulkFile","exportNext","confirmBulk","copyDelivery","copyTracking","operate","operate","operate"],
@@ -306,15 +306,16 @@ describe("native mini program boundary", () => {
 
     expect(memberMarkup).not.toContain("support-plus");
     expect(memberMarkup).not.toContain(">＋<");
-    expect(memberMarkup).toContain('bindtap="openImageSheet"');
+    expect(memberMarkup).not.toContain('bindtap="openImageSheet"');
     expect(memberMarkup).toContain('bindtap="openAttachmentSheet"');
+    expect(memberMarkup).toContain('aria-label="添加附件"');
     expect(memberMarkup).toContain('/assets/icons/composer-image-plum.svg');
     expect(memberMarkup).toContain('/assets/icons/composer-paperclip-plum.svg');
     expect(memberMarkup).toContain('/assets/icons/composer-send-white.svg');
     expect(memberMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="\{\{false\}\}"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
     expect(memberMarkup).toContain('bindkeyboardheightchange="onKeyboardHeightChange"');
-    expect(memberStyles).toMatch(/\.support-input\s*\{[^}]*min-height:\s*120rpx;[^}]*max-height:\s*240rpx;[^}]*padding:\s*22rpx 22rpx 0;/s);
-    expect(memberMarkup).toMatch(/<textarea[^>]*\/>\s*<view class="support-composer__tools support-chat-tools"/);
+    expect(memberStyles).toMatch(/\.support-input\s*\{[^}]*min-height:\s*var\(--cisme-hit-target\);[^}]*max-height:\s*180rpx;/s);
+    expect(memberMarkup).toMatch(/<view class="support-composer__controls">\s*<textarea[^>]*\/>\s*<view class="support-composer__tools support-chat-tools"/);
 
     expect(operatorMarkup).toMatch(/<textarea[^>]*auto-height="\{\{!composerCapped\}\}"[^>]*fixed="true"[^>]*adjust-position="\{\{false\}\}"[^>]*hold-keyboard="true"[^>]*disable-default-padding="true"/);
     expect(operatorMarkup).not.toContain('bindtap="openImageSheet"');

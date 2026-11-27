@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "afeded82b57e8e4a4e44a5a8208e068d6d7eca8efdef46e47f304490fcfb83fe",
+  "packageSourceSha256": "bcb434376aac5818f0da056ef3927c74989e8deb94413f0b13fd7337623a00e9",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 售后申请期间暂停发货，接入订单原案处理、同一会话联系用户和护理页未读同步。完整状态、字号和真机矩阵仍待验。",
+  "note": "2026-11-27 微信开发者工具用隔离数据验证了本单售后会话、申请金额、原案进度、退货运单、重新申请和客服附件入口。完整状态、字号和真机矩阵仍待验。",
   "previousSourceRecord": {
-    "packageSourceSha256": "942d7b8b27fc1659aefad15e0b12ee45ba67039a2c03e783b402ad594148b9af",
-    "scope": "0.1.67 courier and no-courier handoff were verified with synthetic facts in official DevTools before these commerce changes."
+    "packageSourceSha256": "afeded82b57e8e4a4e44a5a8208e068d6d7eca8efdef46e47f304490fcfb83fe",
+    "scope": "0.1.69 verified aftersale dispatch holds and order-bound support with isolated fixtures in official DevTools."
   },
   "pendingSourceRebind": false
 }
