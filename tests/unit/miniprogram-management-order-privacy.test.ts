@@ -138,6 +138,16 @@ it("opens rejection and the verified case conversation while keeping shipped his
     url:`/pages/management-support-chat/index?id=${conversationId}&caseId=${caseId}`}));
 });
 
+it("keeps a settled refund out of dispatch without labeling the case as still in progress",async()=>{
+  requireCapabilityMock.mockResolvedValue({capabilities});
+  managementOrderMock.mockResolvedValue({...paid,refundedCents:paid.totalCents,aftersaleCaseId:caseId});
+  managementShipmentMock.mockResolvedValue({orderId,logisticsState:'not_ready',holdReason:'aftersale'});
+  requestMock.mockResolvedValue({id:caseId,orderId,state:'refund_pending',canStartRefund:false});
+  const page=mount({id:orderId});
+  await page.onShow();
+  expect(page.data).toMatchObject({order:{statusLabel:'已退款'},shipmentLabel:'退款后暂停发货',canDispatch:false,decision:''});
+});
+
 it("clears the order queue before a new operator's authority check and drops delayed pages",async()=>{
   await vi.importActual("../../apps/miniprogram/pages/management-orders/index");
   let resolveOld!:(value:unknown)=>void,resolveNew!:(value:unknown)=>void;

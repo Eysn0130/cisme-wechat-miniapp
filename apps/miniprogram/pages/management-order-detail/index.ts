@@ -135,9 +135,9 @@ Page({
    const shippedLabel=shipment.shippedAt&&Number.isFinite(Date.parse(shipment.shippedAt))
     ?new Date(shipment.shippedAt).toLocaleString('zh-CN',{hour12:false,timeZone:'Asia/Shanghai'}):'';
    const shipmentLabel=shipment.receiptConfirmedAt?"已收货"
+    :!shipment.id&&!this.data.order?.aftersale&&(this.data.order?.refundedCents??0)>0?"退款后暂停发货"
     :shipment.holdReason==='aftersale'?"售后处理中，暂停发货"
     :shipment.holdReason==='refund'?"退款处理中，暂停发货"
-    :!shipment.id&&(this.data.order?.refundedCents??0)>0?"退款后暂停发货"
     :shipment.autoReceiptAt&&shipment.logisticsState==='shipped'?"已发货":deliveryLabels[shipment.logisticsState]??"状态待核对";
    const canDispatch=this.data.canReadShipment&&!this.data.order?.aftersale&&!shipment.holdReason;
    this.setData({shipment,canDispatch,shippedLabel,shipmentLabel,syncLabel:syncLabels[shipment.wechatSyncState??""]??"微信同步尚未开始",messageLabel:({queued:"物流消息待登记",retry:"物流消息稍后重试",dispatching:"物流消息结果待核对",registered:"物流消息已登记",unknown:"物流消息结果待核对",review:"物流消息需人工核对",cancelled:"物流消息已停止"} as Record<string,string>)[shipment.logisticsMessageState??""]??""});
