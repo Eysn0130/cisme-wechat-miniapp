@@ -355,7 +355,7 @@ describe("mini program submission flow safety", () => {
     expect(profileStyle).toContain(".member-card__balance.pass-stat__value--compact");
     expect(profileStyle.replace(/\s+/g, "")).toContain("overflow-wrap:anywhere;white-space:normal");
     expect(points).toContain("String(points.projection.available).length>=8?'points-hero__balance--compact'");
-    expect(points).toContain('readMyPoints(this.data.source)');
+    expect(points).toContain('readMyPoints(this.data.source,null,this)');
     expect(await source('apps/miniprogram/services/points.ts')).toContain('POINTS_INTEGER_INVALID');
     expect(pointsView).toContain("points-hero__balance {{balanceClass}}");
     expect(pointsStyle).toContain(".points-hero__balance--compact");

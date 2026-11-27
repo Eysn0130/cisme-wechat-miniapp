@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-11-18",
+  "inventoryDate": "2026-11-26",
   "wechatApis": [
     "wx.base64ToArrayBuffer",
     "wx.canIUse",
@@ -34,6 +34,8 @@
     "wx.navigateBack",
     "wx.navigateTo",
     "wx.nextTick",
+    "wx.offNetworkStatusChange",
+    "wx.onNetworkStatusChange",
     "wx.openBusinessView",
     "wx.openDocument",
     "wx.openSetting",
@@ -69,6 +71,14 @@
     "chooseAddress"
   ],
   "privacyBoundaries": [
+    {
+      "surface": "wx.onNetworkStatusChange",
+      "informationType": "设备是否联网",
+      "purpose": "恢复连接后自动重新读取积分攻略与余额",
+      "activation": "仅积分页面显示期间监听，隐藏时移除同一监听",
+      "serverStorage": "联网结果仅用于页面内的请求调度，不记录或上传",
+      "currentGate": "使用现有身份和环境校验；游客只读取公开积分攻略"
+    },
     {
       "surface": "wx.openBusinessView",
       "informationType": "当前已核验订单的微信支付交易号",
