@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
-import { relative, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 const internalMainPackageBudget = 1_800_000;
 const internalSubpackageBudget = 400_000;
@@ -37,16 +37,29 @@ export async function inspectMiniProgramPackage(root = resolve("apps/miniprogram
   let totalBytes = 0;
   let mainPackageBytes = 0;
   const subpackageBytes = Object.fromEntries((app.subPackages ?? []).map(pack => [pack.root, 0])) as Record<string,number>;
+  const fileSet = new Set(allFiles);
+  const packageOwner = (name: string) => (app.subPackages ?? []).find(pack => name === pack.root || name.startsWith(`${pack.root}/`))?.root;
 
   for (const path of allFiles) {
     const name = relative(root, path);
     const bytes = (await stat(path)).size;
     const content = await readFile(path);
     totalBytes += bytes;
-    const owner = (app.subPackages ?? []).find(pack => name === pack.root || name.startsWith(`${pack.root}/`));
-    if (owner) subpackageBytes[owner.root] = (subpackageBytes[owner.root] ?? 0) + bytes; else mainPackageBytes += bytes;
+    const owner = packageOwner(name);
+    if (owner) subpackageBytes[owner] = (subpackageBytes[owner] ?? 0) + bytes; else mainPackageBytes += bytes;
     aggregate.update(name).update("\0").update(content);
     if (name.startsWith("assets/") && bytes > internalSingleAssetBudget) errors.push(`ASSET_OVER_INTERNAL_BUDGET:${name}:${bytes}`);
+    if (!name.endsWith(".wxml")) continue;
+    for (const [tag] of content.toString("utf8").matchAll(/<(?:image|cover-image)\b(?:"[^"]*"|'[^']*'|[^"'>])*>/g)) {
+      const source = tag.match(/\ssrc\s*=\s*(["'])(.*?)\1/s)?.[2] ?? "";
+      // Literal package image paths also appear inside WXML conditionals.
+      for (const [url] of source.matchAll(/(?:^|(?<=[\s'"?:]))(?:\/(?:assets|pages)\/|\.{1,2}\/)[\w./-]+\.(?:png|jpe?g|gif|webp|svg)(?![\w.-])/g)) {
+        const target = url.startsWith("/") ? resolve(root, `.${url}`) : resolve(dirname(path), url);
+        const targetOwner = packageOwner(relative(root, target));
+        if (!fileSet.has(target)) errors.push(`IMAGE_FILE_MISSING:${name}:${url}`);
+        else if (targetOwner && targetOwner !== owner) errors.push(`IMAGE_IN_ANOTHER_SUBPACKAGE:${name}:${url}`);
+      }
+    }
   }
 
   for (const page of app.pages ?? []) {

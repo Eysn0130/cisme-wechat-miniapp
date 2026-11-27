@@ -1,4 +1,6 @@
 import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
+import { nativeCatalogImage } from '../../services/catalog';
+import { rewardOrderThumbnail } from '../../services/reward-images';
 import{foilData,foilEvents,clearFoil,consumeFoilDrag}from'../../services/card-foil';
 import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess,resumeAuthentication,navigateAfterAuthentication} from '../../services/api';
@@ -11,7 +13,12 @@ import {rewardWallet,rewardSelection,rewardClaim,rewardReceipt,abandonReward,rew
  type RewardWallet,type RewardSelection,type RewardClaim,type RewardBundleCode,type CouponProduct} from '../../services/rewards';
 import {pendingReward,prepareReward,forgetReward,type RewardPending} from '../../services/reward-command-store';
 const uuid=/^[0-9a-f-]{36}$/i;
-const empty={wallet:null as RewardWallet|null,selection:null as RewardSelection|null,claim:null as RewardClaim|null,memberId:'',selectedBundle:'' as RewardBundleCode|'',
+function presentRewardClaim(claim: RewardClaim) {
+ return {...claim, displayImage: rewardOrderThumbnail(claim.item.code), date: rewardDate(claim.createdAt), label: rewardState[claim.state]};
+}
+type PresentedClaim = ReturnType<typeof presentRewardClaim>;
+type PresentedWallet = Omit<RewardWallet, 'claims'> & {claims: PresentedClaim[]};
+const empty={wallet:null as PresentedWallet|null,selection:null as RewardSelection|null,claim:null as PresentedClaim|null,memberId:'',selectedBundle:'' as RewardBundleCode|'',
  addresses:[] as CheckoutAddress[],selectedAddressId:'',selectedAddress:null as CheckoutAddress|null,surveyOpen:false,rulesOpen:false,returnOpen:false,returnReason:'',
  pending:null as RewardPending|null,unknown:false,newCoupon:false,error:'',productsOpen:false,couponProducts:[] as CouponProduct[],usingCouponId:'',
  selectionOpen:false,redemptionId:'',redemptionImage:'',redemptionName:'',redemptionBundle:''};
@@ -33,11 +40,11 @@ Page({
   try{
    if(this.data.mode==='wallet'){
     const wallet=await rewardWallet(this);if(!this.current(epoch))return;
-    this.setData({wallet:{...wallet,vouchers:wallet.vouchers.map(v=>({...v,date:rewardExpiry(v.expiresAt),label:rewardState[v.state]})),claims:wallet.claims.map(c=>({...c,date:rewardDate(c.createdAt),label:rewardState[c.state]})),coupons:wallet.coupons.map(c=>({...c,date:rewardExpiry(c.expiresAt),label:purchaseCouponState[c.state]}))},memberId:wallet.memberId});
+    this.setData({wallet:{...wallet,vouchers:wallet.vouchers.map(v=>({...v,date:rewardExpiry(v.expiresAt),label:rewardState[v.state]})),claims:wallet.claims.map(presentRewardClaim),coupons:wallet.coupons.map(c=>({...c,date:rewardExpiry(c.expiresAt),label:purchaseCouponState[c.state]}))},memberId:wallet.memberId});
    }else{
     if(!uuid.test(this.data.claimId))throw {title:'领取订单链接无效'};
     const claim=await rewardClaim(this,this.data.claimId);if(!this.current(epoch))return;
-    this.setData({claim,memberId:claim.memberId,stateLabel:rewardState[claim.state]??'状态待更新',claimDate:rewardDate(claim.createdAt),
+    this.setData({claim:presentRewardClaim(claim),memberId:claim.memberId,stateLabel:rewardState[claim.state]??'状态待更新',claimDate:rewardDate(claim.createdAt),
       shippedDate:claim.shippedAt ? rewardExpiry(claim.shippedAt) : '', receivedDate:claim.receivedAt ? rewardExpiry(claim.receivedAt) : ''});
    }
    const pending=pendingReward(this.data.memberId);if(!this.current(epoch))return;this.setData({pending,unknown:Boolean(pending)});
@@ -50,7 +57,7 @@ Page({
    else{if(['REWARD_LINK_UNAVAILABLE','REWARD_ALL_SOLD_OUT'].includes((error as {code?:string})?.code??''))clearRewardInvitation(this.data.inviteToken);this.setData({error:rewardCopy(error)});}
   }}finally{if(this.current(epoch))this.setData({loading:false});}
  },
- async loadMoreClaims(){const wallet=this.data.wallet;if(!wallet?.claimsNextCursor||this.data.busy||this.data.loading)return;const epoch=this.epoch;this.setData({busy:true,error:''});try{const page=await rewardWallet(this,wallet.claimsNextCursor);if(!this.current(epoch))return;const ids=new Set(wallet.claims.map(c=>c.id));this.setData({wallet:{...wallet,claims:[...wallet.claims,...page.claims.filter(c=>!ids.has(c.id)).map(c=>({...c,date:rewardDate(c.createdAt),label:rewardState[c.state]}))],moreClaims:page.moreClaims,claimsNextCursor:page.claimsNextCursor??null}});}catch(error){if(this.current(epoch))this.setData({error:rewardCopy(error)});}finally{if(this.current(epoch))this.setData({busy:false});}},
+ async loadMoreClaims(){const wallet=this.data.wallet;if(!wallet?.claimsNextCursor||this.data.busy||this.data.loading)return;const epoch=this.epoch;this.setData({busy:true,error:''});try{const page=await rewardWallet(this,wallet.claimsNextCursor);if(!this.current(epoch))return;const ids=new Set(wallet.claims.map(c=>c.id));this.setData({wallet:{...wallet,claims:[...wallet.claims,...page.claims.filter(c=>!ids.has(c.id)).map(presentRewardClaim)],moreClaims:page.moreClaims,claimsNextCursor:page.claimsNextCursor??null}});}catch(error){if(this.current(epoch))this.setData({error:rewardCopy(error)});}finally{if(this.current(epoch))this.setData({busy:false});}},
  back(){if(this.data.busy)return;if(this.data.productsOpen){this.closeProducts();return;}if(this.data.rulesOpen){this.closeRules();return;}if(this.data.returnOpen){this.closeReturn();return;}wx.navigateBack({fail:()=>wx.switchTab({url:this.token?'/pages/profile/index':'/pages/community/index'})});},
  openWallet(){if(!this.current()||this.data.busy)return;clearRewardInvitation(this.data.inviteToken);this.setData({inviteToken:'',invalidInvitation:false,mode:'wallet',selectionOpen:false,error:''});if(this.token)void this.load();else resumeAuthentication('/pages/rewards/index');},
  login(){resumeAuthentication(`/pages/rewards/index${this.data.voucherId?`?voucher=${this.data.voucherId}`:''}`);},
@@ -78,7 +85,7 @@ Page({
  submitReturn(){if(this.data.returnReason.trim().length<3){this.setData({error:'请简单说明遇到的问题'});return;}void this.claimAction('request_return');},
  copyTracking(){if(this.data.claim?.trackingNumber)wx.setClipboardData({data:this.data.claim.trackingNumber});},
  openCoupons(){this.navigate('/pages/rewards/index?tab=coupons',true);},
- useCoupon(event:WechatMiniprogram.TouchEvent){if(consumeFoilDrag(this))return;if(this.data.busy)return;const coupon=this.data.wallet?.coupons.find(c=>c.id===String(event.currentTarget.dataset.id));if(coupon?.state==='available')this.setData({productsOpen:true,couponProducts:coupon.products??[],usingCouponId:coupon.id});},
+ useCoupon(event:WechatMiniprogram.TouchEvent){if(consumeFoilDrag(this))return;if(this.data.busy)return;const coupon=this.data.wallet?.coupons.find(c=>c.id===String(event.currentTarget.dataset.id));if(coupon?.state==='available')this.setData({productsOpen:true,couponProducts:(coupon.products??[]).map(product=>({...product,image:nativeCatalogImage(product.image)})),usingCouponId:coupon.id});},
  closeProducts(){this.setData({productsOpen:false,couponProducts:[],usingCouponId:''});},
  openCouponProduct(event:WechatMiniprogram.TouchEvent){const code=String(event.currentTarget.dataset.code),coupon=this.data.usingCouponId;if(!this.data.couponProducts.some(p=>p.code===code)||!coupon)return;this.setData({productsOpen:false});this.navigate(`/pages/product/index?id=${encodeURIComponent(code)}&coupon=${encodeURIComponent(coupon)}`);},
  support(){if(!this.data.busy)this.navigate('/pages/support/index');}

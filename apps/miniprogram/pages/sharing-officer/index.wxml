@@ -43,7 +43,7 @@
        <text class="officer-muted">头皮紧致修护精华液 · ¥298</text>
       </view>
       <view wx:else class="officer-qualification officer-qualification--purchase">
-       <image class="officer-qualification__product" src="/pages/sharing-officer/assets/qualifying-essence-set.webp" mode="aspectFit" aria-hidden="true"/>
+       <image class="officer-qualification__product" src="/pages/sharing-officer/assets/qualifying-essence-set.jpg" mode="aspectFit" aria-hidden="true"/>
        <view class="officer-qualification__copy">
         <text class="officer-qualification__state">待完成</text>
         <text class="officer-strong">购买精华套组 1 组</text>
@@ -58,7 +58,7 @@
         <view class="officer-qualification__rule"/>
         <view class="officer-qualification__seal officer-review__seal">
          <view class="officer-review__material">
-          <image class="officer-review__pearl" src="/pages/sharing-officer/assets/review-pearl.webp" mode="aspectFit"/>
+          <image class="officer-review__pearl" src="/pages/sharing-officer/assets/review-pearl.png" mode="aspectFit"/>
           <block wx:if="{{reviewMotion&&!reviewApproved}}">
            <view class="officer-review__inner-light"/>
            <view class="officer-review__orbit"><view class="officer-review__glow"/></view>
