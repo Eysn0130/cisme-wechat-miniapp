@@ -1832,6 +1832,63 @@ async function aftersaleGrant(actor:TestActor,capability:string){
     VALUES($1,$2,'fixture','Synthetic after-sale test','test','integration_fixture') ON CONFLICT DO NOTHING`,[actor.memberId,capability]);
 }
 const aftersalePost=async(actor:TestActor,url:string,payload:object,key:string)=>app.inject({method:'POST',url,headers:{...auth(actor.sessionToken),'idempotency-key':key},payload});
+it('delivers a same-order operator message and refusal once, then clears unread only after the member reads',async()=>{
+  const owner=(await app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:'synthetic-case-contact-member',
+    displayName:'合成售后会员',consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}})).json<TestActor>();
+  await pool.query(`INSERT INTO wechat_identity(member_id,provider,app_id,openid,adapter)
+    VALUES($1,'wechat_miniprogram',$2,'synthetic-case-contact-openid','wechat')`,[owner.memberId,appId]);
+  for(const capability of ['commerce.order.read','commerce.aftersale.review','support.read','support.reply','support.assign'])
+    await aftersaleGrant(operator,capability);
+  const order=await aftersalePaidOrder('case-contact',owner);
+  const created=await aftersalePost(owner,`/v1/me/orders/${order.id}/aftersales`,
+    {kind:'return_refund',reason:'合成售后联系测试'},'case-contact-application');
+  expect(created.statusCode,created.body).toBe(200);
+  const row=created.json(),casePath=`/v1/management/aftersales/${row.id}`;
+  const adminOrder=()=>app.inject({url:`/v1/management/commerce/orders/${order.id}`,headers:auth(operator.sessionToken)});
+  expect((await adminOrder()).json()).toMatchObject({aftersaleCaseId:row.id,aftersale:{caseId:row.id,phase:'returning'}});
+  expect((await aftersalePost(owner,`${casePath}/contact`,{},'case-contact-unauthorized')).statusCode).toBe(403);
+  const opened=await aftersalePost(operator,`${casePath}/contact`,{},'case-contact-open');
+  expect(opened.statusCode,opened.body).toBe(200);
+  expect(opened.json()).toEqual({caseId:row.id,orderId:order.id,conversationId:row.supportConversationId});
+  const chat=`/v1/management/support/conversations/${row.supportConversationId}`;
+  const scope=await app.inject({url:`${chat}/aftersales?caseId=${row.id}`,headers:auth(operator.sessionToken)});
+  expect(scope.json().items).toEqual([expect.objectContaining({id:row.id,orderId:order.id})]);
+  const reply={aftersaleCaseId:row.id,replyToMessageId:null,contextVersion:0,expectedHumanRequestGeneration:0,
+    body:'请补充实际收到的商品情况。',clientMessageId:'case-contact-message'};
+  expect((await aftersalePost(operator,`${chat}/messages`,reply,'case-contact-unassigned')).json().code).toBe('SUPPORT_ASSIGNMENT_REQUIRED');
+  const thread=await app.inject({url:`${chat}/messages`,headers:auth(operator.sessionToken)});
+  expect(thread.json().messages.every((message:{senderType:string})=>message.senderType!=='user')).toBe(true);
+  const claimed=await aftersalePost(operator,`${chat}/claim`,
+    {expectedVersion:thread.json().conversation.version},'case-contact-claim');
+  expect(claimed.statusCode,claimed.body).toBe(200);
+  const sent=await aftersalePost(operator,`${chat}/messages`,reply,'case-contact-send');
+  expect(sent.statusCode,sent.body).toBe(200);
+  expect(sent.json().message).toMatchObject({body:reply.body,senderType:'admin',orderCard:{orderId:order.id},replyToMessageId:null});
+  const repeated=await aftersalePost(operator,`${chat}/messages`,reply,'case-contact-send');
+  expect(repeated.json()).toMatchObject({replayed:true,message:{id:sent.json().message.id}});
+  const wrong=await aftersalePost(operator,`${chat}/messages`,{...reply,aftersaleCaseId:randomUUID()},'case-contact-other-case');
+  expect(wrong.json().code).toBe('AFTERSALE_SUPPORT_LINK_REQUIRED');
+  const reason='本次材料尚不足，请补充照片联系售后。';
+  const reject={action:'reject',expectedVersion:1,note:reason};
+  for(let attempt=0;attempt<2;attempt++){
+    const rejected=await aftersalePost(operator,`${casePath}/actions`,reject,'case-contact-reject');
+    expect(rejected.statusCode,rejected.body).toBe(200);
+    expect(rejected.json().state).toBe('rejected');
+  }
+  const updatedOrder=(await adminOrder()).json();
+  expect(updatedOrder.aftersale).toBeUndefined();
+  expect(updatedOrder.aftersaleCaseId).toBe(row.id);
+  const summary=()=>app.inject({url:'/v1/me/support/summary',headers:auth(owner.sessionToken)});
+  expect((await summary()).json().unreadCount).toBe(3);
+  const inbox=await app.inject({url:'/v1/me/support/messages',headers:auth(owner.sessionToken)});
+  const received=inbox.json();
+  expect(received.messages.filter((message:{body:string})=>message.body.includes(reason))).toHaveLength(1);
+  expect(received.messages).toContainEqual(expect.objectContaining({body:reply.body,orderCard:expect.objectContaining({orderId:order.id})}));
+  expect((await summary()).json().unreadCount).toBe(3);
+  const read=await aftersalePost(owner,'/v1/me/support/read',{lastSeenSequence:received.latestCursor},'case-contact-read');
+  expect(read.statusCode,read.body).toBe(200);
+  expect((await summary()).json().unreadCount).toBe(0);
+});
 it('records bounded owned cases, serializes duplicate claims and supports non-destructive withdrawal',async()=>{
   const order=await aftersalePaidOrder('intake');
   const url=`/v1/me/orders/${order.id}/aftersales`,payload={kind:'return_refund',reason:'合成退货受理测试'};
@@ -1891,7 +1948,7 @@ it('adopts an existing unlinked case in the original support conversation withou
   expect((await service.forConversation(operator.memberId,conversation.id)).items.some(item=>item.id===legacy.id)).toBe(true);
   const accepted=await service.act(operator.memberId,legacy.id,'legacy-chat-approve',
     {action:'approve_return',expectedVersion:1,note:'核对历史退货申请并准备指引'},true);
-  expect(accepted).toMatchObject({state:'awaiting_instruction',supportConversationId:null});
+  expect(accepted).toMatchObject({state:'awaiting_instruction',supportConversationId:conversation.id});
   const sent=await service.act(operator.memberId,legacy.id,'legacy-chat-instruction',{
     action:'send_return_instruction',expectedVersion:2,note:'历史申请退货地址已逐单确认',
     recipientName:'隔离测试收件人',phone:'13800000000',region:'合成地区',address:'合成测试地址禁止寄送',

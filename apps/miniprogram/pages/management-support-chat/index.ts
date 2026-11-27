@@ -34,10 +34,10 @@ type Message = PresentedSupportMessage<RawMessage>;
 type Conversation = { id: string; status: "ai_active" | "waiting_human" | "human_active" | "resolved"; version: number; memberReadSequence?: number; teamReadSequence?: number };
 type Presence = { agentDisplayName: string; operatorOnline: boolean; operatorTyping: boolean; memberOnline: boolean; memberTyping: boolean; serverTime: string };
 type HumanRequest = { generation: number; status: "waiting_human" | "human_active"; anchorKnown: boolean; anchorMessageId: string | null; anchorSequence: number | null; anchorSummary: string | null };
-type ReplyTarget = { id: string; sequence: number | null; summary: string; generation: number; contextVersion: number };
-type SendAttempt = { id: string; body: string; replyToMessageId: string; expectedHumanRequestGeneration: number; contextVersion: number };
+type ReplyTarget = { id: string; sequence: number | null; summary: string; generation: number; contextVersion: number; aftersale?:true };
+type SendAttempt = { id: string; body: string; replyToMessageId: string|null; aftersaleCaseId?:string; expectedHumanRequestGeneration: number; contextVersion: number };
 type OperatorRecovery = { conversationId: string; contextVersion: number; humanGeneration: number; input: string; replyTarget: ReplyTarget | null; attempt: SendAttempt | null };
-type AftersaleCase = {id:string;state:string;kind:string;version:number;orderId:string;returnDestination:null|{version:number};claimBasis:string};
+type AftersaleCase = {id:string;state:string;kind:string;version:number;orderId:string;orderNumber?:string;canReview?:boolean;returnDestination:null|{version:number};claimBasis:string};
 type ReturnForm = {recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string};
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
@@ -51,6 +51,8 @@ Page({
   recoveryRevision: -1,
   viewOwner: "",
   readRevision:commerceContextRevision(),
+  contactCaseId:"",
+  contactCase:null as AftersaleCase|null,
   pollTimer: null as ReturnType<typeof setTimeout> | null,
   pollInFlight: false,
   pollFailures: 0,
@@ -116,8 +118,10 @@ Page({
 
   onLoad(query: Record<string, string | undefined>) {
     this.data.pageAlive = true;
+    this.contactCaseId=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(query.caseId??'')?query.caseId!:'';
     this.setData({ id: query.id || "" });
   },
+  recoveryKey(){return `operator:${this.data.id}${this.contactCaseId?`:${this.contactCaseId}`:''}`;},
   onResize() {
     this.setData({ chromeStyle: currentChromeStyle() });
   },
@@ -158,8 +162,10 @@ Page({
       this.setData({ canAssign, canReply, canViewContext,canManageAftersale,
         ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}),
         ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],returnFormCaseId:"",returnAttempt:null}:{}) });
-      const recovered = takeSupportRecovery<OperatorRecovery>(ownerToken, this.readRevision, `operator:${this.data.id}`);
+      const recovered = takeSupportRecovery<OperatorRecovery>(ownerToken, this.readRevision, this.recoveryKey());
       if (canReply && recovered) { this.pendingRecovery = recovered; this.recoveryOwner = ownerToken; this.recoveryRevision = this.readRevision; }
+      if(this.contactCaseId)await this.loadContactCase(epoch,ownerToken);
+      if(!this.owns(epoch,ownerToken))return;
       void this.loadOwnIdentity();
       if (this.data.conversation && !this.pollInFlight) await this.poll(true);
       else await this.load();
@@ -188,9 +194,9 @@ Page({
   },
   onUnload() { cancelPageReads(this);
     if(sessionToken()===this.viewOwner&&this.readRevision===commerceContextRevision()){
-      if (this.pendingRecovery) stageSupportRecovery(sessionToken(),this.readRevision,`operator:${this.data.id}`,this.pendingRecovery);
+      if (this.pendingRecovery) stageSupportRecovery(sessionToken(),this.readRevision,this.recoveryKey(),this.pendingRecovery);
       else if (this.data.conversation && (this.data.input.trim() || this.data.sendAttempt))
-        stageSupportRecovery<OperatorRecovery>(sessionToken(),this.readRevision,`operator:${this.data.id}`,{
+        stageSupportRecovery<OperatorRecovery>(sessionToken(),this.readRevision,this.recoveryKey(),{
           conversationId:this.data.conversation.id,contextVersion:this.data.contextVersion,humanGeneration:this.data.humanRequest?.generation??0,
           input:this.data.input,replyTarget:this.data.replyTarget,attempt:this.data.sendAttempt });
     }
@@ -216,6 +222,7 @@ Page({
     this.presenceTimer = null;
   },
   clearSensitiveThread() {
+    this.contactCase=null;
     this.identityCache?.reset();
     this.setData({ ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", ownBadge: "", memberAvatar: defaultMemberAvatar, memberBadge: "", agentAvatar: defaultMemberAvatar, agentBadge: "", identityMemberKey: "", identityAgentKey: "" });
     this.clearPresenceTimer();
@@ -267,7 +274,7 @@ Page({
       || sessionToken() !== token && !(status === 401 && !sessionToken())) return false;
     this.stopPolling();
     this.pendingRecovery = null;
-    takeSupportRecovery(token, this.readRevision, `operator:${this.data.id}`);
+    takeSupportRecovery(token, this.readRevision, this.recoveryKey());
     this.clearSensitiveThread();
     this.data.visible = false;
     this.setData({ loading: false, accessDenied: true, error: status === 403 ? "当前账号没有客服访问权限，请返回管理中心或重试。" : "客服访问权限或会话已变化，请返回或重试。" });
@@ -377,6 +384,12 @@ Page({
         composerCapped: false, composerLineCount: 1, composerSendEnabled: false, error: "人工事项已变化，请刷新后确认要回复的问题。" };
     }
     if (this.data.replyTargetNeedsRefresh) return { humanRequest, humanIssueSummary, replyTarget: null, composerSendEnabled: false };
+    if(this.contactCaseId){
+      const row=this.contactCase;
+      const replyTarget:ReplyTarget|null=row?{id:row.id,sequence:null,summary:`订单尾号 ${row.orderNumber!.slice(-4)}`,
+        generation,contextVersion,aftersale:true}:null;
+      return {humanRequest,humanIssueSummary,replyTarget,composerSendEnabled:Boolean(this.data.input.trim()&&replyTarget)};
+    }
     let replyTarget = this.data.replyTarget;
     if (!replyTarget && humanRequest?.anchorKnown && humanRequest.anchorMessageId) {
       const question = messages.find(item => item.id === humanRequest.anchorMessageId && item.senderType === "user");
@@ -390,7 +403,7 @@ Page({
     return { humanRequest, humanIssueSummary, replyTarget, composerSendEnabled: Boolean(this.data.input.trim() && replyTarget) };
   },
   async selectReplyTarget(event: WechatMiniprogram.TouchEvent) {
-    if (!this.data.canReply || !this.data.assignedToMe || this.data.busy || this.data.sendAttempt || this.data.conversation?.status !== "human_active") return;
+    if (this.contactCaseId || !this.data.canReply || !this.data.assignedToMe || this.data.busy || this.data.sendAttempt || this.data.conversation?.status !== "human_active") return;
     if (this.data.replyTargetNeedsRefresh) { wx.showToast({ title: "请先刷新人工事项", icon: "none" }); return; }
     const id = String(event.currentTarget.dataset.id ?? "");
     const message = this.data.messages.find(item => item.id === id && item.senderType === "user" && item.sequence > this.data.contextStartSequence);
@@ -560,6 +573,17 @@ Page({
       if([401,403].includes((error as {status?:number})?.status??0))this.setData({canManageAftersale:false,aftersaleCases:[],aftersaleOpen:false,returnFormCaseId:"",returnAttempt:null});
       else this.setData({aftersaleError:"售后记录暂时无法核对，请稍后刷新。"});
     }}
+  },
+  async loadContactCase(epoch:number,token:string){
+    this.contactCase=null;
+    if(!this.data.canManageAftersale||!this.data.canReply)throw {status:403};
+    const page=await pageRead<{items:AftersaleCase[]}>(this,{
+      path:`/v1/management/support/conversations/${this.data.id}/aftersales?caseId=${this.contactCaseId}`
+    });
+    if(!this.owns(epoch,token))return;
+    const row=page.items.find(item=>item.id===this.contactCaseId&&item.canReview!==false&&item.orderNumber);
+    if(!row)throw {status:404};
+    this.contactCase=row;
   },
   openAftersales(){if(this.data.canManageAftersale&&!this.data.busy){this.setData({aftersaleOpen:true,contextOpen:false});void this.loadAftersales();}},
   closeAftersales(){if(!this.data.busy)this.setData({aftersaleOpen:false});},
@@ -851,7 +875,7 @@ Page({
       senderType: "admin" as const,
       body: attempt.body,
       replyToMessageId: attempt.replyToMessageId,
-      ...(this.data.replyTarget?.id === attempt.replyToMessageId ? { replyExcerpt: this.data.replyTarget.summary } : {}),
+      ...(this.data.replyTarget&&!attempt.aftersaleCaseId&&this.data.replyTarget.id===attempt.replyToMessageId ? { replyExcerpt: this.data.replyTarget.summary } : {}),
       contentType: "text",
       createdAt: new Date().toISOString(),
       attachments: [],
@@ -865,6 +889,7 @@ Page({
     const previous = this.data.sendAttempt;
     const body = previous?.body ?? this.data.input.trim();
     if (!body || !this.data.canReply || this.data.busy || !this.data.conversation
+      || (this.contactCaseId&&(!this.contactCase||previous&&previous.aftersaleCaseId!==this.contactCase.id))
       || !previous && (!this.data.assignedToMe || this.data.conversation.status !== "human_active")) return;
     const target = this.data.replyTarget;
     if (!previous && (!target || this.data.replyTargetNeedsRefresh || target.contextVersion !== this.data.contextVersion || target.generation !== (this.data.humanRequest?.generation ?? 0))) {
@@ -875,13 +900,15 @@ Page({
     const ownerToken = sessionToken();
     const contextVersion = this.data.contextVersion;
     const sendAttempt = previous ?? { id: `wx-agent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, body,
-      replyToMessageId: target!.id, expectedHumanRequestGeneration: target!.generation, contextVersion: target!.contextVersion };
+      replyToMessageId:target!.aftersale?null:target!.id,...(target!.aftersale?{aftersaleCaseId:target!.id}:{}),
+      expectedHumanRequestGeneration: target!.generation, contextVersion: target!.contextVersion };
     this.lastActivityAt = Date.now();
     this.setData({ busy: true, error: "", sendAttempt, pendingMessage: this.pendingFrom(sendAttempt, "pending") });
     void this.publishPresence(true, false, true);
     try {
       const result = await request<any>({ path: `/v1/management/support/conversations/${this.data.id}/messages`, method: "POST", data: { body, clientMessageId: sendAttempt.id,
-        replyToMessageId: sendAttempt.replyToMessageId, expectedHumanRequestGeneration: sendAttempt.expectedHumanRequestGeneration, contextVersion: sendAttempt.contextVersion }, cacheTags: ["support"] });
+        replyToMessageId: sendAttempt.replyToMessageId, ...(sendAttempt.aftersaleCaseId?{aftersaleCaseId:sendAttempt.aftersaleCaseId}:{}),
+        expectedHumanRequestGeneration: sendAttempt.expectedHumanRequestGeneration, contextVersion: sendAttempt.contextVersion }, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion || this.data.sendAttempt?.id !== sendAttempt.id) return;
       if (result.contextSyncRequired) {
         const clearDraft = this.inputRevision === draftRevision && this.data.input.trim() === body;

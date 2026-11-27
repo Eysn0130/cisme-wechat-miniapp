@@ -13,3 +13,8 @@
 .shipment-admin__number{color:var(--cisme-ink);font-size:var(--cisme-text-action);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .shipment-admin__error{display:flex;align-items:center;gap:10rpx;color:var(--cisme-danger)}
 .shipment-admin__error text{flex:1;min-width:0}
+
+.order-aftersale button{width:100%;margin:0;min-height:var(--cisme-hit-target)}
+.order-aftersale__actions{display:flex;flex-wrap:wrap;gap:14rpx}
+.order-aftersale__actions button{flex:1;min-width:180rpx}
+.order-aftersale__reject{color:var(--cisme-danger)}

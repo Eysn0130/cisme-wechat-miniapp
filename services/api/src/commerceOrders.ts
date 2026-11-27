@@ -246,6 +246,9 @@ export class CommerceOrderService {
   private async orderView(client: DbClient | pg.Pool, row: OrderRow, audience: "member" | "management" = "member") {
     const refundedCents=(await this.refundedTotals(client,[row.id])).get(row.id)??0;
     const aftersale=row.status==='paid'?(await this.openAftersales(client,[row.id])).get(row.id):undefined;
+    const aftersaleCaseId=audience==='management'&&row.status==='paid'
+      ?aftersale?.caseId??(await client.query<{id:string}>(`SELECT id FROM commerce_aftersale_case
+        WHERE order_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1`,[row.id])).rows[0]?.id:undefined;
     const lines = await client.query<OrderLineRow>("SELECT * FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number", [row.id]);
     const address = await client.query<OrderAddressRow>("SELECT encrypted_payload,payload_hmac,key_version FROM commerce_order_address WHERE order_id=$1", [row.id]);
     const addressPayload = address.rows[0] ? this.addresses.openOrderSnapshot(row.member_id, row.id, address.rows[0].encrypted_payload, address.rows[0].payload_hmac, address.rows[0].key_version) : null;
@@ -256,6 +259,7 @@ export class CommerceOrderService {
     };
     return { id: row.id, orderNumber: row.order_number, status: row.status, refundedCents, currency: row.currency, subtotalCents: money(row.subtotal_cents),
       ...(aftersale?{aftersale}:{}),
+      ...(aftersaleCaseId?{aftersaleCaseId}:{}),
       ...(row.coupon_id?{couponId:row.coupon_id,couponDiscountCents:row.coupon_discount_cents}:{}),
       memberDiscountCents: money(row.member_discount_cents), shippingCents: money(row.shipping_cents), totalCents: money(row.total_cents),
       creditTenderCents:money(row.credit_tender_cents),cashPayableCents:money(row.total_cents)-money(row.credit_tender_cents),

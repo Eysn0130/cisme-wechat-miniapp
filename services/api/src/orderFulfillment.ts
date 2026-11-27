@@ -26,6 +26,14 @@ const shipmentRefundHold=`EXISTS(SELECT 1 FROM commission_refund_intent WHERE or
   EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
     WHERE r.order_id=o.id AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed'))))`;
 const shipmentAftersaleHold=`EXISTS(SELECT 1 FROM commerce_aftersale_case WHERE order_id=o.id AND state NOT IN ('cancelled','rejected'))`;
+const shipmentOrderProjection=`SELECT o.status,o.transaction_source_kind,(${shipmentRefundHold}) AS refund_hold,
+  ${shipmentAftersaleHold} AS aftersale_hold FROM commerce_order o WHERE o.id=$1`;
+type ShipmentOrder={status:string;transaction_source_kind:string;refund_hold:boolean;aftersale_hold:boolean};
+function unshippedProjection(orderId:string,order:ShipmentOrder){
+  const holdReason=order.aftersale_hold?'aftersale':order.refund_hold?'refund':null;
+  const ready=order.status==='paid'&&order.transaction_source_kind==='verified_commerce'&&!holdReason;
+  return {orderId,logisticsState:ready?'awaiting_dispatch':'not_ready',shipment:null,...(holdReason?{holdReason}:{})};
+}
 const digest=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 function fail(code:string,status=409):never{throw new DomainError(code,'履约信息或状态需要核对，请刷新原订单后重试',status);}
 function dispatchInput(raw: Record<string,unknown>, mode: 'single'|'batch' = 'single'): Dispatch {
@@ -147,11 +155,11 @@ export class OrderFulfillmentService {
     this.gate();if(!uuid.test(orderId))fail('ORDER_NOT_FOUND',404);
     return transaction(this.pool,async client=>{
       const owner=await requireHistoricalMemberWithClient(client,actor,closedRights);
-      const order=(await client.query('SELECT status FROM commerce_order WHERE id=$1 AND member_id=$2',[orderId,owner])).rows[0];
+      const order=(await client.query<ShipmentOrder>(`${shipmentOrderProjection} AND o.member_id=$2`,[orderId,owner])).rows[0];
       if(!order)fail('ORDER_NOT_FOUND',404);
       const row=(await client.query<Shipment>('SELECT * FROM commerce_shipment WHERE order_id=$1',[orderId])).rows[0];
-      return row?this.projection(client,row):{orderId,logisticsState:order.status==='paid'?'awaiting_dispatch':'not_ready',shipment:null};
-    });
+      return row?this.projection(client,row):unshippedProjection(orderId,order);
+    },'REPEATABLE READ');
   }
   async trackingMine(actor:string|undefined,orderId:string,closedRights=false){
     this.gate();if(!uuid.test(orderId))fail('ORDER_NOT_FOUND',404);
@@ -203,11 +211,11 @@ export class OrderFulfillmentService {
     this.gate();if(!uuid.test(orderId))fail('ORDER_NOT_FOUND',404);
     return transaction(this.pool,async client=>{
       await this.authority.requireWithClient(client,actor,'commerce.fulfillment.manage');
-      const order=(await client.query('SELECT status FROM commerce_order WHERE id=$1',[orderId])).rows[0];
+      const order=(await client.query<ShipmentOrder>(shipmentOrderProjection,[orderId])).rows[0];
       if(!order)fail('ORDER_NOT_FOUND',404);
       const row=(await client.query<Shipment>('SELECT * FROM commerce_shipment WHERE order_id=$1',[orderId])).rows[0];
-      return row?this.projection(client,row):{orderId,logisticsState:order.status==='paid'?'awaiting_dispatch':'not_ready',shipment:null};
-    });
+      return row?this.projection(client,row):unshippedProjection(orderId,order);
+    },'REPEATABLE READ');
   }
   async managementList(actor:string|undefined,raw:Record<string,unknown>,exportPersonal=false){
     this.gate();
@@ -231,12 +239,7 @@ export class OrderFulfillmentService {
         WHERE o.status='paid' AND o.transaction_source_kind='verified_commerce'
         -- A payment remains a paid fact after its refund. Only actionable
         -- unshipped orders belong in picking lists; shipped history stays visible.
-        AND (s.id IS NOT NULL OR (
-          NOT EXISTS(SELECT 1 FROM commission_refund_intent i WHERE i.order_id=o.id AND i.state<>'closed')
-          AND NOT EXISTS(SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
-            WHERE r.order_id=o.id AND (r.state='requested' OR (r.state='approved' AND (i.id IS NULL OR i.state<>'closed'))))
-          AND NOT EXISTS(SELECT 1 FROM commerce_aftersale_case c WHERE c.order_id=o.id AND c.state NOT IN ('cancelled','rejected'))
-        ))
+        AND (s.id IS NOT NULL OR (NOT (${shipmentRefundHold}) AND NOT (${shipmentAftersaleHold})))
         AND ($1='all' OR ($1='awaiting_dispatch' AND s.id IS NULL) OR s.logistics_state=$1)
         AND ($2='' OR o.order_number=$2) AND ($3::uuid IS NULL OR o.id<$3::uuid)
         ORDER BY o.id DESC LIMIT $4`,[state,number,before,limit+1])).rows;

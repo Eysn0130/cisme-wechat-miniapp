@@ -1066,9 +1066,15 @@ export class SupportService {
       return conversation(updated);
     });
   }
-  async reply(memberId: string | undefined, principalId: string | undefined, id: string, input: { body?: unknown; clientMessageId?: unknown }&ReplyTargetInput, traceId: string) {
+  async reply(memberId: string | undefined, principalId: string | undefined, id: string, input: {
+    body?: unknown; clientMessageId?: unknown; aftersaleCaseId?:unknown
+  }&ReplyTargetInput, traceId: string) {
     const operator=await this.operator(memberId, "support.reply"),principal=required(principalId, "AUTH_REQUIRED");
-    const body=textBody(input.body); const messageKey=clientMessageId(input.clientMessageId);
+    const body=textBody(input.body),clientKey=clientMessageId(input.clientMessageId);
+    const caseId=input.aftersaleCaseId===undefined?null:uuid(input.aftersaleCaseId,'AFTERSALE_ID_INVALID').toLowerCase();
+    if(clientKey.startsWith('aftersale-contact:')||caseId&&input.replyToMessageId!==undefined&&input.replyToMessageId!==null)
+      throw new DomainError('SUPPORT_REPLY_TARGET_INVALID','请选择一个回复对象',422);
+    const messageKey=caseId?`aftersale-contact:${caseId}:${requestHash(clientKey)}`:clientKey;
     const targetOwner=(await this.findById(this.pool,id)).member_id;
     await this.reconcile(targetOwner);
     const result=await transaction(this.pool, async (client) => {
@@ -1076,6 +1082,16 @@ export class SupportService {
       await this.reconcileLocked(client,targetOwner);
       await this.authority.requireWithClient(client,operator,'support.reply');
       let row=await this.findById(client,id,true);
+      let caseOrder:OrderCard|null=null;
+      if(caseId){
+        await this.authority.requireWithClient(client,operator,'support.read');
+        await this.authority.requireWithClient(client,operator,'commerce.aftersale.review');
+        const linked=(await client.query<{order_id:string}>(`SELECT order_id FROM commerce_aftersale_case
+          WHERE id=$1 AND member_id=$2 AND member_id<>$3 AND (support_conversation_id=$4 OR support_conversation_id IS NULL)`,
+          [caseId,row.member_id,operator,id])).rows[0];
+        if(!linked)throw new DomainError('AFTERSALE_SUPPORT_LINK_REQUIRED','请选择当前会话的售后案件',403);
+        caseOrder=await this.orderCard(client,row.member_id,linked.order_id);
+      }
       const duplicate=await client.query<MessageRow>(`SELECT ${messageColumns()} FROM support_message
         WHERE conversation_id=$1 AND sender_type='admin' AND sender_principal_id=$2 AND client_message_id=$3`,[id,principal,messageKey]);
       if(duplicate.rows[0]){
@@ -1085,19 +1101,22 @@ export class SupportService {
         return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(client,prior,row,"operator"),replayed:true};
       }
       if(row.status!=="human_active"||row.current_handler_principal_id!==principal)throw new DomainError("SUPPORT_ASSIGNMENT_REQUIRED","Claim this conversation before replying",409);
-      const {target}=await this.replyTarget(client,row,input);
+      const {target}=await this.replyTarget(client,row,caseOrder?{...input,replyToMessageId:null}:input);
       const sequence=Number(row.next_sequence);const messageId=randomUUID();
       const context=(await client.query<{retention_purpose:string}>(`SELECT retention_purpose FROM support_message
         WHERE conversation_id=$1 AND sender_type='user' ORDER BY sequence DESC LIMIT 1`,[id])).rows[0];
       const targetPurpose=target?(await client.query<{retention_purpose:string}>('SELECT retention_purpose FROM support_message WHERE id=$1',[target.id])).rows[0]?.retention_purpose:context?.retention_purpose;
-      const purpose=targetPurpose==='ordinary'?'ordinary':
+      const purpose=caseOrder?'transaction':targetPurpose==='ordinary'?'ordinary':
         targetPurpose==='transaction'?'transaction':'legacy_unknown';
-      const inserted=(await client.query<MessageRow>(`INSERT INTO support_message(id,conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,retention_purpose,reply_to_message_id)
-        VALUES($1,$2,$3,'admin',$4,$5,$6,$7,$8) RETURNING ${messageColumns()}`,[messageId,id,sequence,principal,body,messageKey,purpose,target?.id??null])).rows[0]!;
+      const inserted=(await client.query<MessageRow>(`INSERT INTO support_message
+        (id,conversation_id,sequence,sender_type,sender_principal_id,body,client_message_id,retention_purpose,
+          reply_to_message_id,content_type,linked_order_id,order_snapshot)
+        VALUES($1,$2,$3,'admin',$4,$5,$6,$7,$8,$9,$10,$11) RETURNING ${messageColumns()}`,
+        [messageId,id,sequence,principal,body,messageKey,purpose,target?.id??null,caseOrder?'mixed':'text',caseOrder?.orderId??null,caseOrder])).rows[0]!;
       row=(await client.query<ConversationRow>(`UPDATE support_conversation SET next_sequence=next_sequence+1,member_unread_count=member_unread_count+1,
         version=version+1,updated_at=clock_timestamp() WHERE id=$1 RETURNING *`,[id])).rows[0]!;
       await client.query("UPDATE support_presence SET typing_expires_at=clock_timestamp(),online_expires_at=GREATEST(online_expires_at,clock_timestamp()+interval '10 seconds'),updated_at=clock_timestamp() WHERE conversation_id=$1 AND actor_type='operator' AND actor_principal_id=$2", [id, principal]);
-      await this.audit(client,principal,"support.message.reply",id,null,{messageId,sequence},traceId);
+      await this.audit(client,principal,"support.message.reply",id,null,{messageId,sequence,...(caseId?{aftersaleCaseId:caseId}:{})},traceId);
       await enqueue(client,{eventType:"support.message.created.v1",aggregateType:"support_conversation",aggregateId:id,aggregateVersion:row.version,
         businessKey:`support-message:${messageId}`,payload:{conversationId:id,messageId,senderType:"admin",sequence},occurredAt:inserted.created_at});
       return {memberId:row.member_id,conversation:conversation(row),message:await this.messageView(client,inserted,row,"operator",undefined,target?.id),replayed:false};

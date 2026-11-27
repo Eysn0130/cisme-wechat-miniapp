@@ -3,7 +3,7 @@ import { centsToYuan } from "../../services/commerce";
 import { managementOrder, managementShipment, shipmentCarriers, type ShipmentCarrier, dispatchShipment, reconcileShipment, clientOperationKey, type CommerceOrder, type ManagementOrderAddress, type NoCourierDelivery, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import {cancelPageReads, pageRead} from "../../services/page-requests";
-import { aftersaleLabels, refundApprovalAction, type RefundReviewCase, type RefundApprovalAction } from "../../services/order-aftersale";
+import { aftersaleContact, aftersaleLabels, refundApprovalAction, type RefundReviewCase, type OrderDecisionAction } from "../../services/order-aftersale";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"支付已核验"};
 const syncLabels:Record<string,string>={prepared:"等待微信同步",dispatching:"正在提交微信",verifying:"微信结果核对中",synced:"微信已确认",manual_review:"微信同步待人工核对"};
 const deliveryLabels:Record<string,string>={awaiting_dispatch:"待发货",not_ready:"尚不满足发货条件",shipped:"已交寄",delivered:"已签收",exception:"物流异常"};
@@ -17,12 +17,24 @@ function chooseNoCourierDelivery():Promise<NoCourierDelivery|null>{
 }
 Page({
  lastReadToken:"",
+ capabilities:[] as string[],
+ refreshTimer:null as ReturnType<typeof setInterval>|null,
+ refreshInFlight:false,
  pendingDispatch:null as {key:string;input:ShipmentDispatchInput}|null,
- data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",shippedLabel:"",syncLabel:"",messageLabel:"",canDispatch:false,canOpenAftersale:false,refundAction:"" as RefundApprovalAction|"",shipmentLoading:false,shipmentError:"",carriers:[] as ShipmentCarrier[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
+ data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",shippedLabel:"",syncLabel:"",messageLabel:"",canReadShipment:false,canDispatch:false,canOpenAftersale:false,decision:"" as OrderDecisionAction|"",decisionLabel:"",canReject:false,canContact:false,caseError:"",shipmentLoading:false,shipmentError:"",carriers:[] as ShipmentCarrier[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onLoad(query:Record<string,string|undefined>){const id=query.id??"";this.setData({id,invalidId:!orderIdPattern.test(id)});},
- async onShow(){this.data.pageAlive=true;this.setData({navigating:false});await this.load();},
- onHide(){this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;cancelPageReads(this);this.setData({carriers:[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",order:null,shipment:null,canDispatch:false,canOpenAftersale:false,refundAction:"",form:emptyForm(),dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",shipmentError:""});},
+ async onShow(){
+  this.data.pageAlive=true;this.setData({navigating:false});await this.load();
+  if(this.data.pageAlive&&!this.refreshTimer)this.refreshTimer=setInterval(()=>void this.recheckOrder(),10_000);
+ },
+ onHide(){
+  if(this.refreshTimer!==null)clearInterval(this.refreshTimer);
+  this.refreshTimer=null;this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;this.capabilities=[];cancelPageReads(this);
+  this.setData({carriers:[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",order:null,shipment:null,
+   canReadShipment:false,canDispatch:false,canOpenAftersale:false,decision:"",decisionLabel:"",canReject:false,canContact:false,caseError:"",
+   form:emptyForm(),dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",shipmentError:""});
+ },
  onUnload(){this.onHide();},
  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken;},
  normalize(order:CommerceOrder<ManagementOrderAddress>){return {...order,statusLabel:order.aftersale?aftersaleLabels[order.aftersale.phase]:order.status==="paid"&&(order.refundedCents??0)>0?(order.refundedCents!>=order.totalCents?"已退款":"部分退款"):(labels[order.status]??order.status),totalYuan:centsToYuan(order.totalCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false,timeZone:"Asia/Shanghai"}),lines:order.lines.map(line=>({...line,totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district}`:""};},
@@ -30,41 +42,91 @@ Page({
   if(this.data.dispatchBusy)return;
   const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
   this.lastReadToken=token;
-  this.pendingDispatch=null;this.setData({order:null,shipment:null,canDispatch:false,canOpenAftersale:false,refundAction:"",form:emptyForm(),loading:true,error:"",shipmentError:"",dispatchRecovery:false,dispatchMessage:""});
+  this.pendingDispatch=null;this.capabilities=[];
+  this.setData({order:null,shipment:null,canReadShipment:false,canDispatch:false,canOpenAftersale:false,decision:"",decisionLabel:"",
+   canReject:false,canContact:false,caseError:"",form:emptyForm(),loading:true,error:"",shipmentError:"",dispatchRecovery:false,dispatchMessage:""});
   if(this.data.invalidId){if(this.current(epoch,token))this.setData({loading:false,error:"请从订单列表选择一笔订单。"});return;}
   const allowed=await requireCapability("commerce.order.read");
   if(!this.current(epoch,token))return;
   if(!allowed){this.setData({loading:false,error:"当前账号没有订单查看权限。"});return;}
   try{const order=await managementOrder(this.data.id);
    if(!this.current(epoch,token))return;
-   const canDispatch=allowed.capabilities.includes("commerce.fulfillment.manage");
-   const canOpenAftersale=Boolean(order.aftersale)&&allowed.capabilities.some(capability=>
+   if(order.id!==this.data.id)throw Error("Invalid order details");
+   this.capabilities=allowed.capabilities;
+   const canReadShipment=allowed.capabilities.includes("commerce.fulfillment.manage");
+   const caseId=order.aftersale?.caseId??order.aftersaleCaseId;
+   const canOpenAftersale=Boolean(caseId)&&allowed.capabilities.some(capability=>
     ['commerce.aftersale.review','commerce.return.receive','commerce.return.inspect'].includes(capability));
-   this.setData({order:this.normalize(order),canDispatch,canOpenAftersale,loading:false});
+   this.setData({order:this.normalize(order),canReadShipment,canDispatch:false,canOpenAftersale,loading:false});
    await Promise.all([
-    canDispatch?this.readShipment(epoch,token):undefined,
-    canOpenAftersale&&order.aftersale?this.readRefundAction(order.aftersale.caseId,allowed.capabilities,epoch,token):undefined
+    canReadShipment?this.readShipment(epoch,token):undefined,
+    canOpenAftersale&&caseId?this.readAftersale(caseId,epoch,token):undefined
    ]);
   }catch(error){if(this.current(epoch,token))this.setData({loading:false,error:(error as {title?:string}).title??"暂时无法查看订单详情，请重试或返回列表。"});}
  },
- async readRefundAction(caseId:string,capabilities:readonly string[],epoch:number,token:string){
-  if(!orderIdPattern.test(caseId)||!capabilities.includes("commerce.refund.approve"))return;
+ async recheckOrder(){
+  const order=this.data.order,epoch=this.data.epoch,token=this.lastReadToken;
+  if(!order||this.refreshInFlight||this.data.loading||this.data.navigating||this.data.dispatchBusy||this.pendingDispatch
+    ||!this.current(epoch,token))return;
+  this.refreshInFlight=true;
+  try{
+   const latest=await managementOrder(this.data.id);
+   if(!this.current(epoch,token)||this.data.navigating||this.data.dispatchBusy||this.pendingDispatch)return;
+   if(latest.version!==order.version||latest.aftersale?.caseId!==order.aftersale?.caseId
+     ||latest.aftersale?.phase!==order.aftersale?.phase||latest.aftersaleCaseId!==order.aftersaleCaseId
+     ||latest.refundedCents!==order.refundedCents){await this.load();return;}
+   const caseId=latest.aftersale?.caseId??latest.aftersaleCaseId;
+   if(caseId&&this.data.canOpenAftersale)await this.readAftersale(caseId,epoch,token);
+  }catch(error){if(this.current(epoch,token)&&[401,403].includes((error as {status?:number}).status??0))await this.load();}
+  finally{this.refreshInFlight=false;}
+ },
+ async readAftersale(caseId:string,epoch:number,token:string){
+  if(!orderIdPattern.test(caseId))return;
   try{
    const row=await pageRead<RefundReviewCase>(this,{path:`/v1/management/aftersales/${caseId}`});
-   if(this.current(epoch,token)&&row.id===caseId&&row.orderId===this.data.id)
-    this.setData({refundAction:refundApprovalAction(row,capabilities)??""});
+   if(!this.current(epoch,token))return;
+   if(row.id!==caseId||row.orderId!==this.data.id)throw Error("Invalid aftersale details");
+   const canReview=row.canReview!==false&&this.capabilities.includes('commerce.aftersale.review');
+   const active=this.data.order?.aftersale?.caseId===row.id;
+   const refund=active?refundApprovalAction(row,this.capabilities):null;
+   const approveReturn=active&&canReview&&row.state==='requested'&&row.kind==='return_refund'&&row.fulfillment?.state==='shipped';
+   const requestReview=active&&canReview&&row.canStartRefund===true;
+   this.setData({
+    decision:refund??(approveReturn?'approve_return':requestReview?'request_refund':''),
+    decisionLabel:refund?'同意退款':approveReturn?'同意退货':requestReview?'提交退款复核':'',
+    canReject:active&&canReview&&['requested','need_info'].includes(row.state??''),
+    canContact:canReview&&this.capabilities.includes('support.read')&&this.capabilities.includes('support.reply'),
+    caseError:""
+   });
   }catch(error){
-   if(this.current(epoch,token)&&[401,403].includes((error as {status?:number}).status??0))
-    this.setData({canOpenAftersale:false,refundAction:""});
+   if(this.current(epoch,token)){
+    const denied=[401,403].includes((error as {status?:number}).status??0);
+    this.setData({canOpenAftersale:!denied,decision:"",decisionLabel:"",canReject:false,canContact:false,
+     caseError:denied?"当前账号没有售后处理权限。":"售后操作暂时无法核对，请刷新。"});
+   }
   }
  },
- openAftersale(){
-  const caseId=this.data.order?.aftersale?.caseId,token=getApp<IAppOption>().globalData.sessionToken;
+ openAftersale(event?:WechatMiniprogram.TouchEvent){
+  const caseId=this.data.order?.aftersale?.caseId??this.data.order?.aftersaleCaseId,token=getApp<IAppOption>().globalData.sessionToken;
   if(!this.data.canOpenAftersale||this.data.navigating||this.data.dispatchBusy||this.lastReadToken!==token
     ||!this.current(this.data.epoch,token)||!orderIdPattern.test(caseId??""))return;
-  const action=this.data.refundAction?`&action=${this.data.refundAction}`:"";
+  const decision=event?.currentTarget.dataset.action??this.data.decision;
+  if(decision&&decision!==this.data.decision&&!(decision==='reject'&&this.data.canReject))return;
+  const action=decision?`&action=${decision}`:"";
   this.setData({navigating:true});
   wx.navigateTo({url:`/pages/aftersale/index?mode=management&caseId=${caseId}${action}`,fail:()=>this.setData({navigating:false})});
+ },
+ async contactBuyer(){
+  const epoch=this.data.epoch,token=this.lastReadToken,caseId=this.data.order?.aftersale?.caseId??this.data.order?.aftersaleCaseId;
+  if(!this.data.canContact||!orderIdPattern.test(caseId??"")||this.data.navigating||this.data.dispatchBusy||!this.current(epoch,token))return;
+  this.setData({navigating:true,caseError:""});
+  try{
+   const contact=await aftersaleContact(caseId);
+   if(!this.current(epoch,token))return;
+   if(contact.caseId!==caseId||contact.orderId!==this.data.id||!orderIdPattern.test(contact.conversationId))throw Error("Invalid support link");
+   wx.navigateTo({url:`/pages/management-support-chat/index?id=${contact.conversationId}&caseId=${caseId}`,
+    fail:()=>{if(this.current(epoch,token))this.setData({navigating:false,caseError:"暂时无法打开客服会话，请重试。"});}});
+  }catch(error){if(this.current(epoch,token))this.setData({navigating:false,caseError:(error as {title?:string}).title??"暂时无法打开客服会话，请重试。"});}
  },
  async readShipment(epoch:number,token:string){
   this.setData({shipmentLoading:true,shipmentError:""});
@@ -73,18 +135,21 @@ Page({
    const shippedLabel=shipment.shippedAt&&Number.isFinite(Date.parse(shipment.shippedAt))
     ?new Date(shipment.shippedAt).toLocaleString('zh-CN',{hour12:false,timeZone:'Asia/Shanghai'}):'';
    const shipmentLabel=shipment.receiptConfirmedAt?"已收货"
+    :shipment.holdReason==='aftersale'?"售后处理中，暂停发货"
+    :shipment.holdReason==='refund'?"退款处理中，暂停发货"
     :!shipment.id&&(this.data.order?.refundedCents??0)>0?"退款后暂停发货"
     :shipment.autoReceiptAt&&shipment.logisticsState==='shipped'?"已发货":deliveryLabels[shipment.logisticsState]??"状态待核对";
-   this.setData({shipment,shippedLabel,shipmentLabel,syncLabel:syncLabels[shipment.wechatSyncState??""]??"微信同步尚未开始",messageLabel:({queued:"物流消息待登记",retry:"物流消息稍后重试",dispatching:"物流消息结果待核对",registered:"物流消息已登记",unknown:"物流消息结果待核对",review:"物流消息需人工核对",cancelled:"物流消息已停止"} as Record<string,string>)[shipment.logisticsMessageState??""]??""});
-   if(shipment.logisticsState==="awaiting_dispatch"&&!this.data.order?.refundedCents&&this.data.order?.status==="paid"&&this.data.order.transactionSourceKind==="verified_commerce")void this.loadCarriers();
+   const canDispatch=this.data.canReadShipment&&!this.data.order?.aftersale&&!shipment.holdReason;
+   this.setData({shipment,canDispatch,shippedLabel,shipmentLabel,syncLabel:syncLabels[shipment.wechatSyncState??""]??"微信同步尚未开始",messageLabel:({queued:"物流消息待登记",retry:"物流消息稍后重试",dispatching:"物流消息结果待核对",registered:"物流消息已登记",unknown:"物流消息结果待核对",review:"物流消息需人工核对",cancelled:"物流消息已停止"} as Record<string,string>)[shipment.logisticsMessageState??""]??""});
+   if(canDispatch&&shipment.logisticsState==="awaiting_dispatch"&&!this.data.order?.refundedCents&&this.data.order?.status==="paid"&&this.data.order.transactionSourceKind==="verified_commerce")void this.loadCarriers();
    if(shipment.id&&this.pendingDispatch){this.pendingDispatch=null;this.setData({form:emptyForm(),dispatchRecovery:false,dispatchMessage:"已核对到发货记录。"});}
   }catch(error){if(this.current(epoch,token)){const status=(error as {status?:number}).status;
-   this.setData({shipment:null,shipmentError:(error as {title?:string}).title??"履约状态暂时无法核验，请刷新后重试。",...(status===401||status===403?{canDispatch:false,order:null,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"}:{})});}}
+   this.setData({shipment:null,canDispatch:false,shipmentError:(error as {title?:string}).title??"履约状态暂时无法核验，请刷新后重试。",...(status===401||status===403?{canReadShipment:false,order:null,form:emptyForm(),error:"登录状态或履约权限已变化，请返回管理中心重试。"}:{})});}}
   finally{if(this.current(epoch,token))this.setData({shipmentLoading:false});}
  },
  retryShipment(){
   const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
-  if(this.current(epoch,token)&&token===this.lastReadToken&&this.data.canDispatch&&!this.data.shipmentLoading&&!this.data.dispatchBusy)
+  if(this.current(epoch,token)&&token===this.lastReadToken&&this.data.canReadShipment&&!this.data.shipmentLoading&&!this.data.dispatchBusy)
    return this.readShipment(epoch,token);
  },
  async loadCarriers(){
@@ -106,7 +171,7 @@ Page({
   const index=Number(event.detail.value),row=this.data.carriers[index-1];if(!Number.isSafeInteger(index)||!row)return;
   this.setData({carrierIndex:index,form:{...this.data.form,carrierCode:row.id,carrierName:row.name},dispatchMessage:""});
  },
- shipmentInput(event:WechatMiniprogram.Input){if(this.data.dispatchBusy||this.pendingDispatch)return;const field=event.currentTarget.dataset.field as keyof ReturnType<typeof emptyForm>;
+ shipmentInput(event:WechatMiniprogram.Input){if(this.data.dispatchBusy||this.pendingDispatch||!this.data.canDispatch)return;const field=event.currentTarget.dataset.field as keyof ReturnType<typeof emptyForm>;
   if(!Object.prototype.hasOwnProperty.call(emptyForm(),field))return;
   const value=event.detail.value.trim();
   this.setData({form:{...this.data.form,[field]:field==='carrierCode'?value.normalize('NFKC').toUpperCase():field==='trackingNumber'?value.normalize('NFKC'):value},dispatchMessage:""});},

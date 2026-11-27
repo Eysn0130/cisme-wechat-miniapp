@@ -1,6 +1,19 @@
-<view class="management-ui management-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">订单详情</text></view><view class="page page--stack management-order-detail"><view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在读取最新订单与权限…"><view class="page-read-loading__indicator"/></view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">重试</button></view><block wx:if="{{order}}"><text class="eyebrow">{{order.orderNumber}}</text><view class="page-title">{{order.statusLabel}}</view><text class="subtitle">{{order.createdLabel}} · 北京时间</text><view wx:if="{{canDispatch}}" class="admin-detail-card shipment-card">
+<view class="management-ui management-shell" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back {{navigating?'control--disabled':''}}" bindtap="back" disabled="{{navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">订单详情</text></view><view class="page page--stack management-order-detail"><view wx:if="{{loading}}" class="page-read-loading" aria-role="status" aria-label="正在读取最新订单与权限…"><view class="page-read-loading__indicator"/></view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">重试</button></view><block wx:if="{{order}}"><text class="eyebrow">{{order.orderNumber}}</text><view class="page-title">{{order.statusLabel}}</view><text class="subtitle">{{order.createdLabel}} · 北京时间</text>
+<view wx:if="{{order.aftersale || order.aftersaleCaseId}}" class="admin-detail-card order-aftersale">
+  <strong>售后</strong>
+  <text wx:if="{{order.aftersale}}">售后处理中，发货操作已暂停。</text>
+  <button wx:if="{{decision}}" class="primary-button {{navigating || dispatchBusy ? 'control--disabled' : ''}}" data-action="{{decision}}" bindtap="openAftersale" disabled="{{navigating || dispatchBusy}}">{{decisionLabel}}</button>
+  <view wx:if="{{canReject || canContact}}" class="order-aftersale__actions">
+    <button wx:if="{{canReject}}" class="secondary order-aftersale__reject {{navigating || dispatchBusy ? 'control--disabled' : ''}}" data-action="reject" bindtap="openAftersale" disabled="{{navigating || dispatchBusy}}">拒绝申请</button>
+    <button wx:if="{{canContact}}" class="secondary {{navigating || dispatchBusy ? 'control--disabled' : ''}}" bindtap="contactBuyer" disabled="{{navigating || dispatchBusy}}">联系用户</button>
+  </view>
+  <button wx:if="{{canOpenAftersale}}" class="text-button {{navigating || dispatchBusy ? 'control--disabled' : ''}}" data-action="" bindtap="openAftersale" disabled="{{navigating || dispatchBusy}}">查看售后进度</button>
+  <text wx:if="{{caseError}}" aria-live="polite">{{caseError}}</text>
+  <button wx:if="{{caseError}}" class="text-button {{navigating || dispatchBusy ? 'control--disabled' : ''}}" bindtap="load" disabled="{{navigating || dispatchBusy}}">刷新</button>
+</view>
+<view wx:if="{{canReadShipment && (!order.aftersale || shipment.id)}}" class="admin-detail-card shipment-card">
   <view class="shipment-admin__heading">
-    <strong>发货与物流</strong>
+    <strong>{{order.aftersale ? '原发货记录' : '发货与物流'}}</strong>
     <text wx:if="{{shipment && !shipmentLoading}}" class="shipment-admin__status">{{shipmentLabel}}</text>
   </view>
   <text wx:if="{{shipmentLoading}}">正在读取发货记录…</text>
@@ -18,7 +31,7 @@
     <text wx:if="{{shipment.id && messageLabel}}">{{messageLabel}}</text>
     <text wx:if="{{shipment.wechatReceipt}}">{{shipment.wechatReceipt.label}}</text>
     <text wx:if="{{shipment.receiptConfirmedAt && !shipment.autoReceiptAt && shipment.wechatReceipt.status!=='confirmed' && shipment.wechatReceipt.status!=='completed'}}">商城已记录收货</text>
-    <block wx:if="{{shipment.wechatSyncState==='manual_review'}}">
+    <block wx:if="{{canDispatch && shipment.wechatSyncState==='manual_review'}}">
       <text>微信同步需要人工核对，发货记录已保存。</text>
       <label>
         <text>人工核对记录编号</text>
@@ -26,7 +39,7 @@
       </label>
       <button class="primary-button {{dispatchBusy ? 'control--disabled' : ''}}" bindtap="reconcile" disabled="{{dispatchBusy}}" loading="{{dispatchBusy}}">重新查询微信结果</button>
     </block>
-    <block wx:if="{{shipment.logisticsState==='awaiting_dispatch' && !order.refundedCents && order.status==='paid' && order.transactionSourceKind==='verified_commerce'}}">
+    <block wx:if="{{canDispatch && shipment.logisticsState==='awaiting_dispatch' && !order.refundedCents && order.status==='paid' && order.transactionSourceKind==='verified_commerce'}}">
       <block wx:if="{{!dispatchRecovery}}">
         <label>
           <text>快递公司</text>
@@ -60,8 +73,4 @@
   </block>
   <text wx:if="{{dispatchMessage}}" aria-live="polite">{{dispatchMessage}}</text>
   <button class="text-button {{dispatchBusy ? 'text-button--disabled' : ''}}" bindtap="load" disabled="{{dispatchBusy}}">刷新核对原订单</button>
-</view><view wx:if="{{order.aftersale}}" class="admin-detail-card">
-  <strong>售后</strong>
-  <button wx:if="{{canOpenAftersale}}" class="secondary {{navigating || dispatchBusy ? 'control--disabled' : ''}}" bindtap="openAftersale" disabled="{{navigating || dispatchBusy}}">{{refundAction ? '同意退款' : '查看售后进度'}}</button>
-  <text wx:else>此订单由有售后权限的管理员处理。</text>
 </view><view class="admin-detail-card"><strong>商品与金额</strong><view wx:for="{{order.lines}}" wx:key="id" class="admin-line"><text>{{item.productName}} · {{item.skuLabel}} × {{item.quantity}}</text><strong>¥{{item.totalYuan}}</strong></view><view class="admin-total"><text>商品与运费合计</text><strong>¥{{order.totalYuan}}</strong></view><view wx:if="{{order.creditTenderCents>0}}" class="admin-total"><text>购物权益抵扣</text><strong>− ¥{{order.creditYuan}}</strong></view><view wx:if="{{order.creditTenderCents>0}}" class="admin-total"><text>现金部分</text><strong>¥{{order.cashYuan}}</strong></view></view><view class="admin-detail-card"><strong>脱敏收货信息</strong><block wx:if="{{order.address}}"><text>{{order.address.recipientNameMasked}} · {{order.address.phoneMasked}}</text><text>{{order.addressSummary}}</text></block><text wx:else>收货信息暂时无法读取</text></view><view class="privacy-note"><image src="/assets/icons/lock-key-plum.svg"/></view></block></view></view>
