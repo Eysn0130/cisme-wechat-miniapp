@@ -46,6 +46,20 @@ describe('native AI and human support collaboration receipts',()=>{
   response.resolve({id:p.linkedOrderId,orderNumber:'SYNTHETIC-0001',status:'pending_payment',currency:'CNY',totalCents:100,lines:[]});await loading;
   expect(p.data.selectedOrder?.id).toBe(p.linkedOrderId);expect(p.data.composerSendEnabled).toBe(true);
  });
+ it('opens the existing conversation at the matching case without marking newer messages read',async()=>{
+  const orderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',caseId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  p.onLoad({orderId,caseId});
+  const card={id:caseId,orderId,orderNumberTail:'0001',kind:'refund_only',amountCents:29800,lines:[]};
+  const messages=[{...message('system',1),aftersaleCard:{...card,orderId:conversation.id}},
+    {...message('system',2),aftersaleCard:card},message('admin',3)];
+  m.read.mockResolvedValue(historyPage({messages,latestCursor:3}));
+  await p.load();
+  expect(p.data.anchor).toBe('support-2');expect(p.data.atBottom).toBe(false);
+  expect(p.data.messages).toHaveLength(3);
+  expect(m.request.mock.calls.some(([input])=>input.path==='/v1/me/support/read')).toBe(false);
+  await p.load();
+  expect(p.data.anchor).toBe('support-3');
+ });
  it.each(['hidden','account'])('does not attach a route order returned after %s ownership changes',async(change)=>{
   p.linkedOrderId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';const response=deferred();m.read.mockReturnValueOnce(response.promise);
   const loading=p.loadLinkedOrder();if(change==='hidden'){p.data.visible=false;p.lifecycleEpoch++;}else m.token='synthetic-other';

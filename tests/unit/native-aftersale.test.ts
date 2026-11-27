@@ -33,7 +33,7 @@ it('keeps the active-case guard when paging older cases',async()=>{
 });
 it('opens this order in support and refreshes customer case progress without clearing a draft',async()=>{
  const p=await page();p.selection=record.id;p.data.selected={...record,supportConversationId:'conversation'};p.data.note='我的运单说明';
- p.openChat();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith({url:`/pages/support/index?orderId=${record.orderId}`});
+ p.openChat();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith({url:`/pages/support/index?orderId=${record.orderId}&caseId=${record.id}`});
  m.request.mockResolvedValueOnce({...record,state:'awaiting_instruction',supportConversationId:'conversation'});
  await p.recheck();expect(p.data.selected.label).toBe('待客服发送退货指引');expect(p.data.note).toBe('我的运单说明');
 });

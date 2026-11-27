@@ -245,7 +245,7 @@ Page({
   if(!selection||!this.canAct()||this.pending)return;
   if(!this.data.management){
    if(!selection.supportConversationId)return;
-   wx.navigateTo({url:historicalCommerceClosed()?`/pages/order-detail/index?id=${selection.orderId}&aftersale=1`:`/pages/support/index?orderId=${selection.orderId}`});
+   wx.navigateTo({url:`/pages/support/index?orderId=${selection.orderId}&caseId=${selection.id}`});
    return;
   }
   if(!this.data.canChat||selection.canReview===false)return;
