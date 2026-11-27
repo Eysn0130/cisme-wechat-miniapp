@@ -63,6 +63,7 @@ Page({
   identityCache: null as SupportIdentityCache | null,
   pendingRecovery: null as MemberRecovery | null,
   linkedOrderId:"",
+  linkedCaseId:"",
   snapshotToken:"",
   readRevision:commerceContextRevision(),
   pollTimer: null as ReturnType<typeof setTimeout> | null,
@@ -100,7 +101,9 @@ Page({
   },
   onLoad(options:Record<string,string>) { this.data.pageAlive = true;
     const orderId=options.orderId??'';
-    this.linkedOrderId=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)?orderId:''; },
+    const caseId=options.caseId??'',uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    this.linkedOrderId=uuid.test(orderId)?orderId:'';
+    this.linkedCaseId=this.linkedOrderId&&uuid.test(caseId)?caseId:''; },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     const previousRevision = this.readRevision;
@@ -437,9 +440,13 @@ Page({
       const historyStartLoaded = mergeExisting && this.data.historyStartLoaded || page.olderCursor == null
         && (messages.length > 0 || !state.messages.length || state.messages[0]!.sequence === boundary + 1);
       if (changedTopic) this.clearRetiredTopic(contextVersion, conversation?.id);
-      this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, historyStartLoaded, loading: false, historyLoaded: true, atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
+      const receipt=this.linkedCaseId?state.messages.find(message=>message.aftersaleCard?.id===this.linkedCaseId&&
+        message.aftersaleCard.orderId===this.linkedOrderId):undefined;
+      this.linkedCaseId="";
+      const newest=state.messages[state.messages.length-1],anchor=receipt??newest;
+      this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, historyStartLoaded, loading: false, historyLoaded: true, atBottom: anchor===newest, newMessagesBelowCount: 0, newMessagesBelow: false,
         contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
-        anchor: state.messages.length ? `support-${state.messages[state.messages.length - 1]!.sequence}` : "", ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
+        anchor: anchor ? `support-${anchor.sequence}` : "", ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
       this.restoreRecovery(conversation, contextVersion);
       this.downloadMedia(messages);
       await this.markRead();

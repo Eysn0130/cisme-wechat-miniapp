@@ -10,12 +10,12 @@ let definition:any;
 const orderId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const lineId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const record={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',orderId,state:'requested',kind:'return_refund',reason:'',claimBasis:'no_reason',requestedAt:'2026-09-23T10:00:00Z',amountCents:29800,supportConversationId:null,returnDestination:null,refund:null,resolved:false};
-const messages={messages:[],latestCursor:0,conversation:null};
 const availability={lines:[{lineId,remainingQuantity:2}]};
-const supportConversation={id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',teamReadSequence:0};
-const supportMessage=(sequence:number)=>({id:`synthetic-message-${sequence}`,sequence,senderType:'user',body:'synthetic support',createdAt:'2026-10-31T00:00:00Z',deliveryState:'server_accepted',orderCard:null,returnInstruction:null});
-const reply=(input:{path:string},items:any[]=[record])=>input.path.includes('/aftersales/availability')?availability:
-  input.path.includes('/aftersales?')?{items}:messages;
+const reply=(input:{path:string},items:any[]=[record])=>{
+ if(input.path.includes('/aftersales/availability'))return availability;
+ if(input.path.includes('/aftersales?'))return {items};
+ throw new Error('Unexpected aftersale request');
+};
 function deferred(){let resolve!:(value:any)=>void;const promise=new Promise<any>(yes=>resolve=yes);return{resolve,promise};}
 async function page(){
  await import('../../apps/miniprogram/pages/order-detail/index');
@@ -34,74 +34,35 @@ beforeEach(()=>{
 });
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 describe('order support sheet owns reads and reflects current cases',()=>{
- it('pins the current generation to unknown support sends and retains it through a full-conversation handoff',async()=>{
-  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetContextVersion:4,sheetContextStartSequence:2,sheetInput:'current support'});
-  m.write.mockRejectedValue(new Error('network lost'));await p.sendSheetMessage();const first=m.write.mock.calls[0]![0].data;
-  expect(first).toMatchObject({expectedConversationId:supportConversation.id,contextVersion:4});
-  p.data.sheetContextVersion=5;await p.sendSheetMessage();expect(m.write.mock.calls[1]![0].data).toEqual(first);
-  p.expandSupport();const {takeSupportSendAttempt}=await import('../../apps/miniprogram/services/support-draft-handoff');
-  expect(takeSupportSendAttempt(m.token,orderId)).toMatchObject({id:first.clientMessageId,expectedConversationId:supportConversation.id,contextVersion:4});
- });
- it('clears retired chat messages while keeping independently read aftersale facts',async()=>{
-  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetMessages:[supportMessage(1)],sheetInput:'old draft'});
-  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
-    {conversation:supportConversation,contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2}:reply(input)));
-  await p.pollSupportSheet();expect(p.data.sheetContextVersion).toBe(4);expect(p.data.sheetMessages).toEqual([]);expect(p.data.sheetInput).toBe('');expect(p.data.sheetCase.id).toBe(record.id);
- });
- it('keeps an uncertain send already belonging to the incoming generation when returning from full support',async()=>{
-  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetMessages:[supportMessage(1)],sheetInput:'current draft',
-    sheetSendAttempt:{key:'same-current-command',body:'current draft',expectedConversationId:supportConversation.id,contextVersion:4}});
-  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
-    {conversation:supportConversation,contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2}:reply(input)));
-  await p.loadSupportSheet();expect(p.data.sheetMessages).toEqual([]);expect(p.data.sheetInput).toBe('current draft');expect(p.data.sheetSendAttempt.key).toBe('same-current-command');
- });
- it('refreshes a definitively rejected retired send instead of inserting it into the new generation',async()=>{
-  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetInput:'retired draft',sheetMessages:[supportMessage(1)]});
-  m.write.mockRejectedValue({status:409,code:'SUPPORT_CONTEXT_CHANGED'});
-  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
-    {conversation:supportConversation,contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2}:reply(input)));
-  await p.sendSheetMessage();expect(p.data.sheetSendAttempt).toBeNull();expect(p.data.sheetMessages).toEqual([]);expect(p.data.sheetContextVersion).toBe(4);expect(p.data.sheetError).toContain('原消息未发送');
- });
- it('does not reintroduce an old acknowledged order message after a clear',async()=>{
-  const p=await page();Object.assign(p.data,{sheetConversation:supportConversation,sheetInput:'old draft'});
-  m.write.mockResolvedValue({message:supportMessage(1),conversation:supportConversation,contextVersion:4,contextStartSequence:2,acknowledgedConversationId:supportConversation.id});
-  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
-    {conversation:supportConversation,contextVersion:4,contextStartSequence:2,messages:[],latestCursor:2}:reply(input)));
-  await p.sendSheetMessage();expect(p.data.sheetMessages).toEqual([]);expect(p.data.sheetInput).toBe('');expect(p.data.sheetSendAttempt).toBeNull();expect(p.data.sheetContextVersion).toBe(4);
- });
- it('still sends through the restricted historical-order identity without an ordinary context fence',async()=>{
-  const p=await page();Object.assign(p.data,{closedRights:true,sheetConversation:supportConversation,sheetContextVersion:4,sheetInput:'historical order support'});
-  m.write.mockRejectedValue(new Error('unknown'));await p.sendSheetMessage();
-  expect(m.write.mock.calls[0]![0].data).not.toHaveProperty('contextVersion');expect(m.write.mock.calls[0]![0].data).not.toHaveProperty('expectedConversationId');
- });
  it('updates the case while polling instead of deriving progress from chat text',async()=>{
   const p=await page();await p.loadSupportSheet();
   expect(p.data.sheetCaseAmount).toBe('298.00');
   m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,state:'awaiting_instruction'}])));
-  await p.pollSupportSheet();expect(p.data.sheetCase.state).toBe('awaiting_instruction');expect(p.data.sheetCaseLabel).toBe('客服正在准备退货信息');
+  await p.loadSupportSheet('poll');expect(p.data.sheetCase.state).toBe('awaiting_instruction');expect(p.data.sheetCaseLabel).toBe('客服正在准备退货信息');
+ });
+ it('refreshes the order label when its active case is rejected',async()=>{
+  const p=await page();
+  const original={...p.data.order,status:'paid',createdAt:record.requestedAt,expiresAt:record.requestedAt};
+  p.data.order={...original,aftersale:{caseId:record.id,phase:'returning'},statusLabel:'退货中'};
+  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path===`/v1/me/orders/${orderId}`?original:
+    reply(input,[{...record,state:'rejected',rejectionReason:'请补充照片。'}])));
+  await p.loadSupportSheet('poll');
+  expect(p.data.sheetPreviousCase.state).toBe('rejected');
+  expect(p.data.order.statusLabel).toBe('已支付');
  });
  it.each(['cancelled','rejected'])('does not let an old %s case block a new request',async state=>{
   const p=await page();m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,state}])));
   await p.loadSupportSheet();expect(p.data.sheetCase).toBeNull();expect(p.data.sheetPreviousCase.state).toBe(state);expect(p.data.sheetCasesReady).toBe(true);
  });
- it('keeps only this order’s conversation messages on both initial read and refresh',async()=>{
-  const p=await page();
-  const initial=[
-    {...supportMessage(1),orderCard:{orderId:'other-order'}},
-    {...supportMessage(2),relatedOrderId:orderId,aftersaleCard:{id:record.id}},
-    {...supportMessage(3),relatedOrderId:orderId,returnInstruction:{caseId:record.id}},
-    {...supportMessage(4),relatedOrderId:orderId,senderType:'admin'},
-    supportMessage(5)
-  ];
-  let pageMessages=initial;
-  m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(input.path.includes('/support/messages')?
-    {conversation:supportConversation,contextVersion:1,messages:pageMessages,latestCursor:pageMessages.at(-1)!.sequence}:reply(input)));
-  await p.loadSupportSheet();
-  expect(p.data.sheetMessages.map((message:any)=>message.sequence)).toEqual([4]);
-  pageMessages=[{...supportMessage(6),orderCard:{orderId}},{...supportMessage(7),relatedOrderId:'other-order'}];
-  await p.pollSupportSheet();
-  expect(p.data.sheetMessages.map((message:any)=>message.sequence)).toEqual([4,6]);
-  expect(p.sheetCursor).toBe(7);
+ it('opens the shared conversation with this order and the current case without reading or writing chat from the sheet',async()=>{
+  const p=await page();await p.loadSupportSheet();await p.loadSupportSheet('poll');
+  expect(m.read.mock.calls.map(([,input])=>input.path)).toEqual([
+    `/v1/me/aftersales?orderId=${orderId}&limit=20`,`/v1/me/orders/${orderId}/aftersales/availability`,
+    `/v1/me/aftersales?orderId=${orderId}&limit=20`,`/v1/me/orders/${orderId}/aftersales/availability`
+  ]);
+  p.data.sheetReason='刚填写的说明';p.openOrderSupport();
+  expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/support/index?orderId=${orderId}&caseId=${record.id}`}));
+  expect(p.data.sheetReason).toBe('刚填写的说明');expect(m.write).not.toHaveBeenCalled();
  });
  it('opens the rejected case and waits for an explicit new application before selecting a refund method',async()=>{
   const p=await page();
@@ -131,10 +92,10 @@ describe('order support sheet owns reads and reflects current cases',()=>{
  });
  it('ignores a slow poll after a newer explicit refresh',async()=>{
   const p=await page();await p.loadSupportSheet();const old=deferred();
-  m.read.mockImplementationOnce(()=>old.promise);const poll=p.pollSupportSheet();
+  m.read.mockImplementationOnce(()=>old.promise);const poll=p.loadSupportSheet('poll');
   m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[{...record,resolved:true,state:'refund_pending'}])));
-  await p.loadSupportSheet();old.resolve({...messages,latestCursor:100});await poll;
-  expect(p.data.sheetCase).toBeNull();expect(p.data.sheetPreviousCase.resolved).toBe(true);expect(p.sheetCursor).toBe(0);
+  await p.loadSupportSheet();old.resolve({items:[record]});await poll;
+  expect(p.data.sheetCase).toBeNull();expect(p.data.sheetPreviousCase.resolved).toBe(true);
  });
  it('does not submit until the current order cases have been read',async()=>{
   const p=await page();p.data.sheetBasisIndex=1;p.data.sheetReason='';
@@ -149,7 +110,7 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   await p.submitSheetAftersale();
   expect(p.data.sheetError).toBe('请选择售后问题类型。');
   expect(m.write).not.toHaveBeenCalled();
-  await p.pollSupportSheet();
+  await p.loadSupportSheet('poll');
   expect(p.data.sheetError).toBe('请选择售后问题类型。');
   p.chooseSheetBasis({detail:{value:'1'}});
   expect(p.data.sheetError).toBe('');
@@ -157,12 +118,12 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   expect(m.write).toHaveBeenCalledTimes(1);
   expect(p.data.sheetCase.id).toBe(record.id);
   expect(p.data.sheetError).toBe('');
-  await p.pollSupportSheet();
+  await p.loadSupportSheet('poll');
   expect(p.data.sheetCase.id).toBe(record.id);
   await p.submitSheetAftersale();
   expect(m.write).toHaveBeenCalledTimes(1);
  });
- it('still accepts an application when only chat is offline',async()=>{
+ it('submits the selected goods through aftersale endpoints alone',async()=>{
   const p=await page();m.read.mockImplementation((_p:any,input:any)=>input.path.includes('/aftersales/availability')?Promise.resolve(availability):
     input.path.includes('/aftersales?')?Promise.resolve({items:[]}):Promise.reject(new Error('offline')));
   await p.loadSupportSheet();expect(p.data.sheetCasesReady).toBe(true);expect(p.data.sheetCase).toBeNull();
@@ -182,9 +143,9 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   await p.submitSheetAftersale();expect(m.write).not.toHaveBeenCalled();
  });
  it('can close without cancelling a pending write or losing its idempotency key',async()=>{
-  const p=await page();p.data.sheetSubmitting=true;p.data.sheetSending=true;
-  p.data.sheetAttempt={key:'original-request',payload:{kind:'return_refund'}};p.data.sheetSendAttempt={key:'original-message',body:'hello'};
-  p.closeSupportSheet();expect(p.data.supportSheetOpen).toBe(false);expect(p.data.sheetAttempt.key).toBe('original-request');expect(p.data.sheetSendAttempt.key).toBe('original-message');
+  const p=await page();p.data.sheetSubmitting=true;
+  p.data.sheetAttempt={key:'original-request',payload:{kind:'return_refund'}};
+  p.closeSupportSheet();expect(p.data.supportSheetOpen).toBe(false);expect(p.data.sheetAttempt.key).toBe('original-request');
  });
  it('unlocks a clearly rejected shipped refund draft for edit and a new request',async()=>{
   const p=await page(),pending=deferred();m.read.mockImplementation((_p:any,input:any)=>Promise.resolve(reply(input,[])));
@@ -217,14 +178,13 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   expect(m.write.mock.calls[1]![0].data).toEqual(original.data);
  });
  it('clears inherited busy flags and private drafts on account change',async()=>{
-  const p=await page();p.data.sheetSubmitting=true;p.data.sheetSending=true;p.data.sheetReason='private';m.token='member-b';p.syncSession();
-  expect(p.data.sheetSubmitting).toBe(false);expect(p.data.sheetSending).toBe(false);expect(p.data.sheetReason).toBe('');expect(p.data.sheetCase).toBeNull();
+  const p=await page();p.data.sheetSubmitting=true;p.data.sheetReason='private';m.token='member-b';p.syncSession();
+  expect(p.data.sheetSubmitting).toBe(false);expect(p.data.sheetReason).toBe('');expect(p.data.sheetCase).toBeNull();
  });
- it('copies the selected case snapshot, never a different order chat card',async()=>{
+ it('copies the selected case snapshot',async()=>{
   const p=await page();p.data.sheetCasesReady=true;p.data.sheetCase={...record,state:'awaiting_return',returnDestination:{recipientName:'合成收件人',phone:'13800000000',region:'上海市',address:'本单合成地址',version:2}};
-  p.data.sheetMessages=[{returnInstruction:{caseId:'other-case',address:'其他订单地址'}}];p.copySheetReturnInstruction();
+  p.copySheetReturnInstruction();
   expect((globalThis as any).wx.setClipboardData).toHaveBeenCalledWith({data:expect.stringContaining('本单合成地址')});
-  expect((globalThis as any).wx.setClipboardData.mock.calls[0][0].data).not.toContain('其他订单地址');
  });
  it('does not copy a return address while cases are unverified',async()=>{
   const p=await page();p.data.sheetCase={...record,state:'awaiting_return',returnDestination:{address:'private'}};
@@ -235,9 +195,9 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   expect(p.data.navigating).toBe(false);expect(p.sheetTimer).not.toBeNull();
  });
  it('opens the existing full conversation for a verified closed-account order',async()=>{
-  const p=await page();p.data.closedRights=true;p.data.sheetInput='请核对本单';
+  const p=await page();p.data.closedRights=true;
   const navigate=vi.fn();(globalThis as any).wx.navigateTo=navigate;
-  p.expandSupport();
+  p.openOrderSupport();
   expect(navigate).toHaveBeenCalledWith(expect.objectContaining({url:`/pages/support/index?orderId=${orderId}`}));
  });
  it('ignores keyboard events after the popup is closed',async()=>{
@@ -320,12 +280,13 @@ describe('order support sheet owns reads and reflects current cases',()=>{
   await vi.advanceTimersByTimeAsync(10000);
   expect(m.write).toHaveBeenCalledTimes(1);
  });
- it('uses native enter/leave, keyboard-aware height, one composer, and current-case addresses in WXML',()=>{
+ it('uses native enter/leave, a keyboard-aware reason field, and the shared contact entry',()=>{
   const wxml=readFileSync('apps/miniprogram/pages/order-detail/index.wxml','utf8');
   expect(wxml).toContain('<page-container');expect(wxml).toContain('show="{{supportSheetOpen}}"');
-  expect(wxml).toContain('bindbeforeleave="onSupportSheetLeave"');expect(wxml).toContain('overlay-style="background:rgba(30,20,36,.48)"');expect(wxml).toContain('? sheetChatHeight : sheetHeight}};');
+  expect(wxml).toContain('bindbeforeleave="onSupportSheetLeave"');expect(wxml).toContain('overlay-style="background:rgba(30,20,36,.48)"');expect(wxml).toContain('sheetKeyboardHeight ? sheetWritingHeight');
   expect(wxml).toContain('bottom:{{sheetKeyboardHeight}}px');expect(wxml).toContain('height:calc(100% - {{sheetKeyboardHeight}}px);transform:translateY({{sheetKeyboardHeight}}px)');
-  expect(wxml).toContain('!sheetCase && !sheetConsulting');expect(wxml).toContain('sheetCase || sheetConsulting');
+  expect(wxml).toContain("scroll-into-view=\"{{sheetKeyboardHeight ? 'sheet-reason' : ''}}\"");
+  expect(wxml).toContain('bindtap="openOrderSupport"');expect(wxml).not.toContain('sheetMessages');
   expect(wxml).toContain('sheetCase.returnDestination.address');expect(wxml).not.toContain('{{item.returnInstruction.address}}');
  });
 });

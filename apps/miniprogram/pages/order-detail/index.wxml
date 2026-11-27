@@ -10,18 +10,18 @@
   </view>
   <button class="text-button {{busy||recoveryLoading?'text-button--disabled':''}}" bindtap="loadRecovery" disabled="{{busy||recoveryLoading}}">重新核对原操作</button>
 </view>
-<page-container wx:if="{{order}}" show="{{supportSheetOpen}}" position="bottom" duration="220" z-index="90" overlay="{{true}}" round="{{true}}" close-on-slide-down="{{false}}" bindclickoverlay="closeSupportSheet" bindbeforeleave="onSupportSheetLeave" overlay-style="background:rgba(30,20,36,.48)" custom-style="height:{{sheetCase || sheetConsulting || sheetPreviousCase && !sheetReapplying ? sheetChatHeight : sheetHeight}};bottom:{{sheetKeyboardHeight}}px;background:transparent;overflow:hidden;">
+<page-container wx:if="{{order}}" show="{{supportSheetOpen}}" position="bottom" duration="220" z-index="90" overlay="{{true}}" round="{{true}}" close-on-slide-down="{{false}}" bindclickoverlay="closeSupportSheet" bindbeforeleave="onSupportSheetLeave" overlay-style="background:rgba(30,20,36,.48)" custom-style="height:{{sheetKeyboardHeight ? sheetWritingHeight : sheetCase || sheetPreviousCase && !sheetReapplying ? sheetProgressHeight : sheetHeight}};bottom:{{sheetKeyboardHeight}}px;background:transparent;overflow:hidden;">
   <view class="support-sheet" aria-role="dialog" aria-modal="{{true}}" aria-label="订单售后" style="height:calc(100% - {{sheetKeyboardHeight}}px);transform:translateY({{sheetKeyboardHeight}}px)" catchtap="stopPropagation">
     <view class="support-sheet__header">
-      <strong>{{sheetConsulting ? '订单咨询' : sheetCase || sheetPreviousCase && !sheetReapplying ? '订单售后' : '申请售后'}}</strong>
-      <view class="support-sheet__header-actions"><button wx:if="{{sheetCase || sheetConsulting || sheetPreviousCase && !sheetReapplying}}" bindtap="expandSupport" aria-label="打开完整客服会话">完整会话</button><button bindtap="closeSupportSheet" aria-label="关闭售后面板">关闭</button></view>
+      <strong>{{sheetCase || sheetPreviousCase && !sheetReapplying ? '订单售后' : '申请售后'}}</strong>
+      <button bindtap="closeSupportSheet" aria-label="关闭售后面板">关闭</button>
     </view>
     <view class="support-sheet__order">
       <text class="support-sheet__order-number" user-select>订单 {{order.orderNumber}}</text>
       <text class="support-sheet__order-status" wx:if="{{sheetFulfillment==='unshipped'}}">未发货</text>
       <text class="support-sheet__order-status" wx:elif="{{sheetFulfillment==='shipped'}}">{{shipment.noCourier?'已发货':'已交寄'}}</text>
     </view>
-    <scroll-view class="support-sheet__body" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{sheetConsulting && sheetMessages.length ? 'sheet-last' : ''}}">
+    <scroll-view class="support-sheet__body" scroll-y enhanced show-scrollbar="{{false}}" scroll-into-view="{{sheetKeyboardHeight ? 'sheet-reason' : ''}}">
       <text wx:if="{{sheetLoading && !sheetCase && !sheetPreviousCase}}" class="support-sheet__notice" aria-live="polite">正在读取本单售后…</text>
       <view wx:if="{{sheetCase || sheetPreviousCase && !sheetReapplying}}" class="support-sheet__case">
         <button class="support-sheet__summary" bindtap="openFullAftersale">
@@ -43,9 +43,9 @@
         </view>
         <button wx:if="{{sheetPreviousCase && sheetHasRemaining && sheetCasesReady && sheetLinesReady}}" class="support-sheet__case-main" bindtap="startSheetReapply">重新申请</button>
       </view>
-      <block wx:if="{{!sheetCase && !sheetConsulting && sheetLinesReady && sheetHasRemaining && (!sheetPreviousCase || sheetReapplying || sheetAttempt)}}">
+      <block wx:if="{{!sheetCase && sheetLinesReady && sheetHasRemaining && (!sheetPreviousCase || sheetReapplying || sheetAttempt)}}">
         <view class="support-sheet__selection">
-          <text class="support-sheet__section-title">{{sheetWholeOrder ? '本单商品' : '申请商品'}}</text>
+          <text wx:if="{{!sheetWholeOrder}}" class="support-sheet__section-title">申请商品</text>
           <view wx:for="{{sheetAvailable}}" wx:key="lineId" wx:if="{{item.remainingQuantity > 0}}" class="support-sheet__selection-row">
             <image class="support-sheet__product-image" src="{{item.image || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/>
             <view class="support-sheet__product">
@@ -67,30 +67,20 @@
             <view class="support-sheet__field"><text class="support-sheet__field-label">处理方式</text><text>{{sheetKindOptions[sheetKindIndex]}}</text><image src="/assets/icons/caret-right-muted.svg" aria-hidden="true"/></view>
           </picker>
           <text wx:elif="{{sheetBasisIndex || sheetFulfillment==='unshipped'}}" class="support-sheet__method">{{sheetFulfillment==='unshipped'?'无需寄回':sheetApplicationLabel}}</text>
-          <textarea class="support-sheet__reason" aria-label="售后说明" value="{{sheetReason}}" placeholder="{{sheetBasisIndex===1?'补充说明（选填）':'说明问题'}}" maxlength="500" auto-height adjust-position="{{false}}" bindinput="editSheetReason" bindkeyboardheightchange="onSheetKeyboardHeightChange" disabled="{{sheetSubmitting||sheetAttempt}}"/>
+          <view id="sheet-reason" class="support-sheet__reason-group">
+            <text class="support-sheet__field-label">{{sheetBasisIndex===1?'补充说明（选填）':'问题说明'}}</text>
+            <textarea class="support-sheet__reason {{sheetKeyboardHeight?'support-sheet__reason--focused':''}}" aria-label="{{sheetBasisIndex===1?'补充说明，选填':'售后说明'}}" value="{{sheetReason}}" maxlength="500" adjust-position="{{false}}" bindinput="editSheetReason" bindkeyboardheightchange="onSheetKeyboardHeightChange" disabled="{{sheetSubmitting||sheetAttempt}}"/>
+          </view>
         </view>
       </block>
-      <view wx:if="{{sheetMessages.length}}" class="support-sheet__thread">
-        <block wx:for="{{sheetMessages}}" wx:key="id">
-          <view wx:if="{{sheetReapplying || !sheetPreviousCase.rejectionReason || item.aftersaleDecision.caseId!==sheetPreviousCase.id || item.aftersaleDecision.version!==sheetPreviousCase.version}}" class="support-sheet__message support-sheet__message--{{item.senderType}}">
-            <text class="support-sheet__message-meta">{{item.senderType==='system'?'售后通知':item.senderType==='user'?'我':item.senderType==='ai'?'AI 客服':'人工客服'}} {{item.timeLabel}}</text>
-            <text>{{item.displayBody}}</text>
-          </view>
-        </block>
-      </view>
-      <view id="sheet-last" class="support-sheet__anchor"></view>
     </scroll-view>
     <view class="support-sheet__footer">
       <view wx:if="{{sheetError}}" class="support-sheet__error" aria-live="assertive">
         <text class="support-sheet__error-copy">{{sheetError}}</text>
         <button wx:if="{{!sheetCasesReady || !sheetLinesReady}}" class="text-button {{sheetLoading?'text-button--disabled':''}}" bindtap="loadSupportSheet" disabled="{{sheetLoading}}">重试加载</button>
       </view>
-      <button wx:if="{{!sheetCase && !sheetConsulting && sheetHasRemaining && (!sheetPreviousCase || sheetReapplying || sheetAttempt)}}" class="support-sheet__primary {{sheetSubmitting||sheetLoading||!sheetCasesReady||!sheetLinesReady?'control--disabled':''}}" bindtap="submitSheetAftersale" disabled="{{sheetSubmitting||sheetLoading||!sheetCasesReady||!sheetLinesReady}}" loading="{{sheetSubmitting}}">{{sheetAttempt?'重试原申请':'提交申请'}}</button>
-      <button wx:if="{{!sheetCase && (!sheetPreviousCase || sheetReapplying)}}" class="support-sheet__mode {{sheetSubmitting||sheetSending||sheetAttempt||sheetSendAttempt?'control--disabled':''}}" bindtap="toggleSheetConsulting" disabled="{{sheetSubmitting||sheetSending||sheetAttempt||sheetSendAttempt}}">{{sheetConsulting?'返回申请':'咨询客服'}}</button>
-      <view wx:if="{{sheetCase || sheetConsulting || sheetPreviousCase && !sheetReapplying}}" class="support-sheet__composer">
-        <textarea aria-label="客服消息" value="{{sheetInput}}" placeholder="给客服留言" maxlength="4000" auto-height adjust-position="{{false}}" bindinput="editSheetInput" bindkeyboardheightchange="onSheetKeyboardHeightChange" disabled="{{sheetSending||sheetSendAttempt}}"/>
-        <button class="{{sheetSending||(!sheetInput&&!sheetSendAttempt)?'control--disabled':''}}" bindtap="sendSheetMessage" disabled="{{sheetSending||(!sheetInput&&!sheetSendAttempt)}}">{{sheetSendAttempt?'重试原消息':'发送'}}</button>
-      </view>
+      <button wx:if="{{!sheetCase && sheetHasRemaining && (!sheetPreviousCase || sheetReapplying || sheetAttempt)}}" class="support-sheet__primary {{sheetSubmitting||sheetLoading||!sheetCasesReady||!sheetLinesReady?'control--disabled':''}}" bindtap="submitSheetAftersale" disabled="{{sheetSubmitting||sheetLoading||!sheetCasesReady||!sheetLinesReady}}" loading="{{sheetSubmitting}}">{{sheetAttempt?'重试原申请':'提交申请'}}</button>
+      <button wx:if="{{!sheetKeyboardHeight}}" class="support-sheet__contact {{sheetSubmitting||navigating?'control--disabled':''}}" bindtap="openOrderSupport" disabled="{{sheetSubmitting||navigating}}">联系客服</button>
     </view>
   </view>
 </page-container>
