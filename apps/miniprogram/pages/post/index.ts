@@ -26,6 +26,7 @@ import { communityIdentityBadge, identityLabel } from "../../services/display-id
 
 type CommentIntent = { owner:number; attempt:number; token:string; id:string; version:number };
 const commentFailure=(error:unknown,fallback:string)=>(error as {title?:string})?.title||fallback;
+const storyShareMenus = ['shareAppMessage', 'shareTimeline'];
 
 function readingBaseLayoutIdentity():string|null {
   try{
@@ -82,23 +83,31 @@ Page({
   commentDraftToken:null as string|null,
   commentDraftArticle:"",
   editorialSocialRefusal:null as string|null,
-  data: { rewardOwner:'',rewardRevision:0,shareReady:false,sharePreparing:false,officerShareId:'',blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", formalSource:false,ownerBusy:false,ownerWriteUnknown:false,ownerError:"",editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
+  data: { timelineReading: false, shareOverlay: '' as '' | 'destinations' | 'timeline-guide',
+    rewardOwner:'',rewardRevision:0,shareReady:false,sharePreparing:false,officerShareId:'',blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", formalSource:false,ownerBusy:false,ownerWriteUnknown:false,ownerError:"",editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.cancelGallerySizing?.();this.readingRead=null;this.pendingReadingRestore=null;this.readingScrollRevision+=1;this.setData({ chromeStyle: currentChromeStyle() },()=>this.measureComposer()); },
   onReachBottom() {
-    if(this.data.editorialSource&&!this.data.commentsError&&!this.data.composerOpen&&!this.data.blocksOpen)void this.loadMoreEditorialComments();
+    if(this.data.editorialSource&&!this.data.timelineReading&&!this.data.commentsError&&!this.data.composerOpen&&!this.data.blocksOpen)void this.loadMoreEditorialComments();
   },
   async onPullDownRefresh() {
-    try { if(this.data.commentsLoading||this.data.commentsBusy)return;if(this.data.editorialSource)await this.loadEditorialComments();else await this.loadSocial(); }
-    finally { wx.stopPullDownRefresh(); }
+    try {
+      if (this.data.timelineReading) await this.load(true);
+      else if (!this.data.commentsLoading && !this.data.commentsBusy) {
+        if(this.data.editorialSource)await this.loadEditorialComments();else await this.loadSocial();
+      }
+    } finally {
+      wx.stopPullDownRefresh();
+    }
   },
   onLoad(query: Record<string, string | undefined>) {
     const id = query.id ?? "";
-    this.setData({ id, formalSource:query.source==="formal",editorialSource:query.source==="editorial"||query.source==="formal", pageAlive: true });
+    const timelineReading = wx.getEnterOptionsSync?.()?.scene === 1154;
+    this.setData({ id, timelineReading, formalSource:query.source==="formal",editorialSource:query.source==="editorial"||query.source==="formal", pageAlive: true });
     if(query.share_id&&(editorialIdentifier(id)||!isBundledEditorialId(id)||editorialPreviewAllowed()))void registerIncomingShare(query.share_id,"post",id);if(query.officer_share)void incomingOfficerShare(query.officer_share).catch(()=>{});
-    wx.hideShareMenu();
+    if (!timelineReading) wx.hideShareMenu();
   },
   onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false,rewardOwner:currentCreditOwner() }); void this.load(true); },
-  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.loading)this.clearArticlePresentation();if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ rewardOwner:'',composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
+  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.loading)this.clearArticlePresentation();if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ shareOverlay:'',rewardOwner:'',composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
   onUnload() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.gallerySizingCache=null;this.pauseVideo(true);this.galleryRead=null;this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
   onPageScroll(event:WechatMiniprogram.Page.IPageScrollOption) {
     const top=event.scrollTop;
@@ -151,10 +160,11 @@ Page({
     this.cancelGallerySizing?.();this.invalidatePreview();this.readingRead=null;this.pendingReadingRestore=null;
     this.commentReadEpoch+=1;this.commentActionOwner+=1;this.blockReadEpoch+=1;
     this.syncCommentDraftOwner();
-    this.setData({blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentsNotice:"",editorialCommentItems:[],commentCount:null,commentsEnabled:null,canModerate:false,commentAuthenticated:false,loading:false,item:null,authorId:"",media:[],video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"",mediaIndex:0,mediaError:"",shareId:"",socialEnabled:false,socialLoading:false,socialBusy:false,
+    this.setData({shareOverlay:'',shareReady:false,sharePreparing:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentsNotice:"",editorialCommentItems:[],commentCount:null,commentsEnabled:null,canModerate:false,commentAuthenticated:false,loading:false,item:null,authorId:"",media:[],video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"",mediaIndex:0,mediaError:"",shareId:"",socialEnabled:false,socialLoading:false,socialBusy:false,
       social:emptyCommunity,threads:[],following:false,followBusy:false,followError:"",socialError:"",draft:"",replyToId:"",replyToName:"",
       errorKind:"load",errorTitle:"登录状态已失效",error:"请重新加载内容。点赞、收藏和关注前，请重新登录。"});
-    wx.hideShareMenu();return true;
+    if (!this.data.timelineReading) wx.hideShareMenu();
+    return true;
   },
   editorialReturnUrl(){return `/pages/post/index?id=${encodeURIComponent(this.data.id)}${this.data.editorialSource?`&source=${this.data.formalSource?"formal":"editorial"}`:""}`;},
   resolveGalleryHeight(id:string,version:number,images:string[],token:string,attempt:number):Promise<number> {
@@ -225,8 +235,8 @@ Page({
         aiLabel:this.data.aiLabel,socialEnabled:this.data.socialEnabled,social:this.data.social,following:this.data.following}
       : {};
     this.presentationKey=presentationKey;
-    wx.hideShareMenu();
-    this.setData({shareReady:false,sharePreparing:false,viewerHasSession:Boolean(getApp<IAppOption>().globalData.sessionToken),composerEventId:++this.composerSequence,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null,commentCount:null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null,editorialCommentItems:[],aiLabel:"",ownerBusy:false,ownerWriteUnknown:false,ownerError:"", loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "", ...retained });
+    if (!this.data.timelineReading) wx.hideShareMenu();
+    this.setData({shareOverlay:'',shareReady:false,sharePreparing:false,viewerHasSession:Boolean(getApp<IAppOption>().globalData.sessionToken),composerEventId:++this.composerSequence,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null,commentCount:null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null,editorialCommentItems:[],aiLabel:"",ownerBusy:false,ownerWriteUnknown:false,ownerError:"", loadAttempt: attempt, socialEnabled: false, socialBusy: false, socialLoading: false, social: emptyCommunity, threads: [], following: false, followBusy:false,followError: "", item: null, media: [], video:null,videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, galleryHeight:1000, mediaError:"",shareId: "", loading: true, errorKind: "none", errorTitle: "", error: "", ...retained });
     try {
       const editorial = editorialStory(this.data.id);
       if (!editorial && isBundledEditorialId(this.data.id)) {
@@ -236,7 +246,7 @@ Page({
       }
       if(this.data.editorialSource){
         const token=getApp<IAppOption>().globalData.sessionToken;
-        if(!editorialIdentifier(this.data.id)){this.setData({loading:false,errorKind:"missing",errorTitle:"这篇精选不可用",error:"内容链接无效，请返回社区。"});return;}
+        if(!editorialIdentifier(this.data.id)){this.setData({loading:false,errorKind:"missing",errorTitle:"这篇精选不可用",error:"内容链接无效。"});return;}
         try{const article=await (this.data.formalSource?publishedFormalStory:publishedEditorialArticle)(this.data.id,this);
           if(!this.currentArticleLoad(attempt,token)){this.dropChangedArticleOwner(attempt);return;}
           const display=this.data.formalSource?formalStoryMedia(article.media):editorialDisplayMedia(article.media);
@@ -276,8 +286,10 @@ Page({
           this.setData({...clearSocialRefusal?{socialError:""}:{},aiLabel:editorialAiLabel(article,restored?.index??0),commentsEnabled:article.commentsEnabled??null,commentCount:article.commentCount??null,commentsPolicyVersion:article.commentsPolicyVersion??0,canModerate:article.canModerate===true,authorId:article.authorId,item:{...article,kind:this.data.formalSource?"formal":"editorial",avatar,identityBadge,identityLabel:identityLabel(identityBadge),
             readingSegments:readingSegments(article.body),publishedLabel:new Date(article.publishedAt).toLocaleDateString("zh-CN"),engagementLabel:"精选内容"},
             media:display.images,mediaIndex:restored?.index??0,galleryHeight,video:display.video,videoHeightRpx,videoInitialTime:this.videoPosition,videoEventId:display.video?`${attempt}:${article.version}:${article.id}`:"",imageEventId:display.images.length?`${attempt}:${article.version}:${article.id}:${galleryHeight}`:"",following:article.following,
-            commentAuthenticated:Boolean(token),commentsLoading:true,socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false},()=>{
-              this.measureComposer();void this.loadEditorialComments().then(()=>{
+            commentAuthenticated:Boolean(token),commentsLoading:!this.data.timelineReading,socialEnabled:article.interactionsEnabled===true,social:{...emptyCommunity,preview:false,liked:article.liked,saved:article.saved,likeCount:article.likeCount,saveCount:article.saveCount},loading:false},()=>{
+              if (!this.data.timelineReading) this.measureComposer();
+              const comments = this.data.timelineReading ? Promise.resolve() : this.loadEditorialComments();
+              void comments.then(()=>{
               if(!restoreReading||!nextReading)return;
               wx.nextTick(()=>{
                 if(this.pendingReadingRestore!==nextReading)return;
@@ -292,14 +304,14 @@ Page({
           void this.prepareShare(attempt);
         }catch(error){if(this.recoverExpiredEditorialRead(attempt,token,error))return;this.dropChangedArticleOwner(attempt);if(this.currentArticleLoad(attempt,token)){const missing=(error as {status?:number}).status===404;
           this.clearArticlePresentation();
-          this.setData({loading:false,errorKind:missing?"missing":"load",errorTitle:missing?"这篇精选暂不可见":"暂时无法加载精选",error:missing?"内容已撤回或尚未发布，请返回社区。":"请检查网络后重试。"});}}
+          this.setData({loading:false,errorKind:missing?"missing":"load",errorTitle:missing?"这篇精选暂不可见":"暂时无法加载精选",error:missing?"内容已撤回或尚未发布。":"请检查网络后重试。"});}}
         return;
       }
       if (editorial) {
         if (!this.data.pageAlive || this.data.loadAttempt !== attempt) return;
         this.setData({ authorId: "brand:cisme", item: editorial, media: editorial.media ?? [editorial.image], mediaIndex: 0, loading: false, errorKind: "none", errorTitle: "", error: "" });
         void this.prepareShare(attempt);
-        void this.loadSocial();
+        if (!this.data.timelineReading) void this.loadSocial();
         return;
       }
       const feed = await prepareFeedAuthors([await request<any>({ path: `/v1/feed/${encodeURIComponent(this.data.id)}`, authMode: "public" })]);
@@ -307,9 +319,9 @@ Page({
       // The feed exposes an object key, not an authorized media URL or avatar.
       // Never attribute bundled brand imagery or a local portrait to a submission.
       const reviewed = feed.find((item: any) => item.id === this.data.id) ?? null;
-      this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, identityBadge:communityIdentityBadge(reviewed.identityBadge), author: reviewed.author || "CISME 会员", publishedLabel: "用户投稿", provenanceLabel: "经作者授权并审核后展示" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、授权已失效，或链接无效。请返回社区查看其他内容。" });
+      this.setData({ authorId: reviewed?.author_id || "", item: reviewed ? { ...reviewed, image: "", avatar: reviewed.avatar || defaultMemberAvatar, identityBadge:communityIdentityBadge(reviewed.identityBadge), author: reviewed.author || "CISME 会员", publishedLabel: "用户投稿", provenanceLabel: "经作者授权并审核后展示" } : null, loading: false, errorKind: reviewed ? "none" : "missing", errorTitle: reviewed ? "" : "这篇护理故事不可用", error: reviewed ? "" : "内容已撤回、授权已失效，或链接无效。" });
       if (reviewed) {
-        void this.loadSocial();
+        if (!this.data.timelineReading) void this.loadSocial();
         void this.prepareShare(attempt);
       }
     }
@@ -849,25 +861,53 @@ Page({
     }
   },
   shareOwner:'',shareContext:-1,
-  async prepareShare(loadAttempt?: number, fromTap = false) {
+  canShareStory() {
+    return this.readVisible && this.data.pageAlive && !this.data.timelineReading && !this.data.loading && !this.data.leaving
+      && Boolean(this.data.item && this.data.item.id === this.data.id);
+  },
+  async prepareShare(loadAttempt?: number) {
     const attempt = loadAttempt ?? this.data.loadAttempt;
-    if (!this.data.item || this.data.sharePreparing) return;
+    if (!this.canShareStory() || this.data.sharePreparing) return;
     const token = getApp<IAppOption>().globalData.sessionToken;
     const context = commerceContextRevision();
-    const current = () => this.readVisible && this.data.pageAlive && this.data.loadAttempt === attempt
+    const sameStory = () => this.canShareStory() && this.data.loadAttempt === attempt;
+    const current = () => sameStory()
       && token === getApp<IAppOption>().globalData.sessionToken && context === commerceContextRevision();
     this.setData({shareReady:false,sharePreparing:Boolean(token),shareId:'',officerShareId:''});
     const share = token ? await prepareShareDetails('post',this.data.id) : null;
-    if (!current()) return;
+    if (!current()) {
+      if (sameStory()) this.setData({sharePreparing:false});
+      return;
+    }
     const ready = !token || Boolean(share?.shareId);
-    this.shareOwner = token;this.shareContext = context;
+    this.shareOwner = token;
+    this.shareContext = context;
     this.setData({shareReady:ready,sharePreparing:false,shareId:share?.shareId??'',officerShareId:share?.officerShareId??''}, () => {
-      if (ready && current()) wx.showShareMenu({menus:['shareAppMessage','shareTimeline']});
-      else if (fromTap && current()) wx.showToast({title:'分享卡暂未生成，请重试',icon:'none'});
+      if (ready && current()) wx.showShareMenu({menus:storyShareMenus,fail:()=>{}});
     });
   },
-  retryShare(){
-    if (!this.data.shareReady) void this.prepareShare(this.data.loadAttempt,true);
+  openShareDestinations() {
+    if (!this.canShareStory() || this.data.composerOpen || this.data.blocksOpen) return;
+    this.setData({shareOverlay:'destinations'});
+    this.retryShare();
+  },
+  retryShare() {
+    if (!this.data.shareReady) void this.prepareShare();
+  },
+  showTimelineGuide() {
+    const attempt = this.data.loadAttempt;
+    const current = () => this.canShareStory() && this.data.loadAttempt === attempt && this.data.shareReady
+      && this.data.shareOverlay === 'destinations';
+    if (!current()) return;
+    wx.showShareMenu({
+      menus: storyShareMenus,
+      // Moments publication starts from WeChat's menu. The hint leaves the capsule tappable.
+      success: () => { if (current()) this.setData({shareOverlay:'timeline-guide'}); },
+      fail: () => { if (current()) wx.showToast({title:'暂时无法启用朋友圈分享，请重试',icon:'none'}); }
+    });
+  },
+  closeShareOverlay() {
+    if (this.data.shareOverlay) this.setData({shareOverlay:''});
   },
   async presentCommentCredit(kind:'ugc_comment'|'editorial_comment',id:string){
     const token=getApp<IAppOption>().globalData.sessionToken,context=commerceContextRevision(),article=this.data.id;
@@ -935,6 +975,14 @@ Page({
     }});
   },
   shareQuery(){const own=this.shareOwner===getApp<IAppOption>().globalData.sessionToken&&this.shareContext===commerceContextRevision();return `id=${encodeURIComponent(this.data.id)}${this.data.editorialSource?`&source=${this.data.formalSource?'formal':'editorial'}`:''}${own&&this.data.shareId?`&share_id=${this.data.shareId}`:''}${own&&this.data.officerShareId?`&officer_share=${this.data.officerShareId}`:''}`;},
-  onShareAppMessage(){return this.data.item?{title:this.data.item.title,path:`/pages/post/index?${this.shareQuery()}`}:{title:'CISME 社区',path:'/pages/community/index'};},
-  onShareTimeline(){return {title:this.data.item?.title||'CISME 社区',query:this.data.item?this.shareQuery():''};}
+  onShareAppMessage() {
+    this.closeShareOverlay();
+    if (!this.canShareStory()) return {title:'CISME 社区',path:'/pages/community/index'};
+    return {title:this.data.item.title,path:`/pages/post/index?${this.shareQuery()}`};
+  },
+  onShareTimeline() {
+    this.closeShareOverlay();
+    if (!this.canShareStory()) return {title:'CISME 社区',query:''};
+    return {title:this.data.item.title,query:this.shareQuery()};
+  }
 });

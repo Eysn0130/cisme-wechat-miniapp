@@ -94,8 +94,10 @@ describe("native detail presentation preserves the authorized comments and sourc
     const buttons=[...body.matchAll(/<button\b(?:(?:"[^"]*")|(?:'[^']*')|[^'">])*?>[\s\S]*?<\/button>/g)].map(match=>match[0]);
     expect(buttons).toHaveLength(4);
     expect(buttons.map(button=>attribute(button,"bindtap")??`@${attribute(button,"open-type")}`))
-      .toEqual(["startComment","toggleLike","toggleSave","retryShare"]);
-    expect(attribute(buttons[3]!,"open-type")).toBe("{{shareReady ? 'share' : ''}}");
+      .toEqual(["startComment","toggleLike","toggleSave","openShareDestinations"]);
+    expect(attribute(buttons[3]!,"open-type")).toBeUndefined();
+    expect(markup).toMatch(/<button class="post-share-option" open-type="share"[^>]*>\s*<text>转发给朋友<\/text>/);
+    expect(markup).toMatch(/<button class="post-share-option post-share-option--timeline" bindtap="showTimelineGuide"[^>]*>\s*<text>分享到朋友圈<\/text>/);
     expect(body).not.toMatch(/<(?:input|textarea)\b|bind(?:input|confirm)=|sendComment|(?:view|read)Count|阅读量/);
     expect(buttons[0]).toContain("!commentAuthenticated ? '登录后评论'");expect(buttons[0]).toContain("commentsEnabled !== true ? '查看评论'");expect(buttons[0]).toContain("'说点什么…'");
     expect(body).not.toMatch(/post-comment-action|post-reference\/chat\.svg|commentCount/);
@@ -130,8 +132,8 @@ describe("native detail presentation preserves the authorized comments and sourc
   });
 
   it("keeps the guest comment wall decorative and gates real comments and errors behind authentication",()=>{
-    const start=markup.indexOf('<view wx:if="{{editorialSource}}" id="post-comments"');
-    const end=markup.indexOf('<view wx:if="{{!editorialSource && (socialEnabled || !viewerHasSession)}}" id="post-comments"',start);
+    const start=markup.indexOf('<view wx:if="{{editorialSource && !timelineReading}}" id="post-comments"');
+    const end=markup.indexOf('<view wx:if="{{!timelineReading && !editorialSource && (socialEnabled || !viewerHasSession)}}" id="post-comments"',start);
     expect(start).toBeGreaterThanOrEqual(0);expect(end).toBeGreaterThan(start);
     const section=markup.slice(start,end);
     const branches=section.match(/<template wx:if="\{\{!commentAuthenticated\}\}" is="comment-login-gate"[^>]*\/>\s*<block wx:else>([\s\S]*?)<\/block>/);
@@ -252,7 +254,7 @@ describe("native detail presentation preserves the authorized comments and sourc
     expect(markup).not.toContain('bindtap="openPostMore"');
     expect(markup).toMatch(/<button\b[^>]*bindtap="copySource"[^>]*aria-label="复制原文链接"/);
     const logic=readFileSync(new URL("../../apps/miniprogram/pages/post/index.ts",import.meta.url),"utf8");
-    expect(markup).toContain('wx:if="{{editorialSource && item.sourceUrl}}"');
+    expect(markup).toContain('wx:if="{{!timelineReading && editorialSource && item.sourceUrl}}"');
     expect(logic).toContain('if(typeof url==="string"&&/^https:\\/\\//.test(url))wx.setClipboardData({data:url});');
   });
 });
