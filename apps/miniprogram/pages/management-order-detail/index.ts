@@ -139,6 +139,7 @@ Page({
       :active&&row.refund?.reviewState==='requested'&&!primary?"待具备退款权限的管理员审批。"
       :active&&row.partialBeforeDispatch?"未发货订单需整单退款，请联系买家重新提交申请。"
       :active&&row.state==='awaiting_return'&&!primary?"待买家寄回商品。"
+      :active&&row.refund?.reviewState==='approved'&&row.refund.requiresAttention?"已同意退款，请在资金核对查看微信支付结果。"
       :active&&row.refund?.reviewState==='approved'&&this.data.order?.aftersale?.phase==='refunding'?"已同意退款，等待渠道确认。":"",
     canContact:canReview&&this.capabilities.includes('support.read')&&this.capabilities.includes('support.reply'),
     decisionRetry:Boolean(this.pendingDecision),caseError:""

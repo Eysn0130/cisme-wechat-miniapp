@@ -12,6 +12,9 @@ import { closeRefundedAftersaleSupport } from "./supportAftersaleClosure.js";
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const KEY=/^[A-Za-z0-9._:-]{8,200}$/;
+const refundRejected=new Set([
+  "WECHAT_REFUND_BALANCE_INSUFFICIENT","WECHAT_REFUND_ACCOUNT_ABNORMAL","WECHAT_REFUND_REQUEST_REJECTED"
+]);
 type RequestRow={id:string;order_id:string;requested_by_member_id:string;amount_cents:string;
   reason:string;state:"requested"|"approved"|"rejected";version:number;
   request_hash:string;decision_key:string|null;decision_hash:string|null;decided_by_member_id:string|null};
@@ -20,7 +23,7 @@ type IntentRow={id:string;order_id:string;out_refund_no:string;refund_cents:stri
   submission_attempt_count:number;submission_lease_until:Date|null;submission_lease_token:string|null;
   first_dispatch_started_at:Date|null;state:string;
   order_number:string;total_cents:string;provider_transaction_id:string;paid_cents:string;merchant_id:string;
-  request_reason:string};
+  app_id:string;request_reason:string;channel_observed:boolean};
 type Line={id:string;line_total_cents:string;credit_tender_cents:string};
 
 function cents(value:unknown,code="REFUND_AMOUNT_INVALID"){
@@ -427,13 +430,14 @@ export class RefundCommandService{
         const prior=(await this.pool.query<{submission_attempt_count:number}>(
           "SELECT submission_attempt_count FROM commission_refund_intent WHERE id=$1",[targetId])).rows[0];
         const count=Math.min(8,(prior?.submission_attempt_count??0)+1),delay=Math.min(300_000,5_000*2**(count-1));
+        const quarantined=count===8||refundRejected.has(code);
         await this.pool.query(`UPDATE commission_refund_intent SET submission_lease_until=NULL,
           submission_attempt_count=$2,submission_next_attempt_at=clock_timestamp()+($3::integer*interval '1 millisecond'),
-          submission_quarantined_at=CASE WHEN $2=8 THEN clock_timestamp() ELSE NULL END,
+          submission_quarantined_at=CASE WHEN $6 THEN clock_timestamp() ELSE NULL END,
           submission_last_error_code=$4 WHERE id=$1 AND state='prepared'
           AND submission_lease_token=$5`,
-          [targetId,count,delay,/^[A-Z0-9_]{3,80}$/.test(code)?code:"CHANNEL_UNAVAILABLE",leaseToken]);
-        results.push({id:targetId,state:count===8?"quarantined":"retry_scheduled"});
+          [targetId,count,delay,/^[A-Z0-9_]{3,80}$/.test(code)?code:"CHANNEL_UNAVAILABLE",leaseToken,quarantined]);
+        results.push({id:targetId,state:quarantined?"quarantined":"retry_scheduled"});
       }
     }
     return results;
@@ -441,10 +445,12 @@ export class RefundCommandService{
 
   async processOne(intentId:string,leaseToken:string){
     const row=(await this.pool.query<IntentRow>(`SELECT i.*,o.order_number,o.total_cents,
-      p.provider_transaction_id,p.amount_cents AS paid_cents,p.merchant_id,
+      p.provider_transaction_id,p.amount_cents AS paid_cents,p.merchant_id,p.app_id,
+      EXISTS(SELECT 1 FROM commission_refund_channel_observation e WHERE e.refund_intent_id=i.id) AS channel_observed,
       r.reason AS request_reason FROM commission_refund_intent i
       JOIN commerce_order o ON o.id=i.order_id JOIN commission_payment_inbox p ON p.id=i.payment_inbox_id
-      JOIN commerce_refund_request r ON r.id=i.request_id WHERE i.id=$1`,[id(intentId)])).rows[0];
+      JOIN commerce_refund_request r ON r.id=i.request_id WHERE i.id=$1 AND o.status='paid'
+      AND p.state='applied' AND r.state='approved' AND i.execution_kind='wechat'`,[id(intentId)])).rows[0];
     if(!row||row.state!=="prepared"||row.submission_state!=="unknown")
       throw new DomainError("REFUND_SUBMISSION_NOT_PENDING","退款提交任务不在待处理状态",409);
     if(row.submission_lease_token!==leaseToken)
@@ -458,16 +464,26 @@ export class RefundCommandService{
     }
     catch(error){if(!(error instanceof DomainError&&error.code==="WECHAT_REFUND_NOT_FOUND"))throw error;}
     if(!queried){
-      if(row.first_dispatch_started_at)
-        throw new DomainError("REFUND_ORIGINAL_QUERY_REQUIRED","原退款单可能已发送，须继续查询并人工核对",409);
+      if(row.first_dispatch_started_at){
+        if(row.channel_observed)
+          throw new DomainError("REFUND_ORIGINAL_QUERY_REQUIRED","微信已受理过该退款，请继续查原单",409);
+        // WeChat documents a same-number, same-amount retry after signed NOT_FOUND.
+        // An independently refunded payment may have a different refund number.
+        const payment=await this.channel.queryByMerchantOrderNumber(binding.outTradeNo);
+        if(payment.trade_state!=="SUCCESS"||payment.appid!==row.app_id||payment.mchid!==binding.merchantId||
+           payment.out_trade_no!==binding.outTradeNo||payment.transaction_id!==binding.providerTransactionId||
+           payment.amount?.total!==binding.totalCents||payment.amount.payer_total!==binding.payerTotalCents||
+           payment.amount.currency!=="CNY")
+          throw new DomainError("REFUND_ORIGINAL_QUERY_REQUIRED","原支付状态已有变化，请核对微信退款记录",409);
+      }
       const marked=await this.pool.query(`UPDATE commission_refund_intent SET
-        first_dispatch_started_at=clock_timestamp() WHERE id=$1 AND state='prepared'
-        AND submission_state='unknown' AND first_dispatch_started_at IS NULL
+        first_dispatch_started_at=COALESCE(first_dispatch_started_at,clock_timestamp()),
+        submission_lease_until=clock_timestamp()+interval '30 seconds' WHERE id=$1 AND state='prepared'
+        AND submission_state='unknown' AND submission_quarantined_at IS NULL
+        AND NOT EXISTS(SELECT 1 FROM commission_refund_channel_observation e WHERE e.refund_intent_id=$1)
         AND submission_lease_token=$2 RETURNING id`,[intentId,leaseToken]);
       if(!marked.rowCount)throw new DomainError("REFUND_LEASE_LOST","退款任务租约已被接管",409);
-      // This update is committed before the HTTP boundary. On crash, the
-      // original number stays held and NOT_FOUND never authorizes resubmission.
-      const accepted=await this.channel.createRefund(binding,row.request_reason.slice(0,80),this.options.notifyUrl);
+      const accepted=await this.channel.createRefund(binding,row.request_reason,this.options.notifyUrl);
       await this.recordChannelAcceptance(intentId,"signed_create",accepted);
       if(accepted.fact.status==="SUCCESS"||accepted.fact.status==="CLOSED"||accepted.fact.status==="ABNORMAL")
         queried=await this.channel.queryRefundByMerchantRefundNumber(binding);

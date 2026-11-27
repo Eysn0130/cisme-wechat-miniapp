@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "5b77bbc7fa8fe5d18c62167390b45befaae6f96bee3329be74dbcac2bad5269d",
+  "packageSourceSha256": "f5f245a0409d2838be8c4fecb95f24bbab1af213d1c28062d6229448958209c0",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 当前包修复分享官资格与礼遇素材、活动奖励和历史领取订单图片。原生包门禁校验 WXML 静态图片文件与分包访问范围。完整路由、字号和真机范围独立取证。",
+  "note": "2026-11-27 当前包包含分享官与活动奖励图片修复、入库和减少的选中状态，以及微信退款异常的可读结果。完整路由、字号和真机范围独立取证。",
   "previousSourceRecord": {
-    "packageSourceSha256": "b24ce3a760bc6086eec088f04450bb114e05db34b3aa24224642c647285260f6",
-    "scope": "Official DevTools used isolated fixtures for refund completion, after-sales history and native keyboard interaction."
+    "packageSourceSha256": "5b77bbc7fa8fe5d18c62167390b45befaae6f96bee3329be74dbcac2bad5269d",
+    "scope": "Official DevTools verified sharing qualification, reward thumbnails and redemption screens in the previous package."
   },
   "pendingSourceRebind": false
 }
