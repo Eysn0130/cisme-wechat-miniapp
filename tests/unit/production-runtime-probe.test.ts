@@ -4,7 +4,7 @@ import {probeProductionRuntime} from '../../scripts/production-runtime-probe';
 const product={sourceKind:'admin',qualificationStatus:'eligible',publicationStatus:'published',purchaseEnabled:true,
   variants:[{active:true,currency:'CNY',priceCents:19800,purchaseEnabled:true,availableQuantity:100}]};
 const current:Record<string,unknown>={
-  '/health/ready':{status:'ready'},'/v1/identity/capabilities':{phoneBindingEnabled:true},
+  '/health/ready':{status:'ready'},'/v1/identity/capabilities':{phoneBindingEnabled:false},
   '/v1/capabilities':{pointsRulesEnabled:true,pointsRedemptionEnabled:true,ugcGoLiveGate:true},
   '/v1/ugc/status':{publicEnabled:true},'/v1/catalog':{checkoutEnabled:true,items:[product]}
 };
@@ -23,14 +23,19 @@ it('checks the commercial production runtime with anonymous GETs, without treati
 });
 it('rejects the actual stale-production pattern even when health and HTTP return success',async()=>{
   const result=await probeProductionRuntime(fetcher({...current,
-    '/v1/identity/capabilities':{phoneBindingEnabled:false},
     '/v1/capabilities':{pointsRulesEnabled:false,pointsRedemptionEnabled:false,ugcGoLiveGate:false},
     '/v1/ugc/status':{publicEnabled:false},'/v1/catalog':{checkoutEnabled:false,items:[]}
   }));
   expect(result.ok).toBe(false);expect(result.errors).toEqual(expect.arrayContaining([
-    'PRODUCTION_PHONE_AUTH_DISABLED','PRODUCTION_POINTS_RULES_DISABLED','PRODUCTION_POINTS_REDEMPTION_DISABLED',
+    'PRODUCTION_POINTS_RULES_DISABLED','PRODUCTION_POINTS_REDEMPTION_DISABLED',
     'PRODUCTION_UGC_DISABLED','PRODUCTION_PUBLICATION_UNAVAILABLE','PRODUCTION_CHECKOUT_DISABLED','PRODUCTION_SELLABLE_CATALOG_EMPTY'
   ]));
+});
+it('requires phone binding to remain disabled for the current WeChat privacy contract',async()=>{
+  const enabled=await probeProductionRuntime(fetcher({...current,'/v1/identity/capabilities':{phoneBindingEnabled:true}}));
+  expect(enabled.errors).toEqual(['PRODUCTION_PHONE_BINDING_REENABLED']);
+  const missing=await probeProductionRuntime(fetcher({...current,'/v1/identity/capabilities':{}}));
+  expect(missing.errors).toEqual(['PRODUCTION_IDENTITY_CAPABILITIES_INVALID']);
 });
 it.each(['synthetic_test','legacy_preview'])('does not count %s as real saleable inventory',async sourceKind=>{
   const result=await probeProductionRuntime(fetcher({...current,'/v1/catalog':{checkoutEnabled:true,items:[{...product,sourceKind}]}}));

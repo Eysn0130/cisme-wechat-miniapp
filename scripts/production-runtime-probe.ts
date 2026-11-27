@@ -5,7 +5,10 @@ export type RuntimeProbe = { path: string; ok: boolean; codes: string[]; status?
 const object = (value: unknown): value is Json => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const checks: Array<{ path: string; check: (body: Json) => string[] }> = [
   { path: "/health/ready", check: body => body.status === "ready" ? [] : ["PRODUCTION_API_NOT_READY"] },
-  { path: "/v1/identity/capabilities", check: body => body.phoneBindingEnabled === true ? [] : ["PRODUCTION_PHONE_AUTH_DISABLED"] },
+  { path: "/v1/identity/capabilities", check: body => {
+    if (typeof body.phoneBindingEnabled !== "boolean") return ["PRODUCTION_IDENTITY_CAPABILITIES_INVALID"];
+    return body.phoneBindingEnabled ? ["PRODUCTION_PHONE_BINDING_REENABLED"] : [];
+  } },
   { path: "/v1/capabilities", check: body => [
     ...(body.pointsRulesEnabled === true ? [] : ["PRODUCTION_POINTS_RULES_DISABLED"]),
     ...(body.pointsRedemptionEnabled === true ? [] : ["PRODUCTION_POINTS_REDEMPTION_DISABLED"]),
