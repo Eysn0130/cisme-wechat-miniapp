@@ -155,11 +155,12 @@ export class AftersaleService{
       WHERE adjusted_by='system:aftersale-restock' AND idempotency_key LIKE $1`,[`return:${row.id}:%`])).rows[0]?.quantity??0:0;
     const rejectionReason=row.state==='rejected'?(await client.query<{note:string}>(`SELECT note FROM commerce_aftersale_event
       WHERE case_id=$1 AND action='reject' ORDER BY case_version DESC LIMIT 1`,[row.id])).rows[0]?.note:undefined;
+    // Older mini program packages use canReview to hide all actions on the buyer's own case.
     return {id:row.id,orderId:row.order_id,orderNumber:order?.order_number??'',
       fulfillment:{state:order?.has_shipment?'shipped':'unshipped',canRefundWithoutReturn:unshippedRefundEligible(row,order)},
-      ...(operator?{canReview:row.member_id!==operator,canStartRefund:row.member_id!==operator&&!partialBeforeDispatch&&refundEligible(row,order),
+      ...(operator?{canReview:true,canStartRefund:!partialBeforeDispatch&&refundEligible(row,order),
         ...(partialBeforeDispatch?{partialBeforeDispatch:true}:{}),
-        refundApprovalAllowed:row.member_id!==operator&&row.exception_approved_by!==operator&&!order?.refund_beneficiary}:{}),
+        refundApprovalAllowed:(!row.exception_kind||row.member_id!==operator)&&row.exception_approved_by!==operator&&!order?.refund_beneficiary}:{}),
       kind:row.kind,state:row.state,reason:row.reason,claimBasis:row.claim_basis,
       ...(rejectionReason?{rejectionReason}:{}),
       supportConversationId:row.support_conversation_id,requestedAt:row.created_at,lines:row.lines,
@@ -344,7 +345,6 @@ export class AftersaleService{
       await this.authority.requireWithClient(client,memberId,'support.reply');
       const row=(await client.query<CaseRow>('SELECT * FROM commerce_aftersale_case WHERE id=$1 FOR UPDATE',[caseId])).rows[0];
       if(!row)fail('AFTERSALE_NOT_FOUND','售后记录不存在',404);
-      if(row.member_id===memberId)fail('AFTERSALE_SELF_REVIEW_FORBIDDEN','不能处理自己的售后案件',403);
       const conversation=await this.caseConversation(client,row.member_id);
       if(row.support_conversation_id&&row.support_conversation_id!==conversation.id)
         fail('AFTERSALE_SUPPORT_LINK_REQUIRED','原客服会话不可用，请刷新后重试');
@@ -420,7 +420,6 @@ export class AftersaleService{
       const replay=(await client.query('SELECT case_id,request_hash FROM commerce_aftersale_event WHERE actor_member_id=$1 AND idempotency_key=$2',[memberId,k])).rows[0];
       if(replay){if(replay.case_id!==caseId||replay.request_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT','请求键对应不同操作');return this.view(client,row,management?memberId:undefined);}
       if(row.version!==version)fail('VERSION_CONFLICT','售后案件已更新，请刷新后核对');
-      if(management&&row.member_id===memberId)fail('AFTERSALE_SELF_REVIEW_FORBIDDEN','不能处理自己的售后案件',403);
       let state:string|undefined,destination=row.return_destination,refundId=row.refund_request_id;
       if(action==='cancel'&&['requested','need_info','awaiting_instruction','awaiting_return'].includes(row.state)
         &&row.shipped_instruction_version===null)state='cancelled';

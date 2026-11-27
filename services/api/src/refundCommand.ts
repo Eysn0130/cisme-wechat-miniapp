@@ -139,17 +139,20 @@ export class RefundCommandService{
       if(used&&used.id!==requestId)throw new DomainError("IDEMPOTENCY_CONFLICT","审批请求键已用于其他申请",409);
       const request=(await client.query<RequestRow>(`SELECT * FROM commerce_refund_request WHERE id=$1 FOR UPDATE`,[requestId])).rows[0];
       if(!request)throw new DomainError("REFUND_REQUEST_NOT_FOUND","退款申请不存在",404);
-      if(request.requested_by_member_id===approver)
-        throw new DomainError("REFUND_SELF_APPROVAL_FORBIDDEN","退款申请人与审批人必须不同",403);
-      const exception=(await client.query<{exception_approved_by:string|null}>(
-        'SELECT exception_approved_by FROM commerce_aftersale_case WHERE refund_request_id=$1',[requestId])).rows[0];
-      if(exception?.exception_approved_by===approver)
-        throw new DomainError("REFUND_EXCEPTION_DUAL_REVIEW_REQUIRED","无需寄回的例外决定与退款审批须由不同人员完成",403);
       if(request.state!=="requested"){
         if(request.decided_by_member_id===approver&&request.decision_key===decisionKey&&request.decision_hash===fingerprint)
           return this.decisionView(client,request);
         throw new DomainError("REFUND_REQUEST_ALREADY_DECIDED","退款申请已处理",409);
       }
+      const aftersale=(await client.query<{regular:boolean;exception_approved_by:string|null}>(
+        `SELECT exception_approved_by, (order_id=$2 AND member_id=$3 AND amount_cents=$4
+          AND state='refund_pending' AND exception_kind IS NULL) AS regular
+        FROM commerce_aftersale_case WHERE refund_request_id=$1`,
+        [requestId,request.order_id,request.requested_by_member_id,request.amount_cents])).rows[0];
+      if(aftersale?.exception_approved_by===approver)
+        throw new DomainError("REFUND_EXCEPTION_DUAL_REVIEW_REQUIRED","无需寄回的例外决定与退款审批须由不同人员完成",403);
+      if(request.requested_by_member_id===approver&&!aftersale?.regular)
+        throw new DomainError("REFUND_SELF_APPROVAL_FORBIDDEN","本人退款请通过原订单的常规售后处理",403);
       if(request.version!==expectedVersion)throw new DomainError("VERSION_CONFLICT","退款申请版本已变化",409);
       if(!order||order.status!=="paid"||order.transaction_source_kind!=="verified_commerce")
         throw new DomainError("REFUND_ORDER_CHANGED","订单支付状态已变化",409);
