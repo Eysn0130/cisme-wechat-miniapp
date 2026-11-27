@@ -186,7 +186,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   const editorial = new EditorialService(pool,config,storage,authority);
   const editorialComments = new EditorialCommentsService(pool,config,editorial,authority);
   const editorialActivity = new EditorialActivityService(pool,config,editorial);
-  const aftersales = new AftersaleService(pool,authority);
+  const aftersales = new AftersaleService(pool,authority,dependencies.paymentProtocol?.formalRecovery===true);
   const managementAttention = new ManagementAttentionService(pool,config.env);
   const commercial = new CommercialMembershipService(pool, authority,config.env);
   const formalUgc = new FormalUgcService(pool, config, storage, authority);
@@ -277,7 +277,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
       }}}:{})
   });
   const catalog = new CommerceCatalogService(pool, authority, config.env, config.commerce.orderFlowEnabled,
-    formalRecoveryProfile?()=>orders.status().paymentAvailable:undefined,async()=>!(await tradeEvents.restriction()).restricted);
+    formalRecoveryProfile?()=>orders.status().paymentAvailable:undefined,async()=>!(await tradeEvents.restriction(Boolean(formalRecoveryProfile))).restricted);
   if(paymentProfile&&!dependencies.paymentProtocol)
     throw new Error("FAIL_CLOSED:PAYMENT_PROTOCOL_REQUIRED");
   const payment= paymentProfile&&dependencies.paymentProtocol
@@ -840,7 +840,7 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/catalog", async request => catalog.publicList(request.query));
   app.get<{Params:{productCode:string}}>("/v1/catalog/:productCode", async request => catalog.publicDetail(request.params.productCode));
   app.get("/v1/commerce/orders/status", async () => {
-    const status=orders.status(),restriction=await tradeEvents.restriction();
+    const status=orders.status(),restriction=await tradeEvents.restriction(Boolean(formalRecoveryProfile));
     return restriction.restricted?{...status,orderFlowEnabled:false,formalMoneyOperationsAvailable:false,paymentAvailable:false,paymentOnboarding:'IN_PROGRESS',paymentRestriction:restriction.reason}:status;
   });
   app.get('/v1/me/sharing-officer/reward-activities',async(request,reply)=>{reply.header('Cache-Control','private, no-store');return activityRewards.officerOffers(request.memberId);});
@@ -890,8 +890,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     reply.header("Cache-Control", "no-store");
     return discoverCommerceCommands(pool,request.memberId,request.principalId,config.env,request.params.kind,request.query);
   });
-  app.post("/v1/me/commerce/quotes", async request => {await tradeEvents.requirePaymentsAllowed();return orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,service.now(devClock(request)));});
-  app.post("/v1/me/orders", async request => {await tradeEvents.requirePaymentsAllowed();return orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id,service.now(devClock(request)));});
+  app.post("/v1/me/commerce/quotes", async request => {await tradeEvents.requirePaymentsAllowed(Boolean(formalRecoveryProfile));return orders.quote(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,service.now(devClock(request)));});
+  app.post("/v1/me/orders", async request => {await tradeEvents.requirePaymentsAllowed(Boolean(formalRecoveryProfile));return orders.create(request.memberId,request.principalId,idempotencyKey(request),(request.body??{}) as Record<string,unknown>,request.id,service.now(devClock(request)));});
   app.get<{Querystring:{limit?:string;cursor?:string}}>("/v1/me/orders", async request => orders.listMine(request.memberId,request.query,request.authScope==='privacy_rights'));
   app.get<{Querystring:{outTradeNo?:string}}>("/v1/me/orders/resolve", async (request,reply) => {
     reply.header('Cache-Control','private, no-store');
@@ -925,7 +925,10 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     return refunds;
   };
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/payment-intent",async request=>{
-    await tradeEvents.requirePaymentsAllowed();return paymentRequired().prepare(request.memberId,request.principalId,request.params.orderId,request.id);});
+    const checkoutPayment=paymentRequired();
+    await tradeEvents.requirePaymentsAllowed(Boolean(formalRecoveryProfile));
+    return checkoutPayment.prepare(request.memberId,request.principalId,request.params.orderId,request.id);
+  });
   app.get('/v1/management/commerce/wechat-trade',async(request,reply)=>{
     await authority.require(request.memberId,'commerce.fulfillment.manage');reply.header('Cache-Control','private, no-store');
     if(!localFulfillment)throw new DomainError('FULFILLMENT_NOT_ENABLED','微信交易接入尚未配置',503);
@@ -1005,8 +1008,11 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     reply.header('Cache-Control','no-store, private');
     return shipmentRequired().logisticsCapabilities(request.memberId);
   });
-  app.post<{Params:{orderId:string};Body:{expectedVersion:number}}>("/v1/me/orders/:orderId/confirm-receipt",async request=>
-    shipmentRequired().confirmReceipt(request.memberId,request.params.orderId,idempotencyKey(request),request.body?.expectedVersion));
+  app.post<{Params:{orderId:string};Body:{expectedVersion:number}}>("/v1/me/orders/:orderId/confirm-receipt",async request=>{
+    if(formalRecoveryProfile)
+      throw new DomainError('WECHAT_RECEIPT_REQUIRED','快递订单请在订单详情使用微信确认收货；无需物流订单由系统确认',409);
+    return shipmentRequired().confirmReceipt(request.memberId,request.params.orderId,idempotencyKey(request),request.body?.expectedVersion);
+  });
   app.post<{Params:{orderId:string}}>("/v1/me/orders/:orderId/wechat-receipt/query",async request=>
     receiptRequired().queryMine(request.memberId,request.params.orderId));
   app.get<{Params:{orderId:string}}>("/v1/management/commerce/orders/:orderId/shipment",async request=>

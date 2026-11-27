@@ -621,10 +621,15 @@ it('durably fences shipping dispatch, reconciles uncertain uploads and preserves
     .rejects.toMatchObject({code:'SHIPPING_PROPOSAL_CONFLICT'});
   const stored=(await pool.query('SELECT encrypted_parcel FROM commerce_shipping_sync WHERE id=$1',[proposal.id])).rows[0];
   expect(stored.encrypted_parcel).not.toContain(parcel.trackingNumber);expect(stored.encrypted_parcel).not.toContain('1234');
+  const unavailable=new ShippingSyncService(pool,new AuthorityService(pool,'test'),options,
+    {...channel,prepareUpload:async()=>{throw Error('Synthetic token unavailable before HTTP');}});
+  expect(await unavailable.processOne(proposal.id)).toBe('prepared');expect(uploaded).toBe(0);
+  expect((await pool.query('SELECT dispatched_at FROM commerce_shipping_sync WHERE id=$1',[proposal.id])).rows[0].dispatched_at).toBeNull();
+  await pool.query("UPDATE commerce_shipping_sync SET next_attempt_at=now()-interval '1 second' WHERE id=$1",[proposal.id]);
   const concurrent=await Promise.all([service.processOne(proposal.id),service.processOne(proposal.id)]);
   expect(concurrent).toContain('verifying');expect(uploaded).toBe(1);
   await pool.query("UPDATE commerce_shipping_sync SET next_attempt_at=now()-interval '1 second' WHERE id=$1",[proposal.id]);
-  expect(await service.processOne(proposal.id)).toBe('synced');expect(uploaded).toBe(1);expect(queries).toBe(2);
+  expect(await service.processOne(proposal.id)).toBe('synced');expect(uploaded).toBe(1);expect(queries).toBe(3);
   expect(await service.processOne(proposal.id)).toBe('idle');
   await expect(pool.query("UPDATE commerce_shipping_sync SET state='prepared',dispatched_at=NULL WHERE id=$1",[proposal.id])).rejects.toThrow();
   expect((await pool.query('SELECT status FROM commerce_order WHERE id=$1',[order.id])).rows[0].status).toBe('paid');
@@ -1291,4 +1296,20 @@ it('records server-timed dispatch and confirms only eligible non-courier handoff
   expect((await runReceiptCycle()).autoConfirmed).toBe(1);
   expect((await runReceiptCycle()).autoConfirmed).toBe(0);
   await expect(pool.query("UPDATE commerce_shipment SET delivery_method='pickup',version=version+1 WHERE id=$1",[due.shipmentId])).rejects.toThrow('SHIPMENT_FACT_IMMUTABLE');
+
+  const shipment=(await pool.query('SELECT id,shipping_sync_id FROM commerce_shipment WHERE order_id=$1',[express.id])).rows[0];
+  uploaded.add(express.number);
+  expect(await sync.processOne(shipment.shipping_sync_id)).toBe('synced');
+  const {WechatReceiptService}=await import('../../services/api/src/wechatReceipt.js');
+  let complaint=true;
+  const receipt=new WechatReceiptService(pool,appId,merchantId,{queryOrder:async()=>({platformOrderState:4,inComplaint:complaint})});
+  await receipt.queryMine(buyer,express.id);
+  expect(await service.detailMine(buyer,express.id)).toMatchObject({receiptConfirmedAt:null,deliveredAt:null});
+  expect((await pool.query('SELECT watch_state FROM commerce_wechat_receipt_observation WHERE order_id=$1',[express.id])).rows[0].watch_state).toBe('active');
+  complaint=false;
+  await receipt.queryMine(buyer,express.id);
+  await receipt.queryMine(buyer,express.id);
+  expect(await service.detailMine(buyer,express.id)).toMatchObject({receiptConfirmedAt:expect.any(String),deliveredAt:null,wechatReceipt:{status:'completed'}});
+  expect((await pool.query("SELECT actor_principal_id FROM commerce_shipment_event WHERE shipment_id=$1 AND event_type='receipt_confirmed'",[shipment.id])).rows)
+    .toEqual([{actor_principal_id:'system:wechat-receipt'}]);
 });

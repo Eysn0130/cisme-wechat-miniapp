@@ -4,12 +4,14 @@ import { cancelPageReads } from "../../services/page-requests";
 import { centsToYuan } from "../../services/commerce";
 import { orderLineSummary, myOrders, type CommerceOrderSummary } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
+import { aftersaleLabels } from '../../services/order-aftersale';
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"已付款"};
 function orderStatusLabel(item:CommerceOrderSummary){
   if(item.status==='paid'){
+    if(item.aftersale)return aftersaleLabels[item.aftersale.phase];
     if(item.refundedCents)return item.refundedCents>=item.totalCents?'已退款':'部分退款';
-    if(item.shipmentDeliveryMethod==='local_delivery'||item.shipmentDeliveryMethod==='pickup')
-      return item.fulfillmentState==='completed'?'已收货':'已发货';
+    if(item.fulfillmentState==='completed')return '已收货';
+    if(item.fulfillmentState==='shipped')return '已发货';
   }
   return labels[item.status]??'状态更新中';
 }

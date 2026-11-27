@@ -1283,7 +1283,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [refund, settlement, credit, credit-cancel, cancel, cancel-verified]
+            enum: [refund, settlement, credit, credit-cancel, cancel, cancel-verified, checkout-order]
         - in: query
           name: objectId
           description: Required for refund and cancellation kinds; disallowed for settlement and credit
@@ -1307,7 +1307,7 @@ paths:
                   memberId: {type: string, format: uuid}
                   kind:
                     type: string
-                    enum: [refund, settlement, credit, credit-cancel, cancel, cancel-verified]
+                    enum: [refund, settlement, credit, credit-cancel, cancel, cancel-verified, checkout-order]
                   status: {type: string, enum: [recorded, not_observed]}
                   record:
                     oneOf:
@@ -1320,6 +1320,7 @@ paths:
                           state: {type: string}
                           orderId: {type: string, format: uuid}
                           amountCents: {type: integer}
+                          productCode: {type: string, description: Original product code for an observed checkout order}
         '400':
           description: Missing idempotency key
         '401':
@@ -3056,7 +3057,7 @@ paths:
       operationId: queryMyWechatReceipt
       security: [{session: []}]
       parameters: [{$ref: '#/components/parameters/OrderId'}]
-      description: Owner-only read-only WeChat get_order query using the verified payment binding and revocable shipping.query grant. Persists an independent, versioned platform observation after rechecking membership and binding. Never uploads shipping, confirms local receipt, changes refunds or releases funds. A component transaction ID is returned only for an eligible shipped order; opening the component is not proof of receipt.
+      description: Queries WeChat get_order with an owner-bound verified payment and a revocable shipping.query grant. After rechecking that binding the service records the platform observation. A confirmed or completed courier order can also receive the local receipt fact once, after shipping sync and if free of disputes and active after-sales. The call never uploads shipping or moves money. A component transaction ID is returned only for an eligible shipped order. Opening the component alone records no receipt.
       responses: {'200': {description: Bound platform state and optional component transaction ID}, '403': {$ref: '#/components/responses/Problem'}, '404': {$ref: '#/components/responses/Problem'}, '409': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}
   /v1/management/commerce/orders/{orderId}/shipment:
     get:
@@ -3219,7 +3220,7 @@ paths:
       parameters:
         - {in: path, name: orderId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
       responses:
-        '200': {description: Per-line remaining quantities after verified successful refunds}
+        '200': {description: Per-line remaining quantities after verified successful refunds. The formal single-parcel flow sets requiresWholeOrder for unshipped orders.}
         '401': {description: Session required}
         '404': {description: Owned order not found}
         '409': {description: Order payment not verified}
@@ -3328,12 +3329,12 @@ paths:
   /v1/management/aftersales/{caseId}/actions:
     post:
       operationId: actManagedAftersale
-      summary: Separated review, receiving and inspection permissions; unshipped refunds can atomically reserve approval under both review and refund capabilities; channel success remains separate
+      summary: Separated review, receiving and inspection permissions; eligible refunds can atomically reserve approval under both review and refund capabilities; channel success remains separate
       security: [{session: []}]
       parameters:
         - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
         - {$ref: '#/components/parameters/IdempotencyKey'}
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, approve_refund_without_return, receive_return, inspect_return, request_refund, reopen_refund, resolve_old_route]}, approveRefund: {type: boolean, description: "Only for an unshipped request_refund; requires commerce.refund.approve and formal refund approval authorization. Atomically records the existing buyer request and administrator approval without dispatching in the transaction."}, routeOutcome: {type: string, enum: [carrier_contacted, rerouted, received]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [action, expectedVersion, note], properties: {action: {type: string, enum: [request_info, reject, approve_return, send_return_instruction, approve_refund_without_return, receive_return, inspect_return, request_refund, reopen_refund, resolve_old_route]}, approveRefund: {type: boolean, description: "For a verified request_refund after an eligible unshipped cancellation, inspected return or reviewed exception. Requires commerce.refund.approve and formal refund approval authorization. Atomically records the existing buyer request and administrator approval without dispatching in the transaction."}, routeOutcome: {type: string, enum: [carrier_contacted, rerouted, received]}, expectedVersion: {type: integer, minimum: 1}, note: {type: string, minLength: 3, maxLength: 500}, qualityResult: {type: string, enum: [sellable, unsellable]}, recipientName: {type: string, maxLength: 80}, phone: {type: string, maxLength: 20}, region: {type: string, maxLength: 100}, address: {type: string, maxLength: 300}, freightPayer: {type: string, enum: [merchant, member]}, instructions: {type: string, maxLength: 500}, exceptionKind: {type: string, enum: [lost_in_transit, item_missing, carrier_intercepted, return_impracticable]}, evidenceReference: {type: string, minLength: 8, maxLength: 200}}}}}}
       responses:
         '200': {description: Local case facts; channel refund success is a separate verified fact}
         '401': {description: Session required}

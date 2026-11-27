@@ -4,8 +4,6 @@
 
 .shipment-card label{display:flex;flex-direction:column;gap:12rpx;font-size:24rpx;color:var(--cisme-ink)}.shipment-card input{box-sizing:border-box;min-height:92rpx;padding:20rpx;border:1rpx solid var(--cisme-line);border-radius:18rpx;font-size:28rpx;background:var(--cisme-bg,#f7f2f8)}.shipment-picker-field{min-height:88rpx;display:flex;align-items:center;padding:0 20rpx;border:1rpx solid var(--cisme-line);border-radius:18rpx;font-size:26rpx}.shipment-card button{width:100%;margin:0;white-space:normal}
 
-.refund-reconcile{display:flex;flex-direction:column;align-items:flex-start;gap:12rpx;margin-top:20rpx}.refund-reconcile button{margin:0;min-height:88rpx}.refund-reconcile__message{font-size:24rpx;color:var(--cisme-muted)}
-
 .shipment-picker-field{justify-content:space-between;background:var(--cisme-page)}.shipment-carrier-error{display:flex;align-items:center;gap:16rpx;color:var(--cisme-muted);font-size:var(--cisme-text-small)}.shipment-carrier-error text{flex:1}.shipment-carrier-error button{flex:none;width:auto;min-width:var(--cisme-hit-target)}
 
 .shipment-admin__heading{display:flex;align-items:baseline;justify-content:space-between;gap:16rpx}

@@ -9,6 +9,7 @@ import { ShippingSyncService } from './shippingSync.js';
 import type { WechatLogisticsClient, LogisticsBinding } from './wechatLogistics.js';
 import { validateShippingBinding, type NoCourierDelivery, type UnifiedParcel } from './wechatOrderShipping.js';
 import { receiptView } from './wechatReceipt.js';
+import { recordShipmentReceipt } from './shipmentReceipt.js';
 
 type DispatchEvidence = { evidenceReference: string; expectedOrderVersion: number };
 type Dispatch = DispatchEvidence & ({ deliveryMethod?: undefined; carrierCode: string; carrierName: string;
@@ -316,14 +317,6 @@ export class OrderFulfillmentService {
     }
     return {results};
   }
-  private async recordReceipt(client:DbClient,row:Shipment,principal:string,evidence:string){
-    const eventKey=`receipt:${row.id}`;
-    await client.query(`INSERT INTO commerce_shipment_event(shipment_id,event_key,event_type,actor_principal_id,evidence_reference,occurred_at)
-      VALUES($1,$2,'receipt_confirmed',$3,$4,$5)`,[row.id,eventKey,principal,evidence,row.receipt_confirmed_at]);
-    await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
-      VALUES($1,'commerce.shipment.receipt','commerce_shipment',$2,$3,$4)`,[principal,row.id,{version:row.version},eventKey]);
-  }
-
   async confirmDueNoCourierReceipts(){
     this.gate();
     const eligible=`s.order_id=o.id AND y.id=s.shipping_sync_id AND y.order_id=o.id AND y.state='synced'
@@ -343,7 +336,7 @@ export class OrderFulfillmentService {
         SET receipt_confirmed_at=clock_timestamp(),version=s.version+1
         FROM commerce_order o,commerce_shipping_sync y
         WHERE ${eligible} AND o.id=ANY($2::uuid[]) RETURNING s.*`,[autoReceiptHours,rows.map(row=>row.id)])).rows;
-      for(const row of completed)await this.recordReceipt(client,row,'system:automatic-receipt',`auto-receipt:${row.id}`);
+      for(const row of completed)await recordShipmentReceipt(client,row,'system:automatic-receipt',`auto-receipt:${row.id}`);
       return completed.length;
     });
   }
@@ -365,7 +358,7 @@ export class OrderFulfillmentService {
       if(row.receipt_confirmed_at)fail('RECEIPT_ALREADY_CONFIRMED');
       const updated=(await client.query<Shipment>(`UPDATE commerce_shipment SET receipt_confirmed_at=clock_timestamp(),version=version+1
         WHERE id=$1 RETURNING *`,[row.id])).rows[0]!;
-      await this.recordReceipt(client,updated,`member:${owner}`,`explicit-receipt:${row.id}`);
+      await recordShipmentReceipt(client,updated,`member:${owner}`,`explicit-receipt:${row.id}`);
       const result={id:row.id,orderId,version:updated.version,receiptConfirmedAt:updated.receipt_confirmed_at!.toISOString()};
       await client.query(`INSERT INTO idempotency_operation(principal_id,operation,idempotency_key,business_key,request_hash,response_status,response_body)
         VALUES($1,'commerce.shipment.receipt',$2,$3,$4,200,$5)`,[`member:${owner}`,requestKey,`receipt:${row.id}`,fingerprint,result]);

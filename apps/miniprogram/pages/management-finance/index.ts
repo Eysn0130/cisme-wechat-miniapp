@@ -54,6 +54,7 @@ Page({
     cycleDecisionKeys:{} as Record<string,string>,
     billDate:yesterdayShanghai(),latestBillDate:yesterdayShanghai(),alive:true,epoch:0,navigating:false},
   onResize(){this.setData({chromeStyle:currentChromeStyle()});},
+  onLoad(query:Record<string,string|undefined>){if(query.section==='issues')this.setData({section:'issues'});},
   onShow(){this.data.alive=true;this.setData({navigating:false,latestBillDate:yesterdayShanghai(),
     latestCycleMonth:lastCycleMonth()});void this.establish();},
   onHide(){this.data.alive=false;this.data.epoch+=1;this.actorToken="";this.setData({authority:null,sections:[],items:[],cycle:null,cycleDecisionKeys:{},moneyEnabled:false,canReadOrders:false,busy:false});},

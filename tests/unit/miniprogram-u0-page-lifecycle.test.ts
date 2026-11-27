@@ -24,6 +24,8 @@ vi.mock("../../apps/miniprogram/services/layout", () => ({ currentChromeStyle: (
 type PageDefinition = Record<string, any> & { data: Record<string, any> };
 let capturedPage: PageDefinition | null = null;
 let session = "member-a";
+const checkoutQuoteId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const checkoutMemberId="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 function mountedPage(definition: PageDefinition, overrides: Record<string, any> = {}, fields: Record<string, any> = {}) {
   const context: Record<string, any> = {
@@ -56,9 +58,12 @@ beforeEach(() => {
   downloadPrivateMediaMock.mockClear();
   session = "member-a";
   capturedPage = null;
-  (globalThis as any).getApp = () => ({ globalData: { sessionToken: session } });
+  (globalThis as any).getApp = () => ({ globalData: { sessionToken: session, apiBaseUrl: "https://synthetic.invalid" } });
   (globalThis as any).Page = (definition: PageDefinition) => { capturedPage = definition; };
+  const storage=new Map<string,unknown>();
   (globalThis as any).wx = {
+    getStorageSync:(key:string)=>storage.get(key),setStorageSync:(key:string,value:unknown)=>storage.set(key,value),
+    removeStorageSync:(key:string)=>storage.delete(key),
     nextTick: (callback: () => void) => callback(),
     createSelectorQuery: undefined,
     navigateTo: vi.fn(), redirectTo: vi.fn(), navigateBack: vi.fn(), switchTab: vi.fn(), showToast: vi.fn(),
@@ -243,11 +248,11 @@ describe("U0 native page lifecycle regressions", () => {
   });
 
   it("retains a stale-order failure while clearing the unusable quote", async () => {
-    requestMock.mockRejectedValueOnce({ code: "QUOTE_STALE" });
+    requestMock.mockResolvedValueOnce({id:checkoutMemberId}).mockRejectedValueOnce({ code: "QUOTE_STALE" });
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
-      quote: { id: "quote-1", expiresAt: "2026-09-12T01:00:00.000Z", serverTime: "2026-09-12T00:00:00.000Z" },
-      quoteClock: createQuoteClock("2026-09-12T01:00:00.000Z", "2026-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true, createKey: ""
+      quote: { id: checkoutQuoteId, expiresAt: "2026-09-12T01:00:00.000Z", serverTime: "2026-09-12T00:00:00.000Z" },
+      quoteClock: createQuoteClock("2026-09-12T01:00:00.000Z", "2026-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true
     }, { requestEpoch: 4, mounted: true, visible: true, countdownTimer: null });
     page.load = vi.fn();
 
@@ -260,17 +265,18 @@ describe("U0 native page lifecycle regressions", () => {
 
   it("does not start a second order creation while the first submission is pending", async () => {
     let resolveCreate!: (value: unknown) => void;
-    requestMock.mockImplementationOnce(() => new Promise((resolve) => { resolveCreate = resolve; }));
+    requestMock.mockResolvedValueOnce({id:checkoutMemberId})
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveCreate = resolve; }));
     await vi.importActual("../../apps/miniprogram/pages/checkout/index");
     const page = mountedPage(capturedPage!, {
-      quote: { id: "quote-1", expiresAt: "2099-09-12T01:00:00.000Z", serverTime: "2099-09-12T00:00:00.000Z" },
-      quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true, createKey: ""
+      quote: { id: checkoutQuoteId, expiresAt: "2099-09-12T01:00:00.000Z", serverTime: "2099-09-12T00:00:00.000Z" },
+      quoteClock: createQuoteClock("2099-09-12T01:00:00.000Z", "2099-09-12T00:00:00.000Z"), busy: false, loading: false, runtimeEnabled: true
     }, { requestEpoch: 5, mounted: true, visible: true, countdownTimer: null });
 
     const first = page.confirmOrder();
     await page.confirmOrder();
-    expect(requestMock).toHaveBeenCalledTimes(1);
-    resolveCreate({ id: "order-1" });
+    await vi.waitFor(()=>expect(requestMock.mock.calls.filter(([options])=>options.method==="POST")).toHaveLength(1));
+    resolveCreate({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",lines:[] });
     await first;
   });
 
@@ -297,6 +303,7 @@ describe("U0 native page lifecycle regressions", () => {
     });
 
     const load = page.load();
+    await vi.waitFor(()=>expect(pending).toHaveLength(3));
     page.onHide();
     pending[0]!({ id: "product-1", variants: [] });
     pending[1]!({ enabled: true, addresses: [{ id: "private-address" }] });

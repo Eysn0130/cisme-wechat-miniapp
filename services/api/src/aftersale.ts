@@ -81,11 +81,27 @@ function unshippedRefundEligible(row:CaseRow,order:{status:string;transaction_so
     &&['requested','need_info','awaiting_instruction','awaiting_return'].includes(row.state)
     &&row.shipped_instruction_version===null&&!row.return_tracking&&!row.exception_kind&&!row.refund_request_id);
 }
+function refundEligible(row:CaseRow,order:{status:string;transaction_source_kind:string;has_shipment:boolean}|undefined){
+  return Boolean(order?.status==='paid'&&order.transaction_source_kind==='verified_commerce'&&!row.refund_request_id
+    &&(unshippedRefundEligible(row,order)||row.state==='refund_exception_approved'
+      ||row.kind==='return_refund'&&row.state==='quality_checked'));
+}
 
-/** Case workflow. It records local facts only; provider dispatch,
- * refunds and inventory are never inferred from a review or a returned parcel. */
+/** Return receipt, inspection, stock movement and refund are separate facts. */
 export class AftersaleService{
-  constructor(private readonly pool:pg.Pool,private readonly authority:AuthorityService){}
+  constructor(private readonly pool:pg.Pool,private readonly authority:AuthorityService,
+    private readonly wholeRefundBeforeDispatch=false){}
+  private async shipped(client:DbClient,orderId:string){
+    return Boolean((await client.query(`SELECT 1 FROM commerce_shipment WHERE order_id=$1
+      UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1`,[orderId])).rowCount);
+  }
+  private async wholeRefundAmount(client:DbClient,orderId:string){
+    const row=(await client.query<{remainder:string}>(`SELECT o.total_cents-COALESCE((
+      SELECT sum(i.payer_refund_cents+COALESCE((SELECT sum(a.amount_cents) FROM commission_credit_refund_allocation a
+        WHERE a.refund_intent_id=i.id),0)) FROM commission_refund_intent i
+      WHERE i.order_id=o.id AND i.state='succeeded'),0) AS remainder FROM commerce_order o WHERE o.id=$1`,[orderId])).rows[0];
+    return Number(row?.remainder);
+  }
   private async management(client:DbClient,memberId:string|undefined,cap?:Capability){
     if(cap){await this.authority.requireWithClient(client,memberId,cap);return;}
     // Lock the actual grant selected, including its post-wait expiry check.
@@ -95,16 +111,28 @@ export class AftersaleService{
     }
     fail('CAPABILITY_REQUIRED','当前账号没有售后处理权限',403);
   }
-  private async view(client:DbClient,row:CaseRow){
-    const refund=row.refund_request_id?(await client.query(`SELECT r.state,i.state AS refund_state,
-      i.submission_state,i.execution_kind FROM commerce_refund_request r
+  private async view(client:DbClient,row:CaseRow,operator?:string){
+    const refund=row.refund_request_id?(await client.query(`SELECT r.state,r.version AS review_version,i.state AS refund_state,
+      i.submission_state,i.execution_kind,
+      (i.submission_quarantined_at IS NOT NULL OR EXISTS(SELECT 1 FROM commission_refund_inbox f
+        WHERE f.refund_intent_id=i.id AND f.state='exception' AND f.quarantined_at IS NOT NULL)) AS requires_attention
+      FROM commerce_refund_request r
       LEFT JOIN commission_refund_intent i ON i.request_id=r.id WHERE r.id=$1`,[row.refund_request_id])).rows[0]:null;
-    const order=(await client.query<{order_number:string;status:string;transaction_source_kind:string;has_shipment:boolean}>(`SELECT o.order_number,o.status,o.transaction_source_kind,
+    const order=(await client.query<{order_number:string;status:string;transaction_source_kind:string;has_shipment:boolean;refund_beneficiary:boolean}>(`SELECT o.order_number,o.status,o.transaction_source_kind,
       (EXISTS(SELECT 1 FROM commerce_shipment s WHERE s.order_id=o.id) OR
-       EXISTS(SELECT 1 FROM commerce_shipping_sync s WHERE s.order_id=o.id)) AS has_shipment
-      FROM commerce_order o WHERE o.id=$1`,[row.order_id])).rows[0];
+       EXISTS(SELECT 1 FROM commerce_shipping_sync s WHERE s.order_id=o.id)) AS has_shipment,
+      EXISTS(SELECT 1 FROM commission_order_snapshot p WHERE p.order_id=o.id AND p.referrer_member_id=$2) AS refund_beneficiary
+      FROM commerce_order o WHERE o.id=$1`,[row.order_id,operator??null])).rows[0];
+    const partialBeforeDispatch=Boolean(operator&&this.wholeRefundBeforeDispatch&&unshippedRefundEligible(row,order)
+      &&Number(row.amount_cents)!==await this.wholeRefundAmount(client,row.order_id));
+    const restocked=row.quality_result==='sellable'?(await client.query<{quantity:number}>(`
+      SELECT COALESCE(sum(delta),0)::integer AS quantity FROM catalog_inventory_adjustment
+      WHERE adjusted_by='system:aftersale-restock' AND idempotency_key LIKE $1`,[`return:${row.id}:%`])).rows[0]?.quantity??0:0;
     return {id:row.id,orderId:row.order_id,orderNumber:order?.order_number??'',
       fulfillment:{state:order?.has_shipment?'shipped':'unshipped',canRefundWithoutReturn:unshippedRefundEligible(row,order)},
+      ...(operator?{canReview:row.member_id!==operator,canStartRefund:row.member_id!==operator&&!partialBeforeDispatch&&refundEligible(row,order),
+        ...(partialBeforeDispatch?{partialBeforeDispatch:true}:{}),
+        refundApprovalAllowed:row.member_id!==operator&&row.exception_approved_by!==operator&&!order?.refund_beneficiary}:{}),
       kind:row.kind,state:row.state,reason:row.reason,claimBasis:row.claim_basis,
       supportConversationId:row.support_conversation_id,requestedAt:row.created_at,lines:row.lines,
       amountCents:Number(row.amount_cents),version:row.version,returnDestination:row.return_destination?((d:any)=>({version:d.version,recipientName:d.recipientName,phone:d.phone,region:d.region??'',address:d.address,freightPayer:d.freightPayer??'to_be_confirmed',instructions:d.instructions??''}))(row.return_destination):null,
@@ -117,8 +145,10 @@ export class AftersaleService{
       exceptionResolution:row.exception_kind?{kind:row.exception_kind,evidenceReference:row.exception_evidence_reference,
         approvedAt:row.exception_approved_at}:null,
       refundRequestId:row.refund_request_id,refund:refund?{reviewState:refund.state,channelState:refund.refund_state??null,
-        submissionState:refund.submission_state??null,executionKind:refund.execution_kind??null}:null,
-      resolved:refund?.refund_state==='succeeded',inventoryStatus:'separate_ledger_required',
+        submissionState:refund.submission_state??null,executionKind:refund.execution_kind??null,requiresAttention:refund.requires_attention,
+        ...(operator?{reviewVersion:refund.review_version}:{})}:null,
+      resolved:refund?.refund_state==='succeeded',
+      inventoryStatus:restocked>0?'restocked':'separate_ledger_required',...(restocked>0?{restockedQuantity:restocked}:{}),
       createdAt:row.created_at,updatedAt:row.updated_at};
   }
   private async event(client:DbClient,row:CaseRow,actor:string,action:string,why:string,from:string|null,k:string,fingerprint:string){
@@ -143,7 +173,9 @@ export class AftersaleService{
         JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
         WHERE c.order_id=$1 AND i.state='succeeded'`,[orderId])).rows.flatMap(row=>row.lines);
       const used=new Map<string,number>();for(const item of prior)used.set(item.lineId,(used.get(item.lineId)??0)+Number(item.quantity));
-      return {orderId,lines:lines.map(line=>({lineId:line.id,remainingQuantity:Math.max(0,line.quantity-(used.get(line.id)??0))}))};
+      const requiresWholeOrder=this.wholeRefundBeforeDispatch&&!await this.shipped(client,orderId);
+      return {orderId,...(requiresWholeOrder?{requiresWholeOrder:true}:{}),
+        lines:lines.map(line=>({lineId:line.id,remainingQuantity:Math.max(0,line.quantity-(used.get(line.id)??0))}))};
     });
   }
   async request(memberId:string|undefined,orderInput:string,kInput:string,input:Record<string,unknown>,closedRights=false){
@@ -176,7 +208,7 @@ export class AftersaleService{
         fail('AFTERSALE_EXISTING_REFUND','本单已有平台退款，请联系客服核对原记录');
       if((await client.query(`SELECT 1 FROM commerce_aftersale_case c LEFT JOIN commission_refund_intent i ON i.request_id=c.refund_request_id
         WHERE c.order_id=$1 AND c.state NOT IN ('cancelled','rejected')
-          AND NOT (c.state='refund_pending' AND i.state='succeeded')`,[orderId])).rowCount)
+          AND NOT (c.state='refund_pending' AND COALESCE(i.state='succeeded',false))`,[orderId])).rowCount)
         fail('AFTERSALE_ACTIVE_CASE','本单已有售后案件，请在原案件中继续');
       if((await client.query(`SELECT 1 FROM commerce_refund_request r LEFT JOIN commission_refund_intent i ON i.request_id=r.id
         LEFT JOIN commerce_aftersale_case c ON c.refund_request_id=r.id
@@ -186,9 +218,8 @@ export class AftersaleService{
       // Dispatch takes the same order lock. A refund-only case created after
       // handoff cannot reach its refund command; direct the buyer to the
       // return path before recording a case that an operator cannot finish.
-      if(kind==='refund_only'&&!['delivery_issue','missing_item'].includes(claimBasis)
-        &&(await client.query(`SELECT 1 FROM commerce_shipment WHERE order_id=$1
-        UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1`,[orderId])).rowCount)
+      const shipped=await this.shipped(client,orderId);
+      if(kind==='refund_only'&&!['delivery_issue','missing_item'].includes(claimBasis)&&shipped)
         fail('AFTERSALE_RETURN_REQUIRED','本单已登记交寄，请选择退货退款；未收到或漏发请选相应问题类型');
       const lines=(await client.query('SELECT id,product_name,sku_label,quantity,line_total_cents,credit_tender_cents FROM commerce_order_line WHERE order_id=$1 ORDER BY line_number',[orderId])).rows;
       if(!lines.length)fail('AFTERSALE_LINES_MISSING','商品事实缺失，请联系在线客服');
@@ -206,6 +237,8 @@ export class AftersaleService{
         prior:prior.map(line=>({lineId:line.lineId,quantity:Number(line.quantity),amountCents:line.amountCents,
           cashRefundCents:line.cashRefundCents,creditRefundCents:line.creditRefundCents,
           eligibleCashRefundCents:line.eligibleCashRefundCents,otherCashRefundCents:line.otherCashRefundCents})),selected:selection});
+      if(this.wholeRefundBeforeDispatch&&!shipped&&allocation.amountCents!==await this.wholeRefundAmount(client,orderId))
+        fail('AFTERSALE_WHOLE_ORDER_REQUIRED','未交寄订单请对全部未退款商品申请退款',422);
       if(allocation.amountCents<1||allocation.cashRefundCents<0||
         allocation.cashRefundCents===0&&allocation.creditRefundCents!==allocation.amountCents)
         fail('AFTERSALE_REFUND_COMPONENT_INVALID','本次商品金额与原支付组成不一致，请联系客服核对',409);
@@ -251,8 +284,8 @@ export class AftersaleService{
         ${stage?`AND (${stagePredicate(stage)})`:''}
         AND ($3::uuid IS NULL OR order_id=$3) AND ($4::timestamptz IS NULL OR (created_at,id)<($4::timestamptz,$5::uuid))
         ORDER BY created_at DESC,id DESC LIMIT $6`,[management,memberId,orderId,cursor?.at??null,cursor?.id??null,limit+1])).rows;
-      const page=finishPage(await Promise.all(rows.map(async row=>({...await this.view(client,row),
-        ...(management?{canReview:row.member_id!==memberId}:{}),cursorAt:row.cursor_at}))),limit,scope);
+      const page=finishPage(await Promise.all(rows.map(async row=>({...await this.view(client,row,management?memberId:undefined),
+        cursorAt:row.cursor_at}))),limit,scope);
       if(!management)return page;
       const total=(await client.query<{n:number}>(`SELECT count(*)::int AS n FROM commerce_aftersale_case
         WHERE ($1::uuid IS NULL OR order_id=$1) ${filter?`AND (${attentionPredicate(filter)})`:''}
@@ -272,7 +305,7 @@ export class AftersaleService{
       const instructions=(await client.query<{version:number;recipient_name:string;phone:string;region:string;address:string;freight_payer:string;instructions:string;issued_at:Date}>(
         `SELECT version,recipient_name,phone,region,address,freight_payer,instructions,issued_at
          FROM commerce_aftersale_return_instruction WHERE case_id=$1 ORDER BY version DESC`,[caseId])).rows;
-      return {...await this.view(client,row),...(management?{canReview:row.member_id!==memberId}:{}),events:events.slice(0,100).reverse(),historyTruncated:events.length>100,
+      return {...await this.view(client,row,management?memberId:undefined),events:events.slice(0,100).reverse(),historyTruncated:events.length>100,
         returnInstructionHistory:instructions.map(item=>({version:item.version,recipientName:item.recipient_name,
           phone:item.phone,region:item.region,address:item.address,freightPayer:item.freight_payer,
           instructions:item.instructions,issuedAt:item.issued_at}))};
@@ -336,7 +369,7 @@ export class AftersaleService{
           fail('AFTERSALE_CHAT_ASSIGNMENT_REQUIRED','请在本案对应的已接管会话中处理',403);
       }
       const replay=(await client.query('SELECT case_id,request_hash FROM commerce_aftersale_event WHERE actor_member_id=$1 AND idempotency_key=$2',[memberId,k])).rows[0];
-      if(replay){if(replay.case_id!==caseId||replay.request_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT','请求键对应不同操作');return this.view(client,row);}
+      if(replay){if(replay.case_id!==caseId||replay.request_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT','请求键对应不同操作');return this.view(client,row,management?memberId:undefined);}
       if(row.version!==version)fail('VERSION_CONFLICT','售后案件已更新，请刷新后核对');
       if(management&&row.member_id===memberId)fail('AFTERSALE_SELF_REVIEW_FORBIDDEN','不能处理自己的售后案件',403);
       let state:string|undefined,destination=row.return_destination,refundId=row.refund_request_id;
@@ -385,18 +418,16 @@ export class AftersaleService{
         &&(row.route_review_outcome===null||row.route_review_outcome==='carrier_contacted')
         &&!(row.route_review_outcome==='carrier_contacted'&&routeOutcome==='carrier_contacted'))state=row.state;
       if(action==='inspect_return'&&row.state==='return_received')state='quality_checked';
-      let directRefund=false;
       if(action==='request_refund'){
         if(!refund)fail('REFUND_UNAVAILABLE','退款提交仍需经过正式交易授权',503);
-        const shipped=Boolean((await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1 UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1',[row.order_id])).rowCount);
-        directRefund=unshippedRefundEligible(row,order?{...order,has_shipment:shipped}:undefined);
-        if(input.approveRefund===true&&!directRefund)fail('AFTERSALE_RETURN_REQUIRED','仅未发货且未寄回的订单可直接同意退款，请刷新核对');
-        if(!directRefund&&!(row.state==='refund_exception_approved'
-          ||row.kind==='refund_only'&&row.state==='requested'||row.kind==='return_refund'&&row.state==='quality_checked'))
+        const shipped=await this.shipped(client,row.order_id);
+        const canRefund=refundEligible(row,order?{...order,has_shipment:shipped}:undefined);
+        if(!canRefund&&shipped&&(input.approveRefund===true||row.kind==='refund_only'))
+          fail('AFTERSALE_RETURN_REQUIRED','已发货的商品需完成退货质检或获准免寄回才能退款');
+        if(!canRefund)
           fail('AFTERSALE_STATE_CONFLICT','当前案件尚不满足退款条件，请核对退货进度');
-        if(row.kind==='refund_only'&&row.state!=='refund_exception_approved'
-          &&(await client.query('SELECT 1 FROM commerce_shipment WHERE order_id=$1 UNION ALL SELECT 1 FROM commerce_shipping_sync WHERE order_id=$1',[row.order_id])).rowCount)
-          fail('AFTERSALE_RETURN_REQUIRED','商品已发货，请核对退货流程后处理');
+        if(this.wholeRefundBeforeDispatch&&!shipped&&Number(row.amount_cents)!==await this.wholeRefundAmount(client,row.order_id))
+          fail('AFTERSALE_WHOLE_ORDER_REQUIRED','未交寄订单需对全部未退款商品处理退款。请在案件中联系买家重新提交',422);
         const requested=await refund.requestWithClient(client,row.member_id,row.order_id,`aftersale-refund:${row.id}:${row.version}`,
           {amountCents:Number(row.amount_cents),reason:row.claim_basis==='no_reason'?'七日无理由退货申请':row.reason},row.id);
         refundId=requested.id;state='refund_pending';
@@ -428,10 +459,12 @@ export class AftersaleService{
         route_reviewed_at=CASE WHEN $13::text IS NOT NULL THEN clock_timestamp() ELSE route_reviewed_at END
         WHERE id=$1 RETURNING *`,
         [caseId,state,destination,carrier,tracking,quality,refundId,supportConversationId,exceptionKind,evidenceReference,memberId,shippedInstructionVersion,routeOutcome])).rows[0]!;
-      if(action==='request_refund'&&input.approveRefund===true&&directRefund){
+      if(action==='request_refund'&&input.approveRefund===true){
         await refund!.decideWithClient(client,memberId,refundId!,`aftersale-approve:${row.id}:${row.version}`,
           {decision:'approve',expectedVersion:1,reason:why});
       }
+      if(action==='inspect_return'&&quality==='sellable')
+        await this.restockInspectedReturn(client,changed,memberId);
       if(action==='send_return_instruction'&&instruction){
         if(!supportConversationId)fail('AFTERSALE_SUPPORT_LINK_REQUIRED','请先关联原客服会话后发送退货指引');
         const snapshot=destination as typeof instruction&{version:number};
@@ -473,7 +506,42 @@ export class AftersaleService{
           aggregateVersion:updated.version,businessKey:`support-message:${message.id}`,
           payload:{conversationId:conversation.id,messageId:message.id,senderType:'system',sequence:Number(conversation.next_sequence)},occurredAt:message.created_at});
       }
-      await this.event(client,changed,memberId,action,why,row.state,k,fingerprint);return this.view(client,changed);
+      await this.event(client,changed,memberId,action,why,row.state,k,fingerprint);
+      return this.view(client,changed,management?memberId:undefined);
     },'SERIALIZABLE');
+  }
+
+  private async restockInspectedReturn(client:DbClient,row:CaseRow,actor:string){
+    const lines=(await client.query<{sku_id:string;quantity:number}>(`
+      SELECT l.sku_id,SUM(claim.quantity)::integer AS quantity
+      FROM jsonb_to_recordset($2::jsonb) AS claim("lineId" uuid,quantity integer)
+      JOIN commerce_order_line l ON l.id=claim."lineId" AND l.order_id=$1
+      JOIN commerce_shipment s ON s.order_id=l.order_id
+      JOIN commerce_shipment_line sent ON sent.shipment_id=s.id AND sent.order_line_id=l.id
+      JOIN commerce_inventory_reservation held ON held.order_id=l.order_id AND held.sku_id=l.sku_id AND held.status='consumed'
+      WHERE claim.quantity BETWEEN 1 AND sent.quantity
+      GROUP BY l.sku_id ORDER BY l.sku_id`,[row.order_id,JSON.stringify(row.lines)])).rows;
+    const reason='退货已签收并质检可售',system='system:aftersale-restock';
+    for(const line of lines){
+      const before=(await client.query<{stock_on_hand:number;version:number}>(`
+        SELECT stock_on_hand,version FROM catalog_inventory_level WHERE sku_id=$1 FOR UPDATE`,[line.sku_id])).rows[0];
+      if(!before||before.stock_on_hand+line.quantity>2000000000)
+        fail('AFTERSALE_RESTOCK_UNAVAILABLE','退货库存无法入账，请核对对应规格的库存',409);
+      const key=`return:${row.id}:${line.sku_id}`,afterQuantity=before.stock_on_hand+line.quantity;
+      const adjustment=(await client.query<{id:string;adjusted_at:Date}>(`
+        INSERT INTO catalog_inventory_adjustment(sku_id,delta,before_quantity,after_quantity,reason,adjusted_by,idempotency_key)
+        VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(adjusted_by,idempotency_key) DO NOTHING RETURNING id,adjusted_at`,
+        [line.sku_id,line.quantity,before.stock_on_hand,afterQuantity,reason,system,key])).rows[0];
+      if(!adjustment)continue;
+      await client.query(`UPDATE catalog_inventory_level SET stock_on_hand=$2,version=version+1,updated_by=$3,updated_at=$4 WHERE sku_id=$1`,
+        [line.sku_id,afterQuantity,system,adjustment.adjusted_at]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,before_state,after_state,trace_id)
+        VALUES($1,'catalog.inventory.adjust','catalog_sku',$2,'AFTERSALE_RETURN_RESTOCKED',$3,$4,$5)`,
+        [`member:${actor}`,line.sku_id,{quantity:before.stock_on_hand,version:before.version},
+          {quantity:afterQuantity,version:before.version+1,adjustmentId:adjustment.id,caseId:row.id},key]);
+      await enqueue(client,{eventType:'catalog.inventory.adjusted.v1',aggregateType:'catalog_sku',aggregateId:line.sku_id,
+        aggregateVersion:before.version+1,businessKey:`catalog-inventory:${adjustment.id}`,
+        payload:{skuId:line.sku_id,adjustmentId:adjustment.id,delta:line.quantity,afterQuantity},occurredAt:adjustment.adjusted_at});
+    }
   }
 }

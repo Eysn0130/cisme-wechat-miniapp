@@ -1,7 +1,7 @@
 /** Local recovery hints only. The API remains the authority for every command.
  * Never persist a session token, OpenID, payment/transfer package or response. */
 export const COMMERCE_COMMAND_STORAGE = "cisme.commerce-command-recovery.v1";
-export type CommerceCommandKind = "refund" | "settlement" | "credit" | "credit-cancel" | "cancel" | "cancel-verified" | 'points-gift';
+export type CommerceCommandKind = "refund" | "settlement" | "credit" | "credit-cancel" | "cancel" | "cancel-verified" | 'points-gift' | 'checkout-order';
 export type CommandPayload = { amountCents?: number; reason?: string; expectedVersion?: number; confirmed?: true; taxPolicyVersion?: string;
  skuId?:string;offerVersion?:number;expectedPoints?:number;policyVersion?:string;quantity?:number;addressId?:string;addressVersion?:number };
 export interface StoredCommerceCommand {
@@ -11,13 +11,17 @@ export interface StoredCommerceCommand {
 let contextRevision = 0;
 export function commerceContextRevision(): number { return contextRevision; }
 export function invalidateCommerceRecoveryContext(): void { contextRevision += 1; }
-const kinds: CommerceCommandKind[] = ["refund", "settlement", "credit", "credit-cancel", "cancel", "cancel-verified",'points-gift'];
+const kinds: CommerceCommandKind[] = ["refund", "settlement", "credit", "credit-cancel", "cancel", "cancel-verified",'points-gift','checkout-order'];
 export const commerceUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const keyPattern = /^[A-Za-z0-9._:-]{8,200}$/;
 const maximumRecords = 16, maximumSerializedUnits = 64_000;
 const problem = () => ({ code: "COMMERCE_RECOVERY_STORAGE", title: "暂时无法恢复上次操作。请先联系客服核对，勿重复提交。" });
 export function normalizeCommandPayload(kind: CommerceCommandKind, input: CommandPayload): CommandPayload {
   if (!kinds.includes(kind) || !input || typeof input !== "object" || Array.isArray(input)) throw problem();
+  if(kind==='checkout-order'){
+    if(Object.keys(input).length)throw problem();
+    return {};
+  }
   if(kind==='points-gift'){
     if(Object.keys(input).some(k=>!['skuId','offerVersion','policyVersion','expectedPoints','quantity','addressId','addressVersion'].includes(k))||!commerceUuid.test(input.skuId??'')||!commerceUuid.test(input.addressId??'')||
       typeof input.policyVersion!=='string'||!/^[A-Za-z0-9._-]{8,80}$/.test(input.policyVersion)||!Number.isSafeInteger(input.expectedPoints)||input.expectedPoints!<1||input.expectedPoints!>2147483647||!Number.isSafeInteger(input.offerVersion)||input.offerVersion!<1||!Number.isSafeInteger(input.quantity)||input.quantity!<1||input.quantity!>99||!Number.isSafeInteger(input.addressVersion)||input.addressVersion!<1)throw problem();
@@ -53,7 +57,8 @@ function valid(record: StoredCommerceCommand): boolean {
 export function commandSlot(record: Pick<StoredCommerceCommand, "ownerId" | "environment" | "kind" | "objectId">): string {
   // Commission conversions and settlement intentions consume related assets.
   // One unresolved commission command blocks another kind, not just its button.
-  return JSON.stringify([record.environment, record.ownerId, ["credit", "credit-cancel", "settlement"].includes(record.kind) ? "commission" : record.objectId]);
+  const group=record.kind==='checkout-order'?'checkout-order':["credit", "credit-cancel", "settlement"].includes(record.kind)?'commission':record.objectId;
+  return JSON.stringify([record.environment,record.ownerId,group]);
 }
 export function readCommerceCommands(): StoredCommerceCommand[] {
   try {

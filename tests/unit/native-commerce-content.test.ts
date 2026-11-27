@@ -29,9 +29,10 @@ describe('approved commerce content and server authority',()=>{
   it('rejects invalid server prices rather than substituting a source-poster price',()=>{
     expect(()=>commercePresentation(live({price:null}),commerceContent[0])).toThrow('CATALOG_PRICE_INVALID');
   });
-  it('retains all fourteen original images without poster crops and distinguishes the duplicate return image',()=>{
-    const originals=commerceContent.flatMap(p=>p.gallery.slice(1));expect(originals).toHaveLength(14);
-    expect(new Set(originals.map(p=>p.src)).size).toBe(14);
+  it('leaves the two dated price and points posters out of the live product galleries',()=>{
+    const originals=commerceContent.flatMap(p=>p.gallery.slice(1));expect(originals).toHaveLength(12);
+    expect(new Set(originals.map(p=>p.src)).size).toBe(12);
+    expect(originals.some(p=>p.src.endsWith('1-5358.jpg')||p.src.endsWith('2-5365.jpg'))).toBe(false);
     for(const p of originals){expect(p.width).toBeGreaterThan(0);expect(p.height).toBeGreaterThan(0);}
     expect(originals.find(p=>p.src.endsWith('1-5364.jpg'))?.label).toContain('另一尺寸');
   });

@@ -10,6 +10,9 @@ vi.mock('../../apps/miniprogram/services/orders',()=>({memberAddresses:m.address
 vi.mock('../../apps/miniprogram/services/authority',async(importOriginal)=>({...await importOriginal<object>(),authorityProjection:m.authority}));
 
 let definition:any,app:any,wxMock:any,storage:Map<string,unknown>,pages:any[];
+const ownerId='11111111-1111-4111-8111-111111111111';
+const orderId='22222222-2222-4222-8222-222222222222';
+const quoteId=(points=0)=>`33333333-3333-4333-8333-${String(points).padStart(12,'0')}`;
 function mount(){return {...definition,data:structuredClone(definition.data),setData(patch:any){Object.assign(this.data,patch);}};}
 async function checkout(query:Record<string,string>={product:'serum',sku:'sku',quantity:'2'}){
  await import('../../apps/miniprogram/pages/checkout/index');const page=mount();page.onLoad(query);page.visible=true;return page;
@@ -24,6 +27,11 @@ beforeEach(async()=>{
  vi.stubGlobal('getApp',()=>app);vi.stubGlobal('getCurrentPages',()=>pages);vi.stubGlobal('Page',(value:any)=>{definition=value;});
  wxMock={getStorageSync:(key:string)=>storage.get(key)||'',setStorageSync:vi.fn((key:string,value:unknown)=>storage.set(key,value)),
   removeStorageSync:vi.fn((key:string)=>storage.delete(key)),getStorageInfoSync:()=>({keys:[...storage.keys()]}),
+  request:vi.fn((options:any)=>{
+   if(new URL(options.url).pathname!=='/v1/me/profile')throw Error('Unexpected request: '+options.url);
+   options.success({statusCode:200,data:{id:ownerId}});
+   return {abort:vi.fn()};
+  }),
   navigateTo:vi.fn(),navigateBack:vi.fn(),redirectTo:vi.fn(),reLaunch:vi.fn(),switchTab:vi.fn(),showToast:vi.fn(),hideShareMenu:vi.fn(),showShareMenu:vi.fn()};
  vi.stubGlobal('wx',wxMock);
  m.catalog.mockResolvedValue(product);m.addresses.mockResolvedValue({enabled:true,addresses:[{id:'address',version:1,isDefault:true}]});
@@ -76,12 +84,14 @@ describe('checkout distinguishes incomplete navigation from member authenticatio
  });
  it.each(['hidden','other-member'])('does not apply a delayed auth failure to a %s page',async(change)=>{
   const page=await checkout();const read=deferred();m.addresses.mockReturnValue(read.promise);const pending=page.load();
+  await vi.waitFor(()=>expect(m.addresses).toHaveBeenCalledOnce());
   if(change==='hidden')page.onHide();else app.globalData.sessionToken='member-b';
   read.reject({status:401,code:'AUTH_REQUIRED'});await pending;expect(page.data.authenticationRequired).toBe(false);expect(wxMock.navigateTo).not.toHaveBeenCalled();
  });
  it('does not let an older load auth error replace the latest completed projection',async()=>{
   const page=await checkout();const old=deferred();m.addresses.mockReturnValueOnce(old.promise);
-  const pending=page.load();await page.load();expect(page.data.addresses).toHaveLength(1);
+  const pending=page.load();await vi.waitFor(()=>expect(m.addresses).toHaveBeenCalledOnce());
+  await page.load();expect(page.data.addresses).toHaveLength(1);
   old.reject({status:401,code:'AUTH_REQUIRED'});await pending;
   expect(page.data).toMatchObject({authenticationRequired:false,loading:false,syncError:''});expect(page.data.addresses).toHaveLength(1);
  });
@@ -89,7 +99,7 @@ describe('checkout distinguishes incomplete navigation from member authenticatio
   const page=await checkout();page.setData({loading:false,runtimeEnabled:true,selectedSku:product.variants[0],addresses:[{id:'address',version:1}],selectedAddressId:'address'});
   const rejected=async()=>{app.globalData.sessionToken='';throw {status:401,code:'AUTH_REQUIRED',title:'Bearer session required'};};
   if(action==='quote'){m.quote.mockImplementation(rejected);await page.requestQuote();}
-  else {page.setData({quote:{id:'quote',expiresAt:new Date(Date.now()+60000).toISOString(),serverTime:new Date().toISOString()}});m.order.mockImplementation(rejected);await page.confirmOrder();}
+  else {page.setData({quote:{id:quoteId(),expiresAt:new Date(Date.now()+60000).toISOString(),serverTime:new Date().toISOString()}});m.order.mockImplementation(rejected);await page.confirmOrder();}
   expect(page.data).toMatchObject({authenticationRequired:true,busy:false,quote:null,addresses:[],runtimeEnabled:false});
   expect(page.data.syncError).toContain('重新登录');
  });
@@ -100,7 +110,7 @@ describe('checkout distinguishes incomplete navigation from member authenticatio
 });
 
 describe('explicit checkout points choice uses only a freshly confirmed server quote',()=>{
- function quote(points=0,maximum:number|undefined=850){return {id:'quote-'+points,pointsSpent:points,pointsMaximum:maximum,
+ function quote(points=0,maximum:number|undefined=850){return {id:quoteId(points),pointsSpent:points,pointsMaximum:maximum,
   subtotalCents:2000,memberDiscountCents:points,shippingCents:0,totalCents:2000-points,
   creditTenderCents:0,cashPayableCents:2000-points,quantity:2,addressId:'address',addressVersion:1,item:{skuId:'sku'},
   expiresAt:new Date(Date.now()+60000).toISOString(),serverTime:new Date().toISOString()};}
@@ -120,10 +130,39 @@ describe('explicit checkout points choice uses only a freshly confirmed server q
  });
  it('clears the previous payable amount while repricing, blocks repeated input and then submits the latest quote',async()=>{
   const page=await ready(),read=deferred();m.quote.mockReturnValueOnce(read.promise);page.selectPoints(choose('use'));
-  expect(page.data).toMatchObject({busy:true,quote:null,quoteView:{id:'quote-0'},totalYuan:'',pointsInput:850,pointsMaximum:850});
+  expect(page.data).toMatchObject({busy:true,quote:null,quoteView:{id:quoteId()},totalYuan:'',pointsInput:850,pointsMaximum:850});
   page.selectPoints(choose('none'));page.increase();await page.confirmOrder();expect(m.quote).toHaveBeenCalledTimes(2);expect(m.order).not.toHaveBeenCalled();
-  read.resolve(quote(850));await settled(page);m.order.mockResolvedValue({id:'created-order'});await page.confirmOrder();
-  expect(m.order).toHaveBeenCalledExactlyOnceWith('quote-850',expect.any(String));page.onUnload();
+  read.resolve(quote(850));await settled(page);m.order.mockResolvedValue({id:orderId,lines:[]});await page.confirmOrder();
+  expect(m.order).toHaveBeenCalledExactlyOnceWith(quoteId(850),expect.any(String));page.onUnload();
+ });
+ it('recovers the recorded original order from another checkout after the response is lost',async()=>{
+  const first=await ready();
+  m.order.mockRejectedValueOnce({code:'NETWORK_TIMEOUT'});
+  await first.confirmOrder();
+  expect(first.data.recoveryQuoteId).toBe(quoteId());
+  first.onUnload();
+  wxMock.request.mockImplementation((options:any)=>{
+   const url=new URL(options.url);
+   const data=url.pathname==='/v1/me/profile'?{id:ownerId}:{
+    version:1,memberId:ownerId,kind:'checkout-order',status:'recorded',
+    record:{id:orderId,state:'pending_payment',productCode:'serum'}};
+   if(url.pathname!=='/v1/me/profile'){
+    expect(url.pathname).toBe('/v1/me/commerce/command-receipts/checkout-order');
+    expect(url.searchParams.get('objectId')).toBe(quoteId());
+    expect(options.header['Idempotency-Key']).toBe('synthetic-operation');
+   }
+   options.success({statusCode:200,data});
+   return {abort:vi.fn()};
+  });
+  const reopened=await checkout({product:'shampoo',sku:'different-sku'});
+  await reopened.load();
+  expect(reopened.data.recoveryQuoteId).toBe(quoteId());
+  await reopened.confirmOrder();
+  expect(m.order).toHaveBeenCalledOnce();
+  expect(wxMock.redirectTo).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({url:'/pages/order-detail/index?id='+orderId}));
+  expect(reopened.data.recoveryQuoteId).toBe('');
+  reopened.onUnload();
  });
  it.each([0,undefined])('does not infer spendable points when the server returns %j',async(maximum)=>{
   const page=await ready();m.quote.mockResolvedValueOnce({...quote(),pointsMaximum:maximum});await page.requestQuote();
@@ -134,7 +173,7 @@ describe('explicit checkout points choice uses only a freshly confirmed server q
   const page=await ready();m.quote.mockRejectedValueOnce({code,title:'internal ledger details'});
   page.selectPoints(choose('use'));await settled(page);expect(page.data.quote).toBeNull();expect(page.data.quoteView).toBeNull();expect(page.data.error).toContain('积分');
   expect(page.data.error).not.toContain('internal');await page.confirmOrder();expect(m.order).not.toHaveBeenCalled();
-  page.selectPoints(choose('none'));await settled(page);expect(page.data.quote.id).toBe('quote-0');page.onUnload();
+  page.selectPoints(choose('none'));await settled(page);expect(page.data.quote.id).toBe(quoteId());page.onUnload();
  });
  it('requires a new quote after expiry or selection changes and clears private points on logout',async()=>{
   const page=await ready();page.setData({quoteExpired:true});page.selectPoints(choose('use'));expect(m.quote).toHaveBeenCalledTimes(1);

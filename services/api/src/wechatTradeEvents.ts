@@ -54,12 +54,13 @@ export class WechatTradeEvents {
    [this.appId,r.managed,r.settlementConfirmed,r.observedAt,r.orderDetailPath,r.pathVerified,JSON.stringify(r.checks)]);
   return {...r,...await this.restriction()};
  }
- async restriction(){
+ async restriction(requireVerified=false){
   const row=(await this.pool.query(`SELECT managed,settlement_confirmed,restricted_at,restriction_cleared_at FROM wechat_trade_account_state WHERE app_id=$1`,[this.appId])).rows[0];
-  const restricted=Boolean(row&&(row.managed===false||row.settlement_confirmed===false||row.restricted_at&&(!row.restriction_cleared_at||row.restricted_at>row.restriction_cleared_at)));
+  const verified=row?.managed===true&&row?.settlement_confirmed===true;
+  const restricted=(requireVerified&&!verified)||Boolean(row&&(row.managed===false||row.settlement_confirmed===false||row.restricted_at&&(!row.restriction_cleared_at||row.restricted_at>row.restriction_cleared_at)));
   return {restricted,reason:restricted?'wechat_trade_management':null};
  }
- async requirePaymentsAllowed(){if((await this.restriction()).restricted)throw new DomainError('WECHAT_TRADE_RESTRICTED','微信支付暂不可用，已有订单仍可查询和申请售后',503);}
+ async requirePaymentsAllowed(requireVerified=false){if((await this.restriction(requireVerified)).restricted)throw new DomainError('WECHAT_TRADE_RESTRICTED','微信支付暂不可用，已有订单仍可查询和申请售后',503);}
  /** Explicit operator acknowledgement is required; both status booleans alone
   * are not evidence that every WeChat payment restriction has been lifted. */
  async clearControl(actor:string,reference:unknown,authorizeWithClient:(client:DbClient)=>Promise<void>){
