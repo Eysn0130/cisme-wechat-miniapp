@@ -1,13 +1,21 @@
 import { requireCapability } from "../../services/authority";
 import { centsToYuan } from "../../services/commerce";
-import { managementOrder, managementShipment, shipmentCarriers, type ShipmentCarrier, dispatchShipment, reconcileShipment, clientOperationKey, type CommerceOrder, type ManagementOrderAddress, type NoCourierDelivery, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
+import { managementOrder, managementShipment, shipmentCarriers, type ShipmentCarrier, dispatchShipment, reconcileShipment, clientOperationKey, orderLineSummary, type CommerceOrder, type ManagementOrderAddress, type NoCourierDelivery, type OrderShipment, type ShipmentDispatchInput } from "../../services/orders";
 import { currentChromeStyle } from "../../services/layout";
 import {cancelPageReads, pageRead} from "../../services/page-requests";
-import { aftersaleContact, aftersaleLabels, refundApprovalAction, type RefundReviewCase, type OrderDecisionAction } from "../../services/order-aftersale";
+import { request } from "../../services/api";
+import { aftersaleContact, aftersaleLabels, managementAftersaleActions, pendingRefundDecision, refundApprovalAction, type ManagementAftersaleAction, type RefundReviewCase } from "../../services/order-aftersale";
 const labels:Record<string,string>={pending_payment:"待支付",cancelled:"已取消",expired:"已超时",paid:"支付已核验"};
 const syncLabels:Record<string,string>={prepared:"等待微信同步",dispatching:"正在提交微信",verifying:"微信结果核对中",synced:"微信已确认",manual_review:"微信同步待人工核对"};
 const deliveryLabels:Record<string,string>={awaiting_dispatch:"待发货",not_ready:"尚不满足发货条件",shipped:"已交寄",delivered:"已签收",exception:"物流异常"};
 const orderIdPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const inlineActions = ['request_refund','approve_pending_refund','approve_return','reject','reject_pending_refund'];
+const primaryActions = ['approve_pending_refund','request_refund','approve_return','send_return_instruction','receive_return','inspect_return','reopen_refund','resolve_old_route'];
+type DecisionAttempt = {key:string;caseId:string;subjectId:string;version:number;path:string;data:Record<string,unknown>;success:string;uncertain:boolean};
+const emptyAftersale = {
+ decision:"" as ManagementAftersaleAction|"",decisionLabel:"",decisionInline:false,
+ canReject:false,rejectAction:"",rejectLabel:"",canContact:false,caseType:"",caseAmount:"",caseItems:"",caseReason:"",caseHint:"",caseError:""
+};
 const emptyForm=()=>({carrierCode:"",carrierName:"",trackingNumber:"",evidenceReference:""});
 const noCourierOptions=[{method:"local_delivery",label:"同城配送"},{method:"pickup",label:"用户自提"}] as const;
 function chooseNoCourierDelivery():Promise<NoCourierDelivery|null>{
@@ -21,7 +29,10 @@ Page({
  refreshTimer:null as ReturnType<typeof setInterval>|null,
  refreshInFlight:false,
  pendingDispatch:null as {key:string;input:ShipmentDispatchInput}|null,
- data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",shippedLabel:"",syncLabel:"",messageLabel:"",canReadShipment:false,canDispatch:false,canOpenAftersale:false,decision:"" as OrderDecisionAction|"",decisionLabel:"",canReject:false,canContact:false,caseError:"",shipmentLoading:false,shipmentError:"",carriers:[] as ShipmentCarrier[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
+ caseSnapshot:null as RefundReviewCase|null,
+ pendingDecision:null as DecisionAttempt|null,
+ data:{chromeStyle:currentChromeStyle(),id:"",order:null as any,shipment:null as OrderShipment|null,shipmentLabel:"",shippedLabel:"",syncLabel:"",messageLabel:"",canReadShipment:false,canDispatch:false,canOpenAftersale:false,...emptyAftersale,
+  decisionBusy:false,decisionRetry:false,decisionFeedback:"",shipmentLoading:false,shipmentError:"",carriers:[] as ShipmentCarrier[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",form:emptyForm(),loading:true,navigating:false,error:"",invalidId:false,pageAlive:true,epoch:0},
  onResize(){this.setData({chromeStyle:currentChromeStyle()});},
  onLoad(query:Record<string,string|undefined>){const id=query.id??"";this.setData({id,invalidId:!orderIdPattern.test(id)});},
  async onShow(){
@@ -31,20 +42,22 @@ Page({
  onHide(){
   if(this.refreshTimer!==null)clearInterval(this.refreshTimer);
   this.refreshTimer=null;this.data.pageAlive=false;this.data.epoch+=1;this.pendingDispatch=null;this.capabilities=[];cancelPageReads(this);
+  this.caseSnapshot=null;
   this.setData({carriers:[],carrierLabels:["请选择快递公司"],carrierIndex:0,carriersLoading:false,carriersError:"",order:null,shipment:null,
-   canReadShipment:false,canDispatch:false,canOpenAftersale:false,decision:"",decisionLabel:"",canReject:false,canContact:false,caseError:"",
+   canReadShipment:false,canDispatch:false,canOpenAftersale:false,...emptyAftersale,decisionBusy:false,decisionRetry:false,decisionFeedback:"",
    form:emptyForm(),dispatchBusy:false,dispatchRecovery:false,dispatchMessage:"",shipmentError:""});
  },
- onUnload(){this.onHide();},
+ onUnload(){this.onHide();this.pendingDecision=null;},
  current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===getApp<IAppOption>().globalData.sessionToken;},
  normalize(order:CommerceOrder<ManagementOrderAddress>){return {...order,statusLabel:order.aftersale?aftersaleLabels[order.aftersale.phase]:order.status==="paid"&&(order.refundedCents??0)>0?(order.refundedCents!>=order.totalCents?"已退款":"部分退款"):(labels[order.status]??order.status),totalYuan:centsToYuan(order.totalCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false,timeZone:"Asia/Shanghai"}),lines:order.lines.map(line=>({...line,totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district}`:""};},
  async load(){
-  if(this.data.dispatchBusy)return;
+  if(this.data.dispatchBusy||this.data.decisionBusy)return;
   const epoch=++this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+  if(this.lastReadToken!==token)this.pendingDecision=null;
   this.lastReadToken=token;
-  this.pendingDispatch=null;this.capabilities=[];
-  this.setData({order:null,shipment:null,canReadShipment:false,canDispatch:false,canOpenAftersale:false,decision:"",decisionLabel:"",
-   canReject:false,canContact:false,caseError:"",form:emptyForm(),loading:true,error:"",shipmentError:"",dispatchRecovery:false,dispatchMessage:""});
+  this.pendingDispatch=null;this.capabilities=[];this.caseSnapshot=null;
+  this.setData({order:null,shipment:null,canReadShipment:false,canDispatch:false,canOpenAftersale:false,...emptyAftersale,
+   decisionRetry:false,decisionFeedback:"",form:emptyForm(),loading:true,error:"",shipmentError:"",dispatchRecovery:false,dispatchMessage:""});
   if(this.data.invalidId){if(this.current(epoch,token))this.setData({loading:false,error:"请从订单列表选择一笔订单。"});return;}
   const allowed=await requireCapability("commerce.order.read");
   if(!this.current(epoch,token))return;
@@ -57,7 +70,8 @@ Page({
    const caseId=order.aftersale?.caseId??order.aftersaleCaseId;
    const canOpenAftersale=Boolean(caseId)&&allowed.capabilities.some(capability=>
     ['commerce.aftersale.review','commerce.return.receive','commerce.return.inspect'].includes(capability));
-   this.setData({order:this.normalize(order),canReadShipment,canDispatch:false,canOpenAftersale,loading:false});
+   this.setData({order:this.normalize(order),canReadShipment,canDispatch:false,canOpenAftersale,loading:false,
+    caseHint:caseId&&!canOpenAftersale?"请由售后管理员处理此申请。":""});
    await Promise.all([
     canReadShipment?this.readShipment(epoch,token):undefined,
     canOpenAftersale&&caseId?this.readAftersale(caseId,epoch,token):undefined
@@ -66,12 +80,12 @@ Page({
  },
  async recheckOrder(){
   const order=this.data.order,epoch=this.data.epoch,token=this.lastReadToken;
-  if(!order||this.refreshInFlight||this.data.loading||this.data.navigating||this.data.dispatchBusy||this.pendingDispatch
+  if(!order||this.refreshInFlight||this.data.loading||this.data.navigating||this.data.dispatchBusy||this.pendingDispatch||this.data.decisionBusy
     ||!this.current(epoch,token))return;
   this.refreshInFlight=true;
   try{
    const latest=await managementOrder(this.data.id);
-   if(!this.current(epoch,token)||this.data.navigating||this.data.dispatchBusy||this.pendingDispatch)return;
+   if(!this.current(epoch,token)||this.data.navigating||this.data.dispatchBusy||this.pendingDispatch||this.data.decisionBusy)return;
    if(latest.version!==order.version||latest.aftersale?.caseId!==order.aftersale?.caseId
      ||latest.aftersale?.phase!==order.aftersale?.phase||latest.aftersaleCaseId!==order.aftersaleCaseId
      ||latest.refundedCents!==order.refundedCents){await this.load();return;}
@@ -86,39 +100,124 @@ Page({
    const row=await pageRead<RefundReviewCase>(this,{path:`/v1/management/aftersales/${caseId}`});
    if(!this.current(epoch,token))return;
    if(row.id!==caseId||row.orderId!==this.data.id)throw Error("Invalid aftersale details");
-   const canReview=row.canReview!==false&&this.capabilities.includes('commerce.aftersale.review');
    const active=this.data.order?.aftersale?.caseId===row.id;
-   const refund=active?refundApprovalAction(row,this.capabilities):null;
-   const approveReturn=active&&canReview&&row.state==='requested'&&row.kind==='return_refund'&&row.fulfillment?.state==='shipped';
-   const requestReview=active&&canReview&&row.canStartRefund===true;
+   const actions=active?managementAftersaleActions(row,this.capabilities):[];
+   const primary=actions.find(item=>primaryActions.includes(item.action));
+   const rejection=actions.find(item=>item.action==='reject'||item.action==='reject_pending_refund');
+   const canReview=row.canReview!==false&&this.capabilities.includes('commerce.aftersale.review');
+   const orderLines=(this.data.order?.lines??[]) as CommerceOrder['lines'];
+   const caseLines=row.lines??[];
+   const wholeOrder=caseLines.length===orderLines.length&&caseLines.every(line=>
+    orderLines.some(item=>item.id===line.lineId&&item.quantity===line.quantity));
+   this.caseSnapshot=row;
+   if(this.pendingDecision&&this.pendingDecision.caseId!==row.id)this.pendingDecision=null;
    this.setData({
-    decision:refund??(approveReturn?'approve_return':requestReview?'request_refund':''),
-    decisionLabel:refund?'同意退款':approveReturn?'同意退货':requestReview?'提交退款复核':'',
-    canReject:active&&canReview&&['requested','need_info'].includes(row.state??''),
+    decision:primary?.action??"",decisionLabel:primary?.label??"",decisionInline:inlineActions.includes(primary?.action??""),
+    canReject:Boolean(rejection),rejectAction:rejection?.action??"",rejectLabel:rejection?.label??"",
+    caseType:row.kind==='return_refund'&&row.fulfillment?.state==='shipped'?'退货退款':'退款申请',
+    caseAmount:centsToYuan(row.amountCents??-1),caseItems:wholeOrder?"":caseLines.map(orderLineSummary).join("、"),caseReason:row.reason??"",
+    caseHint:active&&row.canReview===false?"请由另一位售后管理员处理此申请。"
+      :active&&row.refund?.reviewState==='requested'&&!primary?"待具备退款权限的管理员审批。"
+      :active&&row.partialBeforeDispatch?"未发货订单需整单退款，请联系买家重新提交申请。"
+      :active&&row.state==='awaiting_return'&&!primary?"待买家寄回商品。"
+      :active&&row.refund?.reviewState==='approved'&&this.data.order?.aftersale?.phase==='refunding'?"已同意退款，等待渠道确认。":"",
     canContact:canReview&&this.capabilities.includes('support.read')&&this.capabilities.includes('support.reply'),
-    caseError:""
+    decisionRetry:Boolean(this.pendingDecision),caseError:""
    });
   }catch(error){
    if(this.current(epoch,token)){
     const denied=[401,403].includes((error as {status?:number}).status??0);
-    this.setData({canOpenAftersale:!denied,decision:"",decisionLabel:"",canReject:false,canContact:false,
+    this.caseSnapshot=null;
+    this.setData({...emptyAftersale,canOpenAftersale:!denied,decisionRetry:false,
      caseError:denied?"当前账号没有售后处理权限。":"售后操作暂时无法核对，请刷新。"});
    }
   }
  },
+ async decideAftersale(event:WechatMiniprogram.TouchEvent){
+  const row=this.caseSnapshot,epoch=this.data.epoch,token=this.lastReadToken;
+  const action=String(event.currentTarget.dataset.action??"");
+  if(!row||row.orderId!==this.data.id||!this.current(epoch,token)||!this.data.canOpenAftersale
+    ||this.data.navigating||this.data.dispatchBusy||this.data.decisionBusy)return;
+  if(this.pendingDecision&&(action||this.pendingDecision.caseId!==row.id))return;
+  const option=managementAftersaleActions(row,this.capabilities).find(item=>item.action===action);
+  if(!this.pendingDecision&&(!option||!inlineActions.includes(action)||this.data.order?.aftersale?.caseId!==row.id
+    ||action!==this.data.decision&&action!==this.data.rejectAction||!Number.isSafeInteger(row.version)))return;
+  this.setData({decisionBusy:true,decisionFeedback:""});
+  try{
+   if(!this.pendingDecision&&option){
+    const rejection=action==='reject'||action==='reject_pending_refund';
+    const refund=action==='request_refund'||action==='approve_pending_refund';
+    if(refund&&(!Number.isSafeInteger(row.amountCents)||!row.amountCents||row.amountCents<1)){
+     this.setData({decisionFeedback:"暂时无法确认退款金额，请刷新订单。"});
+     return;
+    }
+    const direct=refundApprovalAction(row,this.capabilities)===action;
+    const title=option.label;
+    const detail=refund?`退款金额 ¥${centsToYuan(row.amountCents??-1)}\n${direct?"退款将按原支付路径退回。":"提交后由退款审批人处理。"}`
+      :"同意后可继续发送退货地址。";
+    const answer=await wx.showModal(rejection?{
+     title,editable:true,placeholderText:"填写拒绝原因",confirmText:"确认拒绝",confirmColor:"#9a3d55"
+    }:{title,content:detail,confirmText:"确认"});
+    if(!this.current(epoch,token)||this.caseSnapshot!==row||!answer.confirm)return;
+    const why=rejection?(answer.content??"").trim():title;
+    const size=Array.from(why).length;
+    if(size<3||size>500){this.setData({decisionFeedback:"请填写 3 至 500 字的拒绝原因。"});return;}
+    const review=action==='approve_pending_refund'||action==='reject_pending_refund';
+    const command=review
+     ?pendingRefundDecision(row,action==='approve_pending_refund'?'approve':'reject',why)
+     :{path:`/v1/management/aftersales/${row.id}/actions`,
+       data:{action,expectedVersion:row.version,note:why,...(action==='request_refund'&&direct?{approveRefund:true}:{})}};
+    this.pendingDecision={...command,key:clientOperationKey("aftersale"),caseId:row.id,
+     subjectId:review?row.refundRequestId!:row.id,version:command.data.expectedVersion!,uncertain:false,
+     success:rejection?"已记录拒绝结果。":refund?(direct?"已同意退款，等待渠道确认。":"已提交退款复核。"):"已同意退货，请发送收件地址。"};
+   }
+   const attempt=this.pendingDecision;
+   if(!attempt)return;
+   const receipt=await request<{id:string;orderId:string;version:number}>({
+    path:attempt.path,method:"POST",idempotencyKey:attempt.key,data:attempt.data,cacheTags:["orders","support"]
+   });
+   if(receipt?.id!==attempt.subjectId||receipt.orderId!==row.orderId||!Number.isSafeInteger(receipt.version)||receipt.version<=attempt.version)
+    throw Error("Invalid aftersale receipt");
+   if(this.pendingDecision===attempt)this.pendingDecision=null;
+   if(!this.current(epoch,token))return;
+   this.setData({decisionBusy:false,decisionRetry:false});
+   const refreshEpoch=epoch+1;
+   await this.load();
+   if(this.current(refreshEpoch,token)&&this.data.order?.id===row.orderId)this.setData({decisionFeedback:attempt.success});
+  }catch(error){
+   if(!this.current(epoch,token))return;
+   const issue=error as {status?:number;code?:string;title?:string};
+   const attempt=this.pendingDecision;
+   const gateDenied=issue.status===503&&/^FORMAL_(PAYMENT|COMMERCE)_/.test(issue.code??"");
+   const known=issue.code!=="TRANSACTION_OUTCOME_UNKNOWN"&&[400,401,403,404,409,422].includes(issue.status??0);
+   const stale=['VERSION_CONFLICT','REFUND_REQUEST_ALREADY_DECIDED'].includes(issue.code??'');
+   if(attempt&&((gateDenied||known)&&!attempt.uncertain||stale)){
+    this.pendingDecision=null;
+    this.setData({decisionBusy:false,decisionRetry:false});
+    const refreshEpoch=epoch+1;
+    await this.load();
+    if(this.current(refreshEpoch,token))this.setData({decisionFeedback:gateDenied?"当前环境尚未获准执行此退款操作。":issue.title??"请查看最新售后状态。"});
+   }else if(attempt){
+    attempt.uncertain=true;
+    this.setData({decisionRetry:true,decisionFeedback:"提交结果待确认。重试会沿用这次操作。"});
+   }else this.setData({decisionFeedback:"暂时无法打开确认窗口，请重试。"});
+  }finally{
+   if(this.current(epoch,token))this.setData({decisionBusy:false});
+  }
+ },
  openAftersale(event?:WechatMiniprogram.TouchEvent){
   const caseId=this.data.order?.aftersale?.caseId??this.data.order?.aftersaleCaseId,token=getApp<IAppOption>().globalData.sessionToken;
-  if(!this.data.canOpenAftersale||this.data.navigating||this.data.dispatchBusy||this.lastReadToken!==token
+  if(!this.data.canOpenAftersale||this.data.navigating||this.data.dispatchBusy||this.data.decisionBusy||this.lastReadToken!==token
     ||!this.current(this.data.epoch,token)||!orderIdPattern.test(caseId??""))return;
   const decision=event?.currentTarget.dataset.action??this.data.decision;
-  if(decision&&decision!==this.data.decision&&!(decision==='reject'&&this.data.canReject))return;
+  if(decision&&decision!==this.data.decision&&decision!==this.data.rejectAction)return;
   const action=decision?`&action=${decision}`:"";
   this.setData({navigating:true});
   wx.navigateTo({url:`/pages/aftersale/index?mode=management&caseId=${caseId}${action}`,fail:()=>this.setData({navigating:false})});
  },
  async contactBuyer(){
   const epoch=this.data.epoch,token=this.lastReadToken,caseId=this.data.order?.aftersale?.caseId??this.data.order?.aftersaleCaseId;
-  if(!this.data.canContact||!orderIdPattern.test(caseId??"")||this.data.navigating||this.data.dispatchBusy||!this.current(epoch,token))return;
+  if(!this.data.canContact||!orderIdPattern.test(caseId??"")||this.data.navigating||this.data.dispatchBusy||this.data.decisionBusy||!this.current(epoch,token))return;
   this.setData({navigating:true,caseError:""});
   try{
    const contact=await aftersaleContact(caseId);

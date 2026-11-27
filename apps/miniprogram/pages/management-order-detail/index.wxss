@@ -1,6 +1,6 @@
 @import "../../styles/management-workbench.wxss";
 @import "../../styles/read-loading.wxss";
-.management-order-detail{background:#f7f2f8}.admin-detail-card{display:flex;flex-direction:column;gap:14rpx;margin-top:22rpx;padding:24rpx;border:1rpx solid var(--cisme-line);border-radius:26rpx;background:#fff}.admin-detail-card>strong{font-size:28rpx;font-weight:500}.admin-detail-card>text{color:var(--cisme-muted);font-size:24rpx;line-height:1.55}.admin-line,.admin-total{display:flex;justify-content:space-between;gap:18rpx;color:var(--cisme-muted);font-size:24rpx}.admin-line text{min-width:0;flex:1}.admin-line strong,.admin-total strong{flex:none;color:var(--cisme-ink);font-weight:500;font-variant-numeric:tabular-nums}.admin-total{margin-top:4rpx;padding-top:18rpx;border-top:1rpx solid var(--cisme-line);font-size:29rpx}.privacy-note{display:flex;gap:14rpx;margin-top:22rpx;padding:20rpx;border-radius:22rpx;background:#eee7f0;color:#6d6171;font-size:23rpx;line-height:1.55}.privacy-note image{width:30rpx;height:30rpx;flex:none}
+.management-order-detail{background:#f7f2f8}.admin-detail-card{display:flex;flex-direction:column;gap:14rpx;margin-top:22rpx;padding:24rpx;border:1rpx solid var(--cisme-line);border-radius:26rpx;background:#fff}.admin-detail-card>strong{font-size:28rpx;font-weight:500}.admin-detail-card>text{color:var(--cisme-muted);font-size:24rpx;line-height:1.55}.admin-line,.admin-total{display:flex;justify-content:space-between;gap:18rpx;color:var(--cisme-muted);font-size:24rpx}.admin-line text{min-width:0;flex:1}.admin-line strong,.admin-total strong{flex:none;color:var(--cisme-ink);font-weight:500;font-variant-numeric:tabular-nums}.admin-total{margin-top:4rpx;padding-top:18rpx;border-top:1rpx solid var(--cisme-line);font-size:29rpx}
 
 .shipment-card label{display:flex;flex-direction:column;gap:12rpx;font-size:24rpx;color:var(--cisme-ink)}.shipment-card input{box-sizing:border-box;min-height:92rpx;padding:20rpx;border:1rpx solid var(--cisme-line);border-radius:18rpx;font-size:28rpx;background:var(--cisme-bg,#f7f2f8)}.shipment-picker-field{min-height:88rpx;display:flex;align-items:center;padding:0 20rpx;border:1rpx solid var(--cisme-line);border-radius:18rpx;font-size:26rpx}.shipment-card button{width:100%;margin:0;white-space:normal}
 
@@ -14,7 +14,25 @@
 .shipment-admin__error{display:flex;align-items:center;gap:10rpx;color:var(--cisme-danger)}
 .shipment-admin__error text{flex:1;min-width:0}
 
-.order-aftersale button{width:100%;margin:0;min-height:var(--cisme-hit-target)}
-.order-aftersale__actions{display:flex;flex-wrap:wrap;gap:14rpx}
-.order-aftersale__actions button{flex:1;min-width:180rpx}
-.order-aftersale__reject{color:var(--cisme-danger)}
+.order-aftersale__heading,.order-aftersale__footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16rpx;
+}
+.order-aftersale button{width:auto;margin:0;min-height:var(--cisme-hit-target)}
+.order-aftersale .text-button{padding:0}
+.management-ui .order-aftersale__amount{color:var(--cisme-ink);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.3}
+.order-aftersale__reason{white-space:pre-wrap;overflow-wrap:anywhere}
+.order-aftersale__actions{display:flex;flex-wrap:wrap;align-items:center;gap:16rpx}
+.management-ui .order-aftersale__actions .primary-button{
+  flex:1;
+  min-width:180rpx;
+  min-height:var(--cisme-hit-target);
+  border-radius:var(--cisme-radius-control);
+  background:var(--cisme-plum);
+  color:#fff;
+  font-weight:500;
+}
+.order-aftersale .order-aftersale__reject{padding:0 14rpx;color:var(--cisme-danger)}
+.order-aftersale__hint{color:var(--cisme-muted);font-size:var(--cisme-text-small)}

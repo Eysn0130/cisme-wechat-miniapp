@@ -17,6 +17,21 @@
     <view wx:if="{{loading && !conversation}}" class="operator-state" aria-live="polite">正在加载聊天记录…</view>
     <button wx:if="{{olderCursor !== null}}" class="text-button {{loading || loadingOlder ? 'text-button--disabled' : ''}}" bindtap="loadOlder" disabled="{{loading || loadingOlder}}" loading="{{loadingOlder}}">查看更早消息</button>
 
+    <view wx:if="{{aftersalePreview}}" class="operator-case-preview">
+      <view class="operator-case-preview__top">
+        <text class="operator-case-preview__title">{{aftersalePreview.label}}</text>
+        <button class="text-button operator-case-preview__open" data-id="{{aftersalePreview.id}}" bindtap="openManageAftersale">查看售后</button>
+      </view>
+      <view class="operator-case-preview__top">
+        <text wx:if="{{aftersalePreview.orderNumberTail}}" class="operator-case-preview__order">订单尾号 {{aftersalePreview.orderNumberTail}}</text>
+        <text wx:if="{{aftersalePreview.amount}}" class="operator-case-preview__amount">¥{{aftersalePreview.amount}}</text>
+      </view>
+      <text wx:if="{{aftersalePreview.summary}}" class="operator-case-preview__body">{{aftersalePreview.summary}}</text>
+      <text wx:if="{{aftersalePreview.reason}}" class="operator-case-preview__body">{{aftersalePreview.reason}}</text>
+    </view>
+    <view wx:if="{{contactCaseError}}" class="operator-error" aria-live="polite"><text>{{contactCaseError}}</text><button bindtap="retry">刷新</button></view>
+    <view wx:if="{{conversation && !loading && !error && !messages.length}}" class="operator-state" aria-live="polite">当前对话暂无消息</view>
+
     <block wx:for="{{messages}}" wx:key="id">
       <view wx:if="{{item.timeSeparatorLabel}}" class="operator-time-separator"><text>{{item.timeSeparatorLabel}}</text></view>
       <view wx:if="{{item.senderType === 'system'}}" id="operator-{{item.sequence}}" class="operator-system"><text>{{item.body}}</text>
@@ -78,11 +93,11 @@
   </view>
 
   <view wx:if="{{!loading || conversation}}" class="operator-actions {{composerFocused ? 'operator-actions--focused' : ''}}">
-    <view wx:if="{{conversation && (conversation.status === 'waiting_human' || conversation.status === 'human_active' && !(assignedToMe && canReply))}}" class="operator-human-issue" aria-live="polite">
+    <view wx:if="{{conversation && (humanIssueSummary || replyTarget.aftersale || humanRequest.anchorKnown) && (conversation.status === 'waiting_human' || conversation.status === 'human_active' && !(assignedToMe && canReply))}}" class="operator-human-issue" aria-live="polite">
       <text class="operator-human-issue__title">{{replyTarget.aftersale ? '售后' : '原问题'}}</text>
       <text class="operator-human-issue__summary">{{replyTarget.aftersale ? replyTarget.summary : humanIssueSummary || (humanRequest && humanRequest.anchorKnown ? '请查看更早消息' : '请向会员确认')}}</text>
     </view>
-    <button wx:if="{{canManageAftersale}}" class="operator-aftersale-entry {{loading||busy?'control--disabled':''}}" bindtap="openAftersales" disabled="{{loading || busy}}">本会话售后</button>
+    <button wx:if="{{canManageAftersale && (aftersaleCases.length || aftersaleError)}}" class="operator-aftersale-entry {{loading||busy?'control--disabled':''}}" bindtap="openAftersales" disabled="{{loading || busy}}">本会话售后</button>
     <button wx:if="{{conversation && conversation.status === 'waiting_human' && canAssign && canReply}}" class="operator-claim {{loading || busy || sendAttempt ? 'control--disabled' : ''}}" bindtap="claim" disabled="{{loading || busy || sendAttempt}}">接管会话</button>
     <view wx:elif="{{conversation && conversation.status === 'waiting_human' && (!canAssign || !canReply)}}" class="operator-owned">等待有接待权限的客服接管</view>
     <view wx:elif="{{conversation && conversation.status === 'human_active' && !assignedToMe && !canReturnToQueue}}" class="operator-owned">这次会话正由其他客服处理</view>

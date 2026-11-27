@@ -28,6 +28,8 @@ type Attachment = { id: string; mimeType: string; sizeBytes: number; previewPath
 type OrderCard = { orderId: string; orderNumberTail: string; status: string; currency: "CNY"; totalCents: number; productName: string; productImage: string | null; itemSummary: string; statusLabel?: string; totalYuan?: string };
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType?: string; createdAt?: string; attachments?: Attachment[]; orderCard?: OrderCard | null;
   replyToMessageId?: string | null; sender?: SupportSender; avatarPath?: string;
+  aftersaleCard?:{id:string};
+  aftersaleDecision?:{caseId:string};
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
   deliveryState?: "server_accepted" | "read" };
 type Message = PresentedSupportMessage<RawMessage>;
@@ -37,7 +39,9 @@ type HumanRequest = { generation: number; status: "waiting_human" | "human_activ
 type ReplyTarget = { id: string; sequence: number | null; summary: string; generation: number; contextVersion: number; aftersale?:true };
 type SendAttempt = { id: string; body: string; replyToMessageId: string|null; aftersaleCaseId?:string; expectedHumanRequestGeneration: number; contextVersion: number };
 type OperatorRecovery = { conversationId: string; contextVersion: number; humanGeneration: number; input: string; replyTarget: ReplyTarget | null; attempt: SendAttempt | null };
-type AftersaleCase = {id:string;state:string;kind:string;version:number;orderId:string;orderNumber?:string;canReview?:boolean;returnDestination:null|{version:number};claimBasis:string};
+type AftersaleCase = {id:string;state:string;kind:string;version:number;orderId:string;orderNumber?:string;canReview?:boolean;returnDestination:null|{version:number};claimBasis:string;
+  reason?:string;amountCents?:number;resolved?:boolean;fulfillment?:{state:string};lines?:Array<{productName:string;quantity:number}>};
+type AftersalePreview = {id:string;label:string;orderNumberTail:string;summary:string;amount:string;reason:string};
 type ReturnForm = {recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string};
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
@@ -91,6 +95,7 @@ Page({
     accessDenied: false,
     canViewContext: false,
     canManageAftersale:false,aftersaleCases:[] as AftersaleCase[],aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
+    aftersalePreview:null as AftersalePreview|null,contactCaseError:"",
     returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""} as ReturnForm,
     freightOptions:['商家承担','用户承担'],
     returnAttempt:null as {key:string;caseId:string;payload:Record<string,unknown>}|null,
@@ -161,17 +166,19 @@ Page({
       }
       this.setData({ canAssign, canReply, canViewContext,canManageAftersale,
         ...(!canViewContext ? { contextOpen: false, memberContext: null } : {}),
-        ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],returnFormCaseId:"",returnAttempt:null}:{}) });
+        ...(!canManageAftersale?{aftersaleOpen:false,aftersaleCases:[],aftersalePreview:null,returnFormCaseId:"",returnAttempt:null}:{}) });
       const recovered = takeSupportRecovery<OperatorRecovery>(ownerToken, this.readRevision, this.recoveryKey());
       if (canReply && recovered) { this.pendingRecovery = recovered; this.recoveryOwner = ownerToken; this.recoveryRevision = this.readRevision; }
-      if(this.contactCaseId)await this.loadContactCase(epoch,ownerToken);
-      if(!this.owns(epoch,ownerToken))return;
+      const contactRead=this.contactCaseId?this.loadContactCase(epoch,ownerToken):null;
       void this.loadOwnIdentity();
       if (this.data.conversation && !this.pollInFlight) await this.poll(true);
       else await this.load();
+      if (this.owns(epoch, ownerToken)) {
+        if(canManageAftersale)void this.loadAftersales();
+        this.startPolling();
+      }
+      await contactRead;
       if (this.owns(epoch, ownerToken) && !this.data.error && this.data.conversation) this.restoreRecovery();
-      if(canManageAftersale&&this.owns(epoch,ownerToken))void this.loadAftersales();
-      if (this.owns(epoch, ownerToken)) this.startPolling();
     } catch (error) {
       if (!this.rejectRead(error, epoch, ownerToken) && this.owns(epoch, ownerToken)) {
         this.clearSensitiveThread();
@@ -249,7 +256,7 @@ Page({
       canReply: false,
       canReturnToQueue: false,
       canViewContext: false,
-      canManageAftersale:false,aftersaleCases:[],aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
+      canManageAftersale:false,aftersaleCases:[],aftersalePreview:null,contactCaseError:"",aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
       returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""},returnAttempt:null,
       input: "",
       sendAttempt: null,
@@ -527,6 +534,7 @@ Page({
     try {
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
+      if(page.conversation?.id!==this.data.id)throw Error("Invalid support conversation");
       const topic = this.topicMetadata(page);
       if (topic.stale) { this.setData({ loading: false }); return; }
       if (!topic.changed && this.olderConversationMetadata(page)) { this.mergeOlderConversationMessages(page); await this.markRead(); return; }
@@ -568,22 +576,39 @@ Page({
     const epoch=this.lifecycleEpoch,token=sessionToken();
     try{
       const page=await pageRead<{items:AftersaleCase[]}>(this,{path:`/v1/management/support/conversations/${this.data.id}/aftersales`});
-      if(this.owns(epoch,token))this.setData({aftersaleCases:page.items,aftersaleError:""});
+      if(!this.owns(epoch,token))return;
+      const current=this.contactCaseId?page.items.find(row=>row.id===this.contactCaseId)
+        :page.items.find(row=>!row.resolved&&!['rejected','cancelled'].includes(row.state));
+      const aftersalePreview:AftersalePreview|null=current?{
+        id:current.id,label:current.kind==='return_refund'&&current.fulfillment?.state==='shipped'?'退货退款申请':'退款申请',
+        orderNumberTail:current.orderNumber?.slice(-4)??"",summary:current.lines?.map(item=>`${item.productName} × ${item.quantity}`).join("、")??"",
+        amount:centsToYuan(current.amountCents??-1),reason:current.reason??""
+      }:null;
+      this.setData({aftersaleCases:page.items,aftersalePreview,aftersaleError:""});
     }catch(error){if(this.owns(epoch,token)){
-      if([401,403].includes((error as {status?:number})?.status??0))this.setData({canManageAftersale:false,aftersaleCases:[],aftersaleOpen:false,returnFormCaseId:"",returnAttempt:null});
+      if([401,403].includes((error as {status?:number})?.status??0))this.setData({canManageAftersale:false,aftersaleCases:[],aftersalePreview:null,aftersaleOpen:false,returnFormCaseId:"",returnAttempt:null});
       else this.setData({aftersaleError:"售后记录暂时无法核对，请稍后刷新。"});
     }}
   },
   async loadContactCase(epoch:number,token:string){
     this.contactCase=null;
-    if(!this.data.canManageAftersale||!this.data.canReply)throw {status:403};
-    const page=await pageRead<{items:AftersaleCase[]}>(this,{
-      path:`/v1/management/support/conversations/${this.data.id}/aftersales?caseId=${this.contactCaseId}`
-    });
-    if(!this.owns(epoch,token))return;
-    const row=page.items.find(item=>item.id===this.contactCaseId&&item.canReview!==false&&item.orderNumber);
-    if(!row)throw {status:404};
-    this.contactCase=row;
+    this.setData({contactCaseError:"",composerSendEnabled:false});
+    if(!this.data.canManageAftersale||!this.data.canReply){
+      this.setData({contactCaseError:"当前账号暂无本单的回复权限。"});
+      return;
+    }
+    try{
+      const page=await pageRead<{items:AftersaleCase[]}>(this,{
+        path:`/v1/management/support/conversations/${this.data.id}/aftersales?caseId=${this.contactCaseId}`
+      });
+      if(!this.owns(epoch,token))return;
+      const row=page.items.find(item=>item.id===this.contactCaseId&&item.canReview!==false&&item.orderNumber);
+      if(!row){this.setData({contactCaseError:"暂时无法关联原订单，请从订单详情重新进入。"});return;}
+      this.contactCase=row;
+      if(this.data.conversation)this.setData(this.replyContextPatch({humanRequest:this.data.humanRequest},this.data.messages,this.data.contextVersion));
+    }catch{
+      if(this.owns(epoch,token))this.setData({contactCaseError:"暂时无法关联原订单，请刷新后重试。"});
+    }
   },
   openAftersales(){if(this.data.canManageAftersale&&!this.data.busy){this.setData({aftersaleOpen:true,contextOpen:false});void this.loadAftersales();}},
   closeAftersales(){if(!this.data.busy)this.setData({aftersaleOpen:false});},
@@ -664,6 +689,7 @@ Page({
     try {
       const page = await pageRead<any>(this,{ path: `/v1/management/support/conversations/${this.data.id}/messages?after=${after}&limit=50`, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
+      if(page.conversation?.id!==this.data.id)throw Error("Invalid support conversation");
       const topic = this.topicMetadata(page);
       if (topic.stale) return;
       if (!topic.changed && this.olderConversationMetadata(page)) { this.mergeOlderConversationMessages(page); this.pollFailures = 0; await this.markRead(); return; }
@@ -700,6 +726,7 @@ Page({
         newMessagesBelow: shouldFollow || topic.changed ? false : this.data.newMessagesBelow || freshCount > 0
       });
       if (incoming.length) this.downloadMedia(incoming);
+      if (freshCount&&incoming.some(item=>item.aftersaleCard||item.aftersaleDecision||item.returnInstruction))void this.loadAftersales();
       this.pollFailures = 0;
       if (this.data.error === "消息暂时无法更新，请检查网络后刷新。") this.setData({ error: "" });
       await this.markRead();

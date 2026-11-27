@@ -306,7 +306,7 @@ describe("mini program submission flow safety", () => {
       expect(route).toContain("this.data.loadAttempt !== attempt");
       expect(route).toContain("this.data.pageAlive = false");
     }
-    expect(shop).toMatch(/purchaseAvailable:\s*false/);
+    expect(shop).toMatch(/items:commerceShopItems\(\[\]\),catalogLoaded:false/);
     expect(shop).toContain("const preserve = retainReadPresentation(this)");
     expect(product).toMatch(/!preserve\s*\?\s*\{item:null,catalog:null\}/);
     expect(product).toContain("formatCnyCents(raw.price)");

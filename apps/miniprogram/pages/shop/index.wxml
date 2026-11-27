@@ -1,26 +1,39 @@
 <page-meta root-font-size="system"/>
 <view class="shop-page" style="{{chromeStyle}}">
   <view class="shop-head">
-    <view class="shop-title-row"><text class="shop-wordmark">CISME</text><text class="shop-title">商城</text></view>
-    <view class="shop-utility"><text class="shop-brand">AIGERONG 爱格荣</text><button class="shop-orders {{navigating ? 'control--disabled' : ''}}" bindtap="openOrders" disabled="{{navigating}}"><image src="/assets/icons/receipt-plum.svg" mode="aspectFit"/><text>我的订单</text></button></view>
+    <view class="shop-title-row"><text class="shop-title" aria-role="heading">商城</text></view>
+    <view class="shop-utility">
+      <text class="shop-brand">AIGERONG 爱格荣</text>
+      <button class="shop-orders {{navigating ? 'control--disabled' : ''}}" bindtap="openOrders" disabled="{{navigating}}">
+        <image src="/assets/icons/receipt-plum.svg" mode="aspectFit" aria-hidden="true"/>
+        <text>我的订单</text>
+      </button>
+    </view>
   </view>
   <view class="shop-content">
-    <view class="shop-hero">
-      <swiper class="shop-hero__swiper" autoplay="{{autoplay}}" interval="5000" duration="250" circular="{{heroes.length>1}}" current="{{heroIndex}}" bindchange="heroChange">
-        <swiper-item wx:for="{{heroes}}" wx:key="id">
-          <button class="shop-hero__button {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="查看{{item.name}}，{{item.subtitle}}">
-            <image class="shop-hero__image" src="{{item.hero}}" mode="aspectFit"/>
-            <view class="shop-hero__copy"><text wx:for="{{item.headline}}" wx:for-item="line" wx:key="*this" class="shop-hero__line">{{line}}</text><text class="shop-hero__subtitle">{{item.subtitle}}</text></view>
-          </button>
-        </swiper-item>
-      </swiper>
-      <view wx:if="{{loading}}" class="page-read-loading shop-read-loading" aria-role="status" aria-label="正在更新商品信息"><view class="page-read-loading__indicator"/></view>
-      <view class="shop-hero__progress" aria-hidden="true"><text>{{heroIndex+1}} / {{heroes.length}}</text><view wx:for="{{heroes}}" wx:key="id" class="hero-dot {{heroIndex===index?'hero-dot--active':''}}"/></view>
+    <view wx:if="{{error}}" class="shop-sync" aria-live="polite">
+      <text>{{error}}</text>
+      <button class="text-button" bindtap="load">重试</button>
     </view>
-    <view wx:if="{{error}}" class="shop-sync shop-sync--error" aria-live="polite"><text>{{error}}</text><button bindtap="load">重试</button></view>
-    <button wx:for="{{items}}" wx:key="id" class="shop-card {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="{{item.name}}，{{item.qualifier}} {{item.displayPrice}} 元，查看商品">
-      <image class="shop-card__image" src="{{item.image}}" mode="aspectFit" aria-label="{{item.name}}与赠品"/>
-      <view class="shop-card__caption"><text class="shop-card__name">{{item.name}}</text><text class="shop-card__subline">{{item.subtitle}}</text><view class="shop-card__bottom"><view class="shop-card__price"><text class="shop-card__qualifier">{{item.qualifier}}</text><text class="shop-card__yen">¥</text><text class="shop-card__amount">{{item.displayPrice}}</text></view><view class="shop-card__open"><text>查看商品</text><image src="/assets/icons/caret-right-muted.svg" mode="aspectFit"/></view></view></view>
-    </button>
+    <view class="shop-catalog">
+      <view wx:if="{{loading}}" class="page-read-loading shop-read-loading" aria-role="status" aria-label="正在更新商品信息"><view class="page-read-loading__indicator"/></view>
+      <button wx:for="{{items}}" wx:key="id" class="shop-product {{item.materials ? 'shop-product--campaign' : ''}} {{navigating ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="openProduct" disabled="{{navigating}}" aria-label="{{item.name}}，{{item.displayPrice}} 元{{catalogLoaded && !item.purchaseEnabled ? '，'+item.availability : ''}}，查看商品">
+        <view class="shop-product__media">
+          <image class="shop-product__image" src="{{item.image}}" mode="{{item.materials ? 'aspectFill' : 'aspectFit'}}" aria-hidden="true"/>
+        </view>
+        <view class="shop-product__copy">
+          <text class="shop-product__name">{{item.name}}</text>
+          <text wx:if="{{item.subtitle}}" class="shop-product__subtitle">{{item.subtitle}}</text>
+          <view class="shop-product__bottom">
+            <view class="shop-product__offer">
+              <text class="shop-product__price">¥{{item.displayPrice}}</text>
+              <text wx:if="{{catalogLoaded && !item.purchaseEnabled}}" class="shop-product__availability">{{item.availability}}</text>
+              <text wx:elif="{{item.qualifier==='首批预售价' && item.purchaseEnabled}}" class="shop-product__availability">{{item.qualifier}}</text>
+            </view>
+            <image class="shop-product__arrow" src="/assets/icons/caret-right-muted.svg" mode="aspectFit" aria-hidden="true"/>
+          </view>
+        </view>
+      </button>
+    </view>
   </view>
 </view>
