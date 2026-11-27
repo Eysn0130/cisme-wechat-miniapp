@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "f5f245a0409d2838be8c4fecb95f24bbab1af213d1c28062d6229448958209c0",
+  "packageSourceSha256": "e99ed959582a98c5edbcc6ab16f4b50284e29dec1b0e0f9163f7490c582b6ea5",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 当前包包含分享官与活动奖励图片修复、入库和减少的选中状态，以及微信退款异常的可读结果。完整路由、字号和真机范围独立取证。",
+  "note": "2026-11-27 当前包在 0.1.77 基础上新增护理故事的分享选项、朋友圈入口提示和单页阅读。完整路由、字号和真机范围独立取证。",
   "previousSourceRecord": {
-    "packageSourceSha256": "5b77bbc7fa8fe5d18c62167390b45befaae6f96bee3329be74dbcac2bad5269d",
-    "scope": "Official DevTools verified sharing qualification, reward thumbnails and redemption screens in the previous package."
+    "packageSourceSha256": "f5f245a0409d2838be8c4fecb95f24bbab1af213d1c28062d6229448958209c0",
+    "scope": "WeChat DevTools verified sharing officer images, reward artwork and stock selection in the previous package."
   },
   "pendingSourceRebind": false
 }

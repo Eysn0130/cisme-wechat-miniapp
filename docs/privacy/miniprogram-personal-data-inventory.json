@@ -21,6 +21,7 @@
     "wx.getAppBaseInfo",
     "wx.getClipboardData",
     "wx.getDeviceInfo",
+    "wx.getEnterOptionsSync",
     "wx.getFileSystemManager",
     "wx.getImageInfo",
     "wx.getMenuButtonBoundingClientRect",
@@ -623,6 +624,14 @@
       "activation": "读取文章布局时",
       "serverStorage": "仅当前页面私有内存；不上传或记录基础信息",
       "currentGate": "只选fontSizeSetting/fontSizeScaleFactor，缺值保守不恢复旧坐标"
+    },
+    {
+      "surface": "wx.getEnterOptionsSync",
+      "informationType": "微信小程序入口的场景值",
+      "purpose": "识别朋友圈单页模式，展示公开护理故事",
+      "activation": "打开护理故事详情时读取 scene",
+      "serverStorage": "场景判断仅保留在当前页面，不上传或持久化",
+      "currentGate": "仅场景值 1154 切换为阅读模式，关闭评论、导航与转发入口"
     },
     {
       "surface": "wx.getImageInfo",

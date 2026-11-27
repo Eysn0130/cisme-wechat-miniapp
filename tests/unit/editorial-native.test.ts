@@ -98,6 +98,46 @@ describe("published editorial native contracts",()=>{
   expect(page.data.item.readingSegments.map((segment:{text:string})=>segment.text).join("")).toBe(page.data.item.body);
   expect(mocks.incoming).not.toHaveBeenCalled();expect(mocks.share).not.toHaveBeenCalled();expect(page.onShareAppMessage().path).toBe(`/pages/post/index?id=${articleId}&source=editorial`);
  });
+ it("selects a share destination for the currently loaded story", async () => {
+  mocks.request.mockResolvedValueOnce(article());
+  await mount("post", {id:articleId, source:"editorial"});
+  await page.load();
+  const wx = (globalThis as any).wx;
+  const query = `id=${articleId}&source=editorial`;
+  const card = {title:article().title};
+  page.openShareDestinations();
+  expect(page.data).toMatchObject({shareOverlay:"destinations", shareReady:true});
+  expect(page.onShareAppMessage()).toEqual({...card,path:`/pages/post/index?${query}`});
+  expect(page.data.shareOverlay).toBe("");
+
+  page.openShareDestinations();
+  page.showTimelineGuide();
+  const setup = wx.showShareMenu.mock.lastCall[0];
+  expect(setup.menus).toEqual(["shareAppMessage","shareTimeline"]);
+  setup.fail();
+  expect(page.data.shareOverlay).toBe("destinations");
+  expect(wx.showToast).toHaveBeenCalledOnce();
+  page.showTimelineGuide();
+  wx.showShareMenu.mock.lastCall[0].success();
+  expect(page.data.shareOverlay).toBe("timeline-guide");
+  expect(page.onShareTimeline()).toEqual({...card,query});
+  expect(page.data.shareOverlay).toBe("");
+ });
+ it("reads the original article in the WeChat Moments single-page scene", async () => {
+  const wx = (globalThis as any).wx;
+  wx.getEnterOptionsSync = vi.fn(() => ({scene:1154}));
+  mocks.request.mockResolvedValueOnce(article());
+  await mount("post", {id:articleId, source:"editorial"});
+  const comments = vi.spyOn(page, "loadEditorialComments");
+  await page.load();
+  expect(page.data).toMatchObject({timelineReading:true, item:{id:articleId, body:article().body}, media:["https://synthetic.invalid"+mediaPath]});
+  page.openShareDestinations();
+  page.onReachBottom();
+  expect(page.data.shareOverlay).toBe("");
+  expect(comments).not.toHaveBeenCalled();
+  expect(wx.hideShareMenu).not.toHaveBeenCalled();
+  expect(wx.showShareMenu).not.toHaveBeenCalled();
+ });
  it("returns guests to the same editorial article before like, save, or follow",async()=>{
   mocks.request.mockResolvedValueOnce(article());await mount("post",{id:articleId,source:"editorial"});await page.load();mocks.request.mockClear();
   await page.toggleLike();await page.toggleSave();await page.toggleFollow();
