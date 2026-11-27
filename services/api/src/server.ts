@@ -738,20 +738,20 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
     request.memberId,request.principalId,request.params.ruleId,request.headers["idempotency-key"],
     (request.body ?? {}) as {decision?:unknown;expectedVersion?:unknown;reason?:unknown}));
   app.get("/v1/me/support/summary", async request => support.summary(request.memberId));
-  app.get<{Querystring:{after?:string;before?:string;limit?:string}}>("/v1/me/support/messages", async (request,reply) => {
+  app.get<{Querystring:{after?:string;before?:string;limit?:string;consultationCaseId?:string;aftersaleCaseId?:string}}>("/v1/me/support/messages", async (request,reply) => {
     reply.header('Cache-Control','private, no-store');
     return support.messagesForMember(request.memberId, request.query,request.authScope!=='privacy_rights');
   });
   app.post("/v1/me/support/new-topic",async request=>support.startNewTopic(request.memberId,request.principalId,
-    (request.body??{}) as {conversationId?:unknown;expectedVersion?:unknown;requestId?:unknown},request.id));
+    (request.body??{}) as {conversationId?:unknown;expectedVersion?:unknown;requestId?:unknown;consultationCaseId?:unknown},request.id));
   app.post("/v1/me/support/messages", async request => {
-    const input=(request.body??{}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown;expectedConversationId?:unknown;contextVersion?:unknown};
+    const input=(request.body??{}) as {body?:unknown;clientMessageId?:unknown;mediaIds?:unknown;linkedOrderId?:unknown;expectedConversationId?:unknown;contextVersion?:unknown;consultationCaseId?:unknown};
     if(request.authScope==='privacy_rights'&&(!input.linkedOrderId||input.mediaIds!==undefined))
       throw new DomainError('HISTORICAL_SUPPORT_SCOPE_REQUIRED','请从历史订单进入客服并发送文字说明',422);
     return support.sendMember(request.memberId,request.principalId,input,request.id,request.authScope==='privacy_rights');
   });
   app.post("/v1/me/support/handoff", async request => support.requestHuman(request.memberId, request.principalId,
-    (request.body??{}) as {expectedConversationId?:unknown;contextVersion?:unknown;questionMessageId?:unknown}));
+    (request.body??{}) as {expectedConversationId?:unknown;contextVersion?:unknown;questionMessageId?:unknown;consultationCaseId?:unknown}));
   app.post("/v1/me/support/resume-ai", async request => support.resumeAi(request.memberId, request.principalId, (request.body ?? {}) as {expectedVersion?:unknown}, request.id));
   app.post("/v1/me/support/read", async request => support.markMemberRead(request.memberId, (request.body ?? {}) as {lastSeenSequence?:unknown}));
   app.post("/v1/me/support/presence", async request => support.touchMemberPresence(request.memberId, (request.body ?? {}) as {online?:unknown;typing?:unknown}));

@@ -2653,7 +2653,7 @@ paths:
       operationId: ownSupportMessages
       security: [{session: []}]
       description: Reads the caller's current support conversation window. All ordinary default, after and before pages exclude prior cleared conversations. contextStartSequence is the exclusive sequence boundary and contextVersion is the unique generation derived from owner-scoped typed command receipts, including consecutive empty resets. Pagination retrieves only earlier messages in the current generation. Responses include newTopicAvailable as a feature capability; historical privacy-rights sessions retain their order-support evidence with this capability false and boundary zero. An empty read creates no conversation, greeting or model call. A fixed AI welcome is presentation only.
-      parameters: [{name: after, in: query, schema: {type: integer, minimum: 0}}, {name: before, in: query, schema: {type: integer, minimum: 1}}, {$ref: '#/components/parameters/PageLimit'}]
+      parameters: [{name: after, in: query, schema: {type: integer, minimum: 0}}, {name: before, in: query, schema: {type: integer, minimum: 1}}, {name: consultationCaseId, in: query, schema: {$ref: '#/components/schemas/Uuid'}}, {name: aftersaleCaseId, in: query, schema: {$ref: '#/components/schemas/Uuid'}}, {$ref: '#/components/parameters/PageLimit'}]
       responses: {'200': {description: Cursor page; PostgreSQL sequence is authoritative}}
     post:
       tags: [Support]
@@ -2668,7 +2668,7 @@ paths:
       operationId: requestHumanSupport
       security: [{session: []}]
       description: The member explicitly requests human support, including before sending a first message. This command creates the waiting_human request and its event; model confidence, attachments and failures do not invoke it implicitly. An existing assigned operator is preserved. After a clear command, expectedConversationId and contextVersion are required so an old device cannot move a fresh conversation into the human queue.
-      requestBody: {content: {application/json: {schema: {type: object, additionalProperties: false, properties: {expectedConversationId: {$ref: '#/components/schemas/Uuid'}, contextVersion: {type: integer, minimum: 0}}}}}}
+      requestBody: {content: {application/json: {schema: {type: object, additionalProperties: false, properties: {expectedConversationId: {$ref: '#/components/schemas/Uuid'}, contextVersion: {type: integer, minimum: 0}, questionMessageId: {type: [string, 'null'], format: uuid}, consultationCaseId: {$ref: '#/components/schemas/Uuid'}}}}}}
       responses: {'200': {description: Idempotent transition to waiting_human; a late AI result cannot reclaim a waiting or human_active conversation}, '409': {description: Retired or missing generation; refresh before an explicit new handoff request}}
   /v1/me/support/resume-ai:
     post: {tags: [Support], security: [{session: []}], summary: 会员明确退出人工等待并继续 AI 咨询, operationId: resumeSupportAi, x-release-stage: R0_GATED, x-transaction-profile: MAKE, x-required-gates: [SUPPORT_AI_PROVIDER], x-authority: member-session-owner, x-idempotency: expectedVersion-and-current-status, x-state-guards: "waiting_human or resolved; expectedVersion; provider available; human_active forbidden", requestBody: {required: true, content: {application/json: {schema: {type: object, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}}}}, responses: {'200': {description: 会话已切换 AI 且历史保留}, '409': {description: 会话已变化或人工已接管}, '503': {description: AI 不可用，继续等待人工}}}
@@ -2678,14 +2678,14 @@ paths:
       operationId: startOwnSupportTopic
       security: [{session: []}]
       description: Explicitly clears previous ordinary chat and starts a fresh AI conversation window in the existing support aggregate. Requires its id, current version and a UUID requestId; waiting_human and human_active are never displaced. Deletes prior ordinary message bodies and queues unreferenced images for existing cleanup; transaction, aftersale, legacy or held evidence remains under its separate rules and is excluded from the active chat and model context. A durable independent clearing marker prevents old backup restore from resurrecting ordinary messages or the retired generation. The minimal typed receipt retains the exclusive sequence boundary and unique contextVersion, with no chat body. Same requestId replay returns the current page without clearing newer messages again. Empty local pages create no server record. Does not call the model or grant authority. Privacy-rights identities cannot call this command.
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [conversationId, expectedVersion, requestId], properties: {conversationId: {type: string, format: uuid}, expectedVersion: {type: integer, minimum: 1}, requestId: {type: string, format: uuid}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [conversationId, expectedVersion, requestId], properties: {conversationId: {type: string, format: uuid}, expectedVersion: {type: integer, minimum: 1}, requestId: {type: string, format: uuid}, consultationCaseId: {$ref: '#/components/schemas/Uuid', description: Opens a fresh consultation alongside the caller-owned aftersale and retains the active human conversation.}}}}}}
       responses: {'200': {description: Current cleared conversation page with contextStartSequence, contextVersion and feature capability}, '404': {description: No caller-owned matching conversation}, '409': {description: Version, human state or idempotency conflict}, '503': {description: Durable clearing confirmation unavailable; preserve the same requestId for retry}}
   /v1/me/support/read:
     post:
       tags: [Support]
       operationId: markOwnSupportRead
       security: [{session: []}]
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [lastSeenSequence], properties: {lastSeenSequence: {type: integer, minimum: 0}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [lastSeenSequence], properties: {lastSeenSequence: {type: integer, minimum: 0}, consultationCaseId: {$ref: '#/components/schemas/Uuid'}}}}}}
       responses: {'200': {description: Monotonic member read cursor}}
   /v1/me/support/presence:
     post:
@@ -5145,6 +5145,7 @@ components:
         clientMessageId: {type: string, minLength: 8, maxLength: 200, pattern: '^[A-Za-z0-9._:-]+$'}
         mediaIds: {type: array, minItems: 1, maxItems: 3, uniqueItems: true, items: {$ref: '#/components/schemas/Uuid'}, description: Verified, unbound, member-owned support image identifiers. Operator replies do not accept media in this release.}
         linkedOrderId: {$ref: '#/components/schemas/Uuid'}
+        consultationCaseId: {$ref: '#/components/schemas/Uuid'}
         expectedConversationId: {$ref: '#/components/schemas/Uuid', description: Caller-owned durable conversation read before composing; required after a clear command.}
         contextVersion: {type: integer, minimum: 0, description: Generation read before composing and frozen with the clientMessageId. Zero before the first reset; required after any reset, including an empty one. Retired or missing generations are rejected without reinserting cleared text.}
     SupportOperatorMessageInput: {type: object, additionalProperties: false, required: [body, clientMessageId], properties: {body: {type: string, minLength: 1, maxLength: 4000}, clientMessageId: {type: string, minLength: 8, maxLength: 200, pattern: '^[A-Za-z0-9._:-]+$'}, replyToMessageId: {type: [string, 'null'], format: uuid}, aftersaleCaseId: {$ref: '#/components/schemas/Uuid'}, expectedHumanRequestGeneration: {type: integer, minimum: 0}, contextVersion: {type: integer, minimum: 0}}}

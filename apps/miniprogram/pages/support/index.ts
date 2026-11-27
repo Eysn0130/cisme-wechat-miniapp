@@ -45,7 +45,8 @@ type OrderChoice = { id: string; orderNumberTail: string; status: string; status
 type SendAttempt = { id: string; signature: string; body: string; mediaIds: string[]; linkedOrderId: string | null; expectedConversationId: string | null; contextVersion: number };
 type MemberRecovery = { attempt: SendAttempt | null; input: string; selectedImage: SelectedImage | null; selectedOrder: OrderChoice | null;
   conversationId: string | null; contextVersion: number };
-type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string };
+type CasePreview = { caseId: string; orderId: string; orderNumberTail: string; productName: string; kind: string; active: boolean };
+type NewTopicAttempt = { conversationId: string; expectedVersion: number; requestId: string; consultationCaseId?: string };
 type HandoffAttempt = { contextVersion: number; questionMessageId: string | null; expectedConversationId?: string };
 type TopicMetadata = { contextStartSequence?: unknown; contextVersion?: unknown; conversation?: Conversation | null };
 type AiCapabilities = { supportAiAvailable?: unknown; supportAiCanRespond?: unknown };
@@ -72,6 +73,8 @@ Page({
   pendingRecovery: null as MemberRecovery | null,
   linkedOrderId:"",
   linkedCaseId:"",
+  aftersaleViewId:"",
+  consultationCaseId:"",
   snapshotToken:"",
   readRevision:commerceContextRevision(),
   pollTimer: null as ReturnType<typeof setTimeout> | null,
@@ -103,6 +106,7 @@ Page({
     expandedReturnMessageId: "",
     olderCursor: null as number | null, historyStartLoaded: false, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
+    consultationView: false, aftersaleView: false, aftersale: null as CasePreview | null,
     pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false, helpNavigating: false,
     atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false, composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false,
     attachmentSheetOpen: false, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null as string | null, orderPickerError: "", orderChoices: [] as OrderChoice[], selectedOrder: null as OrderChoice | null,
@@ -112,7 +116,17 @@ Page({
     const orderId=options.orderId??'';
     const caseId=options.caseId??'',uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     this.linkedOrderId=uuid.test(orderId)?orderId:'';
-    this.linkedCaseId=this.linkedOrderId&&uuid.test(caseId)?caseId:''; },
+    this.linkedCaseId=this.linkedOrderId&&uuid.test(caseId)?caseId:'';
+    this.aftersaleViewId=options.aftersaleView==='1'?this.linkedCaseId:'';
+    const consultation=options.consultationCaseId??'';
+    this.consultationCaseId=!this.linkedOrderId&&uuid.test(consultation)?consultation:'';
+    this.setData({consultationView:Boolean(this.consultationCaseId),aftersaleView:Boolean(this.aftersaleViewId)}); },
+  supportDraftScope() { return this.consultationCaseId ? `consultation:${this.consultationCaseId}` : this.linkedOrderId || GENERAL_SUPPORT_SCOPE; },
+  messagesPath(query = "") {
+    const scope = this.consultationCaseId ? `consultationCaseId=${this.consultationCaseId}` : this.aftersaleViewId ? `aftersaleCaseId=${this.aftersaleViewId}` : "";
+    const params = [scope, query].filter(Boolean).join("&");
+    return "/v1/me/support/messages" + (params ? `?${params}` : "");
+  },
   onResize() { this.setData({ chromeStyle: currentChromeStyle() }); },
   onShow() {
     const previousRevision = this.readRevision;
@@ -141,15 +155,17 @@ Page({
       this.abortTransientWork();
       this.setData({ conversation: null, messages: [], expandedReturnMessageId: "", syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
         historyLoaded: false, historyStartLoaded: false, supportAiAvailable: false, supportAiCanRespond: null, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false, handoffAttempt: null,
-        contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicAttempt: null,
+        contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicAttempt: null, aftersale: null,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
         attachmentSheetOpen: false, orderPickerOpen: false, orderChoices: [], selectedOrder: null, selectedImage: null, uploadBusy: false,
         composerFocused: false, keyboardHeight: 0, composerCapped: false, composerLineCount: 1, composerSendEnabled: false });
     }
     if(closedRights&&!this.linkedOrderId){this.data.visible=false;wx.redirectTo({url:'/pages/privacy-rights/index'});return;}
-    if (!(closedRights?requireHistoricalCommerceAccess(`/pages/support/index?orderId=${this.linkedOrderId}`):requireMemberAccess("/pages/support/index"))) { this.data.visible = false; return; }
+    const returnPath=this.consultationCaseId?`/pages/support/index?consultationCaseId=${this.consultationCaseId}`:this.aftersaleViewId
+      ?`/pages/support/index?orderId=${this.linkedOrderId}&caseId=${this.aftersaleViewId}&aftersaleView=1`:"/pages/support/index";
+    if (!(closedRights?requireHistoricalCommerceAccess(`/pages/support/index?orderId=${this.linkedOrderId}`):requireMemberAccess(returnPath))) { this.data.visible = false; return; }
     if (!closedRights) void this.loadOwnIdentity();
-    const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
+    const draftScope=this.supportDraftScope();
     if (!this.data.sendAttempt) {
       this.pendingRecovery = takeSupportRecovery<MemberRecovery>(sessionToken(), this.readRevision, `member:${draftScope}`);
     }
@@ -172,7 +188,7 @@ Page({
       this.downloadMedia(this.data.messages);
       void this.poll();
     } else void this.load();
-    if(this.linkedOrderId)void this.loadLinkedOrder();
+    if(this.linkedOrderId&&!this.aftersaleViewId)void this.loadLinkedOrder();
   },
   onHide() {
     this.newTopicRevision += 1;
@@ -199,7 +215,7 @@ Page({
     this.setData({ composerFocused: false, keyboardHeight: 0, orderPickerOpen: false, orderPickerLoading: false, orderPickerMoreBusy: false, orderPickerNextCursor: null, orderChoices: [] });
     if (interruptedUpload) this.setData({ uploadBusy: false, selectedImage: interruptedUpload, composerSendEnabled: false, error: interruptedUpload.error, errorAction: "" });
   },
-  onUnload() { this.newTopicRevision += 1; this.stopAiReplyWait(); const draftScope=this.linkedOrderId||GENERAL_SUPPORT_SCOPE;
+  onUnload() { this.newTopicRevision += 1; this.stopAiReplyWait(); const draftScope=this.supportDraftScope();
     const attempt=this.data.sendAttempt;
     if(sessionToken()===this.snapshotToken&&this.readRevision===commerceContextRevision()){
       if(this.pendingRecovery)stageSupportRecovery(sessionToken(),this.readRevision,`member:${draftScope}`,this.pendingRecovery);
@@ -225,6 +241,14 @@ Page({
       ||!this.data.messages.some(item=>item.returnInstruction?.caseId===id||item.aftersaleCard?.id===id))return;
     const goToShipment=event.currentTarget.dataset.shipment===true&&this.data.messages.some(item=>item.returnInstruction?.caseId===id);
     wx.navigateTo({url:`/pages/aftersale/index?caseId=${id}${goToShipment?'&action=ship_return':''}`});
+  },
+  resumeAftersale(){
+    const card=this.data.aftersale;
+    if(!card||!this.owns(this.lifecycleEpoch,sessionToken())||this.data.sending||this.data.sendAttempt
+      ||this.data.uploadBusy||this.data.newTopicBusy||this.data.newTopicAttempt)return;
+    const previous=getCurrentPages().slice(-2,-1)[0] as {route?:string;aftersaleViewId?:string}|undefined;
+    if(previous?.route==='pages/support/index'&&previous.aftersaleViewId===card.caseId){wx.navigateBack();return;}
+    wx.navigateTo({url:`/pages/support/index?orderId=${card.orderId}&caseId=${card.caseId}&aftersaleView=1`});
   },
   owns(epoch: number, ownerToken: string) { return this.data.pageAlive && this.data.visible && this.lifecycleEpoch === epoch && sessionToken() === ownerToken && this.readRevision === commerceContextRevision(); },
   restoreRecovery(conversation: Conversation | null, contextVersion: number) {
@@ -362,6 +386,9 @@ Page({
     catch { complete(); wx.showToast({ title: "页面暂时无法打开", icon: "none" }); }
   },
   headerPatch(conversation: Conversation | null, presence: Presence, aiAvailable?: boolean) {
+    if(this.consultationCaseId&&this.data.aftersale?.active!==false)return (aiAvailable??this.data.supportAiAvailable)
+      ?{statusLabel:"CISME AI 客服",statusTone:"ai",presence:{...presence,operatorTyping:false}}
+      :{statusLabel:"欢迎留言",statusTone:"neutral",presence:{...presence,operatorTyping:false}};
     if (!conversation) return (aiAvailable ?? this.data.supportAiAvailable) && !this.data.closedRights
       ? { statusLabel: "CISME AI 客服", statusTone: "ai", presence }
       : { statusLabel: "欢迎留言", statusTone: "neutral", presence };
@@ -439,7 +466,7 @@ Page({
     const requestConversationId = this.data.conversation?.id;
     this.setComposerState({ loading: true, error: "", errorAction: "" });
     try {
-      const page = await pageRead<any>(this,{ path: "/v1/me/support/messages", cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: this.messagesPath(), cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       if (requestConversationId !== this.data.conversation?.id && page.conversation?.id !== this.data.conversation?.id) return;
       if (this.staleTopic(page)) { this.setComposerState({ loading: false }); return; }
@@ -463,7 +490,7 @@ Page({
       this.linkedCaseId="";
       const newest=state.messages[state.messages.length-1],anchor=receipt??newest;
       this.applyThreadState(state, { conversation, olderCursor: page.olderCursor ?? null, historyStartLoaded, loading: false, historyLoaded: true, atBottom: anchor===newest, newMessagesBelowCount: 0, newMessagesBelow: false,
-        contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
+        contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true, aftersale: page.aftersale ?? null,
         anchor: anchor ? `support-${anchor.sequence}` : "", ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true) });
       this.restoreRecovery(conversation, contextVersion);
       this.downloadMedia(messages);
@@ -482,7 +509,7 @@ Page({
     const requestConversationId = this.data.conversation.id;
     this.pollInFlight = true;
     try {
-      const page = await pageRead<any>(this,{ path: `/v1/me/support/messages?after=${after}&limit=50`, cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: this.messagesPath(`after=${after}&limit=50`), cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken)) return;
       if (requestConversationId !== this.data.conversation?.id) return;
       if (page.conversation?.id && page.conversation.id !== requestConversationId) { await this.load(); return; }
@@ -505,7 +532,7 @@ Page({
       if (changedTopic) this.clearRetiredTopic(contextVersion, conversation?.id);
       this.applyThreadState(state, {
         conversation,
-        contextStartSequence: boundary, contextVersion, historyStartLoaded, newTopicAvailable: page.newTopicAvailable === true,
+        contextStartSequence: boundary, contextVersion, historyStartLoaded, newTopicAvailable: page.newTopicAvailable === true, aftersale: page.aftersale ?? null,
         ...(changedTopic ? { olderCursor: page.olderCursor ?? null, atBottom: true } : {}),
         ...this.aiCapabilityPatch(page),...this.confirmedHandoffPatch(conversation),...this.headerPatch(conversation, presence, page.supportAiAvailable===true),
         anchor: changedTopic ? newest ? `support-${newest.sequence}` : "" : freshCount && shouldFollow && newest ? `support-${newest.sequence}` : this.data.anchor,
@@ -534,7 +561,7 @@ Page({
     const preserve = this.data.messages[0]?.sequence;
     this.setData({ loadingOlder: true, atBottom: false });
     try {
-      const page = await pageRead<any>(this,{ path: `/v1/me/support/messages?before=${this.data.olderCursor}&limit=50`, cacheTags: ["support"] });
+      const page = await pageRead<any>(this,{ path: this.messagesPath(`before=${this.data.olderCursor}&limit=50`), cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken) || contextVersion !== this.data.contextVersion || boundary !== this.data.contextStartSequence || conversationId !== this.data.conversation?.id) return;
       if (page.conversation && page.conversation.id !== conversationId) { await this.load(); return; }
       if (this.staleTopic(page)) return;
@@ -577,7 +604,8 @@ Page({
     const ownerToken = sessionToken();
     const conversationId = this.data.conversation?.id, contextVersion = this.data.contextVersion;
     try {
-      await request({ path: "/v1/me/support/read", method: "POST", data: { lastSeenSequence: candidate }, cacheTags: ["support"] });
+      await request({ path: "/v1/me/support/read", method: "POST", data: { lastSeenSequence: candidate,
+        ...(this.consultationCaseId?{consultationCaseId:this.consultationCaseId}:{}) }, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken) || conversationId !== this.data.conversation?.id || contextVersion !== this.data.contextVersion) return;
       this.applyThreadState(withReadCursor(this.threadState(), candidate));
     } catch {}
@@ -617,7 +645,11 @@ Page({
     const previous = this.data.sendAttempt;
     const body = previous?.body ?? this.data.input.trim();
     const mediaIds = previous?.mediaIds ?? (this.data.selectedImage?.status === "ready" && this.data.selectedImage.mediaId ? [this.data.selectedImage.mediaId] : []);
-    const linkedOrderId = previous ? previous.linkedOrderId : (this.data.closedRights?this.linkedOrderId:(this.data.selectedOrder?.id ?? (!this.linkedOrderDismissed&&this.linkedOrderId?this.linkedOrderId:null)));
+    const linkedOrderId = previous ? previous.linkedOrderId : (this.data.closedRights||this.aftersaleViewId?this.linkedOrderId:
+      (this.data.selectedOrder?.id ?? (!this.linkedOrderDismissed&&this.linkedOrderId?this.linkedOrderId:null)));
+    if(linkedOrderId&&linkedOrderId===this.data.aftersale?.orderId&&this.consultationCaseId){
+      wx.showToast({title:"请从顶部打开本单售后",icon:"none"});return;
+    }
     if ((this.data.closedRights?(!body||!linkedOrderId||mediaIds.length>0):previous?!Boolean(body||mediaIds.length||linkedOrderId):!memberComposerCanSend(body, this.data.selectedImage, this.data.selectedOrder)) || this.data.sending || this.data.uploadBusy || this.data.newTopicBusy || this.data.newTopicAttempt) return;
     const signature = previous?.signature ?? this.sendSignature(body, mediaIds, linkedOrderId);
     const draftRevision = this.inputRevision;
@@ -634,7 +666,8 @@ Page({
     try {
       const result = await request<any>({ path: "/v1/me/support/messages", method: "POST", data: { body, clientMessageId: sendAttempt.id,
         ...(this.data.closedRights?{}:{mediaIds,contextVersion:sendAttempt.contextVersion??0,
-          ...(sendAttempt.expectedConversationId?{expectedConversationId:sendAttempt.expectedConversationId}:{})}),linkedOrderId }, cacheTags: ["support"] });
+          ...(sendAttempt.expectedConversationId?{expectedConversationId:sendAttempt.expectedConversationId}:{}),
+          ...(this.consultationCaseId?{consultationCaseId:this.consultationCaseId}:{})}),linkedOrderId }, cacheTags: ["support"] });
       if (!this.owns(epoch, ownerToken) || this.data.sendAttempt?.id !== sendAttempt.id) return;
       if (this.aiWaitRevision === waitRevision) this.stopAiReplyWait();
       const priorConversationId = this.data.conversation?.id;
@@ -904,7 +937,8 @@ Page({
     const revision = ++this.handoffRevision;
     this.setComposerState({ handoffBusy: true, handoffFailed: false, handoffAttempt: attempt, error: "", errorAction: "" });
     try {
-      const result = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST", data: attempt, cacheTags: ["support"] });
+      const result = await request<Conversation>({ path: "/v1/me/support/handoff", method: "POST",
+        data: {...attempt,...(this.consultationCaseId?{consultationCaseId:this.consultationCaseId}:{})}, cacheTags: ["support"] });
       if (this.owns(epoch, ownerToken) && revision === this.handoffRevision && contextVersion === this.data.contextVersion) {
         const conversation = this.currentConversation(result);
         this.setComposerState({ conversation, handoffAttempt: null, ...this.headerPatch(conversation, this.data.presence) });
@@ -929,7 +963,7 @@ Page({
   clearTopicDraft() {
     this.inputRevision += 1; this.orderSelectionRevision += 1; this.linkedOrderAttempt += 1;
     this.linkedOrderDismissed = true;
-    takeSupportDraft(sessionToken(), this.linkedOrderId || GENERAL_SUPPORT_SCOPE);
+    takeSupportDraft(sessionToken(), this.supportDraftScope());
     this.setData({ input: "", selectedImage: null, selectedOrder: null, composerSendEnabled: false,
       composerCapped: false, composerLineCount: 1, attachmentSheetOpen: false, orderPickerOpen: false });
   },
@@ -938,14 +972,16 @@ Page({
       || this.data.sendAttempt || this.data.uploadBusy || this.choosingImage || this.data.handoffBusy) return;
     const previous = this.data.newTopicAttempt;
     const status = this.data.conversation?.status;
-    if (!previous && (status === "waiting_human" || status === "human_active")) {
+    const card = this.data.aftersale;
+    const caseId = this.consultationCaseId || (card?.active ? card.caseId : "");
+    if (!previous && !caseId && (status === "waiting_human" || status === "human_active")) {
       const epoch = this.lifecycleEpoch, token = sessionToken();
       try { await wx.showModal({ title: "人工事项处理中", content: "人工申请会继续保留，你可以直接咨询其他问题。人工事项结束后可开启新对话。", showCancel: false, confirmText: "知道了" }); }
       catch { if (this.owns(epoch, token)) this.setData({ error: "提示暂时无法打开，请稍后重试。人工申请会继续保留。", errorAction: "" }); }
       return;
     }
-    if (!previous && (!this.data.historyLoaded || this.data.loading || !this.data.newTopicAvailable
-      || status && status !== "ai_active" && status !== "resolved")) return;
+    if (!previous && (!this.data.historyLoaded || this.data.loading || !caseId && (!this.data.newTopicAvailable
+      || status && status !== "ai_active" && status !== "resolved"))) return;
     let epoch = this.lifecycleEpoch;
     const ownerToken = sessionToken();
     if (this.snapshotToken && this.snapshotToken !== ownerToken) return;
@@ -955,15 +991,18 @@ Page({
     let submitted = false;
     this.setComposerState({ newTopicBusy: true });
     try {
-      if (!previous && (this.data.conversation || this.data.messages.length || this.data.input.trim() || this.data.selectedImage || this.data.selectedOrder)) {
-        const answer = await wx.showModal({ title: "开始新对话？", content: "之前的聊天和未发送内容会清空。订单、售后凭证仍按规则保留。", confirmText: "清空重开" });
+      if (!previous && (!caseId || this.consultationCaseId) && (this.data.conversation || this.data.messages.length || this.data.input.trim() || this.data.selectedImage || this.data.selectedOrder)) {
+        const answer = await wx.showModal({ title: "开始新对话？",
+          content: caseId ? "从空白咨询开始。本单售后可从顶部卡片继续。" : "之前的聊天和未发送内容会清空。订单、售后凭证仍按规则保留。",
+          confirmText: caseId ? "开始" : "清空重开" });
         if (!answer.confirm || !this.owns(epoch, ownerToken)) return;
         if (draft() !== reviewedDraft) { wx.showToast({ title: "内容已变化，请重新开启", icon: "none" }); return; }
       }
       if (!this.owns(epoch, ownerToken)) return;
       const current = this.data.conversation;
       if (!previous && !current) { this.clearTopicDraft(); return; }
-      const attempt = previous ?? { conversationId: current!.id, expectedVersion: current!.version, requestId: newTopicRequestId() };
+      const attempt = previous ?? { conversationId: current!.id, expectedVersion: current!.version, requestId: newTopicRequestId(),
+        ...(caseId?{consultationCaseId:caseId}:{}) };
       this.stopPolling(); cancelPageReads(this); this.stopAiReplyWait(); this.abortDownloads();
       epoch = ++this.lifecycleEpoch;
       this.setComposerState({ newTopicAttempt: attempt, error: "", errorAction: "", loadingOlder: false });
@@ -973,12 +1012,22 @@ Page({
       if (page.conversation?.id !== attempt.conversationId || !Number.isSafeInteger(page.contextStartSequence) || page.contextStartSequence < 0
         || !Number.isSafeInteger(page.contextVersion) || page.contextVersion < 0 || this.staleTopic(page))
         throw new Error("NEW_TOPIC_RECEIPT_UNCONFIRMED");
+      if(attempt.consultationCaseId&&!this.consultationCaseId){
+        if(page.aftersale?.caseId!==attempt.consultationCaseId)throw new Error("NEW_TOPIC_RECEIPT_UNCONFIRMED");
+        this.aftersaleViewId=attempt.consultationCaseId;
+        this.linkedOrderId=page.aftersale.orderId;
+        this.setComposerState({conversation:this.currentConversation(page.conversation),contextStartSequence:0,newTopicAttempt:null,
+          aftersaleView:true,aftersale:page.aftersale,error:"",errorAction:""});
+        wx.navigateTo({url:`/pages/support/index?consultationCaseId=${this.aftersaleViewId}`,
+          fail:()=>{if(this.owns(epoch,ownerToken))this.setData({newTopicAttempt:attempt,error:"新对话已开启，请重试打开。",errorAction:""});}});
+        return;
+      }
       const conversation = this.currentConversation(page.conversation), boundary = this.topicBoundary(page, conversation), contextVersion = this.topicVersion(page, conversation);
       const presence = { ...emptyPresence, ...(page.presence ?? {}) } as Presence;
       const messages = this.normalize(page.messages || []).filter(item => item.sequence > boundary);
       this.clearRetiredTopic();
       this.applyThreadState(createSupportThreadState(this.present(messages, conversation, presence), page.latestCursor ?? boundary), {
-        conversation, contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true,
+        conversation, contextStartSequence: boundary, contextVersion, newTopicAvailable: page.newTopicAvailable === true, aftersale:page.aftersale??null,
         ...this.aiCapabilityPatch(page), ...this.headerPatch(conversation, presence, page.supportAiAvailable === true),
         newTopicAttempt: null, handoffFailed: false, olderCursor: page.olderCursor ?? null, historyStartLoaded: page.olderCursor == null, loading: false, historyLoaded: true,
         atBottom: true, anchor: messages.length ? `support-${messages[messages.length - 1]!.sequence}` : "",
@@ -1000,7 +1049,7 @@ Page({
       if (this.owns(epoch, ownerToken)) this.startPolling();
     }
   },
-  retry() { void this.load(); if(this.linkedOrderId&&!this.linkedOrderDismissed)void this.loadLinkedOrder(); },
+  retry() { void this.load(); if(this.linkedOrderId&&!this.aftersaleViewId&&!this.linkedOrderDismissed)void this.loadLinkedOrder(); },
   back() { wx.navigateBack({ fail: () => this.data.closedRights
     ?wx.redirectTo({url:'/pages/orders/index'}):wx.switchTab({ url: "/pages/profile/index" }) }); }
 });

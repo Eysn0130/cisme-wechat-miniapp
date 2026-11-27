@@ -17,7 +17,11 @@ describe("role-aware native support UX",()=>{
  });
  it("uses a shared cursor state machine, bounded non-overlapping polling and explicit AI/human labels",async()=>{
   const [userLogic,userView,operatorLogic,operatorView,state]=await Promise.all([read("apps/miniprogram/pages/support/index.ts"),read("apps/miniprogram/pages/support/index.wxml"),read("apps/miniprogram/pages/management-support-chat/index.ts"),read("apps/miniprogram/pages/management-support-chat/index.wxml"),read("apps/miniprogram/services/support-thread-state.ts")]);
-  for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("?after=");expect(logic).toContain("?before=");expect(logic).toContain("mergeSyncPage");expect(logic).toContain("pollInFlight");expect(logic).not.toContain("setInterval");}
+  expect(userLogic).toContain('this.messagesPath(`after=${after}&limit=50`)');
+  expect(userLogic).toContain('this.messagesPath(`before=${this.data.olderCursor}&limit=50`)');
+  expect(operatorLogic).toContain("?after=");
+  expect(operatorLogic).toContain("?before=");
+  for(const logic of [userLogic,operatorLogic]){expect(logic).toContain("mergeSyncPage");expect(logic).toContain("pollInFlight");expect(logic).not.toContain("setInterval");}
   expect(state).toContain("Only a response from the synchronization endpoint may advance");
   for(const logic of [userLogic,operatorLogic])expect(logic).toContain("retainMemberSnapshot(this)");
  expect(state).toContain("CISME AI 客服");expect(userView).toContain("{{item.senderLabel}}");expect(userView).toContain("handoffBusy ? '正在申请人工…' : '申请人工'");expect(operatorView).toContain("接管会话");
