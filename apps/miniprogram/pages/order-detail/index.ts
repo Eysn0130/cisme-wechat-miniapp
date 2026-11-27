@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {currentCreditOwner} from '../../services/points-feedback';
 import { loadRecordedCommands, type RecordedGroup } from "../../services/commerce-command-discovery";
 import type { CommerceCommandKind } from "../../services/commerce-command-store";
@@ -48,6 +49,7 @@ function supportSheetSizes(){
   }catch{return {sheetHeight:'72vh',sheetWritingHeight:'88vh'};}
 }
 Page({
+  dismissNativeKeyboardOnTap,
   lastSessionToken:"",lastSessionRevision:-1,
   merchantOrderNumber:"",
   wechatReturn:null as 'success'|'fail'|'cancel'|null,shipmentAttempt:0,receiptQueryAttempt:0,

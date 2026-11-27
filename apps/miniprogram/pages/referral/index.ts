@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { request, resumeAuthentication } from "../../services/api";
 import { currentChromeStyle } from "../../services/layout";
 
@@ -5,6 +6,7 @@ const normalized=(value:string)=>value.trim().toUpperCase().replace(/\s+/g,"");
 const confirmationKey=()=>`referral-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
 const sessionOwners=new WeakMap<object,string>();
 Page({
+  dismissNativeKeyboardOnTap,
   data:{chromeStyle:currentChromeStyle(),code:"",key:confirmationKey(),busy:false,confirmed:false,error:"",status:"",alive:true,
     preview:null as null|{code:string;sponsorLabel:string;relationState:string;attributionLevel:number}},
   onLoad(query:Record<string,string|undefined>){sessionOwners.set(this,getApp<IAppOption>().globalData.sessionToken);

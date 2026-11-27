@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {currentChromeStyle} from '../../services/layout';
 import {requireMemberAccess} from '../../services/api';
 import {cancelPageReads} from '../../services/page-requests';
@@ -10,6 +11,7 @@ type Row=ManagedCommunityPost&{avatarSrc:string;coverSrc:string;dateLabel:string
 const route='/pages/management-community/index';
 function owner(){const g=getApp<IAppOption>().globalData;return JSON.stringify([g.sessionToken,g.apiBaseUrl,commerceContextRevision(),g.cloudFunction?.env,g.cloudFunction?.name]);}
 Page({
+  dismissNativeKeyboardOnTap,
   alive:true,visible:false,readEpoch:0,actionEpoch:0,readOwner:'',
   data:{chromeStyle:currentChromeStyle(),tab:'recommend' as PostPlacement,qInput:'',q:'',rows:[] as Row[],total:null as number|null,
     nextCursor:null as string|null,loading:false,loadingMore:false,ready:false,busyId:'',error:'',denied:false,detail:null as Row|null},

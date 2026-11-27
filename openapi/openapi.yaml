@@ -3273,7 +3273,7 @@ paths:
     get:
       operationId: myAftersale
       summary: Owner scoped case and bounded history
-      description: Includes immutable case-specific return instruction versions so the owner can identify the version actually used for shipment. The shipped version is preserved separately from the current instruction.
+      description: Includes immutable case-specific return instruction versions so the owner can identify the version actually used for shipment. The shipped version is preserved separately from the current instruction. Where a linked refund exists, refund.approvedAt records the approval and refund.completedAt records verified channel success or completed local credit return.
       security: [{session: []}]
       parameters:
         - {in: path, name: caseId, required: true, schema: {$ref: '#/components/schemas/Uuid'}}
@@ -3348,6 +3348,7 @@ paths:
         '200': {description: Verified caseId, orderId and conversationId}
         '403': {description: Review and support permissions required. Reopening also requires support.assign.}
         '404': {description: Case unavailable}
+        '409': {description: The case already has a completed refund and cannot reopen the human conversation.}
   /v1/management/aftersales/{caseId}/actions:
     post:
       operationId: actManagedAftersale
@@ -5165,6 +5166,7 @@ components:
         kind: {type: string, enum: [refund_only, return_refund]}
         requestedAt: {type: string, format: date-time}
         amountCents: {type: integer, minimum: 0}
+        refundCompleted: {type: boolean, description: The linked refund has completed successfully.}
         lines: {type: array, items: {type: object, required: [lineId, productName, skuLabel, quantity], properties: {lineId: {$ref: '#/components/schemas/Uuid'}, productName: {type: string}, skuLabel: {type: string}, quantity: {type: integer, minimum: 1}}}}
     SupportMessageView: {type: object, additionalProperties: false, required: [id, sequence, senderType, body, contentType, attachments, orderCard, deliveryState, createdAt], properties: {id: {$ref: '#/components/schemas/Uuid'}, sequence: {type: integer, minimum: 1}, senderType: {type: string, enum: [user, ai, admin, system]}, sender: {$ref: '#/components/schemas/SupportSenderIdentity'}, replyToMessageId: {oneOf: [{$ref: '#/components/schemas/Uuid'}, {type: 'null'}]}, replyExcerpt: {type: string, maxLength: 81, description: Plain excerpt of the verified original question in the authorized current conversation for an operator reply.}, helpAction: {type: string, enum: [orders, care-records, points, invite, my-community, settings, sharing-officer, shop, privacy]}, knowledgeTitle: {type: string, maxLength: 80}, body: {type: string}, contentType: {type: string, enum: [text, image, order, mixed, system]}, attachments: {type: array, maxItems: 3, items: {$ref: '#/components/schemas/SupportMessageAttachment'}}, orderCard: {oneOf: [{$ref: '#/components/schemas/SupportOrderCard'}, {type: 'null'}]}, relatedOrderId: {$ref: '#/components/schemas/Uuid'}, aftersaleCard: {$ref: '#/components/schemas/SupportAftersaleCard'}, aftersaleDecision: {type: object, required: [caseId, version], properties: {caseId: {$ref: '#/components/schemas/Uuid'}, version: {type: integer, minimum: 1}}}, returnInstruction: {type: [object, 'null'], properties: {caseId: {$ref: '#/components/schemas/Uuid'}, version: {type: integer}, recipientName: {type: string}, phone: {type: string}, region: {type: string}, address: {type: string}, freightPayer: {type: string}, instructions: {type: string}}}, deliveryState: {type: string, enum: [server_accepted, read], description: server_accepted never claims transport delivery or recipient reading; read is derived from the opposite authoritative read cursor.}, createdAt: {type: string, format: date-time}}}
     CareVersionCommandInput: {type: object, additionalProperties: false, required: [expectedVersion], properties: {expectedVersion: {type: integer, minimum: 1}}}

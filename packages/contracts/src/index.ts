@@ -220,6 +220,7 @@ export interface SupportAftersaleCard {
   kind: 'refund_only' | 'return_refund';
   requestedAt: string;
   amountCents: number;
+  refundCompleted?: boolean;
   lines: Array<{lineId:string;productName:string;skuLabel:string;quantity:number}>;
 }
 export interface SupportMessageView {

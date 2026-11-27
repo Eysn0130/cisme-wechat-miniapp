@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {catalogList} from '../../services/commerce';
 import {confirmCreditOwner,queueContentFeedback} from '../../services/points-feedback';
 import { pageRead, cancelPageReads } from "../../services/page-requests";
@@ -55,6 +56,7 @@ async function mimeOf(path: string): Promise<string> {
 }
 
 Page({
+  dismissNativeKeyboardOnTap,
   readRevision:commerceContextRevision(),resumeReads:false,gateRead:0,
   lastSessionToken: "",
   shown:false,

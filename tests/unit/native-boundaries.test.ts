@@ -52,6 +52,25 @@ function attributeValue(tag: string, name: string): string | null | undefined {
 }
 
 describe("native mini program boundary", () => {
+  it("applies native keyboard behavior to text fields and their enclosing pages or components", async () => {
+    const root = resolve("apps/miniprogram");
+    const inputTag = /<(?:input|textarea)\b(?:[^>"']|"[^"]*"|'[^']*')*>/g;
+    const markup = (await Promise.all(["pages", "components"].map(dir => pageMarkup(resolve(root, dir))))).flat();
+    for (const { path, source } of markup) {
+      const inputs = source.match(inputTag) ?? [];
+      if (!inputs.length) continue;
+      expect(source, path).toContain('capture-bind:tap="dismissNativeKeyboardOnTap"');
+      for (const input of inputs) {
+        expect(attributeValue(input, "data-keyboard-field"), path).toBe("input");
+        expect(attributeValue(input, "hold-keyboard"), path).toBe("{{false}}");
+        expect(attributeValue(input, "focus"), path).not.toBe("{{true}}");
+        if (input.startsWith("<textarea")) {
+          expect(attributeValue(input, "show-confirm-bar"), path).toBe("{{false}}");
+          expect(attributeValue(input, "confirm-type"), path).toBe("return");
+        }
+      }
+    }
+  });
   it("keeps internal pricing rule identifiers out of the buyer checkout surface", async () => {
     const checkout = await readFile(resolve("apps/miniprogram/pages/checkout/index.wxml"), "utf8");
     expect(checkout).not.toContain("quote.pricingRuleVersion");
@@ -131,7 +150,7 @@ describe("native mini program boundary", () => {
 
     expect(Object.fromEntries([...disabledPrimaryByFile].map(([path, tags]) => [path, tags.length]))).toEqual({
       "account/index.wxml": 1,
-      "aftersale/index.wxml": 1,
+      "aftersale/index.wxml": 2,
       "community-compose/index.wxml": 2,
       "commission/index.wxml": 2,
       "checkout/index.wxml": 4,
@@ -231,7 +250,7 @@ describe("native mini program boundary", () => {
       "management-product": ["back", "keepLocalDraft", "loadRemoteDraft", "save", "qualify", "qualify", "qualify", "publication", "publication", "inventory"],
       "management-orders": ["back","openAftersale","openRewards","openFulfillment","clearDates","load","open","loadMore"],
       "management-order-detail": ["back", "back", "load", "previewCaseImage", "retryCaseImages", "moreCaseImages", "decideAftersale", "openAftersale", "decideAftersale", "decideAftersale", "contactBuyer", "openAftersale", "load", "retryShipment", "reconcile", "loadCarriers", "submitShipment", "submitWithoutLogistics", "load"],
-      aftersale: ["back", "retry", "retry", "clearAttention", "submit", "reconcile", "open", "next", "chooseOrderItems", "list", "openChat", "submit", "list", "clearAttention", "retry", "retry", "submit", "reconcile", "selectStage", "open", "next", "copyOrder", "openOrder", "prepareAction", "openFinance", "openChat", "closeAction", "submitPrepared"],
+      aftersale: ["back", "retry", "submit", "reconcile", "open", "next", "chooseOrderItems", "retry", "submit", "submit", "openOrder", "openChat", "list", "clearAttention", "retry", "retry", "submit", "reconcile", "selectStage", "open", "next", "copyOrder", "openOrder", "prepareAction", "openFinance", "openChat", "closeAction", "submitPrepared"],
       "management-fulfillment": ["back", "retry", "retry", "openOrder", "next", "exportExcel", "chooseXlsx", "submit", "reconcileBatch", "newBatch", "openOrder"],
       "management-privacy": ["back", "retry", "retry", "select", "loadMore", "retry", "executeCorrection", "submit", "closeDetail"],
       "management-finance": ["back", "importBill", "importBill", "prepareCycle", "approveCycleMember", "retry", "openOrder", "decide", "decide", "decide", "operateIssue", "operateIssue", "loadMore"],

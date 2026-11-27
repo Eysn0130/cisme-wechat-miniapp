@@ -8,6 +8,7 @@ import { VerifiedRefundInbox } from "./verifiedRefundInbox.js";
 import { freezeCreditExposureForRefund } from "./shoppingCredit.js";
 import { type RefundBinding, WechatPayV3Client } from "./wechatPayV3.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
+import { closeRefundedAftersaleSupport } from "./supportAftersaleClosure.js";
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const KEY=/^[A-Za-z0-9._:-]{8,200}$/;
@@ -327,6 +328,7 @@ export class RefundCommandService{
           $2,'ORIGINAL_CREDIT_RETURN',$3,$4)`,[`member:${approver}`,localCreditIntent.id,
           {orderId:order.id,creditReturnedCents:amount,sourceCount:localCreditIntent.sources.length,creditExposure},
           `credit-local-refund:${localCreditIntent.id}`]);
+        if (aftersale) await closeRefundedAftersaleSupport(client, order.member_id);
       }
       return this.decisionView(client,updated);
   }

@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {incomingOfficerShare} from '../../services/officer-attribution';
 import { requireGuestCommunityAccess, resumeAuthentication } from "../../services/api";
 import { needsLoginProfile } from "../../services/member-setup";
@@ -138,6 +139,7 @@ function dailyHomeProjection(state: { usageReady: boolean; usageLoading: boolean
 }
 
 Page({
+  dismissNativeKeyboardOnTap,
   supportTimer:null as ReturnType<typeof setInterval>|null,
   shareOwner:'',shareContext:-1,shareAttempt:0,
   data: {

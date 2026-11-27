@@ -7,7 +7,7 @@ vi.mock('../../apps/miniprogram/services/layout',()=>({shouldReduceMotion:()=>fa
 vi.mock('../../apps/miniprogram/services/commerce-command-store',()=>({commerceContextRevision:()=>0}));
 let def:any,token:string;
 const record={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',orderId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',kind:'refund_only',state:'requested',version:1,amountCents:10000,reason:'合成原因',lines:[],resolved:false,refund:null};
-beforeEach(()=>{vi.resetModules();vi.useFakeTimers();token='synthetic';m.request.mockReset().mockResolvedValue({items:[record],nextCursor:null});m.authority.mockReset().mockResolvedValue({version:1,managementAvailable:true,capabilities:['commerce.aftersale.review']});(globalThis as any).Page=(p:any)=>def=p;(globalThis as any).getApp=()=>({globalData:{sessionToken:token}});(globalThis as any).wx={showModal:vi.fn((o:any)=>o.success({confirm:true})),navigateBack:vi.fn(),navigateTo:vi.fn(),redirectTo:vi.fn()};});
+beforeEach(()=>{vi.resetModules();vi.useFakeTimers();token='synthetic';m.request.mockReset().mockResolvedValue({items:[record],nextCursor:null});m.authority.mockReset().mockResolvedValue({version:1,managementAvailable:true,capabilities:['commerce.aftersale.review']});(globalThis as any).Page=(p:any)=>def=p;(globalThis as any).getApp=()=>({globalData:{sessionToken:token}});(globalThis as any).getCurrentPages=()=>[];(globalThis as any).wx={showModal:vi.fn((o:any)=>o.success({confirm:true})),navigateBack:vi.fn(),navigateTo:vi.fn(),redirectTo:vi.fn()};});
 afterEach(()=>{vi.clearAllTimers();vi.useRealTimers();});
 async function page(management=false){await import('../../apps/miniprogram/pages/aftersale/index');const p={...def,data:structuredClone(def.data),setData(p:any){Object.assign(this.data,p);}};p.onLoad({mode:management?'management':'',orderId:record.orderId});await p.onShow();return p;}
 it('uses only server capabilities for management and keeps customer reads owner-scoped',async()=>{const p=await page();expect(p.data.coreReady).toBe(true);expect(m.authority).not.toHaveBeenCalled();expect(m.request.mock.calls[0]![0].path).toContain('/v1/me/aftersales?');const q=await page(true);expect(q.data.coreReady).toBe(true);expect(m.request.mock.calls.at(-1)![0].path).toContain('/v1/management/aftersales?');});
@@ -33,9 +33,24 @@ it('keeps the active-case guard when paging older cases',async()=>{
 });
 it('opens this order in support and refreshes customer case progress without clearing a draft',async()=>{
  const p=await page();p.selection=record.id;p.data.selected={...record,supportConversationId:'conversation'};p.data.note='我的运单说明';
- p.openChat();expect((globalThis as any).wx.navigateTo).toHaveBeenCalledWith({url:`/pages/support/index?orderId=${record.orderId}&caseId=${record.id}`});
+ await p.openChat();expect(wx.navigateTo).toHaveBeenCalledWith({url:`/pages/support/index?orderId=${record.orderId}&caseId=${record.id}&aftersaleView=1`});
  m.request.mockResolvedValueOnce({...record,state:'awaiting_instruction',supportConversationId:'conversation'});
  await p.recheck();expect(p.data.selected.label).toBe('待客服发送退货指引');expect(p.data.note).toBe('我的运单说明');
+});
+it('presents a completed refund at the verified time and suppresses obsolete fulfillment actions',async()=>{
+ const p=await page();p.selection=record.id;
+ const detail={...record,state:'refund_pending',kind:'return_refund',claimBasis:'no_reason',amountCents:29800,resolved:true,
+  lines:[{lineId:'fixture-line',productName:'头皮精华液',skuLabel:'头皮精华液 100ml',quantity:1}],
+  refund:{reviewState:'approved',channelState:'succeeded',approvedAt:'2026-11-27T12:49:51Z',completedAt:'2026-11-27T12:54:23Z'},
+  events:[{action:'request',version:1,createdAt:'2026-11-27T06:18:51Z'},
+    {action:'request_refund',version:2,createdAt:'2026-11-27T12:49:51Z'}]};
+ m.request.mockResolvedValueOnce(detail);await p.load();
+ expect(p.data.selected).toMatchObject({label:'已退款',terminal:true,amountLabel:'298.00',buyerTimeline:[
+  {label:'提交申请',date:'11月27日 14:18'}, {label:'同意退款',date:'11月27日 20:49'},
+  {label:'退款成功',date:'11月27日 20:54',complete:true}
+ ]});
+ expect(p.data.selected.lines[0].specification).toBe('100ml');
+ expect(p.data.available).toEqual([]);
 });
 it('registers the version actually used for an old valid return address and clears it on exit',async()=>{
  const p=await page();p.selection=record.id;

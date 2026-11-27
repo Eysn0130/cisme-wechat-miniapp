@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {confirmCreditOwner,currentCreditOwner,queueContentFeedback} from '../../services/points-feedback';
 import {commerceContextRevision} from '../../services/commerce-command-store';
 import {pageRead} from '../../services/page-requests';
@@ -59,6 +60,7 @@ function readingVideoIdentity(video:EditorialVideo|null):string {
 }
 
 Page({
+  dismissNativeKeyboardOnTap,
   readVisible:true,
   galleryRead:null as GalleryRead|null,
   gallerySizingCache:null as GallerySizingCache|null,

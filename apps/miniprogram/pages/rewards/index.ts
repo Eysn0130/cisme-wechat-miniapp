@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import{foilData,foilEvents,clearFoil,consumeFoilDrag}from'../../services/card-foil';
 import{sectionTabValue}from'../../services/section-tabs';
 import {requireMemberAccess,resumeAuthentication,navigateAfterAuthentication} from '../../services/api';
@@ -15,6 +16,7 @@ const empty={wallet:null as RewardWallet|null,selection:null as RewardSelection|
  pending:null as RewardPending|null,unknown:false,newCoupon:false,error:'',productsOpen:false,couponProducts:[] as CouponProduct[],usingCouponId:'',
  selectionOpen:false,redemptionId:'',redemptionImage:'',redemptionName:'',redemptionBundle:''};
 Page({
+  dismissNativeKeyboardOnTap,
  ...foilEvents,
  alive:false,visible:false,epoch:0,token:'',context:0,forwardVoucher:'',fromCare:false,
  data:{...empty,...foilData,chromeStyle:currentChromeStyle(),reducedMotion:shouldReduceMotion(),mode:'wallet' as 'wallet'|'select'|'claim',tab:'rewards',inviteToken:'',invalidInvitation:false,voucherId:'',claimId:'',loading:true,busy:false,navigating:false,stateLabel:'',expiryLabel:'',claimDate:'',shippedDate:'',receivedDate:''},

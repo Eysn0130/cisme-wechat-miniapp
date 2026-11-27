@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "inventoryDate": "2026-11-26",
+  "inventoryDate": "2026-11-27",
   "wechatApis": [
     "wx.base64ToArrayBuffer",
     "wx.canIUse",
@@ -35,6 +35,7 @@
     "wx.navigateTo",
     "wx.nextTick",
     "wx.offNetworkStatusChange",
+    "wx.onKeyboardHeightChange",
     "wx.onNetworkStatusChange",
     "wx.openBusinessView",
     "wx.openDocument",
@@ -71,6 +72,14 @@
     "chooseAddress"
   ],
   "privacyBoundaries": [
+    {
+      "surface": "wx.onKeyboardHeightChange",
+      "informationType": "原生键盘高度",
+      "purpose": "在键盘显示时识别输入框外的点击并收起键盘",
+      "activation": "小程序启动时注册，微信输入法显示和收起时更新",
+      "serverStorage": "仅保留当前高度在运行内存，无上报或持久化",
+      "currentGate": "仅在原生键盘高度大于零时处理键盘收起"
+    },
     {
       "surface": "wx.onNetworkStatusChange",
       "informationType": "设备是否联网",

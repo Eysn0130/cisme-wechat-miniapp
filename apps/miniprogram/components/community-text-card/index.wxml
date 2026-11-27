@@ -1,4 +1,4 @@
-<view wx:if="{{visible}}" class="text-card-overlay {{stage === 'input' || stage === 'generating' ? 'text-card-overlay--writing' : ''}}" style="{{chromeStyle}}" catchtouchmove="holdOverlay">
+<view capture-bind:tap="dismissNativeKeyboardOnTap" wx:if="{{visible}}" class="text-card-overlay {{stage === 'input' || stage === 'generating' ? 'text-card-overlay--writing' : ''}}" style="{{chromeStyle}}" catchtouchmove="holdOverlay">
   <view class="text-card-header">
     <button class="text-card-button text-card-back" hover-class="text-card-pressed" hover-start-time="0" hover-stay-time="80" bindtap="back" aria-label="{{stage === 'input' ? '取消文字卡片' : '返回文字输入'}}"><image class="text-card-back__icon" src="{{stage === 'input' ? '/assets/icons/close-plum.svg' : '/assets/icons/arrow-left-ink.svg'}}" mode="aspectFit" aria-hidden="true"/></button>
     <text wx:if="{{stage === 'templates'}}" class="text-card-title">选择配图</text>
@@ -7,7 +7,7 @@
     <view class="text-card-input-content">
       <view class="text-card-writing-card">
         <text class="text-card-quote" aria-hidden="true">“</text>
-        <view class="text-card-writing-copy"><text class="text-card-writing-title">写想法</text><textarea class="text-card-input" value="{{text}}" bindinput="editText" bindkeyboardheightchange="keyboardChange" disabled="{{busy}}" maxlength="-1" auto-height="{{true}}" show-confirm-bar="{{true}}" adjust-position="{{true}}" cursor-spacing="20" placeholder="记录此刻的护理感受…" placeholder-class="text-card-placeholder" aria-label="文字卡片内容，最多300字"/></view>
+        <view class="text-card-writing-copy"><text class="text-card-writing-title">写想法</text><textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" class="text-card-input" value="{{text}}" bindinput="editText" bindkeyboardheightchange="keyboardChange" disabled="{{busy}}" maxlength="-1" auto-height="{{true}}" adjust-position="{{true}}" cursor-spacing="20" placeholder="记录此刻的护理感受…" placeholder-class="text-card-placeholder" aria-label="文字卡片内容，最多300字"/></view>
         <text class="text-card-count {{count > 300 ? 'text-card-count--error' : ''}}" aria-label="已输入{{count}}字，最多300字">{{count}}/300</text>
       </view>
       <text wx:if="{{error}}" class="text-card-error" aria-live="assertive">{{error}}</text>

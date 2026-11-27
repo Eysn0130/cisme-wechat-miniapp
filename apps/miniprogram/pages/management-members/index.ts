@@ -1,9 +1,11 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {requireMemberAccess,request,registerPrivateExport} from '../../services/api';
 import {currentChromeStyle} from '../../services/layout';
 import {sectionTabValue} from '../../services/section-tabs';
 import {prepareUserRows,initialQuery,allowedViews,columns,rowView,queryString,userContext,userRead,userSearch,cancelUserReads,userError,type UserQuery,type UserRow,type UserScope,type Column} from './service';
 const accounts=['全部','正常','已停用'],accountValues=['all','active','blocked'],onboardings=['全部','已建档','待建档'],onboardingValues=['all','complete','incomplete'],officers=['全部','未申请','待审核','已开通','已暂停','已终止','未通过'],officerValues=['all','none','pending','active','suspended','terminated','rejected'];
 Page({
+  dismissNativeKeyboardOnTap,
  visible:false,epoch:0,context:'',raw:[] as UserRow[],files:[] as Array<()=>void>,fieldChoice:{} as Record<string,string[]>,
  data:{chromeStyle:currentChromeStyle(),query:{...initialQuery},draft:{...initialQuery},scope:null as UserScope|null,tabs:[{id:'profile',label:'资料'}],items:[] as ReturnType<typeof rowView>[],fields:[] as Column[],fieldOptions:[] as Array<Column&{checked:boolean}>,total:0,nextCursor:null as string|null,loading:true,resultReady:false,loadingMore:false,error:'',moreError:'',q:'',sheet:'',selected:[] as string[],selecting:false,selectedMember:'',inspectorVisible:false,administratorSelecting:false,exporting:false,pageVisible:false,sortLabel:'注册时间',accounts,onboardings,officers,accountIndex:0,onboardingIndex:0,officerIndex:0,sortIndex:0,directionIndex:0,sorts:[] as string[],sortValues:[] as string[],directions:['从高到低 / 从新到旧','从低到高 / 从旧到新'],filtered:false},
  onShow(){this.visible=true;this.setData({pageVisible:true});const context=userContext(),changed=this.context!==context;this.context=context;this.cleanup();if(changed){this.raw=[];this.setData({items:[],scope:null,selected:[],selecting:false,selectedMember:'',inspectorVisible:false,administratorSelecting:false,query:{...initialQuery},q:'',sheet:''});}if(requireMemberAccess())void this.load(false,!changed);},

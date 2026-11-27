@@ -1,4 +1,4 @@
-<view class="chrome-root" style="{{chromeStyle}}">
+<view capture-bind:tap="dismissNativeKeyboardOnTap" class="chrome-root" style="{{chromeStyle}}">
 <view class="topbar">
 <button class="topbar__back" bindtap="back" aria-label="返回">
 <image aria-hidden="true" class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg" mode="aspectFit"/>
@@ -50,7 +50,7 @@
 </picker>
 <text wx:if="{{!closedRights && labels[selected] === '撤回个人信息处理同意' && consentGrants.length}}" class="rights-meta">撤回成功后，不再新增使用；已发布或发送的内容需另行处理。</text>
 <text wx:if="{{labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))}}" class="rights-form-label">申请说明（必填）</text>
-<textarea wx:if="{{labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))}}" class="rights-input {{submitError ? 'rights-input--error' : ''}}" focus="{{messageFocus}}" value="{{message}}" bindinput="input" maxlength="2000" disabled="{{busy||replyBusy||exportBusy}}" placeholder-class="rights-placeholder" placeholder="{{labels[selected] === '更正个人信息' ? '昵称：新昵称，或微信号：新微信号' : ''}}" aria-label="申请说明"/>
+<textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" wx:if="{{labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))}}" class="rights-input {{submitError ? 'rights-input--error' : ''}}" value="{{message}}" bindinput="input" maxlength="2000" disabled="{{busy||replyBusy||exportBusy}}" placeholder-class="rights-placeholder" placeholder="{{labels[selected] === '更正个人信息' ? '昵称：新昵称，或微信号：新微信号' : ''}}" aria-label="申请说明"/>
 <text wx:if="{{labels[selected] !== '申请注销账号' && (closedRights || labels[selected] !== '删除个人信息' || deleteScopeIndex === 1) && (labels[selected] !== '撤回个人信息处理同意' || (!consentGrants.length && !consentsLoading))}}" class="rights-input-hint">请勿填写密码、身份证号或他人的信息。</text>
 <view wx:if="{{submitError}}" class="rights-form-error" aria-live="assertive">{{submitError}}</view>
 <button class="primary {{busy||replyBusy||exportBusy||consentsLoading ? 'primary--disabled' : ''}} {{labels[selected] === '申请注销账号' || (!closedRights && labels[selected] === '删除个人信息' && deleteScopeIndex === 0) ? 'rights-destructive' : ''}}" bindtap="submit" loading="{{busy}}" disabled="{{busy||replyBusy||exportBusy||consentsLoading}}">{{labels[selected] === '申请注销账号' ? '申请注销账号' : (!closedRights && labels[selected] === '删除个人信息' && deleteScopeIndex === 0 ? '清除账户资料' : (!closedRights && labels[selected] === '撤回个人信息处理同意' && consentGrants.length ? '撤回所选授权' : '提交申请'))}}</button>
@@ -77,7 +77,7 @@
 <block wx:if="{{item.status === 'responded' && item.waitingOn === 'member'}}">
 <button wx:if="{{replyFor !== item.id}}" class="secondary {{busy||replyBusy||exportBusy ? 'secondary--disabled' : ''}}" data-id="{{item.id}}" bindtap="startReply" disabled="{{busy||replyBusy||exportBusy}}">补充信息</button>
 <view wx:else class="rights-export">
-<textarea class="rights-input" value="{{replyDraft}}" bindinput="editReply" maxlength="2000" auto-height adjust-position disabled="{{busy||replyBusy||exportBusy}}" placeholder-class="rights-placeholder" placeholder="补充工作人员需要的信息" aria-label="补充申请信息"/>
+<textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" class="rights-input" value="{{replyDraft}}" bindinput="editReply" maxlength="2000" auto-height adjust-position disabled="{{busy||replyBusy||exportBusy}}" placeholder-class="rights-placeholder" placeholder="补充工作人员需要的信息" aria-label="补充申请信息"/>
 <view class="rights-reply-actions">
 <button class="text-button {{busy||replyBusy||exportBusy ? 'text-button--disabled' : ''}}" bindtap="cancelReply" disabled="{{busy||replyBusy||exportBusy}}">取消</button>
 <button class="secondary {{busy||replyBusy||exportBusy ? 'secondary--disabled' : ''}}" bindtap="sendReply" loading="{{replyBusy}}" disabled="{{busy||replyBusy||exportBusy}}">提交补充</button>

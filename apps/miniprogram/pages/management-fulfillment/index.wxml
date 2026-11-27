@@ -1,4 +1,4 @@
-<view class="management-ui fulfillment-shell" style="{{chromeStyle}}">
+<view capture-bind:tap="dismissNativeKeyboardOnTap" class="management-ui fulfillment-shell" style="{{chromeStyle}}">
  <view class="topbar"><button class="topbar__back" bindtap="back" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">批量发货</text></view>
  <view class="page page--stack">
   <view class="page-title">订单与拣货表</view>
@@ -6,7 +6,7 @@
   <view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button bindtap="retry" disabled="{{busy}}" class="text-button {{busy ? 'control--disabled' : ''}}">重新核验</button></view>
   <view wx:if="{{coreReady}}" class="section-card">
    <picker range="{{states}}" value="{{stateIndex}}" bindchange="onState" disabled="{{busy}}"><view class="filter-choice">物流状态 · {{states[stateIndex]}}　⌄</view></picker>
-   <input aria-label="精确订单号" placeholder="输入精确订单号（可选）" value="{{orderNumber}}" maxlength="32" bindinput="onNumber" disabled="{{busy}}"/>
+   <input data-keyboard-field="input" hold-keyboard="{{false}}" aria-label="精确订单号" placeholder="输入精确订单号（可选）" value="{{orderNumber}}" maxlength="32" bindinput="onNumber" disabled="{{busy}}"/>
    <button class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="retry" disabled="{{busy}}">查询订单</button>
    <view wx:if="{{!items.length}}" class="state">当前筛选没有订单。</view>
    <view wx:for="{{items}}" wx:key="id" class="order">
@@ -23,7 +23,7 @@
    <button class="secondary {{busy || batchLocked ? 'control--disabled' : ''}}" bindtap="chooseXlsx" disabled="{{busy || batchLocked}}">上传 XLSX</button>
    <view wx:if="{{fileName}}" class="import-file" aria-live="polite"><text>{{fileName}}</text><text>将登记 {{importCount}} 单{{skippedRows ? '，已跳过未填写物流的 ' + skippedRows + ' 行' : ''}}</text></view>
    <text class="hint">订单号 · 快递代码 · 名称 · 运单号 · 交寄时间</text>
-   <textarea aria-label="五列物流信息" placeholder="上传XLSX后在此核对，或粘贴物流信息" value="{{rows}}" maxlength="320000" bindinput="onRows" disabled="{{busy || batchLocked}}"/>
+   <textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" aria-label="五列物流信息" placeholder="上传XLSX后在此核对，或粘贴物流信息" value="{{rows}}" maxlength="320000" bindinput="onRows" disabled="{{busy || batchLocked}}"/>
    <checkbox-group bindchange="onConfirm"><label class="confirmation"><checkbox value="confirmed" checked="{{confirmed}}" disabled="{{busy}}" color="#705278"/>已核对订单、运单与实际交寄时间</label></checkbox-group>
    <button class="primary {{busy || !confirmed ? 'primary--disabled' : ''}}" bindtap="submit" disabled="{{busy || !confirmed}}" loading="{{busy}}">{{batchPending?'重试原批次':'确认登记物流'}}</button>
    <button wx:if="{{batchPending}}" class="secondary {{busy ? 'control--disabled' : ''}}" bindtap="reconcileBatch" disabled="{{busy}}">核对后结束上批</button>

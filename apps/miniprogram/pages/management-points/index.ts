@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import {request,requireMemberAccess,retainMemberSnapshot} from '../../services/api';
 import {authorityProjection,hasCapability,type AuthorityProjection} from '../../services/authority';
 import {currentChromeStyle} from '../../services/layout';
@@ -11,6 +12,7 @@ function beijingTime(value:unknown){const t=Date.parse(String(value));return Num
 const publicationLabels:Record<string,string>={draft:'未上架',published:'已上架',withdrawn:'已下架'};
 const policyLabels:Record<string,string>={draft:'待复核',active:'生效版本',retired:'历史版本'};
 Page({
+  dismissNativeKeyboardOnTap,
  token:'',context:0,visible:false,epoch:0,target:{memberId:'',redemptionId:''},openedTarget:false,pendingCommand:null as PendingCommand|null,
  data:{suggestionRows:[] as Array<{id:string;memberId:string;name:string;userCode:string;body:string;version:number}>,suggestionError:'',offerSelected:null as any,offerMode:'redeem',offerPoints:'',offerEnabled:true,offerLimit:'0',discountEnabled:true,promoChoice:'daily',promoStarts:'',promoEnds:'',targetMemberId:'',chromeStyle:currentChromeStyle(),authority:null as AuthorityProjection|null,loading:true,busy:false,commandPending:false,error:'',notice:'',canFulfill:false,canPolicy:false,canFeature:false,canProduct:false,
   offers:[] as Array<{skuId:string;skuVersion:number;points:number;redeemable:boolean;memberLimit:number;discountEnabled:boolean;promotionStartsAt:string|null;promotionEndsAt:string|null;productId:string;productVersion:number;name:string;label:string;shoppingPointsMultiplier:number;publicationStatus:string;publicationLabel:string}>,reconciliation:[] as Array<{member_id:string;checked_at:string}>,policies:[] as any[],items:[] as Row[],nextCursor:null as string|null,state:'placed',states:[{id:'placed',label:'待发货'},{id:'return_requested',label:'退货待核对'},{id:'all',label:'全部兑换'}],

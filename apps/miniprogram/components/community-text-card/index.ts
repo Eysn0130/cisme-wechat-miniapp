@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { currentChromeStyle } from "../../services/layout";
 import { hasTextCardContent, isTextCardTemplate, layoutTextCard, normalizeTextCardTemplate, normalizeTextCardText, TEXT_CARD_TEMPLATES, textCardFontSize, textCardGraphemes, textCardHeight, textCardParagraphFontSize, textCardWidth, type TextCardTemplate } from "../../services/ugc-text-card-layout";
 
@@ -19,7 +20,8 @@ Component({
   pageLifetimes:{show(){const runtime=state(this);runtime.suspended=false;if(runtime.attached){this.syncVisibility();if(runtime.open&&this.data.stage==="templates")void this.generate();}},
     hide(){const runtime=state(this);runtime.suspended=true;this.stopRendering();this.setData({stage:this.data.stage==="generating"?"input":this.data.stage,busy:false,keyboardVisible:false,previewPath:"",previewPending:false,canExport:false,templates:emptyTemplates()});},
     resize(){if(state(this).open)this.resizePreview();}},
-  methods:{
+  methods: {
+    dismissNativeKeyboardOnTap,
     holdOverlay(){},
     stopRendering(){const runtime=state(this);runtime.generation+=1;runtime.renderRevision+=1;runtime.png=null;runtime.pngs.clear();},
     invalidate(){const runtime=state(this);this.stopRendering();runtime.open=false;runtime.pngs.clear();for(const canvas of runtime.canvases){try{canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);}catch{/* Detached native canvases need no further drawing. */}}runtime.canvases.clear();},

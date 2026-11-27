@@ -62,7 +62,6 @@
   border: 1rpx solid rgba(78, 47, 91, .13);
   border-radius: 30rpx;
   background: #fff;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .support-composer__surface--focused {
@@ -129,7 +128,6 @@
   padding: 0;
   border-radius: 50%;
   background: transparent;
-  transition: opacity 120ms ease, transform 120ms ease, background-color 160ms ease;
 }
 
 .support-tool image {
@@ -139,7 +137,20 @@
 
 .support-tool:active {
   background: #f1e9f3;
-  transform: scale(.96);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .support-composer__surface {
+    transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+  }
+
+  .support-tool {
+    transition: opacity 120ms ease-out, transform 120ms ease-out, background-color 140ms ease-out;
+  }
+
+  .support-tool:active {
+    transform: scale(.96);
+  }
 }
 
 .support-tool--disabled {

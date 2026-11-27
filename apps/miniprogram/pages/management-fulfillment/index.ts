@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { authorityProjection, hasCapability } from "../../services/authority";
 import { downloadPrivateMedia, request } from "../../services/api";
 import { commerceContextRevision } from "../../services/commerce-command-store";
@@ -10,6 +11,7 @@ type Row={id:string;orderNumber:string;items:string;logisticsState:string;carrie
 type BatchResult={orderId:string;orderNumber?:string;status:"accepted"|"rejected";code?:string;resultLabel?:string};
 const resultCopy:Record<string,string>={ORDER_ALREADY_SHIPPED:"已登记发货，请打开订单核对",SHIPMENT_PAID_ORDER_REQUIRED:"须先确认订单已支付",VERSION_CONFLICT:"订单已变化，请刷新核对",SHIPMENT_REFUND_REVIEW_REQUIRED:"请先处理该订单的退款",SHIPMENT_AFTERSALE_REVIEW_REQUIRED:"请先处理该订单的售后",SHIPMENT_TIME_INVALID:"请核对实际交寄时间"};
 Page({
+  dismissNativeKeyboardOnTap,
  visible:false,epoch:0,lastToken:"",lastRevision:-1,timer:null as ReturnType<typeof setInterval>|null,
  download:null as ReturnType<typeof downloadPrivateMedia>|null,batchKey:"",frozenRows:"",
  data:{chromeStyle:currentChromeStyle(),states:["待发货","已发货","快递已签收","物流异常","全部已支付"],stateIndex:0,orderNumber:"",items:[] as Row[],nextCursor:null as string|null,loadedFilter:"",rows:"",fileName:"",importCount:0,skippedRows:0,completedRows:0,confirmed:false,results:[] as BatchResult[],loading:true,busy:false,coreReady:false,error:"",notice:"",batchLocked:false,batchPending:false,canOrders:false},

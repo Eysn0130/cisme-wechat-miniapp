@@ -1,3 +1,4 @@
+import { dismissNativeKeyboardOnTap } from "../../services/native-keyboard";
 import { ensureWechatPrivacy } from "../../services/wechat-privacy";
 import {prepareOfficerLoginVisits} from '../../services/officer-attribution';
 import { publishMemberIdentity } from "../../services/member-identity";
@@ -40,6 +41,7 @@ function currentLegalDocuments(): LegalDocumentVersions | null {
 }
 
 Page({
+  dismissNativeKeyboardOnTap,
   authenticationFlowId:"",
   loginFlowToken:"",loginOwnerId:"",
   authenticationReturnUrl:"/pages/home/index",

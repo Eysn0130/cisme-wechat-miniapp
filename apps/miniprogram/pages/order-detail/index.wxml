@@ -1,7 +1,7 @@
 <page-meta root-font-size="system"/>
 <import src="../../templates/recorded-commands.wxml"/>
 <import src="../../templates/fulfillment-policy.wxml"/>
-<view class="chrome-root" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back {{busy||navigating?'control--disabled':''}}" bindtap="back" disabled="{{busy||navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">订单详情</text></view><view class="page page--stack detail-page {{!closedRights&&order.status==='pending_payment'&&isolatedPayment?'detail-page--payable':''}}"><view wx:if="{{loading && !order}}" class="page-read-loading" aria-role="status" aria-label="正在加载订单…"><view class="page-read-loading__indicator"/></view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">刷新状态</button></view>
+<view capture-bind:tap="dismissNativeKeyboardOnTap" class="chrome-root" style="{{chromeStyle}}"><view class="topbar"><button class="topbar__back {{busy||navigating?'control--disabled':''}}" bindtap="back" disabled="{{busy||navigating}}" aria-label="返回"><image class="topbar__back-icon" src="/assets/icons/arrow-left-ink.svg"/></button><text class="topbar__title">订单详情</text></view><view class="page page--stack detail-page {{!closedRights&&order.status==='pending_payment'&&isolatedPayment?'detail-page--payable':''}}"><view wx:if="{{loading && !order}}" class="page-read-loading" aria-role="status" aria-label="正在加载订单…"><view class="page-read-loading__indicator"/></view><view wx:if="{{error}}" class="state state--error"><text>{{error}}</text><button wx:if="{{invalidId}}" class="text-button" bindtap="back">返回</button><button wx:else class="text-button" bindtap="load">刷新状态</button></view>
 <view wx:if="{{!closedRights && (runtimeState==='error'||runtimeMode==='test'||order.status==='pending_payment' && !isolatedPayment)}}" class="order-runtime" aria-live="polite"><text>{{runtimeCopy}}</text><button wx:if="{{runtimeState==='error'}}" class="text-button {{busy?'text-button--disabled':''}}" bindtap="retryRuntime" disabled="{{busy}}">重试连接</button></view>
 <view wx:if="{{!closedRights && (recoveryLoading||recoveryError||recoveryRows.length)}}" class="state" aria-live="polite">
   <text wx:if="{{recoveryLoading}}">正在核对上次操作…</text><text wx:if="{{recoveryError}}">{{recoveryError}}</text>
@@ -70,7 +70,7 @@
           <text wx:elif="{{sheetBasisIndex || sheetFulfillment==='unshipped'}}" class="support-sheet__method">{{sheetFulfillment==='unshipped'?'无需寄回':sheetApplicationLabel}}</text>
           <view id="sheet-reason" class="support-sheet__reason-group">
             <text class="support-sheet__field-label">{{sheetBasisIndex===1?'补充说明（选填）':'问题说明'}}</text>
-            <textarea class="support-sheet__reason {{sheetKeyboardHeight?'support-sheet__reason--focused':''}}" aria-label="{{sheetBasisIndex===1?'补充说明，选填':'售后说明'}}" value="{{sheetReason}}" maxlength="500" adjust-position="{{false}}" bindinput="editSheetReason" bindkeyboardheightchange="onSheetKeyboardHeightChange" disabled="{{sheetSubmitting||sheetAttempt}}"/>
+            <textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" class="support-sheet__reason {{sheetKeyboardHeight?'support-sheet__reason--focused':''}}" aria-label="{{sheetBasisIndex===1?'补充说明，选填':'售后说明'}}" value="{{sheetReason}}" maxlength="500" adjust-position="{{false}}" bindinput="editSheetReason" bindkeyboardheightchange="onSheetKeyboardHeightChange" disabled="{{sheetSubmitting||sheetAttempt}}"/>
           </view>
         </view>
       </block>
@@ -169,8 +169,8 @@
   <text wx:if="{{runtimeMode==='test'}}" class="refund-copy">测试订单，不涉及真实退款。</text>
   <button wx:if="{{!closedRights&&runtimeMode!=='formal'&&isolatedPayment&&!refundFormVisible}}" class="secondary" bindtap="showRefundForm">申请测试退款</button>
   <view wx:if="{{!closedRights&&runtimeMode!=='formal'&&isolatedPayment&&refundFormVisible}}" class="refund-form">
-    <text class="refund-label">申请金额（元）</text><input type="digit" value="{{refundAmount}}" placeholder="如 20.00" bindinput="editRefundAmount" maxlength="11"/>
-    <text class="refund-label">退款原因</text><textarea value="{{refundReason}}" placeholder="简要说明原因" bindinput="editRefundReason" maxlength="500" auto-height/>
+    <text class="refund-label">申请金额（元）</text><input data-keyboard-field="input" hold-keyboard="{{false}}" type="digit" value="{{refundAmount}}" placeholder="如 20.00" bindinput="editRefundAmount" maxlength="11"/>
+    <text class="refund-label">退款原因</text><textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" value="{{refundReason}}" placeholder="简要说明原因" bindinput="editRefundReason" maxlength="500" auto-height/>
     <view class="refund-actions"><button class="secondary {{busy?'secondary--disabled':''}}" bindtap="closeRefundForm" disabled="{{busy}}">取消填写</button><button class="primary {{busy?'primary--disabled':''}}" bindtap="submitRefund" loading="{{busy}}" disabled="{{busy}}">提交申请</button></view>
   </view>
   <view class="refund-history"><text>{{refundCountLabel}}</text><text wx:if="{{refundLoading}}">正在读取…</text></view>
@@ -191,7 +191,7 @@
 </view>
 
 <points-celebration owner="{{rewardOwner}}" auto-receipts="{{true}}" enabled="{{!loading&&!qualificationPurchase}}"/>
-<view wx:if="{{qualificationMoment}}" class="credit-moment officer-task-moment {{qualificationReduced?'credit-moment--reduced':'credit-moment--spinning'}}" aria-live="polite" aria-label="任务完成">
+<view capture-bind:tap="dismissNativeKeyboardOnTap" wx:if="{{qualificationMoment}}" class="credit-moment officer-task-moment {{qualificationReduced?'credit-moment--reduced':'credit-moment--spinning'}}" aria-live="polite" aria-label="任务完成">
  <view class="credit-moment__shade" aria-hidden="true"/>
  <view class="credit-moment__card">
   <image class="credit-moment__silk" src="/assets/cisme/card-silk-v2.svg" mode="aspectFill" aria-hidden="true"/>

@@ -1,5 +1,5 @@
 <page-meta root-font-size="system"/>
-<view class="home-page {{reducedMotion ? 'home-page--reduced' : ''}}" style="{{chromeStyle}}">
+<view capture-bind:tap="dismissNativeKeyboardOnTap" class="home-page {{reducedMotion ? 'home-page--reduced' : ''}}" style="{{chromeStyle}}">
   <view class="home-header-surface" aria-hidden="true"/>
   <button class="home-support {{accountOpening || sessionMounted || onboardingOpen || giftOpen ? 'control--disabled' : ''}}" bindtap="openSupport" disabled="{{accountOpening || sessionMounted || onboardingOpen || giftOpen}}" aria-hidden="{{sessionMounted || onboardingOpen || giftOpen}}" aria-label="打开 CISME 客服{{supportState === 'ready' ? (supportUnread ? '，有 ' + supportUnread + ' 条未读消息' : '，没有未读消息') : supportState === 'error' ? '，未读数量暂未确认' : '，未读数量同步中'}}"><image src="/assets/icons/chat-circle-plum.svg" mode="aspectFit"/><text wx:if="{{supportUnread}}" class="home-support__badge">{{supportUnread > 99 ? '99+' : supportUnread}}</text></button>
   <view class="home-platform" aria-hidden="{{sessionMounted || onboardingOpen || giftOpen}}"><text class="brand-wordmark">CISME</text></view>
@@ -53,7 +53,7 @@
             </button>
           </view>
           <view class="usage-note-label"><text>护理感受</text><text class="usage-note-label__optional">选填</text></view>
-          <textarea class="usage-note" value="{{sessionNote}}" bindinput="careNoteInput" maxlength="500" placeholder="留下一点今天的感受…" disabled="{{working || mutationState === 'unknown'}}" cursor-spacing="28" aria-label="护理感受，选填，最多500字"/>
+          <textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" class="usage-note" value="{{sessionNote}}" bindinput="careNoteInput" maxlength="500" placeholder="留下一点今天的感受…" disabled="{{working || mutationState === 'unknown'}}" cursor-spacing="28" aria-label="护理感受，选填，最多500字"/>
         </view>
         <button class="session-primary {{!sessionProducts.length || working || mutationState === 'unknown' ? 'control--disabled' : ''}}" bindtap="continueCareUsage" disabled="{{!sessionProducts.length || working || mutationState === 'unknown'}}" loading="{{working}}">{{working ? '正在保存…' : sessionCycleDue ? '继续四步护理' : sessionSubmitLabel}}</button>
         <text class="session-footnote">{{sessionCycleDue ? '完成四步并记录护理后感受，一起保存本次护理。' : '同一天调整记录不会重复获得打卡积分。'}}</text>
