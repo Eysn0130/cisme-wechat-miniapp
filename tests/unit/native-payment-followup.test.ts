@@ -123,4 +123,30 @@ describe("native payment follow-up ownership", () => {
     expect(page.data.actionStatus).toBe(""); expect(page.data.busy).toBe(false);
     expect(mocks.request.mock.calls.filter(([o]) => o.path === corePath())).toHaveLength(2);
   });
+
+  it.each([false, true])("automatically shows an ordinary order once payment settles (cashier returned while hidden: %s)", async hidden => {
+    vi.useFakeTimers();
+    try {
+      const query = await prepare(), payment = page.preparePayment();
+      await flush();
+      if (hidden) page.onHide();
+      query.resolve({ state: "verified_pending" }); await payment; await flush();
+      expect(page.data.order.status).toBe("pending_payment");
+
+      if (hidden) {
+        await vi.advanceTimersByTimeAsync(6_000);
+        expect(mocks.request.mock.calls.filter(([o]) => o.path === corePath())).toHaveLength(1);
+        page.onShow(); await flush();
+      }
+      core = deferred();
+      core.resolve({ ...order, status: "paid", version: 3 });
+      await vi.advanceTimersByTimeAsync(700);
+      await flush();
+      expect(page.data.order.status).toBe("paid");
+      expect(page.data.actionStatus).toBe("付款已确认。");
+      expect(mocks.request.mock.calls.filter(([o]) => o.method === "POST")).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
