@@ -100,8 +100,9 @@ export function orderRuntimeStatus(page?: object): Promise<CommerceOrderRuntimeS
   const options = { path: "/v1/commerce/orders/status", authMode: "public" as const, cacheTags: ["catalog"] };
   return page ? pageRead<CommerceOrderRuntimeStatus>(page, options) : request<CommerceOrderRuntimeStatus>(options);
 }
-export function memberAddresses(): Promise<{ enabled: boolean; maxAddresses: number; addresses: CheckoutAddress[] }> {
-  return request({ path: "/v1/me/addresses", cacheTags: ["member"] });
+export function memberAddresses(page?: object): Promise<{ enabled: boolean; maxAddresses: number; addresses: CheckoutAddress[] }> {
+  const options = { path: "/v1/me/addresses", cacheTags: ["member"] };
+  return page ? pageRead(page, options) : request(options);
 }
 export function createCheckoutQuote(input: { skuId: string; quantity: number; addressId: string; addressVersion: number;
   creditCents?:number;points?:number;couponId?:string }, idempotencyKey: string): Promise<CheckoutQuote> {
