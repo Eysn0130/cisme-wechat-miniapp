@@ -19,6 +19,7 @@ import {
   presentSupportMessages,
   readableSequence,
   supportMessageSetDataPatch,
+  supportOrderStatusLabel,
   supportPollDelay,
   withReadCursor,
   type PresentedSupportMessage,
@@ -46,7 +47,6 @@ type AftersalePreview = {id:string;label:string;orderNumberTail:string;summary:s
 type ReturnForm = {recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string};
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
-const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", cancelled: "已取消", expired: "已超时" };
 function sessionToken(): string { return getApp<IAppOption>().globalData.sessionToken; }
 
 Page({
@@ -524,7 +524,7 @@ Page({
       attachments: item.attachments ?? [],
       orderCard: item.orderCard ? {
         ...item.orderCard,
-        statusLabel: orderStatusLabels[item.orderCard.status] ?? item.orderCard.status,
+        statusLabel: supportOrderStatusLabel(item.orderCard.status),
         totalYuan: centsToYuan(item.orderCard.totalCents)
       } : null
     }));

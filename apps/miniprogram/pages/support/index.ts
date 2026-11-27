@@ -21,6 +21,7 @@ import {
   readableSequence,
   supportHeaderPresentation,
   supportMessageSetDataPatch,
+  supportOrderStatusLabel,
   supportPollDelay,
   withReadCursor,
   type PresentedSupportMessage,
@@ -53,7 +54,6 @@ type TopicMetadata = { contextStartSequence?: unknown; contextVersion?: unknown;
 type AiCapabilities = { supportAiAvailable?: unknown; supportAiCanRespond?: unknown };
 
 const emptyPresence: Presence = { agentDisplayName: "CISME 客服", operatorOnline: false, operatorTyping: false, memberOnline: false, memberTyping: false, serverTime: "" };
-const orderStatusLabels: Record<string, string> = { pending_payment: "待支付", paid:"已付款", shipped:"已发货", delivered:"已签收", completed:"已完成", cancelled: "已取消", expired: "已超时" };
 function sessionToken(): string { return historicalCommerceToken(); }
 function isCancellation(error: unknown): boolean { return /cancel|abort/i.test(String((error as {errMsg?:string})?.errMsg ?? (error as {code?:string})?.code ?? error)); }
 function newTopicRequestId(): string { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => { const n = Math.floor(Math.random() * 16); return (char === 'x' ? n : n & 3 | 8).toString(16); }); }
@@ -320,7 +320,7 @@ Page({
     const current=()=>this.owns(epoch,token)&&attempt===this.linkedOrderAttempt&&revision===this.orderSelectionRevision&&!this.linkedOrderDismissed;
     try{const order=await myOrder(id,this);if(!current()||order.id!==id||this.data.selectedOrder)return;
       const selected:OrderChoice={id,orderNumberTail:order.orderNumber.slice(-4),status:order.status,
-        statusLabel:orderStatusLabels[order.status]??"状态待更新",totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
+        statusLabel:supportOrderStatusLabel(order.status),totalYuan:centsToYuan(order.totalCents),totalCents:order.totalCents,
         currency:order.currency,productName:order.lines[0]?.productName??'订单商品',productImage:nativeCatalogImage(order.lines[0]?.image),
         itemSummary:order.lines.map(line=>`${line.productName} · ${line.skuLabel} × ${line.quantity}`).join('；')};
       this.setData({selectedOrder:selected,composerSendEnabled:this.data.closedRights?Boolean(this.data.input.trim()):memberComposerCanSend(this.data.input,this.data.selectedImage,selected)});
@@ -466,7 +466,7 @@ Page({
       const card=item.aftersaleCard;
       return {...item,attachments:(item.attachments??[]).map(attachment=>({...attachment,
         ...(localImage?.mediaId===attachment.id?{localPath:localImage.localPath}:{})})),
-        orderCard:item.orderCard?{...item.orderCard,statusLabel:orderStatusLabels[item.orderCard.status]??"状态待更新",totalYuan:centsToYuan(item.orderCard.totalCents)}:null,
+        orderCard:item.orderCard?{...item.orderCard,statusLabel:supportOrderStatusLabel(item.orderCard.status),totalYuan:centsToYuan(item.orderCard.totalCents)}:null,
         ...(card?{aftersaleCard:{...card,amountLabel:centsToYuan(card.amountCents),lines:card.lines.slice(0,2),moreLines:Math.max(0,card.lines.length-2)}}:{})};
     });
   },
@@ -638,7 +638,7 @@ Page({
       return;
     }
     this.lastPresenceSentAt = Date.now();
-    try { await request({ path: "/v1/me/support/presence", method: "POST", data: { online, typing: typing && this.data.composerFocused }, cacheTags: ["support"] }); } catch {}
+    try { await request({ path: "/v1/me/support/presence", method: "POST", data: { online, typing: typing && this.data.composerFocused && !this.consultationCaseId }, cacheTags: ["support"] }); } catch {}
   },
   sendSignature(body: string, mediaIds: string[], linkedOrderId: string | null) { return JSON.stringify([body, mediaIds, linkedOrderId]); },
   pendingFrom(attempt: SendAttempt, state: "pending" | "unknown"): Message {
@@ -864,7 +864,7 @@ Page({
       const page = await myOrders();
       if (!current()) return;
       const choices = page.items.map((order: CommerceOrderSummary): OrderChoice => ({ id: order.id, orderNumberTail: order.orderNumber.slice(-4), status: order.status,
-        statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents, currency: order.currency,
+        statusLabel: supportOrderStatusLabel(order.status), totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents, currency: order.currency,
         productName: order.lines[0]?.productName ?? "订单商品", productImage: nativeCatalogImage(order.lines[0]?.image),
         itemSummary: order.lines.map((line) => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；") }));
       this.setData({ orderChoices: choices, orderPickerNextCursor: page.nextCursor ?? null, orderPickerLoading: false });
@@ -882,7 +882,7 @@ Page({
       const seen = new Set(this.data.orderChoices.map(order => order.id));
       const choices = page.items.filter(order => !seen.has(order.id)).map((order: CommerceOrderSummary): OrderChoice => ({
         id: order.id, orderNumberTail: order.orderNumber.slice(-4), status: order.status,
-        statusLabel: orderStatusLabels[order.status] ?? "状态待更新", totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents,
+        statusLabel: supportOrderStatusLabel(order.status), totalYuan: centsToYuan(order.totalCents), totalCents: order.totalCents,
         currency: order.currency, productName: order.lines[0]?.productName ?? "订单商品", productImage: nativeCatalogImage(order.lines[0]?.image),
         itemSummary: order.lines.map(line => `${line.productName} · ${line.skuLabel} × ${line.quantity}`).join("；")
       }));

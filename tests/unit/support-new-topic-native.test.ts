@@ -82,6 +82,11 @@ describe('native support new AI topic',()=>{
   expect(p.headerPatch(assigned,{operatorTyping:true},true)).toMatchObject({
    statusLabel:'CISME AI 客服',statusTone:'ai',presence:{operatorTyping:false}
   });
+  p.data.composerFocused=true;
+  await p.publishPresence(true,true,true);
+  expect(m.request).toHaveBeenLastCalledWith(expect.objectContaining({
+   path:'/v1/me/support/presence',data:{online:true,typing:false}
+  }));
   expect(p.data.consultationView).toBe(true);
   expect(p.messagesPath('after=3')).toContain(`consultationCaseId=${aftersale.caseId}&after=3`);
   (globalThis as any).getCurrentPages=()=>[];
