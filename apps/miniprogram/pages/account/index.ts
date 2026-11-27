@@ -45,7 +45,7 @@ Page({
   authenticationReturnUrl:"/pages/home/index",
   renewalSessionToken:"",
   renewalDestination:"",
-  data: { restoringSession:false,sessionRestoreFailed:false,renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login",loginName:"",loginNameInvalid:false,loginProfileUncertain:false,profileAttempt:0, avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
+  data: { checkoutFromProduct:false,restoringSession:false,sessionRestoreFailed:false,renewalMode:false,renewalComplete:false,legalAcceptanceStarted:false,loginStage:"login",loginName:"",loginNameInvalid:false,loginProfileUncertain:false,profileAttempt:0, avatarBusy:false, avatarAttempt:0, pageVisible:true, avatarUrl:defaultMemberAvatar, notice:"", serverLegalDocuments: null as LegalDocumentVersions | null, legalAttempt: 0, legalLoadError: "" as LegalLoadError, legalFailureCode: "", chromeStyle: currentChromeStyle(), reducedMotion:shouldReduceMotion(), heroMotionActive:false, loading: false, identityCommitStarted: false, leavePromptOpen: false, leaving: false, pendingDestination: "", crossBorderAccepted: false, crossBorderRequired: false, agreementAccepted: false, legalTextsReady: false, legalLoading: true, localLegalFixture: false, pageAlive: true, authAttempt: 0, error: "", accountHelpAvailable:false,accountHelpBusy:false },
   async openAccountHelp(){
     if(this.data.accountHelpBusy)return;
     const attempt=++this.data.authAttempt;
@@ -111,13 +111,17 @@ Page({
     this.data.pageAlive = true;
     this.authenticationFlowId = query?.authFlow || "";
     this.authenticationReturnUrl = consumeAuthReturnUrl(this.authenticationFlowId, query?.intent === "renew" ? "renew" : "login");
+    const pages = getCurrentPages();
+    const previous = pages[pages.length - 2]?.route ?? "";
+    this.setData({checkoutFromProduct: nativeRoutePath(this.authenticationReturnUrl) === "/pages/checkout/index"
+      && nativeRoutePath(previous) === "/pages/product/index"});
     if(query?.intent==="renew"){
       this.renewalDestination = this.authenticationReturnUrl;
       this.renewalSessionToken=getApp<IAppOption>().globalData.sessionToken;
       this.setData({renewalMode:true,renewalComplete:false,loginStage:"login",agreementAccepted:false,crossBorderAccepted:false,pendingDestination:""});
     }
     // An explicitly opened account page can restore an existing session.
-    if (!query?.intent && getCurrentPages().length === 1) {
+    if (!query?.intent && pages.length === 1) {
       const token = getApp<IAppOption>().globalData.sessionToken;
       if (token) void this.restoreRetainedSession();
     }
@@ -545,7 +549,7 @@ Page({
     wx.navigateBack({ delta: 1, fail: openSource });
   },
   async browseCommunity() {
-    if(this.data.renewalMode){await this.back();return;}
+    if(this.data.renewalMode||this.data.checkoutFromProduct){await this.back();return;}
     if (!await this.confirmIdentityLeave("community")) return;
     if (!this.data.pageAlive || this.data.leaving) return;
     wx.setStorageSync("cisme.guestBrowsing", true);

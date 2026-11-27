@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "917a9a39ad360a99e2201f0471486ad32b3b07ff959fa56481dc2b452b75ba8b",
+  "packageSourceSha256": "a15c51f1233c25200ae6c5291508ca4499d278d3a53bcd33f66ae361ec632dde",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-27 includes bounded ordinary-order reads after the cashier returns or the provider confirms a pending settlement. Scoped DevTools checks covered checkout and delayed confirmation with isolated data. Full routes, OS accessibility and physical-device coverage remain pending.",
+  "note": "2026-11-27 恢复商城、商品和规格的游客浏览。结算使用原生登录与导航续接。完整状态、字号和真机矩阵仍待验。",
   "previousSourceRecord": {
-    "packageSourceSha256": "7f56d3f01f1b9852f176aabb56ae4f8d699d29b5c0ca9ea3fd741127c548f638",
-    "scope": "0.1.57 uploaded development candidate before loading-state tokens, upload stages and inaccessible aftersale routing; historical screenshots and phone evidence remain historical."
+    "packageSourceSha256": "917a9a39ad360a99e2201f0471486ad32b3b07ff959fa56481dc2b452b75ba8b",
+    "scope": "0.1.65 tested on device with one authorized ¥298 purchase, before the public catalog and checkout return update."
   },
   "pendingSourceRebind": false
 }
