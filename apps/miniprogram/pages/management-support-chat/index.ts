@@ -95,7 +95,7 @@ Page({
     accessDenied: false,
     canViewContext: false,
     canManageAftersale:false,aftersaleCases:[] as AftersaleCase[],aftersaleOpen:false,aftersaleError:"",returnFormCaseId:"",
-    aftersalePreview:null as AftersalePreview|null,contactCaseError:"",
+    aftersalePreview:null as AftersalePreview|null,caseContact:false,contactCaseError:"",
     returnForm:{recipientName:"",phone:"",region:"",address:"",freightPayer:"",instructions:""} as ReturnForm,
     freightOptions:['商家承担','用户承担'],
     returnAttempt:null as {key:string;caseId:string;payload:Record<string,unknown>}|null,
@@ -124,7 +124,7 @@ Page({
   onLoad(query: Record<string, string | undefined>) {
     this.data.pageAlive = true;
     this.contactCaseId=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(query.caseId??'')?query.caseId!:'';
-    this.setData({ id: query.id || "" });
+    this.setData({ id: query.id || "",caseContact:Boolean(this.contactCaseId) });
   },
   recoveryKey(){return `operator:${this.data.id}${this.contactCaseId?`:${this.contactCaseId}`:''}`;},
   onResize() {
@@ -178,7 +178,8 @@ Page({
         this.startPolling();
       }
       await contactRead;
-      if (this.owns(epoch, ownerToken) && !this.data.error && this.data.conversation) this.restoreRecovery();
+      if (this.owns(epoch, ownerToken) && !this.data.error && this.data.conversation
+        && (!this.contactCaseId || this.contactCase)) this.restoreRecovery();
     } catch (error) {
       if (!this.rejectRead(error, epoch, ownerToken) && this.owns(epoch, ownerToken)) {
         this.clearSensitiveThread();
