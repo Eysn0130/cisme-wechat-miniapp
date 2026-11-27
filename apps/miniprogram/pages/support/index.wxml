@@ -13,7 +13,7 @@
   </view>
 
   <view class="support-chat-layout {{keyboardHeight ? 'support-chat-layout--with-keyboard' : ''}}" style="{{keyboardHeight ? 'bottom:' + keyboardHeight + 'px' : ''}}">
-  <button wx:if="{{consultationView && aftersale}}" class="support-case-resume" bindtap="resumeAftersale"
+  <button wx:if="{{consultationView && aftersale}}" class="support-case-resume {{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="resumeAftersale"
     hover-class="support-text-action--pressed" disabled="{{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}"
     aria-label="返回订单尾号 {{aftersale.orderNumberTail}} 的售后对话">
     <image class="support-case-resume__icon" src="/assets/icons/package-plum.svg" aria-hidden="true"/>

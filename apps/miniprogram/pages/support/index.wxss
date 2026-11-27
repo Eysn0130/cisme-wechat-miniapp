@@ -92,7 +92,6 @@
   line-height: 1.35;
 }
 
-.support-case-resume::after { border: 0; }
 .support-case-resume__icon { width: 34rpx; height: 34rpx; flex: none; }
 .support-case-resume__copy { flex: 1; min-width: 0; }
 .support-case-resume__title { display: block; font-size: var(--cisme-text-action); font-weight: 600; }
