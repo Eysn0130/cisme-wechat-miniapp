@@ -36,12 +36,20 @@
         </button>
         <text wx:elif="{{!item.returnInstruction}}" class="support-system__notice">{{item.displayBody}}</text>
         <view wx:if="{{item.returnInstruction}}" class="return-card">
-          <strong>退货指引 · 第 {{item.returnInstruction.version}} 版</strong>
-          <text>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text>
-          <text>{{item.returnInstruction.region}} {{item.returnInstruction.address}}</text>
-          <text>{{item.returnInstruction.freightPayer==='merchant'?'商家承担退货运费':item.returnInstruction.freightPayer==='member'?'你承担退货运费':'请与客服确认退货运费'}}</text>
-          <text wx:if="{{item.returnInstruction.instructions}}">{{item.returnInstruction.instructions}}</text>
-          <view class="return-card__actions"><button data-id="{{item.returnInstruction.caseId}}" data-shipment="{{true}}" bindtap="openAftersaleCase">查看当前指引</button></view>
+          <view class="return-card__header">
+            <text class="return-card__title">退货指引</text>
+            <text class="return-card__version">第 {{item.returnInstruction.version}} 版</text>
+          </view>
+          <view wx:if="{{expandedReturnMessageId === item.id}}" class="return-card__body">
+            <text>{{item.returnInstruction.recipientName}} · {{item.returnInstruction.phone}}</text>
+            <text>{{item.returnInstruction.region}} {{item.returnInstruction.address}}</text>
+            <text>{{item.returnInstruction.freightPayer==='merchant'?'商家承担退货运费':item.returnInstruction.freightPayer==='member'?'你承担退货运费':'请与客服确认退货运费'}}</text>
+            <text wx:if="{{item.returnInstruction.instructions}}">{{item.returnInstruction.instructions}}</text>
+          </view>
+          <view class="return-card__actions">
+            <button wx:if="{{expandedReturnMessageId === item.id}}" class="text-button return-card__action" data-id="{{item.returnInstruction.caseId}}" data-shipment="{{true}}" bindtap="openAftersaleCase"><text class="return-card__action-label">查看当前指引</text></button>
+            <button class="text-button return-card__action return-card__toggle" data-id="{{item.id}}" bindtap="toggleReturnInstruction" aria-expanded="{{expandedReturnMessageId === item.id}}" aria-label="{{expandedReturnMessageId === item.id ? '收起退货指引' : '展开退货指引'}}"><text class="return-card__action-label">{{expandedReturnMessageId === item.id ? '收起' : '更多'}}</text></button>
+          </view>
         </view>
       </view>
       <view wx:else id="support-{{item.sequence}}" class="support-message support-message--{{item.senderType}} {{item.groupStart ? 'support-message--group-start' : 'support-message--grouped'}}">
@@ -105,7 +113,7 @@
         </view>
         <view wx:if="{{selectedOrder}}" class="support-draft-order"><image class="support-draft__image" src="{{selectedOrder.productImage || '/assets/icons/package-plum.svg'}}" mode="aspectFill"/><view class="support-draft__content"><strong>{{selectedOrder.productName}}</strong><text>订单尾号 {{selectedOrder.orderNumberTail}} · {{selectedOrder.statusLabel}}</text></view><button wx:if="{{!closedRights}}" bindtap="removeOrder" aria-label="移除订单"><image class="support-draft__remove-icon" src="/assets/icons/close-plum.svg" mode="aspectFit"/></button></view>
       </view>
-      <view class="support-composer__controls">
+      <view class="support-composer__controls {{composerLineCount > 1 ? 'support-composer__controls--multiline' : ''}}">
         <textarea class="support-input {{composerCapped ? 'support-input--capped' : ''}}" aria-label="客服消息" value="{{input}}" bindinput="updateInput" bindfocus="onComposerFocus" bindblur="onComposerBlur" bindlinechange="onComposerLineChange" bindkeyboardheightchange="onKeyboardHeightChange" maxlength="4000" auto-height="{{!composerCapped}}" fixed="true" adjust-position="{{false}}" hold-keyboard="true" disable-default-padding="true" confirm-type="done" cursor-spacing="16" placeholder="{{newTopicAttempt?'请先确认新对话':sendAttempt?'请先核对上条消息':'输入消息'}}" placeholder-class="support-input__placeholder" disabled="{{sending||sendAttempt||newTopicBusy||newTopicAttempt}}"/>
         <view class="support-composer__tools support-chat-tools">
         <button wx:if="{{!closedRights}}" class="support-tool {{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt ? 'control--disabled' : ''}}" bindtap="openAttachmentSheet" disabled="{{sending || sendAttempt || uploadBusy || newTopicBusy || newTopicAttempt}}" aria-label="添加附件"><image src="/assets/icons/composer-paperclip-plum.svg"/></button>

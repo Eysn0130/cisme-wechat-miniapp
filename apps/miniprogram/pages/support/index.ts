@@ -32,6 +32,7 @@ type AftersaleCard={id:string;orderId:string;orderNumberTail:string;kind:'refund
   lines:Array<{lineId:string;productName:string;skuLabel:string;quantity:number}>;amountLabel?:string;moreLines?:number};
 type RawMessage = { id: string; sequence: number; senderType: "user" | "ai" | "admin" | "system"; body: string; contentType: string; createdAt: string; attachments: Attachment[]; orderCard: OrderCard | null;
   aftersaleCard?:AftersaleCard;
+  aftersaleDecision?: { caseId: string; version: number };
   replyToMessageId?: string | null; sender?: SupportSender; avatarPath?: string;
   helpAction?: unknown;
   returnInstruction?:{caseId:string;version:number;recipientName:string;phone:string;region:string;address:string;freightPayer:string;instructions:string}|null;
@@ -57,6 +58,13 @@ function newTopicRequestId(): string { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxx
 function memberComposerCanSend(input: string, image: SelectedImage | null, order: OrderChoice | null): boolean {
   if (image && (image.status !== "ready" || !image.mediaId)) return false;
   return Boolean(input.trim() || image?.mediaId || order);
+}
+
+function compactAftersaleNotice(body: string): string {
+  return body
+    .replace(/^订单尾号 [^\n]+\n/, "")
+    .replace(/\n如需协助，请在此会话联系人工客服。$/, "")
+    .replace(/^本次售后申请未通过。\n原因：/, "售后未通过 · ");
 }
 
 Page({
@@ -92,6 +100,7 @@ Page({
   data: {
     ownAvatar: defaultMemberAvatar, ownDisplayName: "CISME 会员", ownBadge: "", memberAvatar: defaultMemberAvatar, memberBadge: "", agentAvatar: defaultMemberAvatar, agentBadge: "", agentDisplayName: "", identityMemberKey: "", identityAgentKey: "",
     chromeStyle: currentChromeStyle(), closedRights:false, conversation: null as Conversation | null, messages: [] as Message[], syncCursor: 0, maxSeenSequence: 0, readCursor: 0,
+    expandedReturnMessageId: "",
     olderCursor: null as number | null, historyStartLoaded: false, presence: emptyPresence, statusLabel: "联系客服", statusTone: "neutral", input: "", sendAttempt: null as SendAttempt | null,
     contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicBusy: false, newTopicAttempt: null as NewTopicAttempt | null,
     pendingMessage: null as Message | null, loading: true, historyLoaded: false, loadingOlder: false, sending: false, handoffBusy: false, handoffFailed: false, handoffAttempt: null as HandoffAttempt | null, aiReplyWaiting: false, supportAiAvailable:false, supportAiCanRespond: null as boolean | null, error: "", errorAction: "" as "" | "sync" | "handoff", anchor: "", pageAlive: false, visible: false, helpNavigating: false,
@@ -130,7 +139,7 @@ Page({
       this.orderSelectionRevision += 1;
       this.linkedOrderDismissed = false;
       this.abortTransientWork();
-      this.setData({ conversation: null, messages: [], syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
+      this.setData({ conversation: null, messages: [], expandedReturnMessageId: "", syncCursor: 0, maxSeenSequence: 0, readCursor: 0, olderCursor: null, presence: emptyPresence,
         historyLoaded: false, historyStartLoaded: false, supportAiAvailable: false, supportAiCanRespond: null, statusLabel: "联系客服", statusTone: "neutral", handoffFailed: false, handoffAttempt: null,
         contextStartSequence: 0, contextVersion: 0, newTopicAvailable: false, newTopicAttempt: null,
         input: "", sendAttempt: null, pendingMessage: null, error: "", errorAction: "", anchor: "", atBottom: true, newMessagesBelowCount: 0, newMessagesBelow: false,
@@ -205,6 +214,11 @@ Page({
         stageSupportDraft(sessionToken(),draftScope,this.data.input);
     }
     cancelPageReads(this); void this.publishPresence(false, false, true); this.data.pageAlive = false; this.data.visible = false; this.lifecycleEpoch += 1; this.stopPolling(); this.clearPresenceTimer(); this.abortTransientWork(); this.choosingImage = false; this.nativePickerReturn?.(); this.nativePickerReturn = null; },
+  toggleReturnInstruction(event: WechatMiniprogram.TouchEvent) {
+    const id = String(event.currentTarget.dataset.id ?? "");
+    if (!this.owns(this.lifecycleEpoch, sessionToken()) || !this.data.messages.some(item => item.id === id && item.returnInstruction)) return;
+    this.setData({ expandedReturnMessageId: this.data.expandedReturnMessageId === id ? "" : id });
+  },
   openAftersaleCase(event:WechatMiniprogram.TouchEvent){
     const id=String(event.currentTarget.dataset.id??'');
     if(!this.owns(this.lifecycleEpoch,sessionToken())||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)
@@ -260,7 +274,7 @@ Page({
     this.orderPickerRevision += 1; this.orderPickerToken = "";
     this.setComposerState({ ...(!keepAttempt ? { pendingMessage: null, sendAttempt: null, sending: false } : {}), uploadBusy: false, handoffBusy: false,
       presence: emptyPresence, anchor: "", olderCursor: null, historyStartLoaded: false, loadingOlder: false, handoffFailed: false, handoffAttempt: null,
-      atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0 });
+      atBottom: true, newMessagesBelow: false, newMessagesBelowCount: 0, expandedReturnMessageId: "" });
   },
   abortDownloads() {
     const downloads = this.mediaDownloads ?? [];
@@ -324,7 +338,11 @@ Page({
       this.identityCache?.accept(item.sender, () => { if (this.owns(identityEpoch, identityToken) && cache === this.identityCache) this.applyThreadState(this.threadState()); });
       return this.identityCache?.resolve(item) ?? item;
     }), { ownSenderType: "user", memberDisplayName: this.data.ownDisplayName, counterpartyReadSequence: activeConversation?.teamReadSequence ?? 0, agentDisplayName: activePresence.agentDisplayName })
-      .map(item => ({ ...item, helpLabel: item.senderType === "ai" ? supportHelpLabel(item.helpAction) : "" }));
+      .map(item => ({
+        ...item,
+        displayBody: item.senderType === "system" && item.aftersaleDecision ? compactAftersaleNotice(item.displayBody) : item.displayBody,
+        helpLabel: item.senderType === "ai" ? supportHelpLabel(item.helpAction) : ""
+      }));
   },
   async openHelp(event: WechatMiniprogram.TouchEvent) {
     const epoch=this.lifecycleEpoch,token=sessionToken();

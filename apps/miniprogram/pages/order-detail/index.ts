@@ -100,7 +100,34 @@ Page({
     try{return await wx.showModal(options);}catch{return {confirm:false};}finally{this.confirmationPending=false;}
   },
   onUnload(){this.onHide();this.data.pageAlive=false;this.data.epoch+=1;},
-  normalize(order:CommerceOrder<MemberOrderAddress>){return {...order,statusLabel:order.aftersale?aftersaleLabels[order.aftersale.phase]:order.status==="paid"&&(order.refundedCents??0)>0?(order.refundedCents!>=order.totalCents?"已退款":"部分退款"):(labels[order.status]??order.status),totalYuan:centsToYuan(order.totalCents),subtotalYuan:centsToYuan(order.subtotalCents),discountYuan:centsToYuan(order.memberDiscountCents),couponDiscountYuan:centsToYuan(order.couponDiscountCents??0),pointsDiscountYuan:centsToYuan(order.memberDiscountCents-(order.couponDiscountCents??0)),shippingYuan:centsToYuan(order.shippingCents),creditYuan:centsToYuan(order.creditTenderCents),cashYuan:centsToYuan(order.cashPayableCents),createdLabel:new Date(order.createdAt).toLocaleString("zh-CN",{hour12:false}),expiresLabel:new Date(order.expiresAt).toLocaleString("zh-CN",{hour12:false}),lines:order.lines.map(line=>({...line,image:nativeCatalogImage(line.image),unitPriceYuan:centsToYuan(line.unitPriceCents),totalYuan:centsToYuan(line.totalCents)})),addressSummary:order.address?`${order.address.province}${order.address.city}${order.address.district} ${order.address.detail}`:""};},
+  normalize(order: CommerceOrder<MemberOrderAddress>) {
+    const {address} = order;
+    const city = address && address.city !== address.province ? address.city : "";
+    return {
+      ...order,
+      statusLabel: order.aftersale ? aftersaleLabels[order.aftersale.phase]
+        : order.status === "paid" && (order.refundedCents ?? 0) > 0
+          ? (order.refundedCents! >= order.totalCents ? "已退款" : "部分退款")
+          : (labels[order.status] ?? order.status),
+      totalYuan: centsToYuan(order.totalCents),
+      subtotalYuan: centsToYuan(order.subtotalCents),
+      discountYuan: centsToYuan(order.memberDiscountCents),
+      couponDiscountYuan: centsToYuan(order.couponDiscountCents ?? 0),
+      pointsDiscountYuan: centsToYuan(order.memberDiscountCents - (order.couponDiscountCents ?? 0)),
+      shippingYuan: centsToYuan(order.shippingCents),
+      creditYuan: centsToYuan(order.creditTenderCents),
+      cashYuan: centsToYuan(order.cashPayableCents),
+      createdLabel: new Date(order.createdAt).toLocaleString("zh-CN", {hour12: false}),
+      expiresLabel: new Date(order.expiresAt).toLocaleString("zh-CN", {hour12: false}),
+      lines: order.lines.map(line => ({
+        ...line,
+        image: nativeCatalogImage(line.image),
+        unitPriceYuan: centsToYuan(line.unitPriceCents),
+        totalYuan: centsToYuan(line.totalCents)
+      })),
+      addressSummary: address ? `${address.province}${city}${address.district} ${address.detail}` : ""
+    };
+  },
   current(epoch:number,token:string){return this.data.pageAlive&&this.data.epoch===epoch&&token===historicalCommerceToken()&&this.lastSessionRevision===commerceContextRevision();},
   readCurrent(epoch:number,token:string,readEpoch:number){return this.data.visible&&this.data.readEpoch===readEpoch&&this.current(epoch,token);},
   onHide(){this.data.visible=false;this.data.readEpoch+=1;this.data.runtimeEpoch+=1;this.receiptQueryAttempt+=1;this.trackingAttempt+=1;
