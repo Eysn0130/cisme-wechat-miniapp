@@ -28,6 +28,14 @@ function applicationAgreement(effectiveOn:string|null){
 }
 export const currentSharingPolicySql=`SELECT p.* FROM sharing_policy p ORDER BY p.version DESC LIMIT 1`;
 export const sharingQualificationProduct='aigerong-scalp-repair-essence-100';
+export async function pendingSharingReferrer(client:DbClient,buyer:string,enabled:boolean){
+ const row=(await client.query(`SELECT o.referral_code AS code,m.display_name AS label,i.id AS id,
+     $2::boolean AND o.state='active' AND m.status='active'
+       AND (o.v2_application_version IS NULL OR sharing_v2_approval_at(o.member_id,o.v2_application_version) IS NOT NULL) AS eligible
+   FROM sharing_v2_referral_intent i JOIN sharing_officer o ON o.member_id=i.officer_id
+   JOIN member m ON m.id=i.officer_id WHERE i.buyer_id=$1 AND i.state='pending' AND i.source='member_choice'`,[buyer,enabled])).rows[0];
+ return row??null;
+}
 async function sharingRootException(client:DbClient,config:AppConfig,owner:string){
  if(!await matchesMemberAdministrationRoot(client,config,owner))return false;
  const capabilities=await memberAdministrationCapabilities(client,config.env,owner);
@@ -146,7 +154,7 @@ export class SharingOfficerService {
    const paid=(await client.query(`SELECT COALESCE(sum(tax_cents),0)::text AS tax,COALESCE(sum(net_cents),0)::text AS net
     FROM sharing_settlement_line WHERE member_id=$1 AND state='paid'`,[actor])).rows[0];
    const relation=await this.relationWithClient(client,actor);
-   const pendingReferrer=await this.pendingReferrer(client,actor,p?.enabled===true);
+   const pendingReferrer=await pendingSharingReferrer(client,actor,p?.enabled===true);
    const linkReferrer=!relation&&!pendingReferrer&&p?.enabled ? await this.linkReferrer(client,actor,p) : null;
    const qualification=await sharingQualification(client,actor);
    const promotionOnly=officer?.state==='promotion_only';
@@ -294,14 +302,6 @@ export class SharingOfficerService {
   return r?{code:r.referral_code,label:r.display_name,displayName:r.display_name,version:r.version,state:r.state,expiresAt:r.expires_at,source:r.source,
    ...(r.agreement_version?{agreementVersion:r.agreement_version}:{})}:null;
  }
- async pendingReferrer(client:DbClient,buyer:string,enabled=true){
-  const row=(await client.query(`SELECT o.referral_code AS code,m.display_name AS label,i.id AS id,
-     $2::boolean AND o.state='active' AND m.status='active'
-       AND (o.v2_application_version IS NULL OR sharing_v2_approval_at(o.member_id,o.v2_application_version) IS NOT NULL) AS eligible
-   FROM sharing_v2_referral_intent i JOIN sharing_officer o ON o.member_id=i.officer_id
-   JOIN member m ON m.id=i.officer_id WHERE i.buyer_id=$1 AND i.state='pending' AND i.source='member_choice'`,[buyer,enabled])).rows[0];
-  return row??null;
- }
  async previewReferrer(actorId:string|undefined,codeInput:unknown){
   const code=text(codeInput,'用户编号',12,12).toUpperCase();
   return transaction(this.pool,async client=>{
@@ -314,7 +314,7 @@ export class SharingOfficerService {
    if(row.member_id===actor)fail('SHARING_SELF_REFERRAL','不能将自己设为推荐人',422);
    const p=(await client.query(currentSharingPolicySql)).rows[0];
    const current=await this.relationWithClient(client,actor);
-  const pending=await this.pendingReferrer(client,actor);
+  const pending=await pendingSharingReferrer(client,actor,p?.enabled===true);
   const unchanged=current?.code===row.user_code;
   return {code:row.user_code,label:row.display_name,displayName:row.display_name,
     eligible:row.state==='active'&&row.approved===true&&p?.enabled===true,unchanged,
@@ -333,7 +333,7 @@ export class SharingOfficerService {
    JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1 FOR UPDATE OF r`,[actor])).rows[0];
   const current=prior?.is_current?prior:undefined;
   if((current?.version??0)!==int(input.expectedVersion,'推荐关系版本',0,2_000_000_000))fail('VERSION_CONFLICT','推荐人已更新，请重新确认');
-  const pending=await this.pendingReferrer(client,actor);
+  const pending=await pendingSharingReferrer(client,actor,true);
   if((pending?.id??null)!==(input.expectedPendingId??null))fail('VERSION_CONFLICT','待生效推荐人已更新，请重新确认');
   const officer=(await client.query(`SELECT o.member_id,o.v2_application_version FROM sharing_officer o JOIN member m ON m.id=o.member_id
    WHERE o.referral_code=$1 AND o.state='active' AND m.status='active'
@@ -347,7 +347,7 @@ export class SharingOfficerService {
   }
   if(officer.v2_application_version||current?.v2_application_version||pending){
    await setSharingV2Intent(client,actor,officer.member_id);
-   return {pendingReferrer:await this.pendingReferrer(client,actor),current:await this.relationWithClient(client,actor)};
+   return {pendingReferrer:await pendingSharingReferrer(client,actor,true),current:await this.relationWithClient(client,actor)};
   }
   const at=(await client.query('SELECT clock_timestamp() AS at')).rows[0].at;
   await this.setChosenRelation(client,actor,officer.member_id,at,p,prior);

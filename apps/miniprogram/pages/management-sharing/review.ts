@@ -4,7 +4,7 @@ import {officerDate,officerLabels,officerMoney} from '../../services/sharing-off
 
 export const officerFilters=[
  {id:'all',label:'全部'},{id:'pending',label:'待审核'},{id:'reviewed',label:'已审核'},
- {id:'active',label:'已开通'},{id:'suspended',label:'已暂停'},{id:'terminated',label:'已终止'},{id:'rejected',label:'未通过'}
+ {id:'active',label:'已开通'},{id:'promotion_only',label:'已开通推广'},{id:'suspended',label:'已暂停'},{id:'terminated',label:'已终止'},{id:'rejected',label:'未通过'}
 ];
 
 type MemberCardSource={avatar?:string|null;avatarRevision?:string|null;displayIdentity?:string|null;cardNumber?:string|null;availablePoints?:number};
@@ -27,7 +27,7 @@ export function prepareCustomerRow(row:CustomerRecord){
 export async function prepareOfficerRow(row:any){
  const officer=await prepareMemberCard(row);
  const applicationDate=officerDate(officer.applicationAt===undefined?officer.appliedAt:officer.applicationAt);
- const date=officer.state==='pending'?applicationDate:officerDate(officer.reviewedAt);
+ const date=officer.state==='pending'?applicationDate:officerDate(officer.promotionAt??officer.reviewedAt);
  return {...officer,applicationDate,date,time:date.slice(11),label:officerLabels[officer.state]||''};
 }
 

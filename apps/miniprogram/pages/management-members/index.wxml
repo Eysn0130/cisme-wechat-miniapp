@@ -11,7 +11,7 @@
    <view class="users-table-inner"><view class="users-table-row users-table-head"><view class="users-identity">用户</view><view wx:for="{{fields}}" wx:key="id" class="users-cell" style="width:{{item.width}}px">{{item.label}}</view><view class="users-cell users-detail-cell"/></view>
     <view wx:for="{{items}}" wx:key="id" class="users-table-row {{item.selected?'users-row-selected':''}}">
      <button class="users-identity users-person" bindtap="tapPerson" data-id="{{item.id}}" aria-label="{{selecting?'选择':'查看'}}{{item.displayName}}"><text wx:if="{{selecting}}" class="users-check {{item.selected?'checked':''}}">{{item.selected?'✓':''}}</text><image wx:else class="users-avatar" src="{{item.avatar||'/assets/icons/user-circle-plum.svg'}}" mode="aspectFill"/><view class="users-person-copy"><text class="users-name">{{item.displayName}}</text><text class="users-number">{{item.cardNumber||'编号待生成'}}</text><text class="users-number" user-select>{{item.userCode}}</text><text wx:if="{{item.administrator}}" class="users-role">{{item.highestAdministrator?'最高管理员':'管理员'}}</text></view></button>
-     <view wx:for="{{item.cells}}" wx:for-item="cell" wx:key="id" class="users-cell {{cell.id==='points'||cell.id==='paid'||cell.id==='net'?'users-numeric':''}}" style="width:{{cell.width}}px">{{cell.value}}</view>
+     <view wx:for="{{item.cells}}" wx:for-item="cell" wx:key="id" class="users-cell {{cell.id==='points'||cell.id==='paid'||cell.id==='net'?'users-numeric':''}} {{cell.id==='assignedOfficer'||cell.id==='referrer'?'users-name-cell':''}}" style="width:{{cell.width}}px">{{cell.value}}</view>
      <button class="users-cell users-detail-cell action-text" data-id="{{item.id}}" bindtap="inspect">{{administratorSelecting?'设置':'详情'}}</button>
     </view>
    </view>

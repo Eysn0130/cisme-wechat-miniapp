@@ -46,18 +46,28 @@ it('stops new reads immediately after the member service grant is revoked',async
 
 it('does not turn qualification management into commission, settlement or contact permission',async()=>{await grant(reader,['member.manage']);const qualification:any=await service.section(reader.memberId,member.memberId,'sharing');expect(qualification.data.commission).toBeNull();expect(qualification.data.orderCount).toBeNull();for(const section of ['sharing-orders','settlements'])await expect(service.section(reader.memberId,member.memberId,section)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});});
 
-it('does not present an expired referrer as the current member relation',async()=>{
+it('presents and counts only effective, unexpired member relations',async()=>{
  await pool.query("INSERT INTO sharing_officer(member_id,referral_code,state) SELECT $1,user_code,'active' FROM member_card_number WHERE member_id=$1",[reader.memberId]);
  const code=(await pool.query('SELECT user_code FROM member_card_number WHERE member_id=$1',[reader.memberId])).rows[0].user_code;
  const policy=(await pool.query("INSERT INTO sharing_policy(enabled,priority,self_purchase,basis_points,release_days,reason,created_principal) VALUES(true,'first',false,1000,7,'isolated expired relation','fixture') RETURNING id")).rows[0].id;
- try{
-  await pool.query("INSERT INTO sharing_customer_relation(buyer_id,officer_id,source,effective_at,expires_at,policy_id) VALUES($1,$2,'first_touch',now()-interval '2 day',now()-interval '1 day',$3)",[member.memberId,reader.memberId,policy]);
-  expect((await service.overview(reader.memberId,member.memberId)).member.sharing?.referrerCode).toBeNull();
-  const detail:any=await service.section(reader.memberId,member.memberId,'sharing');expect(detail.data.relation).toBeNull();
-  await pool.query('UPDATE sharing_customer_relation SET expires_at=NULL WHERE buyer_id=$1',[member.memberId]);
-  expect((await service.overview(reader.memberId,member.memberId)).member.sharing?.referrerCode).toBe(code);
-  expect((await service.section(reader.memberId,member.memberId,'sharing') as any).data.relation.referral_code).toBe(code);
- }finally{/* Immutable synthetic history belongs to this disposable database and is removed only with its owned instance. */}
+ const listRow=async()=>(await service.list(reader.memberId,{view:'sharing'})).items.find(r=>r.id===member.memberId)!;
+ const relation=async()=>(await service.section(reader.memberId,member.memberId,'sharing') as any).data.relation;
+ await pool.query("INSERT INTO sharing_customer_relation(buyer_id,officer_id,source,effective_at,expires_at,policy_id) VALUES($1,$2,'first_touch',now()-interval '2 day',now()-interval '1 day',$3)",[member.memberId,reader.memberId,policy]);
+ expect((await listRow()).sharing).toMatchObject({referrerCode:null,referrerName:null});
+ expect(await relation()).toBeNull();
+ await pool.query('UPDATE sharing_customer_relation SET expires_at=NULL WHERE buyer_id=$1',[member.memberId]);
+ expect((await listRow()).sharing).toMatchObject({referrerCode:code,referrerName:'reader'});
+ const original=await relation();
+ expect(original).toMatchObject({referral_code:code,referrer_name:'reader'});
+ const renamed=await app.inject({method:'PUT',url:'/v1/me/profile',headers:auth(reader),payload:{displayName:'推荐人新昵称'}});
+ expect(renamed.statusCode,renamed.body).toBe(200);
+ expect((await listRow()).sharing).toMatchObject({referrerCode:code,referrerName:'推荐人新昵称'});
+ expect(await relation()).toEqual({...original,referrer_name:'推荐人新昵称'});
+ expect((await service.overview(reader.memberId,reader.memberId)).member.sharing?.directCount).toBe(1);
+ await pool.query("UPDATE sharing_customer_relation SET effective_at=now()+interval '1 day' WHERE buyer_id=$1",[member.memberId]);
+ expect((await listRow()).sharing).toMatchObject({referrerCode:null,referrerName:null});
+ expect(await relation()).toBeNull();
+ expect((await service.overview(reader.memberId,reader.memberId)).member.sharing?.directCount).toBe(0);
 });
 
 it('distinguishes reward fulfillment from the exact product-and-member issuance duty',async()=>{

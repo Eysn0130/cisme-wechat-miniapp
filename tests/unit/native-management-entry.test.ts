@@ -27,9 +27,9 @@ it.each(['member.manage','commission.read','commission.rate.manage'])('opens the
 });
 
 it.each([
- ['member.manage','/pages/management-sharing/index?filter=pending'],
+ ['member.manage','/pages/management-sharing/index'],
  ['commission.read','/pages/management-sharing/index']
-])('opens the correct sharing queue for %s',async(capability,url)=>{
+])('opens the unfiltered sharing queue for %s',async(capability,url)=>{
  capabilities=[capability];
  await import('../../apps/miniprogram/pages/management/index');
  await page.load();

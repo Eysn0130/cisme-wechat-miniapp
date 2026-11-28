@@ -5,7 +5,7 @@ import {userSections,userFail,userNumber,type UserScope} from './memberAdministr
 import {pageLimit,pageScope,readPageCursor,finishPage} from './keysetPage.js';
 import {openPointsNote} from './memberPointsClub.js';
 import {careDayRewards} from './careUsageRewards.js';
-import {sharingOrderProjection,sharingOrderView,officerView,officerPolicyView,currentSharingPolicySql} from './sharingOfficer.js';
+import {sharingOrderProjection,sharingOrderView,officerView,officerPolicyView,currentSharingPolicySql,pendingSharingReferrer} from './sharingOfficer.js';
 import {commissionOrderBuckets} from './commissionPolicy.js';
 import {DeliveryAddressService} from './deliveryAddress.js';
 type Row=Record<string,any>;
@@ -24,13 +24,19 @@ export async function memberAdministrationSection(service:MemberAdministration,c
   const officer=(await c.query(`SELECT o.*,a.agreement_version FROM sharing_officer o
    LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
    WHERE o.member_id=$1`,[target])).rows[0],policy=(await c.query(currentSharingPolicySql)).rows[0];
-  const relation=(await c.query(`SELECT r.source,r.version,r.effective_at,r.expires_at,o.referral_code,o.state FROM sharing_customer_relation r
-   JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1 AND r.removed_at IS NULL AND (r.expires_at IS NULL OR r.expires_at>now())`,[target])).rows[0];
+  const relation=(await c.query(`SELECT r.source,r.version,r.effective_at,r.expires_at,o.referral_code,o.state,m.display_name AS referrer_name
+   FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id
+   LEFT JOIN member m ON m.id=o.member_id AND m.status<>'deleted'
+   WHERE r.buyer_id=$1 AND r.removed_at IS NULL
+    AND r.effective_at<=transaction_timestamp() AND (r.expires_at IS NULL OR r.expires_at>transaction_timestamp())`,[target])).rows[0];
+  const pending=await pendingSharingReferrer(c,target,policy?.enabled===true);
   const orders=scope.commission?(await c.query(`${sharingOrderProjection} WHERE s.program='sharing_officer' AND s.referrer_member_id=$1`,[target])).rows:[];
   const buckets=commissionOrderBuckets(orders.map(r=>({accruedCents:userNumber(r.accrued),reversedCents:userNumber(r.reversed),releasedCents:userNumber(r.released),paidCents:userNumber(r.paid),heldCents:userNumber(r.held)})));
   const paid=scope.commission?(await c.query("SELECT COALESCE(sum(tax_cents),0)::text AS tax,COALESCE(sum(net_cents),0)::text AS net FROM sharing_settlement_line WHERE member_id=$1 AND state='paid'",[target])).rows[0]:{tax:0,net:0};
   const outstanding=orders.map(sharingOrderView).reduce((n,r)=>userNumber(n+r.outstandingRecoveryCents),0);
-  return {section,data:{officer:officerView(officer),policy:officerPolicyView(policy),relation:relation??null,orderCount:scope.commission?orders.length:null,commission:scope.commission?{...buckets,outstandingRecoveryCents:outstanding,taxCents:userNumber(paid.tax),netCents:userNumber(paid.net)}:null,canManage:scope.manage,canFinance:scope.finance}};
+  return {section,data:{officer:officerView(officer),policy:officerPolicyView(policy),relation:relation??null,
+   pendingReferrer:pending?{code:pending.code,label:pending.label,eligible:pending.eligible}:null,
+   orderCount:scope.commission?orders.length:null,commission:scope.commission?{...buckets,outstandingRecoveryCents:outstanding,taxCents:userNumber(paid.tax),netCents:userNumber(paid.net)}:null,canManage:scope.manage,canFinance:scope.finance}};
  }
  const limit=pageLimit(input.limit),key=pageScope(['member-admin-section',actor,target,section,scope,input.day??null]),cursor=readPageCursor(input.cursor,key);
  const args:unknown[]=[target,cursor?.at??null,cursor?.id??null,limit+1];let sql='',map:(r:Row)=>Row=(r)=>r;

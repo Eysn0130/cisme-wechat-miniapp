@@ -13,6 +13,10 @@ import {sectionTabValue} from '../../services/section-tabs';
 import {beginQualificationPurchase,consumeQualificationReturn,discardQualificationPurchase,qualificationPurchaseQuery} from '../../services/sharing-qualification-purchase';
 import {officerRead,officerCommand,officerPending,resolveOfficerPending,officerMoney,officerDate,officerError,officerLabels,officerHistoryRow,type OfficerPending} from '../../services/sharing-officer';
 const tabs=[{id:'overview',label:'推广'},{id:'orders',label:'推广订单'},{id:'settlements',label:'结算'}];
+const promotionPhotoFocus:Readonly<Record<string,string|undefined>>={
+ '/assets/commerce/product2-hero-v2.jpg':'essence',
+ '/assets/commerce/product1-hero-v2.jpg':'shampoo',
+};
 type AgreementIdentity={version:string;digest:string;effectiveOn:string};
 type AgreementDocument=Omit<AgreementIdentity,'effectiveOn'>&{
  effectiveOn:string|null;title:string;brand:string;subtitle:string;tagline:string[];draftNotice:string;parties:string[];
@@ -134,7 +138,8 @@ Page({
     },reviewApprovalMs);
    }
    if(this.data.giftMode){await this.loadGiftOffers(epoch);return;}
-   if(!this.data.referrerOnly&&wallet.officer?.state==='active'&&this.data.tab==='overview')await this.loadProducts(false,epoch);
+   const showProducts=wallet.officer?.state==='active'||wallet.officer?.state==='promotion_only'&&wallet.canShare;
+   if(!this.data.referrerOnly&&showProducts&&this.data.tab==='overview')await this.loadProducts(false,epoch);
    if(!this.data.referrerOnly&&this.data.tab!=='overview'){
     const page=await officerRead(this,`/v1/me/sharing-officer/${this.data.tab}?limit=20${this.data.tab==='orders'&&this.data.orderLineId?'&lineId='+this.data.orderLineId:''}${more&&this.data.nextCursor?'&cursor='+encodeURIComponent(this.data.nextCursor):''}`);
     if(!this.current(epoch))return;
@@ -174,7 +179,11 @@ Page({
  retryGiftShare(){if(!this.data.loading)void this.prepareGiftShare();},
  async giftDetails(e:WechatMiniprogram.TouchEvent){const code=String(e.currentTarget.dataset.code);if(!['moisture','dandruff'].includes(code)||!this.current()||this.data.detailBusy)return;const epoch=this.epoch;this.setData({detailBusy:true});try{const images=await prepareRewardDetailImages('sharing-officer');if(this.current(epoch))wx.previewImage({current:images[code as 'moisture'|'dandruff'],urls:[images.moisture,images.dandruff]});}catch{if(this.current(epoch))wx.showToast({title:'图片暂不可用，请重试',icon:'none'});}finally{if(this.current(epoch))this.setData({detailBusy:false});}},
  async loadProducts(more=false,epoch?:number){const page=await catalogList(more&&this.data.productCursor?this.data.productCursor:undefined,this);if(!this.current(epoch))return;
-  this.setData({products:[...(more?this.data.products:[]),...page.items.map((p:any)=>({...p,displayImage:nativeCatalogImage(p.imagePath||p.image||''),price:p.price!==null?officerMoney(p.price):''}))],productCursor:page.nextCursor,moreProducts:Boolean(page.nextCursor)});},
+  const products=page.items.map((product:any)=>{
+   const displayImage=nativeCatalogImage(product.imagePath||product.image||'');
+   return {...product,displayImage,photoFocus:promotionPhotoFocus[displayImage]??'',price:product.price!==null?officerMoney(product.price):''};
+  });
+  this.setData({products:[...(more?this.data.products:[]),...products],productCursor:page.nextCursor,moreProducts:Boolean(page.nextCursor)});},
  qualifyPurchase(){
   if(!this.current()||!this.data.qualificationPurchaseNeeded||this.data.loading||this.data.busy||this.data.pending||this.data.qualificationOpening)return;
   const key=beginQualificationPurchase(this,this.data.memberId);

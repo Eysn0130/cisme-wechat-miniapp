@@ -20,6 +20,34 @@ it('stops category reads after permission is revoked instead of exposing an acti
  page.changeView({detail:{value:'commerce'}});expect(m.read).toHaveBeenCalledTimes(count);expect(page.data.query.view).toBe('profile');
 });
 async function inspector(contact?:any){m.read.mockResolvedValue({member:row,scope,...(contact?{contact}:{})});await import('../../apps/miniprogram/pages/management-members/components/member-inspector/index');component.activate();await flush();}
+it('keeps a member-confirmed future referral separate from the current referral and labels a link visit as a visit',async()=>{
+ await inspector();component.setData({tab:'business',section:'sharing'});
+ m.read.mockResolvedValueOnce({data:{officer:null,relation:null,pendingReferrer:{code:'CM1111111111',label:'合成分享官',eligible:true}}});
+ await component.loadTab();
+ expect(component.data.sharingRows).toEqual(expect.arrayContaining([{label:'当前推荐人',value:'—'},
+   {label:'待生效推荐人',value:'合成分享官'}]));
+ const {recordView}=await import('../../apps/miniprogram/pages/management-members/service');
+ expect(recordView({kind:'audit',title:'sharing.bind_visit'}).title).toBe('记录分享链接访问');
+});
+it('uses the current referring member name for both sharing columns and refreshes both after a rename',async()=>{
+ await list();
+ const sharing={state:'active',code:'CM1111111111',referrerCode:'CM2222222222',referrerName:'会员乙'};
+ const reply=(name:string)=>({scope,total:2,nextCursor:null,items:[
+  {...row,sharing:{...sharing,referrerName:name}},
+  {...row,id:other,displayName:'无生效归属',sharing:{state:'active',code:'CM3333333333'}},
+ ]});
+ m.read.mockResolvedValue(reply('会员乙'));
+ await page.load();
+ page.changeView({detail:{value:'sharing'}});
+ expect(page.data.fields.map((field:any)=>field.label)).toEqual(['分享官','推荐人','本人资格']);
+ const names=(index:number)=>page.data.items[index].cells.slice(0,2).map((cell:any)=>cell.value);
+ expect(page.data.items[0].displayName).toBe('会员甲');
+ expect(names(0)).toEqual(['会员乙','会员乙']);
+ expect(names(1)).toEqual(['—','—']);
+ m.read.mockResolvedValue(reply('乙的新昵称'));
+ page.onPullDownRefresh();await flush();
+ expect(names(0)).toEqual(['乙的新昵称','乙的新昵称']);
+});
 it('uses actual card identity and independent account/onboarding columns',async()=>{await list();expect(page.data.items[0]).toMatchObject({displayName:'会员甲',cardNumber:'No. 00028'});expect(page.data.fields.map((f:any)=>f.id)).toEqual(['points','orders','onboarding']);page.openFields();expect(page.data.fieldOptions.some((f:any)=>f.id==='account')).toBe(true);});
 it('clears selection on a filter change and sends the complete applied query',async()=>{await list();page.toggleSelect();page.select({currentTarget:{dataset:{id}}});expect(page.data.selected).toEqual([id]);page.openFilter();page.setData({accountIndex:2,onboardingIndex:1});page.applyFilter();await flush();expect(page.data.selected).toEqual([]);expect(m.read.mock.calls.at(-1)![1].path).toContain('account=blocked');expect(m.read.mock.calls.at(-1)![1].path).toContain('onboarding=complete');});
 it('drops a delayed previous search and a different operator’s result',async()=>{await list();const slow=deferred();m.read.mockReturnValueOnce(slow.promise);page.apply({...page.data.query,q:'old'});m.read.mockResolvedValue({scope,items:[{...row,id:other,displayName:'新结果'}],total:1,nextCursor:null});page.apply({...page.data.query,q:'new'});await flush();slow.resolve({scope,items:[row],total:1,nextCursor:null});await flush();expect(page.data.items[0].displayName).toBe('新结果');const lost=deferred();m.read.mockReturnValue(lost.promise);page.load();m.token='operator-b';lost.resolve({scope,items:[row],total:1,nextCursor:null});await flush();expect(page.data.items).toEqual([]);});

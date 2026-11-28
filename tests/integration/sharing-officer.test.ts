@@ -299,6 +299,10 @@ it('allows only the configured highest administrator to promote and open V2 with
     VALUES($1,'member.profile.read','fixture','synthetic root exception','test','integration_fixture')`,[root.memberId]);
   const before=await service.mine(root.memberId);
   expect(before).toMatchObject({canApply:true,canShare:true,rootException:true,qualification:{met:false},officer:{state:'promotion_only'}});
+  const directory=await expectOk(app.inject({url:'/v1/management/users?view=sharing&officer=promotion_only',headers:auth(root)}));
+  expect(directory).toMatchObject({total:1,items:[{id:root.memberId,sharing:{state:'promotion_only'}}]});
+  const queue=await expectOk(app.inject({url:'/v1/management/sharing-officer?section=officers&filter=promotion_only',headers:auth(root)}));
+  expect(queue.items).toEqual([expect.objectContaining({memberId:root.memberId,state:'promotion_only',applicationAt:null,reviewedAt:null,promotionAt:expect.any(String)})]);
   expect(await service.mine(lookalike.memberId)).toMatchObject({canApply:false,canShare:false});
   expect((await command(lookalike,'apply',{})).json().code).toBe('SHARING_PURCHASE_REQUIRED');
   const promotion=await expectOk(command(root,'share',{productCode:'sharing-test-product'}));
@@ -400,8 +404,11 @@ it('records simple approval, binds only after valid orders, and clears expired V
   await releaseSharingCommissions(pool);
   expect((await service.orders(officer.memberId,{id:legacyOrder.id})).items[0]).toMatchObject({availableCents:2640});
   expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:null});
+  const customerDetail=()=>expectOk(app.inject({url:`/v1/management/users/${customer.memberId}/sections/sharing`,headers:auth(manager)}));
+  expect((await customerDetail()).data).toMatchObject({relation:null,pendingReferrer:null});
   await expectOk(command(customer,'change_referrer',{code:codes[0],confirmed:true,expectedVersion:0}));
   expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:{code:codes[0],eligible:true},linkReferrer:null});
+  expect((await customerDetail()).data).toMatchObject({relation:null,pendingReferrer:{code:codes[0],label:expect.any(String),eligible:true}});
   expect((await pool.query('SELECT state FROM sharing_v2_referral_intent WHERE id=$1',[oldIntent])).rows[0]).toEqual({state:'superseded'});
   expect((await pool.query('SELECT sharing_v2_intent_id FROM commission_order_snapshot WHERE order_id=$1',[legacyOrder.id])).rows[0]).toEqual({sharing_v2_intent_id:oldIntent});
   const pendingList=await expectOk(app.inject({method:'GET',headers:auth(manager),
