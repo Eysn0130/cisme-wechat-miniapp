@@ -71,8 +71,8 @@ export async function assessSharingV2Performance(pool:pg.Pool,limit=25,asOf?:Dat
   const periods=[3,2,1].map(offset=>new Date(Date.UTC(year!,month!-1-offset,1)).toISOString().slice(0,7));
   const through=periods[2]!;
   const selected=(await client.query(`SELECT o.member_id,o.version,o.v2_application_version
-   FROM sharing_officer o JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
-   WHERE o.state='active' AND a.verified_at < $2
+   FROM sharing_officer o
+   WHERE o.state='active' AND sharing_v2_approval_at(o.member_id,o.v2_application_version) < $2
      AND NOT EXISTS(SELECT 1 FROM sharing_v2_assessment r WHERE r.member_id=o.member_id AND r.application_version=o.v2_application_version AND r.through_period=$1)
    ORDER BY o.member_id LIMIT $3 FOR UPDATE OF o SKIP LOCKED`,[through,sharingV2Cutoff(periods[0]!),limit])).rows;
   let terminated=0;

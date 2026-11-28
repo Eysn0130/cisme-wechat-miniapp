@@ -15,8 +15,7 @@ type Row=Record<string,any>;
 const reviewRows=`SELECT o.*,o.member_id AS id,m.display_name,m.status AS member_status,
   COALESCE(agreement.accepted_at,submission.occurred_at,CASE WHEN o.version=1 THEN o.created_at END) AS application_at,
   decision.occurred_at AS reviewed_at,decision.to_state AS reviewed_state,decision.reason AS decision_reason,
-  reviewer.display_name AS reviewer_name,agreement.accepted_at,agreement.verified_at,
-  CASE WHEN agreement.verification_reference IS NOT NULL THEN '•••'||right(agreement.verification_reference,3) END AS verification_mask,
+  reviewer.display_name AS reviewer_name,agreement.accepted_at,agreement.agreement_version,
   EXISTS(SELECT 1 FROM sharing_payee p WHERE p.member_id=o.member_id) AS payee_ready
  FROM sharing_officer o JOIN member m ON m.id=o.member_id
  LEFT JOIN sharing_v2_application agreement ON agreement.member_id=o.member_id AND agreement.application_version=o.v2_application_version
@@ -73,7 +72,7 @@ export async function sharingReviewDetail(client:DbClient,actor:string,target:st
  const member=(await projections(client,[target],scope,environment)).get(target);
  const qualification=row.state==='pending'?await sharingQualification(client,target):null;
  const review=row.reviewed_at?{occurredAt:row.reviewed_at,result:row.reviewed_state,reviewer:row.reviewer_name??null,reason:row.decision_reason}:null;
- const agreement=row.accepted_at?{acceptedAt:row.accepted_at,version:'V2.0',verifiedAt:row.verified_at??null,reference:row.verification_mask??null}:null;
+ const agreement=row.accepted_at?{acceptedAt:row.accepted_at,version:row.agreement_version}:null;
  const history=(await client.query(`SELECT e.version,e.occurred_at AS "occurredAt",e.to_state AS result,m.display_name AS reviewer,e.reason
   FROM sharing_officer_event e LEFT JOIN member m ON m.id=e.actor_id
   WHERE e.member_id=$1 AND e.from_state='pending' AND e.to_state IN ('active','rejected')

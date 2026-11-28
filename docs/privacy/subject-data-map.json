@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "c1a67a88e6df909f9507b63c057305d65e9452f915918d82f7d77b0ca07ff5b4",
+  "migrationSetSha256": "a3a14033e9ad52fa7a5122969a04477893dc3a1fc42fea07d88a551209b222e8",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -7991,7 +7991,7 @@
       "actorColumns": [
         "verified_by"
       ],
-      "specialHandling": "Applicant owns the agreement acceptance and company verification outcome. Export only their archived contract and opaque verification reference; the reviewer is a separate actor. The approval event is stored without identity documents or numbers.",
+      "specialHandling": "The applicant owns the agreement acceptance and any historical verification outcome. The archived contract and any legacy opaque reference stay owner-scoped. New approvals use the existing qualification event with a separate reviewer, timestamp and decision.",
       "exportFields": [
         "application_version",
         "agreement_version",

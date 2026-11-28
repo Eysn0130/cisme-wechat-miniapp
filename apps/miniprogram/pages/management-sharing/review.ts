@@ -54,7 +54,7 @@ export function officerReviewView(data:any){
  const commerce=member?.commerce;
  const accountActive=data.accountState==='active';
  return {accountActive,qualificationMet:qualification?.met===true,canApprove:accountActive&&qualification?.met===true,reason:officer.reviewReason||'',
-  agreement:agreement?{accepted:officerDate(agreement.acceptedAt),version:agreement.version,verified:officerDate(agreement.verifiedAt),reference:agreement.reference}:null,
+  agreement:agreement?{accepted:officerDate(agreement.acceptedAt),version:agreement.version}:null,
   review:review?decision(review):null,history:(history??[]).map(decision),
   member:member?{registered:officerDate(member.registeredAt).slice(0,10),referrals:member.referrals,publicPosts:member.publicPosts,
    posts:member.posts.map((post:any)=>({...post,date:officerDate(post.publishedAt).slice(0,10)})),

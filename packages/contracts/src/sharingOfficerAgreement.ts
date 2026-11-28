@@ -1,9 +1,7 @@
-// Word source SHA-256: b8d90cef5dc438121d9285c832c5e131267e6342a646e02a56ed850b0a53a64c
-// Article 3.3 cross-reference corrected from article six to article five.
-// Owner decisions on 2026-11-24: day 31 carries into next month; manual identity review;
-// customer-selected replacement takes effect after the first qualifying order.
+// V2.0 Word source SHA-256: b8d90cef5dc438121d9285c832c5e131267e6342a646e02a56ed850b0a53a64c
+// V2.0.1 aligns the application steps and approval records with the workflow approved on 2026-11-28.
 export const sharingOfficerAgreement = {
-  "version": "V2.0",
+  "version": "V2.0.1",
   "title": "产品分享官合作协议",
   "brand": "AIGERONG",
   "subtitle": "小程序线上申请与电子确认版",
@@ -11,12 +9,12 @@ export const sharingOfficerAgreement = {
     "专研40+头皮精准愈养",
     "创造万缕年轻丰盈"
   ],
-  "draftNotice": "协议草案 V2.0｜提交法务审核后启用",
+  "draftNotice": "协议草案 V2.0.1｜启用后可提交申请",
   "parties": [
     "甲方（品牌方／平台运营方）：熹芃（上海）生物科技有限公司",
     "统一社会信用代码：91310120MAEUC70F74",
     "地址：上海市奉贤区南桥镇国顺路936号5幢",
-    "乙方（产品分享官）：以甲方人工核验的身份及小程序账号信息为准"
+    "乙方（产品分享官）：以提交申请并经甲方审核通过的小程序会员账号为准"
   ],
   "introduction": "重要提示：乙方在提交申请前，应完整阅读本协议。乙方主动勾选“我已阅读并同意”并提交申请，且甲方审核通过后，本协议按约定生效。",
   "sections": [
@@ -42,7 +40,7 @@ export const sharingOfficerAgreement = {
       "paragraphs": [
         {
           "kind": "paragraph",
-          "text": "1. 乙方应按照甲方公布的流程完成真实产品体验、身份验证及分享官申请。体验产品不构成囤货或销售任务。具体体验要求及申请流程以小程序页面公示为准。"
+          "text": "1. 乙方应使用本人小程序会员账号，按甲方公布的流程完成真实产品体验并提交分享官申请。体验产品不构成囤货或销售任务。具体体验要求及申请流程以小程序页面公示为准。"
         },
         {
           "kind": "paragraph",
@@ -54,7 +52,7 @@ export const sharingOfficerAgreement = {
         },
         {
           "kind": "paragraph",
-          "text": "4. 甲方可基于身份核验、合规情况及平台安全要求审核、暂停或取消分享权限。除紧急风险处置外，甲方应以合理方式告知处理原因及申诉渠道。"
+          "text": "4. 甲方可根据申请资格、合规情况及平台安全要求审核、暂停或取消分享权限。除紧急风险处置外，甲方应以合理方式告知处理原因及申诉渠道。"
         }
       ]
     },
@@ -250,7 +248,7 @@ export const sharingOfficerAgreement = {
       "paragraphs": [
         {
           "kind": "paragraph",
-          "text": "1. 为完成身份核验、分享官资格管理、订单归属、佣金结算、税务处理及争议处理，甲方可在实现上述目的所必要的范围内处理乙方个人信息。"
+          "text": "1. 为完成分享官资格管理、订单归属、佣金结算、税务处理及争议处理，甲方可在实现上述目的所必要的范围内处理乙方个人信息。"
         },
         {
           "kind": "paragraph",
@@ -267,7 +265,7 @@ export const sharingOfficerAgreement = {
         },
         {
           "kind": "paragraph",
-          "text": "2. 甲方应保存乙方人工身份核验结果与凭据编号、协议版本、协议文本、勾选及提交记录、时间戳、审核结果等必要电子记录，以便双方查询和依法举证。"
+          "text": "2. 甲方应保存协议版本、协议文本、勾选及提交记录、时间戳和审核结果等必要电子记录，以便双方查询和依法举证。"
         },
         {
           "kind": "paragraph",
@@ -300,7 +298,7 @@ export const sharingOfficerAgreement = {
   ],
   "closing": [
     "甲方：熹芃（上海）生物科技有限公司",
-    "协议版本：V2.0（法务审核稿）",
+    "协议版本：V2.0.1",
     "生效日期：以小程序公布并启用的版本及日期为准"
   ]
 } as const;
