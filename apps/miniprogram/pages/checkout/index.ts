@@ -341,7 +341,7 @@ Page({
     const quoteId=recovery||quote!.id,current=()=>requestStillOwned(this.ownership(),epoch,ownerToken);
     this.setData({ busy: true, error: "", recoveryQuoteId:quoteId });
     try {
-      if(!recovery)await flushOfficerVisits();
+      if(!recovery)void flushOfficerVisits().catch(()=>{});
       if(!current())return;
       const order=await submitCheckoutOrder(quoteId,current);
       if(!current())return;

@@ -7,7 +7,7 @@ import {commerceContextRevision} from '../../services/commerce-command-store';
 import {sectionTabValue} from '../../services/section-tabs';
 import {officerRead,officerCommand,officerPending,resolveOfficerPending,officerMoney,officerDate,officerError,officerLabels,officerHistoryRow,type OfficerPending} from '../../services/sharing-officer';
 import {groupOfficerRows,officerFilters,officerReviewView,prepareCustomerRow,prepareOfficerRow,type CustomerRecord,type CustomerRow,type OfficerDay} from './review';
-const customerFilters=[{id:'retained',label:'保留归属'},{id:'removed',label:'已移除'}];
+const customerFilters=[{id:'retained',label:'当前归属'},{id:'removed',label:'已移除'},{id:'pending',label:'待生效'}];
 const customerEmpty={customers:[] as CustomerRow[],customerFilterIndex:0,customerCursor:null as string|null,customerMore:false,customerLoading:false,
  customerError:'',customerOfficerVersion:0,customerOfficerState:'',customerSelected:null as CustomerRow|null};
 const reviewEmpty={...customerEmpty,review:null as ReturnType<typeof officerReviewView>|null,reviewLoading:false,reviewError:'',reviewStale:false,reviewOpen:'',qualificationActions:false};
@@ -138,12 +138,12 @@ Page({
  chooseCustomer(e:WechatMiniprogram.TouchEvent){
   if(!this.current()||this.data.sheet!=='customers'||!this.data.scope?.customers||this.data.busy||this.data.pending||this.data.customerLoading||this.data.customerError)return;
   const row=this.data.customers.find(item=>item.id===e.currentTarget.dataset.id);
-  if(!row||row.id===this.data.memberId||row.expired||(row.removedAt&&!row.restorable))return;
+  if(!row||row.pending||row.id===this.data.memberId||row.expired||(row.removedAt&&!row.restorable))return;
   this.setData({sheet:'customer-decision',customerSelected:row,reason:'',error:''});
  },
  async confirmCustomer(){
   const row=this.data.customerSelected,selected=this.data.selected,reason=this.data.reason.trim();
-  if(!this.current()||this.data.sheet!=='customer-decision'||!this.data.scope?.customers||!row||!selected||this.data.pending||this.data.busy||reason.length<2)return;
+  if(!this.current()||this.data.sheet!=='customer-decision'||!this.data.scope?.customers||!row||row.pending||!selected||this.data.pending||this.data.busy||reason.length<2)return;
   const epoch=this.epoch,remove=!row.removedAt,action=remove?'移除归属':'恢复归属';
   const content=remove?'移除后，这名会员的新订单不计入此分享官名下。':
    this.data.customerOfficerState==='suspended'?'归属将恢复。分享官资格恢复后的新订单才计佣。':'恢复后的新订单计入此分享官名下。';

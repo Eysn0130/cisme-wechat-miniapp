@@ -2,7 +2,7 @@ import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
 import type {Capability} from '@cisme/contracts';
 import {createHash,randomUUID} from 'node:crypto';
-import {AuthorityService,requireActiveMemberWithClient} from './authority.js';
+import {AuthorityService,memberAdministrationCapabilities,matchesMemberAdministrationRoot,requireActiveMemberWithClient} from './authority.js';
 import {transaction,type DbClient} from './db.js';
 import {userProjectionSql,userCountSql} from './memberAdministrationSql.js';
 import {userInput,userQuery,userQueryAccess,userId,userPhoneHash,userCursorScope,userCursor,userNext,userNumber,userReason,userFail,type UserScope,type UserQuery} from './memberAdministrationPolicy.js';
@@ -27,11 +27,9 @@ export class MemberAdministration{
  constructor(readonly pool:pg.Pool,readonly config:AppConfig){this.authority=new AuthorityService(pool,config.env);}
  async context(c:DbClient,actorId:string|undefined){
   const actor=await requireActiveMemberWithClient(c,actorId);
-  const grants=(await c.query<{capability:Capability;expires_at:Date|null}>("SELECT capability,expires_at FROM authority_grant WHERE member_id=$1 AND environment=$2 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>clock_timestamp()) ORDER BY capability,id FOR SHARE",[actor,this.config.env])).rows;
-  const clock=(await c.query<{at:Date}>('SELECT clock_timestamp() AS at')).rows[0]!.at;
-  const caps=grants.filter(g=>g.expires_at===null||g.expires_at>clock).map(r=>r.capability);
+  const caps=await memberAdministrationCapabilities(c,this.config.env,actor);
   if(!caps.includes('member.profile.read'))userFail('CAPABILITY_REQUIRED','当前账号没有用户管理权限',403);
-  const isRoot=this.config.memberAdministrationRootId===actor&&caps.includes('member.manage')&&(!this.canonicalOnly()||Boolean((await c.query("SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='wechat_miniprogram' AND adapter='wechat' AND app_id='wx4eac2d4fb11d299b'",[actor])).rowCount));
+  const isRoot=caps.includes('member.manage')&&await matchesMemberAdministrationRoot(c,this.config,actor);
   const has=(cap:Capability)=>caps.includes(cap),scope:UserScope={profile:true,contact:has('member.contact.read'),care:has('member.care.read'),orders:has('commerce.order.read'),points:has('commerce.money.reconcile'),rewards:has('commerce.fulfillment.manage')||has('commerce.product.manage')&&has('member.manage'),issueRewards:has('commerce.product.manage')&&has('member.manage'),administrators:isRoot,sharing:has('commission.read')||has('member.manage')||has('commission.settlement.approve'),commission:has('commission.read')||has('commission.settlement.approve'),finance:has('commission.settlement.approve'),support:has('support.read'),privacy:has('privacy.request.manage'),moderate:has('community.moderate')||has('editorial.manage'),manage:has('member.manage'),export:has('member.export')};
   // All currently granted scopes remain locked until projection and audit commit.
   return {actor,scope,caps};

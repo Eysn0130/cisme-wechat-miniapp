@@ -2,7 +2,7 @@ import {request} from './api';
 import {pageRead} from './page-requests';
 import {clientOperationKey} from './orders';
 import {commerceUuid} from './commerce-command-store';
-export const officerLabels:Record<string,string>={pending:'待审核',rejected:'未通过',active:'已开通',suspended:'已暂停',terminated:'已终止',prepared:'待审核',reviewed:'待付款',paid:'已付款',voided:'已撤销'};
+export const officerLabels:Record<string,string>={pending:'待审核',rejected:'未通过',active:'已开通',promotion_only:'已开通推广',suspended:'已暂停',terminated:'已终止',prepared:'待审核',reviewed:'待付款',paid:'已付款',voided:'已撤销'};
 export const officerMoney=(value:number|null|undefined)=>value==null?'—':(value/100).toFixed(2);
 export function officerDate(value:string|null|undefined){if(!value)return'';const d=new Date(value);if(!Number.isFinite(d.getTime()))return'';const n=new Date(d.getTime()+8*3600_000);return n.toISOString().slice(0,16).replace('T',' ');}
 export const officerError=(error:unknown)=>String((error as {title?:string})?.title||'暂未完成，请重试');

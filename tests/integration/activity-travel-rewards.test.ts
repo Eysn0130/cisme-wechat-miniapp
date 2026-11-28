@@ -70,7 +70,7 @@ describe('TRV-SHARE public invitations and two bundle stock',()=>{
   expect((await app.inject({method:'POST',url:`/v1/me/rewards/invitations/${a.token}/accept`,headers:{'idempotency-key':key()},payload:{}})).statusCode).toBe(401);
   const invalid=a.token.slice(0,-1)+(a.token.endsWith('0')?'1':'0');await expect(rewards.invitation(invalid)).rejects.toMatchObject({code:'REWARD_LINK_UNAVAILABLE'});
  });
- it('lets active sharing officers share gifts without stock counts and binds only a new linked member',async()=>{
+ it('lets active sharing officers share gifts without stock counts or automatic referral attribution',async()=>{
   const officer=await person(),existing=await person(),ordinary=await person();
   expect((await pool.query("SELECT 1 FROM catalog_product WHERE code='aigerong-scalp-repair-essence-100' AND publication_status='published'")).rowCount).toBe(0);
   await pool.query(`INSERT INTO sharing_officer(member_id,referral_code,state) SELECT member_id,user_code,'active' FROM member_card_number WHERE member_id=$1`,[officer.memberId]);
@@ -86,10 +86,15 @@ describe('TRV-SHARE public invitations and two bundle stock',()=>{
   const joined=await confirmWechatMember();
   const bind=async(p:any,token:string)=>app.inject({method:'POST',url:'/v1/me/sharing-officer/commands',headers:{...auth(p),'idempotency-key':key()},payload:{action:'bind_visit',input:{visitToken:token}}});
   expect((await bind(joined,visit.json().visitToken)).statusCode).toBe(200);
-  expect((await pool.query('SELECT officer_id,expires_at FROM sharing_customer_relation WHERE buyer_id=$1',[joined.memberId])).rows[0]).toEqual({officer_id:officer.memberId,expires_at:null});
   const oldVisit=await app.inject({method:'POST',url:`/v1/officer-shares/${share.officerShareId}/visits`,payload:{visitKey:key()}});expect((await bind(existing,oldVisit.json().visitToken)).statusCode).toBe(200);
-  expect((await pool.query('SELECT 1 FROM sharing_customer_relation WHERE buyer_id=$1',[existing.memberId])).rowCount).toBe(0);
+  const code=(await pool.query('SELECT referral_code FROM sharing_officer WHERE member_id=$1',[officer.memberId])).rows[0].referral_code;
+  for(const member of [joined,existing]){
+   const wallet=await app.inject({url:'/v1/me/sharing-officer',headers:auth(member)});
+   expect(wallet.statusCode,wallet.body).toBe(200);
+   expect(wallet.json()).toMatchObject({relation:null,pendingReferrer:null,linkReferrer:{code}});
+  }
   await survey(joined);expect((await rewards.acceptInvitation(joined.memberId,share.token,key())).issued).toBe(true);expect((await rewards.acceptInvitation(joined.memberId,share.token,key())).issued).toBe(false);
+  expect((await pool.query('SELECT 1 FROM sharing_customer_relation WHERE buyer_id=$1',[joined.memberId])).rowCount).toBe(0);
   await pool.query("UPDATE sharing_officer SET state='suspended',version=version+1 WHERE member_id=$1",[officer.memberId]);
   await expect(rewards.prepareOfficerShare(officer.memberId,activity.id,operation)).rejects.toMatchObject({code:'SHARING_OFFICER_INACTIVE'});
  });

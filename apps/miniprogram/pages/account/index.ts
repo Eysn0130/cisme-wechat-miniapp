@@ -396,7 +396,7 @@ Page({
       if (legalDocuments.crossBorder) base.consents.push({documentType:"cross_border",version:legalDocuments.crossBorder});
       let result: { sessionToken: string; onboardingRequired?:boolean };
       const runtime = getApp<IAppOption>().globalData;
-      await prepareOfficerLoginVisits();
+      void prepareOfficerLoginVisits().catch(()=>{});
       if(!this.data.pageAlive||this.data.authAttempt!==attempt)return;
       if(this.data.legalAttempt!==legalAttempt||!this.data.agreementAccepted||(legalDocuments.crossBorder&&!this.data.crossBorderAccepted)){this.setData({error:'协议状态已更新，请确认后重新登录。'},scrollToAccountError);return;}
       if (shouldUseDevelopmentIdentity(account.miniProgram.envVersion, wx.getDeviceInfo().platform, runtime.remoteDebugMode, Boolean(runtime.cloudFunction))) {

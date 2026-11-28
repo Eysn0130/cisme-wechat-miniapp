@@ -137,13 +137,15 @@
     <view class="officer-review-person">
      <text class="officer-person-name">{{item.displayName||'CISME 会员'}}</text>
      <text wx:if="{{item.cardNumber||item.userCode||item.points!==''}}" class="officer-review-caption">{{item.cardNumber||item.userCode}}{{item.points!==''?((item.cardNumber||item.userCode?' · ':'')+item.points+' 积分'):''}}</text>
+     <text wx:if="{{!item.pending&&!item.removedAt&&!item.restorable}}" class="officer-review-caption">已选其他推荐人，当前归属暂保留</text>
     </view>
-    <text wx:if="{{item.expired||item.removedAt&&!item.restorable}}" class="officer-review-caption">{{item.expired?'已到期':'已另选推荐人'}}</text>
+    <text wx:if="{{item.pending}}" class="officer-review-caption">待首笔有效成交</text>
+    <text wx:elif="{{item.expired||item.removedAt&&!item.restorable}}" class="officer-review-caption">{{item.expired?'已到期':'已另选推荐人'}}</text>
     <button wx:else class="action-text {{busy||pending||customerLoading||customerError||item.id===memberId?'control--disabled':''}}" data-id="{{item.id}}" bindtap="chooseCustomer"
      disabled="{{busy||pending||customerLoading||customerError||item.id===memberId}}" aria-label="{{(item.removedAt?'恢复':'移除')+(item.displayName||'该会员')+'的推荐归属'}}">{{item.removedAt?'恢复归属':'移除归属'}}</button>
    </view>
   </view>
-  <view wx:elif="{{!customerLoading&&!customerError}}" class="officer-empty">{{customerFilterIndex===0?'暂无保留归属的会员':'暂无已移除的归属'}}</view>
+  <view wx:elif="{{!customerLoading&&!customerError}}" class="officer-empty">{{customerFilterIndex===0?'暂无当前归属':customerFilterIndex===1?'暂无已移除的归属':'暂无待生效的会员选择'}}</view>
   <button wx:if="{{customerMore}}" class="action-text officer-more {{busy||customerLoading?'control--disabled':''}}" bindtap="moreCustomers" disabled="{{busy||customerLoading}}">加载更多</button>
  </block>
  <block wx:elif="{{sheet==='customer-decision'&&customerSelected}}">
@@ -184,10 +186,10 @@
    <button class="primary {{busy||pending||!review.canApprove?'primary--disabled':''}}" data-state="active" data-label="同意申请" bindtap="chooseDecision" disabled="{{busy||pending||!review.canApprove}}">同意申请</button>
    <button class="action-text {{busy||pending||reviewStale||!review.accountActive?'control--disabled':''}}" data-state="rejected" data-label="拒绝申请" bindtap="chooseDecision" disabled="{{busy||pending||reviewStale||!review.accountActive}}">拒绝申请</button>
   </view>
-  <block wx:elif="{{review.accountActive&&!reviewStale&&(selected.state==='active'||selected.state==='suspended')}}">
+  <block wx:elif="{{review.accountActive&&!reviewStale&&(selected.state==='active'||selected.state==='suspended'||selected.state==='promotion_only')}}">
    <view class="officer-actions officer-management-links">
     <button class="action-text" bindtap="toggleQualificationActions" aria-expanded="{{qualificationActions}}">资格管理</button>
-    <button wx:if="{{scope.customers}}" class="action-text" bindtap="openCustomers">管理推荐归属</button>
+    <button wx:if="{{scope.customers&&selected.state!=='promotion_only'}}" class="action-text" bindtap="openCustomers">管理推荐归属</button>
    </view>
    <view wx:if="{{qualificationActions}}" class="officer-actions officer-qualification-actions">
     <button wx:if="{{selected.state==='active'}}" class="action-text" data-state="suspended" data-label="暂停资格" bindtap="chooseDecision">暂停资格</button>

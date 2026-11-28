@@ -15,9 +15,14 @@ async function prepareMemberCard<T extends MemberCardSource>(row:T){
   points:Number.isSafeInteger(availablePoints)?String(availablePoints).replace(/\B(?=(\d{3})+(?!\d))/g,','):''};
 }
 
-export type CustomerRecord={id:string;displayName:string;userCode:string;version:number;controlVersion:number;expired:boolean;restorable:boolean;removedAt:string|null}&MemberCardSource;
+export type CustomerRecord={id:string;displayName:string;userCode:string}&MemberCardSource&(
+ {pending:true}|{pending?:false;version:number;controlVersion:number;expired:boolean;restorable:boolean;removedAt:string|null}
+);
 export type CustomerRow=Awaited<ReturnType<typeof prepareCustomerRow>>;
-export function prepareCustomerRow(row:CustomerRecord){return prepareMemberCard(row);}
+export function prepareCustomerRow(row:CustomerRecord){
+ if(row.pending)return prepareMemberCard(row);
+ return prepareMemberCard(row);
+}
 
 export async function prepareOfficerRow(row:any){
  const officer=await prepareMemberCard(row);

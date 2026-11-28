@@ -65,6 +65,23 @@ it('shows the agreement before qualification and uses the same main action for t
  expect(p.data.agreementChecked).toBe(false);
 });
 
+it('uses the server-granted highest administrator promotion and shows immediate opening after confirmation',async()=>{
+ vi.useFakeTimers();
+ const promoted={...wallet,rootException:true,canShare:true,qualification:{met:false},officer:{state:'promotion_only',version:1},applicationAgreement:agreement};
+ m.read.mockResolvedValue(promoted);
+ const p=await mount('consumer');
+ p.onShow();await flush();
+ expect(p.data).toMatchObject({hasDashboard:true,qualificationPurchaseNeeded:false,stateLabel:'已开通推广'});
+ p.openAgreement();scrollToEnd(p);await vi.advanceTimersByTimeAsync(10000);p.agree();await vi.advanceTimersByTimeAsync(160);
+ p.open(applyButton);
+ expect(p.data.sheet).toBe('apply');
+ m.command.mockResolvedValue({state:'active',rootException:true});m.read.mockResolvedValue(approvedReview);
+ await p.operate(applyAction);
+ expect(m.command).toHaveBeenCalledWith(owner,'apply',{note:'',agreement:{accepted:true,version:agreement.version,digest:agreement.digest,effectiveOn:agreement.effectiveOn}});
+ expect(wx.navigateTo).not.toHaveBeenCalled();
+ expect(wx.showToast).toHaveBeenCalledWith({title:'已开通',icon:'success'});
+});
+
 it('replays the qualification shine on entry and reserves the spin for a verified qualification change',async()=>{
  const pending={...wallet,canApply:false,qualification:{met:false}};
  const qualified={...wallet,qualification:{met:true},applicationAgreement:agreement};
@@ -132,6 +149,19 @@ it('lets applicants read a draft but cannot accept it or open the application wi
 it('sends a deliberate referrer change with the displayed relation version',async()=>{
  m.read.mockResolvedValue(wallet);const p=await mount('consumer');p.onShow();await flush();p.setData({sheet:'referrer',preview:{code:'SOBBBBBBBBBB',eligible:true}});m.command.mockResolvedValue({});
  await p.operate({currentTarget:{dataset:{action:'change_referrer'}}});expect(m.command).toHaveBeenCalledWith(owner,'change_referrer',{code:'SOBBBBBBBBBB',confirmed:true,expectedVersion:1});
+});
+it('opens a shared-link hint for review and makes the choice only after the buyer confirms',async()=>{
+ const candidate={code:'SOBBBBBBBBBB',label:'合成分享官'};
+ const initial={...wallet,relation:null,linkReferrer:candidate};
+ m.read.mockImplementation(async(_page,path)=>path.includes('referrer-preview')?{...candidate,eligible:true,onFirstValidOrder:true}:initial);
+ const p=await mount('consumer',{mode:'referrer'});
+ p.onShow();await flush();
+ await p.openLinkedReferrer();
+ expect(p.data).toMatchObject({sheet:'referrer',code:candidate.code,preview:{...candidate,eligible:true}});
+ expect(m.command).not.toHaveBeenCalled();
+ m.command.mockResolvedValue({pendingReferrer:candidate});
+ await p.operate({currentTarget:{dataset:{action:'change_referrer'}}});
+ expect(m.command).toHaveBeenCalledExactlyOnceWith(owner,'change_referrer',{code:candidate.code,confirmed:true,expectedVersion:0});
 });
 it('does not let a late wallet read repopulate another session or a hidden page',async()=>{
  const q=deferred();m.read.mockReturnValue(q.promise);const p=await mount('consumer');p.onShow();p.onHide();m.token='different-owner';q.resolve(wallet);await flush();expect(p.data.wallet).toBeNull();expect(p.data.memberId).toBe('');

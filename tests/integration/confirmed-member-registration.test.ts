@@ -104,7 +104,7 @@ it('keeps member-edited nickname and avatar authoritative across later WeChat lo
   expect(current).toMatchObject({display_name:'会员改后的昵称',avatar_data_url:edited.avatar_data_url,avatar_revision:edited.avatar_revision,profile_revision:edited.profile_revision,card_number:first.json().card_number,user_code:first.json().user_code,registration_completed_at:first.json().registration_completed_at});
 });
 
-it('binds a signed-in visitor to the sharing officer only after confirmed WeChat registration',async()=>{
+it('records the visit after confirmed WeChat registration and attributes only after member confirmation',async()=>{
   await pool.query(`INSERT INTO sharing_officer(member_id,referral_code,state)
     SELECT member_id,user_code,'active' FROM member_card_number WHERE member_id=$1`,[admin.memberId]);
   const share=await app.inject({method:'POST',url:'/v1/shares',headers:{...headers(admin.sessionToken),'idempotency-key':'confirmed-registration-share'},
@@ -123,7 +123,14 @@ it('binds a signed-in visitor to the sharing officer only after confirmed WeChat
   const saved=await app.inject({method:'PUT',url:'/v1/me/profile',headers:headers(buyer.sessionToken),
     payload:{displayName:'合成推荐用户',avatarDataUrl:avatar,expectedVersion:0}});
   expect(saved.statusCode,saved.body).toBe(200);
-  for(let i=0;i<2;i++){const bound=await bind();expect(bound.statusCode,bound.body).toBe(200);}
+  for(let i=0;i<2;i++){const bound=await bind();expect(bound.statusCode,bound.body).toBe(200);expect(bound.json()).toEqual({recorded:true});}
+  const wallet=await app.inject({url:'/v1/me/sharing-officer',headers:headers(buyer.sessionToken)});
+  expect(wallet.statusCode,wallet.body).toBe(200);
+  expect(wallet.json()).toMatchObject({relation:null,pendingReferrer:null,linkReferrer:{code:expect.any(String)}});
+  const chosen=await app.inject({method:'POST',url:'/v1/me/sharing-officer/commands',
+    headers:{...headers(buyer.sessionToken),'idempotency-key':'confirmed-registration-choice'},
+    payload:{action:'change_referrer',input:{code:wallet.json().linkReferrer.code,confirmed:true,expectedVersion:0}}});
+  expect(chosen.statusCode,chosen.body).toBe(200);
   const relation=(await pool.query('SELECT officer_id,source FROM sharing_customer_relation WHERE buyer_id=$1',[buyer.memberId])).rows;
-  expect(relation).toEqual([{officer_id:admin.memberId,source:'first_touch'}]);
+  expect(relation).toEqual([{officer_id:admin.memberId,source:'member_choice'}]);
 });

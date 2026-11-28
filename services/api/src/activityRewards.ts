@@ -1,4 +1,4 @@
-import {currentSharingPolicySql,officerShareLink} from './sharingOfficer.js';
+import {canPromoteSharingOfficer,currentSharingPolicySql,officerShareLink} from './sharingOfficer.js';
 import {pageScope,readPageCursor,finishPage} from './keysetPage.js';
 import {managementDates} from './managementDates.js';
 import {createHash,createHmac,createCipheriv,createDecipheriv,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
@@ -78,7 +78,7 @@ export class ActivityRewardService {
  private async requireSharingOfficer(c:DbClient,owner:string){
   const policy=(await c.query(currentSharingPolicySql+' FOR SHARE')).rows[0];
   const officer=(await c.query("SELECT state FROM sharing_officer WHERE member_id=$1 FOR SHARE",[owner])).rows[0];
-  if(!policy?.enabled||officer?.state!=='active')fail('SHARING_OFFICER_INACTIVE','分享官资格当前不可推广',403);
+  if(!policy?.enabled||!await canPromoteSharingOfficer(c,this.config,owner,officer?.state))fail('SHARING_OFFICER_INACTIVE','分享官资格当前不可推广',403);
   await this.enabled(c);
  }
  /** Sharing officers see availability, never inventory counts or recipient data. */

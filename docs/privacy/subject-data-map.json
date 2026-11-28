@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "migrationSetSha256": "a3a14033e9ad52fa7a5122969a04477893dc3a1fc42fea07d88a551209b222e8",
+  "migrationSetSha256": "eac9a58eef7bc47c31799bc6fad39acaf8560ce65e4fe06f1e92f63dfc196d0b",
   "scope": "schema/subject review map; no personal rows read",
   "fullMemberExportImplemented": false,
   "productionErasureEnabled": true,
@@ -6901,6 +6901,7 @@
         "actor_id",
         "id",
         "member_id",
+        "root_exception",
         "system_assessment"
       ],
       "syntheticErasureFields": [],

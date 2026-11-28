@@ -13,7 +13,7 @@ type ReviewScope={profile:boolean;points:boolean;orders:boolean;commission:boole
 type Row=Record<string,any>;
 
 const reviewRows=`SELECT o.*,o.member_id AS id,m.display_name,m.status AS member_status,
-  COALESCE(agreement.accepted_at,submission.occurred_at,CASE WHEN o.version=1 THEN o.created_at END) AS application_at,
+  COALESCE(agreement.accepted_at,submission.occurred_at,CASE WHEN o.version=1 AND o.state<>'promotion_only' THEN o.created_at END) AS application_at,
   decision.occurred_at AS reviewed_at,decision.to_state AS reviewed_state,decision.reason AS decision_reason,
   reviewer.display_name AS reviewer_name,agreement.accepted_at,agreement.agreement_version,
   EXISTS(SELECT 1 FROM sharing_payee p WHERE p.member_id=o.member_id) AS payee_ready
