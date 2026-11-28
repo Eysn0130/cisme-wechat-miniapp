@@ -2,7 +2,7 @@ import {request} from './api';
 import type {CommunityIdentityBadge} from './display-identity';
 import {pageRead} from './page-requests';
 import {editorialIdentifier,type PublishedEditorialArticle,type PublishedEditorialMedia,type EditorialReaction} from './editorial';
-import type {EditorialCommentsPage,EditorialCommentStatus} from './editorial-comments';
+import {confirmedCommentPresentation,type CommentSubmission,type EditorialCommentsPage,type EditorialCommentStatus} from './editorial-comments';
 
 const id=(value:string)=>{if(!editorialIdentifier(value))throw new Error('FORMAL_POST_ID_INVALID');return encodeURIComponent(value);};
 function read<T>(page:object|undefined,path:string):Promise<T>{return page?pageRead<T>(page,{path,authMode:'optional'}):request<T>({path,authMode:'optional'});}
@@ -37,10 +37,11 @@ export async function readFormalComments(postId:string,page?:object,cursor?:stri
  return {comments,authors,commentCount:result.matchingTotal,commentsEnabled:true,commentsPolicyVersion:0,canModerate:false,
   loadedCount:comments.length,hasMore:result.nextCursor!==null,nextCursor:result.nextCursor,truncated:result.nextCursor!==null,preview:false,asOf:new Date().toISOString()};
 }
-export async function createFormalComment(postId:string,input:{body:string;replyToId?:string;parentId?:string},operationId:string){
- const answer=await request<{id:string;state:string;version:number;replayed:boolean}>({path:`/v1/ugc/posts/${id(postId)}/comments`,method:'POST',data:input,idempotencyKey:operationId});
+export async function createFormalComment(postId:string,input:{body:string;replyToId?:string;parentId?:string},operationId:string):Promise<CommentSubmission>{
+ const answer=await request<Omit<CommentSubmission,'status'>&{state:string}>({path:`/v1/ugc/posts/${id(postId)}/comments`,method:'POST',data:input,idempotencyKey:operationId});
  if(!editorialIdentifier(answer?.id)||!Number.isSafeInteger(answer.version)||typeof answer.replayed!=='boolean')throw new Error('FORMAL_COMMENT_RESPONSE_INVALID');
- return {id:answer.id,status:answer.state==='deleted'?'deleted' as const:status(answer.state),version:answer.version,replayed:answer.replayed};
+ return {id:answer.id,status:answer.state==='deleted'?'deleted':status(answer.state),version:answer.version,replayed:answer.replayed,
+  ...confirmedCommentPresentation(answer)};
 }
 export async function likeFormalComment(postId:string,commentId:string,active:boolean){
  const answer=await request<{id:string;liked:boolean;likeCount:number}>({path:`/v1/ugc/posts/${id(postId)}/comments/${id(commentId)}/like`,method:'PUT',data:{active}});

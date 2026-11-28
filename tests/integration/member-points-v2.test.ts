@@ -9,7 +9,6 @@ import {issueSessionToken} from '../../services/api/src/auth';
 import {processMemberPointSources,MemberPointsClub} from '../../services/api/src/memberPointsClub';
 import {MemberPointsTasks} from '../../services/api/src/memberPointsTasks';
 import {AuthorityService} from '../../services/api/src/authority';
-import {UgcSafetyService} from '../../services/api/src/ugcSafety';
 import {transaction} from '../../services/api/src/db';
 import {activePointPolicy,quoteMemberPoints,grantMemberPoints,pointDay} from '../../services/api/src/pointsLedger';
 import {directSafetyEnv,safeProvider} from './ugc-direct-fixture';
@@ -39,7 +38,7 @@ it('separates first-post bonus from mutually exclusive monthly original and expe
  const receipt=await app.inject({url:`/v1/me/points/content-receipt?kind=post&id=${sourcePost.id}`,headers:auth(a)});expect(receipt.json().grants.reduce((n:number,g:any)=>n+g.points,0)).toBe(50);expect((await app.inject({url:`/v1/me/points/content-receipt?kind=post&id=${sourcePost.id}`,headers:auth(admin)})).statusCode).toBe(404);
 });
 it('counts only 15 or more Han characters, shares one daily quota across actual comments and pays neither likes nor repeated text',async()=>{const a=await person(),bodies=['只是太短的评论','abcdefghijklmnopqrst，1234567890','读完这篇护理体验以后，我想了解更多具体使用感受。甲','认真记录每天的变化很有帮助，也想交流洗护的方法。乙','对产品的真实体验应该保留，包括没有满意的地方。丙','这是一条超过当天奖励上限的真实护理交流内容。丁'];
- for(const body of bodies){const r=await app.inject({method:'POST',url:`/v1/ugc/posts/${sourcePost.id}/comments`,headers:{...auth(a),'idempotency-key':randomUUID()},payload:{body}});expect(r.statusCode,r.body).toBe(200);await new UgcSafetyService(pool,config,storage,safeProvider).scanComment(r.json().id);}
+ for(const body of bodies){const r=await app.inject({method:'POST',url:`/v1/ugc/posts/${sourcePost.id}/comments`,headers:{...auth(a),'idempotency-key':randomUUID()},payload:{body}});expect(r.statusCode,r.body).toBe(200);expect(r.json().state).toBe('published');}
  await work();expect((await grants(a,'comment')).map(g=>g.amount)).toEqual([2,2,2]);const status=await club.overview(a.memberId);expect(status.tasks.find(t=>t.id==='comment')).toMatchObject({count:3,state:'limit'});
 });
 it('does not award a share button or self visit and rewards an authenticated other-person visit only once',async()=>{const a=await person(),visitor=await person(),shared=await post(a);await work();const link=await app.inject({method:'POST',url:'/v1/shares',headers:{...auth(a),'idempotency-key':randomUUID()},payload:{targetType:'post',targetRef:shared.id}});expect(link.statusCode,link.body).toBe(200);expect((await grants(a,'share'))).toHaveLength(0);

@@ -47,6 +47,11 @@ async function publishedPost(){
   expect(post.state).toBe('published');return post;
 }
 let scanSuggest='pass';
+let checkComment=async (_body:{version:number;scene:number;openid:string;content:string})=>{};
+async function historicalComment(postId:string,actor:Actor,body:string,parentId:string|null=null){
+  return (await pool.query<{id:string}>(`INSERT INTO ugc_comment(post_id,author_member_id,body,parent_id,reply_to_id,operation_id)
+    VALUES($1,$2,$3,$4,$4,$5) RETURNING id`,[postId,actor.memberId,body,parentId,randomUUID()])).rows[0]!;
+}
 const intent=()=>new FormalUgcService(pool,config,storage,new AuthorityService(pool,'test'));
 const finisher=()=>new UgcDirectPublication(pool,config,storage);
 async function pendingSafe(post:OwnPost){
@@ -56,7 +61,14 @@ async function pendingSafe(post:OwnPost){
   return pending;
 }
 beforeAll(async()=>{
-  vi.stubGlobal('fetch',async(...args:Parameters<typeof fetch>)=>{const response=await safeProvider(...args);if(String(args[0]).includes('/msg_sec_check')){const body=await response.json();body.result.suggest=scanSuggest;return new Response(JSON.stringify(body),{status:200});}return response;});
+  vi.stubGlobal('fetch',async(...args:Parameters<typeof fetch>)=>{
+    const response=await safeProvider(...args);
+    if(!String(args[0]).includes('/msg_sec_check'))return response;
+    const request=JSON.parse(String(args[1]?.body));
+    if(request.scene===2)await checkComment(request);
+    const body=await response.json();body.result.suggest=scanSuggest;
+    return new Response(JSON.stringify(body),{status:200});
+  });
   await resetDatabase(pool);await storage.ensureReady();app=await createApp({config,pool,storage});
   closed=await createApp({config:loadConfig(base),pool,storage});
   owner=await identity('lifecycle-owner');reviewer=await identity('lifecycle-reviewer');
@@ -248,10 +260,41 @@ it('rechecks closed, expired and revoked public gates after waiting for the post
   }
 });
 
-it('checks the public gate at the end of comment approval after a post-lock wait',async()=>{
+it('creates one public comment with matching WeChat evidence and never queues a refused comment',async()=>{
+  const post=await publishedPost(),body='新评论通过自动检查后直接显示',op=randomUUID();
+  const send=(content=body,operation=op)=>app.inject({method:'POST',url:`/v1/ugc/posts/${post.id}/comments`,
+    headers:{...auth(other),'idempotency-key':operation},payload:{body:content}});
+  const checked=vi.fn<typeof checkComment>().mockResolvedValue(undefined);
+  checkComment=checked;
+  try{
+    const results=await Promise.all([send(),send()]);
+    expect(results.map(result=>result.statusCode)).toEqual([200,200]);
+    const [created,replayed]=results.map(result=>result.json()).sort((a,b)=>Number(a.replayed)-Number(b.replayed));
+    expect(created).toMatchObject({state:'published',replayed:false,comment:{body,status:'published'}});
+    expect(replayed).toMatchObject({id:created.id,state:'published',replayed:true});
+    expect(checked).toHaveBeenCalledWith({content:body,version:2,scene:2,openid:'synthetic-direct-'+other.memberId});
+    expect((await pool.query(`SELECT s.body_sha256,s.state,c.was_public FROM ugc_comment_safety_scan s JOIN ugc_comment c ON c.id=s.comment_id
+      WHERE c.post_id=$1`,[post.id])).rows).toEqual([{body_sha256:createHash('sha256').update(body).digest('hex'),state:'safe',was_public:true}]);
+    scanSuggest='review';
+    const refused=await send('自动检查拦截的合成评论',randomUUID());
+    expect(refused.statusCode).toBe(422);expect(refused.json().code).toBe('UGC_COMMENT_CONTENT_NOT_ALLOWED');
+    scanSuggest='pass';
+    checked.mockRejectedValueOnce(new Error('synthetic safety outage'));
+    const outage=await send('自动检查暂时不可用的评论',randomUUID());
+    expect(outage.statusCode).toBe(503);expect(outage.json().code).toBe('UGC_SCAN_UNAVAILABLE');
+    checked.mockImplementationOnce(async()=>{await pool.query("UPDATE emergency_switch SET enabled=false WHERE key='community'");});
+    const closedDuringCheck=await send('安全检查时关闭社区的评论',randomUUID());
+    expect(closedDuringCheck.statusCode).toBe(503);expect(closedDuringCheck.json().code).toBe('UGC_GO_LIVE_GATE_CLOSED');
+    expect((await pool.query(`SELECT id,state FROM ugc_comment WHERE post_id=$1`,[post.id])).rows).toEqual([{id:created.id,state:'published'}]);
+  }finally{
+    checkComment=async()=>{};scanSuggest='pass';
+    await pool.query("UPDATE emergency_switch SET enabled=true WHERE key='community'");
+  }
+});
+
+it('checks the public gate at the end of historical comment approval after a post-lock wait',async()=>{
   const post=await publishedPost();
-  const comment=(await app.inject({method:'POST',url:`/v1/ugc/posts/${post.id}/comments`,
-    headers:{...auth(other),'idempotency-key':randomUUID()},payload:{body:'这是一条待审核的真实评论'}})).json();
+  const comment=await historicalComment(post.id,other,'一条历史待审核评论');
   const approve=()=>app.inject({method:'POST',url:`/v1/management/ugc/comments/${comment.id}/review`,headers:auth(reviewer),
     payload:{decision:'approve',reason:'已核对内容安全与评论关系'}});
   const locker=await pool.connect();let pending:ReturnType<typeof approve>|undefined;
@@ -272,17 +315,13 @@ it('checks the public gate at the end of comment approval after a post-lock wait
   const approved=await approve();expect(approved.statusCode).toBe(200);expect(approved.json().state).toBe('published');
 });
 
-it('keeps comment approval private when its author, post, or reply context is no longer visible',async()=>{
+it('keeps historical comment approval private when its author, post, or reply context is no longer visible',async()=>{
   const post=await publishedPost();
-  const createComment=async(actor:Actor,payload:Record<string,unknown>)=>{
-    const response=await app.inject({method:'POST',url:`/v1/ugc/posts/${post.id}/comments`,
-      headers:{...auth(actor),'idempotency-key':randomUUID()},payload});expect(response.statusCode).toBe(200);return response.json();
-  };
   const approve=(id:string)=>app.inject({method:'POST',url:`/v1/management/ugc/comments/${id}/review`,headers:auth(reviewer),
     payload:{decision:'approve',reason:'已核对内容安全与评论关系'}});
-  const root=await createComment(other,{body:'作为回复上下文的根评论'});expect((await approve(root.id)).statusCode).toBe(200);
-  const reply=await createComment(publisher,{body:'只可在根评论可见时公开的回复',parentId:root.id,replyToId:root.id});
-  const ordinary=await createComment(other,{body:'账号失效后不能公开的评论'});
+  const root=await historicalComment(post.id,other,'作为回复上下文的根评论');expect((await approve(root.id)).statusCode).toBe(200);
+  const reply=await historicalComment(post.id,publisher,'只可在根评论可见时公开的回复',root.id);
+  const ordinary=await historicalComment(post.id,other,'账号失效后不能公开的评论');
   try{
     await pool.query("UPDATE member SET status='blocked' WHERE id=$1",[other.memberId]);
     const inactive=await approve(ordinary.id);expect(inactive.statusCode).toBe(409);expect(inactive.json().code).toBe('UGC_AUTHOR_INACTIVE');

@@ -28,6 +28,7 @@ beforeAll(async()=>{
   app=await createApp({config:closedConfig,pool,storage});
   owner=await identity("ugc-editor-owner");other=await identity("ugc-editor-other");
   reviewer=await identity("ugc-editor-reviewer");publisher=await identity("ugc-editor-publisher");await bindSafetyIdentity(pool,owner.memberId);
+  await bindSafetyIdentity(pool,other.memberId);
   for(const actor of [reviewer,publisher])await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
     VALUES($1,'community.moderate','fixture','UGC isolated integration','test','integration_fixture')`,[actor.memberId]);
 });
@@ -153,17 +154,15 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   const liked=await openApp.inject({method:"PUT",url:`/v1/ugc/posts/${draft.id}/reaction`,headers:auth(other),payload:{kind:"like",active:true}});
   expect(liked.json()).toMatchObject({count:1,active:true});
   const comment=await openApp.inject({method:"POST",url:`/v1/ugc/posts/${draft.id}/comments`,headers:{...auth(other),"idempotency-key":"ugc-comment-0001"},payload:{body:"我的使用感受"}});
-  expect(comment.statusCode).toBe(200);expect(comment.json().state).toBe("pending_review");
-  const ownPending=await openApp.inject({method:"GET",url:`/v1/me/ugc/activity/comments?postId=${draft.id}`,headers:auth(other)});
-  expect(ownPending.statusCode).toBe(200);
-  expect(ownPending.json()).toMatchObject({matchingTotal:1,items:[{id:comment.json().id,state:"pending_review",body:"我的使用感受"}]});
+  expect(comment.statusCode,comment.body).toBe(200);expect(comment.json().state).toBe("published");
+  const ownActivity=await openApp.inject({method:"GET",url:`/v1/me/ugc/activity/comments?postId=${draft.id}`,headers:auth(other)});
+  expect(ownActivity.statusCode).toBe(200);
+  expect(ownActivity.json()).toMatchObject({matchingTotal:1,items:[{id:comment.json().id,state:"published",body:"我的使用感受"}]});
   expect((await openApp.inject({method:"GET",url:`/v1/me/ugc/activity/comments?postId=${draft.id}`,headers:auth(owner)})).json().items).toHaveLength(0);
   expect((await openApp.inject({method:"POST",url:`/v1/ugc/posts/${draft.id}/comments`,
     headers:{...auth(other),"idempotency-key":"ugc-comment-0001"},payload:{body:"另一条评论"}})).statusCode).toBe(409);
-  expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).json().comments).toHaveLength(0);
-  const commentReview=await openApp.inject({method:"POST",url:`/v1/management/ugc/comments/${comment.json().id}/review`,headers:auth(reviewer),payload:{decision:"approve",reason:"正常护理交流"}});
-  expect(commentReview.statusCode).toBe(200);
-  expect((await openApp.inject({method:"GET",url:`/v1/me/ugc/activity/comments?postId=${draft.id}`,headers:auth(other)})).json().items[0].state).toBe("published");
+  expect((await openApp.inject({method:"POST",url:`/v1/ugc/posts/${draft.id}/comments`,
+    headers:{...auth(other),"idempotency-key":"ugc-comment-0001"},payload:{body:"我的使用感受"}})).json()).toMatchObject({id:comment.json().id,state:"published",replayed:true});
   expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).json().comments).toHaveLength(0);
   expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`,headers:auth(other)})).json().comments).toHaveLength(1);
   expect((await openApp.inject({method:"PUT",url:`/v1/ugc/posts/${draft.id}/reaction`,headers:auth(other),payload:{kind:"save",active:true}})).statusCode).toBe(200);
@@ -200,11 +199,12 @@ it("keeps image-only drafts private, reuses owned media across revisions, and pu
   expect(commentReport.statusCode).toBe(200);
   const commentQueue=(await openApp.inject({method:"GET",url:"/v1/management/ugc/reports",headers:auth(reviewer)})).json();
   const commentItem=commentQueue.items.find((item:{id:string})=>item.id===commentReport.json().id);
-  expect(commentItem).toMatchObject({targetType:"comment",postId:draft.id,targetVersion:2});
+  const targetVersion=comment.json().version;
+  expect(commentItem).toMatchObject({targetType:"comment",postId:draft.id,targetVersion});
   expect((await openApp.inject({method:"POST",url:`/v1/management/ugc/reports/${commentReport.json().id}/decision`,
-    headers:auth(reviewer),payload:{decision:"remove_comment",reason:"版本过期应拒绝",expectedVersion:1,expectedTargetVersion:1}})).statusCode).toBe(409);
+    headers:auth(reviewer),payload:{decision:"remove_comment",reason:"版本不匹配应拒绝",expectedVersion:1,expectedTargetVersion:targetVersion+1}})).statusCode).toBe(409);
   const commentRemoved=await openApp.inject({method:"POST",url:`/v1/management/ugc/reports/${commentReport.json().id}/decision`,
-    headers:auth(reviewer),payload:{decision:"remove_comment",reason:"经核实这条评论需要移除",expectedVersion:1,expectedTargetVersion:2}});
+    headers:auth(reviewer),payload:{decision:"remove_comment",reason:"经核实这条评论需要移除",expectedVersion:1,expectedTargetVersion:targetVersion}});
   expect(commentRemoved.statusCode,JSON.stringify(commentRemoved.json())).toBe(200);
   expect((await openApp.inject({method:"GET",url:`/v1/ugc/posts/${draft.id}`})).json().comments).toHaveLength(0);
   expect((await openApp.inject({method:"GET",url:`/v1/me/ugc/activity/comments?postId=${draft.id}`,headers:auth(other)})).json().items[0])

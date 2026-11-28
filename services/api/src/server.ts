@@ -534,7 +534,8 @@ export async function createApp(dependencies: AppDependencies): Promise<FastifyI
   app.delete<{Params:{mediaId:string}}>("/v1/me/ugc/media/:mediaId", async request => formalUgc.deleteOwnMedia(request.memberId,request.params.mediaId));
   app.put<{Params:{postId:string}}>("/v1/ugc/posts/:postId/reaction", async request => formalUgc.react(request.memberId,request.params.postId,(request.body??{}) as never));
   app.put<{Params:{memberId:string}}>("/v1/me/ugc/follows/:memberId", async request => formalUgc.follow(request.memberId,request.params.memberId,(request.body as {active?:unknown})?.active));
-  app.post<{Params:{postId:string}}>("/v1/ugc/posts/:postId/comments", async request => formalUgc.comment(request.memberId,request.params.postId,idempotencyKey(request),(request.body??{}) as never));
+  app.post<{Params:{postId:string}}>("/v1/ugc/posts/:postId/comments", async request =>
+    formalUgc.comment(request.memberId,request.params.postId,idempotencyKey(request),(request.body??{}) as never,ugcSafety));
   app.delete<{Params:{postId:string;commentId:string}}>("/v1/ugc/posts/:postId/comments/:commentId", async request => formalUgc.deleteComment(request.memberId,request.params.postId,request.params.commentId));
   app.put<{Params:{postId:string;commentId:string}}>("/v1/ugc/posts/:postId/comments/:commentId/like",async request=>formalUgc.likeComment(request.memberId,request.params.postId,request.params.commentId,(request.body as {active?:unknown})?.active));
   app.post<{Params:{targetType:string;targetId:string}}>("/v1/ugc/reports/:targetType/:targetId", async request => formalUgc.report(request.memberId,request.params.targetType,request.params.targetId,(request.body??{}) as never));

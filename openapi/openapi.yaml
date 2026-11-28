@@ -2880,7 +2880,7 @@ paths:
   /v1/ugc/posts/{postId}/comments:
     parameters: [{$ref: '#/components/parameters/FormalPostId'}]
     get: {operationId: formalUgcComments, security: [{session: []}], parameters: [{$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/PageLimit'}, {name: reader, in: query, schema: {type: string, enum: ['1']}, description: "Authenticated reader view adds only this reader's pending and rejected comments; all query modes require a member session"}], responses: {'200': {description: "Member-only visible comments keyset page, author display identity and like counts; reader view is actor-bound"}, '401': {$ref: '#/components/responses/Problem'}}}
-    post: {operationId: formalUgcComment, security: [{session: []}], parameters: [{$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {$ref: '#/components/requestBodies/UgcComment'}, responses: {'200': {description: Persisted pending comment awaiting safety and human review}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}}}
+    post: {operationId: formalUgcComment, security: [{session: []}], parameters: [{$ref: '#/components/parameters/IdempotencyKey'}], requestBody: {$ref: '#/components/requestBodies/UgcComment'}, responses: {'200': {description: Published comment and author presentation after WeChat text safety or the existing state on replay}, '409': {$ref: '#/components/responses/Problem'}, '422': {$ref: '#/components/responses/Problem'}, '503': {$ref: '#/components/responses/Problem'}}}
   /v1/ugc/posts/{postId}/comments/{commentId}:
     delete: {operationId: deleteOwnFormalUgcComment, security: [{session: []}], parameters: [{$ref: '#/components/parameters/FormalPostId'}, {$ref: '#/components/parameters/CommentId'}], responses: {'200': {description: Own comment deleted; review history remains}, '403': {$ref: '#/components/responses/Problem'}}}
   /v1/ugc/posts/{postId}/comments/{commentId}/like:
@@ -3380,13 +3380,13 @@ paths:
       parameters: [{$ref: '#/components/parameters/IdempotencyKey'}]
       description: Canonical active WeChat member with current legal consent. Publishes directly without administrator pre-review; asynchronous WeChat safety patrol can hide unsafe comments. Same key and normalized content replay the original fact, including deletion, without recreating it. Root is derived from a visible reply target.
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [body], properties: {body: {type: string, minLength: 2, maxLength: 180, description: Unicode code points}, replyToId: {type: string, format: uuid}}}}}}
-      responses: {'200': {description: id, actual status, version and replayed}, '401': {description: Real WeChat identity required}, '409': {description: Consent, policy, reply or idempotency conflict}, '422': {description: Invalid body}, '429': {description: Rate limit}}
+      responses: {'200': {description: Id and current state with comment and author presentation on first publication}, '401': {description: Real WeChat identity required}, '409': {description: Consent, policy, reply or idempotency conflict}, '422': {description: Invalid body}, '429': {description: Rate limit}}
   /v1/editorial/articles/{id}/comments/{commentId}:
     parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/CommentId'}]
     delete:
       operationId: deleteEditorialComment
       security: [{session: []}]
-      description: Requires community.moderate, or editorial.manage scoped to the article owner. Ordinary members, including the comment author, cannot delete. Clears unnecessary body and like facts subject to an actual hold; a deleted root removes its replies from public reads and counts. Never deletes the article.
+      description: A comment author may delete their own comment. Deleting another comment requires community.moderate or editorial.manage scoped to the article owner. Clears unnecessary body and like facts subject to an actual hold. A deleted root removes its replies from public reads and counts.
       responses: {'200': {description: Deleted id and status}, '401': {description: Canonical identity required}, '403': {description: No effective administrator permission}, '404': {description: Comment or article unavailable}}
   /v1/editorial/articles/{id}/comments/{commentId}/like:
     parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/CommentId'}]

@@ -8,7 +8,6 @@ import {createApiGatewayStorage} from '../../services/api/src/storage';
 import {issueSessionToken} from '../../services/api/src/auth';
 import {AuthorityService} from '../../services/api/src/authority';
 import {FormalUgcService} from '../../services/api/src/formalUgc';
-import {UgcSafetyService} from '../../services/api/src/ugcSafety';
 import {portableQuerySpecs} from '../../services/api/src/privacyPortableQueries';
 import {directSafetyEnv,safeProvider} from './ugc-direct-fixture';
 const pool=testPool();
@@ -60,16 +59,20 @@ it('projects the actual author across feed, detail, profile and follows without 
  expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}`,headers:headers(reader)})).json().isMine).toBe(false);
  expect((await app.inject({method:'PUT',url:`/v1/me/ugc/posts/${post.id}/draft`,headers:headers(reader),payload:{expectedVersion:post.version,body:'不能修改别人',mediaIds:[]}})).statusCode).toBe(404);
 });
-it('keeps pending comments private to the authenticated reader view',async()=>{
- const sent=await app.inject({method:'POST',url:`/v1/ugc/posts/${post.id}/comments`,headers:{...headers(reader),'idempotency-key':randomUUID()},payload:{body:'只有本人能看见的待处理评论'}});
- expect(sent.statusCode).toBe(200);comment=sent.json();expect(comment.replayed).toBe(false);
+it('publishes the confirmed comment immediately and keeps historical pending comments private',async()=>{
+ const sent=await app.inject({method:'POST',url:`/v1/ugc/posts/${post.id}/comments`,headers:{...headers(reader),'idempotency-key':randomUUID()},payload:{body:'读完想分享我的护理感受'}});
+ expect(sent.statusCode,sent.body).toBe(200);comment=sent.json();
+ expect(comment).toMatchObject({state:'published',replayed:false,comment:{id:comment.id,status:'published',isMine:true,body:'读完想分享我的护理感受'}});
+ const historical=(await pool.query<{id:string}>(`INSERT INTO ugc_comment(post_id,author_member_id,body,operation_id)
+   VALUES($1,$2,$3,$4) RETURNING id`,[post.id,reader.id,'历史未公开评论',randomUUID()])).rows[0]!;
  const own=await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}/comments?reader=1`,headers:headers(reader)});
- expect(own.statusCode).toBe(200);expect(own.json().items).toEqual([expect.objectContaining({id:comment.id,author:'真实读者',isMine:true,state:'pending_review'})]);
- const publicRead=await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}/comments`,headers:headers(moderator)});expect(publicRead.json().items).toEqual([]);
+ expect(own.statusCode).toBe(200);expect(own.json().items).toContainEqual(expect.objectContaining({id:historical.id,author:'真实读者',isMine:true,state:'pending_review'}));
+ const published=expect.objectContaining({id:comment.id,state:'published',isMine:false});
+ const publicRead=await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}/comments`,headers:headers(moderator)});expect(publicRead.json().items).toEqual([published]);
  expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}/comments`})).statusCode).toBe(401);
  expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}/comments?reader=1`})).statusCode).toBe(401);
- expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}/comments?reader=1`,headers:headers(moderator)})).json().items).toEqual([]);
- expect((await app.inject({method:'PUT',url:`/v1/ugc/posts/${post.id}/comments/${comment.id}/like`,headers:headers(),payload:{active:true}})).statusCode).toBe(404);
+ expect((await app.inject({method:'GET',url:`/v1/ugc/posts/${post.id}/comments?reader=1`,headers:headers(moderator)})).json().items).toEqual([published]);
+ expect((await app.inject({method:'PUT',url:`/v1/ugc/posts/${post.id}/comments/${historical.id}/like`,headers:headers(),payload:{active:true}})).statusCode).toBe(404);
 });
 it('keeps public story bodies readable without embedding comments or permitting an anonymous query-mode bypass',async()=>{
  const story=await publish(),marker='合成评论权限-'+randomUUID();
@@ -90,9 +93,6 @@ it('keeps public story bodies readable without embedding comments or permitting 
  await expect(direct.publicComments(undefined,story.id)).rejects.toMatchObject({code:'AUTH_REQUIRED',status:401});
 });
 it('gives the common comment heart a real idempotent owner-scoped like',async()=>{
- const safety=new UgcSafetyService(pool,config,storage,safeProvider);
- expect(await safety.scanComment(comment.id)).toMatchObject({state:'safe'});
- expect((await pool.query('SELECT state FROM ugc_comment WHERE id=$1',[comment.id])).rows[0].state).toBe('published');
  const url=`/v1/ugc/posts/${post.id}/comments/${comment.id}/like`;
  expect((await app.inject({method:'PUT',url,payload:{active:true}})).statusCode).toBe(401);
  for(let i=0;i<2;i++)expect((await app.inject({method:'PUT',url,headers:headers(),payload:{active:true}})).json()).toEqual({id:comment.id,liked:true,likeCount:1});

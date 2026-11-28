@@ -298,6 +298,24 @@ export class UgcSafetyService{
     }
   }
 
+  async checkCommentText(memberId:string, body:string) {
+    const identity = (await this.pool.query<{openid:string}>(`SELECT openid FROM wechat_identity
+      WHERE member_id=$1 AND provider='wechat_miniprogram' AND app_id=$2 AND adapter='wechat'
+      ORDER BY created_at DESC LIMIT 1`, [memberId,this.config.wechat.appId??""])).rows[0];
+    if (!identity) throw new DomainError("UGC_COMMENT_WECHAT_REQUIRED","请用微信登录后再发表评论",409);
+    let response:WechatResult;
+    try {
+      response = await this.request("msg_sec_check",{content:body,version:2,scene:2,openid:identity.openid});
+    } catch {
+      throw new DomainError("UGC_SCAN_UNAVAILABLE","评论暂时无法发送，内容已保留，请稍后重试",503);
+    }
+    const state = verdict(response);
+    if (state === "review" || state === "risky")
+      throw new DomainError("UGC_COMMENT_CONTENT_NOT_ALLOWED","这条评论暂无法发布，请修改后重试",422);
+    if (state !== "safe") throw new DomainError("UGC_SCAN_UNAVAILABLE","评论暂时无法发送，内容已保留，请稍后重试",503);
+    return {errcode:response.errcode,suggest:response.result?.suggest,label:response.result?.label,traceId:response.trace_id};
+  }
+
   async scanComment(commentId:string){return this.scanTextComment(commentId,'ugc');}
   async scanEditorialComment(commentId:string){return this.scanTextComment(commentId,'editorial');}
   private async scanTextComment(commentId:string,kind:'ugc'|'editorial'){

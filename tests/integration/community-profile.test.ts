@@ -125,11 +125,7 @@ it('projects a verified badge across list, author, post and comments while keepi
   const posted=await app.inject({method:'POST',url:'/v1/ugc/posts/'+post+'/comments',
    headers:{...headers(who),'idempotency-key':'badge-comment-'+randomUUID()},payload:{body:'合成身份证据评论'}});
   expect(posted.statusCode,posted.body).toBe(200);
-  expect(posted.json().state).toBe('pending_review');
-  const reviewed=await app.inject({method:'POST',url:`/v1/management/ugc/comments/${posted.json().id}/review`,
-   headers:headers(moderator),payload:{decision:'approve',reason:'合成护理交流'}});
-  expect(reviewed.statusCode,reviewed.body).toBe(200);
-  expect(reviewed.json().state).toBe('published');
+  expect(posted.json().state).toBe('published');
  }
  const comments=()=>app.inject({url:'/v1/ugc/posts/'+post+'/comments?reader=1',headers:headers(visitor)});
  const shown=(await comments()).json().items;
