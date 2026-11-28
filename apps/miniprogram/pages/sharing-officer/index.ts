@@ -134,7 +134,8 @@ Page({
     },reviewApprovalMs);
    }
    if(this.data.giftMode){await this.loadGiftOffers(epoch);return;}
-   if(!this.data.referrerOnly&&wallet.officer?.state==='active'&&this.data.tab==='overview')await this.loadProducts(false,epoch);
+   const showProducts=wallet.officer?.state==='active'||wallet.officer?.state==='promotion_only'&&wallet.canShare;
+   if(!this.data.referrerOnly&&showProducts&&this.data.tab==='overview')await this.loadProducts(false,epoch);
    if(!this.data.referrerOnly&&this.data.tab!=='overview'){
     const page=await officerRead(this,`/v1/me/sharing-officer/${this.data.tab}?limit=20${this.data.tab==='orders'&&this.data.orderLineId?'&lineId='+this.data.orderLineId:''}${more&&this.data.nextCursor?'&cursor='+encodeURIComponent(this.data.nextCursor):''}`);
     if(!this.current(epoch))return;

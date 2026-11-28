@@ -1,5 +1,5 @@
 import {afterEach,beforeEach,it,expect,vi} from 'vitest';
-const m=vi.hoisted(()=>({read:vi.fn(),command:vi.fn(),authority:vi.fn(),token:'owner-session',context:0,pending:null as any,reducedMotion:false}));
+const m=vi.hoisted(()=>({read:vi.fn(),command:vi.fn(),authority:vi.fn(),catalog:vi.fn(),token:'owner-session',context:0,pending:null as any,reducedMotion:false}));
 vi.mock('../../apps/miniprogram/services/api',()=>({requireMemberAccess:()=>true,request:m.read,registerPrivateExport:()=>vi.fn()}));
 vi.mock('../../apps/miniprogram/services/layout',()=>({currentChromeStyle:()=>'',shouldReduceMotion:()=>m.reducedMotion}));
 vi.mock('../../apps/miniprogram/services/page-requests',()=>({cancelPageReads:vi.fn()}));
@@ -8,7 +8,7 @@ vi.mock('../../apps/miniprogram/services/commerce-command-store',async()=>({
  ...await vi.importActual<typeof import('../../apps/miniprogram/services/commerce-command-store')>('../../apps/miniprogram/services/commerce-command-store'),
  commerceContextRevision:()=>m.context
 }));
-vi.mock('../../apps/miniprogram/services/commerce',()=>({catalogList:async()=>({items:[],nextCursor:null})}));
+vi.mock('../../apps/miniprogram/services/commerce',()=>({catalogList:m.catalog}));
 vi.mock('../../apps/miniprogram/services/catalog',()=>({nativeCatalogImage:(v:string)=>v}));
 vi.mock('../../apps/miniprogram/services/sharing-officer',async()=>{
  const actual=await vi.importActual<any>('../../apps/miniprogram/services/sharing-officer');return {...actual,officerRead:m.read,officerCommand:m.command,officerPending:()=>m.pending};
@@ -28,6 +28,7 @@ async function mount(kind:'consumer'|'admin',query:Record<string,string>={}){
  page.onLoad(query);return page;
 }
 beforeEach(()=>{vi.resetModules();vi.clearAllMocks();m.token='owner-session';m.context=0;m.pending=null;m.reducedMotion=false;
+ m.catalog.mockResolvedValue({items:[],nextCursor:null});
  (globalThis as any).getApp=()=>({globalData:{sessionToken:m.token,apiBaseUrl:'https://staging-api.cisme.cn'}});
  (globalThis as any).wx={hideShareMenu:vi.fn(),stopPullDownRefresh:vi.fn(),getStorageSync:()=>'',showToast:vi.fn(),showModal:vi.fn(),nextTick:vi.fn(),env:{USER_DATA_PATH:'/synthetic'},getFileSystemManager:()=>({unlinkSync:vi.fn()}),navigateBack:vi.fn(),navigateTo:vi.fn()};
  m.authority.mockResolvedValue({capabilities:['member.manage','commission.rate.manage','commission.read','commission.settlement.approve']});
@@ -69,9 +70,11 @@ it('uses the server-granted highest administrator promotion and shows immediate 
  vi.useFakeTimers();
  const promoted={...wallet,rootException:true,canShare:true,qualification:{met:false},officer:{state:'promotion_only',version:1},applicationAgreement:agreement};
  m.read.mockResolvedValue(promoted);
+ m.catalog.mockResolvedValue({items:[{code:'eligible-fixture-product',name:'合成精华',price:29800,imagePath:'/synthetic/essence.png'}],nextCursor:null});
  const p=await mount('consumer');
  p.onShow();await flush();
  expect(p.data).toMatchObject({hasDashboard:true,qualificationPurchaseNeeded:false,stateLabel:'已开通推广'});
+ expect(p.data.products).toEqual([expect.objectContaining({code:'eligible-fixture-product',price:'298.00'})]);
  p.openAgreement();scrollToEnd(p);await vi.advanceTimersByTimeAsync(10000);p.agree();await vi.advanceTimersByTimeAsync(160);
  p.open(applyButton);
  expect(p.data.sheet).toBe('apply');

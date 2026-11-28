@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "8939413dfcb8edd80f1c203b8be5c23daddc4a8e916d7daf21704a28b157c9ae",
+  "packageSourceSha256": "0cc36650a0664e47cae1751c46d2c2e17b5793e7e7f644b3a31da3c5ce1a8125",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,7 +316,7 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-28 当前包新增会员确认推荐来源、管理待生效列表和最高管理员推广特例。完整路由、字号与真机仍须单独验收。",
+  "note": "2026-11-28 当前包核对推广商品、资格筛选及当前与待生效推荐人的展示。完整路由、字号与真机仍须单独验收。",
   "previousSourceRecord": {
     "packageSourceSha256": "d7b0dd93226fb80d3e22481f955da8c4a634ec63f3d074cd0e80228af1eadeb1",
     "scope": "Previous sharing officer approval candidate. Its acceptance evidence applies only to that source."

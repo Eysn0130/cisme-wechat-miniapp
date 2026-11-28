@@ -60,11 +60,15 @@
   <view wx:if="{{reviewLoading}}" class="page-read-loading" aria-role="status" aria-label="正在读取申请"><view class="page-read-loading__indicator"/></view>
   <view wx:if="{{reviewError}}" class="officer-error"><text>{{reviewError}}</text><button class="action-text" bindtap="refreshOfficerReview">{{reviewStale?'更新列表':'重试'}}</button></view>
   <block wx:if="{{review}}">
-   <text class="officer-review-section">{{selected.state==='pending'?'开通条件':'审核记录'}}</text>
+   <text class="officer-review-section">{{selected.state==='pending'?'开通条件':selected.state==='promotion_only'?'推广授权':'审核记录'}}</text>
    <view class="officer-review-card">
     <block wx:if="{{selected.state==='pending'}}">
      <view wx:if="{{!review.accountActive}}" class="officer-review-fact"><text>账号状态</text><text class="officer-review-caution">当前不可开通</text></view>
      <view class="officer-review-fact"><text>精华套组</text><text class="{{review.qualificationMet?'':'officer-review-caution'}}">{{review.qualificationMet?'已购至少 1 组':'条件未达成'}}</text></view>
+    </block>
+    <block wx:elif="{{selected.state==='promotion_only'}}">
+     <view wx:if="{{selected.date}}" class="officer-review-fact"><text>授权时间</text><text>{{selected.date}}</text></view>
+     <view class="officer-review-fact"><text>合作协议</text><text>待本人确认</text></view>
     </block>
     <block wx:elif="{{review.review}}">
      <view class="officer-review-fact"><text>审核结论</text><text>{{review.review.label}}</text></view>

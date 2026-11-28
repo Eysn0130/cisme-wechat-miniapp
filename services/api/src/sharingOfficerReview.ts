@@ -47,17 +47,19 @@ export async function sharingMemberCards(client:DbClient,ids:string[],scope:Pick
 
 function reviewView(row:Row){
  return {...officerView(row),id:row.id,memberId:row.member_id,displayName:row.display_name,payeeReady:row.payee_ready,
-  applicationAt:row.application_at??null,reviewedAt:row.reviewed_at??null};
+  applicationAt:row.application_at??null,reviewedAt:row.reviewed_at??null,
+  ...(row.state==='promotion_only'?{promotionAt:row.created_at}:{})};
 }
 
 export async function sharingReviewQueue(client:DbClient,filter:string,target:string|null,cursor:PageCursor|null,limit:number,key:string,scope:ReviewScope,environment:AppEnvironment){
- if(!['all','pending','reviewed','active','rejected','suspended','terminated'].includes(filter))fail('SHARING_FILTER_INVALID','分类无效',422);
+ if(!['all','pending','reviewed','active','promotion_only','rejected','suspended','terminated'].includes(filter))fail('SHARING_FILTER_INVALID','分类无效',422);
  // The sentinel is private to the cursor. Legacy rows without a corresponding
  // event stay visible in the undated group rather than acquiring a fake date.
  const {rows}=await client.query(`WITH review_rows AS (${reviewRows}
   WHERE ($1='all' OR o.state=$1 OR ($1='reviewed' AND o.state IN ('active','rejected','suspended','terminated')))
    AND ($5::uuid IS NULL OR o.member_id=$5)), ordered AS (
-   SELECT r.*,COALESCE(CASE WHEN state='pending' THEN application_at ELSE reviewed_at END,'0001-01-01 00:00:00+00'::timestamptz) AS list_at FROM review_rows r
+   SELECT r.*,COALESCE(CASE state WHEN 'pending' THEN application_at WHEN 'promotion_only' THEN created_at ELSE reviewed_at END,
+    '0001-01-01 00:00:00+00'::timestamptz) AS list_at FROM review_rows r
   ) SELECT *,list_at::text AS cursor_at FROM ordered WHERE ($2::timestamptz IS NULL OR (list_at,id)<($2,$3::uuid))
   ORDER BY list_at DESC,id DESC LIMIT $4`,[filter,cursor?.at??null,cursor?.id??null,limit+1,target]);
  const page=finishPage(rows.map(r=>({...r,id:String(r.id),cursorAt:String(r.cursor_at)})),limit,key);
@@ -93,7 +95,7 @@ export async function sharingReviewDetail(client:DbClient,actor:string,target:st
     WHERE r.referrer_member_id=$1 AND m.registration_completed_at IS NOT NULL AND m.status<>'deleted') AS "invitedRegistrations",
   (SELECT count(*)::int FROM sharing_customer_relation r JOIN member m ON m.id=r.buyer_id
     WHERE r.officer_id=$1 AND m.status='active' AND m.registration_completed_at IS NOT NULL AND r.removed_at IS NULL
-      AND (r.expires_at IS NULL OR r.expires_at>clock_timestamp())) AS "attributedMembers",
+      AND r.effective_at<=transaction_timestamp() AND (r.expires_at IS NULL OR r.expires_at>transaction_timestamp())) AS "attributedMembers",
   CASE WHEN $2 THEN (SELECT count(*)::int FROM commission_order_snapshot s WHERE s.referrer_member_id=$1 AND s.program='sharing_officer'
     AND EXISTS(SELECT 1 FROM commission_payment_inbox p WHERE p.order_id=s.order_id AND p.state='applied')) END AS "verifiedPaidOrders"`,[target,scope.commission])).rows[0]:null;
  await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)

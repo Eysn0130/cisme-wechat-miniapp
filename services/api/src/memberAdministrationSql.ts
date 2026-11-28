@@ -44,9 +44,12 @@ export function userProjectionSql(s:Pick<UserScope,'points'|'orders'|'care'|'rew
  LEFT JOIN LATERAL(SELECT (SELECT count(*) FROM member_purchase_coupon pc WHERE ${yes(s.rewards)} AND pc.member_id=m.id AND pc.state='available' AND pc.expires_at>$1) AS usable_coupons,
  (SELECT count(*) FROM reward_voucher rv WHERE ${yes(s.rewards)} AND rv.member_id=m.id AND rv.state='unused' AND rv.expires_at>$1) AS unclaimed_rewards)vch ON true
  LEFT JOIN sharing_officer so ON so.member_id=m.id AND ${yes(s.sharing)}
- LEFT JOIN sharing_customer_relation relation ON relation.buyer_id=m.id AND ${yes(s.sharing)} AND relation.removed_at IS NULL AND (relation.expires_at IS NULL OR relation.expires_at>$1)
+ LEFT JOIN sharing_customer_relation relation ON relation.buyer_id=m.id AND ${yes(s.sharing)} AND relation.removed_at IS NULL
+   AND relation.effective_at<=$1 AND (relation.expires_at IS NULL OR relation.expires_at>$1)
  LEFT JOIN sharing_officer referrer ON referrer.member_id=relation.officer_id
- LEFT JOIN LATERAL(SELECT count(*) AS direct_count FROM sharing_customer_relation r WHERE ${yes(s.sharing)} AND r.officer_id=m.id AND r.removed_at IS NULL AND (r.expires_at IS NULL OR r.expires_at>$1))direct ON true
+ LEFT JOIN LATERAL(SELECT count(*) AS direct_count FROM sharing_customer_relation r JOIN member buyer ON buyer.id=r.buyer_id
+   WHERE ${yes(s.sharing)} AND r.officer_id=m.id AND buyer.status='active' AND buyer.registration_completed_at IS NOT NULL
+   AND r.removed_at IS NULL AND r.effective_at<=$1 AND (r.expires_at IS NULL OR r.expires_at>$1))direct ON true
  LEFT JOIN LATERAL(SELECT max(sm.created_at) AS last_at FROM support_message sm JOIN support_conversation sc ON sc.id=sm.conversation_id
  WHERE ${yes(s.support)} AND sc.member_id=m.id AND sm.sender_type='user')sup ON true
  WHERE m.status<>'deleted' AND m.registration_completed_at IS NOT NULL ${canonicalOnly?"AND EXISTS(SELECT 1 FROM wechat_identity wi WHERE wi.member_id=m.id AND wi.provider='wechat_miniprogram' AND wi.app_id='wx4eac2d4fb11d299b')":''}`;

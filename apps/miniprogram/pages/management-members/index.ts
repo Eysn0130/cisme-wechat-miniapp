@@ -3,7 +3,7 @@ import {requireMemberAccess,request,registerPrivateExport} from '../../services/
 import {currentChromeStyle} from '../../services/layout';
 import {sectionTabValue} from '../../services/section-tabs';
 import {prepareUserRows,initialQuery,allowedViews,columns,rowView,queryString,userContext,userRead,userSearch,cancelUserReads,userError,type UserQuery,type UserRow,type UserScope,type Column} from './service';
-const accounts=['全部','正常','已停用'],accountValues=['all','active','blocked'],onboardings=['全部','已建档','待建档'],onboardingValues=['all','complete','incomplete'],officers=['全部','未申请','待审核','已开通','已暂停','已终止','未通过'],officerValues=['all','none','pending','active','suspended','terminated','rejected'];
+const accounts=['全部','正常','已停用'],accountValues=['all','active','blocked'],onboardings=['全部','已建档','待建档'],onboardingValues=['all','complete','incomplete'],officers=['全部','未申请','待审核','已开通','已开通推广','已暂停','已终止','未通过'],officerValues=['all','none','pending','active','promotion_only','suspended','terminated','rejected'];
 Page({
   dismissNativeKeyboardOnTap,
  visible:false,epoch:0,context:'',raw:[] as UserRow[],files:[] as Array<()=>void>,fieldChoice:{} as Record<string,string[]>,
