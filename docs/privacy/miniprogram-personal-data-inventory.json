@@ -878,7 +878,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "9f817542921c223015ef760c98cc8d6f614f4aa47ac521e605763f9deffe7af6",
+  "migrationSetSha256": "7742f2a6b5eb95c89efcde47640eb354b4b18e1f3d0585c26e847835f0c7b0f9",
   "egressSignatureSha256": "51385a8246d036be461cc5496918b981d47f9d77cb0361131ed2d02e0cbec0e7",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1511,10 +1511,10 @@
     "physicalDeviceAccepted": false
   },
   "sharingAgreementV2Review20261124": {
-    "source": "Cooperation agreement V2.0 and owner-confirmed date, manual verification and referrer replacement rules.",
+    "source": "Cooperation agreement V2.0, the V2.0.1 application approval revision, and owner-confirmed referrer replacement rules.",
     "tables": ["sharing_v2_agreement_document", "sharing_v2_application", "sharing_v2_referral_intent", "sharing_v2_assessment"],
     "acceptance": "An eligible member submits the version and digest of the displayed effective agreement after confirming. The exact authorized text is archived once by digest alongside the server acceptance time and application evidence in the same transaction. No reading path, scroll position, device fingerprint or timer events are retained.",
-    "verification": "Only an authorized reviewer can record completed company manual identity verification with an opaque reference; the applicant ID, verification result, reviewer and time are evidence. No identity documents, photographs, identity numbers or external recipients are introduced.",
+    "verification": "An authorized reviewer records the decision, actor, timestamp and optional approval note. Existing V2.0 manual verification records remain restricted historical evidence. New approvals use the application decision event.",
     "review": "Opaque relation and order references remain in first-party storage. A three-period performance result can terminate qualification and detach live customer bindings. Original confirmed agreement, transaction, referral and audit evidence is preserved; no named referred customer is exposed in the officer wallet or CSV.",
     "rights": "Owner-scoped portable export includes their acceptance, verification and assessment records. Existing access, retention, account-closure and finance evidence controls continue. No production record was used for this mapping."
   },

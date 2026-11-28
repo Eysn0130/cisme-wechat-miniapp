@@ -14,9 +14,9 @@ const reviewEmpty={...customerEmpty,review:null as ReturnType<typeof officerRevi
 const qualificationConfirmation:Record<string,string>={
  suspended:'暂停期间新订单不计佣，保留现有推荐归属和历史订单。',
  active:'仍保留归属的会员，从恢复后的新订单起计佣。暂停期间的订单不补计。',
- terminated:'终止推广资格，V2.0 资格的推荐归属将解除。再次开通需要重新申请，历史订单按原归属处理。'
+ terminated:'终止后需重新申请。已有订单按原归属处理。'
 };
-const empty={...reviewEmpty,officerGroups:[] as OfficerDay[],memberId:'',scope:null as any,policy:null as any,items:[] as any[],tabs:[] as Array<{id:string;label:string}>,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,selected:null as any,sheet:'',payee:null as any,error:'',reason:'',verificationReference:'',rate:'',days:'',attributionDays:'',durationIndex:0,priorityIndex:0,enabled:false,tax:'',taxNote:'',reference:'',paymentNote:'',paidAt:'',recoveryAmount:'',receivedAmount:'',taxAdjustment:'',orderDetail:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,sourceOrders:[] as any[],sourceCursor:null as string|null,sourceMore:false};
+const empty={...reviewEmpty,officerGroups:[] as OfficerDay[],memberId:'',scope:null as any,policy:null as any,items:[] as any[],tabs:[] as Array<{id:string;label:string}>,nextCursor:null as string|null,hasMore:false,pending:null as OfficerPending|null,selected:null as any,sheet:'',payee:null as any,error:'',reason:'',approving:false,rate:'',days:'',attributionDays:'',durationIndex:0,priorityIndex:0,enabled:false,tax:'',taxNote:'',reference:'',paymentNote:'',paidAt:'',recoveryAmount:'',receivedAmount:'',taxAdjustment:'',orderDetail:null as any,history:[] as any[],historyCursor:null as string|null,historyMore:false,historyLoading:false,sourceOrders:[] as any[],sourceCursor:null as string|null,sourceMore:false};
 function moneyInput(value:string){const m=/^(\d{1,9})(?:\.(\d{1,2}))?$/.exec(value.trim());return m?Number(m[1])*100+Number((m[2]??'').padEnd(2,'0')):NaN;}
 function viewRow(r:any){return {...r,label:officerLabels[r.state]||'',date:officerDate((r.state==='pending'?r.updatedAt:null)||r.paidAt||r.appliedAt||r.createdAt),gross:officerMoney(r.grossCents),tax:officerMoney(r.taxCents),net:officerMoney(r.netCents),cash:officerMoney(r.cashMerchandiseCents),recovery:officerMoney(r.outstandingRecoveryCents)};}
 Page({
@@ -59,7 +59,7 @@ Page({
   this.setData({filterIndex:index,filter:filter.id,items:[],officerGroups:[],nextCursor:null,hasMore:false});
   void this.load();
  },
- edit(e:WechatMiniprogram.CustomEvent){const field=String(e.currentTarget.dataset.field);if(['reason','verificationReference','rate','days','attributionDays','tax','taxNote','reference','paymentNote','paidAt','period','recoveryAmount','receivedAmount','taxAdjustment'].includes(field)&&!this.data.busy)this.setData({[field]:String(e.detail.value)});},
+ edit(e:WechatMiniprogram.CustomEvent){const field=String(e.currentTarget.dataset.field);if(['reason','rate','days','attributionDays','tax','taxNote','reference','paymentNote','paidAt','period','recoveryAmount','receivedAmount','taxAdjustment'].includes(field)&&!this.data.busy)this.setData({[field]:String(e.detail.value)});},
  pick(e:WechatMiniprogram.CustomEvent){const field=String(e.currentTarget.dataset.field);if(['durationIndex','priorityIndex'].includes(field))this.setData({[field]:Number(e.detail.value)});},
  toggle(e:WechatMiniprogram.CustomEvent){this.setData({enabled:Boolean(e.detail.value)});},
  openPolicy(){if(this.target.memberId)return;if(!this.data.scope?.configure||this.data.busy||this.data.pending)return;const p=this.data.policy;this.setData({sheet:'policy',rate:String((p?.basisPoints??0)/100),days:String(p?.releaseDays??0),durationIndex:p?.attributionDays===null?0:1,attributionDays:p?.attributionDays===null?'':String(p?.attributionDays??''),priorityIndex:p?.priority==='last'?1:0,enabled:p?.enabled===true,reason:'',error:''});},
@@ -171,8 +171,9 @@ Page({
  chooseDecision(e:WechatMiniprogram.TouchEvent){
   if(!this.current()||!this.data.scope?.manage||this.data.busy||this.data.pending||this.data.sheet!=='officer'||!this.data.selected||this.data.selected.memberId===this.data.memberId)return;
   const state=String(e.currentTarget.dataset.state),selected=this.data.selected;
-  if(!this.data.review?.accountActive||this.data.reviewStale||(selected.state==='pending'&&state==='active'&&!this.data.review.canApprove))return;
-  this.setData({decisionState:state,decisionLabel:String(e.currentTarget.dataset.label),sheet:'decision',verificationReference:'',reason:'',error:''});},
+  const approving=selected.state==='pending'&&state==='active';
+  if(!this.data.review?.accountActive||this.data.reviewStale||approving&&!this.data.review.canApprove)return;
+  this.setData({decisionState:state,decisionLabel:String(e.currentTarget.dataset.label),sheet:'decision',approving,reason:'',error:''});},
  selectBatch(e:WechatMiniprogram.TouchEvent){if(this.data.busy)return;const row=this.data.items.find(v=>v.id===e.currentTarget.dataset.id);if(!row)return;this.setData({batchId:row.id,batchPeriod:row.period,items:[],nextCursor:null,hasMore:false});void this.load();},
  closeBatch(){if(this.data.busy)return;this.setData({batchId:'',batchPeriod:'',items:[]});void this.load();},
  selectLine(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending)return;const row=this.data.items.find(v=>v.id===e.currentTarget.dataset.id);if(row)this.setData({sheet:'line',selected:row,payee:null,sourceOrders:[],sourceCursor:null,sourceMore:false,error:'',tax:row.taxCents===null?'':row.tax,taxNote:row.taxNote??'',reference:'',paymentNote:'',paidAt:new Date(Date.now()+8*3600_000).toISOString().slice(0,19).replace('T',' ')});},
@@ -188,7 +189,7 @@ Page({
   if(sheet==='customer-decision'){this.setData({sheet:'customers',customerSelected:null,reason:'',error:''});return;}
   if(sheet==='customers'||sheet==='decision'){
    this.customerAttempt++;
-   this.setData({...customerEmpty,sheet:'officer',reason:'',verificationReference:'',error:''});
+   this.setData({...customerEmpty,sheet:'officer',reason:'',approving:false,error:''});
    void this.readOfficerReview();
    return;
   }
@@ -197,14 +198,17 @@ Page({
  closeAll(){
   this.reviewAttempt++;
   this.customerAttempt++;
-  this.setData({...reviewEmpty,sheet:'',selected:null,payee:null,orderDetail:null,history:[],historyCursor:null,historyMore:false,historyLoading:false,reason:'',verificationReference:'',taxNote:'',reference:'',paymentNote:'',error:''});
+  this.setData({...reviewEmpty,sheet:'',selected:null,payee:null,orderDetail:null,history:[],historyCursor:null,historyMore:false,historyLoading:false,reason:'',approving:false,taxNote:'',reference:'',paymentNote:'',error:''});
  },
  stop(){},
  back(){if(this.data.busy)return;if(this.data.sheet){this.close();return;}if(this.data.batchId){this.closeBatch();return;}wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},
  async operate(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||!this.current())return;const action=String(e.currentTarget.dataset.action);if(this.target.memberId&&['prepare_month','policy'].includes(action))return;const selected=this.data.selected;let input:Record<string,unknown>;
   if(action==='policy')input={enabled:this.data.enabled,attributionDays:this.data.durationIndex===0?null:Number(this.data.attributionDays),priority:this.data.priorityIndex===0?'first':'last',selfPurchase:false,basisPoints:moneyInput(this.data.rate),releaseDays:Number(this.data.days),reason:this.data.reason,expectedVersion:this.data.policy?.version??0};
-  else if(action==='officer_state'&&selected&&this.data.scope?.manage&&this.data.sheet==='decision'&&selected.memberId!==this.data.memberId)input={memberId:selected.memberId,state:this.data.decisionState,reason:this.data.reason,expectedVersion:selected.version,
-   ...(selected.agreementVersion&&selected.state==='pending'&&this.data.decisionState==='active'?{verificationReference:this.data.verificationReference.trim()}:{})};
+  else if(action==='officer_state'&&selected&&this.data.scope?.manage&&this.data.sheet==='decision'&&selected.memberId!==this.data.memberId){
+   const reason=this.data.reason.trim();
+   if(!this.data.approving&&!reason)return;
+   input={memberId:selected.memberId,state:this.data.decisionState,expectedVersion:selected.version,...(reason?{reason}:{})};
+  }
   else if(action==='prepare_month')input={period:this.data.period,...(this.data.continuePrepare?{afterMemberId:this.data.afterMemberId}:{})};
   else if(action==='review_line'&&selected)input={lineId:selected.id,expectedVersion:selected.version,taxCents:moneyInput(this.data.tax),taxNote:this.data.taxNote};
   else if(action==='void_line'&&selected)input={lineId:selected.id,expectedVersion:selected.version,reason:this.data.reason};
@@ -213,13 +217,15 @@ Page({
   else if(action==='record_recovery'&&selected){const confirmed=await wx.showModal({title:'登记已完成的回收',content:'请确认公司已实际收到退款佣金，税务调整金额已经财务审核。',confirmText:'已实际收回'});if(!confirmed.confirm||!this.current())return;input={orderId:selected.id,amountCents:moneyInput(this.data.recoveryAmount),receivedCents:moneyInput(this.data.receivedAmount),taxAdjustmentCents:this.data.taxAdjustment.startsWith('-')?-moneyInput(this.data.taxAdjustment.slice(1)):moneyInput(this.data.taxAdjustment),reference:this.data.reference,note:this.data.reason,receivedConfirmed:true};}else return;
   const epoch=this.epoch;this.setData({busy:true,error:''});try{
    if(action==='officer_state'&&selected.state!=='pending'){
-    const label=this.data.decisionLabel,content=qualificationConfirmation[this.data.decisionState];
+    const label=this.data.decisionLabel,content=this.data.decisionState==='terminated'&&selected.agreementVersion
+     ?'终止后将解除推荐归属。再次开通需重新申请。已有订单按原归属处理。'
+     :qualificationConfirmation[this.data.decisionState];
     if(!content)return;
     const confirmed=await wx.showModal({title:'确认'+label,content,confirmText:'确认'});
     if(!confirmed.confirm||!this.current(epoch))return;
    }
    const result=await officerCommand(this.data.memberId,action,input,true);if(!this.current(epoch))return;
-   this.setData({sheet:'',selected:null,payee:null,reason:'',verificationReference:'',reference:'',paymentNote:'',taxNote:'',...(action==='prepare_month'?{batchId:result.batchId,batchPeriod:result.period,continuePrepare:result.hasMore,afterMemberId:result.afterMemberId??''}:{})});
+   this.setData({sheet:'',selected:null,payee:null,reason:'',approving:false,reference:'',paymentNote:'',taxNote:'',...(action==='prepare_month'?{batchId:result.batchId,batchPeriod:result.period,continuePrepare:result.hasMore,afterMemberId:result.afterMemberId??''}:{})});
    const title=action==='prepare_month'?`已生成 ${result.created} 条`:action==='officer_state'&&result.state==='active'?(selected.state==='suspended'?'资格已恢复':'分享官已开通'):'已保存';
    wx.showToast({title,icon:'none'});await this.load();
   }catch(error){if(this.current(epoch))this.setData({error:officerError(error),pending:officerPending(this.data.memberId)});}finally{if(this.current(epoch))this.setData({busy:false});}},

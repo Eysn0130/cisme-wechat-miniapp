@@ -198,31 +198,34 @@ it.each([['active','已开通'],['rejected','未通过']])('shows a resolved %s 
  await vi.advanceTimersByTimeAsync(16_000);
  expect(m.read).toHaveBeenCalledTimes(2);
 });
-it('opens an applicant in the pending management queue and sends one verified approval',async()=>{
+it.each([['', 'V2.0'], ['条件已达成', 'V2.0.1']])('approves from the shared management page with note %j for agreement %s',async(reason,agreementVersion)=>{
  const applicant='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
- const row={memberId:applicant,displayName:'合成申请人',state:'pending',version:1,agreementVersion:'V2.0'};
+ const row={memberId:applicant,displayName:'合成申请人',state:'pending',version:1,agreementVersion};
  const projection={memberId:owner,scope:{manage:true},policy:wallet.policy,items:[row]};
  m.read.mockImplementation((_page,path)=>Promise.resolve(path.includes('section=officer-detail')?
   {memberId:owner,detail:{officer:row,accountState:'active',qualification:{met:true}}}:projection));
- const p=await mount('admin',{filter:'pending'});
+ const p=await mount('admin',reason?{memberId:applicant}:{filter:'pending'});
  p.onShow();await flush();
- expect(p.data.filter).toBe('pending');
- expect(m.read.mock.calls[0]?.[1]).toContain('&filter=pending');
- p.selectOfficer({currentTarget:{dataset:{id:applicant}}});
- await flush();
+ if(reason)expect(m.read.mock.calls.some((call:any)=>call[1].includes('memberId='+applicant))).toBe(true);
+ else{
+  expect(p.data.filter).toBe('pending');
+  expect(m.read.mock.calls[0]?.[1]).toContain('&filter=pending');
+  p.selectOfficer({currentTarget:{dataset:{id:applicant}}});
+  await flush();
+ }
  const approve={currentTarget:{dataset:{state:'active',label:'同意申请'}}};
  p.setData({scope:{manage:false}});
  p.chooseDecision(approve);
  expect(p.data.sheet).toBe('officer');
  p.setData({scope:{manage:true}});
  p.chooseDecision(approve);
- expect(p.data.sheet).toBe('decision');
- p.setData({verificationReference:' KYC-SYNTHETIC-001 ',reason:'公司人工核验通过'});
+ expect(p.data).toMatchObject({sheet:'decision',approving:true,reason:''});
+ if(reason)p.edit({currentTarget:{dataset:{field:'reason'}},detail:{value:` ${reason} `}});
  m.command.mockResolvedValue({state:'active',version:2});
  m.read.mockResolvedValue({...projection,items:[]});
  await p.operate({currentTarget:{dataset:{action:'officer_state'}}});
  expect(m.command).toHaveBeenCalledExactlyOnceWith(owner,'officer_state',{
-  memberId:applicant,state:'active',expectedVersion:1,verificationReference:'KYC-SYNTHETIC-001',reason:'公司人工核验通过'
+  memberId:applicant,state:'active',expectedVersion:1,...(reason?{reason}:{})
  },true);
  expect(p.data.items).toEqual([]);
  expect(wx.showToast).toHaveBeenCalledWith({title:'分享官已开通',icon:'none'});

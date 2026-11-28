@@ -1,5 +1,7 @@
 @import '../../styles/sharing-officer.wxss';
 .officer-review-name{color:var(--cisme-ink);font-size:18px;font-weight:600;line-height:1.4;min-width:0;overflow-wrap:anywhere}
+.officer-field--approval{margin:16px 0}
+.officer-field--approval textarea{height:60px}
 .officer-review-state{flex:none;padding:4px 9px;border-radius:99px;background:var(--cisme-lilac);color:var(--cisme-plum);font-size:var(--cisme-text-small)}
 .officer-review-actions{display:flex;flex-direction:column;align-items:stretch;gap:2px}
 .officer-review-actions .action-text{align-self:center;min-height:var(--cisme-hit-target)}

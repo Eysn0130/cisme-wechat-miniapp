@@ -18,6 +18,7 @@ function commandCapability(action:string):Capability|null{
 }
 export const sharingHash=(input:unknown)=>createHash('sha256').update(JSON.stringify(input)).digest('hex');
 type AgreementAcceptance={version:string;digest:string;effectiveOn:string;acceptedAt:string};
+const approvalRevisionEffectiveOn='2026-11-28';
 function applicationAgreement(effectiveOn:string|null){
  const document=effectiveOn?{
   ...sharingOfficerAgreement,draftNotice:'',
@@ -64,18 +65,18 @@ export function officerPolicyView(p:Row|undefined){return p?{id:p.id,version:p.v
  priority:p.priority,selfPurchase:p.self_purchase,basisPoints:p.basis_points,releaseDays:p.release_days}:null;}
 export function officerView(r:Row|undefined){return r?{state:r.state,version:r.version,applicationNote:r.application_note,
  reviewReason:r.review_reason,appliedAt:r.created_at,updatedAt:r.updated_at,referralCode:r.referral_code,
- ...(r.v2_application_version?{agreementVersion:'V2.0'}:{})}:null;}
+ ...(r.agreement_version?{agreementVersion:r.agreement_version}:{})}:null;}
 export function sharingOrderView(r:Row){
  const buckets=commissionBuckets({accruedCents:Number(r.accrued),reversedCents:Number(r.reversed),releasedCents:Number(r.released),paidCents:Number(r.paid),heldCents:Number(r.held)});
  return {id:r.order_id,orderNumber:r.order_number,createdAt:r.created_at,paidAt:r.paid_at,orderStatus:r.order_status,
   officerCode:r.officer_code,productName:r.product_name,quantity:r.quantity,basisPoints:r.basis_points,policyVersion:r.policy_version,
-  ...(r.sharing_v2_application_version?{agreementVersion:'V2.0'}:{}),
+  ...(r.agreement_version?{agreementVersion:r.agreement_version}:{}),
   cashMerchandiseCents:Number(r.cash_merchandise_cents),refundedMerchandiseCents:Number(r.refunded),
   ...buckets,recoveredCents:Number(r.recovered),outstandingRecoveryCents:Math.max(0,buckets.recoveryCents-Number(r.recovered)),
   disputed:r.disputed===true,receiptAt:r.receipt_confirmed_at,eligibleAt:r.receipt_confirmed_at?new Date(new Date(r.receipt_confirmed_at).getTime()+r.release_days*86400_000).toISOString():null};
 }
 export const sharingOrderProjection=`SELECT s.order_id,o.order_number,s.created_at,o.paid_at,o.status AS order_status,
- so.referral_code AS officer_code,s.basis_points,s.cash_merchandise_cents,s.sharing_v2_application_version,p.version AS policy_version,p.release_days,
+ so.referral_code AS officer_code,s.basis_points,s.cash_merchandise_cents,s.sharing_v2_application_version,agreement.agreement_version,p.version AS policy_version,p.release_days,
  (SELECT string_agg(l.product_name,'、' ORDER BY l.line_number) FROM commerce_order_line l WHERE l.order_id=s.order_id) AS product_name,
  (SELECT sum(l.quantity)::int FROM commerce_order_line l WHERE l.order_id=s.order_id) AS quantity,
  ship.receipt_confirmed_at,
@@ -88,12 +89,14 @@ export const sharingOrderProjection=`SELECT s.order_id,o.order_number,s.created_
  COALESCE((SELECT sum(r.amount_cents) FROM sharing_recovery r WHERE r.order_id=s.order_id),0)::text AS recovered,
  ${sharingDisputeSql('s')} AS disputed
  FROM commission_order_snapshot s JOIN commerce_order o ON o.id=s.order_id JOIN sharing_policy p ON p.id=s.sharing_policy_id JOIN sharing_officer so ON so.member_id=s.referrer_member_id
- LEFT JOIN commerce_shipment ship ON ship.order_id=s.order_id`;
+ LEFT JOIN commerce_shipment ship ON ship.order_id=s.order_id
+ LEFT JOIN sharing_v2_application agreement ON agreement.member_id=s.referrer_member_id AND agreement.application_version=s.sharing_v2_application_version`;
 
 export class SharingOfficerService {
  constructor(readonly pool:pg.Pool,readonly authority:AuthorityService,private config:AppConfig){}
  private effectiveAgreementDate(){
-  const date=this.config.sharingAgreementV2EffectiveOn;
+  const configured=this.config.sharingAgreementV2EffectiveOn;
+  const date=configured&&configured<approvalRevisionEffectiveOn?approvalRevisionEffectiveOn:configured;
   const today=new Date(Date.now()+8*3600_000).toISOString().slice(0,10);
   return date&&date<=today?date:null;
  }
@@ -122,7 +125,9 @@ export class SharingOfficerService {
  async mine(actorId:string|undefined){
   return transaction(this.pool,async client=>{
    const actor=await requireActiveMemberWithClient(client,actorId),p=(await client.query(currentSharingPolicySql)).rows[0];
-   const officer=(await client.query('SELECT * FROM sharing_officer WHERE member_id=$1',[actor])).rows[0];
+   const officer=(await client.query(`SELECT o.*,a.agreement_version FROM sharing_officer o
+    LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
+    WHERE o.member_id=$1`,[actor])).rows[0];
    const payee=(await client.query('SELECT version,updated_at FROM sharing_payee WHERE member_id=$1',[actor])).rows[0];
    const rows=(await client.query(`${sharingOrderProjection} WHERE s.referrer_member_id=$1 AND s.program='sharing_officer'`,[actor])).rows.map(sharingOrderView);
    const metrics={pendingCents:0,availableCents:0,paymentHeldCents:0,settledCents:0,outstandingRecoveryCents:0,paidMerchandiseCents:0,refundedMerchandiseCents:0,orderCount:0};
@@ -233,9 +238,9 @@ export class SharingOfficerService {
   const p=(await client.query(currentSharingPolicySql)).rows[0];
   if(!p?.enabled)return {recorded:true};
   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`sharing-relation:${actor}`]);
-  const link=(await client.query(`SELECT l.officer_id,o.v2_application_version,a.verified_at FROM sharing_link l JOIN sharing_officer o ON o.member_id=l.officer_id
+  const link=(await client.query(`SELECT l.officer_id,o.v2_application_version,sharing_v2_approval_at(o.member_id,o.v2_application_version) AS approved_at
+   FROM sharing_link l JOIN sharing_officer o ON o.member_id=l.officer_id
    JOIN member m ON m.id=o.member_id
-   LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
    WHERE l.share_id=$1 AND o.state='active' AND m.status='active' FOR SHARE OF o,m`,[visit.share_id])).rows[0];
   if(link&&link.officer_id!==actor){
    const current=(await client.query(`SELECT r.*,o.v2_application_version,
@@ -245,7 +250,7 @@ export class SharingOfficerService {
    if(current?.removed_at)return {recorded:true};
    const now=(await client.query('SELECT clock_timestamp() AS at')).rows[0].at as Date;
    if(link.v2_application_version){
-    if(link.verified_at&&new Date(visit.visited_at)>=new Date(link.verified_at)&&
+    if(link.approved_at&&new Date(visit.visited_at)>=new Date(link.approved_at)&&
       (!current||current.expires_at&&new Date(current.expires_at)<=now))
       await setSharingV2Intent(client,actor,link.officer_id,visit.id,'first_touch');
     return {recorded:true};
@@ -272,9 +277,12 @@ export class SharingOfficerService {
    [buyer,officer,visit,source,at,expiry,p.id,version]);
  }
  async relationWithClient(client:DbClient,buyer:string){
-  const r=(await client.query(`SELECT r.*,o.referral_code,o.state,o.v2_application_version,m.display_name FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id JOIN member m ON m.id=o.member_id WHERE r.buyer_id=$1 AND r.removed_at IS NULL`,[buyer])).rows[0];
+  const r=(await client.query(`SELECT r.*,o.referral_code,o.state,a.agreement_version,m.display_name FROM sharing_customer_relation r
+   JOIN sharing_officer o ON o.member_id=r.officer_id JOIN member m ON m.id=o.member_id
+   LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
+   WHERE r.buyer_id=$1 AND r.removed_at IS NULL`,[buyer])).rows[0];
   return r?{code:r.referral_code,label:r.display_name,displayName:r.display_name,version:r.version,state:r.state,expiresAt:r.expires_at,source:r.source,
-   ...(r.v2_application_version?{agreementVersion:'V2.0'}:{})}:null;
+   ...(r.agreement_version?{agreementVersion:r.agreement_version}:{})}:null;
  }
  async pendingReferrer(client:DbClient,buyer:string){
   const row=(await client.query(`SELECT o.referral_code AS code,m.display_name AS label,i.id AS id
@@ -355,23 +363,17 @@ export class SharingOfficerService {
      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[p.enabled,p.attributionDays,p.priority,p.selfPurchase,p.basisPoints,p.releaseDays,p.reason,actor,`member:${actor}`])).rows[0];return officerPolicyView(row);
    }
    if(action==='officer_state'){
-    await this.require(client,actor,'member.manage');const target=id(input.memberId).toLowerCase(),desired=text(input.state,'资格状态'),reason=text(input.reason,'处理依据',2),expected=int(input.expectedVersion,'申请版本',1,2_000_000_000);
+    await this.require(client,actor,'member.manage');const target=id(input.memberId).toLowerCase(),desired=text(input.state,'资格状态'),expected=int(input.expectedVersion,'申请版本',1,2_000_000_000);
     if(target===actor)fail('SHARING_SELF_REVIEW_FORBIDDEN','不能审核自己的分享官资格',403);
     const targetMember=await requireActiveMemberWithClient(client,target);
     const row=(await client.query('SELECT * FROM sharing_officer WHERE member_id=$1 FOR UPDATE',[targetMember])).rows[0];
     if(!row||row.version!==expected)fail('VERSION_CONFLICT','申请已更新，请重新加载');
     const allowed:Record<string,string[]>={pending:['active','rejected'],active:['suspended','terminated'],suspended:['active','terminated'],rejected:[],terminated:[]};
     if(!allowed[row.state]?.includes(desired))fail('SHARING_STATE_INVALID','当前不能切换到此资格状态');
-    if(row.state==='pending'&&desired==='active'&&!(await sharingQualification(client,target)).met)
+    const approving=row.state==='pending'&&desired==='active';
+    if(approving&&!(await sharingQualification(client,target)).met)
       fail('SHARING_PURCHASE_REQUIRED','该会员的精华套组购买条件未达成，请核对退款及售后状态',409);
-    if(row.state==='pending'&&desired==='active'&&row.v2_application_version){
-     const reference=text(input.verificationReference,'身份核验凭据编号',4,80);
-     if(!/^[a-zA-Z][a-zA-Z0-9_\-]{3,79}$/.test(reference))
-      fail('SHARING_VERIFICATION_REFERENCE_INVALID','请登记核验凭据编号',422);
-     const verified=await client.query(`UPDATE sharing_v2_application SET verified_at=clock_timestamp(),verified_by=$3,verification_reference=$4
-      WHERE member_id=$1 AND application_version=$2 AND verified_at IS NULL`,[target,row.v2_application_version,actor,reference]);
-     if(!verified.rowCount)fail('SHARING_VERIFICATION_REQUIRED','身份核验记录无法确认',409);
-    }
+    const reason=approving?text(input.reason??'','处理依据',0)||'同意申请':text(input.reason,'处理依据',2);
     const updated=(await client.query('UPDATE sharing_officer SET state=$2,review_reason=$3,version=version+1,updated_at=clock_timestamp() WHERE member_id=$1 RETURNING *',[target,desired,reason])).rows[0];
     if(desired==='terminated'){
      if(row.v2_application_version)await clearSharingV2Referrals(client,target);
@@ -390,9 +392,8 @@ export async function snapshotSharingOfficer(client:DbClient,orderId:string,buye
  await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`sharing-relation:${buyerId}`]);
  const intent=sourceKind==='verified_commerce'?(await client.query(`SELECT i.officer_id,i.visit_id,i.id AS intent_id,o.v2_application_version,NULL::uuid AS relation_event_id
   FROM sharing_v2_referral_intent i JOIN sharing_officer o ON o.member_id=i.officer_id JOIN member m ON m.id=o.member_id
-  LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
   WHERE i.buyer_id=$1 AND i.state='pending' AND o.state='active' AND m.status='active'
-    AND (o.v2_application_version IS NULL OR a.verified_at IS NOT NULL)
+    AND (o.v2_application_version IS NULL OR sharing_v2_approval_at(o.member_id,o.v2_application_version) IS NOT NULL)
   FOR SHARE OF i,o,m`,[buyerId])).rows[0]:null;
  const relation=intent??(await client.query(`SELECT r.officer_id,r.visit_id,e.id AS relation_event_id,NULL::uuid AS intent_id,o.v2_application_version FROM sharing_customer_relation r
   JOIN sharing_relation_event e ON e.buyer_id=r.buyer_id AND e.version=r.version

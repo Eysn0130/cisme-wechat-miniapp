@@ -75,9 +75,6 @@
     <block wx:if="{{review.agreement}}">
      <view class="officer-review-fact"><text>合作协议</text><text>已确认</text></view>
      <view class="officer-review-fact officer-review-fact--meta"><text>确认时间</text><text>{{review.agreement.accepted}}</text></view>
-     <view class="officer-review-fact"><text>人工核验</text><text>{{review.agreement.verified?'已登记':'待登记'}}</text></view>
-     <view wx:if="{{review.agreement.verified}}" class="officer-review-fact officer-review-fact--meta"><text>核验时间</text><text>{{review.agreement.verified}}</text></view>
-     <view wx:if="{{review.agreement.reference}}" class="officer-review-fact officer-review-fact--meta"><text>核验凭据</text><text>{{review.agreement.reference}}</text></view>
     </block>
     <view wx:if="{{review.review.reason}}" class="officer-review-note"><text>处理依据</text><text>{{review.review.reason}}</text></view>
     <view wx:if="{{(selected.state==='suspended'||selected.state==='terminated')&&review.reason}}" class="officer-review-note"><text>当前资格说明</text><text>{{review.reason}}</text></view>
@@ -157,14 +154,15 @@
    disabled="{{busy||pending||reason.length<2}}">{{customerSelected.removedAt?'确认恢复':'确认移除'}}</button>
  </block>
  <block wx:elif="{{sheet==='decision'&&selected}}">
-  <text class="officer-review-name">{{selected.displayName}}</text>
-  <text class="officer-note">{{selected.referralCode}}</text>
-  <label wx:if="{{selected.agreementVersion&&selected.state==='pending'&&decisionState==='active'}}" class="officer-field">
-   <text>人工身份核验凭据编号</text>
-   <input data-keyboard-field="input" hold-keyboard="{{false}}" value="{{verificationReference}}" data-field="verificationReference" bindinput="edit" maxlength="80" placeholder="填写核验凭据编号" disabled="{{busy||pending}}"/>
+  <view class="officer-review-person">
+   <text class="officer-review-name">{{selected.displayName}}</text>
+   <text class="officer-review-caption">{{selected.referralCode}}</text>
+  </view>
+  <label class="officer-field {{approving?'officer-field--approval':''}}">
+   <text>{{approving?'处理依据（选填）':'处理依据'}}</text>
+   <textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" value="{{reason}}" data-field="reason" bindinput="edit" maxlength="300" disabled="{{busy||pending}}"/>
   </label>
-  <label class="officer-field"><text>处理依据</text><textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" value="{{reason}}" data-field="reason" bindinput="edit" maxlength="300" disabled="{{busy||pending}}"/></label>
-  <button class="primary {{busy||pending||!reason||(selected.agreementVersion&&selected.state==='pending'&&decisionState==='active'&&!verificationReference) ? 'primary--disabled' : ''}}" data-action="officer_state" bindtap="operate" loading="{{busy}}" disabled="{{busy||pending||!reason||(selected.agreementVersion&&selected.state==='pending'&&decisionState==='active'&&!verificationReference)}}">{{selected.state==='pending'&&decisionState==='active'?'确认开通':'确认'+decisionLabel}}</button>
+  <button class="primary {{busy||pending||(!approving&&!reason) ? 'primary--disabled' : ''}}" data-action="officer_state" bindtap="operate" loading="{{busy}}" disabled="{{busy||pending||(!approving&&!reason)}}">{{approving?'确认开通':'确认'+decisionLabel}}</button>
  </block>
  <block wx:elif="{{sheet==='line'&&selected}}"><text class="officer-strong">{{selected.displayName}} · {{selected.label}}</text><view class="officer-detail-row"><text>税前佣金</text><text>¥{{selected.gross}}</text></view><view class="officer-detail-row"><text>扣税</text><text>{{selected.taxCents===null?'待审核':'¥'+selected.tax}}</text></view><view class="officer-detail-row"><text>{{selected.state==='paid'?'实际到账':'预计实付'}}</text><text>{{selected.taxCents===null?'待审核':'¥'+selected.net}}</text></view><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="readPayee" disabled="{{busy}}">查看收款资料</button><button class="action-text {{busy||historyLoading ? 'control--disabled' : ''}}" bindtap="loadLineOrders" disabled="{{busy||historyLoading}}">查看来源订单</button><button wx:for="{{sourceOrders}}" wx:key="id" class="officer-record {{busy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="order" disabled="{{busy}}"><view class="officer-between"><text>{{item.productName}}</text><text>¥{{item.cash}}</text></view><text class="officer-note">{{item.orderNumber}}</text></button><button wx:if="{{sourceMore}}" class="action-text {{busy||historyLoading ? 'control--disabled' : ''}}" bindtap="moreLineOrders" disabled="{{busy||historyLoading}}">更多来源订单</button><view wx:if="{{payee}}" class="officer-private"><text>{{payee.legalName}}</text><text>{{payee.channel}}</text><text user-select>{{payee.account}}</text></view>
   <block wx:if="{{selected.state==='prepared'||selected.state==='reviewed'}}"><label class="officer-field"><text>财务审核扣税（元）</text><input data-keyboard-field="input" hold-keyboard="{{false}}" type="digit" value="{{tax}}" data-field="tax" bindinput="edit" disabled="{{busy||pending}}"/></label><label class="officer-field"><text>税务处理依据</text><textarea data-keyboard-field="input" hold-keyboard="{{false}}" show-confirm-bar="{{false}}" confirm-type="return" value="{{taxNote}}" data-field="taxNote" bindinput="edit" maxlength="500" disabled="{{busy||pending}}"/></label><button class="primary {{busy||pending||tax===''||!taxNote ? 'primary--disabled' : ''}}" data-action="review_line" bindtap="operate" loading="{{busy}}" disabled="{{busy||pending||tax===''||!taxNote}}">确认审核</button></block>
