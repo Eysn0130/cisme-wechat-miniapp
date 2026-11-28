@@ -122,17 +122,24 @@ export class EditorialCommentsService{
       const created=(await client.query<Comment>(`INSERT INTO editorial_comment(article_id,author_member_id,parent_id,reply_to_id,body,operation_id,request_sha256,state)
         VALUES($1,$2,$3,$4,$5,$6,$7,'published') RETURNING *`,[id,owner,reply?.parent_id??reply?.id??null,replyId,body,operationId,fingerprint])).rows[0]!;
       await this.audit(client,principalId!,'editorial.comment_submit',created.id,{articleId:id,version:1});
-      return {id:created.id,status:'published',version:1,replayed:false};
+      const replyAuthor=reply?.author_member_id;
+      const authors=await editorialCommentAuthors(client,replyAuthor?[owner,replyAuthor]:[owner],this.config.env,new Set([owner]));
+      return {id:created.id,status:'published',version:created.version,replayed:false,authors,
+        comment:{id:created.id,version:created.version,body,status:'published',authorId:owner,
+          authorName:authors[owner]?.name??'CISME 会员',isMine:true,parentId:created.parent_id,replyToId:replyId,
+          replyRootId:created.parent_id??created.id,replyToName:replyAuthor?authors[replyAuthor]?.name??'CISME 会员':null,
+          createdAt:created.created_at,likeCount:0,liked:false}};
     });
   }
   async remove(memberId:string|undefined,principalId:string|undefined,articleId:string,commentId:string){
     return transaction(this.pool,async client=>{
       const target=(await client.query<{author_member_id:string}>('SELECT author_member_id FROM editorial_article WHERE id=$1',[uuid(articleId)])).rows[0];
       if(!target)throw missing();
-      await this.moderator(client,memberId,principalId,target.author_member_id);
+      const viewer=await this.editorial.commentActor(client,memberId,principalId,false);
       const row=(await client.query<Comment>('SELECT * FROM editorial_comment WHERE id=$1 AND article_id=$2 FOR UPDATE',[uuid(commentId),uuid(articleId)])).rows[0];
       if(!row)throw missing();
       const owner=row.author_member_id;
+      if(viewer!==owner)await this.moderator(client,memberId,principalId,target.author_member_id);
       if(row.state!=='deleted'){
         await client.query('LOCK TABLE legal_hold IN SHARE MODE');await client.query('LOCK TABLE legal_hold_binding IN SHARE MODE');
         const held=Boolean((await client.query(`SELECT 1 FROM legal_hold_binding b JOIN legal_hold h ON h.id=b.hold_id

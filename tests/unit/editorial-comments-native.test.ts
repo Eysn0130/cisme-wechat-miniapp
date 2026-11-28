@@ -215,7 +215,7 @@ describe("published editorial comment Page commands",()=>{
   const key=page.data.draftOperation;expect(key).not.toBe("");rows=[row(replyId,{status:"published",isMine:true,version:1})];
   pending.resolve({id:replyId,status:"published",version:1,replayed:false});await first;
   expect(page.data).toMatchObject({commentsBusy:false,draft:"",draftOperation:"",commentSendUnknown:false,composerOpen:false});
-  expect(page.data.commentsNotice).toBe("评论已发布。");expect(page.data.editorialCommentItems[0]).toMatchObject({id:replyId,status:"published"});
+  expect(page.data).toMatchObject({commentToast:"评论已发布",commentsNotice:""});expect(page.data.editorialCommentItems[0]).toMatchObject({id:replyId,status:"published"});
   expect(page.data.commentCount).toBe(1);expect(calls("POST")[0]).toMatchObject({path:base,idempotencyKey:key,data:{body:"确认发送的评论"}});
  });
  it("reloads a newly saved comment with its own current nickname and asynchronous persisted avatar",async()=>{
@@ -300,9 +300,33 @@ describe("published editorial comment Page commands",()=>{
   rows=[row(rootId,{isMine:false})];moderator=true;await mount();const modal=deferred();(globalThis as any).wx.showModal.mockReturnValueOnce(modal.promise);
   const deleting=page.deleteComment(event());mocks.token="actor-b";modal.resolve({confirm:true});await deleting;expect(calls("DELETE")).toEqual([]);
  });
- it("refuses a normal author's delete even when the row isMine",async()=>{
-  rows=[row(rootId,{isMine:true})];await mount();await page.deleteComment(event());
+ it("refuses a reader's delete of another member's comment",async()=>{
+  await mount();await page.deleteComment(event());
   expect((globalThis as any).wx.showModal).not.toHaveBeenCalled();expect(calls("DELETE")).toEqual([]);
+ });
+ it("updates a confirmed reply and own deletion immediately and clears each toast after two seconds",async()=>{
+  await mount();page.replyComment(event());input("立即看到的新回复");
+  const originalReads=calls("GET").length;
+  const reply=row(replyId,{version:1,isMine:true,body:"立即看到的新回复",parentId:rootId,replyToId:rootId,replyRootId:rootId});
+  vi.useFakeTimers();
+  try{
+   mocks.request.mockResolvedValueOnce({id:replyId,status:"published",version:1,replayed:false,comment:reply,authors});
+   await page.sendComment();
+   expect(calls("GET")).toHaveLength(originalReads);
+   expect(page.data).toMatchObject({commentCount:2,commentToast:"评论已发布",commentsNotice:"",expandedThreads:[rootId]});
+   expect(page.data.editorialCommentItems).toContainEqual(expect.objectContaining({id:replyId,isMine:true,body:reply.body}));
+   await vi.advanceTimersByTimeAsync(1999);expect(page.data.commentToast).toBe("评论已发布");
+   await vi.advanceTimersByTimeAsync(1);expect(page.data.commentToast).toBe("");
+   const reload=deferred();
+   mocks.request.mockResolvedValueOnce({id:replyId,status:"deleted"}).mockReturnValueOnce(reload.promise);
+   const deleting=page.deleteComment(event(replyId));
+   await vi.advanceTimersByTimeAsync(0);
+   expect(calls("DELETE")).toHaveLength(1);
+   expect(page.data.editorialCommentItems.map((item:any)=>item.id)).toEqual([rootId]);
+   expect(page.data).toMatchObject({commentCount:1,commentToast:"评论已删除",commentsNotice:""});
+   await vi.advanceTimersByTimeAsync(2000);expect(page.data.commentToast).toBe("");
+   reload.resolve(commentPage());await deleting;
+  }finally{vi.useRealTimers();}
  });
  it("permits administrator deletion while comments are closed and reloads actual rows instead of inventing a count",async()=>{
   rows=[row(rootId,{isMine:false})];moderator=true;enabled=false;await mount();mocks.request.mockImplementationOnce(async()=>{rows=[];return {id:rootId,status:"deleted"};});await page.deleteComment(event());
@@ -451,7 +475,7 @@ describe("editorial input and explicit interaction recovery ownership",()=>{
   expect(calls("POST")).toHaveLength(1);expect(calls("POST")[0]).toMatchObject({path:base,idempotencyKey:operation,data:{body:"发送中的原回复",replyToId:rootId}});
   if(outcome==="success"){
    expect(page.data).toMatchObject({draft:"",draftOperation:"",replyToId:"",commentSendUnknown:false,composerOpen:false});
-   expect(page.data.commentsNotice).toBe("评论已发布。");expect(page.data.editorialCommentItems.some((item:any)=>item.id===replyId)).toBe(true);
+   expect(page.data).toMatchObject({commentToast:"评论已发布",commentsNotice:""});expect(page.data.editorialCommentItems.some((item:any)=>item.id===replyId)).toBe(true);
   }else{
    expect(page.data).toMatchObject({draft:"发送中的原回复",draftOperation:operation,replyToId:rootId,commentSendUnknown:true,composerOpen:false});
    page.startComment();expect(page.data).toMatchObject({composerOpen:true,draft:"发送中的原回复",draftOperation:operation,replyToId:rootId,commentSendUnknown:true});

@@ -104,7 +104,7 @@ describe('real editorial comments with ordinary UGC still closed (disposable syn
     expect(second.authors[person.id]!.avatarRevision).not.toBe(first.authors[person.id]!.avatarRevision);
     expect(JSON.stringify(second)).not.toContain(person.openid);expect(JSON.stringify(second)).not.toContain('wechat_handle');
     expect(updated.public_status).toBe('private');
-    await expect(comments.remove(person.id,person.principal,id,row.id)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
+    await expect(comments.remove(other.id,other.principal,id,row.id)).rejects.toMatchObject({code:'CAPABILITY_REQUIRED'});
     expect(await comments.remove(moderator.id,moderator.principal,id,row.id)).toMatchObject({status:'deleted'});
   });
   it('requires the canonical authenticated actor and current explicit legal acceptance for publishing',async()=>{
@@ -124,8 +124,7 @@ describe('real editorial comments with ordinary UGC still closed (disposable syn
     await pool.query("UPDATE editorial_comment SET state='pending_review' WHERE id=$1",[row.id]);await scanner().scanEditorialComment(row.id);
     expect((await app.inject({method:'POST',url:`/v1/management/editorial/comments/${row.id}/review`,headers:headers(author),payload:{decision:'approve',reason:'接口审核与版本校验',expectedVersion:1}})).json()).toMatchObject({status:'published',version:2});
     expect((await app.inject({method:'DELETE',url:`/v1/editorial/articles/${id}/comments/${row.id}`,headers:headers(other)})).statusCode).toBe(403);
-    expect((await app.inject({method:'DELETE',url:`/v1/editorial/articles/${id}/comments/${row.id}`,headers:headers(reader)})).statusCode).toBe(403);
-    expect((await app.inject({method:'DELETE',url:`/v1/editorial/articles/${id}/comments/${row.id}`,headers:headers(author)})).json()).toMatchObject({id:row.id,status:'deleted'});
+    expect((await app.inject({method:'DELETE',url:`/v1/editorial/articles/${id}/comments/${row.id}`,headers:headers(reader)})).json()).toMatchObject({id:row.id,status:'deleted'});
     expect((await app.inject({method:'POST',url:`/v1/editorial/articles/${id}/comments`,headers:{...headers(reader),'idempotency-key':key},payload:{body:'通过真实接口保存的评论'}})).json()).toMatchObject({id:row.id,status:'deleted',replayed:true});
     expect((await read(moderator,id)).commentCount).toBe(0);
   });

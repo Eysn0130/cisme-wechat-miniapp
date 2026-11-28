@@ -108,15 +108,16 @@ it('supports an image-only published note without a null-body reward failure',as
  const previous=owner;owner=await identity('合成纯图片积分');try{const d=await draft(1,null),p=await submit(d.post);expect(p.statusCode,p.body).toBe(200);await processRewards();expect(await balance(owner)).toBe(50);}finally{owner=previous;}
 });
 it('publishes fresh comments after matched WeChat safety, applies quota and duplicate guards, and revokes removed comments',async()=>{
- const old=await app.inject({method:'POST',url:`/v1/ugc/posts/${publicPost.id}/comments`,headers:{...auth(reader),'idempotency-key':randomUUID()},payload:{body:'历史待审材料不得因新流程自动公开'}});expect(old.statusCode,old.body).toBe(200);
- await pool.query("UPDATE ugc_comment SET created_at=(SELECT min(activated_at)-interval '1 second' FROM ugc_comment_direct_publication_policy) WHERE id=$1",[old.json().id]);
- await new UgcSafetyService(pool,config,storage,provider).scanComment(old.json().id);
- const ids:string[]=[];for(let i=0;i<3;i++){const c=await app.inject({method:'POST',url:`/v1/ugc/posts/${publicPost.id}/comments`,headers:{...auth(reader),'idempotency-key':randomUUID()},payload:{body:'读后有帮助，感谢分享护理体验'+i}});expect(c.statusCode,c.body).toBe(200);await new UgcSafetyService(pool,config,storage,provider).scanComment(c.json().id);ids.push(c.json().id);}
+ const old=(await pool.query<{id:string}>(`INSERT INTO ugc_comment(post_id,author_member_id,body,operation_id,created_at)
+   VALUES($1,$2,$3,$4,(SELECT min(activated_at)-interval '1 second' FROM ugc_comment_direct_publication_policy)) RETURNING id`,
+   [publicPost.id,reader.memberId,'历史待审材料不得因新流程自动公开',randomUUID()])).rows[0]!;
+ await new UgcSafetyService(pool,config,storage,provider).scanComment(old.id);
+ const ids:string[]=[];for(let i=0;i<3;i++){const c=await app.inject({method:'POST',url:`/v1/ugc/posts/${publicPost.id}/comments`,headers:{...auth(reader),'idempotency-key':randomUUID()},payload:{body:'读后有帮助，感谢分享护理体验'+i}});expect(c.statusCode,c.body).toBe(200);expect(c.json().state).toBe('published');ids.push(c.json().id);}
  expect((await pool.query("SELECT state FROM ugc_comment WHERE id=ANY($1::uuid[])",[ids])).rows.every(r=>r.state==='published')).toBe(true);await processRewards();expect(await balance(reader)).toBe(10);
- expect((await pool.query('SELECT state FROM ugc_comment WHERE id=$1',[old.json().id])).rows[0].state).toBe('pending_review');
- const self=await app.inject({method:'POST',url:`/v1/ugc/posts/${publicPost.id}/comments`,headers:{...auth(),'idempotency-key':randomUUID()},payload:{body:'本人补充自己的护理内容'}});await new UgcSafetyService(pool,config,storage,provider).scanComment(self.json().id);await processRewards();expect(await balance(owner)).toBe(50);
+ expect((await pool.query('SELECT state FROM ugc_comment WHERE id=$1',[old.id])).rows[0].state).toBe('pending_review');
+ const self=await app.inject({method:'POST',url:`/v1/ugc/posts/${publicPost.id}/comments`,headers:{...auth(),'idempotency-key':randomUUID()},payload:{body:'本人补充自己的护理内容'}});expect(self.json().state).toBe('published');await processRewards();expect(await balance(owner)).toBe(50);
  const removed=await app.inject({method:'DELETE',url:`/v1/ugc/posts/${publicPost.id}/comments/${ids[0]}`,headers:auth(reader)});expect(removed.statusCode,removed.body).toBe(200);await processRewards();expect(await balance(reader)).toBe(5);
- const duplicate=await identity('合成重复评论积分');for(let i=0;i<2;i++){const c=await app.inject({method:'POST',url:`/v1/ugc/posts/${publicPost.id}/comments`,headers:{...auth(duplicate),'idempotency-key':randomUUID()},payload:{body:'这段护理分享对我很有帮助'}});await new UgcSafetyService(pool,config,storage,provider).scanComment(c.json().id);}await processRewards();expect(await balance(duplicate)).toBe(5);
+ const duplicate=await identity('合成重复评论积分');for(let i=0;i<2;i++){const c=await app.inject({method:'POST',url:`/v1/ugc/posts/${publicPost.id}/comments`,headers:{...auth(duplicate),'idempotency-key':randomUUID()},payload:{body:'这段护理分享对我很有帮助'}});expect(c.json().state).toBe('published');}await processRewards();expect(await balance(duplicate)).toBe(5);
 });
 it('binds an invite only for a visit before new registration, and never turns it into a cash referral automatically',async()=>{
  const share=await app.inject({method:'POST',url:'/v1/shares',headers:{...auth(),'idempotency-key':randomUUID()},payload:{targetType:'invite',targetRef:'home'}});expect(share.statusCode,share.body).toBe(200);const shareId=share.json().shareId,visitKey='synthetic-visit-'+randomUUID();

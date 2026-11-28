@@ -11,6 +11,7 @@ import { validateGatewayUpload, type ObjectStorage } from "./storage.js";
 import { pendingReviewRevisionSql, reviewableRevisionSql } from "./ugcVisibility.js";
 import { finishPage, pageLimit, pageScope, readPageCursor } from "./keysetPage.js";
 import {featuredPostSql,featureCommunityPost} from './communityCuration.js';
+import type { UgcSafetyService } from "./ugcSafety.js";
 
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const keyPattern=/^[A-Za-z0-9._:-]{8,200}$/;
@@ -758,32 +759,79 @@ export class FormalUgcService{
     });
   }
 
-  async comment(memberId:string|undefined,postId:string,operationKey:unknown,input:{body?:unknown;parentId?:unknown;replyToId?:unknown}){
+  private async requireCommentWrite(client:DbClient, postId:string, owner:string, targets:string[]) {
+    const post=await client.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id
+      AND author.status='active' WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
+      AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE
+        (b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id) OR
+        (b.blocker_member_id=p.author_member_id AND b.blocked_member_id=$2)) FOR SHARE OF p`,[postId,owner]);
+    if(!post.rowCount)throw new DomainError("UGC_POST_NOT_FOUND","内容已下架",404);
+    const replies=targets.length?(await client.query<{id:string;author_member_id:string}>(`
+      SELECT c.id,c.author_member_id FROM ugc_comment c JOIN member m ON m.id=c.author_member_id AND m.status='active'
+      WHERE c.id=ANY($3::uuid[]) AND c.post_id=$1 AND c.state='published'
+      AND (c.parent_id IS NULL OR EXISTS(SELECT 1 FROM ugc_comment root WHERE root.id=c.parent_id AND root.state='published'))
+      AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE
+        (b.blocker_member_id=$2 AND b.blocked_member_id=c.author_member_id) OR
+        (b.blocker_member_id=c.author_member_id AND b.blocked_member_id=$2))
+      ORDER BY c.id FOR SHARE OF c,m`,[postId,owner,targets])).rows:[];
+    if(replies.length!==targets.length)throw new DomainError("UGC_COMMENT_PARENT_INVALID","回复对象已不可见",409);
+    await this.requirePublicGate(client);
+    return replies;
+  }
+
+  async comment(memberId:string|undefined,postId:string,operationKey:unknown,input:{body?:unknown;parentId?:unknown;replyToId?:unknown},
+    safety:Pick<UgcSafetyService,"checkCommentText">){
     const owner=member(memberId),id=uuid(postId),op=key(operationKey),body=cleanText(input.body,1000,"评论");
     if(!body)throw new DomainError("UGC_COMMENT_EMPTY","请输入评论内容",422);
     const parentId=input.parentId?uuid(input.parentId):null,replyToId=input.replyToId?uuid(input.replyToId):null;
-    return transaction(this.pool,async client=>{
+    const targets=[...new Set([parentId,replyToId].filter((value):value is string=>value!==null))];
+    const replay=async (client:DbClient)=>{
       const previous=(await client.query(`SELECT id,state,version,post_id,body,parent_id,reply_to_id FROM ugc_comment
         WHERE author_member_id=$1 AND operation_id=$2`,[owner,op])).rows[0];
-      if(previous){
-        if(previous.post_id!==id||previous.body!==body||previous.parent_id!==parentId||previous.reply_to_id!==replyToId)
-          throw new DomainError("UGC_COMMENT_RETRY_CONFLICT","评论内容已变化，请重新发送",409);
-        return {id:previous.id,state:previous.state,version:previous.version,replayed:true};
+      if(!previous)return null;
+      if(previous.post_id!==id||previous.parent_id!==parentId||previous.reply_to_id!==replyToId
+        ||(previous.state!=="deleted"&&previous.body!==body))
+        throw new DomainError("UGC_COMMENT_RETRY_CONFLICT","评论内容已变化，请重新发送",409);
+      return {id:previous.id,state:previous.state,version:previous.version,replayed:true};
+    };
+    const previous=await transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
+      const existing=await replay(client);
+      if(!existing)await this.requireCommentWrite(client,id,owner,targets);
+      return existing;
+    });
+    if(previous)return previous;
+
+    // Keep the provider request outside the transaction. Recheck the live
+    // visibility and actor before committing the exact text checked by WeChat.
+    const evidence=await safety.checkCommentText(owner,body);
+    return transaction(this.pool,async client=>{
+      await requireActiveMemberWithClient(client,owner);
+      const existing=await replay(client);
+      if(existing)return existing;
+      const replies=await this.requireCommentWrite(client,id,owner,targets);
+      const created=(await client.query<{id:string;state:string;version:number;created_at:Date}>(`
+        INSERT INTO ugc_comment(post_id,author_member_id,parent_id,reply_to_id,body,operation_id,state,was_public)
+        VALUES($1,$2,$3,$4,$5,$6,'published',true)
+        ON CONFLICT(author_member_id,operation_id) DO NOTHING RETURNING id,state,version,created_at`,
+        [id,owner,parentId,replyToId,body,op])).rows[0];
+      if(!created){
+        const concurrent=await replay(client);
+        if(!concurrent)throw new DomainError("UGC_COMMENT_RETRY_CONFLICT","请核对这次评论后重试",409);
+        return concurrent;
       }
-      const post=await client.query(`SELECT 1 FROM ugc_post p JOIN member author ON author.id=p.author_member_id
-        AND author.status='active' WHERE p.id=$1 AND p.state='published' AND p.visibility='public'
-        AND NOT EXISTS(SELECT 1 FROM ugc_block_relation b WHERE
-          (b.blocker_member_id=$2 AND b.blocked_member_id=p.author_member_id) OR
-          (b.blocker_member_id=p.author_member_id AND b.blocked_member_id=$2)) FOR SHARE OF p`,[id,owner]);
-      if(!post.rowCount)throw new DomainError("UGC_POST_NOT_FOUND","内容已下架",404);
-      if(parentId){const parent=(await client.query("SELECT post_id,state FROM ugc_comment WHERE id=$1",[parentId])).rows[0];
-        if(!parent||parent.post_id!==id||parent.state!=="published")throw new DomainError("UGC_COMMENT_PARENT_INVALID","回复对象已不可见",409);}
-      if(replyToId){const reply=(await client.query("SELECT post_id,state FROM ugc_comment WHERE id=$1",[replyToId])).rows[0];
-        if(!reply||reply.post_id!==id||reply.state!=="published")throw new DomainError("UGC_COMMENT_PARENT_INVALID","回复对象已不可见",409);}
-      await this.requirePublicGate(client);
-      const created=await client.query(`INSERT INTO ugc_comment(post_id,author_member_id,parent_id,reply_to_id,body,operation_id)
-        VALUES($1,$2,$3,$4,$5,$6) RETURNING id,state,version`,[id,owner,parentId,replyToId,body,op]);
-      return {...created.rows[0],replayed:false};
+      const fingerprint=createHash("sha256").update(body).digest("hex");
+      await client.query(`INSERT INTO ugc_comment_safety_scan(comment_id,body_sha256,provider,state,result)
+        VALUES($1,$2,'wechat_v2','safe',$3)`,[created.id,fingerprint,evidence]);
+      await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,reason_code,after_state,trace_id)
+        VALUES($1,'ugc.comment_auto_published','ugc_comment',$2,'CURRENT_SAFE_PUBLIC_INTENT',$3,gen_random_uuid()::text)`,
+        [`member:${owner}`,created.id,{postId:id,version:created.version}]);
+      const replyAuthor=replies.find(reply=>reply.id===replyToId)?.author_member_id;
+      const authors=await publishedPostAuthors(client,replyAuthor?[owner,replyAuthor]:[owner],this.config.env,new Set([owner]));
+      return {id:created.id,state:created.state,version:created.version,replayed:false,authors,
+        comment:{id:created.id,version:created.version,body,status:"published",authorId:owner,
+          authorName:authors[owner]?.name??"CISME 会员",isMine:true,parentId,replyToId,replyRootId:parentId??created.id,
+          replyToName:replyAuthor?authors[replyAuthor]?.name??"CISME 会员":null,createdAt:created.created_at,likeCount:0,liked:false}};
     });
   }
 

@@ -82,8 +82,9 @@ Page({
   composerSequence:0,
   commentDraftToken:null as string|null,
   commentDraftArticle:"",
+  commentToastTimer:null as ReturnType<typeof setTimeout>|null,
   editorialSocialRefusal:null as string|null,
-  data: { timelineReading: false, shareOverlay: '' as '' | 'destinations' | 'timeline-guide',
+  data: { timelineReading: false, shareOverlay: '' as '' | 'destinations' | 'timeline-guide',commentToast:"",
     rewardOwner:'',rewardRevision:0,shareReady:false,sharePreparing:false,officerShareId:'',blocksOpen:false,blocksLoading:false,blocksBusy:false,blocksError:"",blocks:[] as Array<{authorId:string;name:string}>,blocksCursor:null as string|null,blocksHasMore:false,commentsLoading:false,commentsBusy:false,commentsError:"",commentRetryAppend:false,commentsNotice:"",commentsEnabled:null as boolean|null,commentCount:null as number|null,commentsPolicyVersion:0,canModerate:false,commentHasMore:false,commentCursor:null as string|null,editorialCommentItems:[] as CommunityComment[],commentSendUnknown:false,viewerHasSession:false,commentAuthenticated:false,lastBlockedAuthor:"",lastBlockedName:"",aiLabel:"", formalSource:false,ownerBusy:false,ownerWriteUnknown:false,ownerError:"",editorialSource:false,following: false, followBusy: false, followError: "", authorId: "", previewRuntime: editorialPreviewAllowed(), socialEnabled: false, socialLoading: false, socialError: "", socialBusy: false, social: emptyCommunity, threads: [] as ReturnType<typeof commentThreads>, expandedThreads: [] as string[], draftLength:0,draft: "", draftOperation: "", replyToId: "", replyToName: "", composerOpen:false,composerFocused: false,composerEventId:0,composerHeight:144, keyboardHeight: 0, chromeStyle: currentChromeStyle(), id: "", item: null as any, media: [] as string[], video:null as EditorialVideo|null, videoHeightRpx:1000,videoInitialTime:0,videoEventId:"",imageEventId:"", mediaIndex: 0, mediaError:"",galleryHeight: 1000, shareId: "", loading: true, loadAttempt: 0, pageAlive: true, leaving: false, errorKind: "none" as "none" | "missing" | "load", errorTitle: "", error: "" },
   onResize() { this.cancelGallerySizing?.();this.readingRead=null;this.pendingReadingRestore=null;this.readingScrollRevision+=1;this.setData({ chromeStyle: currentChromeStyle() },()=>this.measureComposer()); },
   onReachBottom() {
@@ -107,8 +108,8 @@ Page({
     if (!timelineReading) wx.hideShareMenu();
   },
   onShow() { this.readVisible=true;this.setData({ pageAlive: true, leaving: false,rewardOwner:currentCreditOwner() }); void this.load(true); },
-  onHide() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.loading)this.clearArticlePresentation();if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ shareOverlay:'',rewardOwner:'',composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
-  onUnload() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.gallerySizingCache=null;this.pauseVideo(true);this.galleryRead=null;this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false; this.data.loadAttempt += 1; },
+  onHide() { this.dismissCommentToast();this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.pauseVideo();if(this.pendingReadingRestore)this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);if(this.data.loading)this.clearArticlePresentation();if(this.data.editorialSource)this.clearPrivateComments();this.data.loadAttempt += 1; this.setData({ shareOverlay:'',rewardOwner:'',composerFocused:false,composerEventId:++this.composerSequence,keyboardHeight:0,commentsBusy:false,commentsLoading:false,blocksOpen:false,blocks:[],blocksLoading:false,blocksBusy:false }); },
+  onUnload() { this.blockReadEpoch+=1;this.commentReadEpoch+=1;this.commentActionOwner+=1;this.cancelGallerySizing?.();this.invalidatePreview();this.gallerySizingCache=null;this.pauseVideo(true);this.galleryRead=null;this.readingRead=null;this.pendingReadingRestore=null;this.readVisible=false;cancelPageReads(this);this.data.pageAlive = false;this.dismissCommentToast();this.data.loadAttempt += 1; },
   onPageScroll(event:WechatMiniprogram.Page.IPageScrollOption) {
     const top=event.scrollTop;
     if(!this.readVisible||!this.data.pageAlive||!Number.isFinite(top)||top<0)return;
@@ -338,6 +339,7 @@ Page({
     }
   },
   clearPrivateComments() {
+    this.dismissCommentToast();
     this.commentReadEpoch+=1;this.commentActionOwner+=1;this.blockReadEpoch+=1;this.commentReadToken="";
     this.syncCommentDraftOwner();
     this.setData({commentAuthenticated:false,editorialCommentItems:[],threads:[],expandedThreads:[],commentCursor:null,commentHasMore:false,
@@ -377,6 +379,7 @@ Page({
     if(!this.data.commentAuthenticated||this.commentReadToken!==intent.token)return null;
     if(requireEnabled&&this.data.commentsEnabled!==true){this.setData({commentsError:"评论设置已变化，请刷新后再试。"});return null;}
     this.interruptReadingRestore();
+    cancelPageReads(this);
     this.commentReadEpoch+=1;
     intent.owner=++this.commentActionOwner;
     this.setData({commentsBusy:true,commentsLoading:false,commentsError:"",commentsNotice:""});
@@ -442,6 +445,16 @@ Page({
     if(!this.data.editorialSource||!this.commentIntent()||!this.currentComposerEvent(event))return;
     this.closeComposer();
   },
+  showCommentToast(message:"评论已发布"|"评论已删除") {
+    if(this.commentToastTimer!==null)clearTimeout(this.commentToastTimer);
+    this.setData({commentToast:message});
+    this.commentToastTimer=setTimeout(()=>this.dismissCommentToast(),2000);
+  },
+  dismissCommentToast() {
+    if(this.commentToastTimer!==null)clearTimeout(this.commentToastTimer);
+    this.commentToastTimer=null;
+    if(this.data.pageAlive&&this.data.commentToast)this.setData({commentToast:""});
+  },
   async sendEditorialComment() {
     const body=this.data.draft.trim();
     const length=Array.from(body).length;
@@ -454,18 +467,44 @@ Page({
       const reply=this.data.editorialCommentItems.find(item=>item.id===replyToId);
       const result=await (this.data.formalSource?createFormalComment:createEditorialComment)(intent.id,{body,...(replyToId?{replyToId,...(this.data.formalSource?{parentId:reply?.parentId||replyToId}:{})}:{})},operation);
       if(!this.currentCommentIntent(intent))return;
-      const notice=result.status==="pending"?"评论已提交，审核后公开。":result.status==="published"?"评论已发布。":result.status==="deleted"?"这次提交的评论已删除，未再次发送。":result.status==="hidden"?"这次提交的评论已隐藏，可在列表核对。":"这次提交的评论未通过审核，可在列表核对。";
-      this.setData({commentsNotice:notice,commentSendUnknown:false});
-      if(this.data.draftOperation===operation){
-        this.setData({draft:"",draftLength:0,draftOperation:"",replyToId:"",replyToName:"",composerOpen:false,composerFocused:false,keyboardHeight:0});wx.hideKeyboard();
+      const prepared=result.comment?await prepareCommentAuthors({...emptyCommunity,preview:false,
+        comments:[result.comment],...(result.authors?{authors:result.authors}:{})}):null;
+      if(!this.currentCommentIntent(intent))return;
+      this.setData({commentSendUnknown:false,draft:"",draftLength:0,draftOperation:"",replyToId:"",replyToName:"",
+        composerOpen:false,composerFocused:false,keyboardHeight:0,composerEventId:++this.composerSequence});
+      wx.hideKeyboard();
+      if(result.status==="deleted"){
+        this.setData({commentsNotice:"这条评论已删除，未再次发送。"});
+        return;
       }
+      if(result.status!=="published"){
+        this.finishEditorialCommentAction(intent);
+        await this.loadEditorialComments();
+        return;
+      }
+      const published=prepared?.comments[0];
+      if(published){
+        const existing=this.data.editorialCommentItems;
+        const isNew=!existing.some(comment=>comment.id===published.id);
+        const comments=isNew?[...existing,published]:existing;
+        const expandedThreads=published.parentId&&!this.data.expandedThreads.includes(published.parentId)
+          ?[...this.data.expandedThreads,published.parentId]:this.data.expandedThreads;
+        const commentCount=this.data.commentCount;
+        this.setData({editorialCommentItems:comments,expandedThreads,threads:commentThreads(comments,expandedThreads,0),
+          commentCount:isNew&&!result.replayed&&commentCount!==null?commentCount+1:commentCount},()=>{
+          if(this.currentCommentIntent(intent))wx.pageScrollTo?.({selector:`#post-comment-${published.id}`,duration:motionDuration(250)});
+        });
+      }
+      this.showCommentToast("评论已发布");
       this.finishEditorialCommentAction(intent);
-      await this.loadEditorialComments();
+      if(!published)await this.loadEditorialComments();
     }catch(error){
       if(this.currentCommentIntent(intent)){
-        const status=Number((error as {status?:number})?.status);
+        const failure=error as {status?:number;code?:string};
+        const status=Number(failure?.status);
         // An unconfirmed transport result must keep the same body and key.
-        this.setData({commentSendUnknown:!Number.isInteger(status)||status>=500});
+        const declinedBeforeWrite=failure?.code==="UGC_SCAN_UNAVAILABLE"||failure?.code==="UGC_GO_LIVE_GATE_CLOSED";
+        this.setData({commentSendUnknown:!declinedBeforeWrite&&(!Number.isInteger(status)||status>=500)});
       }
       this.editorialCommentFailed(intent,error,"发送结果还未确认，内容已保留。请点“核对发送”继续。",true);
     }finally{this.finishEditorialCommentAction(intent);this.measureComposer();}
@@ -484,16 +523,21 @@ Page({
   },
   async deleteEditorialComment(event:WechatMiniprogram.TouchEvent) {
     const comment=this.data.editorialCommentItems.find(item=>item.id===event.currentTarget.dataset.id);
-    if(!comment||!(this.data.formalSource?comment.isMine:this.data.canModerate))return;
+    if(!comment||!(comment.isMine||!this.data.formalSource&&this.data.canModerate))return;
     const intent=this.beginEditorialCommentAction();if(!intent)return;
     try{
       const answer=await wx.showModal({title:"删除这条评论？",content:"删除后将不再展示。",confirmText:"删除",confirmColor:"#d83b4e"});
       if(!answer.confirm||!this.currentCommentIntent(intent))return;
       await (this.data.formalSource?deleteFormalComment:deleteEditorialComment)(intent.id,comment.id);
       if(!this.currentCommentIntent(intent))return;
-      const comments=this.data.editorialCommentItems.filter(item=>item.id!==comment.id&&item.parentId!==comment.id);
-      this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads,0),commentCount:null,commentsNotice:"评论已删除。",
+      const belongsToDeleted=(item:CommunityComment)=>item.id===comment.id||item.parentId===comment.id;
+      const comments=this.data.editorialCommentItems.filter(item=>!belongsToDeleted(item));
+      const removed=this.data.editorialCommentItems.filter(item=>belongsToDeleted(item)&&item.status==="published").length;
+      const count=this.data.commentCount;
+      this.setData({editorialCommentItems:comments,threads:commentThreads(comments,this.data.expandedThreads,0),
+        commentCount:count===null?null:Math.max(0,count-removed),
         ...(this.data.replyToId===comment.id?{replyToId:"",replyToName:"",draftOperation:""}:{})});
+      this.showCommentToast("评论已删除");
       this.finishEditorialCommentAction(intent);await this.loadEditorialComments();
     }catch(error){this.editorialCommentFailed(intent,error,"删除结果尚未确认，请刷新评论核对。");}
     finally{this.finishEditorialCommentAction(intent);}
@@ -785,7 +829,8 @@ Page({
       this.setData({ draft: "", draftOperation: "", replyToId: "", replyToName: "", composerFocused: false, keyboardHeight: 0 });
       wx.hideKeyboard();
       }
-      wx.showToast({ title: "已提交审核，仅本人可见", icon: "none" });
+      if(this.data.social.comments.some(comment=>comment.isMine&&comment.body===body&&comment.status==="published"))
+        this.showCommentToast("评论已发布");
       this.showComments();
     }
   },

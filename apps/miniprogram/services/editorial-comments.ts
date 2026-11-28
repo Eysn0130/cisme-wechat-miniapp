@@ -6,6 +6,10 @@ import type { CommunityComment } from "./community";
 export type EditorialCommentStatus="pending"|"published"|"rejected"|"hidden";
 export type EditorialComment=Omit<CommunityComment,"status">&{status:EditorialCommentStatus;version:number;replyRootId:string};
 export type EditorialCommentAuthors=Record<string,{name:string;avatar:string;avatarRevision:string|null;identityBadge?:import("./display-identity").CommunityIdentityBadge | undefined}>;
+export interface CommentSubmission {
+  id:string; status:EditorialCommentStatus|"deleted"; version:number; replayed:boolean;
+  comment?:EditorialComment; authors?:EditorialCommentAuthors;
+}
 export interface EditorialCommentsPage {
   comments:EditorialComment[];authors:EditorialCommentAuthors;commentCount:number;
   commentsEnabled:boolean;commentsPolicyVersion:number;canModerate:boolean;
@@ -47,6 +51,12 @@ function validateComment(value:EditorialComment):boolean {
     &&editorialIdentifier(value.replyRootId)&&(value.parentId===null||editorialIdentifier(value.parentId))
     &&(value.replyToId===null||editorialIdentifier(value.replyToId));
 }
+export function confirmedCommentPresentation(receipt:Pick<CommentSubmission,"id"|"version"|"comment"|"authors">) {
+  const {comment,authors}=receipt;
+  if(comment&&authors&&comment.id===receipt.id&&comment.version===receipt.version&&comment.status==="published"
+    &&comment.isMine&&validateComment(comment)&&validAuthors(authors))return {comment,authors};
+  return {};
+}
 function query(input:Record<string,string|undefined>):string {
   const values=Object.entries(input).filter((entry):entry is [string,string]=>entry[1]!==undefined);
   return values.length?`?${values.map(([key,value])=>`${key}=${encodeURIComponent(value)}`).join("&")}`:"";
@@ -65,12 +75,12 @@ export async function readEditorialComments(articleId:string,page?:object,cursor
     ||typeof result.asOf!=="string"||!Number.isFinite(Date.parse(result.asOf))||!validAuthors(result.authors))throw new Error("EDITORIAL_COMMENTS_RESPONSE_INVALID");
   return result;
 }
-export async function createEditorialComment(articleId:string,input:{body:string;replyToId?:string},operationId:string):Promise<{id:string;status:EditorialCommentStatus|"deleted";version:number;replayed:boolean}> {
+export async function createEditorialComment(articleId:string,input:{body:string;replyToId?:string},operationId:string):Promise<CommentSubmission> {
   if(!/^[A-Za-z0-9._:-]{8,200}$/.test(operationId))throw new Error("EDITORIAL_COMMENT_OPERATION_INVALID");
-  const result=await request<{id:string;status:EditorialCommentStatus|"deleted";version:number;replayed:boolean}>({path:commentPath(articleId),method:"POST",data:input,idempotencyKey:operationId});
+  const result=await request<CommentSubmission>({path:commentPath(articleId),method:"POST",data:input,idempotencyKey:operationId});
   if(!result||!editorialIdentifier(result.id)||!(validStatus(result.status)||result.status==="deleted"&&result.replayed===true)||!nonnegative(result.version)||result.version<1||typeof result.replayed!=="boolean")
     throw new Error("EDITORIAL_COMMENT_RESPONSE_INVALID");
-  return result;
+  return {id:result.id,status:result.status,version:result.version,replayed:result.replayed,...confirmedCommentPresentation(result)};
 }
 export async function setEditorialCommentLike(articleId:string,commentId:string,active:boolean):Promise<{id:string;liked:boolean;likeCount:number}> {
   const result=await request<{id:string;liked:boolean;likeCount:number}>({path:commentPath(articleId,commentId)+"/like",method:"PUT",data:{active}});
