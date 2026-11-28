@@ -22,10 +22,17 @@ export function columns(view:string,s:UserScope):Column[]{const list:Column[]=[]
  if(view==='commerce'){add(s.orders,'paid','实付',98);add(s.orders,'refunds','退款',98);add(s.orders,'net','净消费',98);add(s.orders,'orders','已付订单');add(s.orders,'aftersales','售后');}
  if(view==='activity'){add(s.care,'care','护理天数');add(s.care,'streak','连续天数');add(true,'posts','公开内容');add(true,'recent','最近记录',126);}
  if(view==='assets'){add(s.points,'points','可用积分',90);add(s.points,'frozen','冻结');add(s.points,'reserved','预占');add(s.points,'debt','待抵扣');add(s.rewards,'coupons','正装券');add(s.rewards,'rewards','活动奖励');}
- if(view==='sharing'){add(s.sharing,'officer','资格');add(s.sharing,'code','分享官编号',126);add(s.sharing,'referrer','当前推荐人编号',126);add(s.sharing,'direct','归属客户');}
+ if(view==='sharing'){
+  add(s.sharing,'assignedOfficer','分享官',86);
+  add(s.sharing,'referrer','推荐人',86);
+  add(s.sharing,'officer','本人资格');
+  add(s.sharing,'direct','归属客户');
+ }
  return list;
 }
-export function rowView(r:UserRow,fields:Column[],selected:string[]=[]){const values:Record<string,string>={points:number(r.points?.available),frozen:number(r.points?.frozen),reserved:number(r.points?.reserved),debt:number(r.points?.debt),orders:number(r.commerce?.paidOrderCount),paid:money(r.commerce?.paidCents),refunds:money(r.commerce?.refundedCents),net:money(r.commerce?.netCents),aftersales:number(r.commerce?.openAftersales),onboarding:labels[r.onboarding]||r.onboarding,account:labels[r.accountStatus]||r.accountStatus,phone:r.phoneMasked||'未绑定',registered:date(r.createdAt,true),care:number(r.activity.careDays),streak:number(r.activity.streak),posts:number(r.activity.publicPosts),recent:date(r.activity.recentAt,true),coupons:number(r.rewards?.availableCoupons),rewards:number(r.rewards?.unclaimedRewards),officer:r.sharing?.state==='active'?'已开通':labels[r.sharing?.state]||'未申请',code:r.sharing?.code||'—',referrer:r.sharing?.referrerCode||'—',direct:number(r.sharing?.directCount)};
+export function rowView(r:UserRow,fields:Column[],selected:string[]=[]){
+ const referrerName=r.sharing?.referrerName||'—';
+ const values:Record<string,string>={points:number(r.points?.available),frozen:number(r.points?.frozen),reserved:number(r.points?.reserved),debt:number(r.points?.debt),orders:number(r.commerce?.paidOrderCount),paid:money(r.commerce?.paidCents),refunds:money(r.commerce?.refundedCents),net:money(r.commerce?.netCents),aftersales:number(r.commerce?.openAftersales),onboarding:labels[r.onboarding]||r.onboarding,account:labels[r.accountStatus]||r.accountStatus,phone:r.phoneMasked||'未绑定',registered:date(r.createdAt,true),care:number(r.activity.careDays),streak:number(r.activity.streak),posts:number(r.activity.publicPosts),recent:date(r.activity.recentAt,true),coupons:number(r.rewards?.availableCoupons),rewards:number(r.rewards?.unclaimedRewards),officer:r.sharing?.state==='active'?'已开通':labels[r.sharing?.state]||'未申请',assignedOfficer:referrerName,referrer:referrerName,direct:number(r.sharing?.directCount)};
  return {...r,selected:selected.includes(r.id),cells:fields.map(f=>({...f,value:values[f.id]??'—'}))};}
 export const sections=[{id:'orders',label:'订单',scope:'orders'},{id:'aftersales',label:'售后',scope:'orders'},{id:'care',label:'护理记录',scope:'care'},{id:'points',label:'积分明细',scope:'points'},{id:'vouchers',label:'券与兑换',scope:'rewardsOrPoints'},{id:'sharing',label:'分享官与归属',scope:'sharing'},{id:'sharing-orders',label:'推广订单',scope:'commission'},{id:'settlements',label:'月结记录',scope:'commission'},{id:'posts',label:'公开内容',scope:'profile'},{id:'comments',label:'公开评论',scope:'profile'},{id:'support',label:'客服',scope:'support'},{id:'addresses',label:'地址',scope:'contact'},{id:'privacy',label:'隐私请求',scope:'privacy'}];
 export function allowedSections(s:UserScope){return sections.filter(v=>v.scope==='rewardsOrPoints'?s.rewards||s.points:v.scope==='sharingOrFinance'?s.sharing||s.finance:s[v.scope as keyof UserScope]);}

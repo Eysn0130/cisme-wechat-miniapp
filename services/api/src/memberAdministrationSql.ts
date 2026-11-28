@@ -18,7 +18,8 @@ export function userProjectionSql(s:Pick<UserScope,'points'|'orders'|'care'|'rew
  COALESCE(att.streak,0)::int AS streak,COALESCE(ugc.post_count,0)::int AS post_count,
  COALESCE(vch.usable_coupons,0)::int AS usable_coupons,COALESCE(vch.unclaimed_rewards,0)::int AS unclaimed_rewards,
  so.state AS officer_state,so.referral_code AS officer_code,so.version AS officer_version,
- relation.officer_id AS referrer_id,referrer.referral_code AS referrer_code,relation.source AS referrer_source,relation.version AS relation_version,
+ relation.officer_id AS referrer_id,referrer.referral_code AS referrer_code,referring_member.display_name AS referrer_name,
+ relation.source AS referrer_source,relation.version AS relation_version,
  COALESCE(direct.direct_count,0)::int AS direct_count,
  GREATEST(care.last_at,ord.last_at,ugc.last_at,sup.last_at) AS recent_at
  FROM member m LEFT JOIN member_card_number mc ON mc.member_id=m.id
@@ -47,6 +48,7 @@ export function userProjectionSql(s:Pick<UserScope,'points'|'orders'|'care'|'rew
  LEFT JOIN sharing_customer_relation relation ON relation.buyer_id=m.id AND ${yes(s.sharing)} AND relation.removed_at IS NULL
    AND relation.effective_at<=$1 AND (relation.expires_at IS NULL OR relation.expires_at>$1)
  LEFT JOIN sharing_officer referrer ON referrer.member_id=relation.officer_id
+ LEFT JOIN member referring_member ON referring_member.id=referrer.member_id AND referring_member.status<>'deleted'
  LEFT JOIN LATERAL(SELECT count(*) AS direct_count FROM sharing_customer_relation r JOIN member buyer ON buyer.id=r.buyer_id
    WHERE ${yes(s.sharing)} AND r.officer_id=m.id AND buyer.status='active' AND buyer.registration_completed_at IS NOT NULL
    AND r.removed_at IS NULL AND r.effective_at<=$1 AND (r.expires_at IS NULL OR r.expires_at>$1))direct ON true

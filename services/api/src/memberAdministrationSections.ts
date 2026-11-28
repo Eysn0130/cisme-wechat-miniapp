@@ -24,8 +24,10 @@ export async function memberAdministrationSection(service:MemberAdministration,c
   const officer=(await c.query(`SELECT o.*,a.agreement_version FROM sharing_officer o
    LEFT JOIN sharing_v2_application a ON a.member_id=o.member_id AND a.application_version=o.v2_application_version
    WHERE o.member_id=$1`,[target])).rows[0],policy=(await c.query(currentSharingPolicySql)).rows[0];
-  const relation=(await c.query(`SELECT r.source,r.version,r.effective_at,r.expires_at,o.referral_code,o.state FROM sharing_customer_relation r
-   JOIN sharing_officer o ON o.member_id=r.officer_id WHERE r.buyer_id=$1 AND r.removed_at IS NULL
+  const relation=(await c.query(`SELECT r.source,r.version,r.effective_at,r.expires_at,o.referral_code,o.state,m.display_name AS referrer_name
+   FROM sharing_customer_relation r JOIN sharing_officer o ON o.member_id=r.officer_id
+   LEFT JOIN member m ON m.id=o.member_id AND m.status<>'deleted'
+   WHERE r.buyer_id=$1 AND r.removed_at IS NULL
     AND r.effective_at<=transaction_timestamp() AND (r.expires_at IS NULL OR r.expires_at>transaction_timestamp())`,[target])).rows[0];
   const pending=await pendingSharingReferrer(c,target,policy?.enabled===true);
   const orders=scope.commission?(await c.query(`${sharingOrderProjection} WHERE s.program='sharing_officer' AND s.referrer_member_id=$1`,[target])).rows:[];

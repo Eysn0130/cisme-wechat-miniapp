@@ -43,7 +43,8 @@ export class MemberAdministration{
    commerce:s.orders?memberAdminCommerce(r):null,
    activity:{careDays:s.care?userNumber(r.care_days):null,streak:s.care?userNumber(r.streak):null,publicPosts:userNumber(r.post_count),recentAt:r.recent_at??null},
    rewards:s.rewards?{availableCoupons:userNumber(r.usable_coupons),unclaimedRewards:userNumber(r.unclaimed_rewards)}:null,
-   sharing:s.sharing?{state:r.officer_state??'none',code:r.officer_code??null,version:r.officer_version??null,referrerCode:r.referrer_code??null,referrerSource:r.referrer_source??null,directCount:userNumber(r.direct_count)}:null};
+   sharing:s.sharing?{state:r.officer_state??'none',code:r.officer_code??null,version:r.officer_version??null,
+    referrerCode:r.referrer_code??null,referrerName:r.referrer_name??null,referrerSource:r.referrer_source??null,directCount:userNumber(r.direct_count)}:null};
  }
  private canonicalOnly(){return !['test','development'].includes(this.config.env);}
  private search(query:UserQuery,scope:UserScope,args:unknown[]){
