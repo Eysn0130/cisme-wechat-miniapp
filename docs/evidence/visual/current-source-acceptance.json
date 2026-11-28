@@ -307,7 +307,7 @@
       "evidenceFiles": []
     }
   ],
-  "packageSourceSha256": "d7b0dd93226fb80d3e22481f955da8c4a634ec63f3d074cd0e80228af1eadeb1",
+  "packageSourceSha256": "38f1e490df52d0d883f6a11846a04508ecb74f8b406a7e1e67d7d912a54222d6",
   "findings": [
     {
       "id": "CURRENT_SOURCE_47_ROUTE_AND_DEVICE_ACCEPTANCE_PENDING",
@@ -316,10 +316,10 @@
       "reason": "48 native routes still require full route/font/state and current physical-device acceptance. Scoped compliance checks are recorded separately, not full release acceptance."
     }
   ],
-  "note": "2026-11-28 当前包在 0.1.79 基础上精简分享官开通审批。完整路由、字号和真机范围独立取证。",
+  "note": "2026-11-28 当前包新增会员确认推荐来源和管理待生效列表。完整路由、字号与真机仍须单独验收。",
   "previousSourceRecord": {
-    "packageSourceSha256": "65fb6f440cda344061d073b8479b55337782993ae883aa05fda390f9e53b7edb",
-    "scope": "WeChat DevTools verified comment publication, deletion, replies, and the two-second top confirmation using isolated data in 0.1.79."
+    "packageSourceSha256": "d7b0dd93226fb80d3e22481f955da8c4a634ec63f3d074cd0e80228af1eadeb1",
+    "scope": "Previous sharing officer approval candidate. Its acceptance evidence applies only to that source."
   },
   "pendingSourceRebind": false
 }

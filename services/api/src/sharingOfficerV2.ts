@@ -22,14 +22,13 @@ export function sharingV2PaymentWindow(period:string){
  return {start:next+'-10',end:next+'-15'};
 }
 
-export async function setSharingV2Intent(client:DbClient,buyer:string,officer:string,visitId:string|null,source:'first_touch'|'member_choice'){
- const pending=(await client.query(`SELECT id,officer_id FROM sharing_v2_referral_intent
+export async function setSharingV2Intent(client:DbClient,buyer:string,officer:string){
+ const pending=(await client.query(`SELECT id,officer_id,source FROM sharing_v2_referral_intent
   WHERE buyer_id=$1 AND state='pending' FOR UPDATE`,[buyer])).rows[0];
- if(pending&&source==='first_touch')return;
- if(pending?.officer_id===officer)return;
+ if(pending?.officer_id===officer&&pending.source==='member_choice')return;
+ // A historical link intent and a new confirmation have distinct evidence and order snapshots.
  if(pending)await client.query("UPDATE sharing_v2_referral_intent SET state='superseded' WHERE id=$1",[pending.id]);
- await client.query(`INSERT INTO sharing_v2_referral_intent(buyer_id,officer_id,visit_id,source)
-  VALUES($1,$2,$3,$4)`,[buyer,officer,visitId,source]);
+ await client.query("INSERT INTO sharing_v2_referral_intent(buyer_id,officer_id,source) VALUES($1,$2,'member_choice')",[buyer,officer]);
 }
 
 export async function clearSharingV2Referrals(client:DbClient,officer:string){
@@ -50,10 +49,11 @@ export async function bindSharingV2ReleasedOrder(client:DbClient,orderId:string)
   JOIN member m ON m.id=o.member_id JOIN member m2 ON m2.id=i.buyer_id
   JOIN sharing_policy p ON p.id=$2
   WHERE i.id=$1 FOR UPDATE OF i FOR SHARE OF o,m,m2`,[snapshot.sharing_v2_intent_id,snapshot.sharing_policy_id])).rows[0];
- if(intent?.state!=='pending'||intent.officer_state!=='active'||intent.status!=='active'||intent.buyer_status!=='active'||
+ // Previously created orders still release their locked commission. A link-only intent cannot establish a customer.
+ if(intent?.state!=='pending'||intent.source!=='member_choice'
+  ||intent.officer_state!=='active'||intent.status!=='active'||intent.buyer_status!=='active'||
   intent.v2_application_version!==snapshot.sharing_v2_application_version)return;
- const prior=(await client.query("SELECT officer_id,removed_at FROM sharing_customer_relation WHERE buyer_id=$1 FOR UPDATE",[buyer])).rows[0];
- if(prior?.removed_at&&intent.source==='first_touch')return;
+ const prior=(await client.query("SELECT officer_id FROM sharing_customer_relation WHERE buyer_id=$1 FOR UPDATE",[buyer])).rows[0];
  const version=(await client.query(`SELECT COALESCE(max(version),0)+1 AS version FROM sharing_relation_event WHERE buyer_id=$1`,[buyer])).rows[0].version;
  await client.query(`INSERT INTO sharing_relation_event(buyer_id,version,from_officer_id,to_officer_id,visit_id,source)
   VALUES($1,$2,$3,$4,$5,$6)`,[buyer,version,prior?.officer_id??null,intent.officer_id,intent.visit_id,intent.source]);

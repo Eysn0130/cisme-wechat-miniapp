@@ -133,6 +133,19 @@ it('sends a deliberate referrer change with the displayed relation version',asyn
  m.read.mockResolvedValue(wallet);const p=await mount('consumer');p.onShow();await flush();p.setData({sheet:'referrer',preview:{code:'SOBBBBBBBBBB',eligible:true}});m.command.mockResolvedValue({});
  await p.operate({currentTarget:{dataset:{action:'change_referrer'}}});expect(m.command).toHaveBeenCalledWith(owner,'change_referrer',{code:'SOBBBBBBBBBB',confirmed:true,expectedVersion:1});
 });
+it('opens a shared-link hint for review and makes the choice only after the buyer confirms',async()=>{
+ const candidate={code:'SOBBBBBBBBBB',label:'合成分享官'};
+ const initial={...wallet,relation:null,linkReferrer:candidate};
+ m.read.mockImplementation(async(_page,path)=>path.includes('referrer-preview')?{...candidate,eligible:true,onFirstValidOrder:true}:initial);
+ const p=await mount('consumer',{mode:'referrer'});
+ p.onShow();await flush();
+ await p.openLinkedReferrer();
+ expect(p.data).toMatchObject({sheet:'referrer',code:candidate.code,preview:{...candidate,eligible:true}});
+ expect(m.command).not.toHaveBeenCalled();
+ m.command.mockResolvedValue({pendingReferrer:candidate});
+ await p.operate({currentTarget:{dataset:{action:'change_referrer'}}});
+ expect(m.command).toHaveBeenCalledExactlyOnceWith(owner,'change_referrer',{code:candidate.code,confirmed:true,expectedVersion:0});
+});
 it('does not let a late wallet read repopulate another session or a hidden page',async()=>{
  const q=deferred();m.read.mockReturnValue(q.promise);const p=await mount('consumer');p.onShow();p.onHide();m.token='different-owner';q.resolve(wallet);await flush();expect(p.data.wallet).toBeNull();expect(p.data.memberId).toBe('');
 });

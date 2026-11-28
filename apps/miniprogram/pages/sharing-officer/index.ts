@@ -261,6 +261,12 @@ Page({
   return this.agreementConsent;
  },
  open(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||this.data.agreementOpen)return;const sheet=String(e.currentTarget.dataset.sheet);if(sheet==='apply'&&this.data.qualificationPurchaseNeeded){this.qualifyPurchase();return;}if(sheet==='apply'&&!this.applicationConsent())return;if(['apply','payee','referrer'].includes(sheet))this.setData({sheet,preview:null,code:'',note:'',legalName:'',channel:'',account:'',error:''});},
+ async openLinkedReferrer(){
+  const code=this.data.wallet?.linkReferrer?.code;
+  if(!this.current()||this.data.loading||this.data.busy||this.data.pending||!code)return;
+  this.setData({sheet:'referrer',code,preview:null,error:''});
+  await this.previewReferrer();
+ },
  close(){if(!this.data.busy){this.cleanupQr();this.setData({sheet:'',selected:null,history:[],historyCursor:null,historyMore:false,historyLoading:false,assets:null,preview:null,legalName:'',channel:'',account:'',error:''});}},
  stop(){},back(){if(this.data.agreementOpen){this.closeAgreement();return;}if(this.data.busy)return;wx.navigateBack({fail:()=>wx.switchTab({url:'/pages/profile/index'})});},
  async operate(e:WechatMiniprogram.TouchEvent){if(this.data.busy||this.data.pending||!this.current())return;const action=String(e.currentTarget.dataset.action);let input:Record<string,unknown>;
@@ -272,6 +278,10 @@ Page({
    const title=officerError(error);
    if(action==='apply'&&String((error as {code?:string}).code).startsWith('SHARING_AGREEMENT_')){
     this.agreementConsent=null;this.setData({agreementChecked:false,sheet:''});
+    const refresh=this.load(),refreshEpoch=this.epoch;await refresh;
+    if(this.current(refreshEpoch))this.setData({error:title});
+   }else if(action==='change_referrer'&&(error as {code?:string}).code==='VERSION_CONFLICT'){
+    this.setData({sheet:'',preview:null});
     const refresh=this.load(),refreshEpoch=this.epoch;await refresh;
     if(this.current(refreshEpoch))this.setData({error:title});
    }else this.setData({error:title,pending:officerPending(this.data.memberId)});

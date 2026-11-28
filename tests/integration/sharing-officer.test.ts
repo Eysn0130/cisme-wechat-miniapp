@@ -123,13 +123,16 @@ it('issues one non-product referral for community content and care while the qua
   expect(await service.visit(invite.officerShareId,'synthetic-public-entry-0001')).toMatchObject({productCode:null,visitToken:expect.any(String)});
  }finally{await pool.query("UPDATE catalog_product SET publication_status='published' WHERE id=$1",[qualProduct]);}
 });
-it('creates native product attribution and keeps first permanent ownership until the buyer changes it',async()=>{
+it('uses the resharer’s own link and requires a buyer choice before a legacy referral affects orders',async()=>{
  shareA=(await expectOk(command(a,'share',{productCode:'sharing-test-product'}))).shareId;shareB=(await expectOk(command(b,'share',{productCode:'sharing-test-product'}))).shareId;
  const generic=await expectOk(app.inject({method:'POST',url:'/v1/shares',headers:{...auth(a),'idempotency-key':'sharing-generic-product'},payload:{targetType:'product',targetRef:'sharing-test-product'}}));expect(generic.officerShareId).toBe(shareA);
+ const reshared=await expectOk(app.inject({method:'POST',url:'/v1/shares',headers:{...auth(b),'idempotency-key':'sharing-reshared-product'},payload:{targetType:'product',targetRef:'sharing-test-product'}}));
+ expect(reshared.officerShareId).toBe(shareB);
+ expect(reshared.officerShareId).not.toBe(generic.officerShareId);
  const firstVisit=await expectOk(app.inject({method:'POST',url:`/v1/officer-shares/${shareA}/visits`,payload:{visitKey:'synthetic-first-visit-0001'}}));
  const lastVisit=await service.visit(shareB,'synthetic-second-visit-0002');
  // Both visits happened within one JavaScript millisecond. Bind the later
- // visit first and verify that database precision still identifies the first.
+ // visit first and verify that database precision identifies the first hint.
  await pool.query(`WITH visit_time AS (SELECT date_trunc('milliseconds',min(visited_at))-interval '1 millisecond' AS at
   FROM sharing_visit WHERE visit_key IN ('synthetic-first-visit-0001','synthetic-second-visit-0002'))
   UPDATE sharing_visit SET visited_at=visit_time.at+CASE WHEN visit_key='synthetic-first-visit-0001' THEN interval '1 microsecond' ELSE interval '2 microseconds' END
@@ -139,13 +142,26 @@ it('creates native product attribution and keeps first permanent ownership until
  address=randomUUID();await pool.query(`INSERT INTO member_delivery_address(id,member_id,encrypted_payload,payload_hmac,key_version,label,client_request_key) VALUES($1,$2,'synthetic-only',$3,'fixture','home','sharing-new-buyer-address')`,[address,buyer.memberId,'a'.repeat(64)]);
 
  await expectOk(command(buyer,'bind_visit',{visitToken:lastVisit.visitToken}));await expectOk(command(buyer,'bind_visit',{visitToken:firstVisit.visitToken}));
- expect((await service.mine(buyer.memberId)).relation).toMatchObject({code:codeA,expiresAt:null,source:'first_touch'});
+ expect(await service.mine(buyer.memberId)).toMatchObject({relation:null,pendingReferrer:null,linkReferrer:{code:codeA}});
+ const noChoiceOrder=await seedOrder(buyer);
+ expect((await pool.query('SELECT 1 FROM commission_order_snapshot WHERE order_id=$1',[noChoiceOrder.id])).rowCount).toBe(0);
+ const firstChoice=await service.previewReferrer(buyer.memberId,codeA);
+ expect(firstChoice).toMatchObject({eligible:true,current:null});
+ await expectOk(command(buyer,'change_referrer',{code:codeA,confirmed:true,expectedVersion:0}));
+ expect((await service.mine(buyer.memberId)).relation).toMatchObject({code:codeA,expiresAt:null,source:'member_choice'});
  first=await seedOrder(buyer);expect((await pool.query('SELECT referrer_member_id,basis_points FROM commission_order_snapshot WHERE order_id=$1',[first.id])).rows[0]).toEqual({referrer_member_id:a.memberId,basis_points:1000});
  const preview=await service.previewReferrer(buyer.memberId,codeB);await expectOk(command(buyer,'change_referrer',{code:codeB,confirmed:true,expectedVersion:preview.current!.version}));
  await expectOk(command(buyer,'bind_visit',{visitToken:firstVisit.visitToken}));expect((await service.mine(buyer.memberId)).relation!.code).toBe(codeB);
  expect((await command(buyer,'change_referrer',{code:codeA,confirmed:false,expectedVersion:3})).statusCode).toBe(422);
- const own=await service.visit(shareA,'synthetic-self-visit-0003');await expectOk(command(a,'bind_visit',{visitToken:own.visitToken}));expect((await service.mine(a.memberId)).relation).toBeNull();
+ const own=await service.visit(shareA,'synthetic-self-visit-0003');await expectOk(command(a,'bind_visit',{visitToken:own.visitToken}));
+ expect(await service.mine(a.memberId)).toMatchObject({relation:null,pendingReferrer:null,linkReferrer:null});
  expect((await app.inject({method:'GET',url:'/v1/me/sharing-officer/referrer-preview?code='+codeA,headers:auth(a)})).statusCode).toBe(422);
+ await expectOk(command(returning,'change_referrer',{code:codeA,confirmed:true,expectedVersion:0}));
+ await pool.query(`UPDATE sharing_customer_relation SET effective_at=now()-interval '2 days',expires_at=now()-interval '1 day'
+  WHERE buyer_id=$1`,[returning.memberId]);
+ expect((await service.mine(returning.memberId)).relation).toBeNull();
+ await expectOk(command(returning,'change_referrer',{code:codeB,confirmed:true,expectedVersion:0}));
+ expect((await service.mine(returning.memberId)).relation).toMatchObject({code:codeB,version:2});
 });
 it('locks future rates separately and uses only verified merchandise cash for actual accrual',async()=>{
  await expectOk(command(manager,'policy',{enabled:true,attributionDays:null,priority:'first',selfPurchase:false,basisPoints:2000,releaseDays:7,reason:'合成调整新订单佣金',expectedVersion:policyVersion},true));
@@ -325,7 +341,30 @@ it('records simple approval, binds only after valid orders, and clears expired V
   const {shareId}=await expectOk(command(officer,'share',{productCode:'sharing-test-product'}));
   const {visitToken}=await expectOk(app.inject({method:'POST',url:'/v1/officer-shares/'+shareId+'/visits',payload:{visitKey:'sharing-v2-customer-visit'}}));
   await expectOk(command(customer,'bind_visit',{visitToken}));
-  expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:{code:codes[0]}});
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:null,linkReferrer:{code:codes[0]}});
+
+  // Reproduce an order already frozen under the former link-only policy.
+  const oldIntent=(await pool.query(`INSERT INTO sharing_v2_referral_intent(buyer_id,officer_id,visit_id,source)
+   SELECT $1,$2,id,'first_touch' FROM sharing_visit WHERE visitor_id=$1 AND visit_key='sharing-v2-customer-visit' RETURNING id`,
+  [customer.memberId,officer.memberId])).rows[0].id;
+  const legacyOrder=await seedOrder(customer);
+  expect((await pool.query('SELECT 1 FROM commission_order_snapshot WHERE order_id=$1',[legacyOrder.id])).rowCount).toBe(0);
+  await pool.query(`INSERT INTO commission_order_snapshot(order_id,buyer_member_id,referrer_member_id,basis_points,
+    cash_merchandise_cents,source_kind,program,sharing_policy_id,sharing_visit_id,sharing_v2_application_version,sharing_v2_intent_id)
+   SELECT $1,i.buyer_id,i.officer_id,3000,8800,'verified_commerce','sharing_officer',p.id,i.visit_id,o.v2_application_version,i.id
+   FROM sharing_v2_referral_intent i JOIN sharing_officer o ON o.member_id=i.officer_id
+   CROSS JOIN LATERAL (SELECT id FROM sharing_policy ORDER BY version DESC LIMIT 1) p WHERE i.id=$2`,[legacyOrder.id,oldIntent]);
+  await pay(legacyOrder);await ship(legacyOrder,true);
+  await releaseSharingCommissions(pool);
+  expect((await service.orders(officer.memberId,{id:legacyOrder.id})).items[0]).toMatchObject({availableCents:2640});
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:null});
+  await expectOk(command(customer,'change_referrer',{code:codes[0],confirmed:true,expectedVersion:0}));
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:{code:codes[0],eligible:true},linkReferrer:null});
+  expect((await pool.query('SELECT state FROM sharing_v2_referral_intent WHERE id=$1',[oldIntent])).rows[0]).toEqual({state:'superseded'});
+  expect((await pool.query('SELECT sharing_v2_intent_id FROM commission_order_snapshot WHERE order_id=$1',[legacyOrder.id])).rows[0]).toEqual({sharing_v2_intent_id:oldIntent});
+  const pendingList=await expectOk(app.inject({method:'GET',headers:auth(manager),
+   url:`/v1/management/sharing-officer?section=customers&memberId=${officer.memberId}&customerFilter=pending`}));
+  expect(pendingList.items).toEqual([expect.objectContaining({id:customer.memberId,pending:true})]);
   const firstV2=await seedOrder(customer);
   await pay(firstV2);
   expect((await service.mine(customer.memberId)).relation).toBeNull();
@@ -373,7 +412,7 @@ it('records simple approval, binds only after valid orders, and clears expired V
   await expectSnapshot(null);
   const newVisit=await expectOk(app.inject({method:'POST',url:'/v1/officer-shares/'+shareId+'/visits',payload:{visitKey:'sharing-v2-removed-second-visit'}}));
   await expectOk(command(customer,'bind_visit',{visitToken:newVisit.visitToken}));
-  expect((await service.mine(customer.memberId)).pendingReferrer).toBeNull();
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:null,pendingReferrer:null,linkReferrer:null});
   await changeState('suspended',4);
   await changeState('active',5);
   await expectSnapshot(null);
@@ -387,6 +426,10 @@ it('records simple approval, binds only after valid orders, and clears expired V
 
   await expectOk(command(customer,'change_referrer',{code:codes[1],confirmed:true,expectedVersion:1}));
   expect(await service.mine(customer.memberId)).toMatchObject({relation:{code:codes[0]},pendingReferrer:{code:codes[1]}});
+  await expectOk(command(manager,'officer_state',{memberId:next.memberId,state:'suspended',expectedVersion:2,reason:'合成暂停待生效分享官'},true));
+  expect(await service.mine(customer.memberId)).toMatchObject({relation:{code:codes[0]},pendingReferrer:{code:codes[1],eligible:false}});
+  await expectSnapshot(null);
+  await expectOk(command(manager,'officer_state',{memberId:next.memberId,state:'active',expectedVersion:3,reason:'合成恢复待生效分享官'},true));
   const refunded=await seedOrder(customer);
   await refund(refunded,8800,await pay(refunded));
   await ship(refunded,true);
@@ -398,7 +441,7 @@ it('records simple approval, binds only after valid orders, and clears expired V
   await releaseSharingCommissions(pool);
   expect(await service.mine(customer.memberId)).toMatchObject({relation:{version:2,code:codes[1]},pendingReferrer:null});
   expect((await service.orders(next.memberId,{id:changed.id})).items[0]).toMatchObject({availableCents:2640});
-  const latest={...commandInput,memberId:next.memberId,expectedOfficerVersion:2,expectedVersion:2,expectedControlVersion:3};
+  const latest={...commandInput,memberId:next.memberId,expectedOfficerVersion:4,expectedVersion:2,expectedControlVersion:3};
   await expectOk(command(manager,'customer_relation',latest,true));
   await expectOk(command(customer,'change_referrer',{code:codes[0],confirmed:true,expectedVersion:0}));
   expect((await command(manager,'customer_relation',{...latest,expectedControlVersion:4,remove:false},true)).json().code)
