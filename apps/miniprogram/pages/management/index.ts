@@ -57,9 +57,9 @@ Page({
  openCommunityPosts(){if(!this.can("community.moderate")){this.openEditorialComments();return;}if(this.data.navigating)return;const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-community/index",fail:()=>{if(this.current(epoch,token))this.setData({navigating:false});}});},
  openSharing(){
   if(!this.canNavigate()||!this.data.canSharing||this.data.navigating)return;
-  const review=this.can('member.manage'),epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
+  const epoch=this.data.epoch,token=getApp<IAppOption>().globalData.sessionToken;
   this.setData({navigating:true});
-  wx.navigateTo({url:"/pages/management-sharing/index"+(review?"?filter=pending":""),fail:()=>{if(this.current(epoch,token))this.setData({navigating:false});}});
+  wx.navigateTo({url:"/pages/management-sharing/index",fail:()=>{if(this.current(epoch,token))this.setData({navigating:false});}});
  },
  openSupport(){if(!this.can("support.read")||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-support/index",fail:()=>this.setData({navigating:false})});},
   openCatalog(){if(!this.canNavigate()||!this.data.canCatalog||this.data.navigating)return;this.setData({navigating:true});wx.navigateTo({url:"/pages/management-catalog/index",fail:()=>this.setData({navigating:false})});},
