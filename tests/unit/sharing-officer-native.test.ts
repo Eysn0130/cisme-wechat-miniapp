@@ -9,7 +9,6 @@ vi.mock('../../apps/miniprogram/services/commerce-command-store',async()=>({
  commerceContextRevision:()=>m.context
 }));
 vi.mock('../../apps/miniprogram/services/commerce',()=>({catalogList:m.catalog}));
-vi.mock('../../apps/miniprogram/services/catalog',()=>({nativeCatalogImage:(v:string)=>v}));
 vi.mock('../../apps/miniprogram/services/sharing-officer',async()=>{
  const actual=await vi.importActual<any>('../../apps/miniprogram/services/sharing-officer');return {...actual,officerRead:m.read,officerCommand:m.command,officerPending:()=>m.pending};
 });
@@ -70,11 +69,19 @@ it('uses the server-granted highest administrator promotion and shows immediate 
  vi.useFakeTimers();
  const promoted={...wallet,rootException:true,canShare:true,qualification:{met:false},officer:{state:'promotion_only',version:1},applicationAgreement:agreement};
  m.read.mockResolvedValue(promoted);
- m.catalog.mockResolvedValue({items:[{code:'eligible-fixture-product',name:'合成精华',price:29800,imagePath:'/synthetic/essence.png'}],nextCursor:null});
+ m.catalog.mockResolvedValue({items:[
+  {code:'essence',price:29800,imagePath:'/assets/commerce/product2-glass-v4b.jpg'},
+  {code:'shampoo',price:19800,image:'/assets/commerce/product1-glass-v4b.jpg'},
+  {code:'other',price:null,imagePath:'/synthetic/product.jpg'},
+ ],nextCursor:null});
  const p=await mount('consumer');
  p.onShow();await flush();
  expect(p.data).toMatchObject({hasDashboard:true,qualificationPurchaseNeeded:false,stateLabel:'已开通推广'});
- expect(p.data.products).toEqual([expect.objectContaining({code:'eligible-fixture-product',price:'298.00'})]);
+ expect(p.data.products).toEqual([
+  expect.objectContaining({displayImage:'/assets/commerce/product2-hero-v2.jpg',photoFocus:'essence',price:'298.00'}),
+  expect.objectContaining({displayImage:'/assets/commerce/product1-hero-v2.jpg',photoFocus:'shampoo'}),
+  expect.objectContaining({displayImage:'/synthetic/product.jpg',photoFocus:'',price:''}),
+ ]);
  p.openAgreement();scrollToEnd(p);await vi.advanceTimersByTimeAsync(10000);p.agree();await vi.advanceTimersByTimeAsync(160);
  p.open(applyButton);
  expect(p.data.sheet).toBe('apply');

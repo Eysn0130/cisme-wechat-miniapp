@@ -101,7 +101,13 @@
      <view wx:if="{{wallet.metrics.outstandingRecoveryCents}}" class="officer-warning">退款待核对冲回 ¥{{metrics.outstandingRecoveryCents}}</view>
      <section-tabs items="{{tabs}}" value="{{tab}}" bindchange="changeTab" disabled="{{busy||pending}}" label="分享官分类"/>
      <block wx:if="{{tab==='overview'}}"><button wx:if="{{wallet.canShare}}" class="officer-gift-entry {{busy||pending?'control--disabled':''}}" bindtap="openGiftSharing" disabled="{{busy||pending}}"><image src="/assets/cisme/travel-reward-share-v2.jpg" mode="aspectFill"/><view><text class="officer-strong">旅行洗护礼遇</text><text class="officer-muted">分享体验装</text></view><image class="officer-gift-chevron" src="/assets/icons/caret-right-muted.svg"/></button><view class="officer-between officer-section officer-promotion-section"><text>推广商品</text><text wx:if="{{wallet.officer.state!=='promotion_only'}}" class="officer-muted">佣金 {{rate}}%</text></view>
-      <button wx:for="{{products}}" wx:key="code" class="officer-product {{busy||pending||!wallet.canShare ? 'control--disabled' : ''}}" data-code="{{item.code}}" bindtap="promote" disabled="{{busy||pending||!wallet.canShare}}"><image src="{{item.displayImage}}" mode="aspectFill"/><view><text class="officer-strong">{{item.name}}</text><text class="officer-muted">{{item.price?'¥'+item.price:''}}</text></view><text class="officer-link">分享</text></button>
+      <button wx:for="{{products}}" wx:key="code" class="officer-product {{busy||pending||!wallet.canShare ? 'control--disabled' : ''}}" data-code="{{item.code}}" bindtap="promote" disabled="{{busy||pending||!wallet.canShare}}">
+       <view class="officer-product__thumb">
+        <image class="officer-product__image {{item.photoFocus ? 'officer-product__image--'+item.photoFocus : ''}}" src="{{item.displayImage}}" mode="aspectFill"/>
+       </view>
+       <view><text class="officer-strong">{{item.name}}</text><text class="officer-muted">{{item.price?'¥'+item.price:''}}</text></view>
+       <text class="officer-link">分享</text>
+      </button>
       <view wx:if="{{!products.length&&!loading}}" class="officer-empty">暂无可推广商品</view><button wx:if="{{moreProducts}}" class="action-text officer-more {{loading||busy ? 'control--disabled' : ''}}" bindtap="moreProducts" disabled="{{loading||busy}}">加载更多</button>
       <text wx:if="{{wallet.officer.state!=='promotion_only'}}" class="officer-note">收货满 {{releaseDays}} 天、无进行中售后后可结算；按月由财务处理。</text>
      </block>
