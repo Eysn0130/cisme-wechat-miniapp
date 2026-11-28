@@ -373,7 +373,7 @@ export class SharingOfficerService {
     const approving=row.state==='pending'&&desired==='active';
     if(approving&&!(await sharingQualification(client,target)).met)
       fail('SHARING_PURCHASE_REQUIRED','该会员的精华套组购买条件未达成，请核对退款及售后状态',409);
-    const reason=approving?text(input.reason??'','处理依据',0)||'同意申请':text(input.reason,'处理依据',2);
+    const reason=text(approving?input.reason??'':input.reason,'处理依据',approving?0:2);
     const updated=(await client.query('UPDATE sharing_officer SET state=$2,review_reason=$3,version=version+1,updated_at=clock_timestamp() WHERE member_id=$1 RETURNING *',[target,desired,reason])).rows[0];
     if(desired==='terminated'){
      if(row.v2_application_version)await clearSharingV2Referrals(client,target);

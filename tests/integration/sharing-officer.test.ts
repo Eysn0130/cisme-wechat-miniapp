@@ -304,7 +304,7 @@ it('records simple approval, binds only after valid orders, and clears expired V
    expect((await readQueue()).items).toEqual([]);
    expect((await readDetail(1)).statusCode).toBe(409);
    const reviewed=await expectOk(readDetail(2));
-   expect(reviewed.detail).toMatchObject({review:{result:'active',occurredAt:expect.any(String),reviewer:'sharing-manager',reason:reason??'同意申请'}});
+   expect(reviewed.detail).toMatchObject({review:{result:'active',occurredAt:expect.any(String),reviewer:'sharing-manager',reason:reason??''}});
    expect(reviewed.detail.agreement).toEqual({acceptedAt:application.agreement.acceptedAt,version:'V2.0.1'});
    expect((await service.mine(applicant.memberId)).policy).toMatchObject({basisPoints:3000});
    const evidence=await pool.query(`SELECT agreement_digest,verified_at,verification_reference,
