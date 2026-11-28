@@ -111,7 +111,7 @@ Page({
    const agreement:AgreementDocument|null=applicationAgreement?.title&&Array.isArray(applicationAgreement.sections)?applicationAgreement:null;
    if(!wallet.canApply||!sameAgreement(agreement,this.agreementConsent))this.agreementConsent=null;
    const inQualificationView=!this.data.giftMode&&!this.data.referrerOnly&&(!wallet.officer||wallet.officer.state==='rejected');
-   const qualificationPurchaseNeeded=inQualificationView&&wallet.policy?.enabled===true&&wallet.qualification?.met===false;
+   const qualificationPurchaseNeeded=inQualificationView&&!wallet.rootException&&wallet.policy?.enabled===true&&wallet.qualification?.met===false;
    const returnedAfterCelebration=wallet.qualification?.met===true&&consumeQualificationReturn(this,wallet.memberId);
    let qualificationMotion:QualificationMotion='';
    if(inQualificationView&&wallet.qualification?.met===true&&!shouldReduceMotion()){
@@ -122,8 +122,8 @@ Page({
    for(const key of Object.keys(wallet.metrics))metrics[key]=officerMoney(wallet.metrics[key]);
    this.setData({
     wallet,agreement,agreementChecked:!!this.agreementConsent,qualificationMotion,qualificationPurchaseNeeded,reviewApproved,
-    memberId:wallet.memberId,metrics,stateLabel:wallet.officer?.state==='active'&&!wallet.policy?.enabled?'推广已暂停':officerLabels[wallet.officer?.state]||'',
-    hasDashboard:Boolean(wallet.officer&&(['active','suspended','terminated'].includes(wallet.officer.state)||wallet.metrics.orderCount>0)),
+    memberId:wallet.memberId,metrics,stateLabel:['active','promotion_only'].includes(wallet.officer?.state)&&!wallet.canShare?'推广已暂停':officerLabels[wallet.officer?.state]||'',
+    hasDashboard:Boolean(wallet.officer&&(['active','promotion_only','suspended','terminated'].includes(wallet.officer.state)||wallet.metrics.orderCount>0)),
     rate:((wallet.policy?.basisPoints??0)/100).toFixed(2).replace(/\.00$/,''),releaseDays:wallet.policy?.releaseDays??0,pending:officerPending(wallet.memberId)
    });
    if(newlyApproved){
@@ -273,7 +273,7 @@ Page({
   if(action==='apply'){const consent=this.applicationConsent();if(this.data.sheet!=='apply'||!consent)return;input={note:this.data.note,agreement:{...consent,accepted:true}};}else if(action==='payee')input={legalName:this.data.legalName,channel:this.data.channel,account:this.data.account,expectedVersion:this.data.wallet?.payee?.version??0};
   else if(action==='change_referrer'&&this.data.preview?.eligible===true)input={code:this.data.preview.code,confirmed:true,expectedVersion:this.data.wallet?.relation?.version??0,...(this.data.wallet?.pendingReferrer?{expectedPendingId:this.data.wallet.pendingReferrer.id}:{})};else return;
   this.setData({busy:true,error:''});const epoch=this.epoch;
-  try{const result=await officerCommand(this.data.memberId,action,input);if(!this.current(epoch))return;this.setData({sheet:'',legalName:'',channel:'',account:'',preview:null});wx.showToast({title:action==='apply'?'申请已提交':action==='payee'?'收款资料已保存':result?.pendingReferrer?'已记录，待首笔有效成交':'推荐人已更新',icon:'success'});await this.load();}
+  try{const result=await officerCommand(this.data.memberId,action,input);if(!this.current(epoch))return;this.setData({sheet:'',legalName:'',channel:'',account:'',preview:null});wx.showToast({title:action==='apply'?(result?.state==='active'?'已开通':'申请已提交'):action==='payee'?'收款资料已保存':result?.pendingReferrer?'已记录，待首笔有效成交':'推荐人已更新',icon:'success'});await this.load();}
   catch(error){if(this.current(epoch)){
    const title=officerError(error);
    if(action==='apply'&&String((error as {code?:string}).code).startsWith('SHARING_AGREEMENT_')){

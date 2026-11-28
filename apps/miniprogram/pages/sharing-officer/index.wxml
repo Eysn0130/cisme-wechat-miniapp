@@ -39,7 +39,8 @@
     <view class="officer-intro"><text wx:if="{{stateLabel&&wallet.officer.state!=='pending'&&!reviewApproved}}" class="officer-status">{{stateLabel}}</text>
      <block wx:if="{{!wallet.officer||wallet.officer.state==='rejected'}}">
       <text class="officer-heading">把喜欢，分享出去。</text>
-      <view wx:if="{{wallet.qualification.met}}" class="officer-qualification officer-qualification--met">
+      <text wx:if="{{wallet.rootException}}" class="officer-note">最高管理员可免购买开通。</text>
+      <view wx:elif="{{wallet.qualification.met}}" class="officer-qualification officer-qualification--met">
        <view class="officer-qualification__mark-row" aria-hidden="true">
         <view class="officer-qualification__rule"/>
         <view class="officer-qualification__seal {{qualificationMotion==='achieved'?'officer-qualification__seal--achieved':''}}">
@@ -87,7 +88,7 @@
        </view>
       </view>
      </block>
-     <block wx:else><text class="officer-heading">每一份分享，<text class="officer-heading-line">都有回响。</text></text><view class="officer-between"><text class="officer-code">{{wallet.officer.referralCode}}</text><button class="action-text {{busy||pending ? 'control--disabled' : ''}}" data-sheet="payee" bindtap="open" disabled="{{busy||pending}}">收款资料</button></view></block>
+     <block wx:else><text class="officer-heading">每一份分享，<text class="officer-heading-line">都有回响。</text></text><view class="officer-between"><text class="officer-code">{{wallet.officer.referralCode}}</text><button wx:if="{{wallet.officer.state!=='promotion_only'}}" class="action-text {{busy||pending ? 'control--disabled' : ''}}" data-sheet="payee" bindtap="open" disabled="{{busy||pending}}">收款资料</button></view><text wx:if="{{wallet.officer.state==='promotion_only'&&wallet.rootException}}" class="officer-note">本人确认合作协议后，立即开通推荐归属与佣金。</text></block>
      <button wx:if="{{wallet.officer.state==='terminated'&&wallet.canApply}}" class="primary {{busy||pending ? 'primary--disabled' : ''}}" data-sheet="apply" bindtap="open" disabled="{{busy||pending}}">重新申请</button>
      <text wx:if="{{wallet.officer.reviewReason&&(wallet.officer.state==='rejected'||wallet.officer.state==='suspended'||wallet.officer.state==='terminated')}}" class="officer-copy">{{wallet.officer.reviewReason}}</text>
     </view>
@@ -95,10 +96,10 @@
      <view class="officer-metrics"><view><text class="officer-money">{{metrics.pendingCents}}</text><text>待结算 · 税前</text></view><view><text class="officer-money">{{metrics.availableCents}}</text><text>可结算 · 税前</text></view><view><text class="officer-money">{{metrics.settledNetCents}}</text><text>已到账 · 税后</text></view></view>
      <view wx:if="{{wallet.metrics.outstandingRecoveryCents}}" class="officer-warning">退款待核对冲回 ¥{{metrics.outstandingRecoveryCents}}</view>
      <section-tabs items="{{tabs}}" value="{{tab}}" bindchange="changeTab" disabled="{{busy||pending}}" label="分享官分类"/>
-     <block wx:if="{{tab==='overview'}}"><button wx:if="{{wallet.canShare}}" class="officer-gift-entry {{busy||pending?'control--disabled':''}}" bindtap="openGiftSharing" disabled="{{busy||pending}}"><image src="/assets/cisme/travel-reward-share-v2.jpg" mode="aspectFill"/><view><text class="officer-strong">旅行洗护礼遇</text><text class="officer-muted">分享体验装</text></view><image class="officer-gift-chevron" src="/assets/icons/caret-right-muted.svg"/></button><view class="officer-between officer-section"><text>推广商品</text><text class="officer-muted">佣金 {{rate}}%</text></view>
+     <block wx:if="{{tab==='overview'}}"><button wx:if="{{wallet.canShare}}" class="officer-gift-entry {{busy||pending?'control--disabled':''}}" bindtap="openGiftSharing" disabled="{{busy||pending}}"><image src="/assets/cisme/travel-reward-share-v2.jpg" mode="aspectFill"/><view><text class="officer-strong">旅行洗护礼遇</text><text class="officer-muted">分享体验装</text></view><image class="officer-gift-chevron" src="/assets/icons/caret-right-muted.svg"/></button><view class="officer-between officer-section"><text>推广商品</text><text wx:if="{{wallet.officer.state!=='promotion_only'}}" class="officer-muted">佣金 {{rate}}%</text></view>
       <button wx:for="{{products}}" wx:key="code" class="officer-product {{busy||pending||!wallet.canShare ? 'control--disabled' : ''}}" data-code="{{item.code}}" bindtap="promote" disabled="{{busy||pending||!wallet.canShare}}"><image src="{{item.displayImage}}" mode="aspectFill"/><view><text class="officer-strong">{{item.name}}</text><text class="officer-muted">{{item.price?'¥'+item.price:''}}</text></view><text class="officer-link">分享</text></button>
       <view wx:if="{{!products.length&&!loading}}" class="officer-empty">暂无可推广商品</view><button wx:if="{{moreProducts}}" class="action-text officer-more {{loading||busy ? 'control--disabled' : ''}}" bindtap="moreProducts" disabled="{{loading||busy}}">加载更多</button>
-      <text class="officer-note">收货满 {{releaseDays}} 天、无进行中售后后可结算；按月由财务处理。</text>
+      <text wx:if="{{wallet.officer.state!=='promotion_only'}}" class="officer-note">收货满 {{releaseDays}} 天、无进行中售后后可结算；按月由财务处理。</text>
      </block>
      <block wx:else><view wx:if="{{orderLineId}}" class="officer-between officer-section"><text>{{sourcePeriod}} 月结来源</text><button class="action-text {{busy ? 'control--disabled' : ''}}" bindtap="clearSource" disabled="{{busy}}">查看全部</button></view><view wx:if="{{!items.length&&!loading}}" class="officer-empty">{{tab==='orders'?'还没有推广订单':'暂无结算记录'}}</view>
       <button wx:for="{{items}}" wx:key="id" class="officer-record {{busy ? 'control--disabled' : ''}}" data-id="{{item.id}}" bindtap="detail" disabled="{{busy}}"><view class="officer-between"><text class="officer-strong">{{tab==='orders'?item.productName:item.period+' 月结'}}</text><text class="officer-link">{{item.label}}</text></view><view class="officer-between officer-muted"><text>{{item.date}}</text><text>{{tab==='orders'?'实付 ¥'+item.cash:'税前 ¥'+item.gross}}</text></view><view wx:if="{{tab==='orders'&&item.refundedMerchandiseCents}}" class="officer-muted">已退商品款 ¥{{item.refund}}</view><view wx:if="{{tab==='settlements'&&item.taxCents!==null}}" class="officer-between officer-muted"><text>扣税 ¥{{item.tax}}</text><text>{{item.state==='paid'?'实际到账':'预计实付'}} ¥{{item.net}}</text></view></button>
@@ -113,7 +114,7 @@
     <text>我已阅读并同意</text>
     <button class="text-button officer-agreement-link {{loading||busy||pending ? 'control--disabled' : ''}}" bindtap="openAgreement" disabled="{{loading||busy||pending}}">《{{agreement.title}}》</button>
    </view>
-   <button class="primary {{loading||busy||pending||qualificationOpening ? 'primary--disabled' : ''}}" data-sheet="apply" bindtap="open" disabled="{{loading||busy||pending||qualificationOpening}}">成为推荐官</button>
+   <button class="primary {{loading||busy||pending||qualificationOpening ? 'primary--disabled' : ''}}" data-sheet="apply" bindtap="open" disabled="{{loading||busy||pending||qualificationOpening}}">{{wallet.rootException?'开通合作资格':'成为推荐官'}}</button>
   </view>
  </view>
  <view wx:if="{{giftMode&&wallet.canShare&&giftActivities.length}}" class="officer-gift-footer"><text wx:if="{{giftError}}" class="officer-error">{{giftError}}</text><button wx:if="{{giftShare}}" class="primary {{loading||!giftAvailable?'primary--disabled':''}}" open-type="share" disabled="{{loading||!giftAvailable}}">分享这份礼遇</button><button wx:else class="primary {{loading||giftShareBusy||!giftAvailable?'primary--disabled':''}}" bindtap="retryGiftShare" loading="{{giftShareBusy}}" disabled="{{loading||giftShareBusy||!giftAvailable}}">{{!giftAvailable?'礼遇已领完':giftError?'重试分享':'准备分享'}}</button></view>

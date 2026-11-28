@@ -186,10 +186,10 @@
    <button class="primary {{busy||pending||!review.canApprove?'primary--disabled':''}}" data-state="active" data-label="同意申请" bindtap="chooseDecision" disabled="{{busy||pending||!review.canApprove}}">同意申请</button>
    <button class="action-text {{busy||pending||reviewStale||!review.accountActive?'control--disabled':''}}" data-state="rejected" data-label="拒绝申请" bindtap="chooseDecision" disabled="{{busy||pending||reviewStale||!review.accountActive}}">拒绝申请</button>
   </view>
-  <block wx:elif="{{review.accountActive&&!reviewStale&&(selected.state==='active'||selected.state==='suspended')}}">
+  <block wx:elif="{{review.accountActive&&!reviewStale&&(selected.state==='active'||selected.state==='suspended'||selected.state==='promotion_only')}}">
    <view class="officer-actions officer-management-links">
     <button class="action-text" bindtap="toggleQualificationActions" aria-expanded="{{qualificationActions}}">资格管理</button>
-    <button wx:if="{{scope.customers}}" class="action-text" bindtap="openCustomers">管理推荐归属</button>
+    <button wx:if="{{scope.customers&&selected.state!=='promotion_only'}}" class="action-text" bindtap="openCustomers">管理推荐归属</button>
    </view>
    <view wx:if="{{qualificationActions}}" class="officer-actions officer-qualification-actions">
     <button wx:if="{{selected.state==='active'}}" class="action-text" data-state="suspended" data-label="暂停资格" bindtap="chooseDecision">暂停资格</button>

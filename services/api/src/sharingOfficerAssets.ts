@@ -31,12 +31,12 @@ export class SharingOfficerAssets {
  private async access(actor:string|undefined,shareId:string){
   return transaction(this.service.pool,async client=>{
    const owner=await requireActiveMemberWithClient(client,actor);
-   const row=(await client.query(`SELECT l.*,a.qr_png,a.url_link,a.url_expires_at FROM sharing_link l
+   const row=(await client.query(`SELECT l.*,o.state,a.qr_png,a.url_link,a.url_expires_at FROM sharing_link l
     JOIN sharing_officer o ON o.member_id=l.officer_id LEFT JOIN sharing_asset a ON a.share_id=l.share_id
-    JOIN catalog_product p ON p.code=l.product_code WHERE l.share_id=$1 AND l.officer_id=$2 AND o.state='active'
+    JOIN catalog_product p ON p.code=l.product_code WHERE l.share_id=$1 AND l.officer_id=$2 AND o.state IN ('active','promotion_only')
     AND p.publication_status='published' AND p.qualification_status='eligible'
     AND COALESCE((SELECT enabled FROM sharing_policy ORDER BY version DESC LIMIT 1),false)`,[shareId,owner])).rows[0];
-   if(!row)fail('SHARING_LINK_UNAVAILABLE','该推广链接当前不可使用',404);return row;
+   if(!row||!await this.service.canPromote(client,owner,row.state))fail('SHARING_LINK_UNAVAILABLE','该推广链接当前不可使用',404);return row;
   });
  }
  async assets(actor:string|undefined,shareInput:unknown){

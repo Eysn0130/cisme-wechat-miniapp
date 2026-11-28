@@ -282,6 +282,48 @@ it('shows the same verified payment, refund, coupon-free order and paid sharing 
  expect(JSON.stringify(settlements)).not.toContain('SYNTHETIC-PAID-');
 });
 
+it('allows only the configured highest administrator to promote and open V2 without a qualifying purchase',async()=>{
+ const identity=(key:string)=>expectOk(app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:key,displayName:'合成最高管理员',
+  consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}}));
+ const root=await identity('sharing-root-exception'),lookalike=await identity('sharing-root-lookalike');
+ config.memberAdministrationRootId=root.memberId;
+ config.sharingAgreementV2EffectiveOn='2026-01-01';
+ try{
+  const code=(await pool.query(`INSERT INTO sharing_officer(member_id,referral_code,state) SELECT member_id,user_code,'promotion_only'
+    FROM member_card_number WHERE member_id=$1 RETURNING referral_code`,[root.memberId])).rows[0].referral_code;
+  for(const who of [root,lookalike])await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    SELECT $1,k,'fixture','synthetic root exception','test','integration_fixture' FROM unnest($2::text[]) k`,[who.memberId,who===root?['member.manage']:['member.manage','member.profile.read']]);
+  expect(await service.mine(root.memberId)).toMatchObject({canApply:false,canShare:false,qualification:{met:false}});
+  expect((await command(root,'share',{productCode:'sharing-test-product'})).statusCode).toBe(403);
+  await pool.query(`INSERT INTO authority_grant(member_id,capability,granted_by,grant_reason,environment,grant_source)
+    VALUES($1,'member.profile.read','fixture','synthetic root exception','test','integration_fixture')`,[root.memberId]);
+  const before=await service.mine(root.memberId);
+  expect(before).toMatchObject({canApply:true,canShare:true,rootException:true,qualification:{met:false},officer:{state:'promotion_only'}});
+  expect(await service.mine(lookalike.memberId)).toMatchObject({canApply:false,canShare:false});
+  expect((await command(lookalike,'apply',{})).json().code).toBe('SHARING_PURCHASE_REQUIRED');
+  const promotion=await expectOk(command(root,'share',{productCode:'sharing-test-product'}));
+  expect(await service.visit(promotion.shareId,'synthetic-root-before-agreement')).toMatchObject({visitToken:null});
+  expect(await service.previewReferrer(lookalike.memberId,code)).toMatchObject({eligible:false});
+  expect((await command(root,'payee',{})).json().code).toBe('SHARING_AGREEMENT_REQUIRED');
+  expect((await command(root,'apply',{})).json().code).toBe('SHARING_AGREEMENT_REQUIRED');
+  expect((await pool.query('SELECT 1 FROM sharing_v2_application WHERE member_id=$1',[root.memberId])).rowCount).toBe(0);
+  const {version,effectiveOn,digest}=before.applicationAgreement!;
+  const input={agreement:{accepted:true,version,effectiveOn,digest}};
+  const key='sharing-root-exception-v2-apply';
+  const opened=await expectOk(command(root,'apply',input,false,key));
+  expect(opened).toMatchObject({state:'active',version:3,rootException:true,agreement:{version,effectiveOn,digest}});
+  expect(await expectOk(command(root,'apply',input,false,key))).toEqual(opened);
+  expect(await service.previewReferrer(lookalike.memberId,code)).toMatchObject({eligible:true,onFirstValidOrder:true});
+  expect((await pool.query(`SELECT e.root_exception,sharing_v2_approval_at(a.member_id,a.application_version)=e.occurred_at AS approved,
+    a.verified_by IS NULL AS no_separate_reviewer FROM sharing_v2_application a JOIN sharing_officer_event e
+    ON e.member_id=a.member_id AND e.version=a.application_version+1 WHERE a.member_id=$1`,[root.memberId])).rows)
+    .toEqual([{root_exception:true,approved:true,no_separate_reviewer:true}]);
+  expect((await pool.query('SELECT after_state FROM audit_log WHERE trace_id=$1',[key])).rows[0].after_state)
+    .toMatchObject({applicationVersion:2,approvalVersion:3,rootException:true,agreement:{version,effectiveOn,digest}});
+  expect((await pool.query('SELECT 1 FROM commerce_order WHERE member_id=$1',[root.memberId])).rowCount).toBe(0);
+ }finally{config.memberAdministrationRootId=null;config.sharingAgreementV2EffectiveOn=null;}
+});
+
 it('records simple approval, binds only after valid orders, and clears expired V2 relations',async()=>{
  const identity=(name:string)=>expectOk(app.inject({method:'POST',url:'/v1/identity/dev',payload:{externalUserId:name,displayName:name,
   consents:[{documentType:'privacy',version:'test'},{documentType:'terms',version:'test'}]}}));

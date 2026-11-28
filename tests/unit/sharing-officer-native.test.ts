@@ -65,6 +65,23 @@ it('shows the agreement before qualification and uses the same main action for t
  expect(p.data.agreementChecked).toBe(false);
 });
 
+it('uses the server-granted highest administrator promotion and shows immediate opening after confirmation',async()=>{
+ vi.useFakeTimers();
+ const promoted={...wallet,rootException:true,canShare:true,qualification:{met:false},officer:{state:'promotion_only',version:1},applicationAgreement:agreement};
+ m.read.mockResolvedValue(promoted);
+ const p=await mount('consumer');
+ p.onShow();await flush();
+ expect(p.data).toMatchObject({hasDashboard:true,qualificationPurchaseNeeded:false,stateLabel:'已开通推广'});
+ p.openAgreement();scrollToEnd(p);await vi.advanceTimersByTimeAsync(10000);p.agree();await vi.advanceTimersByTimeAsync(160);
+ p.open(applyButton);
+ expect(p.data.sheet).toBe('apply');
+ m.command.mockResolvedValue({state:'active',rootException:true});m.read.mockResolvedValue(approvedReview);
+ await p.operate(applyAction);
+ expect(m.command).toHaveBeenCalledWith(owner,'apply',{note:'',agreement:{accepted:true,version:agreement.version,digest:agreement.digest,effectiveOn:agreement.effectiveOn}});
+ expect(wx.navigateTo).not.toHaveBeenCalled();
+ expect(wx.showToast).toHaveBeenCalledWith({title:'已开通',icon:'success'});
+});
+
 it('replays the qualification shine on entry and reserves the spin for a verified qualification change',async()=>{
  const pending={...wallet,canApply:false,qualification:{met:false}};
  const qualified={...wallet,qualification:{met:true},applicationAgreement:agreement};

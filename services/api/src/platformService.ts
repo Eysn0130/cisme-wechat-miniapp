@@ -7,7 +7,7 @@ import { requireActiveUploadOwner } from "./uploadAuthority.js";
 import { requireCareRecordDetails } from "./careRecordDetails.js";
 import { communityAuthors } from './memberProfile.js';
 import { memberDisplayIdentities } from './displayIdentity.js';
-import { officerShareLink } from "./sharingOfficer.js";
+import { canPromoteSharingOfficer, officerShareLink } from "./sharingOfficer.js";
 import { createHash, randomUUID } from "node:crypto";
 import type pg from "pg";
 import { type CareMilestone, type CareMilestoneCommandInput, type CarePhase, type CareVersionCommandInput, type EmergencySwitchKey, type ReviewDecision, type ReviewResult, type ShareTargetType, type TaskClaimView, type UploadAuthorization, type WorkerQueue } from "@cisme/contracts";
@@ -516,12 +516,12 @@ export class PlatformService {
         RETURNING share_id, target_type, target_ref, expires_at`, [shareId, owner, input.targetType, targetRef, expiresAt]);
       const row = link.rows[0]!;
       const productCode = input.targetType === "product" ? targetRef : "";
-      const officer = (await client.query(`SELECT o.member_id FROM sharing_officer o JOIN member m ON m.id=o.member_id
-        WHERE o.member_id=$1 AND o.state='active' AND m.status='active'
+      const officer = (await client.query(`SELECT o.state FROM sharing_officer o JOIN member m ON m.id=o.member_id
+        WHERE o.member_id=$1 AND o.state IN ('active','promotion_only') AND m.status='active'
         AND ($2='' OR EXISTS(SELECT 1 FROM catalog_product p WHERE p.code=$2
           AND p.publication_status='published' AND p.qualification_status='eligible'))
         AND COALESCE((SELECT enabled FROM sharing_policy ORDER BY version DESC LIMIT 1),false)`, [owner,productCode])).rows[0];
-      const officerShareId = officer ? await officerShareLink(client,owner,productCode) : null;
+      const officerShareId = await canPromoteSharingOfficer(client,this.config,owner,officer?.state) ? await officerShareLink(client,owner,productCode) : null;
       const response = { shareId: row.share_id, officerShareId, targetType: row.target_type, targetRef: row.target_ref, expiresAt: row.expires_at.toISOString() };
       await this.idempotencySave(client, { ...idem, response });
       return response;

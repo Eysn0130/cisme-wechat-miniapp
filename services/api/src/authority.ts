@@ -1,7 +1,7 @@
 import type pg from "pg";
 import { CAPABILITIES, type AuthorityProjection, type Capability } from "@cisme/contracts";
 import { DomainError } from "@cisme/domain";
-import type { AppEnvironment } from "@cisme/config";
+import type { AppConfig, AppEnvironment } from "@cisme/config";
 import type { DbClient } from "./db.js";
 
 const capabilitySet = new Set<string>(CAPABILITIES);
@@ -17,6 +17,22 @@ export async function requireActiveMemberWithClient(client:DbClient,memberId:str
   const active=await client.query("SELECT id FROM member WHERE id=$1 AND status='active' FOR SHARE",[owner]);
   if(!active.rowCount)throw new DomainError('MEMBER_NOT_ACTIVE','账号暂不可执行此操作',403);
   return owner;
+}
+
+export async function memberAdministrationCapabilities(client:DbClient,environment:AppEnvironment,owner:string):Promise<Capability[]> {
+  const grants=(await client.query<{capability:Capability;expires_at:Date|null}>(`SELECT capability,expires_at FROM authority_grant
+    WHERE member_id=$1 AND environment=$2 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>clock_timestamp())
+    ORDER BY capability,id FOR SHARE`,[owner,environment])).rows;
+  const clock=(await client.query<{at:Date}>('SELECT clock_timestamp() AS at')).rows[0]!.at;
+  return grants.filter(g=>g.expires_at===null||g.expires_at>clock).map(g=>g.capability);
+}
+
+export async function matchesMemberAdministrationRoot(client:DbClient,config:AppConfig,owner:string):Promise<boolean> {
+  if(config.memberAdministrationRootId!==owner)return false;
+  if(['test','development'].includes(config.env))return true;
+  const identity=await client.query(`SELECT 1 FROM wechat_identity WHERE member_id=$1 AND provider='wechat_miniprogram'
+    AND adapter='wechat' AND app_id='wx4eac2d4fb11d299b' FOR SHARE`,[owner]);
+  return Boolean(identity.rowCount);
 }
 
 /** A freshly verified privacy-rights identity may finish an existing trade.

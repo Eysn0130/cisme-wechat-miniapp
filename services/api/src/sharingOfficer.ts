@@ -3,7 +3,7 @@ import {createHash,randomBytes,randomUUID} from 'node:crypto';
 import type pg from 'pg';
 import type {AppConfig} from '@cisme/config';
 import {sharingOfficerAgreement,type Capability} from '@cisme/contracts';
-import {AuthorityService,requireActiveMemberWithClient} from './authority.js';
+import {AuthorityService,memberAdministrationCapabilities,matchesMemberAdministrationRoot,requireActiveMemberWithClient} from './authority.js';
 import {transaction,type DbClient} from './db.js';
 import {commissionBuckets} from './commissionPolicy.js';
 import {sharingFail as fail,sharingText as text,sharingId as id,sharingInt as int,sharingPolicyInput} from './sharingOfficerPolicy.js';
@@ -28,6 +28,14 @@ function applicationAgreement(effectiveOn:string|null){
 }
 export const currentSharingPolicySql=`SELECT p.* FROM sharing_policy p ORDER BY p.version DESC LIMIT 1`;
 export const sharingQualificationProduct='aigerong-scalp-repair-essence-100';
+async function sharingRootException(client:DbClient,config:AppConfig,owner:string){
+ if(!await matchesMemberAdministrationRoot(client,config,owner))return false;
+ const capabilities=await memberAdministrationCapabilities(client,config.env,owner);
+ return capabilities.includes('member.manage')&&capabilities.includes('member.profile.read');
+}
+export async function canPromoteSharingOfficer(client:DbClient,config:AppConfig,owner:string,state:string|undefined){
+ return state==='active'||state==='promotion_only'&&await sharingRootException(client,config,owner);
+}
 /** A referral shared from published content or a gift has no catalog target.
  * The empty product code keeps one canonical referral link per officer while
  * preserving every existing product link and its visit history. */
@@ -114,14 +122,16 @@ export class SharingOfficerService {
    if(prior){if(prior.request_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT','同一请求编号对应了不同内容');return prior.response;}
    const result=await operation(client,actor);
    await client.query('INSERT INTO sharing_command(actor_id,request_key,request_hash,response,required_capability) VALUES($1,$2,$3,$4,$5)',[actor,key,fingerprint,JSON.stringify(result),required]);
-   const application=action==='apply' ? result as {version:number;agreement?:AgreementAcceptance} : undefined;
-   const evidence={requestHash:fingerprint,...(application?.agreement?{applicationVersion:application.version,agreement:application.agreement}:{})};
+   const application=action==='apply' ? result as {version:number;agreement?:AgreementAcceptance;rootException?:boolean} : undefined;
+   const evidence={requestHash:fingerprint,...(application?.agreement?{applicationVersion:application.version-(application.rootException?1:0),agreement:application.agreement}:{}),
+    ...(application?.rootException?{rootException:true,approvalVersion:application.version}:{})};
    await client.query(`INSERT INTO audit_log(principal_id,action,object_type,object_id,after_state,trace_id)
     VALUES($1,$2,'sharing_officer',$3,$4,$5)`,[`member:${actor}`,`sharing.${action}`,actor,evidence,key]);
    return result;
   },'SERIALIZABLE');
  }
  async require(client:DbClient,actor:string,cap:Capability){await this.authority.requireWithClient(client,actor,cap);}
+ canPromote(client:DbClient,actor:string,state:string|undefined){return canPromoteSharingOfficer(client,this.config,actor,state);}
  async mine(actorId:string|undefined){
   return transaction(this.pool,async client=>{
    const actor=await requireActiveMemberWithClient(client,actorId),p=(await client.query(currentSharingPolicySql)).rows[0];
@@ -139,13 +149,15 @@ export class SharingOfficerService {
    const pendingReferrer=await this.pendingReferrer(client,actor,p?.enabled===true);
    const linkReferrer=!relation&&!pendingReferrer&&p?.enabled ? await this.linkReferrer(client,actor,p) : null;
    const qualification=await sharingQualification(client,actor);
-   const offersApplication=Boolean(p?.enabled&&(!officer||['rejected','terminated'].includes(officer.state)));
-   const canApply=offersApplication&&qualification.met;
+   const promotionOnly=officer?.state==='promotion_only';
+   const offersApplication=Boolean(p?.enabled&&(!officer||['rejected','terminated','promotion_only'].includes(officer.state)));
+   const rootException=offersApplication&&await sharingRootException(client,this.config,actor);
+   const canApply=offersApplication&&(rootException||!promotionOnly&&qualification.met);
    return {memberId:actor,officer:officerView(officer),policy:officerPolicyView(officer?.v2_application_version&&p?{...p,basis_points:sharingV2BasisPoints}:p),relation,
     pendingReferrer,linkReferrer,
-    qualification,canApply,
+    qualification,canApply,...(rootException?{rootException:true}:{}),
     ...(offersApplication?{applicationAgreement:applicationAgreement(this.effectiveAgreementDate())}:{}),
-    canShare:Boolean(p?.enabled&&officer?.state==='active'),payee:payee?{version:payee.version,updatedAt:payee.updated_at}:null,
+    canShare:Boolean(p?.enabled&&(officer?.state==='active'||promotionOnly&&rootException)),payee:payee?{version:payee.version,updatedAt:payee.updated_at}:null,
     metrics:{...metrics,settledTaxCents:Number(paid.tax),settledNetCents:Number(paid.net)}};
   },'REPEATABLE READ');
  }
@@ -166,11 +178,13 @@ export class SharingOfficerService {
    if(action==='bind_visit')return this.bindVisit(client,actor,input);
    if(action==='change_referrer')return this.changeReferrer(client,actor,input);
    const p=(await client.query(currentSharingPolicySql)).rows[0];
-   let officer=(await client.query('SELECT * FROM sharing_officer WHERE member_id=$1 FOR UPDATE',[actor])).rows[0];
+   const officer=(await client.query('SELECT * FROM sharing_officer WHERE member_id=$1 FOR UPDATE',[actor])).rows[0];
    if(action==='apply'){
     if(!p?.enabled)fail('SHARING_APPLICATION_UNAVAILABLE','分享官申请尚未开放',503);
-    if(officer&&!['rejected','terminated'].includes(officer.state))fail('SHARING_APPLICATION_EXISTS','申请已提交，请查看当前状态');
-    if(!(await sharingQualification(client,actor)).met)fail('SHARING_PURCHASE_REQUIRED','购买精华套组1组后可申请；退款或售后中的商品暂不计入',409);
+    if(officer&&!['rejected','terminated','promotion_only'].includes(officer.state))fail('SHARING_APPLICATION_EXISTS','申请已提交，请查看当前状态');
+    const rootException=await sharingRootException(client,this.config,actor);
+    if(officer?.state==='promotion_only'&&!rootException)fail('SHARING_OFFICER_INACTIVE','分享官资格当前不可推广',403);
+    if(!rootException&&!(await sharingQualification(client,actor)).met)fail('SHARING_PURCHASE_REQUIRED','购买精华套组1组后可申请；退款或售后中的商品暂不计入',409);
     const effectiveOn=this.effectiveAgreementDate();
     const agreement=input.agreement as {accepted?:unknown;version?:unknown;digest?:unknown;effectiveOn?:unknown}|null|undefined;
     const document=effectiveOn?applicationAgreement(effectiveOn):null;
@@ -178,7 +192,7 @@ export class SharingOfficerService {
      if(agreement?.accepted!==true)fail('SHARING_AGREEMENT_REQUIRED','请先阅读并勾选分享官合作协议',409);
      if(agreement.version!==document?.version||agreement.digest!==document.digest||agreement.effectiveOn!==effectiveOn)
       fail('SHARING_AGREEMENT_CHANGED','合作协议已更新，请重新阅读并确认',409);
-    }else if(input.agreement!==undefined||officer?.v2_application_version)fail('SHARING_AGREEMENT_NOT_EFFECTIVE','合作协议尚未启用',409);
+    }else if(rootException||input.agreement!==undefined||officer?.v2_application_version)fail('SHARING_AGREEMENT_NOT_EFFECTIVE','合作协议尚未启用',409);
     const note=input.note===undefined?'':text(input.note,'申请说明',0,500);
     const row=(await client.query(`INSERT INTO sharing_officer(member_id,state,application_note,referral_code) VALUES($1,'pending',$2,$3)
      ON CONFLICT(member_id) DO UPDATE SET state='pending',application_note=$2,review_reason='',version=sharing_officer.version+1,updated_at=clock_timestamp() RETURNING *`,[actor,note,(await client.query('SELECT user_code FROM member_card_number WHERE member_id=$1',[actor])).rows[0].user_code])).rows[0];
@@ -190,19 +204,24 @@ export class SharingOfficerService {
       VALUES($1,$2,$3,$4,$5,$6)`,[actor,row.version,document.version,digest,effectiveOn,row.updated_at]);
      await client.query('UPDATE sharing_officer SET v2_application_version=$2 WHERE member_id=$1',[actor,row.version]);
     }
-    await this.event(client,actor,row,officer?.state??null,'购买条件已核验，提交申请');
-    return {state:row.state,version:row.version,referralCode:row.referral_code,
+    await this.event(client,actor,row,officer?.state??null,rootException?'最高管理员本人确认合作协议':'购买条件已核验，提交申请');
+    const reason='最高管理员特例，免购买及二次审核';
+    const opened=rootException?(await client.query(`UPDATE sharing_officer SET state='active',review_reason=$2,
+      version=version+1,updated_at=clock_timestamp() WHERE member_id=$1 RETURNING *`,[actor,reason])).rows[0]:row;
+    if(rootException)await this.event(client,actor,opened,'pending',reason,true);
+    return {state:opened.state,version:opened.version,referralCode:opened.referral_code,...(rootException?{rootException:true}:{}),
      ...(effectiveOn&&document?{agreement:{version:document.version,digest:document.digest,effectiveOn,acceptedAt:row.updated_at.toISOString()}}:{})};
    }
    if(!officer)fail('SHARING_OFFICER_REQUIRED','请先申请分享官资格',403);
    if(action==='payee'){
+    if(officer.state==='promotion_only')fail('SHARING_AGREEMENT_REQUIRED','请本人确认分享官合作协议',409);
     const payload={legalName:text(input.legalName,'收款人姓名',2,80),channel:text(input.channel,'收款方式',1,60),account:text(input.account,'收款账号',3,160)};
     const expected=int(input.expectedVersion,'资料版本',0,2_000_000_000),current=(await client.query('SELECT version FROM sharing_payee WHERE member_id=$1 FOR UPDATE',[actor])).rows[0];
     if((current?.version??0)!==expected)fail('VERSION_CONFLICT','结算资料已更新，请重新打开');
     const updated=(await client.query(`INSERT INTO sharing_payee(member_id,encrypted_payload) VALUES($1,$2)
      ON CONFLICT(member_id) DO UPDATE SET encrypted_payload=$2,version=sharing_payee.version+1,updated_at=clock_timestamp() RETURNING version`,[actor,this.seal(payload,`sharing-payee:${actor}`)])).rows[0];return {saved:true,version:updated.version};
    }
-   if(!p?.enabled||officer.state!=='active')fail('SHARING_OFFICER_INACTIVE','分享官资格当前不可推广',403);
+   if(!p?.enabled||!await this.canPromote(client,actor,officer.state))fail('SHARING_OFFICER_INACTIVE','分享官资格当前不可推广',403);
    const code=text(input.productCode,'商品',3,64);
    const product=(await client.query("SELECT code FROM catalog_product WHERE code=$1 AND publication_status='published' AND qualification_status='eligible'",[code])).rows[0];
    if(!product)fail('SHARING_PRODUCT_UNAVAILABLE','该商品当前不可推广',404);
@@ -210,8 +229,8 @@ export class SharingOfficerService {
    return {shareId,productCode:code,path:`/pages/product/index?id=${encodeURIComponent(code)}&officer_share=${shareId}`};
   });
  }
- async event(client:DbClient,actor:string,row:Row,from:string|null,reason:string){await client.query(`INSERT INTO sharing_officer_event(member_id,version,from_state,to_state,actor_id,reason)
-  VALUES($1,$2,$3,$4,$5,$6)`,[row.member_id,row.version,from,row.state,actor,reason]);}
+ async event(client:DbClient,actor:string,row:Row,from:string|null,reason:string,rootException=false){await client.query(`INSERT INTO sharing_officer_event(member_id,version,from_state,to_state,actor_id,reason,root_exception)
+  VALUES($1,$2,$3,$4,$5,$6,$7)`,[row.member_id,row.version,from,row.state,actor,reason,rootException]);}
  async visit(shareId:string,visitKeyInput:unknown){
   if(!/^[0-9a-f]{32}$/.test(shareId))fail('SHARING_LINK_NOT_FOUND','分享链接不可用',404);
   const visitKey=text(visitKeyInput,'访问凭据',16,160);
@@ -370,7 +389,7 @@ export class SharingOfficerService {
     const targetMember=await requireActiveMemberWithClient(client,target);
     const row=(await client.query('SELECT * FROM sharing_officer WHERE member_id=$1 FOR UPDATE',[targetMember])).rows[0];
     if(!row||row.version!==expected)fail('VERSION_CONFLICT','申请已更新，请重新加载');
-    const allowed:Record<string,string[]>={pending:['active','rejected'],active:['suspended','terminated'],suspended:['active','terminated'],rejected:[],terminated:[]};
+    const allowed:Record<string,string[]>={pending:['active','rejected'],active:['suspended','terminated'],suspended:['active','terminated'],promotion_only:['terminated'],rejected:[],terminated:[]};
     if(!allowed[row.state]?.includes(desired))fail('SHARING_STATE_INVALID','当前不能切换到此资格状态');
     const approving=row.state==='pending'&&desired==='active';
     if(approving&&!(await sharingQualification(client,target)).met)
