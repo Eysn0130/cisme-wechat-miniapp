@@ -878,7 +878,7 @@
       "state": "implemented; provider preflight and current-source native acceptance pending"
     }
   ],
-  "migrationSetSha256": "7742f2a6b5eb95c89efcde47640eb354b4b18e1f3d0585c26e847835f0c7b0f9",
+  "migrationSetSha256": "d00b59ec27519bfd9a6d229367b31a7be8b66969adfa58bd42a30f769f0e923e",
   "egressSignatureSha256": "51385a8246d036be461cc5496918b981d47f9d77cb0361131ed2d02e0cbec0e7",
   "performanceRepairReview": {
     "date": "2026-09-20",
@@ -1486,6 +1486,11 @@
     "data": "Award/batch IDs, canonical owner ID, entitlement status, immutable bundle capacities, questionnaire record version only, encrypted address/tracking, explicit receipt and coupon/order links.",
     "recipients": "Existing first-party API and local owner-requested XLSX viewer only; no new model, payment or tracking provider.",
     "releaseScope": "Only awarded members, one voucher globally per member ID; 30 days, mainland free shipping, 72-hour dispatch. No actual award or stock configuration is seeded."
+  },
+  "sharingRootException20261128": {
+    "scope": "Only the verified highest administrator may receive a promotion-only grant and open V2 immediately after confirming the effective agreement.",
+    "fieldsReviewed": "sharing_officer.state and sharing_officer_event.root_exception; the restricted operational appointment is recorded in audit_log with the actual operator and rationale.",
+    "retention": "Existing qualification and audit evidence rules apply. The internal exception marker is excluded from portable data, which retains the applicant-facing reason. No new recipients or export paths."
   },
   "sharingOfficerReview20261113": {
     "source": "分享官功能需求_MVP_2026.11.14.docx; Owner cancelled agreement and selected permanent/first ownership, member-selected change, no self commission; delegated initial10%/receipt7days.",
